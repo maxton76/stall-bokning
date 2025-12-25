@@ -1,0 +1,109 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasRole(role) {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    function isSystemAdmin() {
+      return hasRole('system_admin');
+    }
+
+    function isStableOwner() {
+      return hasRole('stable_owner');
+    }
+
+    function isStableGuest() {
+      return hasRole('stable_guest');
+    }
+
+    function belongsToStable(stableId) {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.stableId == stableId;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (
+        isOwner(userId) ||
+        isSystemAdmin() ||
+        belongsToStable(resource.data.stableId)
+      );
+      allow create: if isAuthenticated();
+      allow update: if isOwner(userId) || isSystemAdmin();
+      allow delete: if isSystemAdmin();
+    }
+
+    // Stables collection
+    match /stables/{stableId} {
+      allow read: if isAuthenticated() && (
+        belongsToStable(stableId) ||
+        isSystemAdmin()
+      );
+      allow create: if isAuthenticated();
+      allow update: if isSystemAdmin() ||
+                      (belongsToStable(stableId) && isStableOwner());
+      allow delete: if isSystemAdmin();
+    }
+
+    // Shifts collection
+    match /shifts/{shiftId} {
+      allow read: if isAuthenticated() && (
+        belongsToStable(resource.data.stableId) ||
+        isSystemAdmin()
+      );
+      allow create: if isAuthenticated() && (
+        isStableOwner() ||
+        isSystemAdmin()
+      );
+      allow update: if isAuthenticated() && (
+        belongsToStable(resource.data.stableId) ||
+        isSystemAdmin()
+      );
+      allow delete: if isStableOwner() || isSystemAdmin();
+    }
+
+    // Bookings collection
+    match /bookings/{bookingId} {
+      allow read: if isAuthenticated() && (
+        belongsToStable(resource.data.stableId) ||
+        isSystemAdmin()
+      );
+      allow create: if isAuthenticated() && belongsToStable(request.resource.data.stableId);
+      allow update: if isAuthenticated() && (
+        isOwner(resource.data.userId) ||
+        isStableOwner() ||
+        isSystemAdmin()
+      );
+      allow delete: if isAuthenticated() && (
+        isOwner(resource.data.userId) ||
+        isStableOwner() ||
+        isSystemAdmin()
+      );
+    }
+
+    // Notifications collection
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isSystemAdmin();
+      allow update: if isAuthenticated() && isOwner(resource.data.userId);
+      allow delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

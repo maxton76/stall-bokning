@@ -1,0 +1,149 @@
+#!/bin/bash
+
+# Firebase Setup Script for stall-bokning-dev
+# This script automates Firebase project setup after manual authentication
+
+set -e  # Exit on error
+
+PROJECT_ID="stall-bokning-dev"
+REGION="europe-west1"
+
+echo "🚀 Firebase Setup Script"
+echo "========================"
+echo ""
+
+# Check if user is logged in
+echo "📋 Checking authentication..."
+if ! firebase projects:list &> /dev/null; then
+    echo "❌ Not logged in to Firebase. Please run: firebase login"
+    exit 1
+fi
+
+if ! gcloud projects describe $PROJECT_ID &> /dev/null; then
+    echo "❌ Not logged in to gcloud or project not found."
+    echo "Please run:"
+    echo "  gcloud auth login"
+    echo "  gcloud config set project $PROJECT_ID"
+    exit 1
+fi
+
+echo "✅ Authenticated successfully"
+echo ""
+
+# Set Firebase project
+echo "📋 Setting Firebase project..."
+firebase use $PROJECT_ID --add
+echo "✅ Firebase project set to $PROJECT_ID"
+echo ""
+
+# Enable necessary Google Cloud APIs
+echo "📋 Enabling Google Cloud APIs..."
+gcloud services enable \
+    firestore.googleapis.com \
+    identitytoolkit.googleapis.com \
+    storage-api.googleapis.com \
+    cloudfunctions.googleapis.com \
+    run.googleapis.com \
+    secretmanager.googleapis.com \
+    cloudscheduler.googleapis.com \
+    --project=$PROJECT_ID
+
+echo "✅ APIs enabled"
+echo ""
+
+# Create Firestore database
+echo "📋 Creating Firestore database..."
+if ! gcloud firestore databases describe --format="value(name)" &> /dev/null; then
+    gcloud firestore databases create \
+        --location=$REGION \
+        --type=firestore-native \
+        --project=$PROJECT_ID
+    echo "✅ Firestore database created"
+else
+    echo "ℹ️  Firestore database already exists"
+fi
+echo ""
+
+# Deploy Firestore rules and indexes
+echo "📋 Deploying Firestore rules and indexes..."
+firebase deploy --only firestore:rules,firestore:indexes --project=$PROJECT_ID
+echo "✅ Firestore rules and indexes deployed"
+echo ""
+
+# Deploy Storage rules
+echo "📋 Deploying Storage rules..."
+firebase deploy --only storage:rules --project=$PROJECT_ID
+echo "✅ Storage rules deployed"
+echo ""
+
+# Create service account
+echo "📋 Creating service account..."
+SERVICE_ACCOUNT_NAME="stall-bokning-dev-sa"
+SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
+
+if ! gcloud iam service-accounts describe $SERVICE_ACCOUNT_EMAIL --project=$PROJECT_ID &> /dev/null; then
+    gcloud iam service-accounts create $SERVICE_ACCOUNT_NAME \
+        --display-name="Stall Bokning Development Service Account" \
+        --project=$PROJECT_ID
+    echo "✅ Service account created: $SERVICE_ACCOUNT_EMAIL"
+else
+    echo "ℹ️  Service account already exists: $SERVICE_ACCOUNT_EMAIL"
+fi
+echo ""
+
+# Grant roles to service account
+echo "📋 Granting roles to service account..."
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:$SERVICE_ACCOUNT_EMAIL" \
+    --role="roles/firebase.admin" \
+    --condition=None
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:$SERVICE_ACCOUNT_EMAIL" \
+    --role="roles/datastore.user" \
+    --condition=None
+
+echo "✅ Roles granted"
+echo ""
+
+# Download service account key
+echo "📋 Downloading service account key..."
+KEY_FILE="packages/api/service-account-dev.json"
+mkdir -p packages/api
+
+if [ ! -f "$KEY_FILE" ]; then
+    gcloud iam service-accounts keys create $KEY_FILE \
+        --iam-account=$SERVICE_ACCOUNT_EMAIL \
+        --project=$PROJECT_ID
+    echo "✅ Service account key saved to: $KEY_FILE"
+    echo "⚠️  IMPORTANT: This file is in .gitignore - do NOT commit it!"
+else
+    echo "ℹ️  Service account key already exists: $KEY_FILE"
+fi
+echo ""
+
+# Get Firebase config
+echo "📋 Getting Firebase configuration..."
+echo "Run this command to get your Firebase config:"
+echo "  firebase apps:sdkconfig web"
+echo ""
+
+# Create .env file
+echo "📋 Creating .env files..."
+if [ ! -f ".env" ]; then
+    cp .env.example .env
+    echo "✅ Created .env from .env.example"
+    echo "⚠️  Please edit .env and add your Firebase configuration"
+else
+    echo "ℹ️  .env already exists"
+fi
+echo ""
+
+echo "✅ Firebase setup complete!"
+echo ""
+echo "📝 Next steps:"
+echo "1. Get Firebase config: firebase apps:sdkconfig web"
+echo "2. Add Firebase config to packages/frontend/.env"
+echo "3. Set up external API keys (Stripe, SendGrid, Twilio)"
+echo "4. Start emulators: firebase emulators:start"
+echo ""

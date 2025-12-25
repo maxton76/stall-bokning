@@ -1,0 +1,61 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasRole(role) {
+      return isAuthenticated() &&
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    function belongsToStable(stableId) {
+      return isAuthenticated() &&
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.stableId == stableId;
+    }
+
+    function isValidImageSize() {
+      return request.resource.size < 5 * 1024 * 1024; // 5MB
+    }
+
+    function isValidImageType() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // User profile images
+    match /users/{userId}/profile/{imageId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) && isValidImageSize() && isValidImageType();
+      allow delete: if isOwner(userId);
+    }
+
+    // Stable images
+    match /stables/{stableId}/images/{imageId} {
+      allow read: if isAuthenticated();
+      allow write: if belongsToStable(stableId) &&
+                     hasRole('stable_owner') &&
+                     isValidImageSize() &&
+                     isValidImageType();
+      allow delete: if belongsToStable(stableId) && hasRole('stable_owner');
+    }
+
+    // Shift attachments
+    match /shifts/{shiftId}/attachments/{fileId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && hasRole('stable_owner');
+      allow delete: if hasRole('stable_owner');
+    }
+
+    // Default deny all
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
