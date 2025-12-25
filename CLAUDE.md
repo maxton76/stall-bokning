@@ -74,7 +74,7 @@ cp .env.example .env                     # Create environment files
 ```bash
 # Start all services (requires 3 terminals)
 firebase emulators:start                 # Terminal 1: Firebase emulators (Auth, Firestore, Functions, Storage)
-cd packages/frontend && npm run dev      # Terminal 2: Frontend dev server (http://localhost:5173)
+cd packages/frontend && npm run dev      # Terminal 2: Frontend dev server (http://localhost:5555)
 cd packages/api && npm run dev           # Terminal 3: Cloud Run API (http://localhost:8080)
 
 # Emulator UI available at: http://localhost:4000

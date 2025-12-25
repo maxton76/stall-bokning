@@ -78,7 +78,7 @@ firebase emulators:start           # Terminal 1
 cd packages/frontend && npm run dev # Terminal 2
 cd packages/api && npm run dev      # Terminal 3
 
-# Open http://localhost:5173
+# Open http://localhost:5555
 ```
 
 Detailed setup guide can be found in [SETUP.md](./docs/SETUP.md).
