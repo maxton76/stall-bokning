@@ -11,9 +11,16 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function userExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
     function hasRole(role) {
-      return isAuthenticated() &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+      return isAuthenticated() && userExists() && getUserData().role == role;
     }
 
     function isSystemAdmin() {
@@ -29,8 +36,7 @@ service cloud.firestore {
     }
 
     function belongsToStable(stableId) {
-      return isAuthenticated() &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.stableId == stableId;
+      return isAuthenticated() && userExists() && getUserData().stableId == stableId;
     }
 
     // Users collection
@@ -47,31 +53,34 @@ service cloud.firestore {
 
     // Stables collection
     match /stables/{stableId} {
-      allow read: if isAuthenticated() && (
-        belongsToStable(stableId) ||
-        isSystemAdmin()
-      );
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated();
-      allow update: if isSystemAdmin() ||
-                      (belongsToStable(stableId) && isStableOwner());
-      allow delete: if isSystemAdmin();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+
+    // Shift Types collection
+    match /shiftTypes/{shiftTypeId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+
+    // Schedules collection
+    match /schedules/{scheduleId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
     }
 
     // Shifts collection
     match /shifts/{shiftId} {
-      allow read: if isAuthenticated() && (
-        belongsToStable(resource.data.stableId) ||
-        isSystemAdmin()
-      );
-      allow create: if isAuthenticated() && (
-        isStableOwner() ||
-        isSystemAdmin()
-      );
-      allow update: if isAuthenticated() && (
-        belongsToStable(resource.data.stableId) ||
-        isSystemAdmin()
-      );
-      allow delete: if isStableOwner() || isSystemAdmin();
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
     }
 
     // Bookings collection
@@ -99,6 +108,14 @@ service cloud.firestore {
       allow create: if isSystemAdmin();
       allow update: if isAuthenticated() && isOwner(resource.data.userId);
       allow delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Invites collection
+    match /invites/{inviteId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
     }
 
     // Default deny all

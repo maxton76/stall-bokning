@@ -26,6 +26,7 @@ firestore-debug.log
 ui-debug.log
 service-account-*.json
 *-service-account.json
+firebase-emulator-data/
 
 # Logs
 npm-debug.log*

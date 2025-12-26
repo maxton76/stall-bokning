@@ -153,8 +153,12 @@ This document describes the system architecture for the Stable Booking System wi
 │  ┌────────────────────────────────────────────────────────────┐ │
 │  │                    UTILITIES & HOOKS                        │ │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │ │
-│  │  │ Firebase │  │ Date     │  │ Format   │  │ Validate │  │ │
-│  │  │ Hooks    │  │ Utils    │  │ Utils    │  │ (Zod)    │  │ │
+│  │  │ Date     │  │ Holiday  │  │ Firestore│  │ Shift    │  │ │
+│  │  │ Helpers  │  │ Helpers  │  │ Helpers  │  │ Tracking │  │ │
+│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  │ │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │ │
+│  │  │ Firebase │  │ Format   │  │ Validate │  │ Custom   │  │ │
+│  │  │ Hooks    │  │ Utils    │  │ (Zod)    │  │ Hooks    │  │ │
 │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  │ │
 │  └────────────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────────┘
@@ -233,6 +237,99 @@ This document describes the system architecture for the Stable Booking System wi
 │  │  └──────────────────────────────────────────────────────┘ │ │
 │  └────────────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────────┘
+```
+
+### Frontend Code Organization
+
+The frontend follows a modular architecture with clear separation of concerns:
+
+```
+src/
+├── components/           # Reusable UI components
+│   ├── ui/              # shadcn/ui base components
+│   └── ...              # Custom components
+│
+├── pages/               # Page-level components (routes)
+│   ├── ScheduleEditorPage.tsx    # Draft schedule management
+│   ├── CreateSchedulePage.tsx    # Schedule creation wizard
+│   └── ...
+│
+├── services/            # Business logic & API layer
+│   ├── scheduleService.ts        # Schedule CRUD operations
+│   │                             # Auto-assignment algorithm
+│   │                             # Historical points calculation
+│   └── ...
+│
+├── utils/               # Shared utility modules
+│   ├── dateHelpers.ts            # Date/time operations
+│   │   ├── getWeekNumber()
+│   │   ├── parseShiftStartTime()
+│   │   ├── createDateThreshold()
+│   │   └── formatDateString()
+│   │
+│   ├── firestoreHelpers.ts       # Database patterns
+│   │   ├── mapDocsToObjects<T>()
+│   │   └── extractDocIds()
+│   │
+│   ├── holidayHelpers.ts         # Swedish holiday logic
+│   │   ├── isSwedishHoliday()
+│   │   └── applyHolidayMultiplier()
+│   │
+│   └── shiftTracking.ts          # Member tracking state
+│       ├── createTrackingContext()
+│       └── updateMemberTracking()
+│
+├── contexts/            # React Context providers
+│   └── AuthContext.tsx
+│
+├── hooks/               # Custom React hooks
+│   └── ...
+│
+├── types/               # TypeScript type definitions
+│   ├── schedule.ts               # Schedule domain types
+│   │   ├── Schedule
+│   │   ├── Shift
+│   │   ├── MemberAvailability
+│   │   └── MemberLimits
+│   └── ...
+│
+└── lib/                 # Third-party integrations
+    └── firebase.ts               # Firebase SDK setup
+```
+
+**Key Design Principles:**
+
+1. **Service Layer Pattern**: Business logic isolated in service modules
+2. **Utility Modularity**: Shared helpers prevent code duplication (~150 lines eliminated)
+3. **Type Safety**: Strong TypeScript typing with generics
+4. **Separation of Concerns**: Clear boundaries between UI, logic, and data
+5. **Reusability**: Generic helpers used across multiple services
+
+**Auto-Assignment Algorithm:**
+
+The schedule auto-assignment implements a fairness-based greedy algorithm:
+
+```
+Algorithm: Enhanced Fair Assignment
+Input: Unassigned shifts, Members with constraints
+Output: Optimal shift assignments
+
+1. Calculate historical points (90-day lookback)
+2. For each unassigned shift:
+   a. Filter eligible members:
+      - Check availability constraints (never-available times)
+      - Check individual limits (max shifts per week/month)
+   b. Select member with lowest total points:
+      - Total = Current schedule points + Historical points
+   c. Apply holiday weighting (1.5x multiplier for Swedish holidays)
+   d. Assign shift and update member tracking
+3. Commit all assignments atomically
+
+Constraints:
+- Availability: Time-slot based restrictions per weekday
+- Limits: Min/max shifts per week/month per member
+- Holidays: Swedish holidays get 1.5x point multiplier
+- Fairness: ±10% point distribution across members
 ```
 
 ---
