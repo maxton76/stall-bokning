@@ -22,6 +22,10 @@ import HorseSettingsPage from './pages/HorseSettingsPage'
 import LocationHistoryPage from './pages/LocationHistoryPage'
 import FacilitiesReservationsPage from './pages/FacilitiesReservationsPage'
 import ManageFacilitiesPage from './pages/ManageFacilitiesPage'
+import ActivitiesActionListPage from './pages/ActivitiesActionListPage'
+import ActivitiesPlanningPage from './pages/ActivitiesPlanningPage'
+import ActivitiesCarePage from './pages/ActivitiesCarePage'
+import ActivitiesSettingsPage from './pages/ActivitiesSettingsPage'
 import OrganizationsPage from './pages/OrganizationsPage'
 import CreateOrganizationPage from './pages/CreateOrganizationPage'
 import OrganizationUsersPage from './pages/OrganizationUsersPage'
@@ -53,6 +57,10 @@ function App() {
             <Route path="/location-history" element={<LocationHistoryPage />} />
             <Route path="/facilities/reservations" element={<FacilitiesReservationsPage />} />
             <Route path="/facilities/manage" element={<ManageFacilitiesPage />} />
+            <Route path="/activities" element={<ActivitiesActionListPage />} />
+            <Route path="/activities/planning" element={<ActivitiesPlanningPage />} />
+            <Route path="/activities/care" element={<ActivitiesCarePage />} />
+            <Route path="/activities/settings" element={<ActivitiesSettingsPage />} />
             <Route path="/stables" element={<StablesPage />} />
             <Route path="/stables/create" element={<CreateStablePage />} />
             <Route path="/stables/:stableId" element={<StableDetailPage />} />

@@ -19,6 +19,8 @@ import {
   Shield,
   CreditCard,
   Warehouse,
+  ClipboardList,
+  Heart,
 } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -71,6 +73,17 @@ export default function AuthenticatedLayout() {
       subItems: [
         { name: 'Location History', href: '/location-history', icon: History },
         { name: 'Settings', href: '/horses/settings', icon: Settings2Icon },
+      ],
+    },
+    {
+      name: 'Activities',
+      href: '/activities',
+      icon: ClipboardList,
+      subItems: [
+        { name: 'Action list', href: '/activities', icon: ClipboardList },
+        { name: 'Planning', href: '/activities/planning', icon: CalendarIcon },
+        { name: 'Care', href: '/activities/care', icon: Heart },
+        { name: 'Settings', href: '/activities/settings', icon: SettingsIcon },
       ],
     },
     {

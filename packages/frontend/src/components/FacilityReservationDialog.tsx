@@ -37,7 +37,7 @@ const reservationSchema = z.object({
   date: z.date({ message: 'Date is required' }),
   startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format'),
   endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format'),
-  horseId: z.string().optional(),
+  horseId: z.string().min(1, 'Horse is required'),
   contactInfo: z.string().optional(),
   notes: z.string().optional(),
 }).refine(
@@ -328,25 +328,27 @@ export function FacilityReservationDialog({
             />
           </div>
 
-          {/* Horse Select (Optional) */}
-          {horses.length > 0 && (
-            <div className='space-y-2'>
-              <Label htmlFor='horseId'>Horse (optional)</Label>
-              <Select value={watch('horseId')} onValueChange={(value) => setValue('horseId', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder='Select horse' />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value=''>No horse</SelectItem>
-                  {horses.map((horse) => (
-                    <SelectItem key={horse.id} value={horse.id}>
-                      {horse.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          {/* Horse Select */}
+          <div className='space-y-2'>
+            <Label htmlFor='horseId'>
+              Horse <span className='text-destructive'>*</span>
+            </Label>
+            <Select value={watch('horseId')} onValueChange={(value) => setValue('horseId', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder='Select horse' />
+              </SelectTrigger>
+              <SelectContent>
+                {horses.map((horse) => (
+                  <SelectItem key={horse.id} value={horse.id}>
+                    {horse.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.horseId && (
+              <p className='text-sm text-destructive'>{errors.horseId.message}</p>
+            )}
+          </div>
 
           {/* Notes */}
           <div className='space-y-2'>

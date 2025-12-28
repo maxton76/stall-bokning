@@ -672,6 +672,47 @@ service cloud.firestore {
       );
     }
 
+    // ============================================================================
+    // ACTIVITIES COLLECTION - POLYMORPHIC (ACTIVITIES, TASKS, MESSAGES)
+    // ============================================================================
+
+    match /activities/{activityId} {
+      // LIST: Efficient query - no get() calls needed for list operations
+      allow list: if isAuthenticated();
+
+      // GET: Full access check - any stable member can read
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canAccessStable(resource.data.stableId)
+      );
+
+      // CREATE: Any stable member can create for their stable
+      // Can assign to self or others if manager
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        (canAccessStable(request.resource.data.stableId) &&
+         (request.resource.data.assignedTo == null ||
+          request.resource.data.assignedTo == request.auth.uid ||
+          canManageStable(request.resource.data.stableId)))
+      );
+
+      // UPDATE: Creator, assignee, or manager
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(resource.data.stableId) ||
+        resource.data.createdBy == request.auth.uid ||
+        resource.data.assignedTo == request.auth.uid
+      );
+
+      // DELETE: Creator, manager, or owner
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isStableOwnerOf(resource.data.stableId) ||
+        canManageStable(resource.data.stableId) ||
+        resource.data.createdBy == request.auth.uid
+      );
+    }
+
     // Default deny all
     match /{document=**} {
       allow read, write: if false;

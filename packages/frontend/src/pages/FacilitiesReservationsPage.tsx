@@ -18,8 +18,10 @@ import { useDialog } from '@/hooks/useDialog'
 import { useUserStables } from '@/hooks/useUserStables'
 import { getStableReservations, createReservation, updateReservation } from '@/services/facilityReservationService'
 import { getFacilitiesByStable } from '@/services/facilityService'
+import { getUserHorsesAtStable } from '@/services/horseService'
 import type { FacilityReservation } from '@/types/facilityReservation'
 import type { Facility, FacilityType } from '@/types/facility'
+import type { Horse } from '@/types/horse'
 import { FacilityReservationDialog } from '@/components/FacilityReservationDialog'
 import { FacilityCalendarView } from '@/components/FacilityCalendarView'
 import { Timestamp } from 'firebase/firestore'
@@ -94,13 +96,23 @@ export default function FacilitiesReservationsPage() {
     }
   })
 
+  const horses = useAsyncData<Horse[]>({
+    loadFn: async () => {
+      if (!selectedStableId || !user?.uid) return []
+      return await getUserHorsesAtStable(user.uid, selectedStableId)
+    }
+  })
+
   // Reload data when stable changes
   useEffect(() => {
     if (selectedStableId) {
       facilities.load()
       reservations.load()
+      if (user?.uid) {
+        horses.load()
+      }
     }
-  }, [selectedStableId])
+  }, [selectedStableId, user?.uid])
 
   // Filter reservations
   const filteredReservations = useMemo(() => {
@@ -560,6 +572,7 @@ export default function FacilitiesReservationsPage() {
         onOpenChange={reservationDialog.closeDialog}
         reservation={reservationDialog.data || undefined}
         facilities={facilities.data || []}
+        horses={horses.data || []}
         onSave={handleSaveReservation}
         initialValues={dialogInitialValues}
       />
