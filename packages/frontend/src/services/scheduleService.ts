@@ -15,7 +15,7 @@ import {
 import { db } from '@/lib/firebase'
 import type { Schedule, Shift, CreateScheduleData, ShiftType } from '@/types/schedule'
 import { parseShiftStartTime, createDateThreshold } from '@/utils/dateHelpers'
-import { mapDocsToObjects, extractDocIds } from '@/utils/firestoreHelpers'
+import { mapDocsToObjects, extractDocIds, removeUndefined, updateTimestamps } from '@/utils/firestoreHelpers'
 import { isSwedishHoliday, applyHolidayMultiplier } from '@/utils/holidayHelpers'
 import {
   createTrackingContext,
@@ -44,12 +44,15 @@ export async function createSchedule(data: CreateScheduleData, userId: string): 
 }
 
 export async function publishSchedule(scheduleId: string, userId: string): Promise<void> {
-  const scheduleRef = doc(db, 'schedules', scheduleId)
-  await updateDoc(scheduleRef, {
+  const dataToUpdate = removeUndefined({
     status: 'published',
     publishedAt: Timestamp.now(),
-    publishedBy: userId
+    publishedBy: userId,
+    ...updateTimestamps(userId)
   })
+
+  const scheduleRef = doc(db, 'schedules', scheduleId)
+  await updateDoc(scheduleRef, dataToUpdate)
 }
 
 // ============= Auto-Assignment =============

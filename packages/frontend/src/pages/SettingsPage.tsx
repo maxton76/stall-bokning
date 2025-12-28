@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import { Bell, Moon, Globe, Shield } from 'lucide-react'
+import { ToggleSetting } from '@/components/settings/fields/ToggleSetting'
+import { SettingSection } from '@/components/settings/sections/SettingSection'
 
 export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true)
@@ -22,153 +22,107 @@ export default function SettingsPage() {
       </div>
 
       {/* Notifications */}
-      <Card>
-        <CardHeader>
-          <div className='flex items-center gap-2'>
-            <Bell className='h-5 w-5' />
-            <CardTitle>Notifications</CardTitle>
-          </div>
-          <CardDescription>
-            Configure how you receive notifications
-          </CardDescription>
-        </CardHeader>
-        <CardContent className='space-y-6'>
-          <div className='flex items-center justify-between'>
-            <div className='space-y-0.5'>
-              <Label htmlFor='email-notifications'>Email Notifications</Label>
-              <p className='text-sm text-muted-foreground'>
-                Receive notifications via email
-              </p>
-            </div>
-            <Switch
-              id='email-notifications'
-              checked={emailNotifications}
-              onCheckedChange={setEmailNotifications}
-            />
-          </div>
+      <SettingSection
+        title='Notifications'
+        description='Configure how you receive notifications'
+        icon={Bell}
+      >
+        <ToggleSetting
+          id='email-notifications'
+          label='Email Notifications'
+          description='Receive notifications via email'
+          checked={emailNotifications}
+          onCheckedChange={setEmailNotifications}
+        />
 
-          <div className='flex items-center justify-between'>
-            <div className='space-y-0.5'>
-              <Label htmlFor='push-notifications'>Push Notifications</Label>
-              <p className='text-sm text-muted-foreground'>
-                Receive push notifications in browser
-              </p>
-            </div>
-            <Switch
-              id='push-notifications'
-              checked={pushNotifications}
-              onCheckedChange={setPushNotifications}
-            />
-          </div>
-        </CardContent>
-      </Card>
+        <ToggleSetting
+          id='push-notifications'
+          label='Push Notifications'
+          description='Receive push notifications in browser'
+          checked={pushNotifications}
+          onCheckedChange={setPushNotifications}
+        />
+      </SettingSection>
 
       {/* Appearance */}
-      <Card>
-        <CardHeader>
-          <div className='flex items-center gap-2'>
-            <Moon className='h-5 w-5' />
-            <CardTitle>Appearance</CardTitle>
-          </div>
-          <CardDescription>
-            Customize how the application looks
-          </CardDescription>
-        </CardHeader>
-        <CardContent className='space-y-6'>
-          <div className='flex items-center justify-between'>
-            <div className='space-y-0.5'>
-              <Label htmlFor='dark-mode'>Dark Mode</Label>
-              <p className='text-sm text-muted-foreground'>
-                Enable dark mode theme
-              </p>
-            </div>
-            <Switch
-              id='dark-mode'
-              checked={darkMode}
-              onCheckedChange={setDarkMode}
-              disabled
-            />
-          </div>
-          <p className='text-xs text-muted-foreground'>
-            Dark mode functionality coming soon
-          </p>
-        </CardContent>
-      </Card>
+      <SettingSection
+        title='Appearance'
+        description='Customize how the application looks'
+        icon={Moon}
+      >
+        <ToggleSetting
+          id='dark-mode'
+          label='Dark Mode'
+          description='Enable dark mode theme'
+          checked={darkMode}
+          onCheckedChange={setDarkMode}
+          disabled
+        />
+        <p className='text-xs text-muted-foreground'>
+          Dark mode functionality coming soon
+        </p>
+      </SettingSection>
 
       {/* Language & Region */}
-      <Card>
-        <CardHeader>
-          <div className='flex items-center gap-2'>
-            <Globe className='h-5 w-5' />
-            <CardTitle>Language & Region</CardTitle>
-          </div>
-          <CardDescription>
-            Set your language and regional preferences
-          </CardDescription>
-        </CardHeader>
-        <CardContent className='space-y-4'>
-          <div className='space-y-2'>
-            <Label htmlFor='language'>Language</Label>
-            <Select defaultValue='en' disabled>
-              <SelectTrigger id='language'>
-                <SelectValue placeholder='Select language' />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='en'>English</SelectItem>
-                <SelectItem value='sv'>Svenska</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className='text-xs text-muted-foreground'>
-              Multi-language support coming soon
-            </p>
-          </div>
+      <SettingSection
+        title='Language & Region'
+        description='Set your language and regional preferences'
+        icon={Globe}
+      >
+        <div className='space-y-2'>
+          <Label htmlFor='language'>Language</Label>
+          <Select defaultValue='en' disabled>
+            <SelectTrigger id='language'>
+              <SelectValue placeholder='Select language' />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='en'>English</SelectItem>
+              <SelectItem value='sv'>Svenska</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className='text-xs text-muted-foreground'>
+            Multi-language support coming soon
+          </p>
+        </div>
 
-          <div className='space-y-2'>
-            <Label htmlFor='timezone'>Timezone</Label>
-            <Select defaultValue='europe-stockholm' disabled>
-              <SelectTrigger id='timezone'>
-                <SelectValue placeholder='Select timezone' />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='europe-stockholm'>Europe/Stockholm</SelectItem>
-                <SelectItem value='utc'>UTC</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+        <div className='space-y-2'>
+          <Label htmlFor='timezone'>Timezone</Label>
+          <Select defaultValue='europe-stockholm' disabled>
+            <SelectTrigger id='timezone'>
+              <SelectValue placeholder='Select timezone' />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='europe-stockholm'>Europe/Stockholm</SelectItem>
+              <SelectItem value='utc'>UTC</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </SettingSection>
 
       {/* Privacy & Security */}
-      <Card>
-        <CardHeader>
-          <div className='flex items-center gap-2'>
-            <Shield className='h-5 w-5' />
-            <CardTitle>Privacy & Security</CardTitle>
-          </div>
-          <CardDescription>
-            Manage your privacy and security settings
-          </CardDescription>
-        </CardHeader>
-        <CardContent className='space-y-4'>
-          <div className='space-y-2'>
-            <Button variant='outline' disabled>
-              Change Password
-            </Button>
-            <p className='text-xs text-muted-foreground'>
-              Password management coming soon
-            </p>
-          </div>
+      <SettingSection
+        title='Privacy & Security'
+        description='Manage your privacy and security settings'
+        icon={Shield}
+      >
+        <div className='space-y-2'>
+          <Button variant='outline' disabled>
+            Change Password
+          </Button>
+          <p className='text-xs text-muted-foreground'>
+            Password management coming soon
+          </p>
+        </div>
 
-          <div className='space-y-2'>
-            <Button variant='outline' disabled>
-              Two-Factor Authentication
-            </Button>
-            <p className='text-xs text-muted-foreground'>
-              Enhanced security features coming soon
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+        <div className='space-y-2'>
+          <Button variant='outline' disabled>
+            Two-Factor Authentication
+          </Button>
+          <p className='text-xs text-muted-foreground'>
+            Enhanced security features coming soon
+          </p>
+        </div>
+      </SettingSection>
 
       {/* Save Button */}
       <div className='flex justify-end gap-4'>

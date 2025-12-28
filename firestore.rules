@@ -2,7 +2,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
+    // ============================================================================
+    // AUTHENTICATION HELPERS
+    // ============================================================================
+
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -10,6 +13,10 @@ service cloud.firestore {
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
+
+    // ============================================================================
+    // SYSTEM ROLE HELPERS (using correct 'systemRole' field)
+    // ============================================================================
 
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
@@ -19,103 +26,650 @@ service cloud.firestore {
       return exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
+    // FIXED: Check 'systemRole' field instead of 'role'
     function hasRole(role) {
-      return isAuthenticated() && userExists() && getUserData().role == role;
+      return isAuthenticated() && userExists() && getUserData().systemRole == role;
     }
 
     function isSystemAdmin() {
       return hasRole('system_admin');
     }
 
-    function isStableOwner() {
+    // Renamed to clarify this is a system-wide role check
+    function hasStableOwnerRole() {
       return hasRole('stable_owner');
     }
 
-    function isStableGuest() {
-      return hasRole('stable_guest');
+    // ============================================================================
+    // STABLE MEMBERSHIP HELPERS (CORRECTED)
+    // ============================================================================
+    // Note: Firebase linter may show warnings for 'request', 'exists', 'get'.
+    // These are false positives - they are official Firestore Security Rules built-ins.
+
+    // Check if user is the OWNER of a specific stable
+    function isStableOwnerOf(stableId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/stables/$(stableId)) &&
+        get(/databases/$(database)/documents/stables/$(stableId)).data.ownerId == request.auth.uid;
     }
 
-    function belongsToStable(stableId) {
-      return isAuthenticated() && userExists() && getUserData().stableId == stableId;
+    // Check if user is an active MEMBER of a specific stable
+    function isStableMember(stableId) {
+      let memberId = request.auth.uid + '_' + stableId;
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/stableMembers/$(memberId)) &&
+        get(/databases/$(database)/documents/stableMembers/$(memberId)).data.status == 'active';
     }
 
-    // Users collection
+    // Get member's role in stable ('manager' or 'member')
+    function getStableMemberRole(stableId) {
+      let memberId = request.auth.uid + '_' + stableId;
+      return isStableMember(stableId)
+        ? get(/databases/$(database)/documents/stableMembers/$(memberId)).data.role
+        : null;
+    }
+
+    // Check if user is a MANAGER of a specific stable
+    function isStableManager(stableId) {
+      return getStableMemberRole(stableId) == 'manager';
+    }
+
+    // Check if user can MANAGE a stable (owner OR manager)
+    function canManageStable(stableId) {
+      return isSystemAdmin() || isStableOwnerOf(stableId) || isStableManager(stableId);
+    }
+
+    // Check if user can ACCESS stable (owner, manager, or member)
+    // ENHANCED: Supports both standalone and organization-based stables
+    function canAccessStable(stableId) {
+      let stable = get(/databases/$(database)/documents/stables/$(stableId)).data;
+      let isStandaloneStable = !stable.keys().hasAny(['organizationId']) || stable.organizationId == null;
+
+      return isSystemAdmin() ||
+             isStableOwnerOf(stableId) ||
+             (isStandaloneStable && isStableMember(stableId)) ||
+             (!isStandaloneStable && isOrganizationMember(stable.organizationId));
+    }
+
+    // ============================================================================
+    // ORGANIZATION HELPERS
+    // ============================================================================
+
+    // Check if user is the OWNER of a specific organization
+    function isOrganizationOwner(organizationId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/organizations/$(organizationId)) &&
+        get(/databases/$(database)/documents/organizations/$(organizationId)).data.ownerId == request.auth.uid;
+    }
+
+    // Get organization member document for current user
+    function getOrganizationMember(organizationId) {
+      let memberId = request.auth.uid + '_' + organizationId;
+      return exists(/databases/$(database)/documents/organizationMembers/$(memberId))
+        ? get(/databases/$(database)/documents/organizationMembers/$(memberId)).data
+        : null;
+    }
+
+    // Check if user is an active MEMBER of a specific organization
+    function isOrganizationMember(organizationId) {
+      let member = getOrganizationMember(organizationId);
+      return member != null && member.status == 'active';
+    }
+
+    // Check if user has a specific ROLE in an organization
+    function hasOrganizationRole(organizationId, role) {
+      let member = getOrganizationMember(organizationId);
+      return member != null &&
+             member.status == 'active' &&
+             role in member.roles;
+    }
+
+    // Check if user is administrator of an organization
+    function isOrganizationAdministrator(organizationId) {
+      return hasOrganizationRole(organizationId, 'administrator');
+    }
+
+    // ============================================================================
+    // USERS COLLECTION
+    // ============================================================================
+
     match /users/{userId} {
+      // Read: Self + system_admin + shared stable members
       allow read: if isAuthenticated() && (
         isOwner(userId) ||
-        isSystemAdmin() ||
-        belongsToStable(resource.data.stableId)
+        isSystemAdmin()
       );
-      allow create: if isAuthenticated();
-      allow update: if isOwner(userId) || isSystemAdmin();
+
+      // Create: Only during auth registration (via backend service account)
+      allow create: if isAuthenticated() &&
+        request.resource.data.uid == request.auth.uid;
+
+      // Update: Self can update profile, but NOT systemRole or uid
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() || // Admin can update anything
+        (isOwner(userId) &&
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['systemRole', 'uid']))
+      );
+
+      // Delete: System admin only (GDPR compliance)
       allow delete: if isSystemAdmin();
     }
 
-    // Stables collection
+    // ============================================================================
+    // STABLES COLLECTION - SECURE
+    // ============================================================================
+
     match /stables/{stableId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
-      allow delete: if isAuthenticated();
-    }
+      // LIST: Simple authentication check - let query filter results
+      allow list: if isAuthenticated();
 
-    // Shift Types collection
-    match /shiftTypes/{shiftTypeId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
-      allow delete: if isAuthenticated();
-    }
+      // GET: Full access check including membership
+      allow get: if canAccessStable(stableId);
 
-    // Schedules collection
-    match /schedules/{scheduleId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
-      allow delete: if isAuthenticated();
-    }
-
-    // Shifts collection
-    match /shifts/{shiftId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
-      allow delete: if isAuthenticated();
-    }
-
-    // Bookings collection
-    match /bookings/{bookingId} {
-      allow read: if isAuthenticated() && (
-        belongsToStable(resource.data.stableId) ||
-        isSystemAdmin()
+      // CREATE: Only stable_owner system role + user becomes ownerId
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        (hasStableOwnerRole() &&
+         request.resource.data.ownerId == request.auth.uid)
       );
-      allow create: if isAuthenticated() && belongsToStable(request.resource.data.stableId);
+
+      // UPDATE: Only owner or system_admin
+      // Prevent ownerId changes
       allow update: if isAuthenticated() && (
-        isOwner(resource.data.userId) ||
-        isStableOwner() ||
-        isSystemAdmin()
+        isSystemAdmin() ||
+        (isStableOwnerOf(stableId) &&
+         request.resource.data.ownerId == resource.data.ownerId) // ownerId immutable
       );
+
+      // DELETE: Only owner or system_admin
+      allow delete: if isSystemAdmin() || isStableOwnerOf(stableId);
+    }
+
+    // ============================================================================
+    // SHIFT TYPES COLLECTION - STABLE-SCOPED
+    // ============================================================================
+
+    match /shiftTypes/{shiftTypeId} {
+      // LIST: Efficient query - no get() calls needed for list operations
+      allow list: if isAuthenticated();
+
+      // GET: Full access check - stable members only
+      allow get: if canAccessStable(resource.data.stableId);
+
+      // CREATE: Owner or manager
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(request.resource.data.stableId)
+      );
+
+      // UPDATE: Owner or manager
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(resource.data.stableId)
+      );
+
+      // DELETE: Owner only
+      allow delete: if isSystemAdmin() || isStableOwnerOf(resource.data.stableId);
+    }
+
+    // ============================================================================
+    // SCHEDULES COLLECTION - MANAGER PERMISSIONS
+    // ============================================================================
+
+    match /schedules/{scheduleId} {
+      // LIST: Efficient query - no get() calls needed for list operations
+      allow list: if isAuthenticated();
+
+      // GET: Full access check - stable members only
+      allow get: if canAccessStable(resource.data.stableId);
+
+      // CREATE: Owner or manager
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(request.resource.data.stableId)
+      );
+
+      // UPDATE: Owner or manager
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(resource.data.stableId)
+      );
+
+      // DELETE: Owner only
+      allow delete: if isSystemAdmin() || isStableOwnerOf(resource.data.stableId);
+    }
+
+    // ============================================================================
+    // SHIFTS COLLECTION - MEMBER SELF-BOOKING
+    // ============================================================================
+
+    match /shifts/{shiftId} {
+      // LIST: Efficient query - no get() calls needed for list operations
+      allow list: if isAuthenticated();
+
+      // GET: Full access check - stable members only
+      allow get: if canAccessStable(resource.data.stableId);
+
+      // CREATE: Owner or manager
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(request.resource.data.stableId)
+      );
+
+      // UPDATE: Owner/manager can update anything, members can self-book unassigned shifts
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(resource.data.stableId) || // Owner/manager full control
+        (canAccessStable(resource.data.stableId) && // Member self-booking
+         resource.data.status == 'unassigned' &&
+         request.resource.data.assignedTo == request.auth.uid &&
+         request.resource.data.status == 'assigned')
+      );
+
+      // DELETE: Owner only
+      allow delete: if isSystemAdmin() || isStableOwnerOf(resource.data.stableId);
+    }
+
+    // ============================================================================
+    // BOOKINGS COLLECTION - FIXED
+    // ============================================================================
+
+    match /bookings/{bookingId} {
+      // LIST: Simple authentication check - let query filter results
+      allow list: if isAuthenticated();
+
+      // GET: Full access check - stable members only
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canAccessStable(resource.data.stableId)
+      );
+
+      // CREATE: Any stable member can create booking for themselves
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        (canAccessStable(request.resource.data.stableId) &&
+         request.resource.data.userId == request.auth.uid) // Can only create for self
+      );
+
+      // UPDATE: Self or owner/manager
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOwner(resource.data.userId) ||
+        canManageStable(resource.data.stableId)
+      );
+
+      // DELETE: Self or owner/manager
       allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
         isOwner(resource.data.userId) ||
-        isStableOwner() ||
-        isSystemAdmin()
+        canManageStable(resource.data.stableId)
       );
     }
 
-    // Notifications collection
+    // ============================================================================
+    // NOTIFICATIONS COLLECTION - USER-SCOPED
+    // ============================================================================
+
     match /notifications/{notificationId} {
+      // READ: Only notification recipient
       allow read: if isAuthenticated() && isOwner(resource.data.userId);
-      allow create: if isSystemAdmin();
-      allow update: if isAuthenticated() && isOwner(resource.data.userId);
-      allow delete: if isAuthenticated() && isOwner(resource.data.userId);
+
+      // CREATE: Backend only (via Cloud Functions with service account)
+      allow create: if false; // Backend uses service account
+
+      // UPDATE: Only recipient can mark as read
+      allow update: if isAuthenticated() &&
+        isOwner(resource.data.userId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead', 'readAt']);
+
+      // DELETE: Only recipient or system_admin (cleanup)
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOwner(resource.data.userId)
+      );
     }
 
-    // Invites collection
+    // ============================================================================
+    // INVITES COLLECTION - OWNER/RECIPIENT ONLY
+    // ============================================================================
+
     match /invites/{inviteId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
-      allow delete: if isAuthenticated();
+      // LIST: Simple authentication check - let query filter results
+      allow list: if isAuthenticated();
+
+      // GET: Full access check including stable management
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(resource.data.stableId) ||
+        resource.data.inviteeEmail == request.auth.token.email
+      );
+
+      // CREATE: Owner or manager
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        (canManageStable(request.resource.data.stableId) &&
+         request.resource.data.inviterId == request.auth.uid)
+      );
+
+      // UPDATE: Recipient can accept/decline, sender can cancel
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        (resource.data.inviteeEmail == request.auth.token.email && // Recipient accepts
+         request.resource.data.status in ['accepted', 'declined']) ||
+        (canManageStable(resource.data.stableId) && // Sender cancels
+         request.resource.data.status == 'expired')
+      );
+
+      // DELETE: Owner only
+      allow delete: if isSystemAdmin() || isStableOwnerOf(resource.data.stableId);
+    }
+
+    // ============================================================================
+    // STABLE MEMBERS COLLECTION - MEMBERSHIP MANAGEMENT
+    // ============================================================================
+
+    match /stableMembers/{memberId} {
+      // Validate memberId format: {userId}_{stableId}
+      function isValidMemberId() {
+        return memberId.matches('^[a-zA-Z0-9]+_[a-zA-Z0-9]+$');
+      }
+
+      function extractStableId() {
+        return memberId.split('_')[1];
+      }
+
+      function extractUserId() {
+        return memberId.split('_')[0];
+      }
+
+      // LIST: Simple authentication check - let query filter results
+      allow list: if isAuthenticated();
+
+      // GET: Full access check - stable members + system_admin + self
+      allow get: if isAuthenticated() && isValidMemberId() && (
+        isSystemAdmin() ||
+        canAccessStable(extractStableId()) ||
+        isOwner(extractUserId())
+      );
+
+      // CREATE: Owner or manager can invite
+      // Member CANNOT be the stable owner
+      allow create: if isAuthenticated() && isValidMemberId() && (
+        isSystemAdmin() ||
+        canManageStable(request.resource.data.stableId)
+      ) &&
+      // Validation: memberId matches data
+      extractUserId() == request.resource.data.userId &&
+      extractStableId() == request.resource.data.stableId &&
+      // Validation: invited user is NOT the stable owner
+      request.resource.data.userId != get(/databases/$(database)/documents/stables/$(request.resource.data.stableId)).data.ownerId;
+
+      // UPDATE: Owner can change anything, manager can change status, member can update own status
+      allow update: if isAuthenticated() && isValidMemberId() && (
+        isSystemAdmin() ||
+        isStableOwnerOf(resource.data.stableId) || // Owner full control
+        (isStableManager(resource.data.stableId) && // Manager can change status only
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'inviteAcceptedAt'])) ||
+        (isOwner(extractUserId()) && // Member can update own status
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
+      ) &&
+      // Prevent changes to immutable fields
+      request.resource.data.stableId == resource.data.stableId &&
+      request.resource.data.userId == resource.data.userId;
+
+      // DELETE: Owner or self-remove
+      allow delete: if isAuthenticated() && isValidMemberId() && (
+        isSystemAdmin() ||
+        isStableOwnerOf(resource.data.stableId) ||
+        isOwner(extractUserId())
+      );
+    }
+
+    // ============================================================================
+    // HORSES COLLECTION - OWNER + STABLE MEMBER ACCESS
+    // ============================================================================
+
+    match /horses/{horseId} {
+      // LIST: Simple authentication check - let query filter results
+      allow list: if isAuthenticated();
+
+      // GET: Full access check - owner or stable members if assigned
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        resource.data.ownerId == request.auth.uid ||
+        (resource.data.currentStableId != null &&
+         canAccessStable(resource.data.currentStableId))
+      );
+
+      // CREATE: Any authenticated user (becomes owner)
+      // Can optionally assign to stable if user has access to that stable
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        (request.resource.data.ownerId == request.auth.uid &&
+         (request.resource.data.currentStableId == null ||
+          canAccessStable(request.resource.data.currentStableId)))
+      );
+
+      // UPDATE: Only owner can modify their horse
+      // ownerId must remain unchanged
+      // Can only assign to stables where user is member
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        (resource.data.ownerId == request.auth.uid &&
+         request.resource.data.ownerId == resource.data.ownerId && // ownerId immutable
+         (request.resource.data.currentStableId == resource.data.currentStableId ||
+          request.resource.data.currentStableId == null ||
+          canAccessStable(request.resource.data.currentStableId)))
+      );
+
+      // DELETE: Only owner can delete their horse
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        resource.data.ownerId == request.auth.uid
+      );
+    }
+
+    // ============================================================================
+    // LOCATION HISTORY SUBCOLLECTION - HORSE MOVEMENT TRACKING
+    // ============================================================================
+    // Note: Using {path=**} to support both direct queries and collectionGroup queries
+
+    match /{path=**}/locationHistory/{entryId} {
+      // LIST: Simple authentication check - let query filter results
+      // Works for both collectionGroup and direct subcollection queries
+      allow list: if isAuthenticated();
+
+      // GET: Horse owner or stable members can view
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        resource.data.horseId != null &&
+        get(/databases/$(database)/documents/horses/$(resource.data.horseId)).data.ownerId == request.auth.uid ||
+        (resource.data.stableId != null &&
+         canAccessStable(resource.data.stableId))
+      );
+
+      // CREATE: Horse owner or stable managers can create entries
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        request.resource.data.horseId != null &&
+        get(/databases/$(database)/documents/horses/$(request.resource.data.horseId)).data.ownerId == request.auth.uid ||
+        (request.resource.data.stableId != null &&
+         canManageStable(request.resource.data.stableId))
+      );
+
+      // UPDATE: Horse owner or stable managers can update (for closing entries)
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        resource.data.horseId != null &&
+        get(/databases/$(database)/documents/horses/$(resource.data.horseId)).data.ownerId == request.auth.uid ||
+        (resource.data.stableId != null &&
+         canManageStable(resource.data.stableId))
+      );
+
+      // DELETE: Only horse owner can delete
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        resource.data.horseId != null &&
+        get(/databases/$(database)/documents/horses/$(resource.data.horseId)).data.ownerId == request.auth.uid
+      );
+    }
+
+    // ============================================================================
+    // ORGANIZATIONS COLLECTION - ORGANIZATION MANAGEMENT
+    // ============================================================================
+
+    match /organizations/{organizationId} {
+      // LIST: All authenticated users can list organizations (query filters results)
+      allow list: if isAuthenticated();
+
+      // GET: Organization owner or active members can view
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationOwner(organizationId) ||
+        isOrganizationMember(organizationId)
+      );
+
+      // CREATE: Any authenticated user can create organizations (Development mode)
+      // User must become the ownerId
+      // TODO: In production, restrict to stable_owner role or system_admin
+      allow create: if isAuthenticated() &&
+        request.resource.data.ownerId == request.auth.uid;
+
+      // UPDATE: Organization owner or administrators
+      // Prevent ownerId changes
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationOwner(organizationId) ||
+        isOrganizationAdministrator(organizationId)
+      ) &&
+      request.resource.data.ownerId == resource.data.ownerId; // ownerId immutable
+
+      // DELETE: Only organization owner or system_admin
+      allow delete: if isSystemAdmin() || isOrganizationOwner(organizationId);
+    }
+
+    // ============================================================================
+    // ORGANIZATION MEMBERS COLLECTION - MEMBERSHIP MANAGEMENT
+    // ============================================================================
+
+    match /organizationMembers/{memberId} {
+      // Validate memberId format: {userId}_{organizationId}
+      function isValidMemberId() {
+        return memberId.matches('^[a-zA-Z0-9]+_[a-zA-Z0-9]+$');
+      }
+
+      function extractOrganizationId() {
+        return memberId.split('_')[1];
+      }
+
+      function extractUserId() {
+        return memberId.split('_')[0];
+      }
+
+      // LIST: All authenticated users can list (query filters results)
+      allow list: if isAuthenticated();
+
+      // GET: Organization members or self can view
+      allow get: if isAuthenticated() && isValidMemberId() && (
+        isSystemAdmin() ||
+        isOrganizationMember(extractOrganizationId()) ||
+        isOwner(extractUserId())
+      );
+
+      // CREATE: Organization owner or administrators can invite
+      // Validate memberId matches data fields
+      allow create: if isAuthenticated() && isValidMemberId() && (
+        isSystemAdmin() ||
+        isOrganizationOwner(request.resource.data.organizationId) ||
+        isOrganizationAdministrator(request.resource.data.organizationId)
+      ) &&
+      // Validation: memberId matches data
+      extractUserId() == request.resource.data.userId &&
+      extractOrganizationId() == request.resource.data.organizationId;
+
+      // UPDATE: Owner/admin can change anything, member can update own status
+      allow update: if isAuthenticated() && isValidMemberId() && (
+        isSystemAdmin() ||
+        isOrganizationOwner(resource.data.organizationId) || // Owner full control
+        isOrganizationAdministrator(resource.data.organizationId) || // Admin full control
+        (isOwner(extractUserId()) && // Member can update own status
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
+      ) &&
+      // Prevent changes to immutable fields
+      request.resource.data.organizationId == resource.data.organizationId &&
+      request.resource.data.userId == resource.data.userId;
+
+      // DELETE: Organization owner, administrators, or self-remove
+      allow delete: if isAuthenticated() && isValidMemberId() && (
+        isSystemAdmin() ||
+        isOrganizationOwner(resource.data.organizationId) ||
+        isOrganizationAdministrator(resource.data.organizationId) ||
+        isOwner(extractUserId())
+      );
+    }
+
+    // ============================================================================
+    // FACILITIES COLLECTION - STABLE-SCOPED
+    // ============================================================================
+
+    match /facilities/{facilityId} {
+      // LIST: Efficient query - no get() calls needed for list operations
+      allow list: if isAuthenticated();
+
+      // GET: Full access check - stable members only
+      allow get: if canAccessStable(resource.data.stableId);
+
+      // CREATE: Owner or manager
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(request.resource.data.stableId)
+      );
+
+      // UPDATE: Owner or manager
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(resource.data.stableId)
+      );
+
+      // DELETE: Owner only
+      allow delete: if isSystemAdmin() || isStableOwnerOf(resource.data.stableId);
+    }
+
+    // ============================================================================
+    // FACILITY RESERVATIONS COLLECTION - MEMBER SELF-BOOKING
+    // ============================================================================
+
+    match /facilityReservations/{reservationId} {
+      // LIST: Efficient query - no get() calls needed for list operations
+      allow list: if isAuthenticated();
+
+      // GET: Full access check - stable members or reservation owner
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canAccessStable(resource.data.stableId) ||
+        resource.data.userId == request.auth.uid
+      );
+
+      // CREATE: Any stable member can create reservation for themselves
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        (canAccessStable(request.resource.data.stableId) &&
+         request.resource.data.userId == request.auth.uid) // Can only create for self
+      );
+
+      // UPDATE: Self or owner/manager
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOwner(resource.data.userId) ||
+        canManageStable(resource.data.stableId)
+      );
+
+      // DELETE: Self or owner/manager
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOwner(resource.data.userId) ||
+        canManageStable(resource.data.stableId)
+      );
     }
 
     // Default deny all

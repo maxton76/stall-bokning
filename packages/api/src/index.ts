@@ -3,6 +3,7 @@ import cors from '@fastify/cors'
 import rateLimit from '@fastify/rate-limit'
 import { stablesRoutes } from './routes/stables.js'
 import { schedulesRoutes } from './routes/schedules.js'
+import { organizationsRoutes } from './routes/organizations.js'
 
 const PORT = Number(process.env.PORT) || 5003
 const HOST = process.env.HOST || '0.0.0.0'
@@ -63,6 +64,7 @@ fastify.get('/api/v1', async () => {
 // Register API routes
 await fastify.register(stablesRoutes, { prefix: '/api/v1/stables' })
 await fastify.register(schedulesRoutes, { prefix: '/api/v1/schedules' })
+await fastify.register(organizationsRoutes, { prefix: '/api/v1/organizations' })
 
 // 404 handler
 fastify.setNotFoundHandler((request, reply) => {

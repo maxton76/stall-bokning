@@ -11,11 +11,6 @@ export default function AccountPage() {
   const { user } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
 
-  const getUserInitials = () => {
-    if (!user?.email) return 'U'
-    return user.email.substring(0, 2).toUpperCase()
-  }
-
   const getJoinDate = () => {
     // For now, show a placeholder. In production, this would come from user metadata
     return new Date().toLocaleDateString('en-US', {
@@ -47,11 +42,11 @@ export default function AccountPage() {
           {/* Avatar Section */}
           <div className='flex items-center gap-6'>
             <Avatar className='size-24'>
-              <AvatarImage src='' alt={user?.email || 'User'} />
-              <AvatarFallback className='text-2xl'>{getUserInitials()}</AvatarFallback>
+              <AvatarImage src='' alt={user?.fullName || 'User'} />
+              <AvatarFallback className='text-2xl'>{user?.initials || 'U'}</AvatarFallback>
             </Avatar>
             <div className='space-y-2'>
-              <h3 className='font-semibold text-lg'>{user?.email?.split('@')[0]}</h3>
+              <h3 className='font-semibold text-lg'>{user?.fullName}</h3>
               <p className='text-sm text-muted-foreground'>{user?.email}</p>
               <Button variant='outline' size='sm' disabled>
                 Change Avatar

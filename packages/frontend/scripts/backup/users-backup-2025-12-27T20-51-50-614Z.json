@@ -1,0 +1,66 @@
+[
+  {
+    "id": "gasnIeYqVpLCtBGi1ESXt37zPtJz",
+    "updatedAt": {
+      "_seconds": 1766868160,
+      "_nanoseconds": 414000000
+    },
+    "lastName": "Ahston",
+    "email": "maxkrax@gmail.com",
+    "firstName": "Max",
+    "createdAt": {
+      "_seconds": 1766868160,
+      "_nanoseconds": 414000000
+    },
+    "systemRole": "member",
+    "uid": "gasnIeYqVpLCtBGi1ESXt37zPtJz"
+  },
+  {
+    "id": "user-already-synced",
+    "email": "bob.jones@example.com",
+    "lastName": "Jones",
+    "uid": "user-already-synced",
+    "createdAt": {
+      "_seconds": 1766868152,
+      "_nanoseconds": 953000000
+    },
+    "firstName": "Bob",
+    "updatedAt": {
+      "_seconds": 1766868152,
+      "_nanoseconds": 953000000
+    },
+    "systemRole": "member"
+  },
+  {
+    "id": "user-needs-name-parsing",
+    "firstName": "John",
+    "email": "john.doe@example.com",
+    "createdAt": {
+      "_seconds": 1766868160,
+      "_nanoseconds": 416000000
+    },
+    "lastName": "Doe",
+    "systemRole": "member",
+    "updatedAt": {
+      "_seconds": 1766868160,
+      "_nanoseconds": 416000000
+    },
+    "uid": "user-needs-name-parsing"
+  },
+  {
+    "id": "user-with-different-data",
+    "lastName": "Smith",
+    "uid": "user-with-different-data",
+    "updatedAt": {
+      "_seconds": 1766868152,
+      "_nanoseconds": 953000000
+    },
+    "firstName": "Jane",
+    "email": "jane.smith@example.com",
+    "systemRole": "member",
+    "createdAt": {
+      "_seconds": 1766868152,
+      "_nanoseconds": 953000000
+    }
+  }
+]

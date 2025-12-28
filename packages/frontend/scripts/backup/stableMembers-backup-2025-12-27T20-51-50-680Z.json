@@ -1,0 +1,56 @@
+[
+  {
+    "id": "stable1-member1",
+    "status": "active",
+    "lastName": "Ahston",
+    "stableId": "stable1",
+    "userId": "gasnIeYqVpLCtBGi1ESXt37zPtJz",
+    "role": "member",
+    "joinedAt": {
+      "_seconds": 1766868152,
+      "_nanoseconds": 952000000
+    },
+    "firstName": "Max",
+    "userEmail": "maxkrax@gmail.com"
+  },
+  {
+    "id": "stable1-member2",
+    "status": "active",
+    "userEmail": "john.doe@example.com",
+    "stableId": "stable1",
+    "userId": "user-needs-name-parsing",
+    "joinedAt": {
+      "_seconds": 1766868152,
+      "_nanoseconds": 953000000
+    },
+    "role": "member"
+  },
+  {
+    "id": "stable1-member3",
+    "role": "member",
+    "joinedAt": {
+      "_seconds": 1766868152,
+      "_nanoseconds": 953000000
+    },
+    "status": "active",
+    "userId": "user-with-different-data",
+    "stableId": "stable1",
+    "firstName": "Jane",
+    "lastName": "Smith",
+    "userEmail": "jane.smith@example.com"
+  },
+  {
+    "id": "stable1-member4",
+    "joinedAt": {
+      "_seconds": 1766868152,
+      "_nanoseconds": 953000000
+    },
+    "role": "manager",
+    "lastName": "Jones",
+    "firstName": "Bob",
+    "userEmail": "bob.jones@example.com",
+    "stableId": "stable1",
+    "userId": "user-already-synced",
+    "status": "active"
+  }
+]

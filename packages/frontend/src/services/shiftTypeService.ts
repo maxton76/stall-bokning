@@ -1,64 +1,82 @@
-import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-  Timestamp
-} from 'firebase/firestore'
-import { db } from '@/lib/firebase'
 import type { ShiftType } from '@/types/schedule'
-import { mapDocsToObjects } from '@/utils/firestoreHelpers'
+import { createCrudService } from './firestoreCrud'
 
+// ============================================================================
+// CRUD Service
+// ============================================================================
+
+/**
+ * Shift Type CRUD service using the standardized factory
+ */
+const shiftTypeCrud = createCrudService<ShiftType>({
+  collectionName: 'shiftTypes',
+  timestampsEnabled: true,
+  parentField: {
+    field: 'stableId',
+    required: true
+  }
+})
+
+// ============================================================================
+// Exported Operations
+// ============================================================================
+
+/**
+ * Create a new shift type
+ * @param stableId - ID of the stable this shift type belongs to
+ * @param shiftTypeData - Shift type data (excluding auto-generated fields)
+ * @param userId - ID of the user creating the shift type
+ * @returns Promise with the created shift type ID
+ */
 export async function createShiftType(
   stableId: string,
-  shiftTypeData: Omit<ShiftType, 'id' | 'stableId' | 'createdAt' | 'updatedAt'>
+  shiftTypeData: Omit<ShiftType, 'id' | 'stableId' | 'createdAt' | 'updatedAt' | 'lastModifiedBy' | 'createdBy'>,
+  userId: string
 ): Promise<string> {
-  const shiftTypeRef = await addDoc(collection(db, 'shiftTypes'), {
-    ...shiftTypeData,
-    stableId,
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now()
-  })
-  return shiftTypeRef.id
+  return shiftTypeCrud.create(userId, shiftTypeData as any, stableId)
 }
 
+/**
+ * Get all shift types for a stable
+ * @param stableId - Stable ID
+ * @returns Promise with array of shift types
+ */
 export async function getShiftTypesByStable(stableId: string): Promise<ShiftType[]> {
-  const q = query(
-    collection(db, 'shiftTypes'),
-    where('stableId', '==', stableId)
-  )
-  const snapshot = await getDocs(q)
-  return mapDocsToObjects<ShiftType>(snapshot)
+  if (!shiftTypeCrud.getByParent) {
+    throw new Error('getByParent not available')
+  }
+  return shiftTypeCrud.getByParent(stableId)
 }
 
+/**
+ * Get a single shift type by ID
+ * @param shiftTypeId - Shift type ID
+ * @returns Promise with shift type data or null if not found
+ */
 export async function getShiftType(shiftTypeId: string): Promise<ShiftType | null> {
-  const shiftTypeRef = doc(db, 'shiftTypes', shiftTypeId)
-  const shiftTypeSnap = await getDoc(shiftTypeRef)
-
-  if (!shiftTypeSnap.exists()) return null
-
-  return {
-    id: shiftTypeSnap.id,
-    ...shiftTypeSnap.data()
-  } as ShiftType
+  return shiftTypeCrud.getById(shiftTypeId)
 }
 
+/**
+ * Update an existing shift type
+ * @param shiftTypeId - Shift type ID
+ * @param updates - Partial shift type data to update
+ * @param userId - ID of user making the update
+ * @returns Promise that resolves when update is complete
+ */
 export async function updateShiftType(
   shiftTypeId: string,
-  updates: Partial<Omit<ShiftType, 'id' | 'stableId'>>
+  updates: Partial<Omit<ShiftType, 'id' | 'stableId' | 'createdAt' | 'lastModifiedBy' | 'createdBy'>>,
+  userId: string
 ): Promise<void> {
-  const shiftTypeRef = doc(db, 'shiftTypes', shiftTypeId)
-  await updateDoc(shiftTypeRef, {
-    ...updates,
-    updatedAt: Timestamp.now()
-  })
+  return shiftTypeCrud.update(shiftTypeId, userId, updates)
 }
 
+/**
+ * Delete a shift type
+ * @param shiftTypeId - Shift type ID
+ * @returns Promise that resolves when deletion is complete
+ */
 export async function deleteShiftType(shiftTypeId: string): Promise<void> {
-  await deleteDoc(doc(db, 'shiftTypes', shiftTypeId))
+  return shiftTypeCrud.delete(shiftTypeId)
 }

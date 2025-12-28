@@ -11,7 +11,8 @@
     "emulator:clear": "rm -rf ./firebase-emulator-data && echo 'Emulator data cleared'",
     "dev:frontend": "cd packages/frontend && npm run dev",
     "dev:all": "concurrently \"npm run emulator:start\" \"npm run dev:frontend\"",
-    "build:frontend": "cd packages/frontend && npm run build"
+    "build:frontend": "cd packages/frontend && npm run build",
+    "migrate:invitations": "tsx scripts/migrate-invitations.ts"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

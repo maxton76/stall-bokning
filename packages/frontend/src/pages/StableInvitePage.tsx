@@ -34,6 +34,7 @@ export default function StableInvitePage() {
   const [invites, setInvites] = useState<Invite[]>([])
   const [inviting, setInviting] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
+  const [selectedRole, setSelectedRole] = useState<'manager' | 'member'>('member')
 
   useEffect(() => {
     if (user && stableId) {
@@ -79,18 +80,29 @@ export default function StableInvitePage() {
     try {
       setInviting(true)
 
+      // Validate required fields
+      if (!stableName) {
+        throw new Error('Stable name is required')
+      }
+      if (!selectedRole) {
+        throw new Error('Please select a role')
+      }
+
       // Create invite
       const expiresAt = new Date()
       expiresAt.setDate(expiresAt.getDate() + 7) // 7 days expiry
 
       await addDoc(collection(db, 'invites'), {
         stableId,
+        stableName,  // ✅ ADDED - from existing state
         email: inviteEmail.trim(),
+        role: selectedRole,  // ✅ ADDED - from new state
         status: 'pending',
         createdAt: Timestamp.now(),
         expiresAt: Timestamp.fromDate(expiresAt),
         invitedBy: user.uid,
-        invitedByEmail: user.email
+        invitedByEmail: user.email,
+        invitedByName: user.fullName  // Uses computed fullName from firstName/lastName with fallbacks
       })
 
       // Reload invites
@@ -167,6 +179,41 @@ export default function StableInvitePage() {
                   required
                 />
               </div>
+
+              <div className='space-y-2'>
+                <Label htmlFor='role'>Role</Label>
+                <div className='flex flex-col gap-2'>
+                  <label className='flex items-center gap-2 cursor-pointer'>
+                    <input
+                      type='radio'
+                      name='role'
+                      value='member'
+                      checked={selectedRole === 'member'}
+                      onChange={() => setSelectedRole('member')}
+                      className='cursor-pointer'
+                    />
+                    <span className='font-medium'>Member</span>
+                    <span className='text-xs text-muted-foreground'>
+                      Can view and book shifts
+                    </span>
+                  </label>
+                  <label className='flex items-center gap-2 cursor-pointer'>
+                    <input
+                      type='radio'
+                      name='role'
+                      value='manager'
+                      checked={selectedRole === 'manager'}
+                      onChange={() => setSelectedRole('manager')}
+                      className='cursor-pointer'
+                    />
+                    <span className='font-medium'>Manager</span>
+                    <span className='text-xs text-muted-foreground'>
+                      Can create schedules and invite members
+                    </span>
+                  </label>
+                </div>
+              </div>
+
               <Button type='submit' disabled={inviting} className='w-full'>
                 {inviting ? (
                   <>

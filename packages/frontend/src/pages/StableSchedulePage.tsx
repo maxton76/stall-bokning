@@ -162,10 +162,20 @@ export default function StableSchedulePage() {
             Back to Stable
           </Button>
         </Link>
-        <h1 className='text-3xl font-bold tracking-tight'>{stableName} - Schedule</h1>
-        <p className='text-muted-foreground mt-1'>
-          View and manage shifts for this stable
-        </p>
+        <div className='flex items-start justify-between'>
+          <div>
+            <h1 className='text-3xl font-bold tracking-tight'>{stableName} - Schedule</h1>
+            <p className='text-muted-foreground mt-1'>
+              View and manage shifts for this stable
+            </p>
+          </div>
+          <Link to={`/stables/${stableId}/schedules/create`}>
+            <Button>
+              <CalendarIcon className='mr-2 h-4 w-4' />
+              Create Schedule
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -327,7 +337,14 @@ export default function StableSchedulePage() {
         <CardContent>
           <div className='space-y-2'>
             {filteredShifts.length === 0 ? (
-              <p className='text-sm text-muted-foreground text-center py-8'>No shifts found</p>
+              <div className='text-center py-8 space-y-2'>
+                <p className='text-sm text-muted-foreground'>No shifts found</p>
+                {shifts.length === 0 && (
+                  <p className='text-xs text-muted-foreground'>
+                    Create a schedule to generate shifts from your shift types
+                  </p>
+                )}
+              </div>
             ) : (
               filteredShifts.map(shift => (
                 <div

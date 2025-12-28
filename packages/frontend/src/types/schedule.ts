@@ -75,7 +75,9 @@ export interface MemberLimits {
 export interface StableMember {
   userId: string
   stableId: string
-  displayName: string
+  firstName?: string
+  lastName?: string
+  displayName: string // Deprecated: Use firstName/lastName and compute display name in UI
   email: string
   avatarUrl?: string
   role: 'owner' | 'admin' | 'coAdmin' | 'scheduleManager' | 'guest'

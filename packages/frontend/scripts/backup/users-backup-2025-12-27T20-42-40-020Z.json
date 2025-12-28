@@ -1,0 +1,34 @@
+[
+  {
+    "id": "user-already-synced",
+    "email": "bob.jones@example.com",
+    "lastName": "Jones",
+    "uid": "user-already-synced",
+    "createdAt": {
+      "_seconds": 1766868152,
+      "_nanoseconds": 953000000
+    },
+    "firstName": "Bob",
+    "updatedAt": {
+      "_seconds": 1766868152,
+      "_nanoseconds": 953000000
+    },
+    "systemRole": "member"
+  },
+  {
+    "id": "user-with-different-data",
+    "lastName": "Smith",
+    "uid": "user-with-different-data",
+    "updatedAt": {
+      "_seconds": 1766868152,
+      "_nanoseconds": 953000000
+    },
+    "firstName": "Jane",
+    "email": "jane.smith@example.com",
+    "systemRole": "member",
+    "createdAt": {
+      "_seconds": 1766868152,
+      "_nanoseconds": 953000000
+    }
+  }
+]

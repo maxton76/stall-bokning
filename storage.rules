@@ -2,7 +2,10 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Helper functions
+    // ============================================================================
+    // HELPER FUNCTIONS (synchronized with Firestore rules)
+    // ============================================================================
+
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -11,15 +14,54 @@ service firebase.storage {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // FIXED: Check 'systemRole' field instead of 'role'
     function hasRole(role) {
       return isAuthenticated() &&
-             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == role;
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid))
+          .data.systemRole == role;
     }
 
-    function belongsToStable(stableId) {
-      return isAuthenticated() &&
-             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.stableId == stableId;
+    function isSystemAdmin() {
+      return hasRole('system_admin');
     }
+
+    // Check if user is the OWNER of a specific stable
+    function isStableOwnerOf(stableId) {
+      return isAuthenticated() &&
+        firestore.get(/databases/(default)/documents/stables/$(stableId))
+          .data.ownerId == request.auth.uid;
+    }
+
+    // Check if user is a MEMBER of a specific stable
+    function isStableMember(stableId) {
+      let memberId = request.auth.uid + '_' + stableId;
+      return isAuthenticated() &&
+        firestore.exists(/databases/(default)/documents/stableMembers/$(memberId)) &&
+        firestore.get(/databases/(default)/documents/stableMembers/$(memberId))
+          .data.status == 'active';
+    }
+
+    // Check if user is a MANAGER of a specific stable
+    function isStableManager(stableId) {
+      let memberId = request.auth.uid + '_' + stableId;
+      return isStableMember(stableId) &&
+        firestore.get(/databases/(default)/documents/stableMembers/$(memberId))
+          .data.role == 'manager';
+    }
+
+    // Check if user can MANAGE a stable (owner OR manager)
+    function canManageStable(stableId) {
+      return isSystemAdmin() || isStableOwnerOf(stableId) || isStableManager(stableId);
+    }
+
+    // Check if user has ANY ACCESS to stable (owner, manager, or member)
+    function canAccessStable(stableId) {
+      return isSystemAdmin() || isStableOwnerOf(stableId) || isStableMember(stableId);
+    }
+
+    // ============================================================================
+    // FILE VALIDATION HELPERS
+    // ============================================================================
 
     function isValidImageSize() {
       return request.resource.size < 5 * 1024 * 1024; // 5MB
@@ -29,28 +71,72 @@ service firebase.storage {
       return request.resource.contentType.matches('image/.*');
     }
 
+    function isValidAttachmentSize() {
+      return request.resource.size < 10 * 1024 * 1024; // 10MB
+    }
+
+    // ============================================================================
+    // STORAGE RULES
+    // ============================================================================
+
     // User profile images
     match /users/{userId}/profile/{imageId} {
+      // READ: Authenticated users (for displaying avatars in shared stables)
       allow read: if isAuthenticated();
+
+      // WRITE: Owner only + image validation
       allow write: if isOwner(userId) && isValidImageSize() && isValidImageType();
+
+      // DELETE: Owner only
       allow delete: if isOwner(userId);
     }
 
-    // Stable images
+    // Stable images (stable logo, photos)
     match /stables/{stableId}/images/{imageId} {
-      allow read: if isAuthenticated();
-      allow write: if belongsToStable(stableId) &&
-                     hasRole('stable_owner') &&
-                     isValidImageSize() &&
-                     isValidImageType();
-      allow delete: if belongsToStable(stableId) && hasRole('stable_owner');
+      // READ: Stable members only
+      allow read: if canAccessStable(stableId);
+
+      // WRITE: Owner or manager + image validation
+      allow write: if canManageStable(stableId) && isValidImageSize() && isValidImageType();
+
+      // DELETE: Owner only
+      allow delete: if isStableOwnerOf(stableId);
     }
 
-    // Shift attachments
-    match /shifts/{shiftId}/attachments/{fileId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && hasRole('stable_owner');
-      allow delete: if hasRole('stable_owner');
+    // FIXED: Shift attachments with proper stable scoping
+    // NEW PATH: /stables/{stableId}/shifts/{shiftId}/attachments/{fileId}
+    match /stables/{stableId}/shifts/{shiftId}/attachments/{fileId} {
+      // READ: Stable members only
+      allow read: if canAccessStable(stableId);
+
+      // WRITE: Owner or manager + size validation
+      allow write: if canManageStable(stableId) && isValidAttachmentSize();
+
+      // DELETE: Owner or manager
+      allow delete: if canManageStable(stableId);
+    }
+
+    // Horse images (scoped to horse owner)
+    match /horses/{horseId}/images/{imageId} {
+      // READ: Horse owner or stable members if assigned
+      allow read: if isAuthenticated() && (
+        isSystemAdmin() ||
+        firestore.get(/databases/(default)/documents/horses/$(horseId)).data.ownerId == request.auth.uid ||
+        (firestore.get(/databases/(default)/documents/horses/$(horseId)).data.currentStableId != null &&
+         canAccessStable(firestore.get(/databases/(default)/documents/horses/$(horseId)).data.currentStableId))
+      );
+
+      // WRITE: Horse owner only + image validation
+      allow write: if isAuthenticated() && (
+        isSystemAdmin() ||
+        firestore.get(/databases/(default)/documents/horses/$(horseId)).data.ownerId == request.auth.uid
+      ) && isValidImageSize() && isValidImageType();
+
+      // DELETE: Horse owner only
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        firestore.get(/databases/(default)/documents/horses/$(horseId)).data.ownerId == request.auth.uid
+      );
     }
 
     // Default deny all

@@ -16,6 +16,7 @@ import { doc, getDoc, collection, query, where, getDocs, orderBy } from 'firebas
 import { db } from '@/lib/firebase'
 import { getSchedule, assignShift, unassignShift, publishSchedule, autoAssignShifts, calculateHistoricalPoints } from '@/services/scheduleService'
 import type { Schedule, Shift } from '@/types/schedule'
+import { formatFullName, formatDisplayName } from '@/lib/nameUtils'
 
 interface StableMember {
   id: string
@@ -65,35 +66,68 @@ export default function ScheduleEditorPage() {
       } as Shift))
       setShifts(shiftsData)
 
-      // Load stable members
-      const stableRef = doc(db, 'stables', stableId)
-      const stableSnap = await getDoc(stableRef)
+      // Load stable members from stableMembers collection (modern pattern)
+      const membersQuery = query(
+        collection(db, 'stableMembers'),
+        where('stableId', '==', stableId),
+        where('status', '==', 'active')
+      )
+      const membersSnapshot = await getDocs(membersQuery)
+      console.log('✅ Members query returned:', membersSnapshot.size, 'documents')
+      console.log('📊 Member data:', membersSnapshot.docs.map(d => ({ id: d.id, ...d.data() })))
 
-      if (stableSnap.exists()) {
-        const stableData = stableSnap.data()
-        const memberIds = stableData.members || []
+      // Load user details for each member
+      const memberPromises = membersSnapshot.docs.map(async (memberDoc) => {
+        const memberData = memberDoc.data()
+        console.log('🔍 Looking up user:', memberData.userId)
+        const userRef = doc(db, 'users', memberData.userId)
+        const userSnap = await getDoc(userRef)
 
-        // Load member details
-        const memberPromises = memberIds.map(async (memberId: string) => {
-          const userRef = doc(db, 'users', memberId)
-          const userSnap = await getDoc(userRef)
-          if (userSnap.exists()) {
-            const userData = userSnap.data()
-            return {
-              id: memberId,
-              displayName: userData.displayName || userData.email,
-              email: userData.email,
-              currentPoints: 0 // TODO: Calculate from shifts
-            }
+        if (userSnap.exists()) {
+          const userData = userSnap.data()
+          console.log('✅ Found user:', userData)
+          return {
+            id: memberData.userId,
+            displayName: formatFullName({
+              firstName: userData.firstName,
+              lastName: userData.lastName,
+              email: userData.email
+            }),
+            email: userData.email,
+            currentPoints: 0 // TODO: Calculate from shifts
           }
-          return null
+        }
+        console.warn('❌ User not found in users collection:', memberData.userId)
+        console.log('💡 Using cached data from stableMember instead')
+
+        // Use cached firstName/lastName from stableMember with email parsing fallback
+        const displayName = formatDisplayName({
+          firstName: memberData.firstName,
+          lastName: memberData.lastName,
+          email: memberData.userEmail
+        }, {
+          parseEmail: true,
+          fallback: 'Unknown User'
         })
 
-        const membersList = (await Promise.all(memberPromises)).filter(Boolean) as StableMember[]
-        setMembers(membersList)
-      }
+        return {
+          id: memberData.userId,
+          displayName,
+          email: memberData.userEmail || '',
+          currentPoints: 0
+        }
+      })
+
+      const membersList = (await Promise.all(memberPromises)).filter(Boolean) as StableMember[]
+      console.log('📊 Final members list:', membersList)
+      setMembers(membersList)
     } catch (error) {
-      console.error('Error loading data:', error)
+      console.error('❌ Error loading data:', error)
+      // Show error to user if member loading fails
+      if (error instanceof Error && error.message.includes('index')) {
+        console.error('🔍 Firestore Index Required:', error.message)
+        alert('Database configuration needed. Please check console for details.')
+      }
     } finally {
       setLoading(false)
     }
@@ -370,6 +404,16 @@ export default function ScheduleEditorPage() {
           <CardTitle>Shift Assignments</CardTitle>
           <CardDescription>
             Assign boarders to shifts. You can publish when ready, even with unassigned shifts.
+            {members.length > 0 && (
+              <span className='ml-2 text-sm text-muted-foreground'>
+                ({members.length} member{members.length !== 1 ? 's' : ''} available)
+              </span>
+            )}
+            {members.length === 0 && (
+              <span className='ml-2 text-sm text-destructive'>
+                (No members found - check console for errors)
+              </span>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>

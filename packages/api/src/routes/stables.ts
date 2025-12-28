@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { db } from '../utils/firebase.js'
-import { authenticate, requireRole } from '../middleware/auth.js'
+import { authenticate, requireRole, requireStableAccess } from '../middleware/auth.js'
 import type { AuthenticatedRequest, Stable } from '../types/index.js'
 
 const createStableSchema = z.object({
@@ -34,8 +34,10 @@ export async function stablesRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // Get single stable (public)
-  fastify.get('/:id', async (request, reply) => {
+  // Get single stable (requires authentication and membership)
+  fastify.get('/:id', {
+    preHandler: [authenticate, requireStableAccess()]
+  }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string }
       const doc = await db.collection('stables').doc(id).get()
@@ -60,9 +62,9 @@ export async function stablesRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // Create stable (requires authentication and stable_owner or admin role)
+  // Create stable (requires authentication and stable_owner or system_admin role)
   fastify.post('/', {
-    preHandler: [authenticate, requireRole(['stable_owner', 'admin'])]
+    preHandler: [authenticate, requireRole(['stable_owner', 'system_admin'])]
   }, async (request, reply) => {
     try {
       const validation = createStableSchema.safeParse(request.body)
@@ -128,8 +130,8 @@ export async function stablesRoutes(fastify: FastifyInstance) {
 
       const stable = doc.data() as Stable
 
-      // Check ownership or admin role
-      if (stable.ownerId !== user.uid && user.role !== 'admin') {
+      // Check ownership or system_admin role
+      if (stable.ownerId !== user.uid && user.role !== 'system_admin') {
         return reply.status(403).send({
           error: 'Forbidden',
           message: 'You do not have permission to update this stable'
@@ -176,8 +178,8 @@ export async function stablesRoutes(fastify: FastifyInstance) {
 
       const stable = doc.data() as Stable
 
-      // Check ownership or admin role
-      if (stable.ownerId !== user.uid && user.role !== 'admin') {
+      // Check ownership or system_admin role
+      if (stable.ownerId !== user.uid && user.role !== 'system_admin') {
         return reply.status(403).send({
           error: 'Forbidden',
           message: 'You do not have permission to delete this stable'

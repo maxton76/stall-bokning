@@ -25,13 +25,17 @@ type Props = {
   onNavigate?: (path: string) => void
   user?: {
     email?: string
-    name?: string
+    firstName?: string
+    lastName?: string
     initials?: string
   }
 }
 
 const ProfileDropdown = ({ trigger, defaultOpen, align = 'end', onLogout, onNavigate, user }: Props) => {
-  const displayName = user?.name || user?.email?.split('@')[0] || 'User'
+  // user.firstName and user.lastName now properly available from AppUser
+  const displayName = user?.firstName && user?.lastName
+    ? `${user.firstName} ${user.lastName}`
+    : user?.email?.split('@')[0] || 'User'
   const displayEmail = user?.email || 'user@example.com'
   const displayInitials = user?.initials || displayName.substring(0, 2).toUpperCase()
   return (

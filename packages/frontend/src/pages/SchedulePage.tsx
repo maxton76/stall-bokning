@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Calendar } from '@/components/ui/calendar'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -21,38 +21,24 @@ import {
 import { cn } from '@/lib/utils'
 import { useSchedules, useShiftActions } from '@/hooks/useSchedules'
 import { useAuth } from '@/contexts/AuthContext'
+import { useUserStables } from '@/hooks/useUserStables'
 import type { Shift } from '@/types/schedule'
 import { getAllSchedulesForUser } from '@/services/scheduleService'
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
-interface Stable {
-  id: string
-  name: string
-}
-
 export default function SchedulePage() {
   const { user } = useAuth()
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [filter, setFilter] = useState<'all' | 'unassigned' | 'assigned'>('all')
-  const [selectedStable, setSelectedStable] = useState<string>('all')
-  const [stables, setStables] = useState<Stable[]>([])
+  const [selectedStable, setSelectedStable] = useState<string>('all') // Auto-selected by useEffect if only 1 stable
   const [shifts, setShifts] = useState<Shift[]>([])
   const [loading, setLoading] = useState(true)
   const { assign, unassign } = useShiftActions()
+  const { stables, loading: stablesLoading } = useUserStables(user?.uid)
 
-  // Load all shifts for user's stables
-  useEffect(() => {
-    console.log('useEffect running, user:', user ? user.uid : 'null')
-    if (!user) {
-      console.log('No user found, setting loading to false')
-      setLoading(false)
-      return
-    }
-    loadAllShifts()
-  }, [user])
-
-  const loadAllShifts = async () => {
+  // Define loadAllShifts function before using it in useEffect
+  const loadAllShifts = useCallback(async () => {
     if (!user) {
       setLoading(false)
       return
@@ -62,22 +48,10 @@ export default function SchedulePage() {
       setLoading(true)
       console.log('Loading shifts for user:', user.uid)
 
-      // Get all stables the user is a member of
-      const stablesQuery = query(
-        collection(db, 'stables'),
-        where('members', 'array-contains', user.uid)
-      )
-      const stablesSnapshot = await getDocs(stablesQuery)
-      const stableIds = stablesSnapshot.docs.map(doc => doc.id)
+      // Get stable IDs from the hook
+      const stableIds = stables.map(stable => stable.id)
 
       console.log('Found stables:', stableIds.length)
-
-      // Store stables list for dropdown
-      const stablesData = stablesSnapshot.docs.map(doc => ({
-        id: doc.id,
-        name: doc.data().name || 'Unnamed Stable'
-      }))
-      setStables(stablesData)
 
       if (stableIds.length === 0) {
         console.log('No stables found for user')
@@ -123,7 +97,39 @@ export default function SchedulePage() {
       console.log('Setting loading to false')
       setLoading(false)
     }
-  }
+  }, [user, stables])
+
+  // Load all shifts for user's stables (wait for stables to load first)
+  useEffect(() => {
+    console.log('useEffect running, user:', user ? user.uid : 'null', 'stablesLoading:', stablesLoading)
+    if (!user) {
+      console.log('No user found, setting loading to false')
+      setLoading(false)
+      return
+    }
+    // Wait for stables to finish loading before fetching shifts
+    if (stablesLoading) {
+      console.log('Stables still loading, waiting...')
+      return
+    }
+    loadAllShifts()
+  }, [user, stablesLoading, loadAllShifts])
+
+  // Auto-select stable when user has exactly one
+  useEffect(() => {
+    if (stables.length === 1 && selectedStable === 'all') {
+      setSelectedStable(stables[0].id)
+    } else if (stables.length === 0) {
+      setSelectedStable('all')
+    }
+  }, [stables, selectedStable])
+
+  // Reset to 'all' if selected stable no longer exists
+  useEffect(() => {
+    if (selectedStable !== 'all' && !stables.some(s => s.id === selectedStable)) {
+      setSelectedStable('all')
+    }
+  }, [stables, selectedStable])
 
   const getShiftCoverageForDate = (date: Date) => {
     const dateStr = date.toDateString()
@@ -192,7 +198,7 @@ export default function SchedulePage() {
     }
   }
 
-  if (loading) {
+  if (loading || stablesLoading) {
     return (
       <div className='flex items-center justify-center min-h-[400px]'>
         <Loader2Icon className='h-8 w-8 animate-spin text-muted-foreground' />
@@ -206,27 +212,42 @@ export default function SchedulePage() {
       <div className='flex items-start justify-between'>
         <div>
           <h1 className='text-3xl font-bold tracking-tight'>Schedule Overview</h1>
-          <p className='text-muted-foreground mt-1'>
-            Manage and view all shifts across your stables
-          </p>
-        </div>
-        {stables.length > 1 && (
-          <div className='w-64'>
-            <Select value={selectedStable} onValueChange={setSelectedStable}>
-              <SelectTrigger>
-                <SelectValue placeholder='Select stable' />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='all'>All Stables</SelectItem>
-                {stables.map(stable => (
-                  <SelectItem key={stable.id} value={stable.id}>
-                    {stable.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className='text-muted-foreground mt-1'>
+            Manage and view all shifts
+            {selectedStable !== 'all' && stables.length > 0 && (
+              <>
+                {' '}for{' '}
+                <Badge variant='secondary' className='font-normal'>
+                  {stables.find(s => s.id === selectedStable)?.name || 'Unknown Stable'}
+                </Badge>
+              </>
+            )}
+            {selectedStable === 'all' && stables.length > 1 && (
+              <>
+                {' '}across{' '}
+                <Badge variant='secondary' className='font-normal'>
+                  all {stables.length} stables
+                </Badge>
+              </>
+            )}
           </div>
-        )}
+        </div>
+        {/* Stable Selector - Always visible */}
+        <div className='w-64'>
+          <Select value={selectedStable} onValueChange={setSelectedStable}>
+            <SelectTrigger>
+              <SelectValue placeholder='Select stable' />
+            </SelectTrigger>
+            <SelectContent>
+              {stables.length > 1 && <SelectItem value='all'>All Stables</SelectItem>}
+              {stables.map(stable => (
+                <SelectItem key={stable.id} value={stable.id}>
+                  {stable.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -420,7 +441,14 @@ export default function SchedulePage() {
             <div className='text-center py-12 text-muted-foreground'>
               <CalendarIcon className='h-12 w-12 mx-auto mb-4 opacity-50' />
               <p>No shifts found</p>
-              <p className='text-sm mt-2'>Create a schedule to get started</p>
+              <p className='text-sm mt-2'>
+                {stables.length === 0
+                  ? 'Join a stable to see schedules'
+                  : selectedStable !== 'all'
+                  ? 'No schedules published for this stable yet'
+                  : 'No schedules published yet'
+                }
+              </p>
             </div>
           ) : (
             <div className='space-y-2'>

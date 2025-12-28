@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { createSchedule, createShifts, generateShifts } from '@/services/scheduleService'
+import { getShiftTypesByStable } from '@/services/shiftTypeService'
 import type { ShiftType } from '@/types/schedule'
 
 export default function CreateSchedulePage() {
@@ -36,19 +37,22 @@ export default function CreateSchedulePage() {
 
     const loadStable = async () => {
       try {
+        // Load stable info
         const stableRef = doc(db, 'stables', stableId)
         const stableSnap = await getDoc(stableRef)
 
         if (stableSnap.exists()) {
           const data = stableSnap.data()
           setStableName(data.name || '')
-          const types = data.shiftTypes || []
-          setShiftTypes(types)
-          setScheduleData(prev => ({
-            ...prev,
-            selectedShiftTypes: types.map((st: ShiftType) => st.id)
-          }))
         }
+
+        // Load shift types from shiftTypes collection
+        const types = await getShiftTypesByStable(stableId)
+        setShiftTypes(types)
+        setScheduleData(prev => ({
+          ...prev,
+          selectedShiftTypes: types.map(st => st.id)
+        }))
       } catch (error) {
         console.error('Error loading stable:', error)
       }

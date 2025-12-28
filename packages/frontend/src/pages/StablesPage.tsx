@@ -1,53 +1,13 @@
-import { useState, useEffect } from 'react'
 import { Plus, Loader2Icon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
-import { collection, query, where, getDocs } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
-
-interface Stable {
-  id: string
-  name: string
-  address?: string
-  ownerId: string
-  createdAt: any
-}
+import { useUserStables } from '@/hooks/useUserStables'
 
 export default function StablesPage() {
   const { user } = useAuth()
-  const [stables, setStables] = useState<Stable[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    if (user) {
-      loadStables()
-    }
-  }, [user])
-
-  const loadStables = async () => {
-    if (!user) return
-
-    try {
-      setLoading(true)
-
-      // For now, load all stables (later we can filter by user membership)
-      const stablesQuery = query(collection(db, 'stables'))
-      const stablesSnapshot = await getDocs(stablesQuery)
-
-      const stablesData = stablesSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Stable))
-
-      setStables(stablesData)
-    } catch (error) {
-      console.error('Error loading stables:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { stables, loading } = useUserStables(user?.uid)
 
   if (loading) {
     return (

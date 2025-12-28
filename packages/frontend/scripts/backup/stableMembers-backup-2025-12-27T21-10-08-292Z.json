@@ -1,0 +1,21 @@
+[
+  {
+    "id": "gasnIeYqVpLCtBGi1ESXt37zPtJz_5lu8Irn4UMngdpFCcQ1d",
+    "stableId": "5lu8Irn4UMngdpFCcQ1d",
+    "firstName": "Max",
+    "lastName": "Ahston",
+    "stableName": "Hagalund",
+    "role": "member",
+    "joinedAt": {
+      "_seconds": 1766847099,
+      "_nanoseconds": 755000000
+    },
+    "inviteAcceptedAt": {
+      "_seconds": 1766847099,
+      "_nanoseconds": 755000000
+    },
+    "userEmail": "maxkrax@gmail.com",
+    "userId": "gasnIeYqVpLCtBGi1ESXt37zPtJz",
+    "status": "active"
+  }
+]

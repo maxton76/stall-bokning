@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import { SettingsIcon, XIcon, LinkIcon } from 'lucide-react'
+import { SettingsIcon, XIcon, LinkIcon, Building2, Check, X } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuItem
 } from '@/components/ui/dropdown-menu'
+import { DropdownEmptyState, DropdownLoadingState, DropdownActionButtons } from '@/components/ui/dropdown-states'
+import { usePendingInvitations } from '@/hooks/usePendingInvitations'
 
 type Props = {
   trigger: ReactNode
@@ -22,6 +24,8 @@ type Props = {
 }
 
 const NotificationDropdown = ({ trigger, defaultOpen, align = 'end' }: Props) => {
+  const { invitations, loading: invitationsLoading, accept, decline } = usePendingInvitations()
+
   return (
     <DropdownMenu defaultOpen={defaultOpen}>
       <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
@@ -47,6 +51,13 @@ const NotificationDropdown = ({ trigger, defaultOpen, align = 'end' }: Props) =>
                   className='data-[state=active]:!border-b-primary rounded-none border-b-2 border-b-transparent font-normal data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-transparent'
                 >
                   General
+                </TabsTrigger>
+                <TabsTrigger
+                  value='invitations'
+                  className='data-[state=active]:!border-b-primary rounded-none border-b-2 border-b-transparent font-normal data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-transparent'
+                >
+                  Invitations
+                  {invitations.length > 0 && <Badge variant='destructive' className='ml-1'>{invitations.length}</Badge>}
                 </TabsTrigger>
               </TabsList>
               <SettingsIcon className='size-5' />
@@ -213,6 +224,51 @@ const NotificationDropdown = ({ trigger, defaultOpen, align = 'end' }: Props) =>
                 </div>
               </div>
             </DropdownMenuItem>
+          </TabsContent>
+
+          <TabsContent value='invitations'>
+            {invitationsLoading ? (
+              <DropdownLoadingState message="Loading invitations..." />
+            ) : invitations.length === 0 ? (
+              <DropdownEmptyState
+                icon={Building2}
+                message="No pending invitations"
+              />
+            ) : (
+              <>
+                {invitations.map((inv) => (
+                  <div key={inv.id}>
+                    <DropdownMenuItem className='items-start gap-3 px-2 py-3 text-base'>
+                      <Building2 className='size-9.5 text-primary' />
+                      <div className='flex w-full flex-col items-start gap-2'>
+                        <span className='text-base font-medium'>{inv.stableName}</span>
+                        <div className='flex flex-col gap-1'>
+                          <span className='text-muted-foreground text-sm'>
+                            Invited as {inv.role} by {inv.invitedByName || 'someone'}
+                          </span>
+                          <span className='text-muted-foreground text-sm'>
+                            Expires {inv.expiresAt.toDate().toLocaleDateString()}
+                          </span>
+                        </div>
+                        <DropdownActionButtons
+                          primary={{
+                            label: "Accept",
+                            icon: Check,
+                            onClick: () => accept(inv.id, inv.stableId)
+                          }}
+                          secondary={{
+                            label: "Decline",
+                            icon: X,
+                            onClick: () => decline(inv.id)
+                          }}
+                        />
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </div>
+                ))}
+              </>
+            )}
           </TabsContent>
         </Tabs>
       </DropdownMenuContent>

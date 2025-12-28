@@ -1,8 +1,9 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { db } from '../utils/firebase.js'
-import { authenticate } from '../middleware/auth.js'
+import { authenticate, requireStableAccess } from '../middleware/auth.js'
 import type { AuthenticatedRequest, Schedule } from '../types/index.js'
+import { canManageSchedules } from '../utils/authorization.js'
 
 const createScheduleSchema = z.object({
   stableId: z.string().min(1),
@@ -47,7 +48,10 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
   })
 
   // Get schedules for a specific stable
-  fastify.get('/stable/:stableId', async (request, reply) => {
+  // FIXED: Added authentication and membership verification
+  fastify.get('/stable/:stableId', {
+    preHandler: [authenticate, requireStableAccess()]
+  }, async (request, reply) => {
     try {
       const { stableId } = request.params as { stableId: string }
 
@@ -95,6 +99,15 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({
           error: 'Not Found',
           message: 'Stable not found'
+        })
+      }
+
+      // ADDED: Check stable membership and management permissions
+      const canManage = await canManageSchedules(user.uid, validation.data.stableId)
+      if (!canManage && user.role !== 'system_admin') {
+        return reply.status(403).send({
+          error: 'Forbidden',
+          message: 'You do not have permission to create schedules for this stable'
         })
       }
 
@@ -153,8 +166,10 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
 
       const schedule = doc.data() as Schedule
 
-      // Check ownership
-      if (schedule.userId !== user.uid && user.role !== 'admin') {
+      // FIXED: Check ownership or stable management permissions
+      const canManage = await canManageSchedules(user.uid, schedule.stableId)
+
+      if (schedule.userId !== user.uid && !canManage && user.role !== 'system_admin') {
         return reply.status(403).send({
           error: 'Forbidden',
           message: 'You do not have permission to update this schedule'
@@ -208,8 +223,10 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
 
       const schedule = doc.data() as Schedule
 
-      // Check ownership
-      if (schedule.userId !== user.uid && user.role !== 'admin') {
+      // FIXED: Check ownership or stable management permissions
+      const canManage = await canManageSchedules(user.uid, schedule.stableId)
+
+      if (schedule.userId !== user.uid && !canManage && user.role !== 'system_admin') {
         return reply.status(403).send({
           error: 'Forbidden',
           message: 'You do not have permission to cancel this schedule'

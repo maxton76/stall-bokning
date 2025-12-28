@@ -1,6 +1,5 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
 import {
-  User,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
@@ -8,12 +7,20 @@ import {
   browserLocalPersistence
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
+import { AppUser } from '@/types/auth'
+import {
+  fetchUserProfile,
+  createAppUser,
+  invalidateProfileCache
+} from '@/services/profileService'
 
 interface AuthContextType {
-  user: User | null
+  user: AppUser | null
   loading: boolean
+  profileLoading: boolean
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
+  refreshProfile: () => Promise<void>
   error: string | null
 }
 
@@ -32,8 +39,9 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<AppUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const [profileLoading, setProfileLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -43,8 +51,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
     })
 
     // Subscribe to auth state changes
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user)
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // User signed in - fetch profile
+        setProfileLoading(true)
+        try {
+          const profile = await fetchUserProfile(firebaseUser.uid)
+          const appUser = createAppUser(firebaseUser, profile)
+          setUser(appUser)
+
+          if (!profile) {
+            console.warn('User profile not found in Firestore, using Firebase data only')
+          }
+        } catch (error) {
+          console.error('Profile fetch error:', error)
+          // Still create user with Firebase data only
+          setUser(createAppUser(firebaseUser, null))
+        } finally {
+          setProfileLoading(false)
+        }
+      } else {
+        // User signed out
+        setUser(null)
+      }
       setLoading(false)
     })
 
@@ -80,6 +109,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signOut = async () => {
     try {
       setError(null)
+      // Invalidate cache on sign out
+      if (user?.uid) {
+        invalidateProfileCache(user.uid)
+      }
       await firebaseSignOut(auth)
     } catch (err: any) {
       console.error('Sign out error:', err)
@@ -88,11 +121,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
+  const refreshProfile = useCallback(async () => {
+    if (!user?.uid) return
+
+    const firebaseUser = auth.currentUser
+    if (!firebaseUser) return
+
+    setProfileLoading(true)
+    try {
+      // Force refresh bypasses cache
+      const profile = await fetchUserProfile(user.uid, true)
+      const appUser = createAppUser(firebaseUser, profile)
+      setUser(appUser)
+    } catch (error) {
+      console.error('Profile refresh error:', error)
+    } finally {
+      setProfileLoading(false)
+    }
+  }, [user?.uid])
+
   const value = {
     user,
     loading,
+    profileLoading,
     signIn,
     signOut,
+    refreshProfile,
     error
   }
 

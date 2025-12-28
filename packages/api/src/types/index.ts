@@ -3,11 +3,21 @@ import type { FastifyRequest } from 'fastify'
 export interface AuthUser {
   uid: string
   email: string
-  role: 'user' | 'admin' | 'stable_owner'
+  role: 'user' | 'system_admin' | 'stable_owner'  // Fixed: 'admin' → 'system_admin'
 }
 
 export interface AuthenticatedRequest extends FastifyRequest {
   user?: AuthUser
+}
+
+// Stable member role types
+export type StableMemberRole = 'manager' | 'member'
+export type StableMemberStatus = 'active' | 'inactive' | 'pending'
+
+// Extended request interface with stable context
+export interface StableContextRequest extends AuthenticatedRequest {
+  stableId?: string
+  stableRole?: 'owner' | StableMemberRole | null
 }
 
 export interface Stable {
