@@ -20,7 +20,7 @@ import { getFacilitiesByStable } from '@/services/facilityService'
 import type { FacilityReservation } from '@/types/facilityReservation'
 import type { Facility, FacilityType } from '@/types/facility'
 import { FacilityReservationDialog } from '@/components/FacilityReservationDialog'
-import { ResourceTimelineView } from '@/components/ResourceTimelineView'
+import { FacilityCalendarView } from '@/components/FacilityCalendarView'
 import { Timestamp } from 'firebase/firestore'
 import { useToast } from '@/hooks/use-toast'
 
@@ -54,9 +54,10 @@ type ViewType = 'calendar' | 'timeline'
 export default function FacilitiesReservationsPage() {
   const { user } = useAuth()
   const { toast } = useToast()
-  const [viewType, setViewType] = useState<ViewType>('calendar')
+  const [viewType, setViewType] = useState<ViewType>('timeline')
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [selectedFacilityType, setSelectedFacilityType] = useState<string>('all')
+  const [selectedFacility, setSelectedFacility] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [dialogInitialValues, setDialogInitialValues] = useState<{
     facilityId?: string
@@ -152,13 +153,13 @@ export default function FacilitiesReservationsPage() {
     reservationDialog.openDialog(reservation)
   }
 
-  const handleTimelineSelect = (facilityId: string, start: Date, end: Date) => {
+  const handleTimelineSelect = (facilityId: string | undefined, start: Date, end: Date) => {
     // Pre-fill form with selected facility and time
     const startTime = format(start, 'HH:mm')
     const endTime = format(end, 'HH:mm')
 
     setDialogInitialValues({
-      facilityId,
+      facilityId: facilityId || selectedFacility !== 'all' ? selectedFacility : undefined,
       date: start,
       startTime,
       endTime
@@ -327,14 +328,15 @@ export default function FacilitiesReservationsPage() {
               onClick={() => setViewType('calendar')}
             >
               <CalendarIcon className='mr-2 h-4 w-4' />
-              Calendar
+              List View
             </Button>
             <Button
               variant={viewType === 'timeline' ? 'default' : 'ghost'}
               size='sm'
               onClick={() => setViewType('timeline')}
             >
-              Timeline
+              <CalendarIcon className='mr-2 h-4 w-4' />
+              Schedule View
             </Button>
           </div>
           <Button onClick={handleNewReservation}>
@@ -384,15 +386,31 @@ export default function FacilitiesReservationsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className='flex gap-4'>
-            <div className='flex-1'>
+          <div className='grid gap-4 md:grid-cols-3'>
+            <div>
+              <label className='text-sm font-medium mb-2 block'>Facility</label>
+              <Select value={selectedFacility} onValueChange={setSelectedFacility}>
+                <SelectTrigger>
+                  <SelectValue placeholder='All facilities' />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='all'>All facilities</SelectItem>
+                  {facilities.data?.map((facility) => (
+                    <SelectItem key={facility.id} value={facility.id}>
+                      {facility.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <label className='text-sm font-medium mb-2 block'>Facility Type</label>
               <Select value={selectedFacilityType} onValueChange={setSelectedFacilityType}>
                 <SelectTrigger>
-                  <SelectValue placeholder='All facility types' />
+                  <SelectValue placeholder='All types' />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value='all'>All facility types</SelectItem>
+                  <SelectItem value='all'>All types</SelectItem>
                   {Object.entries(FACILITY_TYPE_LABELS).map(([value, label]) => (
                     <SelectItem key={value} value={value}>
                       {label}
@@ -401,7 +419,7 @@ export default function FacilitiesReservationsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className='flex-1'>
+            <div>
               <label className='text-sm font-medium mb-2 block'>Status</label>
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                 <SelectTrigger>
@@ -499,9 +517,10 @@ export default function FacilitiesReservationsPage() {
 
       {/* Timeline View */}
       {viewType === 'timeline' && (
-        <ResourceTimelineView
+        <FacilityCalendarView
           facilities={facilities.data || []}
           reservations={filteredReservations}
+          selectedFacilityId={selectedFacility}
           onEventClick={handleReservationClick}
           onDateSelect={handleTimelineSelect}
           onEventDrop={handleEventDrop}

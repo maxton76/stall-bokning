@@ -1,8 +1,11 @@
 import { useRef } from 'react'
 import FullCalendar from '@fullcalendar/react'
-import resourceTimelinePlugin from '@fullcalendar/resource-timeline'
+import dayGridPlugin from '@fullcalendar/daygrid'
+import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import type { EventClickArg, DateSelectArg, EventDropArg, EventResizeDoneArg } from '@fullcalendar/core'
+import listPlugin from '@fullcalendar/list'
+import type { EventClickArg, DateSelectArg, EventDropArg } from '@fullcalendar/core'
+import type { EventResizeDoneArg } from '@fullcalendar/interaction'
 import type { Facility } from '@/types/facility'
 import type { FacilityReservation } from '@/types/facilityReservation'
 
@@ -15,8 +18,20 @@ const DEFAULT_STATUS_COLORS = {
   no_show: 'hsl(var(--destructive))'
 } as const
 
-// Configuration interface for timeline customization
-export interface TimelineConfig {
+// Facility colors for visual distinction (using Tailwind color palette)
+const FACILITY_COLORS = [
+  '#3b82f6', // blue-500
+  '#10b981', // emerald-500
+  '#f59e0b', // amber-500
+  '#8b5cf6', // violet-500
+  '#ec4899', // pink-500
+  '#06b6d4', // cyan-500
+  '#f97316', // orange-500
+  '#84cc16', // lime-500
+]
+
+// Configuration interface for calendar customization
+export interface CalendarConfig {
   slotMinTime?: string
   slotMaxTime?: string
   slotDuration?: string
@@ -24,56 +39,54 @@ export interface TimelineConfig {
   scrollTime?: string
   weekends?: boolean
   nowIndicator?: boolean
-}
-
-export interface ResourceConfig {
-  headerContent?: string
-  areaWidth?: string
-  showMaxCapacity?: boolean
+  firstDay?: number // 0=Sunday, 1=Monday
 }
 
 export interface ViewOptions {
-  showDay?: boolean
-  showWeek?: boolean
-  showMonth?: boolean
-  initialView?: 'resourceTimelineDay' | 'resourceTimelineWeek' | 'resourceTimelineMonth'
+  showDayGrid?: boolean
+  showTimeGridWeek?: boolean
+  showTimeGridDay?: boolean
+  showList?: boolean
+  initialView?: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek'
 }
 
-interface ResourceTimelineViewProps {
+interface FacilityCalendarViewProps {
   facilities: Facility[]
   reservations: FacilityReservation[]
+  selectedFacilityId?: string | 'all' // Filter by facility
   onEventClick: (reservation: FacilityReservation) => void
-  onDateSelect: (facilityId: string, start: Date, end: Date) => void
-  onEventDrop?: (reservationId: string, newStart: Date, newEnd: Date, newFacilityId?: string) => void
+  onDateSelect: (facilityId: string | undefined, start: Date, end: Date) => void
+  onEventDrop?: (reservationId: string, newStart: Date, newEnd: Date) => void
   onEventResize?: (reservationId: string, newStart: Date, newEnd: Date) => void
 
   // Optional configuration for modularity
   statusColors?: Record<string, string>
-  timelineConfig?: TimelineConfig
-  resourceConfig?: ResourceConfig
+  facilityColors?: string[]
+  calendarConfig?: CalendarConfig
   viewOptions?: ViewOptions
   editable?: boolean
   className?: string
 }
 
-export function ResourceTimelineView({
+export function FacilityCalendarView({
   facilities,
   reservations,
+  selectedFacilityId = 'all',
   onEventClick,
   onDateSelect,
   onEventDrop,
   onEventResize,
   statusColors = DEFAULT_STATUS_COLORS,
-  timelineConfig = {},
-  resourceConfig = {},
+  facilityColors = FACILITY_COLORS,
+  calendarConfig = {},
   viewOptions = {},
   editable = true,
   className = ''
-}: ResourceTimelineViewProps) {
+}: FacilityCalendarViewProps) {
   const calendarRef = useRef<FullCalendar>(null)
 
   // Merge with defaults
-  const config: Required<TimelineConfig> = {
+  const config: Required<CalendarConfig> = {
     slotMinTime: '06:00:00',
     slotMaxTime: '22:00:00',
     slotDuration: '00:30:00',
@@ -81,60 +94,70 @@ export function ResourceTimelineView({
     scrollTime: '08:00:00',
     weekends: true,
     nowIndicator: true,
-    ...timelineConfig
-  }
-
-  const resourceConf: Required<ResourceConfig> = {
-    headerContent: 'Facilities',
-    areaWidth: '200px',
-    showMaxCapacity: true,
-    ...resourceConfig
+    firstDay: 1, // Monday
+    ...calendarConfig
   }
 
   const viewOpts: Required<ViewOptions> = {
-    showDay: true,
-    showWeek: true,
-    showMonth: true,
-    initialView: 'resourceTimelineWeek',
+    showDayGrid: true,
+    showTimeGridWeek: true,
+    showTimeGridDay: true,
+    showList: true,
+    initialView: 'timeGridWeek',
     ...viewOptions
   }
+
+  // Create facility color map
+  const facilityColorMap = new Map<string, string>()
+  facilities.forEach((facility, index) => {
+    facilityColorMap.set(
+      facility.id,
+      facilityColors[index % facilityColors.length] || facilityColors[0] || '#3b82f6'
+    )
+  })
 
   // Build header toolbar based on view options
   const buildHeaderToolbar = () => {
     const views: string[] = []
-    if (viewOpts.showDay) views.push('resourceTimelineDay')
-    if (viewOpts.showWeek) views.push('resourceTimelineWeek')
-    if (viewOpts.showMonth) views.push('resourceTimelineMonth')
+    if (viewOpts.showDayGrid) views.push('dayGridMonth')
+    if (viewOpts.showTimeGridWeek) views.push('timeGridWeek')
+    if (viewOpts.showTimeGridDay) views.push('timeGridDay')
+    if (viewOpts.showList) views.push('listWeek')
 
     return {
-      left: 'today prev,next',
+      left: 'prev,next today',
       center: 'title',
       right: views.join(',')
     }
   }
 
-  // Transform facilities to FullCalendar resources format
-  const resources = facilities.map(facility => ({
-    id: facility.id,
-    title: resourceConf.showMaxCapacity && facility.maxHorsesPerReservation > 1
-      ? `${facility.name} (max ${facility.maxHorsesPerReservation})`
-      : facility.name
-  }))
+  // Filter reservations based on selected facility
+  const filteredReservations = selectedFacilityId === 'all'
+    ? reservations
+    : reservations.filter(r => r.facilityId === selectedFacilityId)
 
   // Transform reservations to FullCalendar events format
-  const events = reservations.map(reservation => {
-    const color = statusColors[reservation.status] || statusColors.pending
+  const events = filteredReservations.map(reservation => {
+    const facility = facilities.find(f => f.id === reservation.facilityId)
+    const facilityColor = facilityColorMap.get(reservation.facilityId) || '#3b82f6'
+    const statusColor = statusColors[reservation.status] || statusColors.pending
+
+    // Use status color as background, facility color as border for visual distinction
     return {
       id: reservation.id,
-      resourceId: reservation.facilityId,
-      title: reservation.userFullName || reservation.userEmail,
+      title: selectedFacilityId === 'all'
+        ? `${facility?.name || 'Unknown'} - ${reservation.userFullName || reservation.userEmail}`
+        : reservation.userFullName || reservation.userEmail,
       start: reservation.startTime.toDate(),
       end: reservation.endTime.toDate(),
-      backgroundColor: color,
-      borderColor: color,
+      backgroundColor: statusColor,
+      borderColor: facilityColor,
+      textColor: '#ffffff',
       extendedProps: {
         reservation: reservation,
-        status: reservation.status
+        status: reservation.status,
+        facilityId: reservation.facilityId,
+        facilityName: facility?.name || 'Unknown'
       }
     }
   })
@@ -145,10 +168,10 @@ export function ResourceTimelineView({
   }
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
-    const facilityId = selectInfo.resource?.id
-    if (facilityId) {
-      onDateSelect(facilityId, selectInfo.start, selectInfo.end)
-    }
+    // When a facility is selected, use that; otherwise let parent decide
+    const facilityId = selectedFacilityId !== 'all' ? selectedFacilityId : undefined
+    onDateSelect(facilityId, selectInfo.start, selectInfo.end)
+
     // Clear selection
     const calendarApi = selectInfo.view.calendar
     calendarApi.unselect()
@@ -157,12 +180,10 @@ export function ResourceTimelineView({
   const handleEventDrop = (info: EventDropArg) => {
     if (onEventDrop) {
       const reservation = info.event.extendedProps.reservation as FacilityReservation
-      const newFacilityId = info.event.getResources()[0]?.id
       onEventDrop(
         reservation.id,
         info.event.start!,
-        info.event.end!,
-        newFacilityId
+        info.event.end!
       )
     }
   }
@@ -193,6 +214,7 @@ export function ResourceTimelineView({
           --fc-today-bg-color: hsl(var(--accent));
           --fc-neutral-bg-color: hsl(var(--muted));
           --fc-page-bg-color: hsl(var(--background));
+          --fc-list-event-hover-bg-color: hsl(var(--muted) / 0.5);
           font-family: inherit;
         }
 
@@ -232,20 +254,15 @@ export function ResourceTimelineView({
           padding: 0.75rem 0.5rem;
         }
 
-        .fc .fc-datagrid-cell {
-          background-color: hsl(var(--muted) / 0.1);
-          padding: 0.75rem 0.5rem;
-        }
-
         .fc .fc-timegrid-slot {
           height: 3rem;
         }
 
         .fc .fc-event {
           border-radius: calc(var(--radius) - 4px);
-          border-width: 1px;
-          font-size: 0.75rem;
-          padding: 0.125rem 0.25rem;
+          border-width: 2px;
+          font-size: 0.875rem;
+          padding: 0.25rem 0.5rem;
           cursor: pointer;
           transition: all 0.2s;
         }
@@ -258,7 +275,6 @@ export function ResourceTimelineView({
 
         .fc .fc-event-title {
           font-weight: 500;
-          color: white;
         }
 
         .fc .fc-timegrid-now-indicator-line {
@@ -280,26 +296,48 @@ export function ResourceTimelineView({
           background-color: hsl(var(--primary) / 0.1);
         }
 
-        /* Resource area customization */
-        .fc-resource-timeline .fc-datagrid-cell-main {
-          font-weight: 500;
-          color: hsl(var(--foreground));
+        /* List view customization */
+        .fc-list-event {
+          cursor: pointer;
+        }
+
+        .fc-list-event:hover td {
+          background-color: hsl(var(--muted) / 0.5);
+        }
+
+        .fc-list-day-cushion {
+          background-color: hsl(var(--muted) / 0.3);
+        }
+
+        /* Day grid customization */
+        .fc-daygrid-event {
+          white-space: normal;
+          align-items: flex-start;
+        }
+
+        .fc-daygrid-event .fc-event-title {
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        /* Improve event visibility */
+        .fc-event-main {
+          padding: 2px 4px;
         }
       `}</style>
 
       <FullCalendar
         ref={calendarRef}
-        plugins={[resourceTimelinePlugin, interactionPlugin]}
+        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
         initialView={viewOpts.initialView}
         headerToolbar={buildHeaderToolbar()}
-        resources={resources}
         events={events}
         editable={editable}
-        eventResourceEditable={editable}
         selectable={editable}
         selectMirror={true}
         dayMaxEvents={true}
         weekends={config.weekends}
+        firstDay={config.firstDay}
         select={handleDateSelect}
         eventClick={handleEventClick}
         eventDrop={handleEventDrop}
@@ -307,25 +345,28 @@ export function ResourceTimelineView({
         slotMinTime={config.slotMinTime}
         slotMaxTime={config.slotMaxTime}
         height='auto'
-        resourceAreaHeaderContent={resourceConf.headerContent}
-        resourceAreaWidth={resourceConf.areaWidth}
         slotDuration={config.slotDuration}
         slotLabelInterval={config.slotLabelInterval}
         scrollTime={config.scrollTime}
         nowIndicator={config.nowIndicator}
         eventContent={(arg) => {
-          const status = arg.event.extendedProps.status as string
+          const facilityName = arg.event.extendedProps.facilityName as string
+
           return (
-            <div className='px-1 text-xs truncate'>
-              <div className='font-medium text-white'>{arg.event.title}</div>
-              <div className='text-white/80 text-[0.65rem]'>
-                {arg.timeText}
-              </div>
-              {status && (
-                <div className='text-white/60 text-[0.6rem] uppercase tracking-wide'>
-                  {status}
+            <div className='fc-event-main-frame'>
+              <div className='fc-event-title-container'>
+                <div className='fc-event-title fc-sticky'>
+                  {arg.event.title}
                 </div>
-              )}
+                {selectedFacilityId === 'all' && (
+                  <div className='text-xs opacity-80'>
+                    {facilityName}
+                  </div>
+                )}
+                <div className='text-xs opacity-70'>
+                  {arg.timeText}
+                </div>
+              </div>
             </div>
           )
         }}
