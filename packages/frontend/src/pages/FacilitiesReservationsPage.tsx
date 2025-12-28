@@ -237,7 +237,7 @@ export default function FacilitiesReservationsPage() {
 
   const handleSaveReservation = async (data: any) => {
     try {
-      if (!user || !currentStableId) {
+      if (!user || !selectedStableId) {
         toast({
           title: 'Error',
           description: 'Missing required information',
@@ -280,7 +280,7 @@ export default function FacilitiesReservationsPage() {
       const denormalizedData = {
         facilityName: facility.name,
         facilityType: facility.type,
-        stableId: currentStableId,
+        stableId: selectedStableId,
         stableName: facility.stableName,
         userEmail: user.email || '',
         userFullName: user.displayName || undefined
