@@ -5,6 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Table,
   TableBody,
   TableCell,
@@ -16,6 +23,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useAsyncData } from '@/hooks/useAsyncData'
 import { useDialog } from '@/hooks/useDialog'
 import { useCRUD } from '@/hooks/useCRUD'
+import { useUserStables } from '@/hooks/useUserStables'
 import {
   getFacilitiesByStable,
   createFacility,
@@ -53,29 +61,39 @@ export default function ManageFacilitiesPage() {
   const { user } = useAuth()
   const { toast } = useToast()
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedStableId, setSelectedStableId] = useState<string>('')
   const facilityDialog = useDialog<Facility>()
 
-  // TODO: Get current stable ID from context or route params
-  const currentStableId = 'stable_123' // Placeholder
+  // Load user's stables
+  const { stables, loading: stablesLoading } = useUserStables(user?.uid)
 
-  // Load facilities
+  // Auto-select first stable when stables load
+  useEffect(() => {
+    if (stables.length > 0 && !selectedStableId) {
+      setSelectedStableId(stables[0].id)
+    }
+  }, [stables, selectedStableId])
+
+  // Load facilities for selected stable
   const facilities = useAsyncData<Facility[]>({
     loadFn: async () => {
-      if (!currentStableId) return []
-      return await getFacilitiesByStable(currentStableId)
+      if (!selectedStableId) return []
+      return await getFacilitiesByStable(selectedStableId)
     }
   })
 
-  // Load data on mount
+  // Reload facilities when stable changes
   useEffect(() => {
-    facilities.load()
-  }, [currentStableId])
+    if (selectedStableId) {
+      facilities.load()
+    }
+  }, [selectedStableId])
 
   // CRUD operations
   const { create, update, remove } = useCRUD<Facility>({
     createFn: async (data) => {
-      if (!currentStableId || !user) throw new Error('Missing required data')
-      return await createFacility(currentStableId, data as CreateFacilityData, user.uid)
+      if (!selectedStableId || !user) throw new Error('Missing required data')
+      return await createFacility(selectedStableId, data as CreateFacilityData, user.uid)
     },
     updateFn: async (id, data) => {
       if (!user) throw new Error('User not authenticated')
@@ -141,10 +159,25 @@ export default function ManageFacilitiesPage() {
     }
   }
 
-  if (facilities.loading) {
+  if (stablesLoading) {
     return (
       <div className='container mx-auto p-6'>
-        <p className='text-muted-foreground'>Loading...</p>
+        <p className='text-muted-foreground'>Loading stables...</p>
+      </div>
+    )
+  }
+
+  if (stables.length === 0) {
+    return (
+      <div className='container mx-auto p-6'>
+        <Card>
+          <CardContent className='flex flex-col items-center justify-center py-12'>
+            <h3 className='text-lg font-semibold mb-2'>No stables found</h3>
+            <p className='text-muted-foreground'>
+              You need to be a stable owner or manager to manage facilities.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -157,11 +190,34 @@ export default function ManageFacilitiesPage() {
           <h1 className='text-3xl font-bold tracking-tight'>Manage Facilities</h1>
           <p className='text-muted-foreground mt-1'>Configure facilities available for booking</p>
         </div>
-        <Button onClick={handleAddFacility}>
+        <Button onClick={handleAddFacility} disabled={!selectedStableId}>
           <Plus className='mr-2 h-4 w-4' />
           Add Facility
         </Button>
       </div>
+
+      {/* Stable Selector */}
+      <Card>
+        <CardHeader>
+          <div className='space-y-4'>
+            <div>
+              <label className='text-sm font-medium mb-2 block'>Select Stable</label>
+              <Select value={selectedStableId} onValueChange={setSelectedStableId}>
+                <SelectTrigger>
+                  <SelectValue placeholder='Choose a stable' />
+                </SelectTrigger>
+                <SelectContent>
+                  {stables.map((stable) => (
+                    <SelectItem key={stable.id} value={stable.id}>
+                      {stable.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
 
       {/* Search */}
       <Card>

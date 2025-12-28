@@ -15,6 +15,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import { useAsyncData } from '@/hooks/useAsyncData'
 import { useDialog } from '@/hooks/useDialog'
+import { useUserStables } from '@/hooks/useUserStables'
 import { getStableReservations, createReservation, updateReservation } from '@/services/facilityReservationService'
 import { getFacilitiesByStable } from '@/services/facilityService'
 import type { FacilityReservation } from '@/types/facilityReservation'
@@ -59,6 +60,7 @@ export default function FacilitiesReservationsPage() {
   const [selectedFacilityType, setSelectedFacilityType] = useState<string>('all')
   const [selectedFacility, setSelectedFacility] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [selectedStableId, setSelectedStableId] = useState<string>('')
   const [dialogInitialValues, setDialogInitialValues] = useState<{
     facilityId?: string
     date?: Date
@@ -67,29 +69,38 @@ export default function FacilitiesReservationsPage() {
   }>()
   const reservationDialog = useDialog<FacilityReservation>()
 
-  // TODO: Get current stable ID from context or route params
-  const currentStableId = 'stable_123' // Placeholder
+  // Load user's stables
+  const { stables, loading: stablesLoading } = useUserStables(user?.uid)
 
-  // Load facilities and reservations
+  // Auto-select first stable when stables load
+  useEffect(() => {
+    if (stables.length > 0 && !selectedStableId) {
+      setSelectedStableId(stables[0].id)
+    }
+  }, [stables, selectedStableId])
+
+  // Load facilities and reservations for selected stable
   const facilities = useAsyncData<Facility[]>({
     loadFn: async () => {
-      if (!currentStableId) return []
-      return await getFacilitiesByStable(currentStableId)
+      if (!selectedStableId) return []
+      return await getFacilitiesByStable(selectedStableId)
     }
   })
 
   const reservations = useAsyncData<FacilityReservation[]>({
     loadFn: async () => {
-      if (!currentStableId) return []
-      return await getStableReservations(currentStableId)
+      if (!selectedStableId) return []
+      return await getStableReservations(selectedStableId)
     }
   })
 
-  // Load data on mount
+  // Reload data when stable changes
   useEffect(() => {
-    facilities.load()
-    reservations.load()
-  }, [currentStableId])
+    if (selectedStableId) {
+      facilities.load()
+      reservations.load()
+    }
+  }, [selectedStableId])
 
   // Filter reservations
   const filteredReservations = useMemo(() => {
@@ -386,7 +397,22 @@ export default function FacilitiesReservationsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className='grid gap-4 md:grid-cols-3'>
+          <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
+            <div>
+              <label className='text-sm font-medium mb-2 block'>Stable</label>
+              <Select value={selectedStableId} onValueChange={setSelectedStableId}>
+                <SelectTrigger>
+                  <SelectValue placeholder='Select stable' />
+                </SelectTrigger>
+                <SelectContent>
+                  {stables.map((stable) => (
+                    <SelectItem key={stable.id} value={stable.id}>
+                      {stable.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <label className='text-sm font-medium mb-2 block'>Facility</label>
               <Select value={selectedFacility} onValueChange={setSelectedFacility}>
