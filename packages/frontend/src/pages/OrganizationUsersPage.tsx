@@ -67,32 +67,46 @@ export default function OrganizationUsersPage() {
 
   // Handle invite user
   const handleInviteUser = async (data: any) => {
-    if (!organizationId || !user) throw new Error('Missing organizationId or user')
+    try {
+      if (!organizationId || !user) throw new Error('Missing organizationId or user')
 
-    // Generate a temporary alphanumeric userId for pending invitations
-    // Format: "pending" + base64 encoded email (alphanumeric only)
-    const tempUserId = 'pending' + btoa(data.email)
-      .replace(/[^a-zA-Z0-9]/g, '')  // Remove non-alphanumeric characters
-      .substring(0, 20)  // Limit length
+      // Call API - backend will handle existing vs non-existing users
+      const response = await inviteOrganizationMember(
+        organizationId,
+        user.uid,  // inviterId
+        {
+          email: data.email,
+          roles: data.roles,
+          primaryRole: data.primaryRole,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          phoneNumber: data.phoneNumber,
+          showInPlanning: data.showInPlanning,
+          stableAccess: data.stableAccess,
+          assignedStableIds: data.assignedStableIds
+        }
+      )
 
-    await inviteOrganizationMember(
-      organizationId,
-      user.uid,  // inviterId
-      {
-        userId: tempUserId,  // Temporary alphanumeric userId
-        email: data.email,
-        roles: data.roles,
-        primaryRole: data.primaryRole,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        phoneNumber: data.phoneNumber,
-        contactType: data.contactType,
-        showInPlanning: data.showInPlanning
+      inviteDialog.closeDialog()
+
+      // Show appropriate success message based on response type
+      if (response.type === 'new_user') {
+        // Non-existing user - invite sent
+        alert(`Invitation sent to ${data.email}. They will receive an email to sign up.`)
+      } else {
+        // Existing user - pending membership created
+        alert(`Invitation sent to ${data.email}. They will receive an email to accept.`)
       }
-    )
 
-    inviteDialog.closeDialog()
-    members.reload()
+      members.reload()
+    } catch (error: any) {
+      if (error.response?.status === 409) {
+        alert('User is already a member of this organization')
+      } else {
+        alert('Failed to send invitation. Please try again.')
+      }
+      throw error
+    }
   }
 
   // Filter members based on search query

@@ -134,6 +134,47 @@ export interface InviteOrganizationMemberData {
 }
 
 /**
+ * Invite status for organization invitations
+ */
+export type InviteStatus = 'pending' | 'accepted' | 'declined' | 'expired'
+
+/**
+ * Organization invite for non-existing users
+ * Temporary storage until user creates account
+ */
+export interface OrganizationInvite {
+  id: string                    // Auto-generated invite ID
+  organizationId: string
+  email: string                 // Invitee email (lowercase)
+
+  // User info (for future member creation)
+  firstName?: string
+  lastName?: string
+  phoneNumber?: string
+
+  // Role assignment
+  roles: OrganizationRole[]
+  primaryRole: OrganizationRole
+  showInPlanning: boolean
+  stableAccess: StableAccessLevel
+  assignedStableIds?: string[]
+
+  // Invite metadata
+  token: string                 // Unique invite token (UUID)
+  status: InviteStatus
+  expiresAt: Timestamp          // 7 days from creation
+
+  // Audit trail
+  invitedBy: string            // Inviter user ID
+  invitedAt: Timestamp
+  respondedAt?: Timestamp
+
+  // Organization cache (for email template)
+  organizationName: string
+  inviterName: string
+}
+
+/**
  * Display data for organization member list
  */
 export interface OrganizationMemberDisplay extends OrganizationMember {

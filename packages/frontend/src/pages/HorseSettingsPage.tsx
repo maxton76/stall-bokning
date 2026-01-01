@@ -3,7 +3,15 @@ import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Plus, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
+import { useUserStables } from '@/hooks/useUserStables'
 import { useAsyncData } from '@/hooks/useAsyncData'
 import { useDialog } from '@/hooks/useDialog'
 import { useCRUD } from '@/hooks/useCRUD'
@@ -25,8 +33,24 @@ import { VaccinationRuleFormDialog } from '@/components/VaccinationRuleFormDialo
 import type { HorseGroup, VaccinationRule } from '@/types/roles'
 
 export default function HorseSettingsPage() {
-  const { stableId } = useParams<{ stableId: string }>()
+  const { stableId: stableIdFromParams } = useParams<{ stableId: string }>()
   const { user } = useAuth()
+
+  // Load user's stables if no stableId in URL
+  const { stables, loading: stablesLoading } = useUserStables(user?.uid)
+
+  // State for selected stable (when no stableId in URL)
+  const [selectedStableId, setSelectedStableId] = useState<string>('')
+
+  // Use stableId from URL if available, otherwise use selected stable
+  const stableId = stableIdFromParams || selectedStableId
+
+  // Auto-select first stable if no stableId in URL
+  useEffect(() => {
+    if (!stableIdFromParams && stables.length > 0 && !selectedStableId && stables[0]) {
+      setSelectedStableId(stables[0].id)
+    }
+  }, [stables, selectedStableId, stableIdFromParams])
 
   // Horse Groups state
   const groupDialog = useDialog<HorseGroup>()
@@ -48,8 +72,10 @@ export default function HorseSettingsPage() {
 
   // Load data when stableId changes
   useEffect(() => {
-    groups.load()
-    rules.load()
+    if (stableId) {
+      groups.load()
+      rules.load()
+    }
   }, [stableId])
 
   // Horse Groups CRUD
@@ -100,12 +126,35 @@ export default function HorseSettingsPage() {
     }
   })
 
+  if (stablesLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <p className="text-muted-foreground">Loading stables...</p>
+      </div>
+    )
+  }
+
+  if (!stableIdFromParams && stables.length === 0) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <h3 className="text-lg font-semibold mb-2">No stables found</h3>
+            <p className="text-muted-foreground">
+              You need to be a member of a stable to manage horse settings.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className='container mx-auto p-6 space-y-6'>
       {/* Header */}
       <div>
-        {stableId && (
-          <Link to={`/stables/${stableId}`}>
+        {stableIdFromParams && (
+          <Link to={`/stables/${stableIdFromParams}`}>
             <Button variant='ghost' className='mb-4'>
               <ArrowLeft className='mr-2 h-4 w-4' />
               Back to Stable
@@ -117,6 +166,29 @@ export default function HorseSettingsPage() {
           <p className='text-muted-foreground mt-1'>Manage horse groups and vaccination rules</p>
         </div>
       </div>
+
+      {/* Stable Selector - only show when no stableId in URL */}
+      {!stableIdFromParams && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <label className="text-sm font-medium">Select Stable:</label>
+              <Select value={selectedStableId} onValueChange={setSelectedStableId}>
+                <SelectTrigger className="w-[280px]">
+                  <SelectValue placeholder="Select a stable" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stables.map((stable) => (
+                    <SelectItem key={stable.id} value={stable.id}>
+                      {stable.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className='grid gap-6 md:grid-cols-2'>
         {/* Horse Groups Section */}

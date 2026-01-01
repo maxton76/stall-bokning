@@ -5,6 +5,8 @@ import AuthenticatedLayout from './layouts/AuthenticatedLayout'
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import SignupPage from './pages/SignupPage'
+import InviteAcceptPage from './pages/InviteAcceptPage'
 import DashboardPage from './pages/DashboardPage'
 import StablesPage from './pages/StablesPage'
 import CreateStablePage from './pages/CreateStablePage'
@@ -45,6 +47,8 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/invites/accept" element={<InviteAcceptPage />} />
 
           {/* Authenticated routes with layout */}
           <Route element={<AuthenticatedLayout />}>

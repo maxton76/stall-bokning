@@ -141,25 +141,40 @@ export async function getActivitiesByDateTab(
 
 /**
  * Get care-focused activities (for Care page)
+ * @param stableIds - Array of stable IDs or single stable ID. If empty array, returns empty results.
  */
-export async function getCareActivities(stableId: string): Promise<Activity[]> {
+export async function getCareActivities(stableIds: string | string[]): Promise<Activity[]> {
   const careTypes: ActivityType[] = [
     'dentist', 'farrier', 'vet', 'deworm', 'vaccination', 'chiropractic', 'massage'
   ]
 
-  const q = query(
-    collection(db, 'activities'),
-    where('stableId', '==', stableId),
-    where('type', '==', 'activity'),
-    orderBy('date', 'asc')
-  )
+  // Normalize to array
+  const stableIdArray = Array.isArray(stableIds) ? stableIds : [stableIds]
 
-  const snapshot = await getDocs(q)
-  const activities = mapDocsToObjects<Activity>(snapshot)
+  // Return empty if no stables provided
+  if (stableIdArray.length === 0) return []
 
-  return activities.filter(activity =>
-    activity.activityType && careTypes.includes(activity.activityType)
-  )
+  // For multiple stables, we need to query each stable separately and combine results
+  // Firestore doesn't support OR queries with 'in' operator along with other where clauses efficiently
+  const allActivities: Activity[] = []
+
+  for (const stableId of stableIdArray) {
+    const q = query(
+      collection(db, 'activities'),
+      where('stableId', '==', stableId),
+      where('type', '==', 'activity'),
+      orderBy('date', 'asc')
+    )
+
+    const snapshot = await getDocs(q)
+    const activities = mapDocsToObjects<Activity>(snapshot)
+    allActivities.push(...activities)
+  }
+
+  // Filter by care types and sort by date
+  return allActivities
+    .filter(activity => activity.activityType && careTypes.includes(activity.activityType))
+    .sort((a, b) => a.date.toMillis() - b.date.toMillis())
 }
 
 /**

@@ -50,6 +50,36 @@ export interface ViewOptions {
   initialView?: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek'
 }
 
+// Generic calendar event interface
+export interface CalendarEvent {
+  id: string
+  title: string
+  start: Date
+  end?: Date
+  allDay?: boolean
+  backgroundColor: string
+  borderColor: string
+  textColor?: string
+  borderWidth?: string
+  extendedProps?: Record<string, any>
+}
+
+// Generic calendar view props
+interface GenericCalendarViewProps<T> {
+  items: T[]
+  transformEvent: (item: T) => CalendarEvent
+  onEventClick: (item: T) => void
+  onDateSelect?: (start: Date, end: Date) => void
+  onEventDrop?: (item: T, newStart: Date, newEnd: Date) => void
+  onEventResize?: (item: T, newStart: Date, newEnd: Date) => void
+
+  // Optional configuration
+  calendarConfig?: CalendarConfig
+  viewOptions?: ViewOptions
+  editable?: boolean
+  className?: string
+}
+
 interface FacilityCalendarViewProps {
   facilities: Facility[]
   reservations: FacilityReservation[]
@@ -68,21 +98,19 @@ interface FacilityCalendarViewProps {
   className?: string
 }
 
-export function FacilityCalendarView({
-  facilities,
-  reservations,
-  selectedFacilityId = 'all',
+// Generic calendar view component
+export function GenericCalendarView<T>({
+  items,
+  transformEvent,
   onEventClick,
   onDateSelect,
   onEventDrop,
   onEventResize,
-  statusColors = DEFAULT_STATUS_COLORS,
-  facilityColors = FACILITY_COLORS,
   calendarConfig = {},
   viewOptions = {},
   editable = true,
   className = ''
-}: FacilityCalendarViewProps) {
+}: GenericCalendarViewProps<T>) {
   const calendarRef = useRef<FullCalendar>(null)
 
   // Merge with defaults
@@ -107,15 +135,6 @@ export function FacilityCalendarView({
     ...viewOptions
   }
 
-  // Create facility color map
-  const facilityColorMap = new Map<string, string>()
-  facilities.forEach((facility, index) => {
-    facilityColorMap.set(
-      facility.id,
-      facilityColors[index % facilityColors.length] || facilityColors[0] || '#3b82f6'
-    )
-  })
-
   // Build header toolbar based on view options
   const buildHeaderToolbar = () => {
     const views: string[] = []
@@ -131,46 +150,20 @@ export function FacilityCalendarView({
     }
   }
 
-  // Filter reservations based on selected facility
-  const filteredReservations = selectedFacilityId === 'all'
-    ? reservations
-    : reservations.filter(r => r.facilityId === selectedFacilityId)
-
-  // Transform reservations to FullCalendar events format
-  const events = filteredReservations.map(reservation => {
-    const facility = facilities.find(f => f.id === reservation.facilityId)
-    const facilityColor = facilityColorMap.get(reservation.facilityId) || '#3b82f6'
-    const statusColor = statusColors[reservation.status] || statusColors.pending
-
-    // Use status color as background, facility color as border for visual distinction
-    return {
-      id: reservation.id,
-      title: selectedFacilityId === 'all'
-        ? `${facility?.name || 'Unknown'} - ${reservation.userFullName || reservation.userEmail}`
-        : reservation.userFullName || reservation.userEmail,
-      start: reservation.startTime.toDate(),
-      end: reservation.endTime.toDate(),
-      backgroundColor: statusColor,
-      borderColor: facilityColor,
-      textColor: '#ffffff',
-      extendedProps: {
-        reservation: reservation,
-        status: reservation.status,
-        facilityId: reservation.facilityId,
-        facilityName: facility?.name || 'Unknown'
-      }
-    }
-  })
+  // Transform items to FullCalendar events using the provided function
+  const events = items.map(item => transformEvent(item))
 
   const handleEventClick = (info: EventClickArg) => {
-    const reservation = info.event.extendedProps.reservation as FacilityReservation
-    onEventClick(reservation)
+    const item = info.event.extendedProps.item as T
+    if (item) {
+      onEventClick(item)
+    }
   }
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
-    // When a facility is selected, use that; otherwise let parent decide
-    const facilityId = selectedFacilityId !== 'all' ? selectedFacilityId : undefined
-    onDateSelect(facilityId, selectInfo.start, selectInfo.end)
+    if (onDateSelect) {
+      onDateSelect(selectInfo.start, selectInfo.end)
+    }
 
     // Clear selection
     const calendarApi = selectInfo.view.calendar
@@ -179,23 +172,19 @@ export function FacilityCalendarView({
 
   const handleEventDrop = (info: EventDropArg) => {
     if (onEventDrop) {
-      const reservation = info.event.extendedProps.reservation as FacilityReservation
-      onEventDrop(
-        reservation.id,
-        info.event.start!,
-        info.event.end!
-      )
+      const item = info.event.extendedProps.item as T
+      if (item) {
+        onEventDrop(item, info.event.start!, info.event.end!)
+      }
     }
   }
 
   const handleEventResize = (info: EventResizeDoneArg) => {
     if (onEventResize) {
-      const reservation = info.event.extendedProps.reservation as FacilityReservation
-      onEventResize(
-        reservation.id,
-        info.event.start!,
-        info.event.end!
-      )
+      const item = info.event.extendedProps.item as T
+      if (item) {
+        onEventResize(item, info.event.start!, info.event.end!)
+      }
     }
   }
 
@@ -349,28 +338,86 @@ export function FacilityCalendarView({
         slotLabelInterval={config.slotLabelInterval}
         scrollTime={config.scrollTime}
         nowIndicator={config.nowIndicator}
-        eventContent={(arg) => {
-          const facilityName = arg.event.extendedProps.facilityName as string
-
-          return (
-            <div className='fc-event-main-frame'>
-              <div className='fc-event-title-container'>
-                <div className='fc-event-title fc-sticky'>
-                  {arg.event.title}
-                </div>
-                {selectedFacilityId === 'all' && (
-                  <div className='text-xs opacity-80'>
-                    {facilityName}
-                  </div>
-                )}
-                <div className='text-xs opacity-70'>
-                  {arg.timeText}
-                </div>
-              </div>
-            </div>
-          )
-        }}
       />
     </div>
+  )
+}
+
+// Backward-compatible FacilityCalendarView wrapper
+export function FacilityCalendarView({
+  facilities,
+  reservations,
+  selectedFacilityId = 'all',
+  onEventClick,
+  onDateSelect,
+  onEventDrop,
+  onEventResize,
+  statusColors = DEFAULT_STATUS_COLORS,
+  facilityColors = FACILITY_COLORS,
+  calendarConfig,
+  viewOptions,
+  editable,
+  className
+}: FacilityCalendarViewProps) {
+
+  // Create facility color map
+  const facilityColorMap = new Map<string, string>()
+  facilities.forEach((facility, index) => {
+    facilityColorMap.set(
+      facility.id,
+      facilityColors[index % facilityColors.length] || facilityColors[0] || '#3b82f6'
+    )
+  })
+
+  // Filter reservations based on selected facility
+  const filteredReservations = selectedFacilityId === 'all'
+    ? reservations
+    : reservations.filter(r => r.facilityId === selectedFacilityId)
+
+  // Transform reservation to calendar event
+  const transformReservation = (reservation: FacilityReservation): CalendarEvent => {
+    const facility = facilities.find(f => f.id === reservation.facilityId)
+    const facilityColor = facilityColorMap.get(reservation.facilityId) || '#3b82f6'
+    const statusColor = statusColors[reservation.status] || statusColors.pending || '#6366f1'
+
+    return {
+      id: reservation.id,
+      title: selectedFacilityId === 'all'
+        ? `${facility?.name || 'Unknown'} - ${reservation.userFullName || reservation.userEmail}`
+        : reservation.userFullName || reservation.userEmail,
+      start: reservation.startTime.toDate(),
+      end: reservation.endTime.toDate(),
+      backgroundColor: statusColor,
+      borderColor: facilityColor,
+      textColor: '#ffffff',
+      extendedProps: {
+        item: reservation,
+        status: reservation.status,
+        facilityId: reservation.facilityId,
+        facilityName: facility?.name || 'Unknown'
+      }
+    }
+  }
+
+  return (
+    <GenericCalendarView
+      items={filteredReservations}
+      transformEvent={transformReservation}
+      onEventClick={onEventClick}
+      onDateSelect={onDateSelect ? (start, end) => {
+        const facilityId = selectedFacilityId !== 'all' ? selectedFacilityId : undefined
+        onDateSelect(facilityId, start, end)
+      } : undefined}
+      onEventDrop={onEventDrop ? (item, newStart, newEnd) => {
+        onEventDrop(item.id, newStart, newEnd)
+      } : undefined}
+      onEventResize={onEventResize ? (item, newStart, newEnd) => {
+        onEventResize(item.id, newStart, newEnd)
+      } : undefined}
+      calendarConfig={calendarConfig}
+      viewOptions={viewOptions}
+      editable={editable}
+      className={className}
+    />
   )
 }

@@ -1,14 +1,16 @@
 import { useEffect } from 'react'
-import { Plus, Loader2Icon } from 'lucide-react'
+import { Plus, Loader2Icon, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { useAuth } from '@/contexts/AuthContext'
 import { HorseFormDialog } from '@/components/HorseFormDialog'
 import { HorseAssignmentDialog } from '@/components/HorseAssignmentDialog'
 import { HorseTable } from '@/components/horses/HorseTable'
-import { HorseTableToolbar } from '@/components/horses/HorseTableToolbar'
+import { HorseFilterPopover, HorseFilterBadges } from '@/components/HorseFilterPopover'
 import { HorseExportButton } from '@/components/horses/HorseExportButton'
 import { createHorseTableColumns } from '@/components/horses/HorseTableColumns'
 import type { Horse } from '@/types/roles'
+import type { FilterConfig } from '@shared/types/filters'
 import {
   getUserHorses,
   createHorse,
@@ -22,7 +24,6 @@ import { getStableVaccinationRules } from '@/services/vaccinationRuleService'
 import { useDialog } from '@/hooks/useDialog'
 import { useAsyncData } from '@/hooks/useAsyncData'
 import { useCRUD } from '@/hooks/useCRUD'
-import { useHorseSearch } from '@/hooks/useHorseSearch'
 import { useHorseFilters } from '@/hooks/useHorseFilters'
 import { useUserStables } from '@/hooks/useUserStables'
 
@@ -36,15 +37,30 @@ export default function MyHorsesPage() {
   })
   const { stables } = useUserStables(user?.uid)
 
-  // Search and filtering
-  const { searchQuery, setSearchQuery, filteredHorses: searchedHorses } = useHorseSearch(horses.data || [])
+  // Filtering with unified hook
   const {
     filters,
     setFilters,
-    filteredHorses: finalHorses,
+    filteredHorses,
     activeFilterCount,
-    clearFilters
-  } = useHorseFilters(searchedHorses)
+    hasActiveFilters,
+    clearAllFilters,
+    getActiveFilterBadges
+  } = useHorseFilters({
+    horses: horses.data || [],
+    initialFilters: { status: 'active' }
+  })
+
+  // Filter configuration for MyHorsesPage
+  const filterConfig: FilterConfig = {
+    showSearch: false,  // Search is external, not in popover
+    showStable: true,
+    showGender: true,
+    showAge: true,
+    showUsage: true,
+    showGroups: false,
+    showStatus: true
+  }
 
   // Dialog state management
   const formDialog = useDialog<Horse>()
@@ -158,7 +174,7 @@ export default function MyHorsesPage() {
           </p>
         </div>
         <div className='flex gap-2'>
-          <HorseExportButton horses={finalHorses} />
+          <HorseExportButton horses={filteredHorses} />
           <Button onClick={handleCreateHorse}>
             <Plus className='mr-2 h-4 w-4' />
             Add Horse
@@ -166,19 +182,41 @@ export default function MyHorsesPage() {
         </div>
       </div>
 
-      {/* Search and Filter Toolbar */}
-      <HorseTableToolbar
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        filters={filters}
-        onFiltersChange={setFilters}
-        activeFilterCount={activeFilterCount}
-        onClearFilters={clearFilters}
-        stables={stables}
-      />
+      {/* Filter Toolbar */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          {/* Filter Popover */}
+          <HorseFilterPopover
+            filters={filters}
+            onFiltersChange={setFilters}
+            config={filterConfig}
+            stables={stables}
+            activeFilterCount={activeFilterCount}
+            onClearAll={clearAllFilters}
+          />
+
+          {/* Search Input */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by Name, UELN, etc..."
+              value={filters.searchQuery}
+              onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
+              className="pl-9"
+            />
+          </div>
+        </div>
+
+        {hasActiveFilters && (
+          <HorseFilterBadges
+            badges={getActiveFilterBadges()}
+            onClearAll={clearAllFilters}
+          />
+        )}
+      </div>
 
       {/* Horse Table */}
-      <HorseTable data={finalHorses} columns={columns} />
+      <HorseTable data={filteredHorses} columns={columns} />
 
       {/* Dialogs */}
       <HorseFormDialog

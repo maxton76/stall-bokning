@@ -609,6 +609,48 @@ service cloud.firestore {
     }
 
     // ============================================================================
+    // INVITES COLLECTION - ORGANIZATION INVITATION MANAGEMENT
+    // ============================================================================
+
+    match /invites/{inviteId} {
+      // LIST: Organization members and admins can list invites
+      allow list: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationMember(resource.data.organizationId)
+      );
+
+      // GET: Organization members can view invites, or users with matching email
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationMember(resource.data.organizationId) ||
+        resource.data.email == request.auth.token.email
+      );
+
+      // CREATE: Organization owner or administrators can create invites
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationOwner(request.resource.data.organizationId) ||
+        isOrganizationAdministrator(request.resource.data.organizationId)
+      );
+
+      // UPDATE: Organization owner/admin can update, or users can update their own invite status
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationOwner(resource.data.organizationId) ||
+        isOrganizationAdministrator(resource.data.organizationId) ||
+        (resource.data.email == request.auth.token.email &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt']))
+      );
+
+      // DELETE: Organization owner or administrators can delete invites
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationOwner(resource.data.organizationId) ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+    }
+
+    // ============================================================================
     // FACILITIES COLLECTION - STABLE-SCOPED
     // ============================================================================
 
@@ -673,6 +715,47 @@ service cloud.firestore {
     }
 
     // ============================================================================
+    // ACTIVITY TYPES COLLECTION - STABLE-SCOPED CONFIGURATION
+    // ============================================================================
+
+    match /activityTypes/{activityTypeId} {
+      // LIST: Efficient query - no get() calls needed for list operations
+      allow list: if isAuthenticated();
+
+      // GET: Full access check - stable members only
+      allow get: if canAccessStable(resource.data.stableId);
+
+      // CREATE: Owner or manager
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(request.resource.data.stableId)
+      );
+
+      // UPDATE: Owner or manager
+      // IMPORTANT: Standard types have field-level restrictions
+      // Standard types can only modify: color, icon, isActive, sortOrder
+      // Custom types can modify all fields except stableId, isStandard
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(resource.data.stableId)
+      ) &&
+      // Prevent changing stableId and isStandard flag
+      request.resource.data.stableId == resource.data.stableId &&
+      request.resource.data.isStandard == resource.data.isStandard &&
+      // Standard types: Only allow specific field changes
+      (!resource.data.isStandard ||
+       request.resource.data.diff(resource.data).affectedKeys()
+         .hasOnly(['color', 'icon', 'isActive', 'sortOrder', 'updatedAt', 'lastModifiedBy']));
+
+      // DELETE: Owner only, and CANNOT delete standard types (hard delete)
+      // Standard types use soft delete via isActive field
+      allow delete: if isSystemAdmin() || (
+        isStableOwnerOf(resource.data.stableId) &&
+        !resource.data.isStandard // No hard delete of standard types
+      );
+    }
+
+    // ============================================================================
     // ACTIVITIES COLLECTION - POLYMORPHIC (ACTIVITIES, TASKS, MESSAGES)
     // ============================================================================
 
@@ -711,6 +794,60 @@ service cloud.firestore {
         canManageStable(resource.data.stableId) ||
         resource.data.createdBy == request.auth.uid
       );
+    }
+
+    // ============================================================================
+    // HORSE GROUPS COLLECTION - STABLE-SCOPED
+    // ============================================================================
+
+    match /horseGroups/{groupId} {
+      // LIST: Efficient query - no get() calls needed for list operations
+      allow list: if isAuthenticated();
+
+      // GET: Full access check - stable members only
+      allow get: if canAccessStable(resource.data.stableId);
+
+      // CREATE: Owner or manager
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(request.resource.data.stableId)
+      );
+
+      // UPDATE: Owner or manager
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(resource.data.stableId)
+      );
+
+      // DELETE: Owner or manager
+      allow delete: if isSystemAdmin() || canManageStable(resource.data.stableId);
+    }
+
+    // ============================================================================
+    // VACCINATION RULES COLLECTION - STABLE-SCOPED
+    // ============================================================================
+
+    match /vaccinationRules/{ruleId} {
+      // LIST: Efficient query - no get() calls needed for list operations
+      allow list: if isAuthenticated();
+
+      // GET: Full access check - stable members only
+      allow get: if canAccessStable(resource.data.stableId);
+
+      // CREATE: Owner or manager
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(request.resource.data.stableId)
+      );
+
+      // UPDATE: Owner or manager
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(resource.data.stableId)
+      );
+
+      // DELETE: Owner or manager
+      allow delete: if isSystemAdmin() || canManageStable(resource.data.stableId);
     }
 
     // Default deny all

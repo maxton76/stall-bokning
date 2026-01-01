@@ -38,39 +38,56 @@ function generateMemberId(userId: string, organizationId: string): string {
 
 /**
  * Invite a member to an organization
+ * Calls backend API which handles both existing and non-existing users
  * @param organizationId - Organization ID
- * @param inviterId - ID of user sending the invite
+ * @param inviterId - ID of user sending the invite (not used, kept for compatibility)
  * @param memberData - Member invitation data
- * @returns Promise with the created member ID
+ * @returns Promise with the API response (type: 'existing_user' | 'new_user')
  */
 export async function inviteOrganizationMember(
   organizationId: string,
   inviterId: string,
-  memberData: InviteOrganizationMemberData & { userId: string }
-): Promise<string> {
-  const memberId = generateMemberId(memberData.userId, organizationId)
+  memberData: InviteOrganizationMemberData
+): Promise<any> {
+  // Get auth token from Firebase Auth
+  const { getAuth } = await import('firebase/auth')
+  const auth = getAuth()
+  const user = auth.currentUser
 
-  const dataToSave = removeUndefined({
-    organizationId,
-    userId: memberData.userId,
-    userEmail: memberData.email,
-    firstName: memberData.firstName || '',
-    lastName: memberData.lastName || '',
-    phoneNumber: memberData.phoneNumber,
-    roles: memberData.roles,
-    primaryRole: memberData.primaryRole,
-    status: 'pending' as const,
-    showInPlanning: memberData.showInPlanning ?? true,
-    stableAccess: memberData.stableAccess || 'all',
-    assignedStableIds: memberData.assignedStableIds || [],
-    joinedAt: Timestamp.now(),
-    invitedBy: inviterId
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
+
+  const token = await user.getIdToken()
+
+  // Call backend API
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/organizations/${organizationId}/members`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(removeUndefined({
+      email: memberData.email,
+      firstName: memberData.firstName,
+      lastName: memberData.lastName,
+      phoneNumber: memberData.phoneNumber,
+      roles: memberData.roles,
+      primaryRole: memberData.primaryRole,
+      showInPlanning: memberData.showInPlanning ?? true,
+      stableAccess: memberData.stableAccess || 'all',
+      assignedStableIds: memberData.assignedStableIds || []
+    }))
   })
 
-  const memberRef = doc(db, 'organizationMembers', memberId)
-  await setDoc(memberRef, dataToSave)
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw Object.assign(new Error(error.message || 'Failed to invite member'), {
+      response: { status: response.status, data: error }
+    })
+  }
 
-  return memberId
+  return await response.json()
 }
 
 /**

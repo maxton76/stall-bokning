@@ -1,9 +1,11 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { FieldValue } from 'firebase-admin/firestore'
+import { FieldValue, Timestamp } from 'firebase-admin/firestore'
 import { db } from '../utils/firebase.js'
 import { authenticate, requireRole } from '../middleware/auth.js'
 import type { AuthenticatedRequest } from '../types/index.js'
+import { createOrganizationInvite } from '../services/inviteService.js'
+import { sendMemberInviteEmail, sendSignupInviteEmail } from '../services/emailService.js'
 
 // Zod schemas for validation
 const organizationRoleSchema = z.enum([
@@ -343,12 +345,12 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // Invite member to organization
+  // POST /api/v1/organizations/:id/members - Invite member (existing or new user)
   fastify.post('/:id/members', {
     preHandler: [authenticate]
   }, async (request, reply) => {
     try {
-      const { id } = request.params as { id: string }
+      const { id: organizationId } = request.params as { id: string }
       const validation = inviteMemberSchema.safeParse(request.body)
 
       if (!validation.success) {
@@ -360,8 +362,10 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
       }
 
       const user = (request as AuthenticatedRequest).user!
-      const orgDoc = await db.collection('organizations').doc(id).get()
+      const inviteData = validation.data
 
+      // Get organization
+      const orgDoc = await db.collection('organizations').doc(organizationId).get()
       if (!orgDoc.exists) {
         return reply.status(404).send({
           error: 'Not Found',
@@ -372,7 +376,7 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
       const org = orgDoc.data()!
 
       // Check permissions: owner, administrator, or system_admin
-      const userMemberId = `${user.uid}_${id}`
+      const userMemberId = `${user.uid}_${organizationId}`
       const userMemberDoc = await db.collection('organizationMembers').doc(userMemberId).get()
       const userMemberData = userMemberDoc.data()
       const isAdministrator = userMemberData?.status === 'active' &&
@@ -385,68 +389,110 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
         })
       }
 
-      // Find user by email
-      const usersSnapshot = await db.collection('users')
-        .where('email', '==', validation.data.email)
+      // Check if email is already a member (by email, regardless of userId)
+      const existingMemberSnapshot = await db.collection('organizationMembers')
+        .where('organizationId', '==', organizationId)
+        .where('userEmail', '==', inviteData.email.toLowerCase())
         .limit(1)
         .get()
 
-      if (usersSnapshot.empty) {
-        return reply.status(404).send({
-          error: 'Not Found',
-          message: 'User with this email not found'
-        })
-      }
-
-      const inviteeUser = usersSnapshot.docs[0]
-      const inviteeData = inviteeUser.data()
-      const inviteeId = inviteeUser.id
-
-      // Check if already a member
-      const memberId = `${inviteeId}_${id}`
-      const existingMember = await db.collection('organizationMembers').doc(memberId).get()
-
-      if (existingMember.exists) {
+      if (!existingMemberSnapshot.empty) {
         return reply.status(409).send({
           error: 'Conflict',
           message: 'User is already a member of this organization'
         })
       }
 
-      const memberData = {
-        organizationId: id,
-        userId: inviteeId,
-        userEmail: validation.data.email,
-        firstName: validation.data.firstName || inviteeData.firstName || '',
-        lastName: validation.data.lastName || inviteeData.lastName || '',
-        phoneNumber: validation.data.phoneNumber || inviteeData.phoneNumber,
-        roles: validation.data.roles,
-        primaryRole: validation.data.primaryRole,
-        status: 'pending' as const,
-        showInPlanning: validation.data.showInPlanning,
-        stableAccess: validation.data.stableAccess,
-        assignedStableIds: validation.data.assignedStableIds || [],
-        joinedAt: FieldValue.serverTimestamp(),
-        invitedBy: user.uid
+      // Check if user exists in the system
+      const userSnapshot = await db.collection('users')
+        .where('email', '==', inviteData.email.toLowerCase())
+        .limit(1)
+        .get()
+
+      if (!userSnapshot.empty) {
+        // EXISTING USER FLOW
+        const existingUser = userSnapshot.docs[0]
+        const existingUserData = existingUser.data()
+        const userId = existingUser.id
+        const memberId = `${userId}_${organizationId}`
+
+        // Create organizationMember with pending status
+        const memberData = {
+          id: memberId,
+          organizationId,
+          userId,
+          userEmail: inviteData.email.toLowerCase(),
+          firstName: inviteData.firstName || existingUserData.firstName || '',
+          lastName: inviteData.lastName || existingUserData.lastName || '',
+          phoneNumber: inviteData.phoneNumber || existingUserData.phoneNumber,
+          roles: inviteData.roles,
+          primaryRole: inviteData.primaryRole,
+          status: 'pending' as const,
+          showInPlanning: inviteData.showInPlanning,
+          stableAccess: inviteData.stableAccess,
+          assignedStableIds: inviteData.assignedStableIds || [],
+          joinedAt: Timestamp.now(),
+          invitedBy: user.uid
+        }
+
+        await db.collection('organizationMembers').doc(memberId).set(memberData)
+
+        // Send email with accept/decline links
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5555'
+        const acceptUrl = `${frontendUrl}/invites/accept?memberId=${memberId}`
+        const declineUrl = `${frontendUrl}/invites/decline?memberId=${memberId}`
+
+        try {
+          await sendMemberInviteEmail({
+            email: inviteData.email,
+            organizationName: org.name,
+            inviterName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+            roles: inviteData.roles,
+            acceptUrl,
+            declineUrl
+          })
+        } catch (emailError) {
+          request.log.error({ emailError }, 'Failed to send invite email')
+          // Continue - membership created, email failure is not critical
+        }
+
+        return reply.status(201).send({
+          type: 'existing_user',
+          memberId,
+          ...memberData
+        })
+
+      } else {
+        // NON-EXISTING USER FLOW
+        const { token, inviteId } = await createOrganizationInvite(
+          organizationId,
+          user.uid,
+          inviteData
+        )
+
+        // Get the created invite for email
+        const inviteDoc = await db.collection('invites').doc(inviteId).get()
+        const invite = inviteDoc.data()
+
+        // Send signup email
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5555'
+        const signupUrl = `${frontendUrl}/signup?invite=${token}`
+
+        try {
+          await sendSignupInviteEmail(invite as any, signupUrl)
+        } catch (emailError) {
+          request.log.error({ emailError }, 'Failed to send signup invite email')
+          // Continue - invite created, email failure is not critical
+        }
+
+        return reply.status(201).send({
+          type: 'new_user',
+          inviteId,
+          email: inviteData.email,
+          status: 'pending',
+          message: 'Invite sent to new user'
+        })
       }
-
-      await db.collection('organizationMembers').doc(memberId).set(memberData)
-
-      // Update organization stats
-      const memberCount = (await db.collection('organizationMembers')
-        .where('organizationId', '==', id)
-        .where('status', '==', 'active')
-        .get()).size
-
-      await db.collection('organizations').doc(id).update({
-        'stats.totalMemberCount': memberCount,
-        updatedAt: FieldValue.serverTimestamp()
-      })
-
-      return reply.status(201).send({
-        id: memberId,
-        ...memberData
-      })
     } catch (error) {
       request.log.error({ error }, 'Failed to invite member')
       return reply.status(500).send({

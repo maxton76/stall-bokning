@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { format } from 'date-fns'
-import { Heart } from 'lucide-react'
+import { Heart, Grid3x3, Table2, Search } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -13,47 +13,243 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import { useUserStables } from '@/hooks/useUserStables'
 import { useAsyncData } from '@/hooks/useAsyncData'
-import { getCareActivities } from '@/services/activityService'
-import type { Activity } from '@/types/activity'
-import { ACTIVITY_TYPES } from '@/types/activity'
+import { useHorseFilters } from '@/hooks/useHorseFilters'
+import { HorseFilterPopover, HorseFilterBadges } from '@/components/HorseFilterPopover'
+import { getCareActivities, createActivity } from '@/services/activityService'
+import { getUserHorsesAtStable, getUserHorsesAtStables } from '@/services/horseService'
+import { getActivityTypesByStable } from '@/services/activityTypeService'
+import { getStableHorseGroups } from '@/services/horseGroupService'
+import { CareMatrixView } from '@/components/CareMatrixView'
+import { CareTableView } from '@/components/CareTableView'
+import { QuickAddDialog } from '@/components/QuickAddDialog'
+import { ActivityFormDialog } from '@/components/ActivityFormDialog'
+import type { Activity, ActivityTypeConfig } from '@/types/activity'
+import type { Horse, HorseGroup } from '@/types/roles'
+import type { FilterConfig } from '@shared/types/filters'
+import { Timestamp } from 'firebase/firestore'
 
 export default function ActivitiesCarePage() {
   const { user } = useAuth()
-  const [selectedStableId, setSelectedStableId] = useState<string>('')
+  const [selectedStableId, setSelectedStableId] = useState<string>('all')
+
+  // State for view mode
+  type CareViewMode = 'matrix' | 'table'
+  const [viewMode, setViewMode] = useState<CareViewMode>('matrix')
+
+  // State for quick add dialog
+  const [quickAddDialog, setQuickAddDialog] = useState<{
+    open: boolean
+    horseId?: string
+    activityTypeId?: string
+  }>({ open: false })
+
+  // State for full activity dialog
+  const [activityDialog, setActivityDialog] = useState<{
+    open: boolean
+    initialHorseId?: string
+    initialActivityTypeId?: string
+    initialDate?: Date
+  }>({ open: false })
 
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid)
 
-  // Auto-select first stable
-  useEffect(() => {
-    if (stables.length > 0 && !selectedStableId && stables[0]) {
-      setSelectedStableId(stables[0].id)
-    }
-  }, [stables, selectedStableId])
+  // No auto-select needed - defaults to "all"
 
-  // Load care activities for selected stable
+  // Persist view preference in localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('care-view-mode')
+    if (saved === 'matrix' || saved === 'table') {
+      setViewMode(saved)
+    }
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem('care-view-mode', viewMode)
+  }, [viewMode])
+
+  // Load care activities for selected stable(s)
   const activities = useAsyncData<Activity[]>({
     loadFn: async () => {
       if (!selectedStableId) return []
+
+      // If "all" is selected, get activities from all stables
+      if (selectedStableId === 'all') {
+        const stableIds = stables.map(s => s.id)
+        return await getCareActivities(stableIds)
+      }
+
+      // Otherwise get activities for specific stable
       return await getCareActivities(selectedStableId)
     },
   })
 
-  // Reload activities when stable changes
-  useEffect(() => {
-    if (selectedStableId) {
-      activities.load()
-    }
-  }, [selectedStableId])
+  // Load activity types for selected stable (auto-reloads on stable change)
+  // When "all" is selected, load activity types from all stables
+  const activityTypes = useAsyncData<ActivityTypeConfig[]>({
+    loadFn: async () => {
+      if (!selectedStableId) return []
 
-  // Group activities by horse
-  const groupedByHorse = (activities.data || []).reduce((acc, activity) => {
-    if (!acc[activity.horseName]) {
-      acc[activity.horseName] = []
+      // If "all" is selected, get activity types from all stables and merge them
+      if (selectedStableId === 'all') {
+        const allTypes: ActivityTypeConfig[] = []
+        const seenIds = new Set<string>()
+
+        for (const stable of stables) {
+          const types = await getActivityTypesByStable(stable.id, true)
+          // Add unique types (by ID to avoid duplicates)
+          types.forEach(type => {
+            if (!seenIds.has(type.id)) {
+              seenIds.add(type.id)
+              allTypes.push(type)
+            }
+          })
+        }
+
+        return allTypes
+      }
+
+      // Otherwise get activity types for specific stable
+      return await getActivityTypesByStable(selectedStableId, true)
+    },
+  })
+
+  // Load horses for selected stable(s) - now returns full Horse objects
+  const horses = useAsyncData<Horse[]>({
+    loadFn: async () => {
+      if (!selectedStableId || !user) return []
+
+      // If "all" is selected, get horses from all stables
+      if (selectedStableId === 'all') {
+        const stableIds = stables.map(s => s.id)
+        return await getUserHorsesAtStables(user.uid, stableIds)
+      }
+
+      // Otherwise get horses for specific stable
+      return await getUserHorsesAtStable(user.uid, selectedStableId)
+    },
+  })
+
+  // Load horse groups for filtering
+  const horseGroups = useAsyncData<HorseGroup[]>({
+    loadFn: async () => {
+      if (!selectedStableId || selectedStableId === 'all') return []
+      return await getStableHorseGroups(selectedStableId)
+    },
+  })
+
+  // Reload activities, horses, and activity types when stable changes or stables list loads
+  useEffect(() => {
+    if (selectedStableId && stables.length > 0) {
+      activities.load()
+      horses.load()
+      activityTypes.load()
+      horseGroups.load()
     }
-    acc[activity.horseName]!.push(activity)
-    return acc
-  }, {} as Record<string, Activity[]>)
+  }, [selectedStableId, stables])
+
+  // Filtering with unified hook
+  const {
+    filters,
+    setFilters,
+    filteredHorses,
+    activeFilterCount,
+    hasActiveFilters,
+    clearAllFilters,
+    getActiveFilterBadges
+  } = useHorseFilters({
+    horses: horses.data || [],
+    initialFilters: {},
+    stableContext: selectedStableId === 'all' ? undefined : selectedStableId
+  })
+
+  // Filter configuration for ActivitiesCarePage
+  const filterConfig: FilterConfig = {
+    showSearch: false,      // Search is external, not in popover
+    showStable: false,      // Using stable selector above, not in filter
+    showGender: true,
+    showAge: true,
+    showUsage: true,
+    showGroups: true,       // Care page needs groups
+    showStatus: false,
+    useStableContext: true
+  }
+
+  // Helper function to find last activity for horse + activity type
+  const findLastActivity = (horseId?: string, activityTypeId?: string): Activity | undefined => {
+    if (!horseId || !activityTypeId) return undefined
+    return (activities.data || [])
+      .filter(a => a.horseId === horseId && a.activityTypeConfigId === activityTypeId)
+      .sort((a, b) => b.date.toMillis() - a.date.toMillis())[0]
+  }
+
+  // Handlers for matrix interactions
+  const handleCellClick = (horseId: string, activityTypeId: string) => {
+    setQuickAddDialog({ open: true, horseId, activityTypeId })
+  }
+
+  const handleQuickAdd = () => {
+    setQuickAddDialog({ open: false })
+    setActivityDialog({
+      open: true,
+      initialHorseId: quickAddDialog.horseId,
+      initialActivityTypeId: quickAddDialog.activityTypeId,
+      initialDate: new Date(),
+    })
+  }
+
+  const handleSave = async (data: any) => {
+    try {
+      if (!user || !selectedStableId) {
+        throw new Error('User or stable not found')
+      }
+
+      // When "all" is selected, we need to determine which stable to save to
+      // Use the horse's currentStableId from the data
+      let stableIdToUse = selectedStableId === 'all' ? data.horseStableId : selectedStableId
+
+      if (!stableIdToUse) {
+        // Find the stable from the horse data
+        const horse = horses.data?.find(h => h.id === data.horseId)
+        if (horse && 'currentStableId' in horse) {
+          stableIdToUse = (horse as any).currentStableId
+        }
+      }
+
+      const stable = stables.find(s => s.id === stableIdToUse)
+      if (!stable) throw new Error('Stable not found')
+
+      const horse = horses.data?.find(h => h.id === data.horseId)
+
+      // Get activity type name for legacy field
+      const activityType = activityTypes.data?.find(t => t.id === data.activityTypeConfigId)
+      const legacyActivityType = activityType?.name.toLowerCase() as any || 'other'
+
+      await createActivity(
+        user.uid,
+        stableIdToUse,
+        {
+          date: Timestamp.fromDate(data.date),
+          horseId: data.horseId,
+          horseName: horse?.name || 'Unknown',
+          activityType: legacyActivityType, // Legacy field for backward compatibility
+          activityTypeConfigId: data.activityTypeConfigId,
+          activityTypeColor: data.activityTypeColor,
+          note: data.note,
+          assignedTo: data.assignedTo,
+          assignedToName: data.assignedToName,
+          status: 'pending' as const,
+        },
+        stable.name
+      )
+
+      setActivityDialog({ open: false })
+      await activities.reload()
+    } catch (error) {
+      console.error('Failed to save activity:', error)
+      throw error // Let dialog handle error display
+    }
+  }
 
   if (stablesLoading) {
     return (
@@ -91,93 +287,124 @@ export default function ActivitiesCarePage() {
         </div>
       </div>
 
-      {/* Stable Selector */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-medium">Select Stable:</label>
-            <div className="flex-1 max-w-md">
-              <Select value={selectedStableId} onValueChange={setSelectedStableId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a stable" />
-                </SelectTrigger>
-                <SelectContent>
-                  {stables.map((stable) => (
-                    <SelectItem key={stable.id} value={stable.id}>
-                      {stable.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Care Activities List */}
+      {/* Care Activities Matrix/Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Care Schedule by Horse ({activities.data?.length || 0} activities)</CardTitle>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <CardTitle>Care Activities ({filteredHorses.length} horses)</CardTitle>
+
+              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as CareViewMode)}>
+                <TabsList>
+                  <TabsTrigger value="matrix">
+                    <Grid3x3 className="h-4 w-4 mr-2" />
+                    Matrix
+                  </TabsTrigger>
+                  <TabsTrigger value="table">
+                    <Table2 className="h-4 w-4 mr-2" />
+                    Table
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+
+            {/* Filters Row */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Filter Popover */}
+                <HorseFilterPopover
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                  config={filterConfig}
+                  groups={horseGroups.data || []}
+                  activeFilterCount={activeFilterCount}
+                  onClearAll={clearAllFilters}
+                />
+
+                {/* Search Input */}
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by Name, UELN, etc..."
+                    value={filters.searchQuery}
+                    onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
+                    className="pl-9"
+                  />
+                </div>
+
+                {/* Stable Selector */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">Stable:</label>
+                  <Select value={selectedStableId} onValueChange={setSelectedStableId}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Select a stable" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Stables</SelectItem>
+                      {stables.map((stable) => (
+                        <SelectItem key={stable.id} value={stable.id}>
+                          {stable.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Filter Badges */}
+              {hasActiveFilters && (
+                <HorseFilterBadges
+                  badges={getActiveFilterBadges()}
+                  onClearAll={clearAllFilters}
+                />
+              )}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          {activities.loading ? (
+          {activities.loading || horses.loading ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">Loading care activities...</p>
             </div>
-          ) : Object.keys(groupedByHorse).length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">
-                No care activities scheduled. Add care activities from the Action List page.
-              </p>
-            </div>
+          ) : viewMode === 'matrix' ? (
+            <CareMatrixView
+              horses={filteredHorses.map(h => ({ id: h.id, name: h.name }))}
+              activityTypes={activityTypes.data || []}
+              activities={activities.data || []}
+              onCellClick={handleCellClick}
+            />
           ) : (
-            <div className="space-y-6">
-              {Object.entries(groupedByHorse).map(([horseName, horseActivities]) => (
-                <div key={horseName} className="border rounded-lg p-4">
-                  <h3 className="text-lg font-semibold mb-3">{horseName}</h3>
-                  <div className="space-y-2">
-                    {horseActivities.map((activity) => {
-                      const activityTypeConfig = ACTIVITY_TYPES.find(
-                        (t) => t.value === activity.activityType
-                      )
-                      return (
-                        <div
-                          key={activity.id}
-                          className="flex items-center justify-between p-3 bg-accent/50 rounded-md"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl">{activityTypeConfig?.icon || '📝'}</span>
-                            <div>
-                              <p className="font-medium">{activityTypeConfig?.label || 'Unknown'}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {format(activity.date.toDate(), 'PPP')}
-                              </p>
-                              {activity.note && (
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  {activity.note}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {activity.status === 'completed' ? (
-                              <Badge variant="outline" className="bg-green-50 text-green-700">
-                                Completed
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline">Scheduled</Badge>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <CareTableView
+              horses={filteredHorses.map(h => ({ id: h.id, name: h.name }))}
+              activityTypes={activityTypes.data || []}
+              activities={activities.data || []}
+              onCellClick={handleCellClick}
+            />
           )}
         </CardContent>
       </Card>
+
+      {/* Quick Add Dialog */}
+      <QuickAddDialog
+        open={quickAddDialog.open}
+        onOpenChange={(open) => setQuickAddDialog({ ...quickAddDialog, open })}
+        horse={filteredHorses.find(h => h.id === quickAddDialog.horseId)}
+        activityType={activityTypes.data?.find(t => t.id === quickAddDialog.activityTypeId)}
+        lastActivity={findLastActivity(quickAddDialog.horseId, quickAddDialog.activityTypeId)}
+        onAdd={handleQuickAdd}
+      />
+
+      {/* Activity Form Dialog */}
+      <ActivityFormDialog
+        open={activityDialog.open}
+        onOpenChange={(open) => setActivityDialog({ ...activityDialog, open })}
+        initialDate={activityDialog.initialDate}
+        initialHorseId={activityDialog.initialHorseId}
+        initialActivityType={activityDialog.initialActivityTypeId}
+        horses={filteredHorses.map(h => ({ id: h.id, name: h.name }))}
+        activityTypes={activityTypes.data || []}
+        onSave={handleSave}
+      />
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganizationContext } from '@/contexts/OrganizationContext'
 import {
@@ -21,6 +22,7 @@ import {
   Warehouse,
   ClipboardList,
   Heart,
+  ChevronDown,
 } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -51,6 +53,12 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from '@/components/ui/collapsible'
+import { cn } from '@/lib/utils'
 import Logo from '@/assets/svg/logo'
 import ProfileDropdown from '@/components/shadcn-studio/blocks/dropdown-profile'
 import NotificationDropdown from '@/components/shadcn-studio/blocks/dropdown-notification'
@@ -63,6 +71,54 @@ export default function AuthenticatedLayout() {
   const { user, signOut } = useAuth()
   const { currentOrganizationId } = useOrganizationContext()
 
+  // State for accordion menu - track which menu item is expanded
+  const [expandedItem, setExpandedItem] = useState<string | null>(() => {
+    // Initialize with currently active menu item expanded
+    const navigation = [
+      { name: 'Dashboard', href: '/dashboard' },
+      {
+        name: 'My Horses',
+        href: '/horses',
+        subItems: [
+          { href: '/horses' },
+          { href: '/location-history' },
+          { href: '/horses/settings' },
+        ],
+      },
+      {
+        name: 'Activities',
+        href: '/activities',
+        subItems: [
+          { href: '/activities' },
+          { href: '/activities/planning' },
+          { href: '/activities/care' },
+          { href: '/activities/settings' },
+        ],
+      },
+      {
+        name: 'Facilities',
+        href: '/facilities',
+        subItems: [
+          { href: '/facilities/reservations' },
+          { href: '/facilities/manage' },
+        ],
+      },
+      { name: 'Schedule', href: '/schedule' },
+      { name: 'Settings', href: '/settings' },
+    ]
+
+    // Find which menu item's submenu contains current path
+    const activeMenuItem = navigation.find(item =>
+      item.subItems?.some(subItem => location.pathname === subItem.href)
+    )
+    return activeMenuItem?.name || null
+  })
+
+  // Toggle accordion menu item
+  const toggleMenuItem = (itemName: string) => {
+    setExpandedItem(expandedItem === itemName ? null : itemName)
+  }
+
   // Main navigation items
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
@@ -71,6 +127,7 @@ export default function AuthenticatedLayout() {
       href: '/horses',
       icon: HorseIcon,
       subItems: [
+        { name: 'Horse list', href: '/horses', icon: HorseIcon },
         { name: 'Location History', href: '/location-history', icon: History },
         { name: 'Settings', href: '/horses/settings', icon: Settings2Icon },
       ],
@@ -157,37 +214,66 @@ export default function AuthenticatedLayout() {
             <SidebarGroupLabel>Main Menu</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {navigation.map((item) => (
-                  <SidebarMenuItem key={item.name}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location.pathname === item.href}
-                    >
-                      <Link to={item.href}>
-                        <item.icon className='size-5' />
-                        <span>{item.name}</span>
-                      </Link>
-                    </SidebarMenuButton>
+                {navigation.map((item) => {
+                  // Items with subItems use Collapsible for accordion behavior
+                  if (item.subItems) {
+                    return (
+                      <Collapsible
+                        key={item.name}
+                        open={expandedItem === item.name}
+                        onOpenChange={() => toggleMenuItem(item.name)}
+                      >
+                        <SidebarMenuItem>
+                          <CollapsibleTrigger asChild>
+                            <SidebarMenuButton>
+                              <item.icon className='size-5' />
+                              <span>{item.name}</span>
+                              <ChevronDown
+                                className={cn(
+                                  'ml-auto size-4 transition-transform duration-200',
+                                  expandedItem === item.name && 'rotate-180'
+                                )}
+                              />
+                            </SidebarMenuButton>
+                          </CollapsibleTrigger>
 
-                    {item.subItems && (
-                      <SidebarMenuSub>
-                        {item.subItems.map((subItem) => (
-                          <SidebarMenuSubItem key={subItem.name}>
-                            <SidebarMenuSubButton
-                              asChild
-                              isActive={location.pathname === subItem.href}
-                            >
-                              <Link to={subItem.href}>
-                                <subItem.icon className='size-4' />
-                                <span>{subItem.name}</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        ))}
-                      </SidebarMenuSub>
-                    )}
-                  </SidebarMenuItem>
-                ))}
+                          <CollapsibleContent>
+                            <SidebarMenuSub>
+                              {item.subItems.map((subItem) => (
+                                <SidebarMenuSubItem key={subItem.name}>
+                                  <SidebarMenuSubButton
+                                    asChild
+                                    isActive={location.pathname === subItem.href}
+                                  >
+                                    <Link to={subItem.href}>
+                                      <subItem.icon className='size-4' />
+                                      <span>{subItem.name}</span>
+                                    </Link>
+                                  </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                              ))}
+                            </SidebarMenuSub>
+                          </CollapsibleContent>
+                        </SidebarMenuItem>
+                      </Collapsible>
+                    )
+                  }
+
+                  // Items without subItems remain as direct links
+                  return (
+                    <SidebarMenuItem key={item.name}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={location.pathname === item.href}
+                      >
+                        <Link to={item.href}>
+                          <item.icon className='size-5' />
+                          <span>{item.name}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )
+                })}
 
                 <SidebarMenuItem>
                   <StablesDropdown />
@@ -202,30 +288,43 @@ export default function AuthenticatedLayout() {
               <SidebarGroupLabel>Organization</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <span className='cursor-default'>
-                        <organizationNavigation.icon className='size-5' />
-                        <span>{organizationNavigation.name}</span>
-                      </span>
-                    </SidebarMenuButton>
+                  <Collapsible
+                    open={expandedItem === organizationNavigation.name}
+                    onOpenChange={() => toggleMenuItem(organizationNavigation.name)}
+                  >
+                    <SidebarMenuItem>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton>
+                          <organizationNavigation.icon className='size-5' />
+                          <span>{organizationNavigation.name}</span>
+                          <ChevronDown
+                            className={cn(
+                              'ml-auto size-4 transition-transform duration-200',
+                              expandedItem === organizationNavigation.name && 'rotate-180'
+                            )}
+                          />
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
 
-                    <SidebarMenuSub>
-                      {organizationNavigation.subItems.map((subItem) => (
-                        <SidebarMenuSubItem key={subItem.name}>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={location.pathname === subItem.href}
-                          >
-                            <Link to={subItem.href}>
-                              <subItem.icon className='size-4' />
-                              <span>{subItem.name}</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </SidebarMenuItem>
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          {organizationNavigation.subItems.map((subItem) => (
+                            <SidebarMenuSubItem key={subItem.name}>
+                              <SidebarMenuSubButton
+                                asChild
+                                isActive={location.pathname === subItem.href}
+                              >
+                                <Link to={subItem.href}>
+                                  <subItem.icon className='size-4' />
+                                  <span>{subItem.name}</span>
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </SidebarMenuItem>
+                  </Collapsible>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>

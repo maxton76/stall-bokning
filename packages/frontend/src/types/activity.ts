@@ -19,6 +19,32 @@ export type EntryType = 'activity' | 'task' | 'message'
 // Status for all entry types
 export type EntryStatus = 'pending' | 'completed' | 'cancelled'
 
+// Activity type category
+export type ActivityTypeCategory = 'Sport' | 'Care' | 'Breeding'
+
+// Activity Type Configuration (configurable per stable)
+export interface ActivityTypeConfig {
+  id: string
+  stableId: string
+  name: string
+  color: string // Hex color (e.g., "#ef4444")
+  category: ActivityTypeCategory
+  roles: string[] // Display only (e.g., ["dentist"], ["rider"])
+  icon?: string // Emoji (optional)
+  isStandard: boolean // System-provided (read-only core fields)
+  isActive: boolean // Soft delete flag
+  sortOrder: number // Display ordering
+
+  createdAt: Timestamp
+  updatedAt: Timestamp
+  createdBy: string
+  lastModifiedBy: string
+}
+
+// Create/Update data types for ActivityTypeConfig
+export type CreateActivityTypeData = Omit<ActivityTypeConfig, 'id' | 'stableId' | 'createdAt' | 'updatedAt' | 'createdBy' | 'lastModifiedBy'>
+export type UpdateActivityTypeData = Partial<Omit<ActivityTypeConfig, 'id' | 'stableId' | 'createdAt' | 'createdBy' | 'isStandard'>>
+
 // Base interface for all entry types
 interface BaseEntry {
   id: string
@@ -38,7 +64,9 @@ export interface Activity extends BaseEntry {
   type: 'activity'
   horseId: string
   horseName: string // Denormalized
-  activityType: ActivityType
+  activityType: ActivityType // DEPRECATED: Legacy field for backward compatibility
+  activityTypeConfigId?: string // NEW: Reference to ActivityTypeConfig
+  activityTypeColor?: string // Denormalized for performance
   note?: string
   assignedTo?: string // User ID who is responsible
   assignedToName?: string // Denormalized

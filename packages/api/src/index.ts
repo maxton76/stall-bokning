@@ -4,6 +4,9 @@ import rateLimit from '@fastify/rate-limit'
 import { stablesRoutes } from './routes/stables.js'
 import { schedulesRoutes } from './routes/schedules.js'
 import { organizationsRoutes } from './routes/organizations.js'
+import inviteRoutes from './routes/invites.js'
+import organizationMemberRoutes from './routes/organizationMembers.js'
+import authRoutes from './routes/auth.js'
 
 const PORT = Number(process.env.PORT) || 5003
 const HOST = process.env.HOST || '0.0.0.0'
@@ -62,9 +65,12 @@ fastify.get('/api/v1', async () => {
 })
 
 // Register API routes
+await fastify.register(authRoutes, { prefix: '/api/v1/auth' })
 await fastify.register(stablesRoutes, { prefix: '/api/v1/stables' })
 await fastify.register(schedulesRoutes, { prefix: '/api/v1/schedules' })
 await fastify.register(organizationsRoutes, { prefix: '/api/v1/organizations' })
+await fastify.register(inviteRoutes, { prefix: '/api/v1/invites' })
+await fastify.register(organizationMemberRoutes, { prefix: '/api/v1/organization-members' })
 
 // 404 handler
 fastify.setNotFoundHandler((request, reply) => {

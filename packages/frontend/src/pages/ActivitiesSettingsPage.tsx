@@ -1,12 +1,91 @@
-import { useState } from 'react'
-import { Settings, Palette, Bell, Users } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Settings, Bell, Users, Plus, Pencil, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
-import { ACTIVITY_TYPES, DEFAULT_COLORS } from '@/types/activity'
+import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { ActivityTypeFormDialog } from '@/components/ActivityTypeFormDialog'
+import { useAuth } from '@/contexts/AuthContext'
+import { useUserStables } from '@/hooks/useUserStables'
+import { useAsyncData } from '@/hooks/useAsyncData'
+import { useCRUD } from '@/hooks/useCRUD'
+import { useDialog } from '@/hooks/useDialog'
+import type { ActivityTypeConfig } from '@/types/activity'
+import {
+  getActivityTypesByStable,
+  createActivityType,
+  updateActivityType,
+  deleteActivityType,
+  seedStandardActivityTypes,
+} from '@/services/activityTypeService'
 
 export default function ActivitiesSettingsPage() {
+  const { user } = useAuth()
+  const [selectedStableId, setSelectedStableId] = useState<string>('')
+
+  // Dialog state using useDialog hook
+  const formDialog = useDialog<ActivityTypeConfig>()
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deletingType, setDeletingType] = useState<ActivityTypeConfig | undefined>()
+
+  // Load user's stables
+  const { stables, loading: stablesLoading } = useUserStables(user?.uid)
+
+  // Auto-select first stable
+  useEffect(() => {
+    if (stables.length > 0 && !selectedStableId && stables[0]) {
+      setSelectedStableId(stables[0].id)
+    }
+  }, [stables, selectedStableId])
+
+  // Load activity types for selected stable
+  const activityTypes = useAsyncData<ActivityTypeConfig[]>({
+    loadFn: async () => {
+      if (!selectedStableId) return []
+      return await getActivityTypesByStable(selectedStableId, false) // Include inactive
+    },
+  })
+
+  // Reload types when stable changes
+  useEffect(() => {
+    if (selectedStableId) {
+      activityTypes.load()
+    }
+  }, [selectedStableId])
+
+  // Seed standard types if none exist
+  useEffect(() => {
+    const seedIfNeeded = async () => {
+      if (selectedStableId && activityTypes.data && activityTypes.data.length === 0 && user) {
+        try {
+          await seedStandardActivityTypes(selectedStableId, user.uid)
+          activityTypes.load()
+        } catch (error) {
+          console.error('Failed to seed activity types:', error)
+        }
+      }
+    }
+    seedIfNeeded()
+  }, [selectedStableId, activityTypes.data, user])
 
   // Notification settings
   const [notificationSettings, setNotificationSettings] = useState({
@@ -17,13 +96,6 @@ export default function ActivitiesSettingsPage() {
     dailyDigest: false,
   })
 
-  // Color preferences
-  const [favoriteColors, setFavoriteColors] = useState<string[]>([
-    DEFAULT_COLORS[0],
-    DEFAULT_COLORS[1],
-    DEFAULT_COLORS[2],
-  ])
-
   const handleNotificationChange = (key: string) => {
     setNotificationSettings(prev => ({
       ...prev,
@@ -31,11 +103,101 @@ export default function ActivitiesSettingsPage() {
     }))
   }
 
-  const toggleFavoriteColor = (color: string) => {
-    setFavoriteColors(prev =>
-      prev.includes(color)
-        ? prev.filter(c => c !== color)
-        : [...prev, color]
+  // CRUD operations using useCRUD hook
+  const { create, update, remove } = useCRUD<ActivityTypeConfig>({
+    createFn: async (data: any) => {
+      if (!user || !selectedStableId) throw new Error('Missing required data')
+      const nextSortOrder = (activityTypes.data || []).length + 1
+      return await createActivityType(user.uid, selectedStableId, {
+        ...data,
+        isStandard: false,
+        isActive: true,
+        sortOrder: nextSortOrder,
+      })
+    },
+    updateFn: async (id, data) => {
+      if (!user) throw new Error('User not authenticated')
+      await updateActivityType(id, user.uid, data)
+    },
+    deleteFn: async (id) => {
+      if (!user) throw new Error('User not authenticated')
+      await deleteActivityType(id, user.uid)
+    },
+    onSuccess: async () => {
+      await activityTypes.reload()
+    },
+    successMessages: {
+      create: 'Activity type created successfully',
+      update: 'Activity type updated successfully',
+      delete: 'Activity type deleted successfully',
+    },
+  })
+
+  // Handlers
+  const handleAdd = () => {
+    formDialog.openDialog()
+  }
+
+  const handleEdit = (type: ActivityTypeConfig) => {
+    formDialog.openDialog(type)
+  }
+
+  const handleDelete = (type: ActivityTypeConfig) => {
+    setDeletingType(type)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleSave = async (data: {
+    name: string
+    color: string
+    category: 'Sport' | 'Care' | 'Breeding'
+    roles: string[]
+    icon?: string
+  }) => {
+    if (formDialog.data) {
+      // Update existing type
+      await update(formDialog.data.id, data)
+    } else {
+      // Create new type
+      await create(data)
+    }
+    formDialog.closeDialog()
+  }
+
+  const confirmDelete = async () => {
+    if (!deletingType) return
+    await remove(deletingType.id)
+    setDeleteDialogOpen(false)
+    setDeletingType(undefined)
+  }
+
+  // Group types by category
+  const groupedTypes = (activityTypes.data || []).reduce((acc, type) => {
+    if (!acc[type.category]) acc[type.category] = []
+    acc[type.category]!.push(type)
+    return acc
+  }, {} as Record<string, ActivityTypeConfig[]>)
+
+  if (stablesLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <p className="text-muted-foreground">Loading stables...</p>
+      </div>
+    )
+  }
+
+  if (stables.length === 0) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <h3 className="text-lg font-semibold mb-2">No stables found</h3>
+            <p className="text-muted-foreground">
+              You need to be a member of a stable to configure activity types.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
@@ -53,55 +215,117 @@ export default function ActivitiesSettingsPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Activity Types Reference */}
-        <Card>
+        {/* Activity Types Management */}
+        <Card className="md:col-span-2">
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="w-fit">
-                Reference
-              </Badge>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Activity Types</CardTitle>
+                <CardDescription>
+                  Manage activity types for horse-related activities
+                </CardDescription>
+              </div>
+              <Button onClick={handleAdd} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Custom Type
+              </Button>
             </div>
-            <CardTitle>Activity Types</CardTitle>
-            <CardDescription>
-              Available activity types for horse-related activities
-            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <div className="text-sm text-muted-foreground mb-3">
-                Care Activities
+            {activityTypes.loading ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Loading activity types...</p>
               </div>
-              <div className="space-y-2">
-                {ACTIVITY_TYPES.filter(type => type.isCare).map(type => (
-                  <div
-                    key={type.value}
-                    className="flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 transition-colors"
-                  >
-                    <span className="text-2xl">{type.icon}</span>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{type.label}</p>
-                    </div>
-                  </div>
-                ))}
+            ) : (activityTypes.data || []).length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">
+                  No activity types found. Standard types will be seeded automatically.
+                </p>
               </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Table by Category */}
+                {(['Care', 'Sport', 'Breeding'] as const).map((category) => {
+                  const types = groupedTypes[category] || []
+                  if (types.length === 0) return null
 
-              <div className="text-sm text-muted-foreground mt-6 mb-3">
-                Other Activities
-              </div>
-              <div className="space-y-2">
-                {ACTIVITY_TYPES.filter(type => !type.isCare).map(type => (
-                  <div
-                    key={type.value}
-                    className="flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 transition-colors"
-                  >
-                    <span className="text-2xl">{type.icon}</span>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{type.label}</p>
+                  return (
+                    <div key={category} className="space-y-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">{category} Activities</h3>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Roles</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="w-24 text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {types.map((type) => (
+                            <TableRow key={type.id}>
+                              <TableCell className="font-medium">
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="px-3 py-1.5 rounded-md font-medium text-sm w-32"
+                                    style={{
+                                      backgroundColor: type.color,
+                                      color: '#000',
+                                      opacity: 0.85
+                                    }}
+                                  >
+                                    {type.name}
+                                  </div>
+                                  {type.isStandard && (
+                                    <Badge variant="outline" className="text-xs">
+                                      Standard
+                                    </Badge>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {type.roles.length > 0 ? type.roles.join(', ') : '-'}
+                              </TableCell>
+                              <TableCell>
+                                {type.isActive ? (
+                                  <Badge variant="outline" className="bg-green-50 text-green-700">
+                                    Active
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="bg-gray-50 text-gray-700">
+                                    Inactive
+                                  </Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleEdit(type)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  {!type.isStandard && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleDelete(type)}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-red-500" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
@@ -189,54 +413,8 @@ export default function ActivitiesSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Color Preferences */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Palette className="h-5 w-5 text-primary" />
-            </div>
-            <CardTitle>Color Preferences</CardTitle>
-            <CardDescription>
-              Select favorite colors for tasks and messages
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <Label className="text-sm font-medium mb-3 block">
-                  Favorite Colors ({favoriteColors.length} selected)
-                </Label>
-                <div className="grid grid-cols-6 gap-2">
-                  {DEFAULT_COLORS.map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => toggleFavoriteColor(color)}
-                      className={`
-                        w-10 h-10 rounded-md border-2 transition-all
-                        ${favoriteColors.includes(color)
-                          ? 'border-primary ring-2 ring-primary/20 scale-110'
-                          : 'border-gray-300 hover:scale-105'
-                        }
-                      `}
-                      style={{ backgroundColor: color }}
-                      title={color}
-                      aria-label={`Color ${color}`}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-4 border-t">
-                <p className="text-sm text-muted-foreground">
-                  Selected colors will appear first when creating tasks or messages.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Default Assignees */}
-        <Card>
+        <Card className="md:col-span-2">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
@@ -279,12 +457,42 @@ export default function ActivitiesSettingsPage() {
               <p className="text-sm font-medium">About Activity Settings</p>
               <p className="text-sm text-muted-foreground">
                 These settings are saved automatically and apply to all activities across your stables.
-                Activity types are predefined to ensure consistency across the platform.
+                Standard activity types are provided by the system but can have their colors and icons customized.
+                You can create custom activity types specific to your stable's needs.
               </p>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Form Dialog */}
+      <ActivityTypeFormDialog
+        open={formDialog.open}
+        onOpenChange={formDialog.closeDialog}
+        activityType={formDialog.data || undefined}
+        onSave={handleSave}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Activity Type</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deletingType?.name}"?
+              {deletingType?.isStandard
+                ? ' Standard types will be soft-deleted (marked inactive) and can be restored later.'
+                : ' This action cannot be undone.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-500 hover:bg-red-600">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

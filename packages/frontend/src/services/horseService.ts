@@ -156,6 +156,34 @@ export async function getUserHorsesAtStable(
 }
 
 /**
+ * Get a user's horses that are assigned to multiple stables
+ * @param userId - User ID
+ * @param stableIds - Array of stable IDs
+ * @returns Promise with array of horses
+ */
+export async function getUserHorsesAtStables(
+  userId: string,
+  stableIds: string[]
+): Promise<Horse[]> {
+  if (stableIds.length === 0) return []
+
+  // Query horses for each stable and combine results
+  const allHorses: Horse[] = []
+
+  for (const stableId of stableIds) {
+    const horses = await getUserHorsesAtStable(userId, stableId)
+    allHorses.push(...horses)
+  }
+
+  // Remove duplicates (in case a horse is somehow assigned to multiple stables)
+  const uniqueHorses = allHorses.filter(
+    (horse, index, self) => index === self.findIndex(h => h.id === horse.id)
+  )
+
+  return uniqueHorses
+}
+
+/**
  * Get all unassigned horses for a user
  * @param userId - User ID
  * @returns Promise with array of unassigned horses

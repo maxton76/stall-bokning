@@ -1,18 +1,10 @@
-import { useEffect, useState } from 'react'
-import { useForm, type SubmitHandler } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect, useState, useMemo } from 'react'
 import { z } from 'zod'
 import { format } from 'date-fns'
 import { Calendar as CalendarIcon } from 'lucide-react'
+import { BaseFormDialog } from '@/components/BaseFormDialog'
+import { useFormDialog } from '@/hooks/useFormDialog'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -27,17 +19,16 @@ import {
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
-import { ACTIVITY_TYPES, DEFAULT_COLORS, type ActivityEntry, type ActivityType } from '@/types/activity'
+import { DEFAULT_COLORS, type ActivityEntry, type ActivityTypeConfig } from '@/types/activity'
 
-// Validation schemas for each entry type
+// Validation schema for activity (activityType will be validated as string since it's dynamic)
 const activitySchema = z.object({
   type: z.literal('activity'),
   date: z.date({ message: 'Date is required' }),
   horseId: z.string().min(1, 'Horse is required'),
-  activityType: z.enum([
-    'dentist', 'farrier', 'vet', 'deworm', 'vaccination',
-    'chiropractic', 'massage', 'training', 'competition', 'other'
-  ] as const),
+  activityType: z.string().min(1, 'Activity type is required'), // Changed to string for dynamic types
+  activityTypeConfigId: z.string().optional(), // NEW: Reference to config
+  activityTypeColor: z.string().optional(), // NEW: Denormalized color
   note: z.string().optional(),
   assignedTo: z.string().optional(),
 })
@@ -72,42 +63,57 @@ interface ActivityFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   entry?: ActivityEntry
+  initialDate?: Date  // For pre-filling date when creating
+  initialHorseId?: string  // For pre-filling horse when creating
+  initialActivityType?: string  // For pre-filling activity type when creating
   onSave: (data: Omit<FormData, 'type'> & { type: 'activity' | 'task' | 'message' }) => Promise<void>
   horses?: Array<{ id: string; name: string }>
   stableMembers?: Array<{ id: string; name: string }>
+  activityTypes?: ActivityTypeConfig[]
 }
 
 export function ActivityFormDialog({
   open,
   onOpenChange,
   entry,
+  initialDate,
+  initialHorseId,
+  initialActivityType,
   onSave,
   horses = [],
   stableMembers = [],
+  activityTypes = [],
 }: ActivityFormDialogProps) {
+  const isEditMode = !!entry
   const [selectedType, setSelectedType] = useState<'activity' | 'task' | 'message'>('activity')
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    reset,
-    setValue,
-    watch,
-  } = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      type: 'activity',
-      date: new Date(),
-      horseId: '',
-      activityType: 'training' as ActivityType,
-      note: '',
-      assignedTo: '',
+  // Memoize defaultValues to prevent infinite loop
+  const defaultValues = useMemo<FormData>(() => ({
+    type: 'activity',
+    date: new Date(),
+    horseId: '',
+    activityType: '', // Will be set from activityTypes
+    activityTypeConfigId: '',
+    activityTypeColor: '',
+    note: '',
+    assignedTo: '',
+  } as any), [])
+
+  const { form, handleSubmit, resetForm } = useFormDialog<FormData>({
+    schema: formSchema,
+    defaultValues,
+    onSubmit: async (data) => {
+      await onSave(data)
     },
+    onSuccess: () => {
+      onOpenChange(false)
+    },
+    successMessage: isEditMode ? 'Entry updated successfully' : 'Entry created successfully',
+    errorMessage: isEditMode ? 'Failed to update entry' : 'Failed to create entry',
   })
 
-  const date = watch('date')
-  const color = watch('color')
+  const date = form.watch('date')
+  const color = form.watch('color')
 
   // Reset form when dialog opens with entry data or defaults
   useEffect(() => {
@@ -115,74 +121,100 @@ export function ActivityFormDialog({
       setSelectedType(entry.type)
 
       if (entry.type === 'activity') {
-        reset({
+        resetForm({
           type: 'activity',
           date: entry.date.toDate(),
           horseId: entry.horseId,
           activityType: entry.activityType,
+          activityTypeConfigId: entry.activityTypeConfigId,
+          activityTypeColor: entry.activityTypeColor,
           note: entry.note || '',
           assignedTo: entry.assignedTo || '',
-        })
+        } as any)
       } else if (entry.type === 'task') {
-        reset({
+        resetForm({
           type: 'task',
           date: entry.date.toDate(),
           title: entry.title,
           description: entry.description,
           color: entry.color,
           assignedTo: entry.assignedTo || '',
-        })
+        } as any)
       } else {
-        reset({
+        resetForm({
           type: 'message',
           date: entry.date.toDate(),
           title: entry.title,
           message: entry.message,
           color: entry.color,
           priority: entry.priority || 'medium',
-        })
+        } as any)
       }
     } else {
       setSelectedType('activity')
-      reset({
+      // Use initialActivityType if provided, otherwise first activity type as default
+      const selectedActivityType = initialActivityType
+        ? activityTypes.find(t => t.id === initialActivityType)
+        : activityTypes.length > 0 ? activityTypes[0] : null
+
+      resetForm({
         type: 'activity',
-        date: new Date(),
-        horseId: '',
-        activityType: 'training',
+        date: initialDate || new Date(),
+        horseId: initialHorseId || '',
+        activityType: selectedActivityType?.name || '',
+        activityTypeConfigId: selectedActivityType?.id || '',
+        activityTypeColor: selectedActivityType?.color || '',
         note: '',
         assignedTo: '',
       } as any)
     }
-  }, [entry, reset, open])
+  }, [entry, initialDate, initialHorseId, initialActivityType, resetForm, open, activityTypes])
 
   // Update form type when radio selection changes
   const handleTypeChange = (newType: 'activity' | 'task' | 'message') => {
     setSelectedType(newType)
-    setValue('type', newType as any)
+    form.setValue('type', newType as any)
   }
 
-  const onSubmit: SubmitHandler<FormData> = async (data) => {
-    try {
-      await onSave(data)
-      onOpenChange(false)
-    } catch (error) {
-      console.error('Failed to save entry:', error)
+  // Helper to generate dynamic assignment label
+  const getAssignmentLabel = () => {
+    // Only for activity type
+    if (selectedType !== 'activity') {
+      return 'Assigned To'
     }
+
+    // Get selected activity type config ID
+    const selectedConfigId = form.watch('activityTypeConfigId')
+    if (!selectedConfigId) {
+      return 'Assigned To'
+    }
+
+    // Find the activity type config
+    const selectedActivityType = activityTypes.find(t => t.id === selectedConfigId)
+    if (!selectedActivityType || !selectedActivityType.roles || selectedActivityType.roles.length === 0) {
+      return 'Assigned To'
+    }
+
+    // Capitalize and join roles
+    const capitalizedRoles = selectedActivityType.roles.map(role =>
+      role.charAt(0).toUpperCase() + role.slice(1).replace(/-/g, ' ')
+    )
+
+    return capitalizedRoles.join(' / ')
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {entry ? 'Edit Entry' : 'New Entry'}
-          </DialogTitle>
-          <DialogDescription>
-            {entry ? 'Update entry details' : 'Create a new activity, task, or message'}
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <BaseFormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={isEditMode ? 'Edit Entry' : 'New Entry'}
+      description={isEditMode ? 'Update entry details' : 'Create a new activity, task, or message'}
+      form={form}
+      onSubmit={handleSubmit}
+      submitLabel={isEditMode ? 'Update' : 'Create'}
+      maxWidth="sm:max-w-[550px]"
+      maxHeight="max-h-[90vh]"
+    >
           {/* Type Selector */}
           <div className="space-y-3">
             <Label>Entry Type</Label>
@@ -234,13 +266,13 @@ export function ActivityFormDialog({
                 <Calendar
                   mode="single"
                   selected={date}
-                  onSelect={(date) => date && setValue('date', date)}
+                  onSelect={(date) => date && form.setValue('date', date)}
                   initialFocus
                 />
               </PopoverContent>
             </Popover>
-            {errors.date && (
-              <p className="text-sm text-destructive">{errors.date.message}</p>
+            {form.formState.errors.date && (
+              <p className="text-sm text-destructive">{form.formState.errors.date.message}</p>
             )}
           </div>
 
@@ -252,8 +284,8 @@ export function ActivityFormDialog({
                   Horse <span className="text-destructive">*</span>
                 </Label>
                 <Select
-                  value={watch('horseId')}
-                  onValueChange={(value) => setValue('horseId', value)}
+                  value={form.watch('horseId')}
+                  onValueChange={(value) => form.setValue('horseId', value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select horse" />
@@ -266,46 +298,47 @@ export function ActivityFormDialog({
                     ))}
                   </SelectContent>
                 </Select>
-                {'horseId' in errors && errors.horseId && (
-                  <p className="text-sm text-destructive">{errors.horseId.message}</p>
+                {'horseId' in form.formState.errors && form.formState.errors.horseId && (
+                  <p className="text-sm text-destructive">{form.formState.errors.horseId.message}</p>
                 )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="activityType">
-                  Activity Type <span className="text-destructive">*</span>
+                  Activity <span className="text-destructive">*</span>
                 </Label>
                 <Select
-                  value={watch('activityType')}
-                  onValueChange={(value) => setValue('activityType', value as ActivityType)}
+                  value={form.watch('activityTypeConfigId') || form.watch('activityType')}
+                  onValueChange={(configId) => {
+                    const selectedType = activityTypes.find(t => t.id === configId)
+                    if (selectedType) {
+                      form.setValue('activityType', selectedType.name)
+                      form.setValue('activityTypeConfigId', selectedType.id)
+                      form.setValue('activityTypeColor', selectedType.color)
+                    }
+                  }}
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select activity type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {ACTIVITY_TYPES.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
+                    {activityTypes.filter(t => t.isActive).map((type) => (
+                      <SelectItem key={type.id} value={type.id}>
                         <span className="flex items-center gap-2">
-                          <span>{type.icon}</span>
-                          <span>{type.label}</span>
+                          {type.icon && <span>{type.icon}</span>}
+                          <div
+                            className="w-3 h-3 rounded-full border"
+                            style={{ backgroundColor: type.color }}
+                          />
+                          <span>{type.name}</span>
                         </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {'activityType' in errors && errors.activityType && (
-                  <p className="text-sm text-destructive">{errors.activityType.message}</p>
+                {'activityType' in form.formState.errors && form.formState.errors.activityType && (
+                  <p className="text-sm text-destructive">{form.formState.errors.activityType.message}</p>
                 )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="note">Note</Label>
-                <Textarea
-                  id="note"
-                  placeholder="Additional notes..."
-                  {...register('note')}
-                  rows={3}
-                />
               </div>
             </>
           )}
@@ -320,10 +353,10 @@ export function ActivityFormDialog({
                 <Input
                   id="title"
                   placeholder="Task title"
-                  {...register('title')}
+                  {...form.register('title')}
                 />
-                {'title' in errors && errors.title && (
-                  <p className="text-sm text-destructive">{errors.title.message}</p>
+                {'title' in form.formState.errors && form.formState.errors.title && (
+                  <p className="text-sm text-destructive">{form.formState.errors.title.message}</p>
                 )}
               </div>
 
@@ -334,11 +367,11 @@ export function ActivityFormDialog({
                 <Textarea
                   id="description"
                   placeholder="Task description..."
-                  {...register('description')}
+                  {...form.register('description')}
                   rows={3}
                 />
-                {'description' in errors && errors.description && (
-                  <p className="text-sm text-destructive">{errors.description.message}</p>
+                {'description' in form.formState.errors && form.formState.errors.description && (
+                  <p className="text-sm text-destructive">{form.formState.errors.description.message}</p>
                 )}
               </div>
 
@@ -356,7 +389,7 @@ export function ActivityFormDialog({
                         color === colorOption ? 'border-foreground scale-110' : 'border-transparent'
                       )}
                       style={{ backgroundColor: colorOption }}
-                      onClick={() => setValue('color', colorOption)}
+                      onClick={() => form.setValue('color', colorOption)}
                     />
                   ))}
                 </div>
@@ -374,10 +407,10 @@ export function ActivityFormDialog({
                 <Input
                   id="message-title"
                   placeholder="Message title"
-                  {...register('title')}
+                  {...form.register('title')}
                 />
-                {'title' in errors && errors.title && (
-                  <p className="text-sm text-destructive">{errors.title.message}</p>
+                {'title' in form.formState.errors && form.formState.errors.title && (
+                  <p className="text-sm text-destructive">{form.formState.errors.title.message}</p>
                 )}
               </div>
 
@@ -388,11 +421,11 @@ export function ActivityFormDialog({
                 <Textarea
                   id="message-content"
                   placeholder="Message content..."
-                  {...register('message')}
+                  {...form.register('message')}
                   rows={3}
                 />
-                {'message' in errors && errors.message && (
-                  <p className="text-sm text-destructive">{errors.message.message}</p>
+                {'message' in form.formState.errors && form.formState.errors.message && (
+                  <p className="text-sm text-destructive">{form.formState.errors.message.message}</p>
                 )}
               </div>
 
@@ -410,7 +443,7 @@ export function ActivityFormDialog({
                         color === colorOption ? 'border-foreground scale-110' : 'border-transparent'
                       )}
                       style={{ backgroundColor: colorOption }}
-                      onClick={() => setValue('color', colorOption)}
+                      onClick={() => form.setValue('color', colorOption)}
                     />
                   ))}
                 </div>
@@ -419,8 +452,8 @@ export function ActivityFormDialog({
               <div className="space-y-2">
                 <Label htmlFor="priority">Priority</Label>
                 <Select
-                  value={watch('priority')}
-                  onValueChange={(value) => setValue('priority', value as 'low' | 'medium' | 'high')}
+                  value={form.watch('priority')}
+                  onValueChange={(value) => form.setValue('priority', value as 'low' | 'medium' | 'high')}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -437,16 +470,15 @@ export function ActivityFormDialog({
 
           {/* Assigned To (common field) */}
           <div className="space-y-2">
-            <Label htmlFor="assignedTo">Assigned To</Label>
+            <Label htmlFor="assignedTo">{getAssignmentLabel()}</Label>
             <Select
-              value={watch('assignedTo')}
-              onValueChange={(value) => setValue('assignedTo', value)}
+              value={form.watch('assignedTo')}
+              onValueChange={(value) => form.setValue('assignedTo', value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Unassigned" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Unassigned</SelectItem>
                 {stableMembers.map((member) => (
                   <SelectItem key={member.id} value={member.id}>
                     {member.name}
@@ -456,16 +488,18 @@ export function ActivityFormDialog({
             </Select>
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : entry ? 'Update' : 'Create'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          {/* Note field (activity-specific, at bottom) */}
+          {selectedType === 'activity' && (
+            <div className="space-y-2">
+              <Label htmlFor="note">Note</Label>
+              <Textarea
+                id="note"
+                placeholder="Additional notes..."
+                {...form.register('note')}
+                rows={3}
+              />
+            </div>
+          )}
+    </BaseFormDialog>
   )
 }

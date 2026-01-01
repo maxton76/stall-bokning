@@ -17,6 +17,8 @@ import { useAsyncData } from '@/hooks/useAsyncData'
 import { useCRUD } from '@/hooks/useCRUD'
 import { useUserStables } from '@/hooks/useUserStables'
 import { useActivityFilters } from '@/hooks/useActivityFilters'
+import { useActivityTypes } from '@/hooks/useActivityTypes'
+import { useActivityTypeConfig } from '@/hooks/useActivityTypeConfig'
 import { ActivityFormDialog } from '@/components/ActivityFormDialog'
 import { ActivityFilterPopover } from '@/components/activities/ActivityFilterPopover'
 import {
@@ -81,6 +83,9 @@ export default function ActivitiesActionListPage() {
       return await getUserHorses(user.uid)
     },
   })
+
+  // Load activity types for selected stable (auto-reloads on stable change)
+  const activityTypes = useActivityTypes(selectedStableId, true)
 
   // Reload activities when stable or tab changes
   useEffect(() => {
@@ -302,6 +307,7 @@ export default function ActivitiesActionListPage() {
                   onEdit={() => handleEditEntry(entry)}
                   onDelete={() => handleDeleteEntry(entry)}
                   onComplete={() => handleCompleteEntry(entry)}
+                  activityTypes={activityTypes.data || []}
                 />
               ))}
             </div>
@@ -318,6 +324,7 @@ export default function ActivitiesActionListPage() {
                         onEdit={() => handleEditEntry(entry)}
                         onDelete={() => handleDeleteEntry(entry)}
                         onComplete={() => handleCompleteEntry(entry)}
+                        activityTypes={activityTypes.data || []}
                       />
                     ))}
                   </div>
@@ -336,6 +343,7 @@ export default function ActivitiesActionListPage() {
         onSave={handleSaveEntry}
         horses={horses.data?.map((h) => ({ id: h.id, name: h.name })) || []}
         stableMembers={stableMembers}
+        activityTypes={activityTypes.data || []}
       />
     </div>
   )
@@ -347,16 +355,24 @@ interface ActivityCardProps {
   onEdit: () => void
   onDelete: () => void
   onComplete: () => void
+  activityTypes: Array<any> // Activity type configs
 }
 
-function ActivityCard({ entry, onEdit, onDelete, onComplete }: ActivityCardProps) {
+function ActivityCard({ entry, onEdit, onDelete, onComplete, activityTypes }: ActivityCardProps) {
+  // Use hook for activity type resolution (only for activity entries)
+  const activityTypeDisplay = entry.type === 'activity'
+    ? useActivityTypeConfig(entry, activityTypes)
+    : null
+
+  // Icon: activity type icon or entry type default
   const typeIcon =
     entry.type === 'activity'
-      ? ACTIVITY_TYPE_CONFIG.find((t) => t.value === entry.activityType)?.icon || '📝'
+      ? activityTypeDisplay!.icon
       : entry.type === 'task'
       ? '📋'
       : '💬'
 
+  // Badge color by entry type
   const typeColor =
     entry.type === 'activity'
       ? 'bg-blue-100 text-blue-800'
@@ -364,11 +380,13 @@ function ActivityCard({ entry, onEdit, onDelete, onComplete }: ActivityCardProps
       ? 'bg-green-100 text-green-800'
       : 'bg-purple-100 text-purple-800'
 
+  // Title: compose from activity type label or use entry title
   const title =
     entry.type === 'activity'
-      ? `${entry.horseName} - ${ACTIVITY_TYPE_CONFIG.find((t) => t.value === entry.activityType)?.label}`
+      ? `${entry.horseName} - ${activityTypeDisplay!.label}`
       : entry.title
 
+  // Description varies by entry type
   const description =
     entry.type === 'activity'
       ? entry.note
@@ -376,14 +394,16 @@ function ActivityCard({ entry, onEdit, onDelete, onComplete }: ActivityCardProps
       ? entry.description
       : entry.message
 
+  // Left border color: activity type color or entry color
+  const leftBorderColor =
+    entry.type === 'activity'
+      ? activityTypeDisplay!.color
+      : entry.color
+
   return (
     <div
       className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
-      style={
-        entry.type !== 'activity'
-          ? { borderLeftWidth: '4px', borderLeftColor: entry.color }
-          : undefined
-      }
+      style={{ borderLeftWidth: '4px', borderLeftColor: leftBorderColor }}
     >
       <div className="flex items-center gap-4 flex-1">
         <div className="text-2xl">{typeIcon}</div>
