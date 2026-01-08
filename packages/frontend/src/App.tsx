@@ -20,6 +20,7 @@ import ScheduleEditorPage from './pages/ScheduleEditorPage'
 import AccountPage from './pages/AccountPage'
 import SettingsPage from './pages/SettingsPage'
 import MyHorsesPage from './pages/MyHorsesPage'
+import HorseDetailPage from './pages/HorseDetailPage'
 import HorseSettingsPage from './pages/HorseSettingsPage'
 import LocationHistoryPage from './pages/LocationHistoryPage'
 import FacilitiesReservationsPage from './pages/FacilitiesReservationsPage'
@@ -57,6 +58,7 @@ function App() {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/schedule" element={<SchedulePage />} />
             <Route path="/horses" element={<MyHorsesPage />} />
+            <Route path="/horses/:horseId" element={<HorseDetailPage />} />
             <Route path="/horses/settings" element={<HorseSettingsPage />} />
             <Route path="/location-history" element={<LocationHistoryPage />} />
             <Route path="/facilities/reservations" element={<FacilitiesReservationsPage />} />

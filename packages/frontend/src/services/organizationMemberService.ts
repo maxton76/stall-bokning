@@ -11,6 +11,7 @@ import {
   Timestamp
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { authFetchJSON } from '@/utils/authFetch'
 import type {
   OrganizationMember,
   InviteOrganizationMemberData,
@@ -49,24 +50,8 @@ export async function inviteOrganizationMember(
   inviterId: string,
   memberData: InviteOrganizationMemberData
 ): Promise<any> {
-  // Get auth token from Firebase Auth
-  const { getAuth } = await import('firebase/auth')
-  const auth = getAuth()
-  const user = auth.currentUser
-
-  if (!user) {
-    throw new Error('User not authenticated')
-  }
-
-  const token = await user.getIdToken()
-
-  // Call backend API
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/organizations/${organizationId}/members`, {
+  return await authFetchJSON(`${import.meta.env.VITE_API_URL}/organizations/${organizationId}/members`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
     body: JSON.stringify(removeUndefined({
       email: memberData.email,
       firstName: memberData.firstName,
@@ -79,15 +64,6 @@ export async function inviteOrganizationMember(
       assignedStableIds: memberData.assignedStableIds || []
     }))
   })
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw Object.assign(new Error(error.message || 'Failed to invite member'), {
-      response: { status: response.status, data: error }
-    })
-  }
-
-  return await response.json()
 }
 
 /**
@@ -168,21 +144,49 @@ export async function updateOrganizationMember(
  * @param organizationId - Organization ID
  * @param roles - Array of roles to assign
  * @param primaryRole - Primary role
+ * @param currentUserId - User making the change (for audit logging)
  * @returns Promise that resolves when update is complete
  */
 export async function updateMemberRoles(
   userId: string,
   organizationId: string,
   roles: OrganizationRole[],
-  primaryRole: OrganizationRole
+  primaryRole: OrganizationRole,
+  currentUserId?: string
 ): Promise<void> {
   const memberId = generateMemberId(userId, organizationId)
   const memberRef = doc(db, 'organizationMembers', memberId)
 
+  // Get existing member data for audit logging
+  const existingMember = await getOrganizationMember(userId, organizationId)
+  const previousRoles = existingMember?.roles || []
+
+  // Update member roles
   await updateDoc(memberRef, {
     roles,
     primaryRole
   })
+
+  // Log role change (non-blocking)
+  if (currentUserId && existingMember) {
+    const { logRoleChange } = await import('./auditLogService')
+    logRoleChange(
+      memberId,
+      existingMember.email || '',
+      organizationId,
+      existingMember.organizationName || '',
+      {
+        memberName: `${existingMember.firstName || ''} ${existingMember.lastName || ''}`.trim(),
+        previousRoles,
+        newRoles: roles,
+        addedRoles: roles.filter(r => !previousRoles.includes(r)),
+        removedRoles: previousRoles.filter(r => !roles.includes(r))
+      },
+      currentUserId
+    ).catch(err => {
+      console.error('Audit log failed:', err)
+    })
+  }
 }
 
 /**

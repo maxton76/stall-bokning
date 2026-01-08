@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -7,12 +7,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
-import { collection, addDoc, Timestamp } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { createStable } from '@/services/stableService'
 
 export default function CreateStablePage() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const [searchParams] = useSearchParams()
+  const organizationId = searchParams.get('organizationId')
+
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -29,22 +31,21 @@ export default function CreateStablePage() {
     setIsLoading(true)
 
     try {
-      // Create stable in Firestore
+      // Create stable with optional organizationId
       const stableData = {
         name: formData.name,
         description: formData.description,
         address: `${formData.address}, ${formData.city} ${formData.postalCode}`,
         ownerId: user.uid,
-        ownerEmail: user.email,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now()
+        ownerEmail: user.email || undefined,
+        ...(organizationId && { organizationId })  // Conditionally include organizationId
       }
 
-      const docRef = await addDoc(collection(db, 'stables'), stableData)
-      console.log('Stable created with ID:', docRef.id)
+      const stableId = await createStable(user.uid, stableData)
+      console.log('Stable created with ID:', stableId)
 
       // Navigate to the new stable's detail page
-      navigate(`/stables/${docRef.id}`)
+      navigate(`/stables/${stableId}`)
     } catch (error) {
       console.error('Error creating stable:', error)
       alert('Failed to create stable. Please try again.')

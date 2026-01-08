@@ -21,10 +21,9 @@ export default function LocationHistoryPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
   // Load user's horses for the dropdown
-  const { data: horses = [], loading: horsesLoading } = useAsyncData(
-    () => getUserHorses(user!.uid),
-    [user]
-  )
+  const { data: horses = [], loading: horsesLoading } = useAsyncData({
+    loadFn: () => getUserHorses(user!.uid)
+  })
 
   // Load location history
   const { history, loading, error } = useLocationHistory(selectedHorseId)
@@ -77,7 +76,7 @@ export default function LocationHistoryPage() {
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Location History</h1>
         <p className="text-muted-foreground mt-2">
-          Track your horses' movements between stables
+          Track your horses' movements between stables and external locations
         </p>
       </div>
 
@@ -124,7 +123,7 @@ export default function LocationHistoryPage() {
             <div className="text-center py-8 text-muted-foreground">
               <p className="text-lg mb-2">No location history found</p>
               <p className="text-sm">
-                Location history will be created when horses are assigned to stables
+                Location history will be created when horses are assigned to stables or moved to external locations
               </p>
             </div>
           ) : (
@@ -133,6 +132,7 @@ export default function LocationHistoryPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Horse</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Location</TableHead>
                     <TableHead>
                       <Button
@@ -158,29 +158,57 @@ export default function LocationHistoryPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedHistory.map((entry: LocationHistoryDisplay) => (
-                    <TableRow key={entry.id}>
-                      <TableCell className="font-medium">
-                        {entry.horseName}
-                      </TableCell>
-                      <TableCell>{entry.stableName}</TableCell>
-                      <TableCell>{formatDate(entry.arrivalDate)}</TableCell>
-                      <TableCell>
-                        {entry.departureDate ? (
-                          formatDate(entry.departureDate)
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {entry.isCurrentLocation ? (
-                          <Badge variant="default">Current Location</Badge>
-                        ) : (
-                          <Badge variant="secondary">Past Location</Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {sortedHistory.map((entry: LocationHistoryDisplay) => {
+                    const isExternal = entry.locationType === 'external'
+                    return (
+                      <TableRow key={entry.id}>
+                        <TableCell className="font-medium">
+                          {entry.horseName}
+                        </TableCell>
+                        <TableCell>
+                          {isExternal ? (
+                            <Badge variant="outline">External</Badge>
+                          ) : (
+                            <Badge variant="secondary">Stable</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isExternal ? (
+                            <div>
+                              <div className="font-medium">{entry.externalLocation}</div>
+                              {entry.externalMoveType && (
+                                <Badge variant="outline" className="mt-1 text-xs">
+                                  {entry.externalMoveType === 'temporary' ? 'Temporary' : 'Permanent'}
+                                </Badge>
+                              )}
+                              {entry.externalMoveReason && (
+                                <div className="text-sm text-muted-foreground mt-1">
+                                  Reason: {entry.externalMoveReason}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            entry.stableName
+                          )}
+                        </TableCell>
+                        <TableCell>{formatDate(entry.arrivalDate)}</TableCell>
+                        <TableCell>
+                          {entry.departureDate ? (
+                            formatDate(entry.departureDate)
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {entry.isCurrentLocation ? (
+                            <Badge variant="default">Current Location</Badge>
+                          ) : (
+                            <Badge variant="secondary">Past Location</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </div>

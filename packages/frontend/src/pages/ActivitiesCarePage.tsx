@@ -3,34 +3,23 @@ import { Heart, Grid3x3, Table2, Search } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUserStables } from '@/hooks/useUserStables'
-import { useAsyncData } from '@/hooks/useAsyncData'
+import { useActivityPageState } from '@/hooks/useActivityPageState'
 import { useHorseFilters } from '@/hooks/useHorseFilters'
+import { ActivityPageLayout } from '@/components/layouts/ActivityPageLayout'
 import { HorseFilterPopover, HorseFilterBadges } from '@/components/HorseFilterPopover'
 import { getCareActivities, createActivity } from '@/services/activityService'
-import { getUserHorsesAtStable, getUserHorsesAtStables } from '@/services/horseService'
-import { getActivityTypesByStable } from '@/services/activityTypeService'
-import { getStableHorseGroups } from '@/services/horseGroupService'
 import { CareMatrixView } from '@/components/CareMatrixView'
 import { CareTableView } from '@/components/CareTableView'
 import { QuickAddDialog } from '@/components/QuickAddDialog'
 import { ActivityFormDialog } from '@/components/ActivityFormDialog'
-import type { Activity, ActivityTypeConfig } from '@/types/activity'
-import type { Horse, HorseGroup } from '@/types/roles'
+import type { Activity } from '@/types/activity'
 import type { FilterConfig } from '@shared/types/filters'
 import { Timestamp } from 'firebase/firestore'
 
 export default function ActivitiesCarePage() {
   const { user } = useAuth()
-  const [selectedStableId, setSelectedStableId] = useState<string>('all')
 
   // State for view mode
   type CareViewMode = 'matrix' | 'table'
@@ -54,7 +43,20 @@ export default function ActivitiesCarePage() {
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid)
 
-  // No auto-select needed - defaults to "all"
+  // Use shared activity page state hook
+  const {
+    selectedStableId,
+    setSelectedStableId,
+    activities,
+    activityTypes,
+    horses,
+    horseGroups,
+  } = useActivityPageState({
+    user,
+    stables,
+    activityLoader: getCareActivities,
+    includeGroups: true,
+  })
 
   // Persist view preference in localStorage
   useEffect(() => {
@@ -67,86 +69,6 @@ export default function ActivitiesCarePage() {
   useEffect(() => {
     localStorage.setItem('care-view-mode', viewMode)
   }, [viewMode])
-
-  // Load care activities for selected stable(s)
-  const activities = useAsyncData<Activity[]>({
-    loadFn: async () => {
-      if (!selectedStableId) return []
-
-      // If "all" is selected, get activities from all stables
-      if (selectedStableId === 'all') {
-        const stableIds = stables.map(s => s.id)
-        return await getCareActivities(stableIds)
-      }
-
-      // Otherwise get activities for specific stable
-      return await getCareActivities(selectedStableId)
-    },
-  })
-
-  // Load activity types for selected stable (auto-reloads on stable change)
-  // When "all" is selected, load activity types from all stables
-  const activityTypes = useAsyncData<ActivityTypeConfig[]>({
-    loadFn: async () => {
-      if (!selectedStableId) return []
-
-      // If "all" is selected, get activity types from all stables and merge them
-      if (selectedStableId === 'all') {
-        const allTypes: ActivityTypeConfig[] = []
-        const seenIds = new Set<string>()
-
-        for (const stable of stables) {
-          const types = await getActivityTypesByStable(stable.id, true)
-          // Add unique types (by ID to avoid duplicates)
-          types.forEach(type => {
-            if (!seenIds.has(type.id)) {
-              seenIds.add(type.id)
-              allTypes.push(type)
-            }
-          })
-        }
-
-        return allTypes
-      }
-
-      // Otherwise get activity types for specific stable
-      return await getActivityTypesByStable(selectedStableId, true)
-    },
-  })
-
-  // Load horses for selected stable(s) - now returns full Horse objects
-  const horses = useAsyncData<Horse[]>({
-    loadFn: async () => {
-      if (!selectedStableId || !user) return []
-
-      // If "all" is selected, get horses from all stables
-      if (selectedStableId === 'all') {
-        const stableIds = stables.map(s => s.id)
-        return await getUserHorsesAtStables(user.uid, stableIds)
-      }
-
-      // Otherwise get horses for specific stable
-      return await getUserHorsesAtStable(user.uid, selectedStableId)
-    },
-  })
-
-  // Load horse groups for filtering
-  const horseGroups = useAsyncData<HorseGroup[]>({
-    loadFn: async () => {
-      if (!selectedStableId || selectedStableId === 'all') return []
-      return await getStableHorseGroups(selectedStableId)
-    },
-  })
-
-  // Reload activities, horses, and activity types when stable changes or stables list loads
-  useEffect(() => {
-    if (selectedStableId && stables.length > 0) {
-      activities.load()
-      horses.load()
-      activityTypes.load()
-      horseGroups.load()
-    }
-  }, [selectedStableId, stables])
 
   // Filtering with unified hook
   const {
@@ -251,42 +173,16 @@ export default function ActivitiesCarePage() {
     }
   }
 
-  if (stablesLoading) {
-    return (
-      <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">Loading stables...</p>
-      </div>
-    )
-  }
-
-  if (stables.length === 0) {
-    return (
-      <div className="container mx-auto p-6">
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <h3 className="text-lg font-semibold mb-2">No stables found</h3>
-            <p className="text-muted-foreground">
-              You need to be a member of a stable to view care activities.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Heart className="h-8 w-8 text-red-500" />
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Care Activities</h1>
-          <p className="text-muted-foreground mt-1">
-            Veterinary, farrier, dentist, and other care-related activities
-          </p>
-        </div>
-      </div>
-
+    <ActivityPageLayout
+      icon={Heart}
+      title="Care Activities"
+      description="Veterinary, farrier, dentist, and other care-related activities"
+      selectedStableId={selectedStableId}
+      onStableChange={setSelectedStableId}
+      stables={stables}
+      stablesLoading={stablesLoading}
+    >
       {/* Care Activities Matrix/Table */}
       <Card>
         <CardHeader>
@@ -330,24 +226,6 @@ export default function ActivitiesCarePage() {
                     onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
                     className="pl-9"
                   />
-                </div>
-
-                {/* Stable Selector */}
-                <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium">Stable:</label>
-                  <Select value={selectedStableId} onValueChange={setSelectedStableId}>
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue placeholder="Select a stable" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Stables</SelectItem>
-                      {stables.map((stable) => (
-                        <SelectItem key={stable.id} value={stable.id}>
-                          {stable.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
 
@@ -405,6 +283,6 @@ export default function ActivitiesCarePage() {
         activityTypes={activityTypes.data || []}
         onSave={handleSave}
       />
-    </div>
+    </ActivityPageLayout>
   )
 }

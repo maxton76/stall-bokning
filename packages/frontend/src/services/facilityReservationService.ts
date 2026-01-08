@@ -109,6 +109,100 @@ export async function cancelReservation(
 }
 
 /**
+ * Approve a pending reservation
+ * @param reservationId - Reservation ID
+ * @param reviewerId - User ID of the reviewer (admin/owner)
+ * @param reviewerName - Name of the reviewer
+ * @param reviewerEmail - Email of the reviewer
+ * @param reviewNotes - Optional notes about the approval
+ * @returns Promise that resolves when approval is complete
+ */
+export async function approveReservation(
+  reservationId: string,
+  reviewerId: string,
+  reviewerName: string,
+  reviewerEmail: string,
+  reviewNotes?: string
+): Promise<void> {
+  // Get existing reservation for audit logging
+  const existingReservation = await getReservation(reservationId)
+  if (!existingReservation) {
+    throw new Error('Reservation not found')
+  }
+
+  const previousStatus = existingReservation.status
+
+  // Update reservation status to confirmed
+  await reservationCrud.update(reservationId, reviewerId, {
+    status: 'confirmed'
+  })
+
+  // Log status change (non-blocking)
+  const { logReservationStatusChange } = await import('./auditLogService')
+  logReservationStatusChange(
+    reservationId,
+    existingReservation.facilityId,
+    existingReservation.facilityName,
+    previousStatus === 'confirmed' ? 'approved' : 'pending',
+    'approved',
+    reviewerId,
+    reviewerName,
+    reviewerEmail,
+    reviewNotes,
+    existingReservation.stableId
+  ).catch(err => {
+    console.error('Audit log failed:', err)
+  })
+}
+
+/**
+ * Reject a pending reservation
+ * @param reservationId - Reservation ID
+ * @param reviewerId - User ID of the reviewer (admin/owner)
+ * @param reviewerName - Name of the reviewer
+ * @param reviewerEmail - Email of the reviewer
+ * @param reviewNotes - Optional notes about the rejection
+ * @returns Promise that resolves when rejection is complete
+ */
+export async function rejectReservation(
+  reservationId: string,
+  reviewerId: string,
+  reviewerName: string,
+  reviewerEmail: string,
+  reviewNotes?: string
+): Promise<void> {
+  // Get existing reservation for audit logging
+  const existingReservation = await getReservation(reservationId)
+  if (!existingReservation) {
+    throw new Error('Reservation not found')
+  }
+
+  const previousStatus = existingReservation.status
+
+  // Update reservation status to rejected
+  await reservationCrud.update(reservationId, reviewerId, {
+    status: 'rejected'
+  })
+
+  // Log status change (non-blocking)
+  const { logReservationStatusChange } = await import('./auditLogService')
+  logReservationStatusChange(
+    reservationId,
+    existingReservation.facilityId,
+    existingReservation.facilityName,
+    previousStatus === 'rejected' ? 'rejected' : 'pending',
+    'rejected',
+    reviewerId,
+    reviewerName,
+    reviewerEmail,
+    reviewNotes,
+    existingReservation.stableId
+  ).catch(err => {
+    console.error('Audit log failed:', err)
+  })
+}
+
+/**
  * Delete reservation
  */
 export async function deleteReservation(reservationId: string): Promise<void> {

@@ -1,26 +1,9 @@
 import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
+import { BaseFormDialog } from '@/components/BaseFormDialog'
+import { useFormDialog } from '@/hooks/useFormDialog'
+import { FormInput, FormSelect, FormTextarea } from '@/components/form'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import type { Facility, FacilityType, TimeSlotDuration } from '@/types/facility'
 
@@ -41,10 +24,16 @@ const FACILITY_TYPES: { value: FacilityType; label: string }[] = [
   { value: 'other', label: 'Other' },
 ]
 
-const TIME_SLOT_DURATIONS: { value: TimeSlotDuration; label: string }[] = [
-  { value: 15, label: '15 minutes' },
-  { value: 30, label: '30 minutes' },
-  { value: 60, label: '1 hour' },
+const TIME_SLOT_DURATIONS: { value: string; label: string }[] = [
+  { value: '15', label: '15 minutes' },
+  { value: '30', label: '30 minutes' },
+  { value: '60', label: '1 hour' },
+]
+
+const STATUS_OPTIONS = [
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+  { value: 'maintenance', label: 'Maintenance' },
 ]
 
 const DAYS_OF_WEEK = [
@@ -110,15 +99,10 @@ export function FacilityFormDialog({
   facility,
   onSave,
 }: FacilityFormDialogProps) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    reset,
-    setValue,
-    watch,
-  } = useForm<FacilityFormData>({
-    resolver: zodResolver(facilitySchema),
+  const isEditMode = !!facility
+
+  const { form, handleSubmit, resetForm } = useFormDialog<FacilityFormData>({
+    schema: facilitySchema,
     defaultValues: {
       name: '',
       type: 'indoor_arena',
@@ -141,12 +125,20 @@ export function FacilityFormDialog({
         sunday: false,
       },
     },
+    onSubmit: async (data) => {
+      await onSave(data)
+    },
+    onSuccess: () => {
+      onOpenChange(false)
+    },
+    successMessage: isEditMode ? 'Facility updated successfully' : 'Facility created successfully',
+    errorMessage: isEditMode ? 'Failed to update facility' : 'Failed to create facility',
   })
 
   // Reset form when dialog opens with facility data
   useEffect(() => {
     if (facility) {
-      reset({
+      resetForm({
         name: facility.name,
         type: facility.type,
         description: facility.description || '',
@@ -161,257 +153,150 @@ export function FacilityFormDialog({
         daysAvailable: facility.daysAvailable,
       })
     } else {
-      reset()
+      resetForm()
     }
-  }, [facility, reset])
+  }, [facility, open])
 
-  const onSubmit = async (data: FacilityFormData) => {
-    try {
-      await onSave(data)
-      onOpenChange(false)
-      reset()
-    } catch (error) {
-      console.error('Failed to save facility:', error)
-    }
-  }
-
-  const selectedType = watch('type')
-  const daysAvailable = watch('daysAvailable')
+  const daysAvailable = form.watch('daysAvailable')
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-[700px] max-h-[90vh] overflow-y-auto'>
-        <DialogHeader>
-          <DialogTitle>{facility ? 'Edit Facility' : 'Add Facility'}</DialogTitle>
-          <DialogDescription>
-            {facility
-              ? 'Update facility configuration and booking rules'
-              : 'Create a new facility with booking rules and availability'}
-          </DialogDescription>
-        </DialogHeader>
+    <BaseFormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={isEditMode ? 'Edit Facility' : 'Add Facility'}
+      description={
+        isEditMode
+          ? 'Update facility configuration and booking rules'
+          : 'Create a new facility with booking rules and availability'
+      }
+      form={form}
+      onSubmit={handleSubmit}
+      submitLabel={isEditMode ? 'Save Changes' : 'Create Facility'}
+      maxWidth="sm:max-w-[700px]"
+    >
+      {/* Section 1: Basic Information */}
+      <div className="space-y-4">
+        <h3 className="font-semibold text-lg">Basic Information</h3>
 
-        <form onSubmit={handleSubmit(onSubmit)} className='space-y-6'>
-          {/* Section 1: Basic Information */}
-          <div className='space-y-4'>
-            <h3 className='font-semibold text-lg'>Basic Information</h3>
+        <FormSelect
+          name="type"
+          label="Facility Type"
+          form={form}
+          options={FACILITY_TYPES}
+          placeholder="Select facility type"
+          required
+        />
 
-            <div className='space-y-2'>
-              <Label htmlFor='type'>
-                Facility Type <span className='text-destructive'>*</span>
-              </Label>
-              <Select value={selectedType} onValueChange={(value) => setValue('type', value as FacilityType)}>
-                <SelectTrigger>
-                  <SelectValue placeholder='Select facility type' />
-                </SelectTrigger>
-                <SelectContent>
-                  {FACILITY_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.type && (
-                <p className='text-sm text-destructive'>{errors.type.message}</p>
-              )}
-            </div>
+        <FormInput
+          name="name"
+          label="Facility Name"
+          form={form}
+          placeholder="e.g., Main Indoor Arena"
+          required
+        />
 
-            <div className='space-y-2'>
-              <Label htmlFor='name'>
-                Facility Name <span className='text-destructive'>*</span>
-              </Label>
-              <Input
-                id='name'
-                placeholder='e.g., Main Indoor Arena'
-                {...register('name')}
-              />
-              {errors.name && (
-                <p className='text-sm text-destructive'>{errors.name.message}</p>
-              )}
-            </div>
+        <FormTextarea
+          name="description"
+          label="Description"
+          form={form}
+          placeholder="Brief description of the facility"
+          rows={3}
+        />
 
-            <div className='space-y-2'>
-              <Label htmlFor='description'>Description</Label>
-              <Textarea
-                id='description'
-                placeholder='Brief description of the facility'
-                rows={3}
-                {...register('description')}
-              />
-              {errors.description && (
-                <p className='text-sm text-destructive'>{errors.description.message}</p>
-              )}
-            </div>
+        <FormSelect
+          name="status"
+          label="Status"
+          form={form}
+          options={STATUS_OPTIONS}
+        />
+      </div>
 
-            <div className='space-y-2'>
-              <Label htmlFor='status'>Status</Label>
-              <Select
-                value={watch('status')}
-                onValueChange={(value) => setValue('status', value as 'active' | 'inactive' | 'maintenance')}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='active'>Active</SelectItem>
-                  <SelectItem value='inactive'>Inactive</SelectItem>
-                  <SelectItem value='maintenance'>Maintenance</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+      {/* Section 2: Booking Rules */}
+      <div className="space-y-4">
+        <h3 className="font-semibold text-lg">Booking Rules</h3>
 
-          {/* Section 2: Booking Rules */}
-          <div className='space-y-4'>
-            <h3 className='font-semibold text-lg'>Booking Rules</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <FormInput
+            name="planningWindowOpens"
+            label="Planning window opens (days ahead)"
+            form={form}
+            type="number"
+            placeholder="14"
+          />
 
-            <div className='grid grid-cols-2 gap-4'>
-              <div className='space-y-2'>
-                <Label htmlFor='planningWindowOpens'>
-                  Planning window opens (days ahead)
+          <FormInput
+            name="planningWindowCloses"
+            label="Planning window closes (hours before)"
+            form={form}
+            type="number"
+            placeholder="1"
+          />
+        </div>
+
+        <FormInput
+          name="maxHorsesPerReservation"
+          label="Maximum horses per reservation"
+          form={form}
+          type="number"
+          placeholder="1"
+        />
+
+        <FormSelect
+          name="minTimeSlotDuration"
+          label="Minimum time slot duration"
+          form={form}
+          options={TIME_SLOT_DURATIONS}
+        />
+
+        <FormInput
+          name="maxHoursPerReservation"
+          label="Maximum hours per reservation"
+          form={form}
+          type="number"
+          placeholder="2"
+        />
+      </div>
+
+      {/* Section 3: Availability */}
+      <div className="space-y-4">
+        <h3 className="font-semibold text-lg">Availability</h3>
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormInput
+            name="availableFrom"
+            label="Available from"
+            form={form}
+            type="time"
+          />
+
+          <FormInput
+            name="availableTo"
+            label="Available to"
+            form={form}
+            type="time"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Days available</Label>
+          <div className="flex gap-2 flex-wrap">
+            {DAYS_OF_WEEK.map((day) => (
+              <div key={day.key} className="flex items-center space-x-2">
+                <Checkbox
+                  id={day.key}
+                  checked={daysAvailable[day.key]}
+                  onCheckedChange={(checked) =>
+                    form.setValue(`daysAvailable.${day.key}`, checked === true)
+                  }
+                />
+                <Label htmlFor={day.key} className="font-normal cursor-pointer">
+                  {day.label}
                 </Label>
-                <Input
-                  id='planningWindowOpens'
-                  type='number'
-                  min='0'
-                  max='365'
-                  {...register('planningWindowOpens', { valueAsNumber: true })}
-                />
-                {errors.planningWindowOpens && (
-                  <p className='text-sm text-destructive'>{errors.planningWindowOpens.message}</p>
-                )}
               </div>
-
-              <div className='space-y-2'>
-                <Label htmlFor='planningWindowCloses'>
-                  Planning window closes (hours before)
-                </Label>
-                <Input
-                  id='planningWindowCloses'
-                  type='number'
-                  min='0'
-                  max='168'
-                  {...register('planningWindowCloses', { valueAsNumber: true })}
-                />
-                {errors.planningWindowCloses && (
-                  <p className='text-sm text-destructive'>{errors.planningWindowCloses.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className='space-y-2'>
-              <Label htmlFor='maxHorsesPerReservation'>
-                Maximum horses per reservation
-              </Label>
-              <Input
-                id='maxHorsesPerReservation'
-                type='number'
-                min='1'
-                max='50'
-                {...register('maxHorsesPerReservation', { valueAsNumber: true })}
-              />
-              {errors.maxHorsesPerReservation && (
-                <p className='text-sm text-destructive'>{errors.maxHorsesPerReservation.message}</p>
-              )}
-            </div>
-
-            <div className='space-y-2'>
-              <Label htmlFor='minTimeSlotDuration'>Minimum time slot duration</Label>
-              <Select
-                value={watch('minTimeSlotDuration')?.toString()}
-                onValueChange={(value) => setValue('minTimeSlotDuration', parseInt(value) as TimeSlotDuration)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIME_SLOT_DURATIONS.map((duration) => (
-                    <SelectItem key={duration.value} value={duration.value.toString()}>
-                      {duration.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className='space-y-2'>
-              <Label htmlFor='maxHoursPerReservation'>
-                Maximum hours per reservation
-              </Label>
-              <Input
-                id='maxHoursPerReservation'
-                type='number'
-                min='1'
-                max='24'
-                {...register('maxHoursPerReservation', { valueAsNumber: true })}
-              />
-              {errors.maxHoursPerReservation && (
-                <p className='text-sm text-destructive'>{errors.maxHoursPerReservation.message}</p>
-              )}
-            </div>
+            ))}
           </div>
-
-          {/* Section 3: Availability */}
-          <div className='space-y-4'>
-            <h3 className='font-semibold text-lg'>Availability</h3>
-
-            <div className='grid grid-cols-2 gap-4'>
-              <div className='space-y-2'>
-                <Label htmlFor='availableFrom'>Available from</Label>
-                <Input
-                  id='availableFrom'
-                  type='time'
-                  {...register('availableFrom')}
-                />
-                {errors.availableFrom && (
-                  <p className='text-sm text-destructive'>{errors.availableFrom.message}</p>
-                )}
-              </div>
-
-              <div className='space-y-2'>
-                <Label htmlFor='availableTo'>Available to</Label>
-                <Input
-                  id='availableTo'
-                  type='time'
-                  {...register('availableTo')}
-                />
-                {errors.availableTo && (
-                  <p className='text-sm text-destructive'>{errors.availableTo.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className='space-y-2'>
-              <Label>Days available</Label>
-              <div className='flex gap-2 flex-wrap'>
-                {DAYS_OF_WEEK.map((day) => (
-                  <div key={day.key} className='flex items-center space-x-2'>
-                    <Checkbox
-                      id={day.key}
-                      checked={daysAvailable[day.key]}
-                      onCheckedChange={(checked) =>
-                        setValue(`daysAvailable.${day.key}`, checked === true)
-                      }
-                    />
-                    <Label htmlFor={day.key} className='font-normal cursor-pointer'>
-                      {day.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button type='button' variant='outline' onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type='submit' disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : facility ? 'Save Changes' : 'Create Facility'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </BaseFormDialog>
   )
 }

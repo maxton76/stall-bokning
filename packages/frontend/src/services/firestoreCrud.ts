@@ -354,3 +354,81 @@ export const queryHelpers = {
   whereParent: (parentId: string, fieldName: string) =>
     where(fieldName, '==', parentId)
 }
+
+// ============================================================================
+// Batch Operations
+// ============================================================================
+
+/**
+ * Batch update multiple documents in a collection
+ *
+ * Consolidates duplicate batch update logic across services
+ *
+ * @template T - Document type
+ * @param collectionName - Firestore collection name
+ * @param updates - Array of {id, data} objects
+ * @param userId - User ID for audit trail
+ * @returns Promise that resolves when all updates are complete
+ *
+ * @example
+ * ```tsx
+ * await batchUpdateDocuments('horses', [
+ *   { id: 'horse1', data: { status: 'inactive' } },
+ *   { id: 'horse2', data: { status: 'inactive' } }
+ * ], userId)
+ * ```
+ */
+export async function batchUpdateDocuments<T>(
+  collectionName: string,
+  updates: Array<{ id: string; data: Partial<T> }>,
+  userId: string
+): Promise<void> {
+  const updatePromises = updates.map(({ id, data }) => {
+    const docRef = doc(db, collectionName, id)
+    const dataToUpdate = removeUndefined({
+      ...data,
+      ...updateTimestamps(userId)
+    }) as Record<string, unknown>
+    return updateDoc(docRef, dataToUpdate)
+  })
+
+  await Promise.all(updatePromises)
+}
+
+/**
+ * Batch unassign horses from their current stables
+ *
+ * Consolidates duplicate logic from horseService.ts:
+ * - unassignHorsesFromStable
+ * - unassignAllHorsesFromStable
+ * - unassignHorseFromStable (single)
+ *
+ * @param horseIds - Array of horse IDs to unassign
+ * @param userId - User ID for audit trail
+ * @returns Promise that resolves when all horses are unassigned
+ *
+ * @example
+ * ```tsx
+ * // Unassign multiple horses
+ * await batchUnassignHorses(['horse1', 'horse2'], userId)
+ *
+ * // Unassign single horse
+ * await batchUnassignHorses([horseId], userId)
+ * ```
+ */
+export async function batchUnassignHorses(
+  horseIds: string[],
+  userId: string
+): Promise<void> {
+  const updates = horseIds.map((id) => ({
+    id,
+    data: {
+      currentStableId: null,
+      currentStableName: null,
+      horseGroupId: null,
+      vaccinationRuleId: null,
+    }
+  }))
+
+  await batchUpdateDocuments('horses', updates, userId)
+}

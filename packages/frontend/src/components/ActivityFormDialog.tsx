@@ -4,18 +4,10 @@ import { format } from 'date-fns'
 import { Calendar as CalendarIcon } from 'lucide-react'
 import { BaseFormDialog } from '@/components/BaseFormDialog'
 import { useFormDialog } from '@/hooks/useFormDialog'
+import { FormInput, FormSelect, FormTextarea, FormColorPicker } from '@/components/form'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
@@ -113,7 +105,6 @@ export function ActivityFormDialog({
   })
 
   const date = form.watch('date')
-  const color = form.watch('color')
 
   // Reset form when dialog opens with entry data or defaults
   useEffect(() => {
@@ -279,37 +270,24 @@ export function ActivityFormDialog({
           {/* Activity-specific fields */}
           {selectedType === 'activity' && (
             <>
-              <div className="space-y-2">
-                <Label htmlFor="horseId">
-                  Horse <span className="text-destructive">*</span>
-                </Label>
-                <Select
-                  value={form.watch('horseId')}
-                  onValueChange={(value) => form.setValue('horseId', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select horse" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {horses.map((horse) => (
-                      <SelectItem key={horse.id} value={horse.id}>
-                        {horse.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {'horseId' in form.formState.errors && form.formState.errors.horseId && (
-                  <p className="text-sm text-destructive">{form.formState.errors.horseId.message}</p>
-                )}
-              </div>
+              <FormSelect
+                name="horseId"
+                label="Horse"
+                form={form as any}
+                options={horses.map(h => ({ value: h.id, label: h.name }))}
+                placeholder="Select horse"
+                required
+              />
 
+              {/* Activity Type - Custom select with icons and colors */}
               <div className="space-y-2">
                 <Label htmlFor="activityType">
                   Activity <span className="text-destructive">*</span>
                 </Label>
-                <Select
+                <select
                   value={form.watch('activityTypeConfigId') || form.watch('activityType')}
-                  onValueChange={(configId) => {
+                  onChange={(e) => {
+                    const configId = e.target.value
                     const selectedType = activityTypes.find(t => t.id === configId)
                     if (selectedType) {
                       form.setValue('activityType', selectedType.name)
@@ -317,25 +295,15 @@ export function ActivityFormDialog({
                       form.setValue('activityTypeColor', selectedType.color)
                     }
                   }}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select activity type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activityTypes.filter(t => t.isActive).map((type) => (
-                      <SelectItem key={type.id} value={type.id}>
-                        <span className="flex items-center gap-2">
-                          {type.icon && <span>{type.icon}</span>}
-                          <div
-                            className="w-3 h-3 rounded-full border"
-                            style={{ backgroundColor: type.color }}
-                          />
-                          <span>{type.name}</span>
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <option value="">Select activity type</option>
+                  {activityTypes.filter(t => t.isActive).map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.icon ? `${type.icon} ` : ''}{type.name}
+                    </option>
+                  ))}
+                </select>
                 {'activityType' in form.formState.errors && form.formState.errors.activityType && (
                   <p className="text-sm text-destructive">{form.formState.errors.activityType.message}</p>
                 )}
@@ -346,159 +314,92 @@ export function ActivityFormDialog({
           {/* Task-specific fields */}
           {selectedType === 'task' && (
             <>
-              <div className="space-y-2">
-                <Label htmlFor="title">
-                  Title <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="title"
-                  placeholder="Task title"
-                  {...form.register('title')}
-                />
-                {'title' in form.formState.errors && form.formState.errors.title && (
-                  <p className="text-sm text-destructive">{form.formState.errors.title.message}</p>
-                )}
-              </div>
+              <FormInput
+                name="title"
+                label="Title"
+                form={form as any}
+                placeholder="Task title"
+                required
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="description">
-                  Description <span className="text-destructive">*</span>
-                </Label>
-                <Textarea
-                  id="description"
-                  placeholder="Task description..."
-                  {...form.register('description')}
-                  rows={3}
-                />
-                {'description' in form.formState.errors && form.formState.errors.description && (
-                  <p className="text-sm text-destructive">{form.formState.errors.description.message}</p>
-                )}
-              </div>
+              <FormTextarea
+                name="description"
+                label="Description"
+                form={form as any}
+                placeholder="Task description..."
+                rows={3}
+                required
+              />
 
-              <div className="space-y-2">
-                <Label>
-                  Color <span className="text-destructive">*</span>
-                </Label>
-                <div className="flex flex-wrap gap-2">
-                  {DEFAULT_COLORS.map((colorOption) => (
-                    <button
-                      key={colorOption}
-                      type="button"
-                      className={cn(
-                        'w-8 h-8 rounded-full border-2 transition-all',
-                        color === colorOption ? 'border-foreground scale-110' : 'border-transparent'
-                      )}
-                      style={{ backgroundColor: colorOption }}
-                      onClick={() => form.setValue('color', colorOption)}
-                    />
-                  ))}
-                </div>
-              </div>
+              <FormColorPicker
+                name="color"
+                label="Color"
+                form={form as any}
+                colors={DEFAULT_COLORS as unknown as string[]}
+                required
+              />
             </>
           )}
 
           {/* Message-specific fields */}
           {selectedType === 'message' && (
             <>
-              <div className="space-y-2">
-                <Label htmlFor="message-title">
-                  Title <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="message-title"
-                  placeholder="Message title"
-                  {...form.register('title')}
-                />
-                {'title' in form.formState.errors && form.formState.errors.title && (
-                  <p className="text-sm text-destructive">{form.formState.errors.title.message}</p>
-                )}
-              </div>
+              <FormInput
+                name="title"
+                label="Title"
+                form={form as any}
+                placeholder="Message title"
+                required
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="message-content">
-                  Message <span className="text-destructive">*</span>
-                </Label>
-                <Textarea
-                  id="message-content"
-                  placeholder="Message content..."
-                  {...form.register('message')}
-                  rows={3}
-                />
-                {'message' in form.formState.errors && form.formState.errors.message && (
-                  <p className="text-sm text-destructive">{form.formState.errors.message.message}</p>
-                )}
-              </div>
+              <FormTextarea
+                name="message"
+                label="Message"
+                form={form as any}
+                placeholder="Message content..."
+                rows={3}
+                required
+              />
 
-              <div className="space-y-2">
-                <Label>
-                  Color <span className="text-destructive">*</span>
-                </Label>
-                <div className="flex flex-wrap gap-2">
-                  {DEFAULT_COLORS.map((colorOption) => (
-                    <button
-                      key={colorOption}
-                      type="button"
-                      className={cn(
-                        'w-8 h-8 rounded-full border-2 transition-all',
-                        color === colorOption ? 'border-foreground scale-110' : 'border-transparent'
-                      )}
-                      style={{ backgroundColor: colorOption }}
-                      onClick={() => form.setValue('color', colorOption)}
-                    />
-                  ))}
-                </div>
-              </div>
+              <FormColorPicker
+                name="color"
+                label="Color"
+                form={form as any}
+                colors={DEFAULT_COLORS as unknown as string[]}
+                required
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="priority">Priority</Label>
-                <Select
-                  value={form.watch('priority')}
-                  onValueChange={(value) => form.setValue('priority', value as 'low' | 'medium' | 'high')}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <FormSelect
+                name="priority"
+                label="Priority"
+                form={form as any}
+                options={[
+                  { value: 'low', label: 'Low' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'high', label: 'High' },
+                ]}
+              />
             </>
           )}
 
           {/* Assigned To (common field) */}
-          <div className="space-y-2">
-            <Label htmlFor="assignedTo">{getAssignmentLabel()}</Label>
-            <Select
-              value={form.watch('assignedTo')}
-              onValueChange={(value) => form.setValue('assignedTo', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Unassigned" />
-              </SelectTrigger>
-              <SelectContent>
-                {stableMembers.map((member) => (
-                  <SelectItem key={member.id} value={member.id}>
-                    {member.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <FormSelect
+            name="assignedTo"
+            label={getAssignmentLabel()}
+            form={form as any}
+            options={stableMembers.map(m => ({ value: m.id, label: m.name }))}
+            placeholder="Unassigned"
+          />
 
           {/* Note field (activity-specific, at bottom) */}
           {selectedType === 'activity' && (
-            <div className="space-y-2">
-              <Label htmlFor="note">Note</Label>
-              <Textarea
-                id="note"
-                placeholder="Additional notes..."
-                {...form.register('note')}
-                rows={3}
-              />
-            </div>
+            <FormTextarea
+              name="note"
+              label="Note"
+              form={form as any}
+              placeholder="Additional notes..."
+              rows={3}
+            />
           )}
     </BaseFormDialog>
   )

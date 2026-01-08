@@ -1,4 +1,5 @@
 import { Timestamp } from 'firebase/firestore'
+import type { VaccinationStatus } from '@shared/types/vaccination'
 
 /**
  * System-level roles (platform-wide)
@@ -38,6 +39,7 @@ export interface Stable {
   address?: string
   ownerId: string              // Must be a user with systemRole='stable_owner'
   ownerEmail?: string          // Cached for display
+  organizationId?: string      // Link to parent organization (optional for backward compatibility)
   createdAt: Timestamp
   updatedAt: Timestamp
 }
@@ -112,6 +114,14 @@ export interface Horse {
   currentStableName?: string   // Cached for display
   assignedAt?: Timestamp       // When assigned to current stable
 
+  // External Location Tracking - For horses moved to external locations
+  externalContactId?: string         // Reference to contact document (if contact selected)
+  externalLocation?: string         // User-entered location name (e.g., "Veterinary clinic", "Sold to XYZ Farm")
+  externalMoveType?: 'temporary' | 'permanent'  // Type of external move
+  externalDepartureDate?: Timestamp  // When horse left for external location
+  externalMoveReason?: string        // Reason for permanent moves (e.g., "sold", "deceased", "retired")
+  isRemoved?: boolean                // If true, hidden from external horses list
+
   // Usage - Only for non-external horses
   usage?: HorseUsage[]         // Array of usage types
 
@@ -123,9 +133,17 @@ export interface Horse {
   vaccinationRuleId?: string   // OPTIONAL - horse may have vaccination rule
   vaccinationRuleName?: string // Cached for display
 
+  // Vaccination Tracking (denormalized for performance)
+  lastVaccinationDate?: Timestamp      // Most recent vaccination
+  nextVaccinationDue?: Timestamp       // When next vaccination is due
+  vaccinationStatus?: VaccinationStatus // Cached status (updated on record changes)
+
   // Identification
   ueln?: string                // Universal Equine Life Number
   chipNumber?: string          // Microchip number
+  federationNumber?: string    // Federation registration number
+  feiPassNumber?: string       // FEI passport number
+  feiExpiryDate?: Timestamp    // FEI passport expiry date
 
   // Additional horse details
   sire?: string                // Father
@@ -177,11 +195,11 @@ export interface UserHorseInventory {
 }
 
 /**
- * Horse Group - Stable-level resource for organizing horses
+ * Horse Group - Organization-wide resource for organizing horses
  */
 export interface HorseGroup {
   id: string
-  stableId: string          // Group belongs to specific stable
+  organizationId: string    // Group belongs to organization (organization-wide)
   name: string              // e.g., "Competition Horses"
   description?: string
   color?: string            // Hex color for UI display
@@ -191,20 +209,10 @@ export interface HorseGroup {
 }
 
 /**
- * Vaccination Rule - Stable-level vaccination requirements
+ * Vaccination Rule - Re-exported from shared package
+ * @see {@link import('@shared/types/organization').VaccinationRule}
  */
-export interface VaccinationRule {
-  id: string
-  stableId: string
-  name: string              // e.g., "FEI rules"
-  description?: string
-  periodMonths: number      // Months between vaccinations
-  periodDays: number        // Additional days
-  daysNotCompeting: number  // Days cannot compete after vaccination
-  createdAt: Timestamp
-  updatedAt: Timestamp
-  createdBy: string
-}
+export type { VaccinationRule, VaccinationRuleScope } from '@shared/types/organization'
 
 /**
  * Location History - Tracks horse movements between stables
@@ -214,8 +222,21 @@ export interface LocationHistory {
   id: string
   horseId: string
   horseName: string          // Cached for display
-  stableId: string
-  stableName: string         // Cached for display
+
+  // Discriminator field - determines location type
+  locationType: 'stable' | 'external'
+
+  // Stable location fields (when locationType === 'stable')
+  stableId?: string           // Optional - required for stable locations
+  stableName?: string         // Cached for display - required for stable locations
+
+  // External location fields (when locationType === 'external')
+  externalContactId?: string     // Contact reference (optional)
+  externalLocation?: string      // Location name (from contact or manual entry)
+  externalMoveType?: 'temporary' | 'permanent'
+  externalMoveReason?: string    // Reason (for permanent moves)
+
+  // Common fields
   arrivalDate: Timestamp     // When horse arrived
   departureDate?: Timestamp  // When horse left (null = currently here)
   createdAt: Timestamp
@@ -231,6 +252,7 @@ export interface LocationHistoryDisplay extends Omit<LocationHistory, 'arrivalDa
   departureDate?: Date
   createdAt: Date
   isCurrentLocation: boolean  // departureDate === null
+  locationType: 'stable' | 'external'  // Explicitly include for type safety
 }
 
 /**

@@ -4,6 +4,7 @@ import type { FacilityType } from './facility'
 export type ReservationStatus =
   | 'pending'     // Awaiting confirmation
   | 'confirmed'   // Approved and active
+  | 'rejected'    // Admin rejected
   | 'cancelled'   // User cancelled
   | 'completed'   // Past reservation
   | 'no_show'     // User didn't show up

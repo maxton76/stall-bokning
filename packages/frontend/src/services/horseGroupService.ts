@@ -13,7 +13,7 @@ const horseGroupCrud = createCrudService<HorseGroup>({
   collectionName: 'horseGroups',
   timestampsEnabled: true,
   parentField: {
-    field: 'stableId',
+    field: 'organizationId',
     required: true
   }
 })
@@ -24,17 +24,17 @@ const horseGroupCrud = createCrudService<HorseGroup>({
 
 /**
  * Create a new horse group
- * @param stableId - ID of the stable this group belongs to
+ * @param organizationId - ID of the organization this group belongs to
  * @param userId - ID of the user creating the group
  * @param groupData - Group data (excluding auto-generated fields)
  * @returns Promise with the created group ID
  */
 export async function createHorseGroup(
-  stableId: string,
+  organizationId: string,
   userId: string,
-  groupData: Omit<HorseGroup, 'id' | 'stableId' | 'createdAt' | 'updatedAt' | 'createdBy' | 'lastModifiedBy'>
+  groupData: Omit<HorseGroup, 'id' | 'organizationId' | 'createdAt' | 'updatedAt' | 'createdBy' | 'lastModifiedBy'>
 ): Promise<string> {
-  return horseGroupCrud.create(userId, groupData as any, stableId)
+  return horseGroupCrud.create(userId, groupData as any, organizationId)
 }
 
 /**
@@ -56,7 +56,7 @@ export async function getHorseGroup(groupId: string): Promise<HorseGroup | null>
 export async function updateHorseGroup(
   groupId: string,
   userId: string,
-  updates: Partial<Omit<HorseGroup, 'id' | 'stableId' | 'createdAt' | 'createdBy'>>
+  updates: Partial<Omit<HorseGroup, 'id' | 'organizationId' | 'createdAt' | 'createdBy'>>
 ): Promise<void> {
   return horseGroupCrud.update(groupId, userId, updates)
 }
@@ -71,13 +71,25 @@ export async function deleteHorseGroup(groupId: string): Promise<void> {
 }
 
 /**
- * Get all horse groups for a stable
- * @param stableId - Stable ID
+ * Get all horse groups for an organization
+ * @param organizationId - Organization ID
  * @returns Promise with array of horse groups
  */
-export async function getStableHorseGroups(stableId: string): Promise<HorseGroup[]> {
+export async function getOrganizationHorseGroups(organizationId: string): Promise<HorseGroup[]> {
   if (!horseGroupCrud.getByParent) {
     throw new Error('getByParent not available')
   }
-  return horseGroupCrud.getByParent(stableId, [orderBy('createdAt', 'desc')])
+  return horseGroupCrud.getByParent(organizationId, [orderBy('createdAt', 'desc')])
+}
+
+/**
+ * @deprecated Use getOrganizationHorseGroups instead
+ * Get all horse groups for a stable (legacy - now organization-wide)
+ * @param _stableId - Stable ID (ignored, use organizationId instead)
+ * @returns Promise with array of horse groups
+ */
+export async function getStableHorseGroups(_stableId: string): Promise<HorseGroup[]> {
+  console.warn('getStableHorseGroups is deprecated. Use getOrganizationHorseGroups instead.')
+  // For backward compatibility during migration
+  return []
 }

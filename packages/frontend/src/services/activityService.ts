@@ -1,5 +1,5 @@
 import { createCrudService } from './firestoreCrud'
-import { collection, query, where, Timestamp, orderBy, getDocs } from 'firebase/firestore'
+import { collection, query, where, Timestamp, orderBy, getDocs, limit } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import type {
   Activity,
@@ -218,4 +218,49 @@ export async function deleteActivity(id: string): Promise<void> {
  */
 export async function completeActivity(id: string, userId: string): Promise<void> {
   return activityCrud.update(id, userId, { status: 'completed' })
+}
+
+/**
+ * Get activities for a specific horse
+ * @param horseId - The ID of the horse
+ * @param limitCount - Maximum number of activities to return (default: 10)
+ * @returns Array of activities sorted by date (most recent first)
+ */
+export async function getHorseActivities(
+  horseId: string,
+  limitCount: number = 10
+): Promise<Activity[]> {
+  const q = query(
+    collection(db, 'activities'),
+    where('type', '==', 'activity'),
+    where('horseId', '==', horseId),
+    orderBy('date', 'desc'),
+    limit(limitCount)
+  )
+
+  const snapshot = await getDocs(q)
+  return mapDocsToObjects<Activity>(snapshot)
+}
+
+/**
+ * Get unfinished activities for a specific horse
+ * These are activities that are past due but not completed
+ * @param horseId - The ID of the horse
+ * @returns Array of unfinished activities sorted by date
+ */
+export async function getUnfinishedActivities(horseId: string): Promise<Activity[]> {
+  const now = Timestamp.now()
+
+  const q = query(
+    collection(db, 'activities'),
+    where('type', '==', 'activity'),
+    where('horseId', '==', horseId),
+    where('status', '!=', 'completed'),
+    where('date', '<', now),
+    orderBy('status', 'asc'),
+    orderBy('date', 'asc')
+  )
+
+  const snapshot = await getDocs(q)
+  return mapDocsToObjects<Activity>(snapshot)
 }

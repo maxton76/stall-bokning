@@ -1,5 +1,7 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,6 +11,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal, Pencil, MapPin, Trash2 } from 'lucide-react'
 import { HorseStatusBadge } from './HorseStatusBadge'
+import { HorseStatusIcons } from './HorseStatusIcons'
+import { getHorseColorClasses, getHorseInitial } from '@/utils/horseColorUtils'
 import type { Horse } from '@/types/roles'
 
 interface HorseTableColumnsProps {
@@ -16,24 +20,70 @@ interface HorseTableColumnsProps {
   onAssign: (horse: Horse) => void
   onUnassign: (horse: Horse) => void
   onDelete: (horse: Horse) => void
+  onViewDetails?: (horse: Horse) => void
 }
 
 export function createHorseTableColumns({
   onEdit,
   onAssign,
   onUnassign,
-  onDelete
+  onDelete,
+  onViewDetails
 }: HorseTableColumnsProps): ColumnDef<Horse>[] {
   return [
+    // Avatar Column (NEW)
+    {
+      id: 'avatar',
+      header: '',
+      cell: ({ row }) => {
+        const horse = row.original
+        const { bg, text } = getHorseColorClasses(horse.color)
+        const initial = getHorseInitial(horse.name)
+
+        return (
+          <Avatar className="h-10 w-10">
+            <AvatarFallback className={`${bg} ${text} text-lg font-semibold`}>
+              {initial}
+            </AvatarFallback>
+          </Avatar>
+        )
+      }
+    },
+    // Name Column (ENHANCED with pedigree subtitle and status icons)
     {
       accessorKey: 'name',
       header: 'Name',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <HorseStatusBadge horse={row.original} />
-          <span className="font-medium">{row.getValue('name')}</span>
-        </div>
-      )
+      cell: ({ row }) => {
+        const horse = row.original
+
+        // Build pedigree subtitle
+        let pedigree = ''
+        if (horse.sire && horse.dam && horse.damsire) {
+          pedigree = `${horse.sire} × ${horse.dam} (${horse.damsire})`
+        } else if (horse.sire && horse.dam) {
+          pedigree = `${horse.sire} × ${horse.dam}`
+        } else if (horse.sire) {
+          pedigree = horse.sire
+        } else if (horse.dam) {
+          pedigree = horse.dam
+        }
+
+        return (
+          <div
+            className={`flex flex-col gap-1 ${onViewDetails ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+            onClick={() => onViewDetails && onViewDetails(horse)}
+          >
+            <div className="flex items-center gap-2">
+              {horse.status === 'inactive' && <HorseStatusBadge horse={horse} />}
+              <HorseStatusIcons horse={horse} />
+              <span className="font-medium">{horse.name}</span>
+            </div>
+            {pedigree && (
+              <span className="text-sm text-muted-foreground">{pedigree}</span>
+            )}
+          </div>
+        )
+      }
     },
     {
       accessorKey: 'gender',
@@ -47,29 +97,43 @@ export function createHorseTableColumns({
         )
       }
     },
+    // Age Column (ENHANCED with dual display: age + birth year)
     {
       accessorKey: 'age',
       header: 'Age',
       cell: ({ row }) => {
         const horse = row.original
         let age: number | undefined
+        let birthYear: number | undefined
 
         // Try to use age field first
         if (horse.age !== undefined) {
           age = horse.age
-        } else if (horse.dateOfBirth) {
-          // Calculate age from dateOfBirth
+        }
+
+        // Calculate from dateOfBirth
+        if (horse.dateOfBirth) {
           const birthDate = horse.dateOfBirth.toDate()
-          const today = new Date()
-          age = today.getFullYear() - birthDate.getFullYear()
-          const monthDiff = today.getMonth() - birthDate.getMonth()
-          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-            age--
+          birthYear = birthDate.getFullYear()
+
+          // Calculate age if not already set
+          if (age === undefined) {
+            const today = new Date()
+            age = today.getFullYear() - birthDate.getFullYear()
+            const monthDiff = today.getMonth() - birthDate.getMonth()
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+              age--
+            }
           }
         }
 
-        return age !== undefined ? (
-          <span>{age} years</span>
+        return age !== undefined || birthYear !== undefined ? (
+          <div className="flex flex-col">
+            {age !== undefined && <span className="font-medium">{age}</span>}
+            {birthYear && (
+              <span className="text-sm text-muted-foreground">{birthYear}</span>
+            )}
+          </div>
         ) : (
           <span className="text-muted-foreground">—</span>
         )
@@ -87,17 +151,30 @@ export function createHorseTableColumns({
         )
       }
     },
+    // Identification Column (ENHANCED with dual display: UELN + chip)
     {
       id: 'identification',
       header: 'Identification',
       cell: ({ row }) => {
         const horse = row.original
-        const id = horse.ueln || horse.chipNumber
+        const hasUeln = !!horse.ueln
+        const hasChip = !!horse.chipNumber
 
-        return id ? (
-          <span className="font-mono text-sm">{id}</span>
-        ) : (
-          <span className="text-muted-foreground">—</span>
+        if (!hasUeln && !hasChip) {
+          return <span className="text-muted-foreground">—</span>
+        }
+
+        return (
+          <div className="flex flex-col gap-0.5 font-mono text-sm">
+            <div>
+              <span className="text-muted-foreground text-xs">UELN: </span>
+              <span>{hasUeln ? horse.ueln : '—'}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-xs">chip: </span>
+              <span>{hasChip ? horse.chipNumber : '—'}</span>
+            </div>
+          </div>
         )
       }
     },
@@ -108,6 +185,21 @@ export function createHorseTableColumns({
         const ownerName = row.getValue('ownerName') as string | undefined
         return ownerName ? (
           <span>{ownerName}</span>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )
+      }
+    },
+    // Group Column (NEW)
+    {
+      accessorKey: 'horseGroupName',
+      header: 'Group',
+      cell: ({ row }) => {
+        const groupName = row.getValue('horseGroupName') as string | undefined
+        return groupName ? (
+          <Badge variant="secondary" className="font-normal">
+            {groupName}
+          </Badge>
         ) : (
           <span className="text-muted-foreground">—</span>
         )

@@ -1,9 +1,11 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   query,
   where,
+  limit,
   Timestamp,
   writeBatch,
   updateDoc
@@ -11,7 +13,7 @@ import {
 import { db } from '@/lib/firebase'
 import type { Horse, UserHorseInventory } from '@/types/roles'
 import { mapDocsToObjects } from '@/utils/firestoreHelpers'
-import { createLocationHistoryEntry, closeLocationHistoryEntry } from './locationHistoryService'
+import { createLocationHistoryEntry, closeLocationHistoryEntry, createExternalLocationHistoryEntry } from './locationHistoryService'
 import { createCrudService } from './firestoreCrud'
 
 // ============================================================================
@@ -89,7 +91,33 @@ export async function updateHorse(
   userId: string,
   updates: Partial<Omit<Horse, 'id' | 'ownerId' | 'createdAt'>>
 ): Promise<void> {
-  return horseCrud.update(horseId, userId, updates)
+  // Get existing horse data for audit logging
+  const existingHorse = await getHorse(horseId)
+  if (!existingHorse) {
+    throw new Error('Horse not found')
+  }
+
+  // Perform the update
+  await horseCrud.update(horseId, userId, updates)
+
+  // Log horse data changes (non-blocking)
+  const { logHorseUpdate, calculateChanges } = await import('./auditLogService')
+  const changes = calculateChanges(
+    existingHorse as unknown as Record<string, unknown>,
+    { ...existingHorse, ...updates } as unknown as Record<string, unknown>
+  )
+
+  if (changes.length > 0) {
+    logHorseUpdate(
+      horseId,
+      existingHorse.name,
+      existingHorse.currentStableId,
+      changes,
+      userId
+    ).catch(err => {
+      console.error('Audit log failed:', err)
+    })
+  }
 }
 
 /**
@@ -273,7 +301,7 @@ export async function unassignHorseFromStable(
 
   // Close location history entry (after batch commit)
   if (currentStableId) {
-    await closeLocationHistoryEntry(horseId, currentStableId, userId)
+    await closeLocationHistoryEntry(horseId, 'stable', currentStableId, userId)
   }
 }
 
@@ -296,7 +324,14 @@ export async function transferHorse(
 ): Promise<void> {
   // Verify current assignment matches fromStableId
   const horse = await getHorse(horseId)
-  if (!horse || horse.currentStableId !== fromStableId) {
+  if (!horse) {
+    throw new Error('Horse not found')
+  }
+
+  // Handle both transfers and initial assignments
+  const currentStable = horse.currentStableId || ''
+  const expectedStable = fromStableId || ''
+  if (currentStable !== expectedStable) {
     throw new Error('Horse is not assigned to the specified stable')
   }
 
@@ -314,8 +349,12 @@ export async function transferHorse(
 
   await batch.commit()
 
-  // Close old location history entry and create new one (after batch commit)
-  await closeLocationHistoryEntry(horseId, fromStableId, userId)
+  // Close old location history entry (if horse was previously assigned)
+  if (fromStableId) {
+    await closeLocationHistoryEntry(horseId, 'stable', fromStableId, userId)
+  }
+
+  // Create new location history entry
   await createLocationHistoryEntry(
     horseId,
     horse.name,
@@ -323,6 +362,39 @@ export async function transferHorse(
     toStableName,
     userId
   )
+}
+
+/**
+ * Get organization ID for a horse's current stable
+ * Returns null if horse not assigned or stable not in organization
+ * @param horse - Horse object
+ * @returns Promise with organization ID or null
+ */
+export async function getHorseOrganizationId(horse: Horse): Promise<string | null> {
+  // If horse is assigned to a stable, get organization from stable
+  if (horse.currentStableId) {
+    const stableDoc = await getDoc(doc(db, 'stables', horse.currentStableId))
+    if (stableDoc.exists()) {
+      return stableDoc.data().organizationId || null
+    }
+  }
+
+  // For unassigned horses, get organization from owner's membership
+  if (horse.ownerId) {
+    const membershipsQuery = query(
+      collection(db, 'organizationMembers'),
+      where('userId', '==', horse.ownerId),
+      where('status', '==', 'active'),
+      limit(1)
+    )
+    const membershipsSnapshot = await getDocs(membershipsQuery)
+
+    if (!membershipsSnapshot.empty) {
+      return membershipsSnapshot.docs[0].data().organizationId
+    }
+  }
+
+  return null
 }
 
 // ============================================================================
@@ -567,4 +639,92 @@ export async function unassignHorsesFromVaccinationRule(
 
   await batch.commit()
   return snapshot.size
+}
+
+// ============================================================================
+// External Location Operations
+// ============================================================================
+
+/**
+ * Move horse to an external location (temporary or permanent)
+ * @param horseId - Horse ID
+ * @param userId - ID of user making the move
+ * @param data - Move data including contact, location, type, date, reason
+ * @returns Promise that resolves when move is complete
+ */
+export async function moveHorseToExternalLocation(
+  horseId: string,
+  userId: string,
+  data: {
+    contactId?: string        // Contact reference (optional)
+    externalLocation?: string
+    moveType: 'temporary' | 'permanent'
+    departureDate: Date
+    reason?: string
+    removeHorse?: boolean
+  }
+): Promise<void> {
+  const horseRef = doc(db, 'horses', horseId)
+
+  // Get horse document to access current state
+  const horseSnapshot = await getDoc(horseRef)
+  if (!horseSnapshot.exists()) {
+    throw new Error('Horse not found')
+  }
+  const horse = { id: horseSnapshot.id, ...horseSnapshot.data() } as Horse
+
+  // If contactId provided, fetch contact for location name
+  let locationName = data.externalLocation || 'External location'
+  if (data.contactId) {
+    const { getContact } = await import('./contactService')
+    const contact = await getContact(data.contactId)
+    if (contact) {
+      locationName = contact.contactType === 'Personal'
+        ? `${contact.firstName} ${contact.lastName}`
+        : contact.businessName
+    }
+  }
+
+  // Close current stable location history if horse is currently at a stable
+  if (horse.currentStableId) {
+    await closeLocationHistoryEntry(
+      horseId,
+      'stable',
+      horse.currentStableId,
+      userId
+    )
+  }
+
+  const updateData: Partial<Horse> = {
+    externalContactId: data.contactId,
+    externalLocation: locationName,
+    externalMoveType: data.moveType,
+    externalDepartureDate: Timestamp.fromDate(data.departureDate),
+    // Clear stable assignment when moving to external location
+    currentStableId: undefined,
+    currentStableName: undefined,
+    updatedAt: Timestamp.now(),
+    lastModifiedBy: userId
+  }
+
+  // For permanent moves, mark as external and update additional fields
+  if (data.moveType === 'permanent') {
+    updateData.isExternal = true
+    updateData.externalMoveReason = data.reason
+    updateData.isRemoved = data.removeHorse || false
+  }
+
+  await updateDoc(horseRef, updateData)
+
+  // Create external location history entry
+  await createExternalLocationHistoryEntry(
+    horseId,
+    horse.name,
+    locationName,
+    data.moveType,
+    Timestamp.fromDate(data.departureDate),
+    userId,
+    data.contactId,
+    data.reason
+  )
 }

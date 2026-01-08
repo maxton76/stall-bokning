@@ -173,7 +173,8 @@ export async function autoAssignShifts(
     availability?: any
     limits?: any
   }[],
-  historicalPoints?: Map<string, number>
+  historicalPoints?: Map<string, number>,
+  triggeredByUserId?: string
 ): Promise<number> {
   // Load all shifts for this schedule
   const shiftsQuery = query(
@@ -221,6 +222,14 @@ export async function autoAssignShifts(
   // Enhanced fairness algorithm with constraints
   const batch = writeBatch(db)
   let assignmentCount = 0
+  const assignmentLogs: Array<{
+    shiftId: string
+    shiftDate: Timestamp
+    shiftType: string
+    assignedTo: string
+    assignedToName: string
+    stableId: string
+  }> = []
 
   for (const shift of unassignedShifts) {
     // Find best member for this shift
@@ -259,6 +268,18 @@ export async function autoAssignShifts(
         assignedToEmail: bestMember.email
       })
 
+      // Collect assignment details for audit logging
+      if (triggeredByUserId) {
+        assignmentLogs.push({
+          shiftId: shift.id,
+          shiftDate: shift.date,
+          shiftType: shift.shiftTypeName,
+          assignedTo: bestMember.userId,
+          assignedToName: bestMember.displayName,
+          stableId: shift.stableId
+        })
+      }
+
       // Update member's counts for next iteration using tracking helper
       updateMemberTracking(bestMember, shift.date, effectivePoints, trackingContext)
 
@@ -268,6 +289,26 @@ export async function autoAssignShifts(
 
   // Commit all assignments
   await batch.commit()
+
+  // Log all auto-assignments (non-blocking)
+  if (triggeredByUserId && assignmentLogs.length > 0) {
+    const { logShiftAssignment } = await import('./auditLogService')
+    assignmentLogs.forEach(log => {
+      logShiftAssignment(
+        log.shiftId,
+        log.shiftDate,
+        log.shiftType,
+        'auto',
+        log.assignedTo,
+        log.assignedToName,
+        triggeredByUserId,
+        log.stableId
+      ).catch(err => {
+        console.error('Audit log failed:', err)
+      })
+    })
+  }
+
   return assignmentCount
 }
 
@@ -384,25 +425,93 @@ export async function assignShift(
   shiftId: string,
   userId: string,
   userName: string,
-  userEmail: string
+  userEmail: string,
+  assignerId?: string
 ): Promise<void> {
+  // Get existing shift data for audit logging
   const shiftRef = doc(db, 'shifts', shiftId)
+  const shiftSnap = await getDoc(shiftRef)
+
+  if (!shiftSnap.exists()) {
+    throw new Error('Shift not found')
+  }
+
+  const shift = { id: shiftSnap.id, ...shiftSnap.data() } as Shift
+
+  // Perform the assignment
   await updateDoc(shiftRef, {
     status: 'assigned',
     assignedTo: userId,
     assignedToName: userName,
     assignedToEmail: userEmail
   })
+
+  // Log shift assignment (non-blocking)
+  if (assignerId) {
+    const { logShiftAssignment } = await import('./auditLogService')
+    logShiftAssignment(
+      shiftId,
+      shift.date,
+      shift.shiftTypeName,
+      'manual',
+      userId,
+      userName,
+      assignerId,
+      shift.stableId
+    ).catch(err => {
+      console.error('Audit log failed:', err)
+    })
+  }
 }
 
-export async function unassignShift(shiftId: string): Promise<void> {
+export async function unassignShift(
+  shiftId: string,
+  unassignerId?: string
+): Promise<void> {
+  // Get existing shift data for audit logging
   const shiftRef = doc(db, 'shifts', shiftId)
+  const shiftSnap = await getDoc(shiftRef)
+
+  if (!shiftSnap.exists()) {
+    throw new Error('Shift not found')
+  }
+
+  const shift = { id: shiftSnap.id, ...shiftSnap.data() } as Shift
+  const previouslyAssignedTo = shift.assignedTo
+  const previouslyAssignedToName = shift.assignedToName
+
+  // Perform the unassignment
   await updateDoc(shiftRef, {
     status: 'unassigned',
     assignedTo: null,
     assignedToName: null,
     assignedToEmail: null
   })
+
+  // Log shift unassignment (non-blocking)
+  if (unassignerId && previouslyAssignedTo) {
+    const { createAuditLog } = await import('./auditLogService')
+    createAuditLog({
+      userId: unassignerId,
+      action: 'unassign',
+      resource: 'shift',
+      resourceId: shiftId,
+      resourceName: shift.shiftTypeName,
+      stableId: shift.stableId,
+      details: {
+        assignment: {
+          shiftId,
+          shiftDate: shift.date,
+          shiftType: shift.shiftTypeName,
+          assignmentType: 'manual',
+          assignedTo: previouslyAssignedTo,
+          assignedToName: previouslyAssignedToName || undefined
+        }
+      }
+    }).catch(err => {
+      console.error('Audit log failed:', err)
+    })
+  }
 }
 
 export async function deleteShift(shiftId: string): Promise<void> {

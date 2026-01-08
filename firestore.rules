@@ -96,10 +96,12 @@ service cloud.firestore {
     // ============================================================================
 
     // Check if user is the OWNER of a specific organization
+    // Uses organizationMembers collection to avoid circular dependency
     function isOrganizationOwner(organizationId) {
+      let memberId = request.auth.uid + '_' + organizationId;
       return isAuthenticated() &&
-        exists(/databases/$(database)/documents/organizations/$(organizationId)) &&
-        get(/databases/$(database)/documents/organizations/$(organizationId)).data.ownerId == request.auth.uid;
+        exists(/databases/$(database)/documents/organizationMembers/$(memberId)) &&
+        get(/databases/$(database)/documents/organizationMembers/$(memberId)).data.roles.hasAny(['owner']);
     }
 
     // Get organization member document for current user
@@ -121,7 +123,7 @@ service cloud.firestore {
       let member = getOrganizationMember(organizationId);
       return member != null &&
              member.status == 'active' &&
-             role in member.roles;
+             member.roles.hasAny([role]);
     }
 
     // Check if user is administrator of an organization
@@ -166,11 +168,15 @@ service cloud.firestore {
       // GET: Full access check including membership
       allow get: if canAccessStable(stableId);
 
-      // CREATE: Only stable_owner system role + user becomes ownerId
+      // CREATE: System admin, stable_owner role, or organization owner/administrator can create stables
       allow create: if isAuthenticated() && (
         isSystemAdmin() ||
-        (hasStableOwnerRole() &&
-         request.resource.data.ownerId == request.auth.uid)
+        hasStableOwnerRole() ||
+        (request.resource.data.ownerId == request.auth.uid &&
+         (!('organizationId' in request.resource.data) ||
+          request.resource.data.organizationId == null ||
+          isOrganizationOwner(request.resource.data.organizationId) ||
+          isOrganizationAdministrator(request.resource.data.organizationId)))
       );
 
       // UPDATE: Only owner or system_admin
@@ -446,7 +452,8 @@ service cloud.firestore {
       allow create: if isAuthenticated() && (
         isSystemAdmin() ||
         (request.resource.data.ownerId == request.auth.uid &&
-         (request.resource.data.currentStableId == null ||
+         (!('currentStableId' in request.resource.data) ||
+          request.resource.data.currentStableId == null ||
           canAccessStable(request.resource.data.currentStableId)))
       );
 
@@ -458,6 +465,7 @@ service cloud.firestore {
         (resource.data.ownerId == request.auth.uid &&
          request.resource.data.ownerId == resource.data.ownerId && // ownerId immutable
          (request.resource.data.currentStableId == resource.data.currentStableId ||
+          !('currentStableId' in request.resource.data) ||
           request.resource.data.currentStableId == null ||
           canAccessStable(request.resource.data.currentStableId)))
       );
@@ -522,12 +530,9 @@ service cloud.firestore {
       // LIST: All authenticated users can list organizations (query filters results)
       allow list: if isAuthenticated();
 
-      // GET: Organization owner or active members can view
-      allow get: if isAuthenticated() && (
-        isSystemAdmin() ||
-        isOrganizationOwner(organizationId) ||
-        isOrganizationMember(organizationId)
-      );
+      // GET: Allow all authenticated users (temporary - will use custom claims later)
+      // TODO: Restrict to organization members using custom claims
+      allow get: if isAuthenticated();
 
       // CREATE: Any authenticated user can create organizations (Development mode)
       // User must become the ownerId
@@ -569,12 +574,9 @@ service cloud.firestore {
       // LIST: All authenticated users can list (query filters results)
       allow list: if isAuthenticated();
 
-      // GET: Organization members or self can view
-      allow get: if isAuthenticated() && isValidMemberId() && (
-        isSystemAdmin() ||
-        isOrganizationMember(extractOrganizationId()) ||
-        isOwner(extractUserId())
-      );
+      // GET: Allow all authenticated users to read organization memberships
+      // This is needed to avoid circular dependency when checking organization access
+      allow get: if isAuthenticated();
 
       // CREATE: Organization owner or administrators can invite
       // Validate memberId matches data fields
@@ -797,57 +799,233 @@ service cloud.firestore {
     }
 
     // ============================================================================
-    // HORSE GROUPS COLLECTION - STABLE-SCOPED
+    // HORSE GROUPS COLLECTION - ORGANIZATION-SCOPED
     // ============================================================================
 
     match /horseGroups/{groupId} {
-      // LIST: Efficient query - no get() calls needed for list operations
+      // LIST: All authenticated users can list (filtering happens client-side)
       allow list: if isAuthenticated();
 
-      // GET: Full access check - stable members only
-      allow get: if canAccessStable(resource.data.stableId);
+      // GET: Organization members can read
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationMember(resource.data.organizationId)
+      );
 
-      // CREATE: Owner or manager
+      // CREATE: Organization owners and administrators
       allow create: if isAuthenticated() && (
         isSystemAdmin() ||
-        canManageStable(request.resource.data.stableId)
+        isOrganizationOwner(request.resource.data.organizationId) ||
+        isOrganizationAdministrator(request.resource.data.organizationId)
       );
 
-      // UPDATE: Owner or manager
+      // UPDATE: Organization owners and administrators
       allow update: if isAuthenticated() && (
         isSystemAdmin() ||
-        canManageStable(resource.data.stableId)
+        isOrganizationOwner(resource.data.organizationId) ||
+        isOrganizationAdministrator(resource.data.organizationId)
       );
 
-      // DELETE: Owner or manager
-      allow delete: if isSystemAdmin() || canManageStable(resource.data.stableId);
+      // DELETE: Organization owners and administrators
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationOwner(resource.data.organizationId) ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
     }
 
     // ============================================================================
-    // VACCINATION RULES COLLECTION - STABLE-SCOPED
+    // VACCINATION RULES COLLECTION - MULTI-SCOPE (SYSTEM, ORGANIZATION, USER)
     // ============================================================================
 
     match /vaccinationRules/{ruleId} {
-      // LIST: Efficient query - no get() calls needed for list operations
+      // Helper function to check if user is organization owner or admin
+      function isOrgAdminOrOwner(orgId) {
+        let org = get(/databases/$(database)/documents/organizations/$(orgId));
+        let isOwner = org.data.ownerId == request.auth.uid;
+        let membership = get(/databases/$(database)/documents/organizationMembers/$(request.auth.uid + '_' + orgId));
+        let isAdmin = membership.data.roles.hasAny(['administrator']);
+        return isOwner || isAdmin;
+      }
+
+      // LIST: All authenticated users can list (filtering happens client-side)
       allow list: if isAuthenticated();
 
-      // GET: Full access check - stable members only
-      allow get: if canAccessStable(resource.data.stableId);
+      // GET: Scope-based read permissions
+      allow get: if isAuthenticated() && (
+        // System rules: everyone can read
+        (resource.data.scope == 'system') ||
+        // Organization rules: org members can read
+        (resource.data.scope == 'organization' &&
+         exists(/databases/$(database)/documents/organizationMembers/$(request.auth.uid + '_' + resource.data.organizationId))) ||
+        // User rules: owner only
+        (resource.data.scope == 'user' && resource.data.userId == request.auth.uid)
+      );
 
-      // CREATE: Owner or manager
+      // CREATE: Org owners/admins for org rules, users for their own rules
+      allow create: if isAuthenticated() && (
+        (request.resource.data.scope == 'organization' &&
+         isOrgAdminOrOwner(request.resource.data.organizationId)) ||
+        (request.resource.data.scope == 'user' &&
+         request.resource.data.userId == request.auth.uid)
+      );
+
+      // UPDATE: Cannot update system rules, owners/admins for org rules, users for their own
+      allow update: if isAuthenticated() && resource.data.scope != 'system' && (
+        (resource.data.scope == 'organization' && isOrgAdminOrOwner(resource.data.organizationId)) ||
+        (resource.data.scope == 'user' && resource.data.userId == request.auth.uid)
+      );
+
+      // DELETE: Cannot delete system rules, owners/admins for org rules, users for their own
+      allow delete: if isAuthenticated() && (
+        (resource.data.scope == 'organization' && isOrgAdminOrOwner(resource.data.organizationId)) ||
+        (resource.data.scope == 'user' && resource.data.userId == request.auth.uid)
+      );
+    }
+
+    // ============================================================================
+    // VACCINATION RECORDS COLLECTION - HORSE HEALTH TRACKING
+    // ============================================================================
+
+    match /vaccinationRecords/{recordId} {
+      // Helper function to check if user is horse owner
+      function isHorseOwner(horseId) {
+        return exists(/databases/$(database)/documents/horses/$(horseId)) &&
+               get(/databases/$(database)/documents/horses/$(horseId)).data.ownerId == request.auth.uid;
+      }
+
+      // Helper function to check organization role
+      function hasOrgRole(orgId, role) {
+        let memberId = request.auth.uid + '_' + orgId;
+        return exists(/databases/$(database)/documents/organizationMembers/$(memberId)) &&
+               get(/databases/$(database)/documents/organizationMembers/$(memberId)).data.roles.hasAny([role]);
+      }
+
+      // LIST: All authenticated users can list (filtering happens client-side)
+      allow list: if isAuthenticated();
+
+      // GET: Organization members with specific roles or horse owner
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        // Organization members with veterinary/admin/customer/horse_owner roles
+        hasOrgRole(resource.data.organizationId, 'administrator') ||
+        hasOrgRole(resource.data.organizationId, 'veterinarian') ||
+        hasOrgRole(resource.data.organizationId, 'customer') ||
+        hasOrgRole(resource.data.organizationId, 'horse_owner') ||
+        // Horse owner can view their horse's vaccination records
+        isHorseOwner(resource.data.horseId)
+      );
+
+      // CREATE: Organization administrators and veterinarians only
       allow create: if isAuthenticated() && (
         isSystemAdmin() ||
-        canManageStable(request.resource.data.stableId)
+        hasOrgRole(request.resource.data.organizationId, 'administrator') ||
+        hasOrgRole(request.resource.data.organizationId, 'veterinarian')
+      ) &&
+      // Validation: ensure correct horse and organization
+      isHorseOwner(request.resource.data.horseId) || (
+        hasOrgRole(request.resource.data.organizationId, 'administrator') ||
+        hasOrgRole(request.resource.data.organizationId, 'veterinarian')
       );
 
-      // UPDATE: Owner or manager
+      // UPDATE: Organization administrators and veterinarians only
       allow update: if isAuthenticated() && (
         isSystemAdmin() ||
-        canManageStable(resource.data.stableId)
+        hasOrgRole(resource.data.organizationId, 'administrator') ||
+        hasOrgRole(resource.data.organizationId, 'veterinarian')
       );
 
-      // DELETE: Owner or manager
-      allow delete: if isSystemAdmin() || canManageStable(resource.data.stableId);
+      // DELETE: Organization administrators and veterinarians only
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        hasOrgRole(resource.data.organizationId, 'administrator') ||
+        hasOrgRole(resource.data.organizationId, 'veterinarian')
+      );
+    }
+
+    // ============================================================================
+    // CONTACTS COLLECTION - MULTI-LEVEL ACCESS (ORGANIZATION & USER)
+    // ============================================================================
+
+    match /contacts/{contactId} {
+      // LIST: All authenticated users can list (filtering happens client-side)
+      allow list: if isAuthenticated();
+
+      // GET: Read if:
+      // 1. Organization contact and user is member of that organization
+      // 2. User contact and user is the owner
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        (resource.data.accessLevel == 'organization' &&
+         resource.data.organizationId != null &&
+         isOrganizationMember(resource.data.organizationId)) ||
+        (resource.data.accessLevel == 'user' &&
+         resource.data.userId != null &&
+         resource.data.userId == request.auth.uid)
+      );
+
+      // CREATE: Create if:
+      // 1. Creating organization contact and user is org owner/admin
+      // 2. Creating user contact for themselves
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        (request.resource.data.accessLevel == 'organization' &&
+         request.resource.data.organizationId != null &&
+         exists(/databases/$(database)/documents/organizations/$(request.resource.data.organizationId)) &&
+         (isOrganizationOwner(request.resource.data.organizationId) ||
+          isOrganizationAdministrator(request.resource.data.organizationId)) &&
+         request.resource.data.createdBy == request.auth.uid) ||
+        (request.resource.data.accessLevel == 'user' &&
+         request.resource.data.userId == request.auth.uid &&
+         request.resource.data.createdBy == request.auth.uid)
+      );
+
+      // UPDATE: Update if creator or org admin
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        resource.data.createdBy == request.auth.uid ||
+        (resource.data.accessLevel == 'organization' &&
+         resource.data.organizationId != null &&
+         exists(/databases/$(database)/documents/organizations/$(resource.data.organizationId)) &&
+         (isOrganizationOwner(resource.data.organizationId) ||
+          isOrganizationAdministrator(resource.data.organizationId)))
+      );
+
+      // DELETE: Delete if creator or org admin
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        resource.data.createdBy == request.auth.uid ||
+        (resource.data.accessLevel == 'organization' &&
+         resource.data.organizationId != null &&
+         exists(/databases/$(database)/documents/organizations/$(resource.data.organizationId)) &&
+         (isOrganizationOwner(resource.data.organizationId) ||
+          isOrganizationAdministrator(resource.data.organizationId)))
+      );
+    }
+
+    // ============================================================================
+    // AUDIT LOGS COLLECTION - IMMUTABLE ACTIVITY TRACKING
+    // ============================================================================
+
+    match /auditLogs/{logId} {
+      // LIST: System admins only (compliance and security auditing)
+      allow list: if isSystemAdmin();
+
+      // GET: System admins only
+      allow get: if isSystemAdmin();
+
+      // CREATE: Users can only create logs for their own actions
+      // Timestamp must match server time
+      // Audit logs are write-once, immutable
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.timestamp == request.time;
+
+      // UPDATE: Audit logs are immutable - no updates allowed
+      allow update: if false;
+
+      // DELETE: Audit logs are immutable - no deletions allowed
+      allow delete: if false;
     }
 
     // Default deny all

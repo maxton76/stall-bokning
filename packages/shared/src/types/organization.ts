@@ -182,3 +182,41 @@ export interface OrganizationMemberDisplay extends OrganizationMember {
   initials: string
   assignedStableNames?: string[] // Resolved stable names for display
 }
+
+/**
+ * Vaccination rule scope types
+ */
+export type VaccinationRuleScope = 'system' | 'organization' | 'user'
+
+/**
+ * Vaccination Rule - Multi-scope vaccination requirements
+ * Supports three scopes:
+ * - system: Standard rules (FEI, KNHS) available to all users
+ * - organization: Organization-level rules created by org admins
+ * - user: Personal rules created by individual users
+ */
+export interface VaccinationRule {
+  id: string
+
+  // Scope Identification (EXACTLY ONE will be set)
+  scope: VaccinationRuleScope
+  systemWide?: boolean          // true for FEI/KNHS system rules
+  organizationId?: string       // set if scope='organization'
+  userId?: string               // set if scope='user'
+
+  // Core Fields
+  name: string                  // e.g., "FEI rules", "KNHS rules"
+  description?: string          // Full description of the rule
+  periodMonths: number          // Months between vaccinations
+  periodDays: number            // Additional days
+  daysNotCompeting: number      // Days cannot compete after vaccination
+
+  // Metadata
+  createdAt: Timestamp
+  updatedAt: Timestamp
+  createdBy: string             // userId or 'system' for system rules
+
+  // Deprecated (backward compatibility during migration)
+  /** @deprecated Use scope and organizationId instead */
+  stableId?: string
+}

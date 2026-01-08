@@ -9,10 +9,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { registerUser } from '@/services/userService'
 import { useToast } from '@/hooks/use-toast'
+import { useOrganizationContext } from '@/contexts/OrganizationContext'
 
 const RegisterForm = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { setCurrentOrganizationId } = useOrganizationContext()
 
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false)
@@ -88,19 +90,23 @@ const RegisterForm = () => {
     try {
       setIsLoading(true)
 
-      await registerUser({
+      const organizationId = await registerUser({
         email: formData.email,
         password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName
       })
 
+      // Set the new organization as current
+      setCurrentOrganizationId(organizationId)
+
       toast({
         title: 'Success',
-        description: 'Account created successfully! Please check your email for verification.'
+        description: 'Welcome to StableBook! Your organization has been created.'
       })
 
-      navigate('/login')
+      // Navigate to dashboard (user is already logged in after registration)
+      navigate('/dashboard')
     } catch (error) {
       console.error('Registration error:', error)
       toast({

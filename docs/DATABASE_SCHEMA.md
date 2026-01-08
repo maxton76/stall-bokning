@@ -62,6 +62,12 @@ This document describes the Firestore database structure for the Stable Booking 
 
 📁 auditLogs/                       (Top-level collection - GDPR compliance)
   📄 {logId}
+
+📁 vaccinationRules/                (Top-level collection - Multi-scope rules)
+  📄 {ruleId}                        (Document per vaccination rule)
+
+📁 vaccinationRecords/              (Top-level collection - Horse vaccination history)
+  📄 {recordId}                      (Document per vaccination record)
 ```
 
 ---
@@ -845,6 +851,320 @@ interface AuditLog {
 - `resource` + `resourceId` (composite)
 
 **Retention**: 2 years according to GDPR requirements
+
+---
+
+### 7. `vaccinationRules/` Collection
+
+**Purpose**: Multi-scope vaccination rules (system, organization, and user levels)
+
+**Document ID**: Auto-generated Firestore ID (system rules use deterministic IDs: `system-fei`, `system-knhs`)
+
+**Document Schema**:
+```typescript
+interface VaccinationRule {
+  id: string;                  // Same as document ID
+
+  // Scope Identification (EXACTLY ONE will be set)
+  scope: 'system' | 'organization' | 'user';
+  systemWide?: boolean;        // true for FEI/KNHS system rules
+  organizationId?: string;     // set if scope='organization'
+  userId?: string;             // set if scope='user'
+
+  // Core Fields
+  name: string;                // e.g., "FEI rules", "KNHS rules"
+  description?: string;        // Full description of the rule
+  periodMonths: number;        // Months between vaccinations
+  periodDays: number;          // Additional days beyond months
+  daysNotCompeting: number;    // Days horse cannot compete after vaccination
+
+  // Metadata
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy: string;           // userId or 'system' for system rules
+
+  // Deprecated (backward compatibility)
+  /** @deprecated Use scope and organizationId instead */
+  stableId?: string;
+}
+```
+
+**Scope Types**:
+
+1. **System Rules** (`scope: 'system'`):
+   - Standard rules (FEI, KNHS) available to all users
+   - Read-only, cannot be edited or deleted
+   - Created via seed script with deterministic IDs
+   - `systemWide: true` flag set
+
+2. **Organization Rules** (`scope: 'organization'`):
+   - Created by organization administrators
+   - Visible to all organization members
+   - Editable/deletable by organization admins only
+   - `organizationId` field set
+
+3. **User Rules** (`scope: 'user'`):
+   - Personal rules created by individual users
+   - Private to the user (owner only access)
+   - Editable/deletable by owner only
+   - `userId` field set
+
+**System Rules** (seeded):
+- `system-fei`: FEI rules - 6 months 21 days, 7 days not competing
+- `system-knhs`: KNHS rules - 12 months 0 days, 7 days not competing
+
+**Indexes**:
+```json
+[
+  {
+    "collectionGroup": "vaccinationRules",
+    "fields": [
+      { "fieldPath": "scope", "order": "ASCENDING" },
+      { "fieldPath": "createdAt", "order": "DESCENDING" }
+    ]
+  },
+  {
+    "collectionGroup": "vaccinationRules",
+    "fields": [
+      { "fieldPath": "organizationId", "order": "ASCENDING" },
+      { "fieldPath": "createdAt", "order": "DESCENDING" }
+    ]
+  },
+  {
+    "collectionGroup": "vaccinationRules",
+    "fields": [
+      { "fieldPath": "userId", "order": "ASCENDING" },
+      { "fieldPath": "createdAt", "order": "DESCENDING" }
+    ]
+  },
+  {
+    "collectionGroup": "vaccinationRules",
+    "fields": [
+      { "fieldPath": "systemWide", "order": "ASCENDING" },
+      { "fieldPath": "createdAt", "order": "DESCENDING" }
+    ]
+  }
+]
+```
+
+**Query Operations**:
+```typescript
+// Get all system rules (FEI, KNHS)
+const systemRules = await getSystemVaccinationRules();
+
+// Get organization rules for a specific organization
+const orgRules = await getOrganizationVaccinationRules(organizationId);
+
+// Get user's personal rules
+const userRules = await getUserVaccinationRules(userId);
+
+// Get ALL available rules (system + org + user) - Parallel execution
+const allRules = await getAllAvailableVaccinationRules(userId, organizationId);
+```
+
+**Security Rules**:
+```javascript
+match /vaccinationRules/{ruleId} {
+  function isOrgAdmin(orgId) {
+    let membership = get(/databases/$(database)/documents/organizationMembers/$(request.auth.uid + '_' + orgId));
+    return membership.data.roles.hasAny(['administrator']);
+  }
+
+  // LIST: All authenticated users can list
+  allow list: if isAuthenticated();
+
+  // GET: Scope-based read permissions
+  allow get: if isAuthenticated() && (
+    // System rules: everyone can read
+    (resource.data.scope == 'system') ||
+    // Organization rules: org members can read
+    (resource.data.scope == 'organization' &&
+     exists(/databases/$(database)/documents/organizationMembers/$(request.auth.uid + '_' + resource.data.organizationId))) ||
+    // User rules: owner only
+    (resource.data.scope == 'user' && resource.data.userId == request.auth.uid)
+  );
+
+  // CREATE: Org admins for org rules, users for their own rules
+  allow create: if isAuthenticated() && (
+    (request.resource.data.scope == 'organization' &&
+     isOrgAdmin(request.resource.data.organizationId)) ||
+    (request.resource.data.scope == 'user' &&
+     request.resource.data.userId == request.auth.uid)
+  );
+
+  // UPDATE: Cannot update system rules
+  allow update: if isAuthenticated() && resource.data.scope != 'system' && (
+    (resource.data.scope == 'organization' && isOrgAdmin(resource.data.organizationId)) ||
+    (resource.data.scope == 'user' && resource.data.userId == request.auth.uid)
+  );
+
+  // DELETE: Cannot delete system rules
+  allow delete: if isAuthenticated() && (
+    (resource.data.scope == 'organization' && isOrgAdmin(resource.data.organizationId)) ||
+    (resource.data.scope == 'user' && resource.data.userId == request.auth.uid)
+  );
+}
+```
+
+**Migration Notes**:
+- Existing stable-scoped rules migrated to organization-scoped
+- Mapping: `stableId → stable.ownerId → organization.ownerId → organizationId`
+- Deprecated `stableId` field preserved for backward compatibility
+- Migration script: `packages/api/src/scripts/migrateVaccinationRules.ts`
+
+---
+
+### 8. `vaccinationRecords/` Collection
+
+**Purpose**: Track vaccination history for horses with automatic status calculation and alerting
+
+**Document ID**: Auto-generated Firestore ID
+
+**Document Schema**:
+```typescript
+interface VaccinationRecord {
+  id: string;                  // Same as document ID
+
+  // Organization & Horse linking
+  organizationId: string;      // For org-scoped queries and permissions
+  horseId: string;             // Links to horses collection
+  horseName: string;           // Cached for display
+
+  // Vaccination details
+  vaccinationRuleId: string;   // Links to vaccinationRules collection
+  vaccinationRuleName: string; // Cached for display
+  vaccinationDate: Timestamp;  // When vaccination was administered
+  nextDueDate: Timestamp;      // Calculated: vaccinationDate + rule.period
+
+  // Veterinary details (optional)
+  veterinarianName?: string;
+  vaccineProduct?: string;     // Vaccine brand/product name
+  batchNumber?: string;        // Vaccine batch/lot number
+  notes?: string;
+
+  // Metadata
+  createdAt: Timestamp;
+  createdBy: string;           // userId who created record
+  updatedAt: Timestamp;
+  lastModifiedBy: string;
+}
+```
+
+**Vaccination Status Calculation**:
+The system automatically calculates vaccination status based on records and rules:
+
+```typescript
+type VaccinationStatus =
+  | 'current'         // Up to date
+  | 'expiring_soon'   // Due within 30 days
+  | 'expired'         // Overdue
+  | 'no_rule'         // No vaccination rule assigned
+  | 'no_records';     // Rule assigned but no records
+
+// Algorithm:
+// 1. No rule assigned → 'no_rule'
+// 2. Rule assigned but no records → 'no_records'
+// 3. Calculate days until due (nextDueDate - today)
+// 4. If daysUntilDue < 0 → 'expired'
+// 5. If daysUntilDue <= 30 → 'expiring_soon'
+// 6. Otherwise → 'current'
+```
+
+**Cached Horse Fields**:
+When vaccination records are created/updated/deleted, the following fields on the `horses` collection are automatically updated:
+
+```typescript
+interface Horse {
+  // ... existing fields ...
+
+  // Vaccination tracking (denormalized for performance)
+  lastVaccinationDate?: Timestamp;      // Most recent vaccination
+  nextVaccinationDue?: Timestamp;       // When next vaccination is due
+  vaccinationStatus?: VaccinationStatus; // Cached status
+}
+```
+
+**Indexes**:
+```json
+[
+  {
+    "collectionGroup": "vaccinationRecords",
+    "fields": [
+      { "fieldPath": "horseId", "order": "ASCENDING" },
+      { "fieldPath": "vaccinationDate", "order": "DESCENDING" }
+    ]
+  },
+  {
+    "collectionGroup": "vaccinationRecords",
+    "fields": [
+      { "fieldPath": "organizationId", "order": "ASCENDING" },
+      { "fieldPath": "nextDueDate", "order": "ASCENDING" }
+    ]
+  }
+]
+```
+
+**Query Operations**:
+```typescript
+// Get all vaccination records for a horse (sorted by date, most recent first)
+const records = await getHorseVaccinationRecords(horseId);
+
+// Get organization-wide vaccination records
+const orgRecords = await getOrganizationVaccinationRecords(organizationId);
+
+// Get horses with vaccinations expiring soon (within 30 days)
+const expiringSoon = await getExpiringSoon(organizationId, 30);
+
+// Calculate vaccination status for a horse
+const status = await getVaccinationStatus(horse);
+// Returns: { status: 'current' | 'expiring_soon' | 'expired' | 'no_rule' | 'no_records', message: string, daysUntilDue?: number }
+
+// Update horse's cached vaccination fields after record changes
+await updateHorseVaccinationCache(horseId);
+```
+
+**Security Rules**:
+```javascript
+match /vaccinationRecords/{recordId} {
+  function hasOrganizationRole(orgId, allowedRoles) {
+    let memberDoc = get(/databases/$(database)/documents/organizationMembers/$(request.auth.uid + '_' + orgId));
+    return memberDoc.data.roles.hasAny(allowedRoles);
+  }
+
+  function isHorseOwner(horseId) {
+    let horse = get(/databases/$(database)/documents/horses/$(horseId));
+    return horse.data.ownerId == request.auth.uid;
+  }
+
+  // READ: Organization members with appropriate roles OR horse owner
+  allow read: if isAuthenticated() && (
+    hasOrganizationRole(resource.data.organizationId, ['administrator', 'veterinarian', 'customer', 'horse_owner']) ||
+    isHorseOwner(resource.data.horseId)
+  );
+
+  // CREATE: Organization administrators and veterinarians only
+  allow create: if isAuthenticated() &&
+    hasOrganizationRole(request.resource.data.organizationId, ['administrator', 'veterinarian']);
+
+  // UPDATE/DELETE: Organization administrators and veterinarians only
+  allow update, delete: if isAuthenticated() &&
+    hasOrganizationRole(resource.data.organizationId, ['administrator', 'veterinarian']);
+}
+```
+
+**Business Logic**:
+1. **Automatic Cache Updates**: When a vaccination record is created/updated/deleted, the system automatically updates the horse's `lastVaccinationDate`, `nextVaccinationDue`, and `vaccinationStatus` fields
+2. **Next Due Date Calculation**: `nextDueDate = vaccinationDate + rule.periodMonths + rule.periodDays`
+3. **Status Icons**: UI displays real-time status icons based on vaccination status (green checkmark, yellow warning, red alert)
+4. **Expiration Alerts**: Dashboard widget shows horses with vaccinations due soon or overdue
+5. **Multi-Role Access**: Administrators and veterinarians can manage records; horse owners and organization members can view
+
+**UI Integration**:
+- **Horse Table**: Color-coded status icons in name column (ShieldCheck, ShieldAlert, ShieldX, ShieldQuestion, Info)
+- **Horse Form**: Vaccination section with status summary, last vaccination date, next due date, and action buttons
+- **Vaccination History**: Modal table showing all records for a horse with edit/delete actions
+- **Vaccination Alerts**: Dashboard widget listing horses with upcoming/overdue vaccinations
+- **Record Dialog**: Form to create/edit vaccination records with auto-calculated next due date
 
 ---
 

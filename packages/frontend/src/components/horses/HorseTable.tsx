@@ -23,9 +23,10 @@ import type { Horse } from '@/types/roles'
 interface HorseTableProps {
   data: Horse[]
   columns: ColumnDef<Horse>[]
+  onRowClick?: (horse: Horse) => void
 }
 
-export function HorseTable({ data, columns }: HorseTableProps) {
+export function HorseTable({ data, columns, onRowClick }: HorseTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'name', desc: false } // Default sort by name ascending
   ])
@@ -70,9 +71,24 @@ export function HorseTable({ data, columns }: HorseTableProps) {
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map(row => (
-                <TableRow key={row.id}>
+                <TableRow
+                  key={row.id}
+                  className={`border-b hover:bg-muted/50 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
+                  onClick={(e) => {
+                    // Prevent row click if clicking on interactive elements
+                    const target = e.target as HTMLElement
+                    const isInteractive = target.closest('button, a, [role="button"]')
+
+                    if (!isInteractive && onRowClick) {
+                      onRowClick(row.original)
+                    }
+                  }}
+                >
                   {row.getVisibleCells().map(cell => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      key={cell.id}
+                      className="py-4 align-middle"
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()

@@ -1,15 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Plus, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUserStables } from '@/hooks/useUserStables'
 import { useAsyncData } from '@/hooks/useAsyncData'
@@ -17,15 +10,19 @@ import { useDialog } from '@/hooks/useDialog'
 import { useCRUD } from '@/hooks/useCRUD'
 import {
   createHorseGroup,
-  getStableHorseGroups,
+  getOrganizationHorseGroups,
   updateHorseGroup,
   deleteHorseGroup
 } from '@/services/horseGroupService'
+import { getUserOrganizations } from '@/services/organizationService'
 import {
   createVaccinationRule,
-  getStableVaccinationRules,
+  getAllAvailableVaccinationRules,
   updateVaccinationRule,
-  deleteVaccinationRule
+  deleteVaccinationRule,
+  isSystemRule,
+  isOrganizationRule,
+  isUserRule
 } from '@/services/vaccinationRuleService'
 import { unassignHorsesFromGroup, unassignHorsesFromVaccinationRule } from '@/services/horseService'
 import { HorseGroupFormDialog } from '@/components/HorseGroupFormDialog'
@@ -39,54 +36,73 @@ export default function HorseSettingsPage() {
   // Load user's stables if no stableId in URL
   const { stables, loading: stablesLoading } = useUserStables(user?.uid)
 
-  // State for selected stable (when no stableId in URL)
-  const [selectedStableId, setSelectedStableId] = useState<string>('')
-
-  // Use stableId from URL if available, otherwise use selected stable
-  const stableId = stableIdFromParams || selectedStableId
-
-  // Auto-select first stable if no stableId in URL
-  useEffect(() => {
-    if (!stableIdFromParams && stables.length > 0 && !selectedStableId && stables[0]) {
-      setSelectedStableId(stables[0].id)
+  // Load user's organization
+  const organizations = useAsyncData({
+    loadFn: async () => {
+      if (!user?.uid) return []
+      return await getUserOrganizations(user.uid)
     }
-  }, [stables, selectedStableId, stableIdFromParams])
+  })
 
-  // Horse Groups state
+  // Get first organization's ID (user should only have one organization)
+  const organizationId = organizations.data?.[0]?.id
+
+  // Use stableId from URL (vaccination rules are stable-specific)
+  const stableId = stableIdFromParams
+
+  // Load organizations when user changes
+  useEffect(() => {
+    if (user?.uid) {
+      organizations.load()
+    }
+  }, [user?.uid])
+
+  // Horse Groups state - now organization-wide
   const groupDialog = useDialog<HorseGroup>()
   const groups = useAsyncData<HorseGroup[]>({
     loadFn: async () => {
-      if (!stableId) return []
-      return await getStableHorseGroups(stableId)
+      if (!organizationId) return []
+      return await getOrganizationHorseGroups(organizationId)
     }
   })
 
-  // Vaccination Rules state
+  // Vaccination Rules state (includes system + organization + user rules)
   const ruleDialog = useDialog<VaccinationRule>()
   const rules = useAsyncData<VaccinationRule[]>({
     loadFn: async () => {
-      if (!stableId) return []
-      return await getStableVaccinationRules(stableId)
+      return await getAllAvailableVaccinationRules(user?.uid, organizationId)
     }
   })
 
-  // Load data when stableId changes
+  // Group rules by scope
+  const systemRules = rules.data?.filter(isSystemRule) || []
+  const orgRules = rules.data?.filter(isOrganizationRule) || []
+  const userRules = rules.data?.filter(isUserRule) || []
+
+  // Load data when organizationId or stableId changes
   useEffect(() => {
-    if (stableId) {
+    if (organizationId) {
       groups.load()
+    }
+  }, [organizationId])
+
+  useEffect(() => {
+    // Load rules when user or organizationId changes
+    if (user?.uid || organizationId) {
       rules.load()
     }
-  }, [stableId])
+  }, [user?.uid, organizationId])
 
   // Horse Groups CRUD
-  const { create: createGroup, update: updateGroup, remove: removeGroup } = useCRUD({
-    createFn: async (groupData: Omit<HorseGroup, 'id' | 'stableId' | 'createdAt' | 'updatedAt' | 'createdBy'>) => {
-      if (!stableId || !user) throw new Error('Missing stableId or user')
-      await createHorseGroup(stableId, user.uid, groupData)
+  const { create: createGroup, update: updateGroup, remove: removeGroup } = useCRUD<HorseGroup>({
+    createFn: async (groupData) => {
+      if (!organizationId || !user) throw new Error('Missing organizationId or user')
+      const { id, organizationId: _, createdAt, updatedAt, createdBy, ...data } = groupData as HorseGroup
+      await createHorseGroup(organizationId, user.uid, data as any)
     },
-    updateFn: async (groupId: string, updates: Partial<Omit<HorseGroup, 'id' | 'stableId' | 'createdAt' | 'createdBy'>>) => {
+    updateFn: async (groupId: string, updates) => {
       if (!user) throw new Error('Missing user')
-      await updateHorseGroup(groupId, user.uid, updates)
+      await updateHorseGroup(groupId, user.uid, updates as any)
     },
     deleteFn: async (groupId: string) => {
       if (!user) throw new Error('Missing user')
@@ -94,7 +110,7 @@ export default function HorseSettingsPage() {
       await unassignHorsesFromGroup(groupId, user.uid)
       await deleteHorseGroup(groupId)
     },
-    onSuccess: groups.reload,
+    onSuccess: async () => { await groups.reload() },
     successMessages: {
       create: 'Horse group created successfully',
       update: 'Horse group updated successfully',
@@ -102,15 +118,32 @@ export default function HorseSettingsPage() {
     }
   })
 
-  // Vaccination Rules CRUD
-  const { create: createRule, update: updateRule, remove: removeRule } = useCRUD({
-    createFn: async (ruleData: Omit<VaccinationRule, 'id' | 'stableId' | 'createdAt' | 'updatedAt' | 'createdBy'>) => {
-      if (!stableId || !user) throw new Error('Missing stableId or user')
-      await createVaccinationRule(stableId, user.uid, ruleData)
-    },
-    updateFn: async (ruleId: string, updates: Partial<Omit<VaccinationRule, 'id' | 'stableId' | 'createdAt' | 'createdBy'>>) => {
+  // Vaccination Rules CRUD (only for organization and user rules, not system rules)
+  const { create: createRule, update: updateRule, remove: removeRule } = useCRUD<VaccinationRule>({
+    createFn: async (ruleData) => {
       if (!user) throw new Error('Missing user')
-      await updateVaccinationRule(ruleId, user.uid, updates)
+      const rule = ruleData as any
+
+      // Determine scope and scopeId
+      let scope: 'organization' | 'user'
+      let scopeId: string
+
+      if (rule.scope === 'organization') {
+        if (!organizationId) throw new Error('Missing organizationId')
+        scope = 'organization'
+        scopeId = organizationId
+      } else if (rule.scope === 'user') {
+        scope = 'user'
+        scopeId = user.uid
+      } else {
+        throw new Error('Invalid scope - must be organization or user')
+      }
+
+      await createVaccinationRule(scope, user.uid, rule, scopeId)
+    },
+    updateFn: async (ruleId: string, updates) => {
+      if (!user) throw new Error('Missing user')
+      await updateVaccinationRule(ruleId, user.uid, updates as any)
     },
     deleteFn: async (ruleId: string) => {
       if (!user) throw new Error('Missing user')
@@ -118,7 +151,7 @@ export default function HorseSettingsPage() {
       await unassignHorsesFromVaccinationRule(ruleId, user.uid)
       await deleteVaccinationRule(ruleId)
     },
-    onSuccess: rules.reload,
+    onSuccess: async () => { await rules.reload() },
     successMessages: {
       create: 'Vaccination rule created successfully',
       update: 'Vaccination rule updated successfully',
@@ -163,32 +196,9 @@ export default function HorseSettingsPage() {
         )}
         <div>
           <h1 className='text-3xl font-bold tracking-tight'>Horse Settings</h1>
-          <p className='text-muted-foreground mt-1'>Manage horse groups and vaccination rules</p>
+          <p className='text-muted-foreground mt-1'>Manage organization-wide horse groups and vaccination rules (system, organization, and personal)</p>
         </div>
       </div>
-
-      {/* Stable Selector - only show when no stableId in URL */}
-      {!stableIdFromParams && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <label className="text-sm font-medium">Select Stable:</label>
-              <Select value={selectedStableId} onValueChange={setSelectedStableId}>
-                <SelectTrigger className="w-[280px]">
-                  <SelectValue placeholder="Select a stable" />
-                </SelectTrigger>
-                <SelectContent>
-                  {stables.map((stable) => (
-                    <SelectItem key={stable.id} value={stable.id}>
-                      {stable.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       <div className='grid gap-6 md:grid-cols-2'>
         {/* Horse Groups Section */}
@@ -197,7 +207,7 @@ export default function HorseSettingsPage() {
             <div className='flex items-center justify-between'>
               <div>
                 <CardTitle>Horse Groups</CardTitle>
-                <CardDescription>Organize your horses into groups</CardDescription>
+                <CardDescription>Organize your horses into groups (available across all stables)</CardDescription>
               </div>
               <Button size='sm' onClick={() => groupDialog.openDialog()}>
                 <Plus className='h-4 w-4 mr-2' />
@@ -260,9 +270,13 @@ export default function HorseSettingsPage() {
             <div className='flex items-center justify-between'>
               <div>
                 <CardTitle>Vaccination Rules</CardTitle>
-                <CardDescription>Manage vaccination requirements</CardDescription>
+                <CardDescription>Standard rules and custom vaccination requirements</CardDescription>
               </div>
-              <Button size='sm' onClick={() => ruleDialog.openDialog()}>
+              <Button
+                size='sm'
+                onClick={() => ruleDialog.openDialog()}
+                title='Add custom rule'
+              >
                 <Plus className='h-4 w-4 mr-2' />
                 Add Rule
               </Button>
@@ -272,46 +286,58 @@ export default function HorseSettingsPage() {
             {rules.loading ? (
               <p className='text-sm text-muted-foreground'>Loading rules...</p>
             ) : !rules.data || rules.data.length === 0 ? (
-              <p className='text-sm text-muted-foreground'>No rules yet. Create one to get started.</p>
+              <p className='text-sm text-muted-foreground'>No rules available.</p>
             ) : (
               <div className='space-y-2'>
-                {rules.data.map(rule => (
-                  <div
-                    key={rule.id}
-                    className='flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors'
-                  >
-                    <div>
-                      <p className='font-medium'>{rule.name}</p>
-                      {rule.description && (
-                        <p className='text-sm text-muted-foreground mb-1'>{rule.description}</p>
-                      )}
-                      <div className='text-xs text-muted-foreground space-y-0.5'>
-                        <p>
-                          Period: {rule.periodMonths > 0 ? `${rule.periodMonths} month${rule.periodMonths !== 1 ? 's' : ''}` : ''}
-                          {rule.periodMonths > 0 && rule.periodDays > 0 ? ' and ' : ''}
-                          {rule.periodDays > 0 ? `${rule.periodDays} day${rule.periodDays !== 1 ? 's' : ''}` : ''}
-                        </p>
-                        <p>Days not competing: {rule.daysNotCompeting}</p>
+                {rules.data.map(rule => {
+                  const isStandard = isSystemRule(rule)
+                  return (
+                    <div
+                      key={rule.id}
+                      className='flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors'
+                    >
+                      <div>
+                        <div className='flex items-center gap-2'>
+                          <p className='font-medium'>{rule.name}</p>
+                          {isStandard && (
+                            <span className='inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800'>
+                              Standard
+                            </span>
+                          )}
+                        </div>
+                        {rule.description && (
+                          <p className='text-sm text-muted-foreground mb-1'>{rule.description}</p>
+                        )}
+                        <div className='text-xs text-muted-foreground space-y-0.5'>
+                          <p>
+                            Period: {rule.periodMonths > 0 ? `${rule.periodMonths} month${rule.periodMonths !== 1 ? 's' : ''}` : ''}
+                            {rule.periodMonths > 0 && rule.periodDays > 0 ? ' and ' : ''}
+                            {rule.periodDays > 0 ? `${rule.periodDays} day${rule.periodDays !== 1 ? 's' : ''}` : ''}
+                          </p>
+                          <p>Days not competing: {rule.daysNotCompeting}</p>
+                        </div>
                       </div>
+                      {!isStandard && (
+                        <div className='flex gap-2'>
+                          <Button
+                            size='sm'
+                            variant='ghost'
+                            onClick={() => ruleDialog.openDialog(rule as VaccinationRule)}
+                          >
+                            <Pencil className='h-4 w-4' />
+                          </Button>
+                          <Button
+                            size='sm'
+                            variant='ghost'
+                            onClick={() => removeRule(rule.id, 'Are you sure you want to delete this rule? Horses will be unassigned from this rule.')}
+                          >
+                            <Trash2 className='h-4 w-4 text-destructive' />
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                    <div className='flex gap-2'>
-                      <Button
-                        size='sm'
-                        variant='ghost'
-                        onClick={() => ruleDialog.openDialog(rule)}
-                      >
-                        <Pencil className='h-4 w-4' />
-                      </Button>
-                      <Button
-                        size='sm'
-                        variant='ghost'
-                        onClick={() => removeRule(rule.id, 'Are you sure you want to delete this rule? Horses will be unassigned from this rule.')}
-                      >
-                        <Trash2 className='h-4 w-4 text-destructive' />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </CardContent>
@@ -341,9 +367,9 @@ export default function HorseSettingsPage() {
         title={ruleDialog.data ? 'Edit Vaccination Rule' : 'Create Vaccination Rule'}
         onSave={async (ruleData) => {
           if (ruleDialog.data) {
-            await updateRule(ruleDialog.data.id, ruleData)
+            await updateRule(ruleDialog.data.id, ruleData as any)
           } else {
-            await createRule(ruleData)
+            await createRule(ruleData as any)
           }
           ruleDialog.closeDialog()
         }}

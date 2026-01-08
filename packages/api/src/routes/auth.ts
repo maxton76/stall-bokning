@@ -60,7 +60,51 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
       await db.collection('users').doc(user.uid).set(userData)
 
-      // NEW: Auto-accept pending invites for this email
+      // NEW: Auto-create personal organization for user
+      let organizationId: string | undefined
+      try {
+        const orgRef = await db.collection('organizations').add({
+          name: `${firstName}'s Organization`,
+          ownerId: user.uid,
+          ownerEmail: email.toLowerCase(),
+          subscriptionTier: 'free' as const,
+          stats: {
+            stableCount: 0,
+            totalMemberCount: 1
+          },
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now()
+        })
+        organizationId = orgRef.id
+
+        // Create organizationMember record for owner
+        const memberId = `${user.uid}_${organizationId}`
+        await db.collection('organizationMembers').doc(memberId).set({
+          id: memberId,
+          organizationId,
+          userId: user.uid,
+          userEmail: email.toLowerCase(),
+          firstName,
+          lastName,
+          phoneNumber: phoneNumber || null,
+          roles: ['administrator'],
+          primaryRole: 'administrator',
+          status: 'active',
+          showInPlanning: true,
+          stableAccess: 'all',
+          assignedStableIds: [],
+          joinedAt: Timestamp.now(),
+          invitedBy: 'system',
+          inviteAcceptedAt: Timestamp.now()
+        })
+
+        request.log.info({ userId: user.uid, organizationId }, 'Created personal organization on signup')
+      } catch (orgError) {
+        // Log error but don't fail signup
+        request.log.error({ error: orgError, userId: user.uid }, 'Failed to create personal organization on signup')
+      }
+
+      // Auto-accept pending invites for this email
       try {
         await migrateInvitesOnSignup(user.uid, email)
         request.log.info({ userId: user.uid, email }, 'Migrated pending invites on signup')

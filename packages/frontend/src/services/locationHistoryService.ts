@@ -1,6 +1,5 @@
 import {
   collection,
-  doc,
   addDoc,
   updateDoc,
   getDocs,
@@ -19,7 +18,7 @@ import { mapDocsToObjects } from '@/utils/firestoreHelpers'
 // ============================================================================
 
 /**
- * Create a new location history entry
+ * Create a new location history entry for stable assignments
  * @param horseId - Horse ID
  * @param horseName - Horse name (cached)
  * @param stableId - Stable ID
@@ -41,6 +40,7 @@ export async function createLocationHistoryEntry(
   const entryData = {
     horseId,
     horseName,
+    locationType: 'stable' as const,
     stableId,
     stableName,
     arrivalDate: arrivalDate || Timestamp.now(),
@@ -55,35 +55,110 @@ export async function createLocationHistoryEntry(
 }
 
 /**
- * Close a location history entry by setting the departure date
+ * Create a location history entry for external moves
  * @param horseId - Horse ID
- * @param stableId - Stable ID to close
+ * @param horseName - Horse name (cached)
+ * @param externalLocation - Location name (from contact or manual entry)
+ * @param moveType - Type of external move ('temporary' | 'permanent')
+ * @param departureDate - When horse departed for external location
+ * @param userId - User ID creating the entry
+ * @param contactId - Optional contact ID reference
+ * @param moveReason - Optional reason for permanent moves
+ * @returns Promise with the created entry ID
+ */
+export async function createExternalLocationHistoryEntry(
+  horseId: string,
+  horseName: string,
+  externalLocation: string,
+  moveType: 'temporary' | 'permanent',
+  departureDate: Timestamp,
+  userId: string,
+  contactId?: string,
+  moveReason?: string
+): Promise<string> {
+  const historyRef = collection(db, 'horses', horseId, 'locationHistory')
+
+  const entryData = {
+    horseId,
+    horseName,
+    locationType: 'external' as const,
+    externalLocation,
+    externalMoveType: moveType,
+    arrivalDate: departureDate, // Arrival at external location = departure from stable
+    departureDate: null, // null = currently at external location
+    createdAt: Timestamp.now(),
+    createdBy: userId,
+    lastModifiedBy: userId,
+    ...(contactId && { externalContactId: contactId }),
+    ...(moveReason && { externalMoveReason: moveReason })
+  }
+
+  const docRef = await addDoc(historyRef, entryData)
+  return docRef.id
+}
+
+/**
+ * Close a location history entry by setting the departure date
+ * Works for both stable and external locations
+ * @param horseId - Horse ID
+ * @param locationType - Type of location ('stable' | 'external')
+ * @param locationId - Stable ID (if stable) or null (if external)
  * @param userId - User ID making the change
  * @param departureDate - When horse left (defaults to now)
  */
 export async function closeLocationHistoryEntry(
   horseId: string,
-  stableId: string,
+  locationType: 'stable' | 'external',
+  locationId: string | null,
   userId: string,
   departureDate?: Timestamp
 ): Promise<void> {
-  // Find the open entry for this stable
   const historyRef = collection(db, 'horses', horseId, 'locationHistory')
-  const q = query(
-    historyRef,
-    where('stableId', '==', stableId),
-    where('departureDate', '==', null)
-  )
 
-  const snapshot = await getDocs(q)
+  // Build query based on location type
+  let snapshot
+  if (locationType === 'stable' && locationId) {
+    // Find the open entry for this specific stable
+    // First try with locationType filter (new entries)
+    const q = query(
+      historyRef,
+      where('locationType', '==', 'stable'),
+      where('stableId', '==', locationId),
+      where('departureDate', '==', null)
+    )
+    snapshot = await getDocs(q)
+
+    // If not found, try without locationType filter (backward compatibility for old entries)
+    if (snapshot.empty) {
+      const qLegacy = query(
+        historyRef,
+        where('stableId', '==', locationId),
+        where('departureDate', '==', null)
+      )
+      snapshot = await getDocs(qLegacy)
+    }
+  } else if (locationType === 'external') {
+    // Find the open external location entry
+    const q = query(
+      historyRef,
+      where('locationType', '==', 'external'),
+      where('departureDate', '==', null)
+    )
+    snapshot = await getDocs(q)
+  } else {
+    // Invalid parameters
+    return
+  }
 
   if (!snapshot.empty) {
-    // Should only be one open entry per stable
+    // Should only be one open entry
     const entryDoc = snapshot.docs[0]
-    await updateDoc(entryDoc.ref, {
-      departureDate: departureDate || Timestamp.now(),
-      lastModifiedBy: userId
-    })
+    if (entryDoc) {
+      await updateDoc(entryDoc.ref, {
+        departureDate: departureDate || Timestamp.now(),
+        lastModifiedBy: userId
+      })
+    }
   }
 }
 
@@ -121,6 +196,8 @@ export async function getCurrentLocation(horseId: string): Promise<LocationHisto
   if (snapshot.empty) return null
 
   const doc = snapshot.docs[0]
+  if (!doc) return null
+
   return {
     id: doc.id,
     ...doc.data()
@@ -130,10 +207,10 @@ export async function getCurrentLocation(horseId: string): Promise<LocationHisto
 /**
  * Get all location history for horses owned by a user
  * Uses collectionGroup to query across all horses
- * @param userId - User ID
+ * @param _userId - User ID (currently unused - requires filtering horse ownership separately)
  * @returns Promise with array of location history entries
  */
-export async function getUserHorseLocationHistory(userId: string): Promise<LocationHistory[]> {
+export async function getUserHorseLocationHistory(_userId: string): Promise<LocationHistory[]> {
   // First, we need to get all horses owned by the user
   // Then query their location history
   // Note: This requires getting horse IDs first, then querying each subcollection

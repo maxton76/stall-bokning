@@ -1,0 +1,143 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Calendar, ExternalLink, Loader2Icon } from 'lucide-react'
+import { format, isPast } from 'date-fns'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table'
+import { getHorseActivities } from '@/services/activityService'
+import type { Horse } from '@/types/roles'
+import type { Activity } from '@/types/activity'
+
+interface ActivitiesCardProps {
+  horse: Horse
+}
+
+export function ActivitiesCard({ horse }: ActivitiesCardProps) {
+  const [activities, setActivities] = useState<Activity[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadActivities = async () => {
+      try {
+        setLoading(true)
+        const data = await getHorseActivities(horse.id, 10)
+        setActivities(data)
+      } catch (error) {
+        console.error('Failed to load activities:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (horse.id) {
+      loadActivities()
+    }
+  }, [horse.id])
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-muted-foreground" />
+            <CardTitle>Recent Activities</CardTitle>
+          </div>
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/activities/care?horseId=${horse.id}`}>
+              <ExternalLink className="mr-2 h-4 w-4" />
+              View All
+            </Link>
+          </Button>
+        </div>
+      </CardHeader>
+
+      <CardContent>
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2Icon className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : activities.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-sm text-muted-foreground">
+              No activities recorded for this horse
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Activity Type</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {activities.map((activity) => {
+                  const activityDate = activity.date.toDate()
+                  const isOverdue = isPast(activityDate) && activity.status === 'pending'
+
+                  return (
+                    <TableRow
+                      key={activity.id}
+                      className={isOverdue ? 'bg-destructive/5' : ''}
+                    >
+                      <TableCell>
+                        <span
+                          className={`${
+                            isOverdue ? 'text-destructive font-medium' : ''
+                          }`}
+                        >
+                          {format(activityDate, 'MMM d, yyyy')}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="capitalize">
+                          {activity.activityType?.replace('_', ' ')}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            activity.status === 'completed'
+                              ? 'default'
+                              : isOverdue
+                              ? 'destructive'
+                              : 'secondary'
+                          }
+                        >
+                          {activity.status === 'completed' && 'Completed'}
+                          {activity.status === 'pending' &&
+                            (isOverdue ? 'Overdue' : 'Pending')}
+                          {activity.status === 'cancelled' && 'Cancelled'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {activities.length > 0 && (
+          <div className="mt-4 text-center">
+            <p className="text-sm text-muted-foreground">
+              Showing {activities.length} most recent{' '}
+              {activities.length === 1 ? 'activity' : 'activities'}
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}

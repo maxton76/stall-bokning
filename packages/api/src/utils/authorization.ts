@@ -62,6 +62,10 @@ export async function getStableMemberRole(
 
     const member = memberDoc.data()
 
+    if (!member) {
+      return null
+    }
+
     // Only active members have access
     if (member.status !== 'active') {
       return null

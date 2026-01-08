@@ -168,7 +168,7 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
         subscriptionTier: 'free' as const,
         stats: {
           stableCount: 0,
-          totalMemberCount: 0
+          totalMemberCount: 1  // Owner counts as first member
         },
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp()
@@ -176,6 +176,28 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
 
       const docRef = await db.collection('organizations').add(organizationData)
       const doc = await docRef.get()
+      const organizationId = doc.id
+
+      // Create organizationMember record for owner
+      const memberId = `${user.uid}_${organizationId}`
+      await db.collection('organizationMembers').doc(memberId).set({
+        id: memberId,
+        organizationId,
+        userId: user.uid,
+        userEmail: (userData?.email || user.email).toLowerCase(),
+        firstName: userData?.firstName || '',
+        lastName: userData?.lastName || '',
+        phoneNumber: userData?.phoneNumber || null,
+        roles: ['administrator'],
+        primaryRole: 'administrator',
+        status: 'active',
+        showInPlanning: true,
+        stableAccess: 'all',
+        assignedStableIds: [],
+        joinedAt: Timestamp.now(),
+        invitedBy: user.uid,  // Self-created
+        inviteAcceptedAt: Timestamp.now()
+      })
 
       return reply.status(201).send({
         id: doc.id,
@@ -364,6 +386,10 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
       const user = (request as AuthenticatedRequest).user!
       const inviteData = validation.data
 
+      // Get inviter user details for email
+      const inviterUserDoc = await db.collection('users').doc(user.uid).get()
+      const inviterUserData = inviterUserDoc.data()
+
       // Get organization
       const orgDoc = await db.collection('organizations').doc(organizationId).get()
       if (!orgDoc.exists) {
@@ -446,7 +472,7 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
           await sendMemberInviteEmail({
             email: inviteData.email,
             organizationName: org.name,
-            inviterName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+            inviterName: `${inviterUserData?.firstName || ''} ${inviterUserData?.lastName || ''}`.trim(),
             roles: inviteData.roles,
             acceptUrl,
             declineUrl

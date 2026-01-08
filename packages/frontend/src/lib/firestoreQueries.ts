@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs, getDoc, doc } from 'firebase/firestore'
+import { collection, query, where, getDocs, getDoc, doc, orderBy } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
 /**
@@ -83,4 +83,18 @@ export async function getUserStablesData(userId: string): Promise<StableData[]> 
   ]
 
   return Array.from(new Map(allStables.map(s => [s.id, s])).values())
+}
+
+/**
+ * Get all stables in an organization
+ * @param organizationId - Organization ID to query for stables
+ * @returns QuerySnapshot of stables in the organization
+ */
+export async function getOrganizationStables(organizationId: string) {
+  const q = query(
+    collection(db, 'stables'),
+    where('organizationId', '==', organizationId),
+    orderBy('createdAt', 'desc')
+  )
+  return getDocs(q)
 }

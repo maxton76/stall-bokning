@@ -1,31 +1,20 @@
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
+import { useEffect, useState } from 'react'
+import { z } from 'zod'
+import { format } from 'date-fns'
+import { BaseFormDialog } from '@/components/BaseFormDialog'
+import { useFormDialog } from '@/hooks/useFormDialog'
+import { FormInput, FormSelect, FormTextarea, FormCheckboxGroup, FormDatePicker } from '@/components/form'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Calendar, History, Plus } from 'lucide-react'
+import { useVaccinationStatus } from '@/hooks/useVaccinationStatus'
 import type { Horse, HorseColor, HorseUsage, HorseGroup, VaccinationRule } from '@/types/roles'
 import { HORSE_COLORS, HORSE_USAGE_OPTIONS, HORSE_GENDERS } from '@/constants/horseConstants'
 import { Timestamp } from 'firebase/firestore'
@@ -40,59 +29,44 @@ interface HorseFormDialogProps {
   availableStables?: Array<{ id: string; name: string }>
   availableGroups?: HorseGroup[]
   availableRules?: VaccinationRule[]
+  onViewVaccinationHistory?: () => void
+  onAddVaccinationRecord?: () => void
 }
 
-interface HorseFormData {
-  name: string
-  breed: string
-  age: string
-  color: HorseColor | ''
-  gender: 'stallion' | 'mare' | 'gelding' | ''
-  currentStableId: string
-  notes: string
+const horseSchema = z.object({
+  name: z.string().min(1, 'Horse name is required').max(100),
+  breed: z.string().optional(),
+  age: z.number().min(0).max(50).optional(),
+  color: z.string().min(1, 'Color is required'),
+  gender: z.enum(['stallion', 'mare', 'gelding']).optional(),
+  isExternal: z.boolean(),
+  dateOfArrival: z.preprocess((val) => val === '' ? undefined : val, z.coerce.date().optional()),
+  currentStableId: z.string().optional(),
+  usage: z.array(z.string()),
+  horseGroupId: z.string().optional(),
+  vaccinationRuleId: z.string().optional(),
+  ueln: z.string().optional(),
+  chipNumber: z.string().optional(),
+  federationNumber: z.string().optional(),
+  feiPassNumber: z.string().optional(),
+  feiExpiryDate: z.preprocess((val) => val === '' ? undefined : val, z.coerce.date().optional()),
+  sire: z.string().optional(),
+  dam: z.string().optional(),
+  damsire: z.string().optional(),
+  withersHeight: z.number().min(0).optional(),
+  dateOfBirth: z.preprocess((val) => val === '' ? undefined : val, z.coerce.date().optional()),
+  studbook: z.string().optional(),
+  breeder: z.string().optional(),
+  notes: z.string().optional(),
+}).refine(
+  (data) => data.isExternal || data.dateOfArrival,
+  {
+    message: 'Date of arrival is required for non-external horses',
+    path: ['dateOfArrival'],
+  }
+)
 
-  // New fields
-  isExternal: boolean
-  dateOfArrival: string  // Using string for native date input
-  usage: HorseUsage[]
-  horseGroupId: string
-  vaccinationRuleId: string
-  ueln: string
-  chipNumber: string
-
-  // Additional details
-  sire: string
-  dam: string
-  damsire: string
-  withersHeight: string
-  dateOfBirth: string  // Using string for native date input
-  studbook: string
-  breeder: string
-}
-
-const emptyFormData: HorseFormData = {
-  name: '',
-  breed: '',
-  age: '',
-  color: '',
-  gender: '',
-  currentStableId: '',
-  notes: '',
-  isExternal: false,
-  dateOfArrival: '',
-  usage: [],
-  horseGroupId: '',
-  vaccinationRuleId: '',
-  ueln: '',
-  chipNumber: '',
-  sire: '',
-  dam: '',
-  damsire: '',
-  withersHeight: '',
-  dateOfBirth: '',
-  studbook: '',
-  breeder: ''
-}
+type HorseFormData = z.infer<typeof horseSchema>
 
 export function HorseFormDialog({
   open,
@@ -103,529 +77,502 @@ export function HorseFormDialog({
   allowStableAssignment = false,
   availableStables = [],
   availableGroups = [],
-  availableRules = []
+  availableRules = [],
+  onViewVaccinationHistory,
+  onAddVaccinationRecord
 }: HorseFormDialogProps) {
-  const [formData, setFormData] = useState<HorseFormData>(emptyFormData)
-  const [loading, setLoading] = useState(false)
+  const isEditMode = !!horse
+  const [vaccinationSectionOpen, setVaccinationSectionOpen] = useState(false)
 
-  useEffect(() => {
-    if (horse && open) {
-      setFormData({
-        name: horse.name || '',
-        breed: horse.breed || '',
-        age: horse.age?.toString() || '',
-        color: horse.color || '',
-        gender: horse.gender || '',
-        currentStableId: horse.currentStableId || '',
-        notes: horse.notes || '',
+  // Get vaccination status for existing horses
+  const { status: vaccinationStatus, loading: vaccinationLoading } = useVaccinationStatus(
+    horse || {} as Horse
+  )
 
-        // New fields
-        isExternal: horse.isExternal ?? false,
-        dateOfArrival: (horse.dateOfArrival
-          ? new Date(horse.dateOfArrival.toMillis()).toISOString().split('T')[0]
-          : '') as string,
-        usage: horse.usage || [],
-        horseGroupId: horse.horseGroupId || '',
-        vaccinationRuleId: horse.vaccinationRuleId || '',
-        ueln: horse.ueln || '',
-        chipNumber: horse.chipNumber || '',
-
-        // Additional details
-        sire: horse.sire || '',
-        dam: horse.dam || '',
-        damsire: horse.damsire || '',
-        withersHeight: horse.withersHeight?.toString() || '',
-        dateOfBirth: (horse.dateOfBirth
-          ? new Date(horse.dateOfBirth.toMillis()).toISOString().split('T')[0]
-          : '') as string,
-        studbook: horse.studbook || '',
-        breeder: horse.breeder || ''
-      })
-    } else if (open) {
-      setFormData(emptyFormData)
-    }
-  }, [horse, open])
-
-  const handleSave = async () => {
-    // Required field validation
-    if (!formData.name.trim()) {
-      alert('Please enter a horse name')
-      return
-    }
-
-    if (!formData.color) {
-      alert('Please select a color')
-      return
-    }
-
-    // Conditional validation for non-external horses
-    if (!formData.isExternal && !formData.dateOfArrival) {
-      alert('Please enter a date of arrival for non-external horses')
-      return
-    }
-
-    try {
-      setLoading(true)
-
+  const { form, handleSubmit, resetForm } = useFormDialog<HorseFormData>({
+    schema: horseSchema,
+    defaultValues: {
+      name: '',
+      breed: '',
+      age: undefined,
+      color: '',
+      gender: undefined,
+      isExternal: false,
+      dateOfArrival: undefined,
+      currentStableId: 'none',
+      usage: [],
+      horseGroupId: 'none',
+      vaccinationRuleId: 'none',
+      ueln: '',
+      chipNumber: '',
+      federationNumber: '',
+      feiPassNumber: '',
+      feiExpiryDate: undefined,
+      sire: '',
+      dam: '',
+      damsire: '',
+      withersHeight: undefined,
+      dateOfBirth: undefined,
+      studbook: '',
+      breeder: '',
+      notes: '',
+    },
+    onSubmit: async (data) => {
       // Find stable name if stable is selected
       let stableName = horse?.currentStableName
-      if (formData.currentStableId && !stableName) {
-        const stable = availableStables.find(s => s.id === formData.currentStableId)
+      if (data.currentStableId && !stableName) {
+        const stable = availableStables.find(s => s.id === data.currentStableId)
         stableName = stable?.name
       }
 
       // Prepare data for save
       const horseData: any = {
-        name: formData.name.trim(),
-        breed: formData.breed.trim() || undefined,
-        age: formData.age ? parseInt(formData.age) : undefined,
-        color: formData.color as HorseColor,
-        gender: formData.gender || undefined,
-        isExternal: formData.isExternal,
-        notes: formData.notes.trim() || undefined,
+        name: data.name.trim(),
+        breed: data.breed?.trim() || undefined,
+        age: data.age || undefined,
+        color: data.color as HorseColor,
+        gender: data.gender || undefined,
+        isExternal: data.isExternal,
+        notes: data.notes?.trim() || undefined,
         status: 'active' as const,
-
-        // Identification
-        ueln: formData.ueln.trim() || undefined,
-        chipNumber: formData.chipNumber.trim() || undefined,
-
-        // Additional details
-        sire: formData.sire.trim() || undefined,
-        dam: formData.dam.trim() || undefined,
-        damsire: formData.damsire.trim() || undefined,
-        withersHeight: formData.withersHeight ? parseInt(formData.withersHeight) : undefined,
-        dateOfBirth: formData.dateOfBirth
-          ? Timestamp.fromDate(new Date(formData.dateOfBirth))
-          : undefined,
-        studbook: formData.studbook.trim() || undefined,
-        breeder: formData.breeder.trim() || undefined
+        ueln: data.ueln?.trim() || undefined,
+        chipNumber: data.chipNumber?.trim() || undefined,
+        federationNumber: data.federationNumber?.trim() || undefined,
+        feiPassNumber: data.feiPassNumber?.trim() || undefined,
+        feiExpiryDate: data.feiExpiryDate ? Timestamp.fromDate(data.feiExpiryDate) : undefined,
+        sire: data.sire?.trim() || undefined,
+        dam: data.dam?.trim() || undefined,
+        damsire: data.damsire?.trim() || undefined,
+        withersHeight: data.withersHeight || undefined,
+        dateOfBirth: data.dateOfBirth ? Timestamp.fromDate(data.dateOfBirth) : undefined,
+        studbook: data.studbook?.trim() || undefined,
+        breeder: data.breeder?.trim() || undefined,
       }
 
       // Conditional fields for non-external horses
-      if (!formData.isExternal) {
-        horseData.dateOfArrival = formData.dateOfArrival
-          ? Timestamp.fromDate(new Date(formData.dateOfArrival))
-          : undefined
-        horseData.currentStableId = formData.currentStableId || undefined
+      if (!data.isExternal) {
+        horseData.dateOfArrival = data.dateOfArrival ? Timestamp.fromDate(data.dateOfArrival) : undefined
+        horseData.currentStableId = data.currentStableId === 'none' ? undefined : data.currentStableId
         horseData.currentStableName = stableName
-        horseData.assignedAt = formData.currentStableId ? (horse?.assignedAt || Timestamp.now()) : undefined
-        horseData.usage = formData.usage.length > 0 ? formData.usage : undefined
+        horseData.assignedAt = (data.currentStableId && data.currentStableId !== 'none') ? (horse?.assignedAt || Timestamp.now()) : undefined
+        horseData.usage = data.usage.length > 0 ? data.usage : undefined
 
         // Group assignment
-        if (formData.horseGroupId) {
-          horseData.horseGroupId = formData.horseGroupId
-          const group = availableGroups.find(g => g.id === formData.horseGroupId)
+        if (data.horseGroupId && data.horseGroupId !== 'none') {
+          horseData.horseGroupId = data.horseGroupId
+          const group = availableGroups.find(g => g.id === data.horseGroupId)
           horseData.horseGroupName = group?.name
-        } else {
-          horseData.horseGroupId = undefined
-          horseData.horseGroupName = undefined
         }
 
         // Vaccination rule assignment
-        if (formData.vaccinationRuleId) {
-          horseData.vaccinationRuleId = formData.vaccinationRuleId
-          const rule = availableRules.find(r => r.id === formData.vaccinationRuleId)
+        if (data.vaccinationRuleId && data.vaccinationRuleId !== 'none') {
+          horseData.vaccinationRuleId = data.vaccinationRuleId
+          const rule = availableRules.find(r => r.id === data.vaccinationRuleId)
           horseData.vaccinationRuleName = rule?.name
-        } else {
-          horseData.vaccinationRuleId = undefined
-          horseData.vaccinationRuleName = undefined
         }
       }
 
       await onSave(horseData)
+    },
+    onSuccess: () => {
       onOpenChange(false)
-    } catch (error) {
-      console.error('Error saving horse:', error)
-      alert('Failed to save horse. Please try again.')
-    } finally {
-      setLoading(false)
-    }
+    },
+    successMessage: isEditMode ? 'Horse updated successfully' : 'Horse added successfully',
+    errorMessage: isEditMode ? 'Failed to update horse' : 'Failed to add horse',
+  })
+
+  // Helper to format date for HTML5 date input (YYYY-MM-DD)
+  const formatDateForInput = (timestamp: Timestamp | undefined): string => {
+    if (!timestamp) return ''
+    const date = timestamp.toDate()
+    return date.toISOString().split('T')[0]
   }
 
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (horse) {
+      resetForm({
+        name: horse.name || '',
+        breed: horse.breed || '',
+        age: horse.age || undefined,
+        color: horse.color || '',
+        gender: horse.gender || undefined,
+        isExternal: horse.isExternal ?? false,
+        dateOfArrival: formatDateForInput(horse.dateOfArrival) as any,
+        currentStableId: horse.currentStableId || 'none',
+        usage: horse.usage || [],
+        horseGroupId: horse.horseGroupId || 'none',
+        vaccinationRuleId: horse.vaccinationRuleId || 'none',
+        ueln: horse.ueln || '',
+        chipNumber: horse.chipNumber || '',
+        federationNumber: horse.federationNumber || '',
+        feiPassNumber: horse.feiPassNumber || '',
+        feiExpiryDate: formatDateForInput(horse.feiExpiryDate) as any,
+        sire: horse.sire || '',
+        dam: horse.dam || '',
+        damsire: horse.damsire || '',
+        withersHeight: horse.withersHeight || undefined,
+        dateOfBirth: formatDateForInput(horse.dateOfBirth) as any,
+        studbook: horse.studbook || '',
+        breeder: horse.breeder || '',
+        notes: horse.notes || '',
+      })
+    } else {
+      resetForm()
+    }
+  }, [horse, open])
+
+  const isExternal = form.watch('isExternal')
+
+  // Debug: Log form validation errors
+  useEffect(() => {
+    if (Object.keys(form.formState.errors).length > 0) {
+      console.error('🚨 Form validation errors:', form.formState.errors)
+    }
+  }, [form.formState.errors])
+
+  const colorOptions = HORSE_COLORS.map(c => ({ value: c.value, label: c.label }))
+  const genderOptions = HORSE_GENDERS.map(g => ({ value: g.value, label: g.label }))
+  const stableOptions = [
+    { value: 'none', label: 'No stable (unassigned)' },
+    ...availableStables.map(s => ({ value: s.id, label: s.name }))
+  ]
+  const groupOptions = [
+    { value: 'none', label: 'No group' },
+    ...availableGroups.map(g => ({ value: g.id, label: g.name }))
+  ]
+  const ruleOptions = [
+    { value: 'none', label: 'No vaccination rule' },
+    ...availableRules.map(r => ({ value: r.id, label: r.name }))
+  ]
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-[600px] max-h-[90vh] overflow-y-auto'>
-        <DialogHeader>
-          <DialogTitle>
-            {title || (horse ? 'Edit Horse' : 'Add New Horse')}
-          </DialogTitle>
-          <DialogDescription>
-            {horse
-              ? 'Update the horse details below.'
-              : 'Add a new horse to your account. You can optionally assign it to a stable.'}
-          </DialogDescription>
-        </DialogHeader>
+    <BaseFormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={title || (isEditMode ? 'Edit Horse' : 'Add New Horse')}
+      description={
+        isEditMode
+          ? 'Update the horse details below.'
+          : 'Add a new horse to your account. You can optionally assign it to a stable.'
+      }
+      form={form}
+      onSubmit={handleSubmit}
+      submitLabel={isEditMode ? 'Update' : 'Add Horse'}
+      maxWidth="sm:max-w-[600px]"
+    >
+      <FormInput
+        name="name"
+        label="Horse Name"
+        form={form}
+        placeholder="e.g., Thunder"
+        required
+      />
 
-        <div className='grid gap-4 py-4'>
-          {/* Name - Required */}
-          <div className='grid gap-2'>
-            <Label htmlFor='name'>
-              Horse Name <span className='text-destructive'>*</span>
-            </Label>
-            <Input
-              id='name'
-              placeholder='e.g., Thunder'
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            />
-          </div>
+      <FormInput
+        name="breed"
+        label="Breed"
+        form={form}
+        placeholder="e.g., Arabian, Thoroughbred"
+      />
 
-          {/* Breed */}
-          <div className='grid gap-2'>
-            <Label htmlFor='breed'>Breed</Label>
-            <Input
-              id='breed'
-              placeholder='e.g., Arabian, Thoroughbred'
-              value={formData.breed}
-              onChange={(e) => setFormData(prev => ({ ...prev, breed: e.target.value }))}
-            />
-          </div>
+      {/* Is External Toggle */}
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="isExternal"
+          checked={isExternal}
+          onCheckedChange={(checked) => {
+            form.setValue('isExternal', checked)
+            if (checked) {
+              form.setValue('dateOfArrival', undefined)
+              form.setValue('currentStableId', '')
+              form.setValue('usage', [])
+            }
+          }}
+        />
+        <Label htmlFor="isExternal" className="text-sm font-normal cursor-pointer">
+          This horse is external (not part of the stable)
+        </Label>
+      </div>
 
-          {/* Is External Toggle */}
-          <div className='grid gap-2'>
-            <div className='flex items-center space-x-2'>
-              <Switch
-                id='isExternal'
-                checked={formData.isExternal}
-                onCheckedChange={(checked) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    isExternal: checked,
-                    // Clear conditional fields when toggled on
-                    ...(checked && {
-                      dateOfArrival: '',
-                      currentStableId: '',
-                      usage: []
-                    })
-                  }))
-                }}
-              />
-              <Label htmlFor='isExternal' className='text-sm font-normal cursor-pointer'>
-                This horse is external (not part of the stable)
-              </Label>
-            </div>
-          </div>
+      {/* Date of Arrival - Required for non-external horses */}
+      {!isExternal && (
+        <FormDatePicker
+          name="dateOfArrival"
+          label="Date of Arrival"
+          form={form}
+          required
+        />
+      )}
 
-          {/* Date of Arrival - Required for non-external horses */}
-          {!formData.isExternal && (
-            <div className='grid gap-2'>
-              <Label htmlFor='dateOfArrival'>
-                Date of Arrival <span className='text-destructive'>*</span>
-              </Label>
-              <Input
-                id='dateOfArrival'
-                type='date'
-                value={formData.dateOfArrival}
-                onChange={(e) => setFormData(prev => ({ ...prev, dateOfArrival: e.target.value }))}
-              />
-            </div>
-          )}
+      {/* Location/Stable Assignment - Hidden for external horses */}
+      {!isExternal && allowStableAssignment && availableStables.length > 0 && (
+        <FormSelect
+          name="currentStableId"
+          label="Location (Stable)"
+          form={form}
+          options={stableOptions}
+        />
+      )}
 
-          {/* Location/Stable Assignment - Hidden for external horses */}
-          {!formData.isExternal && allowStableAssignment && availableStables.length > 0 && (
-            <div className='grid gap-2'>
-              <Label htmlFor='stable'>Location (Stable)</Label>
-              <Select
-                value={formData.currentStableId || 'none'}
-                onValueChange={(value) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    currentStableId: value === 'none' ? '' : value
-                  }))
-                }}
-              >
-                <SelectTrigger id='stable'>
-                  <SelectValue placeholder='No stable (unassigned)' />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='none'>No stable (unassigned)</SelectItem>
-                  {availableStables.map(stable => (
-                    <SelectItem key={stable.id} value={stable.id}>
-                      {stable.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+      {/* Usage - Hidden for external horses */}
+      {!isExternal && (
+        <FormCheckboxGroup
+          name="usage"
+          label="Usage"
+          form={form}
+          options={HORSE_USAGE_OPTIONS.map(o => ({ value: o.value, label: `${o.icon} ${o.label}` }))}
+        />
+      )}
 
-          {/* Usage - Hidden for external horses */}
-          {!formData.isExternal && (
-            <div className='grid gap-2'>
-              <Label>Usage</Label>
-              <div className='space-y-2'>
-                {HORSE_USAGE_OPTIONS.map(option => (
-                  <div key={option.value} className='flex items-center space-x-2'>
-                    <Checkbox
-                      id={`usage-${option.value}`}
-                      checked={formData.usage.includes(option.value)}
-                      onCheckedChange={(checked) => {
-                        setFormData(prev => ({
-                          ...prev,
-                          usage: checked
-                            ? [...prev.usage, option.value]
-                            : prev.usage.filter(u => u !== option.value)
-                        }))
-                      }}
-                    />
-                    <Label
-                      htmlFor={`usage-${option.value}`}
-                      className='flex items-center gap-2 cursor-pointer text-sm font-normal'
+      {/* Horse Group - Hidden for external horses */}
+      {!isExternal && availableGroups.length > 0 && (
+        <FormSelect
+          name="horseGroupId"
+          label="Horse Group"
+          form={form}
+          options={groupOptions}
+        />
+      )}
+
+      {/* Vaccination Rule - Hidden for external horses */}
+      {!isExternal && availableRules.length > 0 && (
+        <FormSelect
+          name="vaccinationRuleId"
+          label="Vaccination Rule"
+          form={form}
+          options={ruleOptions}
+        />
+      )}
+
+      {/* Vaccination Records Section - Only show in edit mode */}
+      {isEditMode && horse && !isExternal && (onViewVaccinationHistory || onAddVaccinationRecord) && (
+        <Collapsible open={vaccinationSectionOpen} onOpenChange={setVaccinationSectionOpen}>
+          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium hover:underline">
+            <span className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Vaccination Records
+            </span>
+            <ChevronDown className="h-4 w-4" />
+          </CollapsibleTrigger>
+
+          <CollapsibleContent className="space-y-4 pt-4 border-t">
+            {/* Vaccination Status Summary */}
+            {!vaccinationLoading && vaccinationStatus && (
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-sm text-muted-foreground">Current Status</Label>
+                  <div className="mt-1">
+                    <Badge
+                      variant={
+                        vaccinationStatus.status === 'current'
+                          ? 'secondary'
+                          : vaccinationStatus.status === 'expiring_soon'
+                          ? 'outline'
+                          : vaccinationStatus.status === 'expired'
+                          ? 'destructive'
+                          : 'default'
+                      }
                     >
-                      <span>{option.icon}</span>
-                      <span>{option.label}</span>
-                    </Label>
+                      {vaccinationStatus.message}
+                    </Badge>
                   </div>
-                ))}
+                </div>
+
+                {/* Last Vaccination Date */}
+                {vaccinationStatus.lastVaccinationDate && (
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Last Vaccination</Label>
+                    <p className="text-sm mt-1">
+                      {format(vaccinationStatus.lastVaccinationDate.toDate(), 'MMM d, yyyy')}
+                    </p>
+                  </div>
+                )}
+
+                {/* Next Due Date */}
+                {vaccinationStatus.nextDueDate && (
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Next Due Date</Label>
+                    <p className="text-sm mt-1">
+                      {format(vaccinationStatus.nextDueDate.toDate(), 'MMM d, yyyy')}
+                      {vaccinationStatus.daysUntilDue !== undefined && (
+                        <span className="text-muted-foreground ml-2">
+                          ({Math.abs(vaccinationStatus.daysUntilDue)}{' '}
+                          {vaccinationStatus.daysUntilDue < 0 ? 'days overdue' : 'days'})
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                )}
+
+                {/* Vaccination Rule */}
+                {vaccinationStatus.vaccinationRuleName && (
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Vaccination Rule</Label>
+                    <p className="text-sm mt-1">{vaccinationStatus.vaccinationRuleName}</p>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Horse Group - Hidden for external horses */}
-          {!formData.isExternal && availableGroups.length > 0 && (
-            <div className='grid gap-2'>
-              <Label htmlFor='horseGroupId'>Horse Group</Label>
-              <Select
-                value={formData.horseGroupId}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, horseGroupId: value }))}
-              >
-                <SelectTrigger id='horseGroupId'>
-                  <SelectValue placeholder='No group' />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value=''>No group</SelectItem>
-                  {availableGroups.map(group => (
-                    <SelectItem key={group.id} value={group.id}>
-                      {group.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+            {vaccinationLoading && (
+              <p className="text-sm text-muted-foreground">Loading vaccination status...</p>
+            )}
 
-          {/* Vaccination Rule - Hidden for external horses */}
-          {!formData.isExternal && availableRules.length > 0 && (
-            <div className='grid gap-2'>
-              <Label htmlFor='vaccinationRuleId'>Vaccination Rule</Label>
-              <Select
-                value={formData.vaccinationRuleId}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, vaccinationRuleId: value }))}
-              >
-                <SelectTrigger id='vaccinationRuleId'>
-                  <SelectValue placeholder='No vaccination rule' />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value=''>No vaccination rule</SelectItem>
-                  {availableRules.map(rule => (
-                    <SelectItem key={rule.id} value={rule.id}>
-                      {rule.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* UELN and Chip Number */}
-          <div className='grid grid-cols-2 gap-4'>
-            <div className='grid gap-2'>
-              <Label htmlFor='ueln'>UELN</Label>
-              <Input
-                id='ueln'
-                placeholder='Universal Equine Life Number'
-                value={formData.ueln}
-                onChange={(e) => setFormData(prev => ({ ...prev, ueln: e.target.value }))}
-              />
-            </div>
-
-            <div className='grid gap-2'>
-              <Label htmlFor='chipNumber'>Chip Number</Label>
-              <Input
-                id='chipNumber'
-                placeholder='Microchip number'
-                value={formData.chipNumber}
-                onChange={(e) => setFormData(prev => ({ ...prev, chipNumber: e.target.value }))}
-              />
-            </div>
-          </div>
-
-          {/* Gender */}
-          <div className='grid gap-2'>
-            <Label htmlFor='gender'>Gender</Label>
-            <Select
-              value={formData.gender || ''}
-              onValueChange={(value) => setFormData(prev => ({
-                ...prev,
-                gender: value as 'stallion' | 'mare' | 'gelding' | ''
-              }))}
-            >
-              <SelectTrigger id='gender'>
-                <SelectValue placeholder='Select gender' />
-              </SelectTrigger>
-              <SelectContent>
-                {HORSE_GENDERS.map(option => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Collapsible Additional Details Section */}
-          <Collapsible>
-            <CollapsibleTrigger className='flex items-center justify-between w-full py-2 text-sm font-medium hover:underline'>
-              <span>Additional horse details</span>
-              <ChevronDown className='h-4 w-4' />
-            </CollapsibleTrigger>
-
-            <CollapsibleContent className='space-y-4 pt-4'>
-              {/* Color - REQUIRED */}
-              <div className='grid gap-2'>
-                <Label htmlFor='color'>
-                  Color <span className='text-destructive'>*</span>
-                </Label>
-                <Select
-                  value={formData.color || ''}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, color: value as HorseColor }))}
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-2">
+              {onViewVaccinationHistory && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onViewVaccinationHistory}
                 >
-                  <SelectTrigger id='color'>
-                    <SelectValue placeholder='Select color' />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {HORSE_COLORS.map(color => (
-                      <SelectItem key={color.value} value={color.value}>
-                        {color.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <History className="h-4 w-4 mr-2" />
+                  View Full History
+                </Button>
+              )}
+              {onAddVaccinationRecord && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onAddVaccinationRecord}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Record
+                </Button>
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
 
-              {/* Age */}
-              <div className='grid gap-2'>
-                <Label htmlFor='age'>Age (years)</Label>
-                <Input
-                  id='age'
-                  type='number'
-                  min='0'
-                  max='50'
-                  placeholder='e.g., 5'
-                  value={formData.age}
-                  onChange={(e) => setFormData(prev => ({ ...prev, age: e.target.value }))}
-                />
-              </div>
-
-              {/* Sire and Dam */}
-              <div className='grid grid-cols-2 gap-4'>
-                <div className='grid gap-2'>
-                  <Label htmlFor='sire'>Sire</Label>
-                  <Input
-                    id='sire'
-                    placeholder="Father's name"
-                    value={formData.sire}
-                    onChange={(e) => setFormData(prev => ({ ...prev, sire: e.target.value }))}
-                  />
-                </div>
-                <div className='grid gap-2'>
-                  <Label htmlFor='dam'>Dam</Label>
-                  <Input
-                    id='dam'
-                    placeholder="Mother's name"
-                    value={formData.dam}
-                    onChange={(e) => setFormData(prev => ({ ...prev, dam: e.target.value }))}
-                  />
-                </div>
-              </div>
-
-              {/* Withers Height and Damsire */}
-              <div className='grid grid-cols-2 gap-4'>
-                <div className='grid gap-2'>
-                  <Label htmlFor='withersHeight'>Withers Height</Label>
-                  <div className='relative'>
-                    <Input
-                      id='withersHeight'
-                      type='number'
-                      min='0'
-                      placeholder='e.g., 165'
-                      value={formData.withersHeight}
-                      onChange={(e) => setFormData(prev => ({ ...prev, withersHeight: e.target.value }))}
-                      className='pr-10'
-                    />
-                    <span className='absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground'>
-                      cm
-                    </span>
-                  </div>
-                </div>
-                <div className='grid gap-2'>
-                  <Label htmlFor='damsire'>Damsire</Label>
-                  <Input
-                    id='damsire'
-                    placeholder="Mother's father"
-                    value={formData.damsire}
-                    onChange={(e) => setFormData(prev => ({ ...prev, damsire: e.target.value }))}
-                  />
-                </div>
-              </div>
-
-              {/* Date of Birth */}
-              <div className='grid gap-2'>
-                <Label htmlFor='dateOfBirth'>Date of Birth</Label>
-                <Input
-                  id='dateOfBirth'
-                  type='date'
-                  value={formData.dateOfBirth}
-                  onChange={(e) => setFormData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
-                />
-              </div>
-
-              {/* Studbook */}
-              <div className='grid gap-2'>
-                <Label htmlFor='studbook'>Studbook</Label>
-                <Input
-                  id='studbook'
-                  placeholder='Studbook registration'
-                  value={formData.studbook}
-                  onChange={(e) => setFormData(prev => ({ ...prev, studbook: e.target.value }))}
-                />
-              </div>
-
-              {/* Breeder */}
-              <div className='grid gap-2'>
-                <Label htmlFor='breeder'>Breeder</Label>
-                <Input
-                  id='breeder'
-                  placeholder='Breeder name'
-                  value={formData.breeder}
-                  onChange={(e) => setFormData(prev => ({ ...prev, breeder: e.target.value }))}
-                />
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-
-          {/* Notes */}
-          <div className='grid gap-2'>
-            <Label htmlFor='notes'>Notes</Label>
-            <Textarea
-              id='notes'
-              placeholder='Any additional information about this horse...'
-              rows={3}
-              value={formData.notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-            />
-          </div>
+      {/* Expanded Identification Section */}
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <FormInput
+            name="ueln"
+            label="UELN"
+            form={form}
+            placeholder="Universal Equine Life Number"
+          />
+          <FormInput
+            name="chipNumber"
+            label="Chip Number"
+            form={form}
+            placeholder="Microchip number"
+          />
         </div>
 
-        <DialogFooter>
-          <Button variant='outline' onClick={() => onOpenChange(false)} disabled={loading}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={loading}>
-            {loading ? 'Saving...' : horse ? 'Update' : 'Add Horse'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <div className="grid grid-cols-2 gap-4">
+          <FormInput
+            name="federationNumber"
+            label="Federation Number"
+            form={form}
+            placeholder="Federation registration number"
+          />
+          <FormInput
+            name="feiPassNumber"
+            label="FEI Pass Number"
+            form={form}
+            placeholder="FEI passport number"
+          />
+        </div>
+
+        <FormDatePicker
+          name="feiExpiryDate"
+          label="FEI Passport Expiry"
+          form={form}
+        />
+      </div>
+
+      <FormSelect
+        name="color"
+        label="Color"
+        form={form}
+        options={colorOptions}
+        placeholder="Select color"
+        required
+      />
+
+      <FormSelect
+        name="gender"
+        label="Gender"
+        form={form}
+        options={genderOptions}
+        placeholder="Select gender"
+      />
+
+      <FormDatePicker
+        name="dateOfBirth"
+        label="Date of Birth"
+        form={form}
+      />
+
+      {/* Collapsible Additional Details Section */}
+      <Collapsible>
+        <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium hover:underline">
+          <span>Additional horse details</span>
+          <ChevronDown className="h-4 w-4" />
+        </CollapsibleTrigger>
+
+        <CollapsibleContent className="space-y-4 pt-4">
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormInput
+              name="sire"
+              label="Sire"
+              form={form}
+              placeholder="Father's name"
+            />
+            <FormInput
+              name="dam"
+              label="Dam"
+              form={form}
+              placeholder="Mother's name"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormInput
+              name="withersHeight"
+              label="Withers Height (cm)"
+              form={form}
+              type="number"
+              placeholder="e.g., 165"
+            />
+            <FormInput
+              name="damsire"
+              label="Damsire"
+              form={form}
+              placeholder="Mother's father"
+            />
+          </div>
+
+          <FormInput
+            name="studbook"
+            label="Studbook"
+            form={form}
+            placeholder="Studbook registration"
+          />
+
+          <FormInput
+            name="breeder"
+            label="Breeder"
+            form={form}
+            placeholder="Breeder name"
+          />
+        </CollapsibleContent>
+      </Collapsible>
+
+      <FormTextarea
+        name="notes"
+        label="Notes"
+        form={form}
+        placeholder="Any additional information about this horse..."
+        rows={3}
+      />
+    </BaseFormDialog>
   )
 }

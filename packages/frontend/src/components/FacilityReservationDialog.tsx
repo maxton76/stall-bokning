@@ -1,29 +1,13 @@
 import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, CalendarIcon } from 'lucide-react'
 import { format } from 'date-fns'
 import { Timestamp } from 'firebase/firestore'
+import { BaseFormDialog } from '@/components/BaseFormDialog'
+import { useFormDialog } from '@/hooks/useFormDialog'
+import { FormInput, FormSelect, FormTextarea } from '@/components/form'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -87,16 +71,10 @@ export function FacilityReservationDialog({
 }: FacilityReservationDialogProps) {
   const [conflicts, setConflicts] = useState<FacilityReservation[]>([])
   const [checkingConflicts, setCheckingConflicts] = useState(false)
+  const isEditMode = !!reservation
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    reset,
-    setValue,
-    watch,
-  } = useForm<ReservationFormData>({
-    resolver: zodResolver(reservationSchema),
+  const { form, handleSubmit, resetForm } = useFormDialog<ReservationFormData>({
+    schema: reservationSchema,
     defaultValues: {
       facilityId: '',
       date: new Date(),
@@ -106,13 +84,22 @@ export function FacilityReservationDialog({
       contactInfo: '',
       notes: '',
     },
+    onSubmit: async (data) => {
+      await onSave(data)
+    },
+    onSuccess: () => {
+      setConflicts([])
+      onOpenChange(false)
+    },
+    successMessage: isEditMode ? 'Reservation updated successfully' : 'Reservation created successfully',
+    errorMessage: isEditMode ? 'Failed to update reservation' : 'Failed to create reservation',
   })
 
   // Reset form when dialog opens with reservation data or initial values
   useEffect(() => {
     if (reservation) {
       const startDate = reservation.startTime.toDate()
-      reset({
+      resetForm({
         facilityId: reservation.facilityId,
         date: startDate,
         startTime: format(startDate, 'HH:mm'),
@@ -122,7 +109,7 @@ export function FacilityReservationDialog({
         notes: reservation.notes || '',
       })
     } else if (initialValues) {
-      reset({
+      resetForm({
         facilityId: initialValues.facilityId || '',
         date: initialValues.date || new Date(),
         startTime: initialValues.startTime || '09:00',
@@ -132,15 +119,15 @@ export function FacilityReservationDialog({
         notes: '',
       })
     } else {
-      reset()
+      resetForm()
     }
-  }, [reservation, initialValues, reset])
+  }, [reservation, initialValues, open])
 
   // Watch fields for conflict checking
-  const facilityId = watch('facilityId')
-  const date = watch('date')
-  const startTime = watch('startTime')
-  const endTime = watch('endTime')
+  const facilityId = form.watch('facilityId')
+  const date = form.watch('date')
+  const startTime = form.watch('startTime')
+  const endTime = form.watch('endTime')
 
   // Check for conflicts when relevant fields change
   useEffect(() => {
@@ -192,192 +179,119 @@ export function FacilityReservationDialog({
     return () => clearTimeout(timeoutId)
   }, [facilityId, date, startTime, endTime, reservation?.id])
 
-  const onSubmit = async (data: ReservationFormData) => {
-    try {
-      await onSave(data)
-      onOpenChange(false)
-      reset()
-      setConflicts([])
-    } catch (error) {
-      console.error('Failed to save reservation:', error)
-    }
-  }
+  const facilityOptions = facilities.map(f => ({ value: f.id, label: f.name }))
+  const horseOptions = horses.map(h => ({ value: h.id, label: h.name }))
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-[500px]'>
-        <DialogHeader>
-          <DialogTitle>
-            {reservation ? 'Edit Reservation' : 'New Reservation'}
-          </DialogTitle>
-          <DialogDescription>
-            {reservation
-              ? 'Update reservation details'
-              : 'Create a new facility reservation'}
-          </DialogDescription>
-        </DialogHeader>
+    <BaseFormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={isEditMode ? 'Edit Reservation' : 'New Reservation'}
+      description={isEditMode ? 'Update reservation details' : 'Create a new facility reservation'}
+      form={form}
+      onSubmit={handleSubmit}
+      submitLabel={isEditMode ? 'Update Reservation' : 'Create Reservation'}
+      submitDisabled={conflicts.length > 0 || checkingConflicts}
+      maxWidth="sm:max-w-[500px]"
+    >
+      <FormSelect
+        name="facilityId"
+        label="Facility"
+        form={form}
+        options={facilityOptions}
+        placeholder="Select facility"
+        required
+      />
 
-        <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
-          {/* Facility Select */}
-          <div className='space-y-2'>
-            <Label htmlFor='facilityId'>
-              Facility <span className='text-destructive'>*</span>
-            </Label>
-            <Select value={facilityId} onValueChange={(value) => setValue('facilityId', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder='Select facility' />
-              </SelectTrigger>
-              <SelectContent>
-                {facilities.map((facility) => (
-                  <SelectItem key={facility.id} value={facility.id}>
-                    {facility.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.facilityId && (
-              <p className='text-sm text-destructive'>{errors.facilityId.message}</p>
-            )}
-          </div>
-
-          {/* Date Picker */}
-          <div className='space-y-2'>
-            <Label>
-              Date <span className='text-destructive'>*</span>
-            </Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant='outline'
-                  className={cn(
-                    'w-full justify-start text-left font-normal',
-                    !date && 'text-muted-foreground'
-                  )}
-                >
-                  {date ? format(date, 'PPP') : 'Pick a date'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className='w-auto p-0'>
-                <Calendar
-                  mode='single'
-                  selected={date}
-                  onSelect={(date) => date && setValue('date', date)}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            {errors.date && (
-              <p className='text-sm text-destructive'>{errors.date.message}</p>
-            )}
-          </div>
-
-          {/* Time Range */}
-          <div className='grid grid-cols-2 gap-4'>
-            <div className='space-y-2'>
-              <Label htmlFor='startTime'>
-                Start time <span className='text-destructive'>*</span>
-              </Label>
-              <Input
-                id='startTime'
-                type='time'
-                {...register('startTime')}
-              />
-              {errors.startTime && (
-                <p className='text-sm text-destructive'>{errors.startTime.message}</p>
-              )}
-            </div>
-
-            <div className='space-y-2'>
-              <Label htmlFor='endTime'>
-                End time <span className='text-destructive'>*</span>
-              </Label>
-              <Input
-                id='endTime'
-                type='time'
-                {...register('endTime')}
-              />
-              {errors.endTime && (
-                <p className='text-sm text-destructive'>{errors.endTime.message}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Conflict Warning */}
-          {conflicts.length > 0 && (
-            <Alert variant='destructive'>
-              <AlertCircle className='h-4 w-4' />
-              <AlertTitle>Scheduling Conflict</AlertTitle>
-              <AlertDescription>
-                This time slot overlaps with {conflicts.length} existing reservation(s).
-                {conflicts.map((conflict, idx) => (
-                  <div key={idx} className='mt-2 text-sm'>
-                    • {conflict.userFullName || conflict.userEmail} ({format(conflict.startTime.toDate(), 'HH:mm')} - {format(conflict.endTime.toDate(), 'HH:mm')})
-                  </div>
-                ))}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Contact Info */}
-          <div className='space-y-2'>
-            <Label htmlFor='contactInfo'>Contact information</Label>
-            <Input
-              id='contactInfo'
-              placeholder='Phone or email for contact'
-              {...register('contactInfo')}
-            />
-          </div>
-
-          {/* Horse Select */}
-          <div className='space-y-2'>
-            <Label htmlFor='horseId'>
-              Horse <span className='text-destructive'>*</span>
-            </Label>
-            <Select value={watch('horseId')} onValueChange={(value) => setValue('horseId', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder='Select horse' />
-              </SelectTrigger>
-              <SelectContent>
-                {horses.map((horse) => (
-                  <SelectItem key={horse.id} value={horse.id}>
-                    {horse.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.horseId && (
-              <p className='text-sm text-destructive'>{errors.horseId.message}</p>
-            )}
-          </div>
-
-          {/* Notes */}
-          <div className='space-y-2'>
-            <Label htmlFor='notes'>Notes</Label>
-            <Textarea
-              id='notes'
-              placeholder='Additional notes or special requirements...'
-              rows={3}
-              {...register('notes')}
-            />
-          </div>
-
-          <DialogFooter>
-            <Button type='button' variant='outline' onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
+      {/* Date Picker - Custom implementation */}
+      <div className="space-y-2">
+        <Label>
+          Date <span className="text-destructive">*</span>
+        </Label>
+        <Popover>
+          <PopoverTrigger asChild>
             <Button
-              type='submit'
-              disabled={isSubmitting || conflicts.length > 0 || checkingConflicts}
+              variant="outline"
+              className={cn(
+                'w-full justify-start text-left font-normal',
+                !date && 'text-muted-foreground'
+              )}
             >
-              {isSubmitting
-                ? 'Saving...'
-                : reservation
-                ? 'Update'
-                : 'Create'} Reservation
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {date ? format(date, 'PPP') : 'Pick a date'}
             </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={(date) => date && form.setValue('date', date)}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+        {form.formState.errors.date && (
+          <p className="text-sm text-destructive">{form.formState.errors.date.message}</p>
+        )}
+      </div>
+
+      {/* Time Range */}
+      <div className="grid grid-cols-2 gap-4">
+        <FormInput
+          name="startTime"
+          label="Start time"
+          form={form}
+          type="time"
+          required
+        />
+        <FormInput
+          name="endTime"
+          label="End time"
+          form={form}
+          type="time"
+          required
+        />
+      </div>
+
+      {/* Conflict Warning */}
+      {conflicts.length > 0 && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Scheduling Conflict</AlertTitle>
+          <AlertDescription>
+            This time slot overlaps with {conflicts.length} existing reservation(s).
+            {conflicts.map((conflict, idx) => (
+              <div key={idx} className="mt-2 text-sm">
+                • {conflict.userFullName || conflict.userEmail} ({format(conflict.startTime.toDate(), 'HH:mm')} - {format(conflict.endTime.toDate(), 'HH:mm')})
+              </div>
+            ))}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <FormSelect
+        name="horseId"
+        label="Horse"
+        form={form}
+        options={horseOptions}
+        placeholder="Select horse"
+        required
+      />
+
+      <FormInput
+        name="contactInfo"
+        label="Contact information"
+        form={form}
+        placeholder="Phone or email for contact"
+      />
+
+      <FormTextarea
+        name="notes"
+        label="Notes"
+        form={form}
+        placeholder="Additional notes or special requirements..."
+        rows={3}
+      />
+    </BaseFormDialog>
   )
 }

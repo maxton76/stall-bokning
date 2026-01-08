@@ -62,7 +62,6 @@ import { cn } from '@/lib/utils'
 import Logo from '@/assets/svg/logo'
 import ProfileDropdown from '@/components/shadcn-studio/blocks/dropdown-profile'
 import NotificationDropdown from '@/components/shadcn-studio/blocks/dropdown-notification'
-import { StablesDropdown } from '@/components/shadcn-studio/blocks/dropdown-stables'
 import { OrganizationsDropdown } from '@/components/shadcn-studio/blocks/dropdown-organizations'
 
 export default function AuthenticatedLayout() {
@@ -101,6 +100,7 @@ export default function AuthenticatedLayout() {
         subItems: [
           { href: '/facilities/reservations' },
           { href: '/facilities/manage' },
+          { href: '/stables' },
         ],
       },
       { name: 'Schedule', href: '/schedule' },
@@ -150,6 +150,7 @@ export default function AuthenticatedLayout() {
       subItems: [
         { name: 'Reservations', href: '/facilities/reservations', icon: CalendarIcon },
         { name: 'Manage facilities', href: '/facilities/manage', icon: SettingsIcon },
+        { name: 'Stables', href: '/stables', icon: Building2 },
       ],
     },
     { name: 'Schedule', href: '/schedule', icon: CalendarIcon },
@@ -274,10 +275,6 @@ export default function AuthenticatedLayout() {
                     </SidebarMenuItem>
                   )
                 })}
-
-                <SidebarMenuItem>
-                  <StablesDropdown />
-                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

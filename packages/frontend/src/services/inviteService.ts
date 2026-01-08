@@ -1,4 +1,4 @@
-import { getAuth } from 'firebase/auth'
+import { authFetchJSON } from '@/utils/authFetch'
 
 /**
  * Get invite details by token (public endpoint - no auth required)
@@ -23,29 +23,9 @@ export async function getInviteDetails(token: string) {
  * Accept organization invite (requires authentication)
  */
 export async function acceptOrganizationInvite(token: string) {
-  const auth = getAuth()
-  const user = auth.currentUser
-
-  if (!user) {
-    throw new Error('User not authenticated')
-  }
-
-  const idToken = await user.getIdToken()
-
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/invites/${token}/accept`, {
+  return await authFetchJSON(`${import.meta.env.VITE_API_URL}/invites/${token}/accept`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${idToken}`
-    }
   })
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.message || 'Failed to accept invitation')
-  }
-
-  return await response.json()
 }
 
 /**
@@ -71,85 +51,23 @@ export async function declineOrganizationInvite(token: string) {
  * Accept membership invite for existing user (requires authentication)
  */
 export async function acceptMembershipInvite(memberId: string) {
-  const auth = getAuth()
-  const user = auth.currentUser
-
-  if (!user) {
-    throw new Error('User not authenticated')
-  }
-
-  const idToken = await user.getIdToken()
-
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/organization-members/${memberId}/accept`, {
+  return await authFetchJSON(`${import.meta.env.VITE_API_URL}/organization-members/${memberId}/accept`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${idToken}`
-    }
   })
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.message || 'Failed to accept membership')
-  }
-
-  return await response.json()
 }
 
 /**
  * Decline membership invite for existing user (requires authentication)
  */
 export async function declineMembershipInvite(memberId: string) {
-  const auth = getAuth()
-  const user = auth.currentUser
-
-  if (!user) {
-    throw new Error('User not authenticated')
-  }
-
-  const idToken = await user.getIdToken()
-
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/organization-members/${memberId}/decline`, {
+  return await authFetchJSON(`${import.meta.env.VITE_API_URL}/organization-members/${memberId}/decline`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${idToken}`
-    }
   })
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.message || 'Failed to decline membership')
-  }
-
-  return await response.json()
 }
 
 /**
  * Get pending invites for current user (requires authentication)
  */
 export async function getPendingInvites() {
-  const auth = getAuth()
-  const user = auth.currentUser
-
-  if (!user) {
-    throw new Error('User not authenticated')
-  }
-
-  const idToken = await user.getIdToken()
-
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/invites/pending`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${idToken}`
-    }
-  })
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.message || 'Failed to get pending invites')
-  }
-
-  return await response.json()
+  return await authFetchJSON(`${import.meta.env.VITE_API_URL}/invites/pending`)
 }

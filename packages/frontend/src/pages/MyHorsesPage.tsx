@@ -1,15 +1,25 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Plus, Loader2Icon, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/contexts/AuthContext'
 import { HorseFormDialog } from '@/components/HorseFormDialog'
 import { HorseAssignmentDialog } from '@/components/HorseAssignmentDialog'
+import { VaccinationRecordDialog } from '@/components/VaccinationRecordDialog'
+import { VaccinationHistoryTable } from '@/components/VaccinationHistoryTable'
 import { HorseTable } from '@/components/horses/HorseTable'
 import { HorseFilterPopover, HorseFilterBadges } from '@/components/HorseFilterPopover'
 import { HorseExportButton } from '@/components/horses/HorseExportButton'
 import { createHorseTableColumns } from '@/components/horses/HorseTableColumns'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import type { Horse } from '@/types/roles'
+import type { VaccinationRecord } from '@shared/types/vaccination'
 import type { FilterConfig } from '@shared/types/filters'
 import {
   getUserHorses,
@@ -19,8 +29,10 @@ import {
   assignHorseToStable,
   unassignHorseFromStable
 } from '@/services/horseService'
-import { getStableHorseGroups } from '@/services/horseGroupService'
-import { getStableVaccinationRules } from '@/services/vaccinationRuleService'
+import {
+  getHorseVaccinationRecords,
+  deleteVaccinationRecord
+} from '@/services/vaccinationService'
 import { useDialog } from '@/hooks/useDialog'
 import { useAsyncData } from '@/hooks/useAsyncData'
 import { useCRUD } from '@/hooks/useCRUD'
@@ -29,6 +41,7 @@ import { useUserStables } from '@/hooks/useUserStables'
 
 export default function MyHorsesPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   // Data loading with custom hooks
   const horses = useAsyncData<Horse[]>({
@@ -65,6 +78,11 @@ export default function MyHorsesPage() {
   // Dialog state management
   const formDialog = useDialog<Horse>()
   const assignmentDialog = useDialog<Horse>()
+  const vaccinationRecordDialog = useDialog<VaccinationRecord>()
+  const [vaccinationHistoryOpen, setVaccinationHistoryOpen] = useState(false)
+  const [selectedHorseForVaccination, setSelectedHorseForVaccination] = useState<Horse | null>(null)
+  const [vaccinationRecords, setVaccinationRecords] = useState<VaccinationRecord[]>([])
+  const [loadingVaccinationRecords, setLoadingVaccinationRecords] = useState(false)
 
   // CRUD operations
   const horseCRUD = useCRUD<Horse>({
@@ -147,12 +165,85 @@ export default function MyHorsesPage() {
     }
   }
 
+  // Vaccination Handlers
+  const loadVaccinationRecords = async (horse: Horse) => {
+    if (!horse.id) return
+
+    try {
+      setLoadingVaccinationRecords(true)
+      const records = await getHorseVaccinationRecords(horse.id)
+      setVaccinationRecords(records)
+    } catch (error) {
+      console.error('Error loading vaccination records:', error)
+    } finally {
+      setLoadingVaccinationRecords(false)
+    }
+  }
+
+  const handleViewVaccinationHistory = async () => {
+    if (!formDialog.data) return
+
+    setSelectedHorseForVaccination(formDialog.data)
+    await loadVaccinationRecords(formDialog.data)
+    setVaccinationHistoryOpen(true)
+  }
+
+  const handleAddVaccinationRecord = () => {
+    if (!formDialog.data) return
+
+    setSelectedHorseForVaccination(formDialog.data)
+    vaccinationRecordDialog.openDialog()
+  }
+
+  const handleEditVaccinationRecord = (record: VaccinationRecord) => {
+    vaccinationRecordDialog.openDialog(record)
+  }
+
+  const handleDeleteVaccinationRecord = async (record: VaccinationRecord) => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this vaccination record? This action cannot be undone.'
+    )
+    if (!confirmed) return
+
+    try {
+      await deleteVaccinationRecord(record.id)
+
+      // Reload vaccination records if history dialog is open
+      if (selectedHorseForVaccination) {
+        await loadVaccinationRecords(selectedHorseForVaccination)
+      }
+
+      // Reload horses to update vaccination status
+      await horses.reload()
+    } catch (error) {
+      console.error('Error deleting vaccination record:', error)
+    }
+  }
+
+  const handleVaccinationRecordSuccess = async () => {
+    vaccinationRecordDialog.closeDialog()
+
+    // Reload vaccination records if history dialog is open
+    if (selectedHorseForVaccination) {
+      await loadVaccinationRecords(selectedHorseForVaccination)
+    }
+
+    // Reload horses to update vaccination status
+    await horses.reload()
+  }
+
+  // Navigation Handler
+  const handleViewDetails = (horse: Horse) => {
+    navigate(`/horses/${horse.id}`)
+  }
+
   // Table column configuration with action handlers
   const columns = createHorseTableColumns({
     onEdit: handleEditHorse,
     onAssign: handleAssignClick,
     onUnassign: handleUnassign,
-    onDelete: handleDeleteHorse
+    onDelete: handleDeleteHorse,
+    onViewDetails: handleViewDetails
   })
 
   if (horses.loading) {
@@ -216,7 +307,7 @@ export default function MyHorsesPage() {
       </div>
 
       {/* Horse Table */}
-      <HorseTable data={filteredHorses} columns={columns} />
+      <HorseTable data={filteredHorses} columns={columns} onRowClick={handleViewDetails} />
 
       {/* Dialogs */}
       <HorseFormDialog
@@ -226,6 +317,8 @@ export default function MyHorsesPage() {
         onSave={handleSaveHorse}
         allowStableAssignment={stables.length > 0}
         availableStables={stables}
+        onViewVaccinationHistory={handleViewVaccinationHistory}
+        onAddVaccinationRecord={handleAddVaccinationRecord}
       />
 
       <HorseAssignmentDialog
@@ -235,6 +328,38 @@ export default function MyHorsesPage() {
         availableStables={stables}
         onAssign={handleAssign}
       />
+
+      {/* Vaccination Record Dialog */}
+      {selectedHorseForVaccination && (
+        <VaccinationRecordDialog
+          open={vaccinationRecordDialog.open}
+          onOpenChange={(open) => !open && vaccinationRecordDialog.closeDialog()}
+          horse={selectedHorseForVaccination}
+          organizationId={selectedHorseForVaccination.currentStableId || 'personal'}
+          record={vaccinationRecordDialog.data}
+          onSuccess={handleVaccinationRecordSuccess}
+        />
+      )}
+
+      {/* Vaccination History Dialog */}
+      {selectedHorseForVaccination && (
+        <Dialog open={vaccinationHistoryOpen} onOpenChange={setVaccinationHistoryOpen}>
+          <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                Vaccination History - {selectedHorseForVaccination.name}
+              </DialogTitle>
+            </DialogHeader>
+            <VaccinationHistoryTable
+              records={vaccinationRecords}
+              onEdit={handleEditVaccinationRecord}
+              onDelete={handleDeleteVaccinationRecord}
+              onAdd={() => vaccinationRecordDialog.openDialog()}
+              loading={loadingVaccinationRecords}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }
