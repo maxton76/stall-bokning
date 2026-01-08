@@ -206,24 +206,49 @@ export async function getCurrentLocation(horseId: string): Promise<LocationHisto
 
 /**
  * Get all location history for horses owned by a user
- * Uses collectionGroup to query across all horses
- * @param _userId - User ID (currently unused - requires filtering horse ownership separately)
+ * First gets user's horses, then queries their location history
+ * @param userId - User ID to filter by horse ownership
  * @returns Promise with array of location history entries
  */
-export async function getUserHorseLocationHistory(_userId: string): Promise<LocationHistory[]> {
-  // First, we need to get all horses owned by the user
-  // Then query their location history
-  // Note: This requires getting horse IDs first, then querying each subcollection
-  // For better performance, consider denormalizing or using a separate collection
+export async function getUserHorseLocationHistory(userId: string): Promise<LocationHistory[]> {
+  if (!userId) {
+    console.warn('getUserHorseLocationHistory called without userId')
+    return []
+  }
 
-  // Using collectionGroup for all locationHistory entries
-  const q = query(
-    collectionGroup(db, 'locationHistory'),
-    orderBy('arrivalDate', 'desc')
-  )
+  // Step 1: Get all horses owned by the user
+  const horsesRef = collection(db, 'horses')
+  const horsesQuery = query(horsesRef, where('ownerId', '==', userId))
+  const horsesSnapshot = await getDocs(horsesQuery)
 
-  const snapshot = await getDocs(q)
-  return mapDocsToObjects<LocationHistory>(snapshot)
+  if (horsesSnapshot.empty) {
+    console.log('📍 No horses found for user:', userId)
+    return []
+  }
+
+  // Step 2: Query location history for each horse
+  const allHistory: LocationHistory[] = []
+
+  for (const horseDoc of horsesSnapshot.docs) {
+    const horseId = horseDoc.id
+    const historyRef = collection(db, 'horses', horseId, 'locationHistory')
+    const historyQuery = query(historyRef, orderBy('arrivalDate', 'desc'))
+    const historySnapshot = await getDocs(historyQuery)
+
+    const horseHistory = mapDocsToObjects<LocationHistory>(historySnapshot)
+    allHistory.push(...horseHistory)
+  }
+
+  // Sort combined results by arrival date (newest first)
+  allHistory.sort((a, b) => {
+    const aTime = a.arrivalDate.toDate().getTime()
+    const bTime = b.arrivalDate.toDate().getTime()
+    return bTime - aTime
+  })
+
+  console.log('📍 Found location history entries:', allHistory.length, 'for', horsesSnapshot.docs.length, 'horses')
+
+  return allHistory
 }
 
 // ============================================================================

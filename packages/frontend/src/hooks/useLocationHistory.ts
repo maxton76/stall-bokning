@@ -1,18 +1,26 @@
 import { useState, useEffect } from 'react'
 import { getHorseLocationHistory, getUserHorseLocationHistory } from '@/services/locationHistoryService'
+import { useAuth } from '@/contexts/AuthContext'
 import type { LocationHistory, LocationHistoryDisplay } from '@/types/roles'
 
 /**
  * Custom hook for loading and managing location history
- * @param horseId - Horse ID to filter by, or 'all' for all horses
+ * @param horseId - Horse ID to filter by, or 'all' for all user's horses
  * @returns Location history with loading and error states
  */
 export function useLocationHistory(horseId?: string) {
+  const { user } = useAuth()
   const [history, setHistory] = useState<LocationHistoryDisplay[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
   const loadHistory = async () => {
+    if (!user) {
+      setHistory([])
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
       setError(null)
@@ -20,8 +28,8 @@ export function useLocationHistory(horseId?: string) {
       let data: LocationHistory[]
 
       if (!horseId || horseId === 'all') {
-        // Load all location history
-        data = await getUserHorseLocationHistory('')
+        // Load all location history for user's horses
+        data = await getUserHorseLocationHistory(user.uid)
       } else {
         // Load history for specific horse
         data = await getHorseLocationHistory(horseId)
@@ -58,7 +66,7 @@ export function useLocationHistory(horseId?: string) {
 
   useEffect(() => {
     loadHistory()
-  }, [horseId])
+  }, [horseId, user?.uid])
 
   return {
     history,

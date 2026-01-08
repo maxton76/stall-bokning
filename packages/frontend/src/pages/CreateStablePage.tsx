@@ -18,6 +18,13 @@ export default function CreateStablePage() {
   // Prefer organization from context, fallback to URL params for compatibility
   const organizationId = currentOrganizationId || searchParams.get('organizationId')
 
+  console.log('🏗️ CreateStablePage mounted:', {
+    currentOrganizationId,
+    urlOrganizationId: searchParams.get('organizationId'),
+    finalOrganizationId: organizationId,
+    userId: user?.uid
+  })
+
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -29,12 +36,21 @@ export default function CreateStablePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user) return
+    console.log('🚀 CreateStablePage: Form submitted')
+
+    if (!user) {
+      console.error('❌ CreateStablePage: No user authenticated')
+      return
+    }
+
+    console.log('👤 CreateStablePage: User authenticated:', user.uid)
+    console.log('🏢 CreateStablePage: Organization ID:', organizationId)
 
     // Validate that we have an organization ID
     if (!organizationId) {
-      console.error('❌ CreateStablePage: No organization ID available')
-      alert('Cannot create stable: No organization selected. Please contact support.')
+      const errorMsg = 'Cannot create stable: No organization selected. Please select an organization first.'
+      console.error('❌ CreateStablePage:', errorMsg)
+      alert(errorMsg)
       return
     }
 
