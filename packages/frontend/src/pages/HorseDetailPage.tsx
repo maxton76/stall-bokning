@@ -104,11 +104,11 @@ export default function HorseDetailPage() {
   }
 
   return (
-    <div className='container mx-auto p-6 space-y-6'>
+    <div className='container mx-auto p-2 sm:p-6 space-y-4 sm:space-y-6'>
       {/* Header */}
       <div className='space-y-4'>
         {/* Breadcrumb */}
-        <Breadcrumb>
+        <Breadcrumb className="hidden sm:block">
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
@@ -129,15 +129,15 @@ export default function HorseDetailPage() {
         </Breadcrumb>
 
         {/* Title and Actions */}
-        <div className='flex items-center justify-between'>
+        <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0'>
           <div>
-            <h1 className='text-3xl font-bold tracking-tight'>{horse.data.name}</h1>
+            <h1 className='text-2xl sm:text-3xl font-bold tracking-tight'>{horse.data.name}</h1>
             {horse.data.breed && (
-              <p className='text-muted-foreground mt-1'>{horse.data.breed}</p>
+              <p className='text-sm sm:text-base text-muted-foreground mt-1'>{horse.data.breed}</p>
             )}
           </div>
           <div className='flex gap-2'>
-            <Button variant='outline' onClick={() => navigate('/horses')}>
+            <Button variant='outline' onClick={() => navigate('/horses')} size="sm">
               <ArrowLeft className='mr-2 h-4 w-4' />
               Back
             </Button>

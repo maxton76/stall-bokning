@@ -94,7 +94,7 @@ export function VaccinationCard({ horse }: VaccinationCardProps) {
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 overflow-hidden">
           {/* Vaccination Status Section */}
           {horse.vaccinationRuleId && horse.vaccinationRuleName ? (
             <div className="rounded-lg border p-4 space-y-3">

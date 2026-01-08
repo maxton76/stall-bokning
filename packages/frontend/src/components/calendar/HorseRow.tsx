@@ -39,6 +39,30 @@ export function HorseRow({
     return grouped
   }, [activities, weekDays, horse.id])
 
+  // Calculate hour range dynamically based on activities (for expanded view)
+  // Must be called before conditional return to satisfy Rules of Hooks
+  const hours = useMemo(() => {
+    const allActivities = Object.values(activitiesByDay).flat()
+
+    if (allActivities.length === 0) {
+      // Default range: 7 AM - 7 PM
+      return Array.from({ length: 13 }, (_, i) => 7 + i)
+    }
+
+    // Find min and max hours from activities
+    const activityHours = allActivities.map(a => a.date.toDate().getHours())
+    const minHour = Math.min(...activityHours)
+    const maxHour = Math.max(...activityHours)
+
+    // Add 1 hour padding on each side, but keep within 0-23 range
+    const startHour = Math.max(0, minHour - 1)
+    const endHour = Math.min(23, maxHour + 1)
+
+    // Create hour array
+    const hourCount = endHour - startHour + 1
+    return Array.from({ length: hourCount }, (_, i) => startHour + i)
+  }, [activitiesByDay])
+
   // Calculate compact view indicators (icons + time)
   const getCompactIndicators = (dayActivities: ActivityEntry[]) => {
     if (dayActivities.length === 0) return null
@@ -63,13 +87,13 @@ export function HorseRow({
   if (!expanded) {
     // COLLAPSED VIEW - compact with icons and time
     return (
-      <div className="grid grid-cols-8 border-b hover:bg-accent/30">
-        {/* Horse name cell */}
+      <div className="flex border-b hover:bg-accent/30">
+        {/* Horse name cell - fixed width */}
         <div
-          className="p-4 border-r cursor-pointer flex flex-col"
+          className="w-32 md:w-48 flex-shrink-0 p-2 md:p-4 border-r cursor-pointer flex flex-col"
           onClick={onToggleExpand}
         >
-          <div className="font-medium">{horse.name}</div>
+          <div className="font-medium text-sm md:text-base truncate">{horse.name}</div>
           {/* Show first day's indicators */}
           {(() => {
             const firstDayActivities = Object.values(activitiesByDay)[0] || []
@@ -78,7 +102,7 @@ export function HorseRow({
               <div className="mt-1">
                 <div className="flex gap-1">
                   {indicators.icons.map((icon, i) => (
-                    <span key={i} className="text-sm">{icon}</span>
+                    <span key={i} className="text-xs md:text-sm">{icon}</span>
                   ))}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
@@ -97,7 +121,7 @@ export function HorseRow({
           return (
             <div
               key={dayKey}
-              className="p-2 border-r cursor-pointer hover:bg-accent/50"
+              className="w-24 md:w-32 lg:flex-1 flex-shrink-0 p-2 border-r cursor-pointer hover:bg-accent/50"
               onClick={() => onCellClick(horse.id, day)}
             >
               {dayActivities.map((activity) => {
@@ -130,68 +154,23 @@ export function HorseRow({
   }
 
   // EXPANDED VIEW - hourly timeline
-  // Calculate hour range dynamically based on activities
-  const hours = useMemo(() => {
-    const allActivities = Object.values(activitiesByDay).flat()
-
-    if (allActivities.length === 0) {
-      // Default range: 7 AM - 7 PM
-      return Array.from({ length: 13 }, (_, i) => 7 + i)
-    }
-
-    // Find min and max hours from activities
-    const activityHours = allActivities.map(a => a.date.toDate().getHours())
-    const minHour = Math.min(...activityHours)
-    const maxHour = Math.max(...activityHours)
-
-    // Add 1 hour padding on each side, but keep within 0-23 range
-    const startHour = Math.max(0, minHour - 1)
-    const endHour = Math.min(23, maxHour + 1)
-
-    // Create hour array
-    const hourCount = endHour - startHour + 1
-    return Array.from({ length: hourCount }, (_, i) => startHour + i)
-  }, [activitiesByDay])
-
   return (
     <div className="border-b">
       {/* Horse name header */}
-      <div className="grid grid-cols-8 border-b bg-accent/20">
+      <div className="flex border-b bg-accent/20">
         <div
-          className="p-4 border-r cursor-pointer flex flex-col"
+          className="w-32 md:w-48 flex-shrink-0 p-2 md:p-4 border-r cursor-pointer"
           onClick={onToggleExpand}
         >
-          <div className="font-medium">{horse.name}</div>
-          {/* Show icons */}
-          {(() => {
-            const allActivities = Object.values(activitiesByDay).flat()
-            const icons = allActivities
-              .map(a => {
-                if (a.type === 'activity' && 'activityTypeConfigId' in a) {
-                  return activityTypes.find(t => t.id === a.activityTypeConfigId)?.icon
-                }
-                return undefined
-              })
-              .filter(Boolean)
-              .slice(0, 3)
-
-            return icons.length > 0 && (
-              <div className="flex gap-1 mt-1">
-                {icons.map((icon, i) => (
-                  <span key={i} className="text-sm">{icon}</span>
-                ))}
-              </div>
-            )
-          })()}
+          <div className="font-medium text-sm md:text-base truncate">{horse.name}</div>
         </div>
-        <div className="col-span-7" />
       </div>
 
       {/* Hourly rows */}
       {hours.map((hour) => (
-        <div key={hour} className="grid grid-cols-8 border-b">
-          {/* Time label */}
-          <div className="p-2 text-xs text-muted-foreground border-r">
+        <div key={hour} className="flex border-b min-w-max">
+          {/* Time label - fixed width */}
+          <div className="w-32 md:w-48 flex-shrink-0 p-2 text-xs text-muted-foreground border-r">
             {format(new Date().setHours(hour, 0), 'h:mm a')}
           </div>
 
@@ -209,7 +188,7 @@ export function HorseRow({
             return (
               <div
                 key={`${dayKey}-${hour}`}
-                className="p-1 border-r cursor-pointer hover:bg-accent/50 min-h-[40px] relative"
+                className="w-24 md:w-32 lg:flex-1 flex-shrink-0 p-1 border-r cursor-pointer hover:bg-accent/50 min-h-[40px] relative"
                 onClick={() => onCellClick(horse.id, day, hour)}
               >
                 {hourActivities.map((activity) => {
@@ -219,7 +198,7 @@ export function HorseRow({
                   return (
                     <div
                       key={activity.id}
-                      className="text-xs p-1 rounded mb-1 cursor-pointer"
+                      className="text-xs p-1 rounded mb-1 cursor-pointer truncate"
                       style={{
                         backgroundColor: activityType?.color || '#gray',
                         color: 'white',
@@ -229,8 +208,9 @@ export function HorseRow({
                         e.stopPropagation()
                         onActivityClick(activity)
                       }}
+                      title={`${activityType?.name || 'Activity'} ${format(activity.date.toDate(), 'h:mm a')}`}
                     >
-                      {activityType?.icon} {format(activity.date.toDate(), 'h:mm a')}
+                      {activityType?.name || 'Activity'} {format(activity.date.toDate(), 'h:mm a')}
                     </div>
                   )
                 })}

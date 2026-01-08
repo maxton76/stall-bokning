@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
-import type { ActivityEntry, ActivityFilters } from '@/types/activity'
+import type { ActivityEntry, ActivityFilters, PeriodType } from '@/types/activity'
+import { sectionActivitiesByTime, shouldUseTemporalSections } from '@/utils/activityHelpers'
 
 /**
  * Custom hook for filtering and grouping activity entries
@@ -7,12 +8,14 @@ import type { ActivityEntry, ActivityFilters } from '@/types/activity'
  * @param activities - Array of activity entries to filter
  * @param filters - Filter configuration
  * @param userId - Current user ID for "for me" filter
- * @returns Filtered and grouped activities
+ * @param periodType - Optional period type for temporal sectioning
+ * @returns Filtered and grouped activities, and temporal sections if applicable
  */
 export function useActivityFilters(
   activities: ActivityEntry[],
   filters: ActivityFilters,
-  userId?: string
+  userId?: string,
+  periodType?: PeriodType
 ) {
   const filteredActivities = useMemo(() => {
     return activities.filter(entry => {
@@ -80,5 +83,17 @@ export function useActivityFilters(
     }, {} as Record<string, ActivityEntry[]>)
   }, [filteredActivities, filters.groupBy])
 
-  return { filteredActivities, groupedActivities }
+  // Add temporal sectioning
+  const temporalSections = useMemo(() => {
+    if (periodType && shouldUseTemporalSections(periodType, filters)) {
+      return sectionActivitiesByTime(filteredActivities)
+    }
+    return null
+  }, [filteredActivities, periodType, filters])
+
+  return {
+    filteredActivities,
+    groupedActivities,
+    temporalSections
+  }
 }

@@ -1,8 +1,16 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Pencil, Trash2, CheckCircle2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, CheckCircle2, ChevronLeft, ChevronRight, MoreVertical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Select,
@@ -21,8 +29,11 @@ import { useActivityTypes } from '@/hooks/useActivityTypes'
 import { useActivityTypeConfig } from '@/hooks/useActivityTypeConfig'
 import { ActivityFormDialog } from '@/components/ActivityFormDialog'
 import { ActivityFilterPopover } from '@/components/activities/ActivityFilterPopover'
+import { AssigneeAvatar } from '@/components/activities/AssigneeAvatar'
+import { Timestamp } from 'firebase/firestore'
+import { cn } from '@/lib/utils'
 import {
-  getActivitiesByDateTab,
+  getActivitiesByPeriod,
   createActivity,
   createTask,
   createMessage,
@@ -34,22 +45,39 @@ import { getUserHorses } from '@/services/horseService'
 import type {
   ActivityEntry,
   ActivityFilters,
-  DateTab,
+  PeriodType,
 } from '@/types/activity'
 import type { Horse } from '@/types/roles'
 import { ACTIVITY_TYPES as ACTIVITY_TYPE_CONFIG } from '@/types/activity'
 import { useToast } from '@/hooks/use-toast'
+import {
+  format,
+  isSameDay,
+  isSameWeek,
+  isSameMonth,
+  addDays,
+  addWeeks,
+  addMonths,
+  subDays,
+  subWeeks,
+  subMonths,
+  addYears,
+  subYears,
+  startOfWeek,
+  endOfWeek,
+} from 'date-fns'
 
-const DATE_TABS: Array<{ value: DateTab; label: string }> = [
-  { value: 'today', label: 'Today' },
-  { value: 'tomorrow', label: 'Tomorrow' },
-  { value: 'dayAfter', label: 'Day After' },
+const PERIOD_TYPES: Array<{ value: PeriodType; label: string }> = [
+  { value: 'day', label: 'Day' },
+  { value: 'week', label: 'Week' },
+  { value: 'month', label: 'Month' },
 ]
 
 export default function ActivitiesActionListPage() {
   const { user } = useAuth()
   const { toast } = useToast()
-  const [selectedTab, setSelectedTab] = useState<DateTab>('today')
+  const [periodType, setPeriodType] = useState<PeriodType>('day')
+  const [currentDate, setCurrentDate] = useState<Date>(new Date())
   const [selectedStableId, setSelectedStableId] = useState<string>('')
   const [filters, setFilters] = useState<ActivityFilters>({
     groupBy: 'none',
@@ -57,6 +85,95 @@ export default function ActivitiesActionListPage() {
     showFinished: false,
     entryTypes: ['activity', 'task', 'message'],
   })
+  const [completingIds, setCompletingIds] = useState<Set<string>>(new Set())
+
+  // Navigation handlers
+  const handleNext = () => {
+    setCurrentDate((current) => {
+      const now = new Date()
+      const oneYearAhead = addYears(now, 1)
+
+      let newDate: Date
+      switch (periodType) {
+        case 'day':
+          newDate = addDays(current, 1)
+          break
+        case 'week':
+          newDate = addWeeks(current, 1)
+          break
+        case 'month':
+          newDate = addMonths(current, 1)
+          break
+        default:
+          return current
+      }
+
+      // Limit to 1 year ahead
+      return newDate <= oneYearAhead ? newDate : current
+    })
+  }
+
+  const handlePrevious = () => {
+    setCurrentDate((current) => {
+      const now = new Date()
+      const oneYearBehind = subYears(now, 1)
+
+      let newDate: Date
+      switch (periodType) {
+        case 'day':
+          newDate = subDays(current, 1)
+          break
+        case 'week':
+          newDate = subWeeks(current, 1)
+          break
+        case 'month':
+          newDate = subMonths(current, 1)
+          break
+        default:
+          return current
+      }
+
+      // Limit to 1 year behind
+      return newDate >= oneYearBehind ? newDate : current
+    })
+  }
+
+  const handleToday = () => {
+    setCurrentDate(new Date())
+  }
+
+  const getDateRangeLabel = (date: Date, type: PeriodType): string => {
+    const now = new Date()
+
+    switch (type) {
+      case 'day':
+        if (isSameDay(date, now)) return 'Today'
+        if (isSameDay(date, addDays(now, 1))) return 'Tomorrow'
+        return format(date, 'MMMM d, yyyy')
+
+      case 'week':
+        const weekStart = startOfWeek(date, { weekStartsOn: 1 })
+        const weekEnd = endOfWeek(date, { weekStartsOn: 1 })
+
+        if (isSameWeek(date, now, { weekStartsOn: 1 })) return 'This Week'
+        if (isSameWeek(date, addWeeks(now, 1), { weekStartsOn: 1 })) return 'Next Week'
+
+        return `Week of ${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`
+
+      case 'month':
+        if (isSameMonth(date, now)) return 'This Month'
+        if (isSameMonth(date, addMonths(now, 1))) return 'Next Month'
+
+        return format(date, 'MMMM yyyy')
+    }
+  }
+
+  // Determine if navigation buttons should be disabled
+  const now = new Date()
+  const oneYearAhead = addYears(now, 1)
+  const oneYearBehind = subYears(now, 1)
+  const isNextDisabled = currentDate >= oneYearAhead
+  const isPreviousDisabled = currentDate <= oneYearBehind
 
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid)
@@ -68,11 +185,11 @@ export default function ActivitiesActionListPage() {
     }
   }, [stables, selectedStableId])
 
-  // Load activities for selected stable and date tab
+  // Load activities for selected stable and period
   const activities = useAsyncData<ActivityEntry[]>({
     loadFn: async () => {
       if (!selectedStableId) return []
-      return await getActivitiesByDateTab(selectedStableId, selectedTab)
+      return await getActivitiesByPeriod(selectedStableId, currentDate, periodType)
     },
   })
 
@@ -87,12 +204,12 @@ export default function ActivitiesActionListPage() {
   // Load activity types for selected stable (auto-reloads on stable change)
   const activityTypes = useActivityTypes(selectedStableId, true)
 
-  // Reload activities when stable or tab changes
+  // Reload activities when stable, period type, or date changes
   useEffect(() => {
     if (selectedStableId) {
       activities.load()
     }
-  }, [selectedStableId, selectedTab])
+  }, [selectedStableId, currentDate, periodType])
 
   // Load horses on mount
   useEffect(() => {
@@ -102,10 +219,11 @@ export default function ActivitiesActionListPage() {
   }, [user])
 
   // Filter and group activities
-  const { filteredActivities, groupedActivities } = useActivityFilters(
+  const { filteredActivities, groupedActivities, temporalSections } = useActivityFilters(
     activities.data || [],
     filters,
-    user?.uid
+    user?.uid,
+    periodType
   )
 
   // Dialog state
@@ -164,20 +282,38 @@ export default function ActivitiesActionListPage() {
   }
 
   const handleCompleteEntry = async (entry: ActivityEntry) => {
-    if (!user) return
+    if (!user || entry.status === 'completed') return
+
+    setCompletingIds(prev => new Set(prev).add(entry.id))
+
     try {
+      // Optimistic update
+      const optimisticActivities = (activities.data || []).map(a =>
+        a.id === entry.id ? { ...a, status: 'completed' as const } : a
+      )
+      activities.setData?.(optimisticActivities)
+
       await completeActivity(entry.id, user.uid)
-      await activities.reload()
+
       toast({
-        title: 'Success',
+        title: 'Completed',
         description: 'Entry marked as completed',
       })
+
+      await activities.reload()
     } catch (error) {
-      console.error('Failed to complete entry:', error)
+      console.error('Failed to complete:', error)
+      await activities.reload()
       toast({
         title: 'Error',
-        description: 'Failed to mark entry as completed',
+        description: 'Failed to mark as completed',
         variant: 'destructive',
+      })
+    } finally {
+      setCompletingIds(prev => {
+        const next = new Set(prev)
+        next.delete(entry.id)
+        return next
       })
     }
   }
@@ -248,11 +384,13 @@ export default function ActivitiesActionListPage() {
         </Button>
       </div>
 
-      {/* Stable Selector */}
+      {/* Combined Card */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
+        <CardContent className="pt-6 space-y-4">
+          {/* Top Row: Stable Selector + Period Tabs + Filter */}
+          <div className="flex flex-col md:flex-row md:items-center gap-4">
+            {/* Stable Selector */}
+            <div className="w-full md:w-64">
               <Select value={selectedStableId} onValueChange={setSelectedStableId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a stable" />
@@ -266,40 +404,146 @@ export default function ActivitiesActionListPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Period Type Selection */}
+            <Tabs value={periodType} onValueChange={(v) => setPeriodType(v as PeriodType)} className="flex-1">
+              <TabsList className="grid w-full md:w-[300px] grid-cols-3">
+                {PERIOD_TYPES.map((type) => (
+                  <TabsTrigger key={type.value} value={type.value}>
+                    {type.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+
+            {/* Filter Button */}
             <ActivityFilterPopover filters={filters} onFiltersChange={setFilters} />
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Date Tabs */}
-      <Tabs value={selectedTab} onValueChange={(value) => setSelectedTab(value as DateTab)}>
-        <TabsList className="grid w-full max-w-md grid-cols-3">
-          {DATE_TABS.map((tab) => (
-            <TabsTrigger key={tab.value} value={tab.value}>
-              {tab.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+          {/* Navigation Controls + Date Range */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            {/* Date Range Display */}
+            <div className="text-sm text-muted-foreground order-2 sm:order-1">
+              Showing: {getDateRangeLabel(currentDate, periodType)}
+            </div>
 
-      {/* Activities List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Entries ({filteredActivities.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
+            {/* Navigation Controls */}
+            <div className="flex items-center justify-center sm:justify-end gap-2 order-1 sm:order-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handlePrevious}
+                disabled={isPreviousDisabled}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleToday}>
+                Today
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleNext}
+                disabled={isNextDisabled}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-b"></div>
+
+          {/* Activities List */}
           {activities.loading ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">Loading activities...</p>
             </div>
           ) : filteredActivities.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">
-                No activities for this date. Click "Add Entry" to create one.
-              </p>
+              <p className="text-muted-foreground">No activities for this period.</p>
+            </div>
+          ) : temporalSections ? (
+            // TEMPORAL SECTIONS VIEW
+            <div className="space-y-6">
+              {temporalSections.overdue.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-sm font-semibold text-red-600">Overdue</h3>
+                    <Badge variant="destructive" className="text-xs">
+                      {temporalSections.overdue.length}
+                    </Badge>
+                  </div>
+                  <div className="space-y-1">
+                    {temporalSections.overdue.map((entry) => (
+                      <ActivityCard
+                        key={entry.id}
+                        entry={entry}
+                        onEdit={() => handleEditEntry(entry)}
+                        onDelete={() => handleDeleteEntry(entry)}
+                        onComplete={() => handleCompleteEntry(entry)}
+                        isCompleting={completingIds.has(entry.id)}
+                        activityTypes={activityTypes.data || []}
+                        horses={horses.data || []}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {temporalSections.today.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-sm font-semibold">Today</h3>
+                    <Badge variant="secondary" className="text-xs">
+                      {temporalSections.today.length}
+                    </Badge>
+                  </div>
+                  <div className="space-y-1">
+                    {temporalSections.today.map((entry) => (
+                      <ActivityCard
+                        key={entry.id}
+                        entry={entry}
+                        onEdit={() => handleEditEntry(entry)}
+                        onDelete={() => handleDeleteEntry(entry)}
+                        onComplete={() => handleCompleteEntry(entry)}
+                        isCompleting={completingIds.has(entry.id)}
+                        activityTypes={activityTypes.data || []}
+                        horses={horses.data || []}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {temporalSections.upcoming.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-sm font-semibold text-muted-foreground">Upcoming</h3>
+                    <Badge variant="outline" className="text-xs">
+                      {temporalSections.upcoming.length}
+                    </Badge>
+                  </div>
+                  <div className="space-y-1">
+                    {temporalSections.upcoming.map((entry) => (
+                      <ActivityCard
+                        key={entry.id}
+                        entry={entry}
+                        onEdit={() => handleEditEntry(entry)}
+                        onDelete={() => handleDeleteEntry(entry)}
+                        onComplete={() => handleCompleteEntry(entry)}
+                        isCompleting={completingIds.has(entry.id)}
+                        activityTypes={activityTypes.data || []}
+                        horses={horses.data || []}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : filters.groupBy === 'none' ? (
-            <div className="space-y-2">
+            // UNGROUPED LIST
+            <div className="space-y-1">
               {filteredActivities.map((entry) => (
                 <ActivityCard
                   key={entry.id}
@@ -307,16 +551,18 @@ export default function ActivitiesActionListPage() {
                   onEdit={() => handleEditEntry(entry)}
                   onDelete={() => handleDeleteEntry(entry)}
                   onComplete={() => handleCompleteEntry(entry)}
+                  isCompleting={completingIds.has(entry.id)}
                   activityTypes={activityTypes.data || []}
                 />
               ))}
             </div>
           ) : (
+            // GROUPED VIEW
             <div className="space-y-6">
               {Object.entries(groupedActivities).map(([groupKey, entries]) => (
                 <div key={groupKey}>
-                  <h3 className="text-lg font-semibold mb-3">{groupKey}</h3>
-                  <div className="space-y-2">
+                  <h3 className="text-sm font-semibold mb-3">{groupKey}</h3>
+                  <div className="space-y-1">
                     {entries.map((entry) => (
                       <ActivityCard
                         key={entry.id}
@@ -324,7 +570,9 @@ export default function ActivitiesActionListPage() {
                         onEdit={() => handleEditEntry(entry)}
                         onDelete={() => handleDeleteEntry(entry)}
                         onComplete={() => handleCompleteEntry(entry)}
+                        isCompleting={completingIds.has(entry.id)}
                         activityTypes={activityTypes.data || []}
+                        horses={horses.data || []}
                       />
                     ))}
                   </div>
@@ -355,88 +603,127 @@ interface ActivityCardProps {
   onEdit: () => void
   onDelete: () => void
   onComplete: () => void
+  isCompleting: boolean
   activityTypes: Array<any> // Activity type configs
+  horses: Array<{ id: string; name: string }> // Horse lookup data
 }
 
-function ActivityCard({ entry, onEdit, onDelete, onComplete, activityTypes }: ActivityCardProps) {
-  // Use hook for activity type resolution (only for activity entries)
-  const activityTypeDisplay = entry.type === 'activity'
-    ? useActivityTypeConfig(entry, activityTypes)
+// Helper functions for ActivityCard
+function getEntryTitle(entry: ActivityEntry, activityTypes: any[], horses: Array<{ id: string; name: string }>): string {
+  if (entry.type === 'activity') {
+    const typeConfig = activityTypes.find(t => t.id === entry.activityTypeConfigId)
+    const typeName = typeConfig?.name || 'Activity'
+
+    // Try to get horse name from entry, otherwise look it up from horses array
+    let horseName = entry.horseName
+    if (!horseName && entry.horseId) {
+      const horse = horses.find(h => h.id === entry.horseId)
+      horseName = horse?.name
+    }
+    horseName = horseName || 'Unknown Horse'
+
+    return `${horseName} - ${typeName}`
+  }
+  return entry.title
+}
+
+function isOverdue(entry: ActivityEntry): boolean {
+  if (entry.status === 'completed') return false
+  return entry.date.toDate() < new Date()
+}
+
+function formatActivityDate(timestamp: Timestamp): string {
+  const date = timestamp.toDate()
+  const today = new Date()
+
+  if (isSameDay(date, today)) return 'Today'
+  if (isSameDay(date, addDays(today, 1))) return 'Tomorrow'
+  return format(date, 'MMM d, yyyy')
+}
+
+function getBadge(entry: ActivityEntry, activityTypes: any[]): string | null {
+  if (entry.type === 'activity') {
+    const typeConfig = activityTypes.find(t => t.id === entry.activityTypeConfigId)
+    return typeConfig?.category || null
+  }
+  return entry.type.charAt(0).toUpperCase() + entry.type.slice(1)
+}
+
+function getAssigneeName(entry: ActivityEntry): string | null {
+  return (entry.type === 'activity' || entry.type === 'task')
+    ? entry.assignedToName || null
     : null
+}
 
-  // Icon: activity type icon or entry type default
-  const typeIcon =
-    entry.type === 'activity'
-      ? activityTypeDisplay!.icon
-      : entry.type === 'task'
-      ? '📋'
-      : '💬'
-
-  // Badge color by entry type
-  const typeColor =
-    entry.type === 'activity'
-      ? 'bg-blue-100 text-blue-800'
-      : entry.type === 'task'
-      ? 'bg-green-100 text-green-800'
-      : 'bg-purple-100 text-purple-800'
-
-  // Title: compose from activity type label or use entry title
-  const title =
-    entry.type === 'activity'
-      ? `${entry.horseName} - ${activityTypeDisplay!.label}`
-      : entry.title
-
-  // Description varies by entry type
-  const description =
-    entry.type === 'activity'
-      ? entry.note
-      : entry.type === 'task'
-      ? entry.description
-      : entry.message
-
-  // Left border color: activity type color or entry color
-  const leftBorderColor =
-    entry.type === 'activity'
-      ? activityTypeDisplay!.color
-      : entry.color
+function ActivityCard({ entry, onComplete, onEdit, onDelete, activityTypes, horses, isCompleting }: ActivityCardProps) {
+  const badge = getBadge(entry, activityTypes)
+  const assigneeName = getAssigneeName(entry)
 
   return (
     <div
-      className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
-      style={{ borderLeftWidth: '4px', borderLeftColor: leftBorderColor }}
+      className="group flex items-center gap-3 px-3 py-2 border rounded-md hover:bg-accent/30 transition-colors cursor-pointer"
+      onClick={onEdit}
     >
-      <div className="flex items-center gap-4 flex-1">
-        <div className="text-2xl">{typeIcon}</div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <p className="font-medium">{title}</p>
-            <Badge className={typeColor}>{entry.type}</Badge>
-            {entry.status === 'completed' && (
-              <Badge variant="outline" className="bg-green-50 text-green-700">
-                Completed
+      {/* Checkbox - Left */}
+      <div onClick={(e) => e.stopPropagation()}>
+        <Checkbox
+          checked={entry.status === 'completed'}
+          onCheckedChange={() => onComplete()}
+          disabled={entry.status === 'completed' || isCompleting}
+          className="shrink-0"
+        />
+      </div>
+
+      {/* Content - Center */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">
+          {getEntryTitle(entry, activityTypes, horses)}
+        </p>
+
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className={cn(
+            "text-xs",
+            isOverdue(entry) ? "text-red-600 font-medium" : "text-muted-foreground"
+          )}>
+            {formatActivityDate(entry.date)}
+          </span>
+          {badge && (
+            <>
+              <span className="text-muted-foreground">•</span>
+              <Badge variant="outline" className="text-xs px-1.5 py-0">
+                {badge}
               </Badge>
-            )}
-          </div>
-          {description && <p className="text-sm text-muted-foreground">{description}</p>}
-          {(entry.type === 'activity' || entry.type === 'task') && entry.assignedToName && (
-            <p className="text-sm text-muted-foreground mt-1">
-              Assigned to: {entry.assignedToName}
-            </p>
+            </>
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        {entry.status !== 'completed' && (
-          <Button size="sm" variant="ghost" onClick={onComplete}>
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-          </Button>
-        )}
-        <Button size="sm" variant="ghost" onClick={onEdit}>
-          <Pencil className="h-4 w-4" />
-        </Button>
-        <Button size="sm" variant="ghost" onClick={onDelete}>
-          <Trash2 className="h-4 w-4 text-destructive" />
-        </Button>
+
+      {/* Avatar + Context Menu - Right */}
+      <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+        <AssigneeAvatar name={assigneeName} size="sm" />
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={onEdit}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onDelete} className="text-destructive">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   )

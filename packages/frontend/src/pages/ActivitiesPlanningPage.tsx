@@ -154,11 +154,11 @@ export default function ActivitiesPlanningPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 h-screen flex flex-col">
+    <div className="container mx-auto p-2 sm:p-6 h-screen flex flex-col">
       {/* Stable Selector */}
-      <div className="mb-4">
+      <div className="mb-2 sm:mb-4">
         <Select value={selectedStableId} onValueChange={setSelectedStableId}>
-          <SelectTrigger className="w-[280px]">
+          <SelectTrigger className="w-full sm:w-[280px]">
             <SelectValue placeholder="Select a stable" />
           </SelectTrigger>
           <SelectContent>
@@ -183,35 +183,39 @@ export default function ActivitiesPlanningPage() {
           onFilterClick={() => {/* TODO: implement filter */}}
         />
 
-        {/* Calendar Grid */}
-        <CardContent className="flex-1 overflow-auto p-0">
-          {/* Week Days Header */}
-          <WeekDaysHeader weekDays={weekDays} today={new Date()} />
+        {/* Calendar Grid - single scroll container */}
+        <CardContent className="flex-1 overflow-x-auto overflow-y-auto p-0">
+          <div className="min-w-max">
+            {/* Week Days Header */}
+            <div className="sticky top-0 z-10">
+              <WeekDaysHeader weekDays={weekDays} today={new Date()} />
+            </div>
 
-          {/* Horse Rows */}
-          {horses.loading ? (
-            <div className="p-8 text-center text-muted-foreground">
-              Loading horses...
-            </div>
-          ) : horses.data && horses.data.length > 0 ? (
-            horses.data.map((horse) => (
-              <HorseRow
-                key={horse.id}
-                horse={horse}
-                weekDays={weekDays}
-                activities={activities.data || []}
-                expanded={expandedHorses.has(horse.id)}
-                onToggleExpand={() => handleToggleHorse(horse.id)}
-                onActivityClick={handleActivityClick}
-                onCellClick={handleCellClick}
-                activityTypes={activityTypes.data || []}
-              />
-            ))
-          ) : (
-            <div className="p-8 text-center text-muted-foreground">
-              No horses found for this stable.
-            </div>
-          )}
+            {/* Horse Rows */}
+            {horses.loading ? (
+              <div className="p-8 text-center text-muted-foreground">
+                Loading horses...
+              </div>
+            ) : horses.data && horses.data.length > 0 ? (
+              horses.data.map((horse) => (
+                <HorseRow
+                  key={horse.id}
+                  horse={horse}
+                  weekDays={weekDays}
+                  activities={activities.data || []}
+                  expanded={expandedHorses.has(horse.id)}
+                  onToggleExpand={() => handleToggleHorse(horse.id)}
+                  onActivityClick={handleActivityClick}
+                  onCellClick={handleCellClick}
+                  activityTypes={activityTypes.data || []}
+                />
+              ))
+            ) : (
+              <div className="p-8 text-center text-muted-foreground">
+                No horses found for this stable.
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 

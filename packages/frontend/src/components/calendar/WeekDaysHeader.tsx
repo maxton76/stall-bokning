@@ -8,17 +8,18 @@ interface WeekDaysHeaderProps {
 
 export function WeekDaysHeader({ weekDays, today }: WeekDaysHeaderProps) {
   return (
-    <div className="grid grid-cols-8 border-b sticky top-0 bg-background z-10">
-      {/* Empty cell for horse names column */}
-      <div className="border-r" />
+    <div className="flex border-b bg-background">
+      {/* Horse names column - fixed width */}
+      <div className="w-32 md:w-48 flex-shrink-0 border-r" />
 
+      {/* Day columns */}
       {weekDays.map((day) => {
         const isToday = isSameDay(day, today)
         return (
           <div
             key={day.toISOString()}
             className={cn(
-              "p-4 text-center border-r",
+              "w-24 md:w-32 lg:flex-1 flex-shrink-0 p-2 md:p-4 text-center border-r",
               isToday && "bg-blue-50"
             )}
           >
@@ -26,8 +27,8 @@ export function WeekDaysHeader({ weekDays, today }: WeekDaysHeaderProps) {
               {format(day, 'EEE')}
             </div>
             <div className={cn(
-              "text-2xl font-semibold mt-1",
-              isToday && "text-white bg-blue-600 rounded-full w-10 h-10 flex items-center justify-center mx-auto"
+              "text-xl md:text-2xl font-semibold mt-1",
+              isToday && "text-white bg-blue-600 rounded-full w-8 h-8 md:w-10 md:h-10 flex items-center justify-center mx-auto"
             )}>
               {format(day, 'd')}
             </div>

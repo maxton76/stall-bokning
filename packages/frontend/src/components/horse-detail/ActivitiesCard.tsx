@@ -60,7 +60,7 @@ export function ActivitiesCard({ horse }: ActivitiesCardProps) {
         </div>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2Icon className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -72,16 +72,18 @@ export function ActivitiesCard({ horse }: ActivitiesCardProps) {
             </p>
           </div>
         ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Activity Type</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+          <>
+            {/* Desktop Table View - hidden on mobile */}
+            <div className="hidden md:block rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Activity Type</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                 {activities.map((activity) => {
                   const activityDate = activity.date.toDate()
                   const isOverdue = isPast(activityDate) && activity.status === 'pending'
@@ -126,7 +128,50 @@ export function ActivitiesCard({ horse }: ActivitiesCardProps) {
                 })}
               </TableBody>
             </Table>
-          </div>
+            </div>
+
+            {/* Mobile Card View - hidden on desktop */}
+            <div className="md:hidden space-y-3">
+              {activities.map((activity) => {
+                const activityDate = activity.date.toDate()
+                const isOverdue = isPast(activityDate) && activity.status === 'pending'
+
+                return (
+                  <Card
+                    key={activity.id}
+                    className={`${isOverdue ? 'border-destructive/50 bg-destructive/5' : ''}`}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-base mb-1 capitalize">
+                            {activity.activityType?.replace('_', ' ')}
+                          </h3>
+                          <p className={`text-sm ${isOverdue ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                            {format(activityDate, 'MMM d, yyyy')}
+                          </p>
+                        </div>
+                        <Badge
+                          variant={
+                            activity.status === 'completed'
+                              ? 'default'
+                              : isOverdue
+                              ? 'destructive'
+                              : 'secondary'
+                          }
+                        >
+                          {activity.status === 'completed' && 'Completed'}
+                          {activity.status === 'pending' &&
+                            (isOverdue ? 'Overdue' : 'Pending')}
+                          {activity.status === 'cancelled' && 'Cancelled'}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          </>
         )}
 
         {activities.length > 0 && (

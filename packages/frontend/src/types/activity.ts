@@ -102,8 +102,8 @@ export interface ActivityFilters {
   entryTypes: EntryType[]
 }
 
-// Tab selection for date filtering
-export type DateTab = 'today' | 'tomorrow' | 'dayAfter'
+// Period type for flexible date range filtering
+export type PeriodType = 'day' | 'week' | 'month'
 
 // Create data types (omitting auto-generated fields)
 export type CreateActivityData = Omit<Activity, 'id' | 'type' | 'stableId' | 'stableName' | 'createdAt' | 'updatedAt' | 'createdBy' | 'lastModifiedBy'>

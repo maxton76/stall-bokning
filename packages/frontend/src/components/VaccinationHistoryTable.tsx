@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -195,10 +196,10 @@ export function VaccinationHistoryTable({
   return (
     <div className="space-y-4">
       {/* Header with Add Button */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <div>
-          <h3 className="text-lg font-semibold">Vaccination History</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="text-base sm:text-lg font-semibold">Vaccination History</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             {records.length} {records.length === 1 ? 'record' : 'records'}
           </p>
         </div>
@@ -208,10 +209,10 @@ export function VaccinationHistoryTable({
         </Button>
       </div>
 
-      {/* Table */}
-      <div className="rounded-md border">
+      {/* Desktop Table View - hidden on mobile */}
+      <div className="hidden md:block rounded-md border">
         <Table>
-          <TableHeader>
+            <TableHeader>
             {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map(header => (
@@ -282,6 +283,118 @@ export function VaccinationHistoryTable({
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Mobile Card View - hidden on desktop */}
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <div className="p-8 text-center text-muted-foreground">
+            Loading vaccination records...
+          </div>
+        ) : table.getRowModel().rows?.length ? (
+          table.getRowModel().rows.map(row => {
+            const record = row.original
+            const vaccinationDate = record.vaccinationDate.toDate()
+            const nextDueDate = record.nextDueDate.toDate()
+            const today = new Date()
+            const daysUntilDue = differenceInDays(nextDueDate, today)
+
+            let statusVariant: 'default' | 'destructive' | 'secondary' | 'outline' = 'default'
+            let statusText = `${Math.abs(daysUntilDue)} days`
+
+            if (daysUntilDue < 0) {
+              statusVariant = 'destructive'
+              statusText = `${Math.abs(daysUntilDue)} days overdue`
+            } else if (daysUntilDue <= 30) {
+              statusVariant = 'outline'
+              statusText = `${daysUntilDue} days`
+            } else {
+              statusVariant = 'secondary'
+              statusText = `${daysUntilDue} days`
+            }
+
+            return (
+              <Card
+                key={row.id}
+                className="cursor-pointer hover:bg-accent/50 transition-colors"
+                onClick={() => onEdit(record)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-base mb-1">
+                        {record.vaccinationRuleName}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Vaccinated: {format(vaccinationDate, 'MMM d, yyyy')}
+                      </p>
+                    </div>
+                    <Badge variant={statusVariant} className="font-normal ml-2">
+                      {statusText}
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Next Due:</span>
+                      <span className="font-medium">{format(nextDueDate, 'MMM d, yyyy')}</span>
+                    </div>
+
+                    {record.veterinarianName && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Veterinarian:</span>
+                        <span>{record.veterinarianName}</span>
+                      </div>
+                    )}
+
+                    {record.vaccineProduct && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Vaccine:</span>
+                        <span>{record.vaccineProduct}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex justify-end pt-3 mt-3 border-t gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onEdit(record)
+                      }}
+                    >
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onDelete(record)
+                      }}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })
+        ) : (
+          <Card>
+            <CardContent className="p-8 text-center text-muted-foreground">
+              <p className="text-lg mb-2">No vaccination records found</p>
+              <p className="text-sm">
+                Click "Add Vaccination" to create the first record
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )

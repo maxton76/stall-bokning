@@ -16,7 +16,9 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Horse } from '@/types/roles'
 
@@ -50,7 +52,8 @@ export function HorseTable({ data, columns, onRowClick }: HorseTableProps) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border">
+      {/* Desktop Table View - hidden on mobile */}
+      <div className="hidden md:block rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map(headerGroup => (
@@ -116,9 +119,84 @@ export function HorseTable({ data, columns, onRowClick }: HorseTableProps) {
         </Table>
       </div>
 
+      {/* Mobile Card View - hidden on desktop */}
+      <div className="md:hidden space-y-3">
+        {table.getRowModel().rows?.length ? (
+          table.getRowModel().rows.map(row => {
+            const horse = row.original
+            return (
+              <Card
+                key={row.id}
+                className={onRowClick ? 'cursor-pointer hover:bg-accent/50 transition-colors' : ''}
+                onClick={(e) => {
+                  const target = e.target as HTMLElement
+                  const isInteractive = target.closest('button, a, [role="button"]')
+                  if (!isInteractive && onRowClick) {
+                    onRowClick(horse)
+                  }
+                }}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg">{horse.name}</h3>
+                      {horse.currentStableName && (
+                        <p className="text-sm text-muted-foreground">{horse.currentStableName}</p>
+                      )}
+                    </div>
+                    <Badge variant={horse.status === 'active' ? 'default' : 'secondary'}>
+                      {horse.status}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                    {horse.gender && (
+                      <div>
+                        <span className="text-muted-foreground">Gender:</span> {horse.gender}
+                      </div>
+                    )}
+                    {horse.birthYear && (
+                      <div>
+                        <span className="text-muted-foreground">Age:</span> {new Date().getFullYear() - horse.birthYear} ({horse.birthYear})
+                      </div>
+                    )}
+                    {horse.ueln && (
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground">UELN:</span> {horse.ueln}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Render action buttons from the last column */}
+                  <div className="flex justify-end pt-2 border-t">
+                    {row.getVisibleCells().map(cell => {
+                      // Only render the actions column
+                      if (cell.column.id === 'actions') {
+                        return flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )
+                      }
+                      return null
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })
+        ) : (
+          <Card>
+            <CardContent className="p-8 text-center text-muted-foreground">
+              <p className="text-lg mb-2">No horses found</p>
+              <p className="text-sm">Try adjusting your search or filters</p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
       {/* Pagination Controls */}
-      <div className="flex items-center justify-between px-2">
-        <div className="text-sm text-muted-foreground">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-2">
+        <div className="text-xs sm:text-sm text-muted-foreground">
           Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
           {Math.min(
             (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
@@ -133,10 +211,10 @@ export function HorseTable({ data, columns, onRowClick }: HorseTableProps) {
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Previous
+            <ChevronLeft className="h-4 w-4 sm:mr-1" />
+            <span className="hidden sm:inline">Previous</span>
           </Button>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
             Page {table.getState().pagination.pageIndex + 1} of{' '}
             {table.getPageCount()}
           </div>
@@ -146,8 +224,8 @@ export function HorseTable({ data, columns, onRowClick }: HorseTableProps) {
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Next
-            <ChevronRight className="h-4 w-4 ml-1" />
+            <span className="hidden sm:inline">Next</span>
+            <ChevronRight className="h-4 w-4 sm:ml-1" />
           </Button>
         </div>
       </div>

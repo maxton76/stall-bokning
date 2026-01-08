@@ -24,10 +24,10 @@ const FACILITY_TYPES: { value: FacilityType; label: string }[] = [
   { value: 'other', label: 'Other' },
 ]
 
-const TIME_SLOT_DURATIONS: { value: number; label: string }[] = [
-  { value: 15, label: '15 minutes' },
-  { value: 30, label: '30 minutes' },
-  { value: 60, label: '1 hour' },
+const TIME_SLOT_DURATIONS: { value: string; label: string }[] = [
+  { value: '15', label: '15 minutes' },
+  { value: '30', label: '30 minutes' },
+  { value: '60', label: '1 hour' },
 ]
 
 const STATUS_OPTIONS = [
@@ -69,7 +69,7 @@ const facilitySchema = z.object({
   planningWindowOpens: z.coerce.number().min(0).max(365),
   planningWindowCloses: z.coerce.number().min(0).max(168),
   maxHorsesPerReservation: z.coerce.number().min(1).max(50),
-  minTimeSlotDuration: z.union([z.literal(15), z.literal(30), z.literal(60)]),
+  minTimeSlotDuration: z.enum(['15', '30', '60']).transform((val) => parseInt(val, 10) as TimeSlotDuration),
   maxHoursPerReservation: z.coerce.number().min(1).max(24),
   availableFrom: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:mm)'),
   availableTo: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:mm)'),
@@ -111,7 +111,7 @@ export function FacilityFormDialog({
       planningWindowOpens: 14,
       planningWindowCloses: 1,
       maxHorsesPerReservation: 1,
-      minTimeSlotDuration: 30,
+      minTimeSlotDuration: '30',
       maxHoursPerReservation: 2,
       availableFrom: '08:00',
       availableTo: '20:00',
@@ -146,7 +146,7 @@ export function FacilityFormDialog({
         planningWindowOpens: facility.planningWindowOpens,
         planningWindowCloses: facility.planningWindowCloses,
         maxHorsesPerReservation: facility.maxHorsesPerReservation,
-        minTimeSlotDuration: facility.minTimeSlotDuration,
+        minTimeSlotDuration: String(facility.minTimeSlotDuration) as '15' | '30' | '60',
         maxHoursPerReservation: facility.maxHoursPerReservation,
         availableFrom: facility.availableFrom,
         availableTo: facility.availableTo,

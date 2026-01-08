@@ -1,4 +1,5 @@
-import type { Activity, ActivityStatus } from '@/types/activity'
+import type { Activity, ActivityStatus, ActivityEntry, ActivityFilters, PeriodType } from '@/types/activity'
+import { startOfDay, endOfDay } from 'date-fns'
 
 /**
  * Find the most recent activity for a specific horse and activity type
@@ -116,4 +117,79 @@ export function getDaysSinceActivity(activity: Activity): number {
  */
 export function isActivityOverdue(activity: Activity, maxDays: number): boolean {
   return getDaysSinceActivity(activity) > maxDays
+}
+
+/**
+ * Temporal sections for organizing activities by time
+ */
+export interface TemporalSections {
+  overdue: ActivityEntry[]
+  today: ActivityEntry[]
+  upcoming: ActivityEntry[]
+}
+
+/**
+ * Section activities by time relative to today
+ *
+ * @param activities - Array of activity entries
+ * @returns Sections organized by overdue, today, and upcoming
+ *
+ * @example
+ * ```tsx
+ * const sections = sectionActivitiesByTime(activities)
+ * console.log(`${sections.overdue.length} overdue activities`)
+ * ```
+ */
+export function sectionActivitiesByTime(activities: ActivityEntry[]): TemporalSections {
+  const now = new Date()
+  const todayStart = startOfDay(now)
+  const todayEnd = endOfDay(now)
+
+  const sections: TemporalSections = {
+    overdue: [],
+    today: [],
+    upcoming: []
+  }
+
+  activities.forEach(entry => {
+    const entryDate = entry.date.toDate()
+
+    if (entryDate < todayStart && entry.status !== 'completed') {
+      sections.overdue.push(entry)
+    } else if (entryDate >= todayStart && entryDate <= todayEnd) {
+      sections.today.push(entry)
+    } else if (entryDate > todayEnd) {
+      sections.upcoming.push(entry)
+    } else if (entry.status === 'completed' && entryDate < todayStart) {
+      sections.overdue.push(entry) // Completed overdue items stay in overdue
+    }
+  })
+
+  return sections
+}
+
+/**
+ * Determine if temporal sections should be used based on period and filters
+ *
+ * @param periodType - The current period type (day, week, month)
+ * @param filters - Current activity filters
+ * @returns True if temporal sections should be used
+ *
+ * @example
+ * ```tsx
+ * if (shouldUseTemporalSections('week', filters)) {
+ *   // Use temporal sections
+ * }
+ * ```
+ */
+export function shouldUseTemporalSections(
+  periodType: PeriodType,
+  filters: ActivityFilters
+): boolean {
+  // Use temporal sections for week/month views
+  // For day view, respect manual grouping
+  if (periodType === 'day') {
+    return filters.groupBy === 'none'
+  }
+  return true
 }

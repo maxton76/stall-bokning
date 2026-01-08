@@ -255,18 +255,18 @@ export default function MyHorsesPage() {
   }
 
   return (
-    <div className='container mx-auto p-6 space-y-6'>
+    <div className='container mx-auto p-2 sm:p-6 space-y-4 sm:space-y-6'>
       {/* Header */}
-      <div className='flex items-center justify-between'>
+      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
         <div>
-          <h1 className='text-3xl font-bold tracking-tight'>My Horses</h1>
-          <p className='text-muted-foreground mt-1'>
+          <h1 className='text-2xl sm:text-3xl font-bold tracking-tight'>My Horses</h1>
+          <p className='text-sm sm:text-base text-muted-foreground mt-1'>
             Manage your horses and their stable assignments
           </p>
         </div>
         <div className='flex gap-2'>
           <HorseExportButton horses={filteredHorses} />
-          <Button onClick={handleCreateHorse}>
+          <Button onClick={handleCreateHorse} className="flex-1 sm:flex-none">
             <Plus className='mr-2 h-4 w-4' />
             Add Horse
           </Button>
@@ -275,7 +275,7 @@ export default function MyHorsesPage() {
 
       {/* Filter Toolbar */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           {/* Filter Popover */}
           <HorseFilterPopover
             filters={filters}
@@ -287,7 +287,7 @@ export default function MyHorsesPage() {
           />
 
           {/* Search Input */}
-          <div className="relative flex-1 max-w-md">
+          <div className="relative flex-1 sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by Name, UELN, etc..."
