@@ -7,13 +7,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
+import { useOrganizationContext } from '@/contexts/OrganizationContext'
 import { createStable } from '@/services/stableService'
 
 export default function CreateStablePage() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { currentOrganizationId } = useOrganizationContext()
   const [searchParams] = useSearchParams()
-  const organizationId = searchParams.get('organizationId')
+  // Prefer organization from context, fallback to URL params for compatibility
+  const organizationId = currentOrganizationId || searchParams.get('organizationId')
 
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -28,26 +31,37 @@ export default function CreateStablePage() {
     e.preventDefault()
     if (!user) return
 
+    // Validate that we have an organization ID
+    if (!organizationId) {
+      console.error('❌ CreateStablePage: No organization ID available')
+      alert('Cannot create stable: No organization selected. Please contact support.')
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      // Create stable with optional organizationId
+      console.log('🏗️ CreateStablePage: Creating stable with organization:', organizationId)
+
+      // Create stable - organizationId is now always required
       const stableData = {
         name: formData.name,
         description: formData.description,
         address: `${formData.address}, ${formData.city} ${formData.postalCode}`,
         ownerId: user.uid,
         ownerEmail: user.email || undefined,
-        ...(organizationId && { organizationId })  // Conditionally include organizationId
+        organizationId  // Always include organizationId
       }
 
+      console.log('📋 CreateStablePage: Stable data:', stableData)
+
       const stableId = await createStable(user.uid, stableData)
-      console.log('Stable created with ID:', stableId)
+      console.log('✅ Stable created with ID:', stableId)
 
       // Navigate to the new stable's detail page
       navigate(`/stables/${stableId}`)
     } catch (error) {
-      console.error('Error creating stable:', error)
+      console.error('❌ Error creating stable:', error)
       alert('Failed to create stable. Please try again.')
     } finally {
       setIsLoading(false)

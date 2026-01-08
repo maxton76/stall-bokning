@@ -371,16 +371,28 @@ export async function transferHorse(
  * @returns Promise with organization ID or null
  */
 export async function getHorseOrganizationId(horse: Horse): Promise<string | null> {
+  console.log('🔍 getHorseOrganizationId: Starting for horse:', {
+    horseId: horse.id,
+    horseName: horse.name,
+    currentStableId: horse.currentStableId,
+    ownerId: horse.ownerId
+  })
+
   // If horse is assigned to a stable, get organization from stable
   if (horse.currentStableId) {
+    console.log('🏛️ getHorseOrganizationId: Horse has stable, fetching stable doc:', horse.currentStableId)
     const stableDoc = await getDoc(doc(db, 'stables', horse.currentStableId))
     if (stableDoc.exists()) {
-      return stableDoc.data().organizationId || null
+      const organizationId = stableDoc.data().organizationId || null
+      console.log('✅ getHorseOrganizationId: Found organization from stable:', organizationId)
+      return organizationId
     }
+    console.warn('⚠️ getHorseOrganizationId: Stable doc not found')
   }
 
   // For unassigned horses, get organization from owner's membership
   if (horse.ownerId) {
+    console.log('👤 getHorseOrganizationId: Horse unassigned, checking owner membership:', horse.ownerId)
     const membershipsQuery = query(
       collection(db, 'organizationMembers'),
       where('userId', '==', horse.ownerId),
@@ -389,11 +401,21 @@ export async function getHorseOrganizationId(horse: Horse): Promise<string | nul
     )
     const membershipsSnapshot = await getDocs(membershipsQuery)
 
+    console.log('📋 getHorseOrganizationId: Membership query results:', {
+      empty: membershipsSnapshot.empty,
+      size: membershipsSnapshot.size,
+      docs: membershipsSnapshot.docs.map(d => ({ id: d.id, data: d.data() }))
+    })
+
     if (!membershipsSnapshot.empty) {
-      return membershipsSnapshot.docs[0].data().organizationId
+      const organizationId = membershipsSnapshot.docs[0].data().organizationId
+      console.log('✅ getHorseOrganizationId: Found organization from owner membership:', organizationId)
+      return organizationId
     }
+    console.warn('⚠️ getHorseOrganizationId: No active memberships found for owner')
   }
 
+  console.warn('❌ getHorseOrganizationId: No organization found')
   return null
 }
 

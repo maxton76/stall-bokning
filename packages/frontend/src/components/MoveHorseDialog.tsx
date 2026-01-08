@@ -151,25 +151,39 @@ export function MoveHorseDialog({ open, onClose, horse, onSuccess }: MoveHorseDi
 
     setLoadingDestinations(true)
     try {
+      console.log('🔍 MoveHorseDialog: Loading destinations for horse:', {
+        horseId: horse.id,
+        horseName: horse.name,
+        currentStableId: horse.currentStableId,
+        ownerId: horse.ownerId
+      })
+
       // Load organization stables
       const orgId = await getHorseOrganizationId(horse)
+      console.log('🏢 MoveHorseDialog: Organization ID:', orgId)
+
       if (orgId) {
         const stablesSnapshot = await getOrganizationStables(orgId)
         const stables = mapDocsToObjects<Stable>(stablesSnapshot)
+        console.log('🏛️ MoveHorseDialog: All stables in organization:', stables)
+
         // Filter out current stable
         const available = stables.filter(s => s.id !== horse.currentStableId)
+        console.log('✅ MoveHorseDialog: Available stables after filtering:', available)
         setOrganizationStables(available)
 
         // Load contacts for the organization
         const contactsData = await getContactsForSelection(user.uid, orgId)
+        console.log('👤 MoveHorseDialog: Contacts:', contactsData)
         setContacts(contactsData)
       } else {
+        console.warn('⚠️ MoveHorseDialog: No organization found for horse')
         // Load only user contacts if no organization
         const contactsData = await getContactsForSelection(user.uid, undefined)
         setContacts(contactsData)
       }
     } catch (error) {
-      console.error('Failed to load destinations:', error)
+      console.error('❌ MoveHorseDialog: Failed to load destinations:', error)
     } finally {
       setLoadingDestinations(false)
     }
