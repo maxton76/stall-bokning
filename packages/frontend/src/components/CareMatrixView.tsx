@@ -8,15 +8,36 @@ interface CareMatrixViewProps {
   onCellClick: (horseId: string, activityTypeId: string) => void
 }
 
-// Helper function to find the most recent activity for a horse + activity type combination
+// Helper function to find the last (most recent past) activity
 function findLastActivity(
   activities: Activity[],
   horseId: string,
   activityTypeId: string
 ): Activity | undefined {
+  const now = new Date()
   return activities
-    .filter(a => a.horseId === horseId && a.activityTypeConfigId === activityTypeId)
-    .sort((a, b) => b.date.toMillis() - a.date.toMillis())[0]
+    .filter(a => {
+      const isPast = a.date.toDate() < now
+      const isMatch = a.horseId === horseId && a.activityTypeConfigId === activityTypeId
+      return isPast && isMatch
+    })
+    .sort((a, b) => b.date.toMillis() - a.date.toMillis())[0] // Sort descending to get most recent
+}
+
+// Helper function to find the next upcoming activity
+function findNextActivity(
+  activities: Activity[],
+  horseId: string,
+  activityTypeId: string
+): Activity | undefined {
+  const now = new Date()
+  return activities
+    .filter(a => {
+      const isFuture = a.date.toDate() >= now
+      const isMatch = a.horseId === horseId && a.activityTypeConfigId === activityTypeId
+      return isFuture && isMatch
+    })
+    .sort((a, b) => a.date.toMillis() - b.date.toMillis())[0] // Sort ascending to get earliest future date
 }
 
 export function CareMatrixView({
@@ -85,6 +106,7 @@ export function CareMatrixView({
           {/* Activity Type Cells */}
           {sortedActivityTypes.map((type) => {
             const lastActivity = findLastActivity(activities, horse.id, type.id)
+            const nextActivity = findNextActivity(activities, horse.id, type.id)
             return (
               <CareMatrixCell
                 key={type.id}
@@ -94,6 +116,7 @@ export function CareMatrixView({
                 activityTypeName={type.name}
                 activityTypeColor={type.color}
                 lastActivity={lastActivity}
+                nextActivity={nextActivity}
                 onClick={onCellClick}
               />
             )

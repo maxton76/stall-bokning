@@ -17,6 +17,7 @@ interface ActivityPageLayoutProps {
   onStableChange: (stableId: string) => void
   stables: Array<{ id: string; name: string }>
   stablesLoading?: boolean
+  showStableSelector?: boolean
   children: ReactNode
 }
 
@@ -28,6 +29,7 @@ export function ActivityPageLayout({
   onStableChange,
   stables,
   stablesLoading = false,
+  showStableSelector = true,
   children,
 }: ActivityPageLayoutProps) {
   // Loading state
@@ -67,22 +69,24 @@ export function ActivityPageLayout({
       </div>
 
       {/* Stable Selector Bar */}
-      <div className="flex items-center gap-2">
-        <label className="text-sm font-medium">Stable:</label>
-        <Select value={selectedStableId} onValueChange={onStableChange}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Select a stable" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Stables</SelectItem>
-            {stables.map((stable) => (
-              <SelectItem key={stable.id} value={stable.id}>
-                {stable.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {showStableSelector && (
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium">Stable:</label>
+          <Select value={selectedStableId} onValueChange={onStableChange}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Select a stable" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Stables</SelectItem>
+              {stables.map((stable) => (
+                <SelectItem key={stable.id} value={stable.id}>
+                  {stable.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Page Content */}
       {children}

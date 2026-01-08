@@ -10,10 +10,19 @@ import type {
   CreateTaskData,
   CreateMessageData,
   UpdateActivityEntryData,
-  DateTab
+  PeriodType,
+  DateTab // Keep for backward compatibility
 } from '@/types/activity'
 import { mapDocsToObjects } from '@/utils/firestoreHelpers'
-import { startOfDay, endOfDay, addDays } from 'date-fns'
+import {
+  startOfDay,
+  endOfDay,
+  addDays,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth
+} from 'date-fns'
 
 // CRUD service for activities (polymorphic - handles all 3 types)
 const activityCrud = createCrudService<ActivityEntry>({
@@ -116,6 +125,7 @@ export async function getStableActivities(
 
 /**
  * Get activities for specific date tab (today, tomorrow, day after tomorrow)
+ * @deprecated Use getActivitiesByPeriod instead
  */
 export async function getActivitiesByDateTab(
   stableId: string,
@@ -140,6 +150,41 @@ export async function getActivitiesByDateTab(
 }
 
 /**
+ * Get activities for a specific period (day, week, or month)
+ * @param stableId - The stable ID to query
+ * @param referenceDate - The date to calculate the period from
+ * @param periodType - The type of period ('day' | 'week' | 'month')
+ * @returns Promise with array of activity entries for the period
+ */
+export async function getActivitiesByPeriod(
+  stableId: string,
+  referenceDate: Date,
+  periodType: PeriodType
+): Promise<ActivityEntry[]> {
+  let startDate: Date
+  let endDate: Date
+
+  switch (periodType) {
+    case 'day':
+      startDate = startOfDay(referenceDate)
+      endDate = endOfDay(referenceDate)
+      break
+
+    case 'week':
+      startDate = startOfWeek(referenceDate, { weekStartsOn: 1 }) // Monday
+      endDate = endOfWeek(referenceDate, { weekStartsOn: 1 })     // Sunday
+      break
+
+    case 'month':
+      startDate = startOfMonth(referenceDate)
+      endDate = endOfMonth(referenceDate)
+      break
+  }
+
+  return getStableActivities(stableId, startDate, endDate)
+}
+
+/**
  * Get care-focused activities (for Care page)
  * @param stableIds - Array of stable IDs or single stable ID. If empty array, returns empty results.
  */
@@ -153,6 +198,20 @@ export async function getCareActivities(stableIds: string | string[]): Promise<A
 
   // Return empty if no stables provided
   if (stableIdArray.length === 0) return []
+
+  // Load all activity type configs for these stables (to support new activityTypeConfigId field)
+  const activityTypeConfigsMap = new Map<string, any>()
+  for (const stableId of stableIdArray) {
+    const configQuery = query(
+      collection(db, 'activityTypes'),
+      where('stableId', '==', stableId),
+      where('category', '==', 'Care')
+    )
+    const configSnapshot = await getDocs(configQuery)
+    configSnapshot.docs.forEach(doc => {
+      activityTypeConfigsMap.set(doc.id, { id: doc.id, ...doc.data() })
+    })
+  }
 
   // For multiple stables, we need to query each stable separately and combine results
   // Firestore doesn't support OR queries with 'in' operator along with other where clauses efficiently
@@ -171,9 +230,19 @@ export async function getCareActivities(stableIds: string | string[]): Promise<A
     allActivities.push(...activities)
   }
 
-  // Filter by care types and sort by date
+  // Filter by care types (support both legacy activityType and new activityTypeConfigId)
   return allActivities
-    .filter(activity => activity.activityType && careTypes.includes(activity.activityType))
+    .filter(activity => {
+      // Check legacy field
+      if (activity.activityType && careTypes.includes(activity.activityType)) {
+        return true
+      }
+      // Check new field - if activityTypeConfigId points to a Care category config
+      if (activity.activityTypeConfigId && activityTypeConfigsMap.has(activity.activityTypeConfigId)) {
+        return true
+      }
+      return false
+    })
     .sort((a, b) => a.date.toMillis() - b.date.toMillis())
 }
 

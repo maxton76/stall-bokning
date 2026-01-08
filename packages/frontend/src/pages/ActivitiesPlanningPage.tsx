@@ -1,8 +1,6 @@
-import { useState, useEffect } from 'react'
-import { startOfMonth, endOfMonth, subDays, addDays } from 'date-fns'
-import { CalendarDays, Users, Building } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { useState, useEffect, useMemo } from 'react'
+import { startOfWeek, addWeeks, subWeeks, addDays, startOfDay, endOfDay } from 'date-fns'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -15,19 +13,22 @@ import { useUserStables } from '@/hooks/useUserStables'
 import { useAsyncData } from '@/hooks/useAsyncData'
 import { useDialog } from '@/hooks/useDialog'
 import { useActivityTypes } from '@/hooks/useActivityTypes'
-import { ActivityCalendarView } from '@/components/ActivityCalendarView'
+import { CalendarHeader } from '@/components/calendar/CalendarHeader'
+import { WeekDaysHeader } from '@/components/calendar/WeekDaysHeader'
+import { HorseRow } from '@/components/calendar/HorseRow'
 import { ActivityFormDialog } from '@/components/ActivityFormDialog'
 import { getStableActivities } from '@/services/activityService'
 import { getUserHorsesAtStable } from '@/services/horseService'
 import type { ActivityEntry } from '@/types/activity'
+import type { Horse } from '@/types/roles'
 
 export default function ActivitiesPlanningPage() {
   const { user } = useAuth()
   const [selectedStableId, setSelectedStableId] = useState<string>('')
-  const [viewMode, setViewMode] = useState<'horses' | 'staff' | 'stable'>('horses')
-  const [selectedHorseId, setSelectedHorseId] = useState<string>('all')
-  const [selectedStaffId, setSelectedStaffId] = useState<string>('all')
-  const [dialogInitialDate, setDialogInitialDate] = useState<Date | undefined>()
+  const [viewMode, setViewMode] = useState<'day' | 'week'>('week')
+  const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))
+  const [expandedHorses, setExpandedHorses] = useState<Set<string>>(new Set())
+  const formDialog = useDialog<ActivityEntry>()
 
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid)
@@ -39,70 +40,93 @@ export default function ActivitiesPlanningPage() {
     }
   }, [stables, selectedStableId])
 
-  // Load activities for current month ± 1 week
+  // Get week days
+  const weekDays = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i))
+  }, [currentWeekStart])
+
+  // Get date range for loading activities
+  const dateRange = useMemo(() => {
+    return {
+      start: startOfDay(weekDays[0]!),
+      end: endOfDay(weekDays[6]!)
+    }
+  }, [weekDays])
+
+  // Load activities for week
   const activities = useAsyncData<ActivityEntry[]>({
     loadFn: async () => {
       if (!selectedStableId) return []
-      const startDate = startOfMonth(subDays(new Date(), 7))
-      const endDate = endOfMonth(addDays(new Date(), 7))
-      return await getStableActivities(selectedStableId, startDate, endDate)
-    },
+      return await getStableActivities(selectedStableId, dateRange.start, dateRange.end)
+    }
+  })
+
+  // Load horses
+  const horses = useAsyncData<Horse[]>({
+    loadFn: async () => {
+      if (!user || !selectedStableId) return []
+      return await getUserHorsesAtStable(user.uid, selectedStableId)
+    }
   })
 
   // Load activity types
   const activityTypes = useActivityTypes(selectedStableId, true)
 
-  // Load horses for horses view
-  const horses = useAsyncData<Array<{ id: string; name: string }>>({
-    loadFn: async () => {
-      if (!selectedStableId || viewMode !== 'horses' || !user) return []
-      return await getUserHorsesAtStable(user.uid, selectedStableId)
-    },
-  })
-
-  // Load staff members (from stable members)
-  // TODO: Implement getStableMembers service
-  const staffMembers = useAsyncData<Array<{ id: string; name: string }>>({
-    loadFn: async () => {
-      // Placeholder until getStableMembers is implemented
-      return []
-    },
-  })
-
-  // Dialog for event click
-  const formDialog = useDialog<ActivityEntry>()
-
-  // Reload activities when stable changes
+  // Reload activities when stable or date range changes
   useEffect(() => {
     if (selectedStableId) {
       activities.load()
     }
-  }, [selectedStableId])
+  }, [selectedStableId, dateRange.start, dateRange.end])
 
-  // Reload horses/staff when view mode changes
+  // Reload horses when stable changes
   useEffect(() => {
-    if (selectedStableId && viewMode === 'horses') {
+    if (selectedStableId && user) {
       horses.load()
-    } else if (selectedStableId && viewMode === 'staff') {
-      staffMembers.load()
     }
-  }, [selectedStableId, viewMode])
+  }, [selectedStableId, user])
 
-  // Event handlers
-  const handleEventClick = (entry: ActivityEntry) => {
-    formDialog.openDialog(entry)
+  // Navigation handlers
+  const handleNavigate = (direction: 'prev' | 'next' | 'today') => {
+    if (direction === 'today') {
+      setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))
+    } else if (direction === 'prev') {
+      setCurrentWeekStart(d => subWeeks(d, 1))
+    } else {
+      setCurrentWeekStart(d => addWeeks(d, 1))
+    }
   }
 
-  const handleDateSelect = (date: Date) => {
-    setDialogInitialDate(date)
-    formDialog.openDialog()
+  // Horse expand/collapse
+  const handleToggleHorse = (horseId: string) => {
+    setExpandedHorses(prev => {
+      const next = new Set(prev)
+      if (next.has(horseId)) {
+        next.delete(horseId)
+      } else {
+        next.add(horseId)
+      }
+      return next
+    })
+  }
+
+  // Cell click - open form dialog with pre-filled date/horse
+  const handleCellClick = (_horseId: string, _date: Date, _hour?: number) => {
+    // Open dialog with undefined entry
+    // TODO: Pass horseId and date as initial data to ActivityFormDialog
+    // ActivityFormDialog needs to support initialData prop for horseId and date
+    formDialog.openDialog(undefined)
+  }
+
+  // Activity click - edit existing activity
+  const handleActivityClick = (activity: ActivityEntry) => {
+    formDialog.openDialog(activity)
   }
 
   const handleSave = async (data: any) => {
     // TODO: Implement save logic
     console.log('Save activity:', data)
     formDialog.closeDialog()
-    setDialogInitialDate(undefined)
     activities.reload()
   }
 
@@ -130,131 +154,63 @@ export default function ActivitiesPlanningPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header with View Switcher */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Activity Planning</h1>
-          <p className="text-muted-foreground mt-1">
-            Calendar view of all activities, tasks, and messages
-          </p>
-        </div>
-        {/* View Switcher */}
-        <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
-          <Button
-            variant={viewMode === 'horses' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setViewMode('horses')}
-          >
-            <CalendarDays className="mr-2 h-4 w-4" />
-            Horses
-          </Button>
-          <Button
-            variant={viewMode === 'staff' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setViewMode('staff')}
-          >
-            <Users className="mr-2 h-4 w-4" />
-            Staff
-          </Button>
-          <Button
-            variant={viewMode === 'stable' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setViewMode('stable')}
-          >
-            <Building className="mr-2 h-4 w-4" />
-            Stable
-          </Button>
-        </div>
+    <div className="container mx-auto p-6 h-screen flex flex-col">
+      {/* Stable Selector */}
+      <div className="mb-4">
+        <Select value={selectedStableId} onValueChange={setSelectedStableId}>
+          <SelectTrigger className="w-[280px]">
+            <SelectValue placeholder="Select a stable" />
+          </SelectTrigger>
+          <SelectContent>
+            {stables.map((stable) => (
+              <SelectItem key={stable.id} value={stable.id}>
+                {stable.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Calendar View */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-4">
-            <CardTitle>
-              {viewMode === 'horses' && 'Horses Activity Calendar'}
-              {viewMode === 'staff' && 'Staff Assignment Calendar'}
-              {viewMode === 'stable' && 'Complete Stable Calendar'}
-            </CardTitle>
+      {/* Calendar Card */}
+      <Card className="flex-1 flex flex-col overflow-hidden">
+        {/* Calendar Header with Navigation */}
+        <CalendarHeader
+          currentWeekStart={currentWeekStart}
+          onNavigate={handleNavigate}
+          viewMode={viewMode}
+          onViewModeChange={(mode) => setViewMode(mode as 'day' | 'week')}
+          onAddActivity={() => formDialog.openDialog()}
+          onFilterClick={() => {/* TODO: implement filter */}}
+        />
 
-            {/* Stable Selector & Filters */}
-            <div className="flex items-center gap-4 flex-wrap">
-              {/* Stable Selector */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Stable:</label>
-                <Select value={selectedStableId} onValueChange={setSelectedStableId}>
-                  <SelectTrigger className="w-[280px]">
-                    <SelectValue placeholder="Select a stable" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {stables.map((stable) => (
-                      <SelectItem key={stable.id} value={stable.id}>
-                        {stable.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+        {/* Calendar Grid */}
+        <CardContent className="flex-1 overflow-auto p-0">
+          {/* Week Days Header */}
+          <WeekDaysHeader weekDays={weekDays} today={new Date()} />
 
-              {/* Horse Filter (Horses View) */}
-              {viewMode === 'horses' && (
-                <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium">Horse:</label>
-                  <Select value={selectedHorseId} onValueChange={setSelectedHorseId}>
-                    <SelectTrigger className="w-[280px]">
-                      <SelectValue placeholder="Select horse" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Horses</SelectItem>
-                      {horses.data?.map((horse) => (
-                        <SelectItem key={horse.id} value={horse.id}>
-                          {horse.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* Staff Filter (Staff View) */}
-              {viewMode === 'staff' && (
-                <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium">Staff:</label>
-                  <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
-                    <SelectTrigger className="w-[280px]">
-                      <SelectValue placeholder="Select staff member" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Staff</SelectItem>
-                      {staffMembers.data?.map((member) => (
-                        <SelectItem key={member.id} value={member.id}>
-                          {member.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+          {/* Horse Rows */}
+          {horses.loading ? (
+            <div className="p-8 text-center text-muted-foreground">
+              Loading horses...
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {activities.loading ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Loading activities...</p>
-            </div>
+          ) : horses.data && horses.data.length > 0 ? (
+            horses.data.map((horse) => (
+              <HorseRow
+                key={horse.id}
+                horse={horse}
+                weekDays={weekDays}
+                activities={activities.data || []}
+                expanded={expandedHorses.has(horse.id)}
+                onToggleExpand={() => handleToggleHorse(horse.id)}
+                onActivityClick={handleActivityClick}
+                onCellClick={handleCellClick}
+                activityTypes={activityTypes.data || []}
+              />
+            ))
           ) : (
-            <ActivityCalendarView
-              activities={activities.data || []}
-              activityTypes={activityTypes.data || []}
-              viewMode={viewMode}
-              selectedHorseId={selectedHorseId}
-              selectedStaffId={selectedStaffId}
-              onEventClick={handleEventClick}
-              onDateSelect={handleDateSelect}
-              editable={true}
-            />
+            <div className="p-8 text-center text-muted-foreground">
+              No horses found for this stable.
+            </div>
           )}
         </CardContent>
       </Card>
@@ -264,10 +220,9 @@ export default function ActivitiesPlanningPage() {
         open={formDialog.open}
         onOpenChange={formDialog.closeDialog}
         entry={formDialog.data || undefined}
-        initialDate={dialogInitialDate}
         onSave={handleSave}
-        horses={horses.data || []}
-        stableMembers={staffMembers.data || []}
+        horses={horses.data?.map(h => ({ id: h.id, name: h.name })) || []}
+        stableMembers={[]}
         activityTypes={activityTypes.data || []}
       />
     </div>

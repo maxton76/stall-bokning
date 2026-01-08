@@ -1,8 +1,15 @@
 import { useState, useEffect } from 'react'
 import { Heart, Grid3x3, Table2, Search } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUserStables } from '@/hooks/useUserStables'
 import { useActivityPageState } from '@/hooks/useActivityPageState'
@@ -182,14 +189,32 @@ export default function ActivitiesCarePage() {
       onStableChange={setSelectedStableId}
       stables={stables}
       stablesLoading={stablesLoading}
+      showStableSelector={false}
     >
       {/* Care Activities Matrix/Table */}
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <CardTitle>Care Activities ({filteredHorses.length} horses)</CardTitle>
+              {/* Stable Selector */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Stable:</label>
+                <Select value={selectedStableId} onValueChange={setSelectedStableId}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Select a stable" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Stables</SelectItem>
+                    {stables.map((stable) => (
+                      <SelectItem key={stable.id} value={stable.id}>
+                        {stable.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
+              {/* View Mode Toggle */}
               <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as CareViewMode)}>
                 <TabsList>
                   <TabsTrigger value="matrix">
