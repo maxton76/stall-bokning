@@ -24,10 +24,10 @@ const FACILITY_TYPES: { value: FacilityType; label: string }[] = [
   { value: 'other', label: 'Other' },
 ]
 
-const TIME_SLOT_DURATIONS: { value: string; label: string }[] = [
-  { value: '15', label: '15 minutes' },
-  { value: '30', label: '30 minutes' },
-  { value: '60', label: '1 hour' },
+const TIME_SLOT_DURATIONS: { value: number; label: string }[] = [
+  { value: 15, label: '15 minutes' },
+  { value: 30, label: '30 minutes' },
+  { value: 60, label: '1 hour' },
 ]
 
 const STATUS_OPTIONS = [
@@ -66,11 +66,11 @@ const facilitySchema = z.object({
   ]),
   description: z.string().optional(),
   status: z.enum(['active', 'inactive', 'maintenance']),
-  planningWindowOpens: z.number().min(0).max(365),
-  planningWindowCloses: z.number().min(0).max(168),
-  maxHorsesPerReservation: z.number().min(1).max(50),
+  planningWindowOpens: z.coerce.number().min(0).max(365),
+  planningWindowCloses: z.coerce.number().min(0).max(168),
+  maxHorsesPerReservation: z.coerce.number().min(1).max(50),
   minTimeSlotDuration: z.union([z.literal(15), z.literal(30), z.literal(60)]),
-  maxHoursPerReservation: z.number().min(1).max(24),
+  maxHoursPerReservation: z.coerce.number().min(1).max(24),
   availableFrom: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:mm)'),
   availableTo: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:mm)'),
   daysAvailable: z.object({
