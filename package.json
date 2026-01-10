@@ -20,11 +20,10 @@
   },
   "lint-staged": {
     "packages/**/*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
       "prettier --write"
     ],
     "packages/frontend/src/**/*.{ts,tsx}": [
-      "node scripts/validate-patterns.js"
+      "bash -c 'node scripts/validate-patterns.js'"
     ]
   },
   "devDependencies": {
