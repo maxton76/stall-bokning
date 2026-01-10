@@ -67,7 +67,21 @@ export async function createHorse(
     isExternal: horseData.isExternal ?? false
   } as Omit<Horse, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'lastModifiedBy'>
 
-  return horseCrud.create(userId, dataWithOwner)
+  const horseId = await horseCrud.create(userId, dataWithOwner)
+
+  // Create initial location history entry if horse is assigned to a stable
+  if (horseData.currentStableId && horseData.currentStableName) {
+    await createLocationHistoryEntry(
+      horseId,
+      horseData.name,
+      horseData.currentStableId,
+      horseData.currentStableName,
+      userId,
+      horseData.assignedAt // Use assignedAt timestamp if provided
+    )
+  }
+
+  return horseId
 }
 
 /**

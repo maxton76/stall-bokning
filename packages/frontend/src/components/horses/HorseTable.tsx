@@ -172,9 +172,13 @@ export function HorseTable({ data, columns, onRowClick }: HorseTableProps) {
                     {row.getVisibleCells().map(cell => {
                       // Only render the actions column
                       if (cell.column.id === 'actions') {
-                        return flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
+                        return (
+                          <div key={cell.id}>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </div>
                         )
                       }
                       return null
