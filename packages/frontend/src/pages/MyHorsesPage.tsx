@@ -1,54 +1,60 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Plus, Loader2Icon, Search } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { useAuth } from '@/contexts/AuthContext'
-import { HorseFormDialog } from '@/components/HorseFormDialog'
-import { HorseAssignmentDialog } from '@/components/HorseAssignmentDialog'
-import { VaccinationRecordDialog } from '@/components/VaccinationRecordDialog'
-import { VaccinationHistoryTable } from '@/components/VaccinationHistoryTable'
-import { HorseTable } from '@/components/horses/HorseTable'
-import { HorseFilterPopover, HorseFilterBadges } from '@/components/HorseFilterPopover'
-import { HorseExportButton } from '@/components/horses/HorseExportButton'
-import { createHorseTableColumns } from '@/components/horses/HorseTableColumns'
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus, Loader2Icon, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/contexts/AuthContext";
+import { HorseFormDialog } from "@/components/HorseFormDialog";
+import { HorseAssignmentDialog } from "@/components/HorseAssignmentDialog";
+import { VaccinationRecordDialog } from "@/components/VaccinationRecordDialog";
+import { VaccinationHistoryTable } from "@/components/VaccinationHistoryTable";
+import { HorseTable } from "@/components/horses/HorseTable";
+import {
+  HorseFilterPopover,
+  HorseFilterBadges,
+} from "@/components/HorseFilterPopover";
+import { HorseExportButton } from "@/components/horses/HorseExportButton";
+import { createHorseTableColumns } from "@/components/horses/HorseTableColumns";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import type { Horse } from '@/types/roles'
-import type { VaccinationRecord } from '@shared/types/vaccination'
-import type { FilterConfig } from '@shared/types/filters'
+} from "@/components/ui/dialog";
+import type { Horse } from "@/types/roles";
+import type { VaccinationRecord } from "@shared/types/vaccination";
+import type { FilterConfig } from "@shared/types/filters";
 import {
   getUserHorses,
   createHorse,
   updateHorse,
   deleteHorse,
   assignHorseToStable,
-  unassignHorseFromStable
-} from '@/services/horseService'
+  unassignHorseFromStable,
+} from "@/services/horseService";
 import {
   getHorseVaccinationRecords,
-  deleteVaccinationRecord
-} from '@/services/vaccinationService'
-import { useDialog } from '@/hooks/useDialog'
-import { useAsyncData } from '@/hooks/useAsyncData'
-import { useCRUD } from '@/hooks/useCRUD'
-import { useHorseFilters } from '@/hooks/useHorseFilters'
-import { useUserStables } from '@/hooks/useUserStables'
+  deleteVaccinationRecord,
+} from "@/services/vaccinationService";
+import { queryKeys } from "@/lib/queryClient";
+import { useDialog } from "@/hooks/useDialog";
+import { useAsyncData } from "@/hooks/useAsyncData";
+import { useCRUD } from "@/hooks/useCRUD";
+import { useHorseFilters } from "@/hooks/useHorseFilters";
+import { useUserStables } from "@/hooks/useUserStables";
 
 export default function MyHorsesPage() {
-  const { user } = useAuth()
-  const navigate = useNavigate()
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // Data loading with custom hooks
   const horses = useAsyncData<Horse[]>({
     loadFn: () => getUserHorses(user!.uid),
-    errorMessage: 'Failed to load horses. Please try again.'
-  })
-  const { stables } = useUserStables(user?.uid)
+    errorMessage: "Failed to load horses. Please try again.",
+  });
+  const { stables } = useUserStables(user?.uid);
 
   // Filtering with unified hook
   const {
@@ -58,184 +64,224 @@ export default function MyHorsesPage() {
     activeFilterCount,
     hasActiveFilters,
     clearAllFilters,
-    getActiveFilterBadges
+    getActiveFilterBadges,
   } = useHorseFilters({
     horses: horses.data || [],
-    initialFilters: { status: 'active' }
-  })
+    initialFilters: { status: "active" },
+  });
 
   // Filter configuration for MyHorsesPage
   const filterConfig: FilterConfig = {
-    showSearch: false,  // Search is external, not in popover
+    showSearch: false, // Search is external, not in popover
     showStable: true,
     showGender: true,
     showAge: true,
     showUsage: true,
     showGroups: false,
-    showStatus: true
-  }
+    showStatus: true,
+  };
 
   // Dialog state management
-  const formDialog = useDialog<Horse>()
-  const assignmentDialog = useDialog<Horse>()
-  const vaccinationRecordDialog = useDialog<VaccinationRecord>()
-  const [vaccinationHistoryOpen, setVaccinationHistoryOpen] = useState(false)
-  const [selectedHorseForVaccination, setSelectedHorseForVaccination] = useState<Horse | null>(null)
-  const [vaccinationRecords, setVaccinationRecords] = useState<VaccinationRecord[]>([])
-  const [loadingVaccinationRecords, setLoadingVaccinationRecords] = useState(false)
+  const formDialog = useDialog<Horse>();
+  const assignmentDialog = useDialog<Horse>();
+  const vaccinationRecordDialog = useDialog<VaccinationRecord>();
+  const [vaccinationHistoryOpen, setVaccinationHistoryOpen] = useState(false);
+  const [selectedHorseForVaccination, setSelectedHorseForVaccination] =
+    useState<Horse | null>(null);
+
+  // Fetch vaccination records for selected horse
+  const {
+    data: vaccinationRecords = [],
+    isLoading: loadingVaccinationRecords,
+  } = useQuery({
+    queryKey: queryKeys.vaccinations.byHorse(
+      selectedHorseForVaccination?.id || "",
+    ),
+    queryFn: async () => {
+      if (!selectedHorseForVaccination?.id) return [];
+      return await getHorseVaccinationRecords(selectedHorseForVaccination.id);
+    },
+    enabled: !!selectedHorseForVaccination?.id,
+    staleTime: 5 * 60 * 1000,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
 
   // CRUD operations
   const horseCRUD = useCRUD<Horse>({
-    createFn: (data) => createHorse(user!.uid, data as Omit<Horse, 'id' | 'createdAt' | 'updatedAt' | 'ownerId' | 'lastModifiedBy'>),
-    updateFn: (id, data) => updateHorse(id, user!.uid, data as Omit<Horse, 'id' | 'createdAt' | 'updatedAt' | 'ownerId' | 'lastModifiedBy'>),
+    createFn: (data) =>
+      createHorse(
+        user!.uid,
+        data as Omit<
+          Horse,
+          "id" | "createdAt" | "updatedAt" | "ownerId" | "lastModifiedBy"
+        >,
+      ),
+    updateFn: (id, data) =>
+      updateHorse(
+        id,
+        user!.uid,
+        data as Omit<
+          Horse,
+          "id" | "createdAt" | "updatedAt" | "ownerId" | "lastModifiedBy"
+        >,
+      ),
     deleteFn: (id) => deleteHorse(id),
     onSuccess: async () => {
-      await horses.reload()
+      await horses.reload();
     },
     successMessages: {
-      create: 'Horse added successfully',
-      update: 'Horse updated successfully',
-      delete: 'Horse deleted successfully'
-    }
-  })
+      create: "Horse added successfully",
+      update: "Horse updated successfully",
+      delete: "Horse deleted successfully",
+    },
+  });
 
   // Load data on mount
   useEffect(() => {
     if (user) {
-      horses.load()
+      horses.load();
     }
-  }, [user])
+  }, [user]);
 
   // CRUD Handlers
   const handleCreateHorse = () => {
-    formDialog.openDialog()
-  }
+    formDialog.openDialog();
+  };
 
   const handleEditHorse = (horse: Horse) => {
-    formDialog.openDialog(horse)
-  }
+    formDialog.openDialog(horse);
+  };
 
-  const handleSaveHorse = async (horseData: Omit<Horse, 'id' | 'ownerId' | 'ownerName' | 'ownerEmail' | 'createdAt' | 'updatedAt' | 'lastModifiedBy'>) => {
+  const handleSaveHorse = async (
+    horseData: Omit<
+      Horse,
+      | "id"
+      | "ownerId"
+      | "ownerName"
+      | "ownerEmail"
+      | "createdAt"
+      | "updatedAt"
+      | "lastModifiedBy"
+    >,
+  ) => {
     if (formDialog.data) {
-      await horseCRUD.update(formDialog.data.id, horseData)
+      await horseCRUD.update(formDialog.data.id, horseData);
     } else {
-      await horseCRUD.create(horseData)
+      await horseCRUD.create(horseData);
     }
-    formDialog.closeDialog()
-  }
+    formDialog.closeDialog();
+  };
 
   const handleDeleteHorse = async (horse: Horse) => {
     await horseCRUD.remove(
       horse.id,
-      `Are you sure you want to delete ${horse.name}? This action cannot be undone.`
-    )
-  }
+      `Are you sure you want to delete ${horse.name}? This action cannot be undone.`,
+    );
+  };
 
   // Assignment Handlers
   const handleAssignClick = (horse: Horse) => {
-    assignmentDialog.openDialog(horse)
-  }
+    assignmentDialog.openDialog(horse);
+  };
 
-  const handleAssign = async (horseId: string, stableId: string, stableName: string) => {
-    if (!user) return
+  const handleAssign = async (
+    horseId: string,
+    stableId: string,
+    stableName: string,
+  ) => {
+    if (!user) return;
 
     try {
-      await assignHorseToStable(horseId, stableId, stableName, user.uid)
-      horses.reload()
-      assignmentDialog.closeDialog()
+      await assignHorseToStable(horseId, stableId, stableName, user.uid);
+      horses.reload();
+      assignmentDialog.closeDialog();
     } catch (error) {
-      console.error('Error assigning horse:', error)
-      throw error
+      console.error("Error assigning horse:", error);
+      throw error;
     }
-  }
+  };
 
   const handleUnassign = async (horse: Horse) => {
-    if (!user) return
+    if (!user) return;
 
     const confirmed = window.confirm(
-      `Unassign ${horse.name} from ${horse.currentStableName}?`
-    )
-    if (!confirmed) return
+      `Unassign ${horse.name} from ${horse.currentStableName}?`,
+    );
+    if (!confirmed) return;
 
     try {
-      await unassignHorseFromStable(horse.id, user.uid)
-      horses.reload()
+      await unassignHorseFromStable(horse.id, user.uid);
+      horses.reload();
     } catch (error) {
-      console.error('Error unassigning horse:', error)
+      console.error("Error unassigning horse:", error);
     }
-  }
+  };
 
   // Vaccination Handlers
-  const loadVaccinationRecords = async (horse: Horse) => {
-    if (!horse.id) return
+  const handleViewVaccinationHistory = () => {
+    if (!formDialog.data) return;
 
-    try {
-      setLoadingVaccinationRecords(true)
-      const records = await getHorseVaccinationRecords(horse.id)
-      setVaccinationRecords(records)
-    } catch (error) {
-      console.error('Error loading vaccination records:', error)
-    } finally {
-      setLoadingVaccinationRecords(false)
-    }
-  }
-
-  const handleViewVaccinationHistory = async () => {
-    if (!formDialog.data) return
-
-    setSelectedHorseForVaccination(formDialog.data)
-    await loadVaccinationRecords(formDialog.data)
-    setVaccinationHistoryOpen(true)
-  }
+    setSelectedHorseForVaccination(formDialog.data);
+    setVaccinationHistoryOpen(true);
+  };
 
   const handleAddVaccinationRecord = () => {
-    if (!formDialog.data) return
+    if (!formDialog.data) return;
 
-    setSelectedHorseForVaccination(formDialog.data)
-    vaccinationRecordDialog.openDialog()
-  }
+    setSelectedHorseForVaccination(formDialog.data);
+    vaccinationRecordDialog.openDialog();
+  };
 
   const handleEditVaccinationRecord = (record: VaccinationRecord) => {
-    vaccinationRecordDialog.openDialog(record)
-  }
+    vaccinationRecordDialog.openDialog(record);
+  };
 
   const handleDeleteVaccinationRecord = async (record: VaccinationRecord) => {
     const confirmed = window.confirm(
-      'Are you sure you want to delete this vaccination record? This action cannot be undone.'
-    )
-    if (!confirmed) return
+      "Are you sure you want to delete this vaccination record? This action cannot be undone.",
+    );
+    if (!confirmed) return;
 
     try {
-      await deleteVaccinationRecord(record.id)
+      await deleteVaccinationRecord(record.id);
 
-      // Reload vaccination records if history dialog is open
+      // Invalidate vaccination records query
       if (selectedHorseForVaccination) {
-        await loadVaccinationRecords(selectedHorseForVaccination)
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.vaccinations.byHorse(
+            selectedHorseForVaccination.id,
+          ),
+        });
       }
 
       // Reload horses to update vaccination status
-      await horses.reload()
+      await horses.reload();
     } catch (error) {
-      console.error('Error deleting vaccination record:', error)
+      console.error("Error deleting vaccination record:", error);
     }
-  }
+  };
 
   const handleVaccinationRecordSuccess = async () => {
-    vaccinationRecordDialog.closeDialog()
+    vaccinationRecordDialog.closeDialog();
 
-    // Reload vaccination records if history dialog is open
+    // Invalidate vaccination records query
     if (selectedHorseForVaccination) {
-      await loadVaccinationRecords(selectedHorseForVaccination)
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.vaccinations.byHorse(
+          selectedHorseForVaccination.id,
+        ),
+      });
     }
 
     // Reload horses to update vaccination status
-    await horses.reload()
-  }
+    await horses.reload();
+  };
 
   // Navigation Handler
   const handleViewDetails = (horse: Horse) => {
-    navigate(`/horses/${horse.id}`)
-  }
+    navigate(`/horses/${horse.id}`);
+  };
 
   // Table column configuration with action handlers
   const columns = createHorseTableColumns({
@@ -243,31 +289,33 @@ export default function MyHorsesPage() {
     onAssign: handleAssignClick,
     onUnassign: handleUnassign,
     onDelete: handleDeleteHorse,
-    onViewDetails: handleViewDetails
-  })
+    onViewDetails: handleViewDetails,
+  });
 
   if (horses.loading) {
     return (
-      <div className='flex items-center justify-center min-h-[400px]'>
-        <Loader2Icon className='h-8 w-8 animate-spin text-muted-foreground' />
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
-    )
+    );
   }
 
   return (
-    <div className='container mx-auto p-2 sm:p-6 space-y-4 sm:space-y-6'>
+    <div className="container mx-auto p-2 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className='text-2xl sm:text-3xl font-bold tracking-tight'>My Horses</h1>
-          <p className='text-sm sm:text-base text-muted-foreground mt-1'>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            My Horses
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Manage your horses and their stable assignments
           </p>
         </div>
-        <div className='flex gap-2'>
+        <div className="flex gap-2">
           <HorseExportButton horses={filteredHorses} />
           <Button onClick={handleCreateHorse} className="flex-1 sm:flex-none">
-            <Plus className='mr-2 h-4 w-4' />
+            <Plus className="mr-2 h-4 w-4" />
             Add Horse
           </Button>
         </div>
@@ -292,7 +340,9 @@ export default function MyHorsesPage() {
             <Input
               placeholder="Search by Name, UELN, etc..."
               value={filters.searchQuery}
-              onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, searchQuery: e.target.value }))
+              }
               className="pl-9"
             />
           </div>
@@ -307,7 +357,11 @@ export default function MyHorsesPage() {
       </div>
 
       {/* Horse Table */}
-      <HorseTable data={filteredHorses} columns={columns} onRowClick={handleViewDetails} />
+      <HorseTable
+        data={filteredHorses}
+        columns={columns}
+        onRowClick={handleViewDetails}
+      />
 
       {/* Dialogs */}
       <HorseFormDialog
@@ -333,9 +387,13 @@ export default function MyHorsesPage() {
       {selectedHorseForVaccination && (
         <VaccinationRecordDialog
           open={vaccinationRecordDialog.open}
-          onOpenChange={(open) => !open && vaccinationRecordDialog.closeDialog()}
+          onOpenChange={(open) =>
+            !open && vaccinationRecordDialog.closeDialog()
+          }
           horse={selectedHorseForVaccination}
-          organizationId={selectedHorseForVaccination.currentStableId || 'personal'}
+          organizationId={
+            selectedHorseForVaccination.currentStableId || "personal"
+          }
           record={vaccinationRecordDialog.data}
           onSuccess={handleVaccinationRecordSuccess}
         />
@@ -343,7 +401,10 @@ export default function MyHorsesPage() {
 
       {/* Vaccination History Dialog */}
       {selectedHorseForVaccination && (
-        <Dialog open={vaccinationHistoryOpen} onOpenChange={setVaccinationHistoryOpen}>
+        <Dialog
+          open={vaccinationHistoryOpen}
+          onOpenChange={setVaccinationHistoryOpen}
+        >
           <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
@@ -361,5 +422,5 @@ export default function MyHorsesPage() {
         </Dialog>
       )}
     </div>
-  )
+  );
 }
