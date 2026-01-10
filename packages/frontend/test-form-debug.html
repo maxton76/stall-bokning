@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Debug Form</title>
+</head>
+<body>
+  <h1>Open browser console and paste this:</h1>
+  <pre>
+// Check if button is disabled
+const button = document.querySelector('button[type="submit"]');
+console.log('Submit button found:', button);
+console.log('Button disabled:', button?.disabled);
+console.log('Button computed style:', window.getComputedStyle(button));
+
+// Check form state
+const form = document.querySelector('form');
+console.log('Form found:', form);
+
+// Try clicking programmatically
+button?.click();
+  </pre>
+</body>
+</html>

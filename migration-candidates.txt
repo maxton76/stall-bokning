@@ -1,0 +1,9 @@
+packages/frontend/src/components/MoveHorseDialog.tsx
+packages/frontend/src/components/FacilityReservationDialog.tsx
+packages/frontend/src/components/InviteUserDialog.tsx
+packages/frontend/src/components/horse-detail/VaccinationCard.tsx
+packages/frontend/src/components/horse-detail/LocationHistoryCard.tsx
+packages/frontend/src/components/horse-detail/ActivitiesCard.tsx
+packages/frontend/src/components/ContactSelector.tsx
+packages/frontend/src/components/VaccinationAlerts.tsx
+packages/frontend/src/components/VaccinationRecordDialog.tsx
