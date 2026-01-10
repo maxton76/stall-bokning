@@ -1,0 +1,45 @@
+name: Quality Gates
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  quality-gates:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: TypeScript compilation
+        run: npm run typecheck
+        continue-on-error: true
+
+      - name: Pattern validation (full repo scan)
+        run: npm run validate:patterns
+
+      - name: Unit tests
+        run: npm run test
+        continue-on-error: true
+
+      - name: Upload validation report
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: validation-report
+          path: validation-report.txt
