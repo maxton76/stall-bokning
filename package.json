@@ -12,9 +12,25 @@
     "dev:frontend": "cd packages/frontend && npm run dev",
     "dev:all": "concurrently \"npm run emulator:start\" \"npm run dev:frontend\"",
     "build:frontend": "cd packages/frontend && npm run build",
-    "migrate:invitations": "tsx scripts/migrate-invitations.ts"
+    "migrate:invitations": "tsx scripts/migrate-invitations.ts",
+    "prepare": "husky install",
+    "generate:service": "node scripts/generate-service.js",
+    "validate:patterns": "node scripts/validate-patterns.js",
+    "validate:all": "npm run lint && npm run typecheck && npm run validate:patterns"
+  },
+  "lint-staged": {
+    "packages/**/*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "packages/frontend/src/**/*.{ts,tsx}": [
+      "node scripts/validate-patterns.js"
+    ]
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.7.4"
   }
 }
