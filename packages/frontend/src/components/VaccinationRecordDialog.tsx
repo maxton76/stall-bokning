@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { format, addMonths, addDays } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
@@ -22,6 +22,7 @@ import type { VaccinationRecord } from "@shared/types/vaccination";
 import type { VaccinationRule, Horse } from "@/types/roles";
 import { Timestamp } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
+import { toDate } from "@/utils/timestampUtils";
 
 interface VaccinationRecordDialogProps {
   open: boolean;
@@ -190,10 +191,14 @@ export function VaccinationRecordDialog({
   // Reset form when dialog opens with record data
   useEffect(() => {
     if (record) {
+      const vaccinationDate = toDate(record.vaccinationDate);
+      const nextDueDate = toDate(record.nextDueDate);
       resetForm({
         vaccinationRuleId: record.vaccinationRuleId,
-        vaccinationDate: format(record.vaccinationDate.toDate(), "yyyy-MM-dd"),
-        nextDueDate: format(record.nextDueDate.toDate(), "yyyy-MM-dd"),
+        vaccinationDate: vaccinationDate
+          ? format(vaccinationDate, "yyyy-MM-dd")
+          : "",
+        nextDueDate: nextDueDate ? format(nextDueDate, "yyyy-MM-dd") : "",
         veterinarianName: record.veterinarianName || "",
         vaccineProduct: record.vaccineProduct || "",
         batchNumber: record.batchNumber || "",

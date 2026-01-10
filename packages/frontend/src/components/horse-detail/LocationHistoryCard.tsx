@@ -7,6 +7,7 @@ import { getHorseLocationHistory } from "@/services/locationHistoryService";
 import { queryKeys } from "@/lib/queryClient";
 import type { Horse } from "@/types/roles";
 import type { LocationHistory } from "@/types/roles";
+import { toDate } from "@/utils/timestampUtils";
 
 interface LocationHistoryCardProps {
   horse: Horse;
@@ -79,12 +80,13 @@ export function LocationHistoryCard({ horse }: LocationHistoryCardProps) {
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div>
                       <span className="font-medium">Arrived:</span>{" "}
-                      {format(entry.arrivalDate.toDate(), "MMM d, yyyy")}
+                      {toDate(entry.arrivalDate) &&
+                        format(toDate(entry.arrivalDate)!, "MMM d, yyyy")}
                     </div>
-                    {entry.departureDate && (
+                    {entry.departureDate && toDate(entry.departureDate) && (
                       <div>
                         <span className="font-medium">Departed:</span>{" "}
-                        {format(entry.departureDate.toDate(), "MMM d, yyyy")}
+                        {format(toDate(entry.departureDate)!, "MMM d, yyyy")}
                       </div>
                     )}
                   </div>
@@ -108,7 +110,8 @@ export function LocationHistoryCard({ horse }: LocationHistoryCardProps) {
             {horse.assignedAt && (
               <div className="text-sm text-muted-foreground">
                 <span className="font-medium">Arrived:</span>{" "}
-                {format(horse.assignedAt.toDate(), "MMM d, yyyy")}
+                {toDate(horse.assignedAt) &&
+                  format(toDate(horse.assignedAt)!, "MMM d, yyyy")}
               </div>
             )}
           </div>

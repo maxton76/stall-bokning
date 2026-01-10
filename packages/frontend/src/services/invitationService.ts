@@ -1,56 +1,59 @@
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  getDoc,
-  doc,
-  updateDoc,
-  writeBatch,
-  Timestamp
-} from 'firebase/firestore'
-import { db } from '@/lib/firebase'
-import { updateTimestamps } from '@/utils/firestoreHelpers'
-import { validateAndMapDocs, INVITATION_SCHEMA } from '@/utils/firestoreValidation'
+import { Timestamp } from "firebase/firestore";
 
 export interface Invitation {
-  id: string
-  stableId: string
-  stableName: string
-  email: string
-  firstName?: string          // For pre-populating invite
-  lastName?: string           // For pre-populating invite
-  role: 'manager' | 'member'
-  status: 'pending' | 'accepted' | 'declined'
-  createdAt: Timestamp
-  expiresAt: Timestamp
-  invitedBy: string
-  invitedByName?: string
+  id: string;
+  stableId: string;
+  stableName: string;
+  email: string;
+  firstName?: string; // For pre-populating invite
+  lastName?: string; // For pre-populating invite
+  role: "manager" | "member";
+  status: "pending" | "accepted" | "declined";
+  createdAt: Timestamp;
+  expiresAt: Timestamp;
+  invitedBy: string;
+  invitedByName?: string;
+}
+
+/**
+ * Data required to create a new invitation
+ */
+export interface CreateInviteData {
+  stableId: string;
+  stableName: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  role: "manager" | "member";
+  invitedBy: string;
+  invitedByName?: string;
 }
 
 /**
  * Get all pending invitations for a user by email
- * Filters out expired invitations
+ * Filters out expired invitations on the backend
  */
-export async function getPendingInvitations(userEmail: string): Promise<Invitation[]> {
-  const q = query(
-    collection(db, 'invites'),
-    where('email', '==', userEmail),
-    where('status', '==', 'pending'),
-    where('expiresAt', '>', Timestamp.now())
-  )
+export async function getPendingInvitations(
+  userEmail: string,
+): Promise<Invitation[]> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  const snapshot = await getDocs(q)
+  const params = new URLSearchParams({ email: userEmail });
 
-  return validateAndMapDocs<Invitation>(snapshot, INVITATION_SCHEMA, {
-    strict: false,  // Allow defaults for migration
-    throwOnError: false  // Filter invalid invitations
-  })
+  const response = await authFetchJSON<{
+    invites: Invitation[];
+    pendingMemberships: any[];
+  }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/invites/pending?${params.toString()}`,
+    { method: "GET" },
+  );
+
+  return response.invites;
 }
 
 /**
  * Accept an invitation - creates stable member and updates invite atomically
- * Uses Firestore batch write to ensure transaction integrity
+ * Backend uses Firestore batch write to ensure transaction integrity
  * Validates invitation status before accepting
  */
 export async function acceptInvitation(
@@ -61,52 +64,23 @@ export async function acceptInvitation(
   lastName: string,
   stableId: string,
   stableName: string,
-  role: 'manager' | 'member'
+  role: "manager" | "member",
 ): Promise<void> {
-  // Validation: Check invitation exists and is valid
-  const inviteRef = doc(db, 'invites', inviteId)
-  const inviteDoc = await getDoc(inviteRef)
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  if (!inviteDoc.exists()) {
-    throw new Error('Invitation not found')
-  }
-
-  const inviteData = inviteDoc.data()
-  if (inviteData.status !== 'pending') {
-    throw new Error('Invitation already processed')
-  }
-
-  if (inviteData.expiresAt.toDate() < new Date()) {
-    throw new Error('Invitation expired')
-  }
-
-  // Create batch transaction
-  const batch = writeBatch(db)
-
-  // Create stable member document
-  const memberRef = doc(db, 'stableMembers', `${userId}_${stableId}`)
-  batch.set(memberRef, {
-    stableId,
-    stableName,
-    userId,
-    userEmail,
-    firstName,
-    lastName,
-    role,
-    status: 'active',
-    joinedAt: Timestamp.now(),
-    inviteAcceptedAt: Timestamp.now()
-  })
-
-  // Update invitation status with audit trail
-  batch.update(inviteRef, {
-    status: 'accepted',
-    acceptedAt: Timestamp.now(),
-    acceptedBy: userId,
-    ...updateTimestamps(userId)
-  })
-
-  await batch.commit()
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/invites/${inviteId}/accept`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        firstName,
+        lastName,
+        stableId,
+        stableName,
+        role,
+      }),
+    },
+  );
 }
 
 /**
@@ -115,13 +89,76 @@ export async function acceptInvitation(
  */
 export async function declineInvitation(
   inviteId: string,
-  userId: string
+  userId: string,
 ): Promise<void> {
-  const inviteRef = doc(db, 'invites', inviteId)
-  await updateDoc(inviteRef, {
-    status: 'declined',
-    declinedAt: Timestamp.now(),
-    declinedBy: userId,
-    ...updateTimestamps(userId)
-  })
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/invites/${inviteId}/decline`,
+    {
+      method: "POST",
+      body: JSON.stringify({}),
+    },
+  );
+}
+
+/**
+ * Get all invites for a stable
+ * Used by StableInvitePage to display all invitations
+ *
+ * @param stableId - Stable ID
+ * @returns Promise with array of invitations
+ *
+ * @example
+ * ```typescript
+ * const invites = await getInvitesByStable('stable123')
+ * invites.forEach(invite => console.log(invite.email, invite.status))
+ * ```
+ */
+export async function getInvitesByStable(
+  stableId: string,
+): Promise<Invitation[]> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  const response = await authFetchJSON<{ invites: Invitation[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/stables/${stableId}/invites`,
+    { method: "GET" },
+  );
+
+  return response.invites;
+}
+
+/**
+ * Create a new invite
+ * Used by StableInvitePage to invite new members
+ *
+ * @param inviteData - Invitation data
+ * @returns Promise with created invite ID
+ *
+ * @example
+ * ```typescript
+ * const inviteId = await createInvite({
+ *   stableId: 'stable123',
+ *   stableName: 'My Stable',
+ *   email: 'user@example.com',
+ *   role: 'member',
+ *   invitedBy: userId,
+ *   invitedByName: 'John Doe'
+ * })
+ * ```
+ */
+export async function createInvite(
+  inviteData: CreateInviteData,
+): Promise<string> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  const response = await authFetchJSON<{ id: string }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/invites`,
+    {
+      method: "POST",
+      body: JSON.stringify(inviteData),
+    },
+  );
+
+  return response.id;
 }

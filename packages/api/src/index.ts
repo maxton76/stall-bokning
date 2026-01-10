@@ -1,123 +1,162 @@
-import Fastify from 'fastify'
-import cors from '@fastify/cors'
-import rateLimit from '@fastify/rate-limit'
-import { stablesRoutes } from './routes/stables.js'
-import { schedulesRoutes } from './routes/schedules.js'
-import { organizationsRoutes } from './routes/organizations.js'
-import inviteRoutes from './routes/invites.js'
-import organizationMemberRoutes from './routes/organizationMembers.js'
-import authRoutes from './routes/auth.js'
+import "dotenv/config";
+import Fastify from "fastify";
+import cors from "@fastify/cors";
+import rateLimit from "@fastify/rate-limit";
+import { stablesRoutes } from "./routes/stables.js";
+import { schedulesRoutes } from "./routes/schedules.js";
+import { shiftsRoutes } from "./routes/shifts.js";
+import { organizationsRoutes } from "./routes/organizations.js";
+import { horsesRoutes } from "./routes/horses.js";
+import { vaccinationRecordsRoutes } from "./routes/vaccination-records.js";
+import { locationHistoryRoutes } from "./routes/location-history.js";
+import { vaccinationRulesRoutes } from "./routes/vaccination-rules.js";
+import { activitiesRoutes } from "./routes/activities.js";
+import { activityTypesRoutes } from "./routes/activity-types.js";
+import { contactsRoutes } from "./routes/contacts.js";
+import { facilitiesRoutes } from "./routes/facilities.js";
+import { facilityReservationsRoutes } from "./routes/facility-reservations.js";
+import inviteRoutes from "./routes/invites.js";
+import organizationMemberRoutes from "./routes/organizationMembers.js";
+import authRoutes from "./routes/auth.js";
 
-const PORT = Number(process.env.PORT) || 5003
-const HOST = process.env.HOST || '0.0.0.0'
-const NODE_ENV = process.env.NODE_ENV || 'development'
+const PORT = Number(process.env.PORT) || 5003;
+const HOST = process.env.HOST || "0.0.0.0";
+const NODE_ENV = process.env.NODE_ENV || "development";
 
 // Create Fastify instance with logging
 const fastify = Fastify({
   logger: {
-    level: NODE_ENV === 'development' ? 'debug' : 'info',
-    transport: NODE_ENV === 'development'
-      ? {
-          target: 'pino-pretty',
-          options: {
-            translateTime: 'HH:MM:ss Z',
-            ignore: 'pid,hostname',
-            colorize: true
+    level: NODE_ENV === "development" ? "debug" : "info",
+    transport:
+      NODE_ENV === "development"
+        ? {
+            target: "pino-pretty",
+            options: {
+              translateTime: "HH:MM:ss Z",
+              ignore: "pid,hostname",
+              colorize: true,
+            },
           }
-        }
-      : undefined
-  }
-})
+        : undefined,
+  },
+});
 
 // Register CORS
 await fastify.register(cors, {
-  origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173'],
+  origin: process.env.CORS_ORIGIN?.split(",") || ["http://localhost:5173"],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
-})
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+});
 
 // Register rate limiting
 await fastify.register(rateLimit, {
   max: Number(process.env.RATE_LIMIT_MAX) || 100,
   timeWindow: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
   cache: 10000,
-  allowList: NODE_ENV === 'development' ? ['127.0.0.1', 'localhost'] : [],
-  skipOnError: true
-})
+  allowList: NODE_ENV === "development" ? ["127.0.0.1", "localhost"] : [],
+  skipOnError: true,
+});
 
 // Health check endpoint
-fastify.get('/health', async () => {
+fastify.get("/health", async () => {
   return {
-    status: 'healthy',
+    status: "healthy",
     timestamp: new Date().toISOString(),
     environment: NODE_ENV,
-    uptime: process.uptime()
-  }
-})
+    uptime: process.uptime(),
+  };
+});
 
 // API version endpoint
-fastify.get('/api/v1', async () => {
+fastify.get("/api/v1", async () => {
   return {
-    version: '1.0.0',
-    name: 'Stall Bokning API',
-    documentation: '/api/v1/docs'
-  }
-})
+    version: "1.0.0",
+    name: "Stall Bokning API",
+    documentation: "/api/v1/docs",
+  };
+});
 
 // Register API routes
-await fastify.register(authRoutes, { prefix: '/api/v1/auth' })
-await fastify.register(stablesRoutes, { prefix: '/api/v1/stables' })
-await fastify.register(schedulesRoutes, { prefix: '/api/v1/schedules' })
-await fastify.register(organizationsRoutes, { prefix: '/api/v1/organizations' })
-await fastify.register(inviteRoutes, { prefix: '/api/v1/invites' })
-await fastify.register(organizationMemberRoutes, { prefix: '/api/v1/organization-members' })
+await fastify.register(authRoutes, { prefix: "/api/v1/auth" });
+await fastify.register(stablesRoutes, { prefix: "/api/v1/stables" });
+await fastify.register(schedulesRoutes, { prefix: "/api/v1/schedules" });
+await fastify.register(shiftsRoutes, { prefix: "/api/v1/shifts" });
+await fastify.register(organizationsRoutes, {
+  prefix: "/api/v1/organizations",
+});
+await fastify.register(horsesRoutes, { prefix: "/api/v1/horses" });
+await fastify.register(vaccinationRecordsRoutes, {
+  prefix: "/api/v1/vaccination-records",
+});
+await fastify.register(locationHistoryRoutes, {
+  prefix: "/api/v1/location-history",
+});
+await fastify.register(vaccinationRulesRoutes, {
+  prefix: "/api/v1/vaccination-rules",
+});
+await fastify.register(activitiesRoutes, { prefix: "/api/v1/activities" });
+await fastify.register(activityTypesRoutes, {
+  prefix: "/api/v1/activity-types",
+});
+await fastify.register(contactsRoutes, { prefix: "/api/v1/contacts" });
+await fastify.register(facilitiesRoutes, { prefix: "/api/v1/facilities" });
+await fastify.register(facilityReservationsRoutes, {
+  prefix: "/api/v1/facility-reservations",
+});
+await fastify.register(inviteRoutes, { prefix: "/api/v1/invites" });
+await fastify.register(organizationMemberRoutes, {
+  prefix: "/api/v1/organization-members",
+});
 
 // 404 handler
 fastify.setNotFoundHandler((request, reply) => {
   reply.status(404).send({
-    error: 'Not Found',
+    error: "Not Found",
     message: `Route ${request.method} ${request.url} not found`,
-    statusCode: 404
-  })
-})
+    statusCode: 404,
+  });
+});
 
 // Global error handler
-fastify.setErrorHandler((error: Error & { statusCode?: number }, request, reply) => {
-  request.log.error({ error }, 'Unhandled error')
+fastify.setErrorHandler(
+  (error: Error & { statusCode?: number }, request, reply) => {
+    request.log.error({ error }, "Unhandled error");
 
-  // Don't leak error details in production
-  const message = NODE_ENV === 'development'
-    ? error.message
-    : 'An unexpected error occurred'
+    // Don't leak error details in production
+    const message =
+      NODE_ENV === "development"
+        ? error.message
+        : "An unexpected error occurred";
 
-  reply.status(error.statusCode || 500).send({
-    error: error.name || 'Internal Server Error',
-    message,
-    statusCode: error.statusCode || 500
-  })
-})
+    reply.status(error.statusCode || 500).send({
+      error: error.name || "Internal Server Error",
+      message,
+      statusCode: error.statusCode || 500,
+    });
+  },
+);
 
 // Graceful shutdown
 const closeGracefully = async (signal: string) => {
-  fastify.log.info(`Received signal to terminate: ${signal}`)
-  await fastify.close()
-  process.exit(0)
-}
+  fastify.log.info(`Received signal to terminate: ${signal}`);
+  await fastify.close();
+  process.exit(0);
+};
 
-process.on('SIGINT', () => closeGracefully('SIGINT'))
-process.on('SIGTERM', () => closeGracefully('SIGTERM'))
+process.on("SIGINT", () => closeGracefully("SIGINT"));
+process.on("SIGTERM", () => closeGracefully("SIGTERM"));
 
 // Start server
 const start = async () => {
   try {
-    await fastify.listen({ port: PORT, host: HOST })
-    fastify.log.info(`🚀 API Gateway running on http://${HOST}:${PORT}`)
-    fastify.log.info(`📊 Health check: http://${HOST}:${PORT}/health`)
-    fastify.log.info(`🌍 Environment: ${NODE_ENV}`)
+    await fastify.listen({ port: PORT, host: HOST });
+    fastify.log.info(`🚀 API Gateway running on http://${HOST}:${PORT}`);
+    fastify.log.info(`📊 Health check: http://${HOST}:${PORT}/health`);
+    fastify.log.info(`🌍 Environment: ${NODE_ENV}`);
   } catch (err) {
-    fastify.log.error(err)
-    process.exit(1)
+    fastify.log.error(err);
+    process.exit(1);
   }
-}
+};
 
-start()
+start();

@@ -1,23 +1,26 @@
-import type { FastifyInstance } from 'fastify'
-import { db } from '../utils/firebase.js'
-import { authenticate } from '../middleware/auth.js'
-import type { AuthenticatedRequest } from '../types/index.js'
-import { getInviteByToken, acceptInvite, declineInvite } from '../services/inviteService.js'
+import type { FastifyInstance } from "fastify";
+import { db } from "../utils/firebase.js";
+import { authenticate } from "../middleware/auth.js";
+import type { AuthenticatedRequest } from "../types/index.js";
+import {
+  getInviteByToken,
+  acceptInvite,
+  declineInvite,
+} from "../services/inviteService.js";
 
 export default async function inviteRoutes(fastify: FastifyInstance) {
-
   // GET /api/v1/invites/:token - Get invite details (public endpoint)
-  fastify.get('/:token', async (request, reply) => {
+  fastify.get("/:token", async (request, reply) => {
     try {
-      const { token } = request.params as { token: string }
+      const { token } = request.params as { token: string };
 
-      const invite = await getInviteByToken(token)
+      const invite = await getInviteByToken(token);
 
       if (!invite) {
         return reply.status(404).send({
-          error: 'Not Found',
-          message: 'Invite not found or expired'
-        })
+          error: "Not Found",
+          message: "Invite not found or expired",
+        });
       }
 
       // Return public invite information (don't expose sensitive data)
@@ -25,126 +28,392 @@ export default async function inviteRoutes(fastify: FastifyInstance) {
         organizationName: invite.organizationName,
         inviterName: invite.inviterName,
         roles: invite.roles,
-        expiresAt: invite.expiresAt
-      })
+        expiresAt: invite.expiresAt,
+      });
     } catch (error) {
-      request.log.error({ error }, 'Failed to get invite details')
+      request.log.error({ error }, "Failed to get invite details");
       return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to get invite details'
-      })
+        error: "Internal Server Error",
+        message: "Failed to get invite details",
+      });
     }
-  })
+  });
 
   // POST /api/v1/invites/:token/accept - Accept invite (requires authentication)
-  fastify.post('/:token/accept', {
-    preHandler: [authenticate]
-  }, async (request, reply) => {
-    try {
-      const { token } = request.params as { token: string }
-      const user = (request as AuthenticatedRequest).user!
+  fastify.post(
+    "/:token/accept",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { token } = request.params as { token: string };
+        const user = (request as AuthenticatedRequest).user!;
 
-      const invite = await getInviteByToken(token)
+        const invite = await getInviteByToken(token);
 
-      if (!invite) {
-        return reply.status(404).send({
-          error: 'Not Found',
-          message: 'Invite not found or expired'
-        })
+        if (!invite) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Invite not found or expired",
+          });
+        }
+
+        // Verify email matches (security check)
+        if (invite.email.toLowerCase() !== user.email?.toLowerCase()) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "This invite was sent to a different email address",
+          });
+        }
+
+        // Accept the invite
+        await acceptInvite(invite.id, user.uid);
+
+        return reply.send({
+          message: "Invite accepted successfully",
+          organizationId: invite.organizationId,
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to accept invite");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to accept invite",
+        });
       }
+    },
+  );
 
-      // Verify email matches (security check)
-      if (invite.email.toLowerCase() !== user.email?.toLowerCase()) {
-        return reply.status(403).send({
-          error: 'Forbidden',
-          message: 'This invite was sent to a different email address'
-        })
+  // POST /api/v1/invites/:token/decline - Decline invite (requires authentication)
+  fastify.post(
+    "/:token/decline",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { token } = request.params as { token: string };
+        const user = (request as AuthenticatedRequest).user!;
+
+        const invite = await getInviteByToken(token);
+
+        if (!invite) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Invite not found or expired",
+          });
+        }
+
+        // Verify email matches (security check)
+        if (invite.email.toLowerCase() !== user.email?.toLowerCase()) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "This invite was sent to a different email address",
+          });
+        }
+
+        // Decline the invite
+        await declineInvite(invite.id);
+
+        return reply.send({
+          message: "Invite declined successfully",
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to decline invite");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to decline invite",
+        });
       }
-
-      // Accept the invite
-      await acceptInvite(invite.id, user.uid)
-
-      return reply.send({
-        message: 'Invite accepted successfully',
-        organizationId: invite.organizationId
-      })
-    } catch (error) {
-      request.log.error({ error }, 'Failed to accept invite')
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to accept invite'
-      })
-    }
-  })
-
-  // POST /api/v1/invites/:token/decline - Decline invite (public endpoint)
-  fastify.post('/:token/decline', async (request, reply) => {
-    try {
-      const { token } = request.params as { token: string }
-
-      const invite = await getInviteByToken(token)
-
-      if (!invite) {
-        return reply.status(404).send({
-          error: 'Not Found',
-          message: 'Invite not found or expired'
-        })
-      }
-
-      // Decline the invite
-      await declineInvite(invite.id)
-
-      return reply.send({
-        message: 'Invite declined successfully'
-      })
-    } catch (error) {
-      request.log.error({ error }, 'Failed to decline invite')
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to decline invite'
-      })
-    }
-  })
+    },
+  );
 
   // GET /api/v1/invites/pending - Get user's pending invites (requires authentication)
-  fastify.get('/pending', {
-    preHandler: [authenticate]
-  }, async (request, reply) => {
-    try {
-      const user = (request as AuthenticatedRequest).user!
+  fastify.get(
+    "/pending",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+        const { email } = request.query as { email?: string };
 
-      // Get pending invites for this user's email
-      const inviteSnapshot = await db.collection('invites')
-        .where('email', '==', user.email?.toLowerCase())
-        .where('status', '==', 'pending')
-        .get()
+        // Use query email if provided and user is system_admin, otherwise use authenticated user's email
+        const queryEmail =
+          email && user.role === "system_admin"
+            ? email.toLowerCase()
+            : user.email?.toLowerCase();
 
-      // Get pending organizationMembers (existing user invites)
-      const memberSnapshot = await db.collection('organizationMembers')
-        .where('userId', '==', user.uid)
-        .where('status', '==', 'pending')
-        .get()
+        if (!queryEmail) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Email is required",
+          });
+        }
 
-      const invites = inviteSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }))
+        // Get pending invites for this user's email
+        const inviteSnapshot = await db
+          .collection("invites")
+          .where("email", "==", queryEmail)
+          .where("status", "==", "pending")
+          .get();
 
-      const pendingMemberships = memberSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }))
+        // Get pending organizationMembers (existing user invites)
+        const memberSnapshot = await db
+          .collection("organizationMembers")
+          .where("userId", "==", user.uid)
+          .where("status", "==", "pending")
+          .get();
 
-      return reply.send({
-        invites,
-        pendingMemberships
-      })
-    } catch (error) {
-      request.log.error({ error }, 'Failed to get pending invites')
-      return reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to get pending invites'
-      })
-    }
-  })
+        const invites = inviteSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        const pendingMemberships = memberSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        return reply.send({
+          invites,
+          pendingMemberships,
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to get pending invites");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to get pending invites",
+        });
+      }
+    },
+  );
+
+  // POST /api/v1/invites - Create a new invite (requires authentication)
+  fastify.post(
+    "/",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+        const {
+          stableId,
+          stableName,
+          email,
+          firstName,
+          lastName,
+          role,
+          invitedBy,
+          invitedByName,
+        } = request.body as {
+          stableId: string;
+          stableName: string;
+          email: string;
+          firstName?: string;
+          lastName?: string;
+          role: "manager" | "member";
+          invitedBy: string;
+          invitedByName?: string;
+        };
+
+        // Validate required fields
+        if (!stableId || !stableName || !email || !role || !invitedBy) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message:
+              "Missing required fields: stableId, stableName, email, role, invitedBy",
+          });
+        }
+
+        // Create invite document
+        const inviteData = {
+          stableId,
+          stableName,
+          email: email.toLowerCase(),
+          firstName,
+          lastName,
+          role,
+          status: "pending",
+          createdAt: new Date(),
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+          invitedBy,
+          invitedByName,
+          createdBy: user.uid,
+          updatedAt: new Date(),
+          updatedBy: user.uid,
+        };
+
+        const docRef = await db.collection("invites").add(inviteData);
+
+        return reply.status(201).send({
+          id: docRef.id,
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to create invite");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to create invite",
+        });
+      }
+    },
+  );
+
+  // POST /api/v1/invites/stable/:id/accept - Accept stable invitation by ID (requires authentication)
+  fastify.post(
+    "/stable/:id/accept",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const user = (request as AuthenticatedRequest).user!;
+        const { firstName, lastName, stableId, stableName, role } =
+          request.body as {
+            firstName: string;
+            lastName: string;
+            stableId: string;
+            stableName: string;
+            role: "manager" | "member";
+          };
+
+        // Get invitation
+        const inviteRef = db.collection("invites").doc(id);
+        const inviteDoc = await inviteRef.get();
+
+        if (!inviteDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Invitation not found",
+          });
+        }
+
+        const inviteData = inviteDoc.data();
+
+        // Validate invitation status
+        if (inviteData?.status !== "pending") {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invitation already processed",
+          });
+        }
+
+        // Check expiry
+        const expiryDate = inviteData.expiresAt?.toDate();
+        if (expiryDate && expiryDate < new Date()) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invitation expired",
+          });
+        }
+
+        // Verify email matches
+        if (inviteData.email?.toLowerCase() !== user.email?.toLowerCase()) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "This invitation was sent to a different email address",
+          });
+        }
+
+        // Create batch transaction
+        const batch = db.batch();
+
+        // Create stable member document
+        const memberRef = db
+          .collection("stableMembers")
+          .doc(`${user.uid}_${stableId}`);
+        batch.set(memberRef, {
+          stableId,
+          stableName,
+          userId: user.uid,
+          userEmail: user.email,
+          firstName,
+          lastName,
+          role,
+          status: "active",
+          joinedAt: new Date(),
+          inviteAcceptedAt: new Date(),
+        });
+
+        // Update invitation status
+        batch.update(inviteRef, {
+          status: "accepted",
+          acceptedAt: new Date(),
+          acceptedBy: user.uid,
+          updatedAt: new Date(),
+          updatedBy: user.uid,
+        });
+
+        await batch.commit();
+
+        return reply.send({
+          message: "Invitation accepted successfully",
+          stableId,
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to accept invitation");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to accept invitation",
+        });
+      }
+    },
+  );
+
+  // POST /api/v1/invites/stable/:id/decline - Decline stable invitation by ID (requires authentication)
+  fastify.post(
+    "/stable/:id/decline",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const user = (request as AuthenticatedRequest).user!;
+
+        // Get invitation
+        const inviteRef = db.collection("invites").doc(id);
+        const inviteDoc = await inviteRef.get();
+
+        if (!inviteDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Invitation not found",
+          });
+        }
+
+        const inviteData = inviteDoc.data();
+
+        // Verify email matches
+        if (inviteData?.email?.toLowerCase() !== user.email?.toLowerCase()) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "This invitation was sent to a different email address",
+          });
+        }
+
+        // Update invitation status
+        await inviteRef.update({
+          status: "declined",
+          declinedAt: new Date(),
+          declinedBy: user.uid,
+          updatedAt: new Date(),
+          updatedBy: user.uid,
+        });
+
+        return reply.send({
+          message: "Invitation declined successfully",
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to decline invitation");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to decline invitation",
+        });
+      }
+    },
+  );
 }

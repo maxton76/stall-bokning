@@ -1,19 +1,20 @@
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { MapPin, ArrowRight } from 'lucide-react'
-import { format } from 'date-fns'
-import { MoveHorseDialog } from '@/components/MoveHorseDialog'
-import type { Horse } from '@/types/roles'
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { MapPin, ArrowRight } from "lucide-react";
+import { format } from "date-fns";
+import { MoveHorseDialog } from "@/components/MoveHorseDialog";
+import { toDate } from "@/utils/timestampUtils";
+import type { Horse } from "@/types/roles";
 
 interface LocationCardProps {
-  horse: Horse
-  onUpdate: () => void
+  horse: Horse;
+  onUpdate: () => void;
 }
 
 export function LocationCard({ horse, onUpdate }: LocationCardProps) {
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   // Determine current location status
   const getCurrentLocation = () => {
@@ -21,29 +22,29 @@ export function LocationCard({ horse, onUpdate }: LocationCardProps) {
     if (horse.externalLocation) {
       return {
         location: horse.externalLocation,
-        type: 'external',
+        type: "external",
         moveType: horse.externalMoveType,
-        since: horse.externalDepartureDate
-      }
+        since: horse.externalDepartureDate,
+      };
     }
 
     // Then check stable assignment
     if (horse.currentStableId) {
       return {
-        location: horse.currentStableName || 'Own stable',
-        type: 'stable',
-        since: horse.assignedAt
-      }
+        location: horse.currentStableName || "Own stable",
+        type: "stable",
+        since: horse.assignedAt,
+      };
     }
 
     // No location info
     return {
-      location: 'Unknown',
-      type: 'unknown'
-    }
-  }
+      location: "Unknown",
+      type: "unknown",
+    };
+  };
 
-  const currentLocation = getCurrentLocation()
+  const currentLocation = getCurrentLocation();
 
   return (
     <>
@@ -68,17 +69,24 @@ export function LocationCard({ horse, onUpdate }: LocationCardProps) {
                   </span>
 
                   {/* Badge for external moves */}
-                  {currentLocation.type === 'external' && currentLocation.moveType && (
-                    <Badge
-                      variant={currentLocation.moveType === 'temporary' ? 'default' : 'secondary'}
-                      className="text-xs"
-                    >
-                      {currentLocation.moveType === 'temporary' ? 'Temporary away' : 'Permanent'}
-                    </Badge>
-                  )}
+                  {currentLocation.type === "external" &&
+                    currentLocation.moveType && (
+                      <Badge
+                        variant={
+                          currentLocation.moveType === "temporary"
+                            ? "default"
+                            : "secondary"
+                        }
+                        className="text-xs"
+                      >
+                        {currentLocation.moveType === "temporary"
+                          ? "Temporary away"
+                          : "Permanent"}
+                      </Badge>
+                    )}
 
                   {/* Badge for stable */}
-                  {currentLocation.type === 'stable' && (
+                  {currentLocation.type === "stable" && (
                     <Badge variant="outline" className="text-xs">
                       At stable
                     </Badge>
@@ -90,21 +98,26 @@ export function LocationCard({ horse, onUpdate }: LocationCardProps) {
               {currentLocation.since && (
                 <div className="text-sm text-muted-foreground">
                   <span className="font-medium">
-                    {currentLocation.type === 'external' ? 'Departed' : 'Since'}:
-                  </span>{' '}
-                  {format(currentLocation.since.toDate(), 'MMM d, yyyy')}
+                    {currentLocation.type === "external" ? "Departed" : "Since"}
+                    :
+                  </span>{" "}
+                  {format(
+                    toDate(currentLocation.since) || new Date(),
+                    "MMM d, yyyy",
+                  )}
                 </div>
               )}
 
               {/* Reason for permanent moves */}
-              {currentLocation.type === 'external' &&
-               currentLocation.moveType === 'permanent' &&
-               horse.externalMoveReason && (
-                <div className="text-sm text-muted-foreground">
-                  <span className="font-medium">Reason:</span>{' '}
-                  {horse.externalMoveReason.charAt(0).toUpperCase() + horse.externalMoveReason.slice(1)}
-                </div>
-              )}
+              {currentLocation.type === "external" &&
+                currentLocation.moveType === "permanent" &&
+                horse.externalMoveReason && (
+                  <div className="text-sm text-muted-foreground">
+                    <span className="font-medium">Reason:</span>{" "}
+                    {horse.externalMoveReason.charAt(0).toUpperCase() +
+                      horse.externalMoveReason.slice(1)}
+                  </div>
+                )}
             </div>
 
             {/* Move Horse Button */}
@@ -126,10 +139,10 @@ export function LocationCard({ horse, onUpdate }: LocationCardProps) {
         onClose={() => setDialogOpen(false)}
         horse={horse}
         onSuccess={() => {
-          setDialogOpen(false)
-          onUpdate()
+          setDialogOpen(false);
+          onUpdate();
         }}
       />
     </>
-  )
+  );
 }

@@ -1,21 +1,22 @@
-import { format } from 'date-fns'
-import { Button } from '@/components/ui/button'
+import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog'
-import type { ActivityTypeConfig, Activity } from '@/types/activity'
+} from "@/components/ui/dialog";
+import type { ActivityTypeConfig, Activity } from "@/types/activity";
+import { toDate } from "@/utils/timestampUtils";
 
 interface QuickAddDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  horse?: { id: string; name: string; feiRules?: string }
-  activityType?: ActivityTypeConfig
-  lastActivity?: Activity
-  onAdd: () => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  horse?: { id: string; name: string; feiRules?: string };
+  activityType?: ActivityTypeConfig;
+  lastActivity?: Activity;
+  onAdd: () => void;
 }
 
 export function QuickAddDialog({
@@ -28,7 +29,7 @@ export function QuickAddDialog({
 }: QuickAddDialogProps) {
   // Don't render if missing data
   if (!horse || !activityType) {
-    return null
+    return null;
   }
 
   return (
@@ -37,7 +38,8 @@ export function QuickAddDialog({
         <DialogHeader>
           <DialogTitle>{activityType.name}</DialogTitle>
           <DialogDescription>
-            Quick add {activityType.name.toLowerCase()} activity for {horse.name}
+            Quick add {activityType.name.toLowerCase()} activity for{" "}
+            {horse.name}
           </DialogDescription>
         </DialogHeader>
 
@@ -45,7 +47,9 @@ export function QuickAddDialog({
         <div className="mb-4">
           <div className="font-medium text-base">{horse.name}</div>
           {horse.feiRules && (
-            <div className="text-sm text-muted-foreground">{horse.feiRules}</div>
+            <div className="text-sm text-muted-foreground">
+              {horse.feiRules}
+            </div>
           )}
         </div>
 
@@ -55,9 +59,9 @@ export function QuickAddDialog({
             Last done {activityType.name.toLowerCase()}
           </div>
           <div className="text-sm text-muted-foreground">
-            {lastActivity
-              ? format(lastActivity.date.toDate(), 'PPP')
-              : 'Never/Unknown'}
+            {lastActivity && toDate(lastActivity.date)
+              ? format(toDate(lastActivity.date)!, "PPP")
+              : "Never/Unknown"}
           </div>
         </div>
 
@@ -73,5 +77,5 @@ export function QuickAddDialog({
         </Button>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

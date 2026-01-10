@@ -1,16 +1,17 @@
-import { useMemo } from 'react'
-import { format, isSameDay } from 'date-fns'
-import type { ActivityEntry, ActivityTypeConfig } from '@/types/activity'
+import { useMemo } from "react";
+import { format, isSameDay } from "date-fns";
+import type { ActivityEntry, ActivityTypeConfig } from "@/types/activity";
+import { toDate } from "@/utils/timestampUtils";
 
 interface HorseRowProps {
-  horse: { id: string; name: string }
-  weekDays: Date[]
-  activities: ActivityEntry[]
-  expanded: boolean
-  onToggleExpand: () => void
-  onActivityClick: (activity: ActivityEntry) => void
-  onCellClick: (horseId: string, date: Date, hour?: number) => void
-  activityTypes: ActivityTypeConfig[]
+  horse: { id: string; name: string };
+  weekDays: Date[];
+  activities: ActivityEntry[];
+  expanded: boolean;
+  onToggleExpand: () => void;
+  onActivityClick: (activity: ActivityEntry) => void;
+  onCellClick: (horseId: string, date: Date, hour?: number) => void;
+  activityTypes: ActivityTypeConfig[];
 }
 
 export function HorseRow({
@@ -21,68 +22,72 @@ export function HorseRow({
   onToggleExpand,
   onActivityClick,
   onCellClick,
-  activityTypes
+  activityTypes,
 }: HorseRowProps) {
   // Group activities by day
   const activitiesByDay = useMemo(() => {
-    const grouped: Record<string, ActivityEntry[]> = {}
-    weekDays.forEach(day => {
-      const dayKey = format(day, 'yyyy-MM-dd')
-      grouped[dayKey] = activities.filter(a => {
+    const grouped: Record<string, ActivityEntry[]> = {};
+    weekDays.forEach((day) => {
+      const dayKey = format(day, "yyyy-MM-dd");
+      grouped[dayKey] = activities.filter((a) => {
         // Only include entries that are activities with a matching horseId
-        const isActivity = a.type === 'activity'
-        if (!isActivity) return false
-        const hasHorseId = 'horseId' in a && a.horseId === horse.id
-        return isSameDay(a.date.toDate(), day) && hasHorseId
-      })
-    })
-    return grouped
-  }, [activities, weekDays, horse.id])
+        const isActivity = a.type === "activity";
+        if (!isActivity) return false;
+        const hasHorseId = "horseId" in a && a.horseId === horse.id;
+        const activityDate = toDate(a.date);
+        return activityDate && isSameDay(activityDate, day) && hasHorseId;
+      });
+    });
+    return grouped;
+  }, [activities, weekDays, horse.id]);
 
   // Calculate hour range dynamically based on activities (for expanded view)
   // Must be called before conditional return to satisfy Rules of Hooks
   const hours = useMemo(() => {
-    const allActivities = Object.values(activitiesByDay).flat()
+    const allActivities = Object.values(activitiesByDay).flat();
 
     if (allActivities.length === 0) {
       // Default range: 7 AM - 7 PM
-      return Array.from({ length: 13 }, (_, i) => 7 + i)
+      return Array.from({ length: 13 }, (_, i) => 7 + i);
     }
 
     // Find min and max hours from activities
-    const activityHours = allActivities.map(a => a.date.toDate().getHours())
-    const minHour = Math.min(...activityHours)
-    const maxHour = Math.max(...activityHours)
+    const activityHours = allActivities
+      .map((a) => toDate(a.date)?.getHours())
+      .filter((h): h is number => h !== undefined);
+    const minHour = Math.min(...activityHours);
+    const maxHour = Math.max(...activityHours);
 
     // Add 1 hour padding on each side, but keep within 0-23 range
-    const startHour = Math.max(0, minHour - 1)
-    const endHour = Math.min(23, maxHour + 1)
+    const startHour = Math.max(0, minHour - 1);
+    const endHour = Math.min(23, maxHour + 1);
 
     // Create hour array
-    const hourCount = endHour - startHour + 1
-    return Array.from({ length: hourCount }, (_, i) => startHour + i)
-  }, [activitiesByDay])
+    const hourCount = endHour - startHour + 1;
+    return Array.from({ length: hourCount }, (_, i) => startHour + i);
+  }, [activitiesByDay]);
 
   // Calculate compact view indicators (icons + time)
   const getCompactIndicators = (dayActivities: ActivityEntry[]) => {
-    if (dayActivities.length === 0) return null
+    if (dayActivities.length === 0) return null;
 
     // Get unique icons from activity types
     const icons = dayActivities
-      .map(a => {
-        if (a.type === 'activity' && 'activityTypeConfigId' in a) {
-          return activityTypes.find(t => t.id === a.activityTypeConfigId)?.icon
+      .map((a) => {
+        if (a.type === "activity" && "activityTypeConfigId" in a) {
+          return activityTypes.find((t) => t.id === a.activityTypeConfigId)
+            ?.icon;
         }
-        return undefined
+        return undefined;
       })
       .filter(Boolean)
-      .slice(0, 3)
+      .slice(0, 3);
 
     // Get first activity time
-    const firstTime = dayActivities[0]?.date.toDate()
+    const firstTime = dayActivities[0] ? toDate(dayActivities[0].date) : null;
 
-    return { icons, time: firstTime }
-  }
+    return { icons, time: firstTime };
+  };
 
   if (!expanded) {
     // COLLAPSED VIEW - compact with icons and time
@@ -93,30 +98,36 @@ export function HorseRow({
           className="w-32 md:w-48 flex-shrink-0 p-2 md:p-4 border-r cursor-pointer flex flex-col"
           onClick={onToggleExpand}
         >
-          <div className="font-medium text-sm md:text-base truncate">{horse.name}</div>
+          <div className="font-medium text-sm md:text-base truncate">
+            {horse.name}
+          </div>
           {/* Show first day's indicators */}
           {(() => {
-            const firstDayActivities = Object.values(activitiesByDay)[0] || []
-            const indicators = getCompactIndicators(firstDayActivities)
-            return indicators && (
-              <div className="mt-1">
-                <div className="flex gap-1">
-                  {indicators.icons.map((icon, i) => (
-                    <span key={i} className="text-xs md:text-sm">{icon}</span>
-                  ))}
+            const firstDayActivities = Object.values(activitiesByDay)[0] || [];
+            const indicators = getCompactIndicators(firstDayActivities);
+            return (
+              indicators && (
+                <div className="mt-1">
+                  <div className="flex gap-1">
+                    {indicators.icons.map((icon, i) => (
+                      <span key={i} className="text-xs md:text-sm">
+                        {icon}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {format(indicators.time!, "h:mm a")}
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {format(indicators.time!, 'h:mm a')}
-                </div>
-              </div>
-            )
+              )
+            );
           })()}
         </div>
 
         {/* Day cells */}
         {weekDays.map((day) => {
-          const dayKey = format(day, 'yyyy-MM-dd')
-          const dayActivities = activitiesByDay[dayKey] || []
+          const dayKey = format(day, "yyyy-MM-dd");
+          const dayActivities = activitiesByDay[dayKey] || [];
 
           return (
             <div
@@ -125,32 +136,36 @@ export function HorseRow({
               onClick={() => onCellClick(horse.id, day)}
             >
               {dayActivities.map((activity) => {
-                const activityType = activity.type === 'activity' && 'activityTypeConfigId' in activity
-                  ? activityTypes.find(t => t.id === activity.activityTypeConfigId)
-                  : undefined
+                const activityType =
+                  activity.type === "activity" &&
+                  "activityTypeConfigId" in activity
+                    ? activityTypes.find(
+                        (t) => t.id === activity.activityTypeConfigId,
+                      )
+                    : undefined;
                 return (
                   <div
                     key={activity.id}
                     className="text-xs p-1 rounded mb-1 cursor-pointer truncate"
                     style={{
-                      backgroundColor: activityType?.color || '#gray',
-                      color: 'white',
-                      opacity: activity.status === 'completed' ? 0.6 : 1
+                      backgroundColor: activityType?.color || "#gray",
+                      color: "white",
+                      opacity: activity.status === "completed" ? 0.6 : 1,
                     }}
                     onClick={(e) => {
-                      e.stopPropagation()
-                      onActivityClick(activity)
+                      e.stopPropagation();
+                      onActivityClick(activity);
                     }}
                   >
-                    {activityType?.name || 'Activity'}
+                    {activityType?.name || "Activity"}
                   </div>
-                )
+                );
               })}
             </div>
-          )
+          );
         })}
       </div>
-    )
+    );
   }
 
   // EXPANDED VIEW - hourly timeline
@@ -162,7 +177,9 @@ export function HorseRow({
           className="w-32 md:w-48 flex-shrink-0 p-2 md:p-4 border-r cursor-pointer"
           onClick={onToggleExpand}
         >
-          <div className="font-medium text-sm md:text-base truncate">{horse.name}</div>
+          <div className="font-medium text-sm md:text-base truncate">
+            {horse.name}
+          </div>
         </div>
       </div>
 
@@ -171,19 +188,20 @@ export function HorseRow({
         <div key={hour} className="flex border-b min-w-max">
           {/* Time label - fixed width */}
           <div className="w-32 md:w-48 flex-shrink-0 p-2 text-xs text-muted-foreground border-r">
-            {format(new Date().setHours(hour, 0), 'h:mm a')}
+            {format(new Date().setHours(hour, 0), "h:mm a")}
           </div>
 
           {/* Day cells for this hour */}
           {weekDays.map((day) => {
-            const dayKey = format(day, 'yyyy-MM-dd')
-            const dayActivities = activitiesByDay[dayKey] || []
+            const dayKey = format(day, "yyyy-MM-dd");
+            const dayActivities = activitiesByDay[dayKey] || [];
 
             // Filter activities for this hour
-            const hourActivities = dayActivities.filter(a => {
-              const activityHour = a.date.toDate().getHours()
-              return activityHour === hour
-            })
+            const hourActivities = dayActivities.filter((a) => {
+              const activityDate = toDate(a.date);
+              const activityHour = activityDate?.getHours();
+              return activityHour === hour;
+            });
 
             return (
               <div
@@ -192,33 +210,39 @@ export function HorseRow({
                 onClick={() => onCellClick(horse.id, day, hour)}
               >
                 {hourActivities.map((activity) => {
-                  const activityType = activity.type === 'activity' && 'activityTypeConfigId' in activity
-                    ? activityTypes.find(t => t.id === activity.activityTypeConfigId)
-                    : undefined
+                  const activityType =
+                    activity.type === "activity" &&
+                    "activityTypeConfigId" in activity
+                      ? activityTypes.find(
+                          (t) => t.id === activity.activityTypeConfigId,
+                        )
+                      : undefined;
+                  const activityTime = toDate(activity.date);
                   return (
                     <div
                       key={activity.id}
                       className="text-xs p-1 rounded mb-1 cursor-pointer truncate"
                       style={{
-                        backgroundColor: activityType?.color || '#gray',
-                        color: 'white',
-                        opacity: activity.status === 'completed' ? 0.6 : 1
+                        backgroundColor: activityType?.color || "#gray",
+                        color: "white",
+                        opacity: activity.status === "completed" ? 0.6 : 1,
                       }}
                       onClick={(e) => {
-                        e.stopPropagation()
-                        onActivityClick(activity)
+                        e.stopPropagation();
+                        onActivityClick(activity);
                       }}
-                      title={`${activityType?.name || 'Activity'} ${format(activity.date.toDate(), 'h:mm a')}`}
+                      title={`${activityType?.name || "Activity"} ${activityTime ? format(activityTime, "h:mm a") : ""}`}
                     >
-                      {activityType?.name || 'Activity'} {format(activity.date.toDate(), 'h:mm a')}
+                      {activityType?.name || "Activity"}{" "}
+                      {activityTime ? format(activityTime, "h:mm a") : ""}
                     </div>
-                  )
+                  );
                 })}
               </div>
-            )
+            );
           })}
         </div>
       ))}
     </div>
-  )
+  );
 }

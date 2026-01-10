@@ -21,6 +21,7 @@ import { checkReservationConflicts } from "@/services/facilityReservationService
 import { queryKeys } from "@/lib/queryClient";
 import type { FacilityReservation } from "@/types/facilityReservation";
 import type { Facility } from "@/types/facility";
+import { toDate } from "@/utils/timestampUtils";
 
 const reservationSchema = z
   .object({
@@ -111,12 +112,13 @@ export function FacilityReservationDialog({
   // Reset form when dialog opens with reservation data or initial values
   useEffect(() => {
     if (reservation) {
-      const startDate = reservation.startTime.toDate();
+      const startDate = toDate(reservation.startTime) || new Date();
+      const endDate = toDate(reservation.endTime) || new Date();
       resetForm({
         facilityId: reservation.facilityId,
         date: startDate,
         startTime: format(startDate, "HH:mm"),
-        endTime: format(reservation.endTime.toDate(), "HH:mm"),
+        endTime: format(endDate, "HH:mm"),
         horseId: reservation.horseId || "",
         contactInfo: reservation.contactInfo || "",
         notes: reservation.notes || "",
@@ -174,8 +176,8 @@ export function FacilityReservationDialog({
   const { data: conflicts = [], isLoading: checkingConflicts } = useQuery({
     queryKey: queryKeys.facilityReservations.conflicts(
       facilityId || "",
-      dateTimes?.startDateTime.toDate() || new Date(),
-      dateTimes?.endDateTime.toDate() || new Date(),
+      toDate(dateTimes?.startDateTime) || new Date(),
+      toDate(dateTimes?.endDateTime) || new Date(),
     ),
     queryFn: async () => {
       if (!dateTimes) return [];
@@ -281,13 +283,17 @@ export function FacilityReservationDialog({
           <AlertDescription>
             This time slot overlaps with {conflicts.length} existing
             reservation(s).
-            {conflicts.map((conflict, idx) => (
-              <div key={idx} className="mt-2 text-sm">
-                • {conflict.userFullName || conflict.userEmail} (
-                {format(conflict.startTime.toDate(), "HH:mm")} -{" "}
-                {format(conflict.endTime.toDate(), "HH:mm")})
-              </div>
-            ))}
+            {conflicts.map((conflict, idx) => {
+              const conflictStart = toDate(conflict.startTime);
+              const conflictEnd = toDate(conflict.endTime);
+              return (
+                <div key={idx} className="mt-2 text-sm">
+                  • {conflict.userFullName || conflict.userEmail} (
+                  {conflictStart && format(conflictStart, "HH:mm")} -{" "}
+                  {conflictEnd && format(conflictEnd, "HH:mm")})
+                </div>
+              );
+            })}
           </AlertDescription>
         </Alert>
       )}

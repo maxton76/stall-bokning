@@ -1,39 +1,45 @@
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import { Share, Trash2, Edit, Copy, Check } from 'lucide-react'
-import { format, differenceInDays } from 'date-fns'
-import { cn } from '@/lib/utils'
-import { HORSE_USAGE_OPTIONS } from '@/constants/horseConstants'
-import type { Horse, HorseUsage } from '@/types/roles'
-import type { Timestamp } from 'firebase/firestore'
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Share, Trash2, Edit, Copy, Check } from "lucide-react";
+import { format, differenceInDays } from "date-fns";
+import { cn } from "@/lib/utils";
+import { HORSE_USAGE_OPTIONS } from "@/constants/horseConstants";
+import { toDate } from "@/utils/timestampUtils";
+import type { Horse, HorseUsage } from "@/types/roles";
+import type { Timestamp } from "firebase/firestore";
 
 interface BasicInfoCardProps {
-  horse: Horse
-  onEdit?: () => void      // Edit handler
-  onShare?: () => void     // Future feature
-  onRemove?: () => void    // Future feature
+  horse: Horse;
+  onEdit?: () => void; // Edit handler
+  onShare?: () => void; // Future feature
+  onRemove?: () => void; // Future feature
 }
 
-export function BasicInfoCard({ horse, onEdit, onShare, onRemove }: BasicInfoCardProps) {
-  const [copiedField, setCopiedField] = useState<string | null>(null)
+export function BasicInfoCard({
+  horse,
+  onEdit,
+  onShare,
+  onRemove,
+}: BasicInfoCardProps) {
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Copy to clipboard handler
   const handleCopy = async (value: string, fieldName: string) => {
     try {
-      await navigator.clipboard.writeText(value)
-      setCopiedField(fieldName)
-      setTimeout(() => setCopiedField(null), 2000)
+      await navigator.clipboard.writeText(value);
+      setCopiedField(fieldName);
+      setTimeout(() => setCopiedField(null), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err)
+      console.error("Failed to copy:", err);
     }
-  }
+  };
   // Helper function to render usage badges
   const renderUsageBadge = (usage: HorseUsage) => {
-    const config = HORSE_USAGE_OPTIONS.find(opt => opt.value === usage)
-    if (!config) return null
+    const config = HORSE_USAGE_OPTIONS.find((opt) => opt.value === usage);
+    if (!config) return null;
 
     return (
       <Badge
@@ -41,34 +47,57 @@ export function BasicInfoCard({ horse, onEdit, onShare, onRemove }: BasicInfoCar
         variant="outline"
         className={cn(
           "text-xs",
-          usage === 'care' && "border-purple-300 text-purple-700 bg-purple-50",
-          usage === 'sport' && "border-green-300 text-green-700 bg-green-50",
-          usage === 'breeding' && "border-amber-300 text-amber-700 bg-amber-50"
+          usage === "care" && "border-purple-300 text-purple-700 bg-purple-50",
+          usage === "sport" && "border-green-300 text-green-700 bg-green-50",
+          usage === "breeding" && "border-amber-300 text-amber-700 bg-amber-50",
         )}
       >
         {config.icon} {config.label}
       </Badge>
-    )
-  }
+    );
+  };
 
   // Helper function to get FEI expiry warning
-  const getFeiExpiryWarning = (expiryDate: Timestamp) => {
-    const daysUntilExpiry = differenceInDays(expiryDate.toDate(), new Date())
+  const getFeiExpiryWarning = (expiryDate: Timestamp | string) => {
+    const date = toDate(expiryDate);
+    if (!date) return null;
+
+    const daysUntilExpiry = differenceInDays(date, new Date());
 
     if (daysUntilExpiry < 0) {
-      return <Badge variant="destructive" className="text-xs">Expired</Badge>
+      return (
+        <Badge variant="destructive" className="text-xs">
+          Expired
+        </Badge>
+      );
     }
     if (daysUntilExpiry <= 60) {
-      return <Badge variant="outline" className="text-xs border-amber-300 text-amber-700">
-        Expires soon
-      </Badge>
+      return (
+        <Badge
+          variant="outline"
+          className="text-xs border-amber-300 text-amber-700"
+        >
+          Expires soon
+        </Badge>
+      );
     }
-    return null
-  }
+    return null;
+  };
 
   // Conditional flags
-  const hasIdentification = !!(horse.ueln || horse.chipNumber || horse.federationNumber || horse.feiPassNumber || horse.feiExpiryDate)
-  const hasPedigree = !!(horse.sire || horse.dam || horse.damsire || horse.breeder)
+  const hasIdentification = !!(
+    horse.ueln ||
+    horse.chipNumber ||
+    horse.federationNumber ||
+    horse.feiPassNumber ||
+    horse.feiExpiryDate
+  );
+  const hasPedigree = !!(
+    horse.sire ||
+    horse.dam ||
+    horse.damsire ||
+    horse.breeder
+  );
 
   return (
     <Card>
@@ -77,20 +106,24 @@ export function BasicInfoCard({ horse, onEdit, onShare, onRemove }: BasicInfoCar
           {/* Left: Avatar + Name + Badges */}
           <div className="flex gap-4">
             <Avatar className="h-16 w-16">
-              <AvatarFallback>{horse.name.charAt(0).toUpperCase()}</AvatarFallback>
+              <AvatarFallback>
+                {horse.name.charAt(0).toUpperCase()}
+              </AvatarFallback>
             </Avatar>
             <div>
               <CardTitle>{horse.name}</CardTitle>
               {/* Pedigree subtitle: "Sire × Dam" */}
               {(horse.sire || horse.dam) && (
                 <p className="text-sm text-muted-foreground">
-                  {horse.sire && horse.dam ? `${horse.sire} × ${horse.dam}` : horse.sire || horse.dam}
+                  {horse.sire && horse.dam
+                    ? `${horse.sire} × ${horse.dam}`
+                    : horse.sire || horse.dam}
                 </p>
               )}
               {/* Usage badges */}
               {horse.usage && horse.usage.length > 0 && (
                 <div className="flex gap-2 mt-2">
-                  {horse.usage.map(usage => renderUsageBadge(usage))}
+                  {horse.usage.map((usage) => renderUsageBadge(usage))}
                 </div>
               )}
             </div>
@@ -98,14 +131,29 @@ export function BasicInfoCard({ horse, onEdit, onShare, onRemove }: BasicInfoCar
 
           {/* Right: Action buttons */}
           <div className="flex gap-2">
-            <Button variant="ghost" size="icon" disabled title="Share (coming soon)">
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled
+              title="Share (coming soon)"
+            >
               <Share className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" disabled title="Remove (coming soon)">
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled
+              title="Remove (coming soon)"
+            >
               <Trash2 className="h-4 w-4" />
             </Button>
             {onEdit && (
-              <Button variant="ghost" size="icon" onClick={onEdit} title="Edit horse">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onEdit}
+                title="Edit horse"
+              >
                 <Edit className="h-4 w-4" />
               </Button>
             )}
@@ -139,15 +187,21 @@ export function BasicInfoCard({ horse, onEdit, onShare, onRemove }: BasicInfoCar
         {/* 2. Birth Info */}
         {(horse.dateOfBirth || horse.horseGroupName) && (
           <div className="border-t pt-4 grid grid-cols-2 gap-4">
-            {horse.dateOfBirth && (
-              <div>
-                <p className="text-sm text-muted-foreground">Date of birth</p>
-                <p className="font-medium">
-                  {format(horse.dateOfBirth.toDate(), 'M/d/yy')}
-                  {horse.age && ` (${horse.age} years)`}
-                </p>
-              </div>
-            )}
+            {horse.dateOfBirth &&
+              (() => {
+                const birthDate = toDate(horse.dateOfBirth);
+                return birthDate ? (
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Date of birth
+                    </p>
+                    <p className="font-medium">
+                      {format(birthDate, "M/d/yy")}
+                      {horse.age && ` (${horse.age} years)`}
+                    </p>
+                  </div>
+                ) : null;
+              })()}
             {horse.horseGroupName && (
               <div>
                 <p className="text-sm text-muted-foreground">Group</p>
@@ -168,11 +222,11 @@ export function BasicInfoCard({ horse, onEdit, onShare, onRemove }: BasicInfoCar
                   <div className="flex items-center gap-2">
                     <p className="font-mono text-sm">{horse.ueln}</p>
                     <button
-                      onClick={() => handleCopy(horse.ueln!, 'ueln')}
+                      onClick={() => handleCopy(horse.ueln!, "ueln")}
                       className="text-muted-foreground hover:text-foreground transition-colors"
                       title="Copy to clipboard"
                     >
-                      {copiedField === 'ueln' ? (
+                      {copiedField === "ueln" ? (
                         <Check className="h-3 w-3 text-green-600" />
                       ) : (
                         <Copy className="h-3 w-3" />
@@ -187,11 +241,13 @@ export function BasicInfoCard({ horse, onEdit, onShare, onRemove }: BasicInfoCar
                   <div className="flex items-center gap-2">
                     <p className="font-mono text-sm">{horse.chipNumber}</p>
                     <button
-                      onClick={() => handleCopy(horse.chipNumber!, 'chipNumber')}
+                      onClick={() =>
+                        handleCopy(horse.chipNumber!, "chipNumber")
+                      }
                       className="text-muted-foreground hover:text-foreground transition-colors"
                       title="Copy to clipboard"
                     >
-                      {copiedField === 'chipNumber' ? (
+                      {copiedField === "chipNumber" ? (
                         <Check className="h-3 w-3 text-green-600" />
                       ) : (
                         <Copy className="h-3 w-3" />
@@ -204,13 +260,17 @@ export function BasicInfoCard({ horse, onEdit, onShare, onRemove }: BasicInfoCar
                 <div>
                   <p className="text-sm text-muted-foreground">Federation</p>
                   <div className="flex items-center gap-2">
-                    <p className="font-mono text-sm">{horse.federationNumber}</p>
+                    <p className="font-mono text-sm">
+                      {horse.federationNumber}
+                    </p>
                     <button
-                      onClick={() => handleCopy(horse.federationNumber!, 'federationNumber')}
+                      onClick={() =>
+                        handleCopy(horse.federationNumber!, "federationNumber")
+                      }
                       className="text-muted-foreground hover:text-foreground transition-colors"
                       title="Copy to clipboard"
                     >
-                      {copiedField === 'federationNumber' ? (
+                      {copiedField === "federationNumber" ? (
                         <Check className="h-3 w-3 text-green-600" />
                       ) : (
                         <Copy className="h-3 w-3" />
@@ -225,11 +285,13 @@ export function BasicInfoCard({ horse, onEdit, onShare, onRemove }: BasicInfoCar
                   <div className="flex items-center gap-2">
                     <p className="font-mono text-sm">{horse.feiPassNumber}</p>
                     <button
-                      onClick={() => handleCopy(horse.feiPassNumber!, 'feiPassNumber')}
+                      onClick={() =>
+                        handleCopy(horse.feiPassNumber!, "feiPassNumber")
+                      }
                       className="text-muted-foreground hover:text-foreground transition-colors"
                       title="Copy to clipboard"
                     >
-                      {copiedField === 'feiPassNumber' ? (
+                      {copiedField === "feiPassNumber" ? (
                         <Check className="h-3 w-3 text-green-600" />
                       ) : (
                         <Copy className="h-3 w-3" />
@@ -238,17 +300,23 @@ export function BasicInfoCard({ horse, onEdit, onShare, onRemove }: BasicInfoCar
                   </div>
                 </div>
               )}
-              {horse.feiExpiryDate && (
-                <div>
-                  <p className="text-sm text-muted-foreground">FEI Expiry</p>
-                  <div className="flex items-center gap-2">
-                    <p className="font-mono text-sm">
-                      {format(horse.feiExpiryDate.toDate(), 'M/d/yy')}
-                    </p>
-                    {getFeiExpiryWarning(horse.feiExpiryDate)}
-                  </div>
-                </div>
-              )}
+              {horse.feiExpiryDate &&
+                (() => {
+                  const expiryDate = toDate(horse.feiExpiryDate);
+                  return expiryDate ? (
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        FEI Expiry
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-mono text-sm">
+                          {format(expiryDate, "M/d/yy")}
+                        </p>
+                        {getFeiExpiryWarning(horse.feiExpiryDate)}
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
             </div>
           </div>
         )}
@@ -298,10 +366,12 @@ export function BasicInfoCard({ horse, onEdit, onShare, onRemove }: BasicInfoCar
         {horse.notes && (
           <div className="border-t pt-4">
             <p className="text-sm font-semibold mb-2">Notes</p>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{horse.notes}</p>
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+              {horse.notes}
+            </p>
           </div>
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

@@ -1,9 +1,7 @@
-import { Timestamp } from 'firebase/firestore'
-import { createCrudService, CrudService, queryHelpers } from './firestoreCrud'
-import { getOrganizationStables } from '@/lib/firestoreQueries'
-import { mapDocsToObjects } from '@/utils/firestoreHelpers'
-import { updateOrganizationStats } from './organizationService'
-import type { Stable } from '@/types/roles'
+import { Timestamp } from "firebase/firestore";
+import { createCrudService, CrudService, queryHelpers } from "./firestoreCrud";
+import { updateOrganizationStats } from "./organizationService";
+import type { Stable } from "@/types/roles";
 
 // ============================================================================
 // Types
@@ -13,18 +11,20 @@ import type { Stable } from '@/types/roles'
  * Data required to create a new stable
  */
 export interface CreateStableData {
-  name: string
-  description?: string
-  address?: string
-  ownerId: string
-  ownerEmail?: string
-  organizationId?: string  // Optional for standalone stables
+  name: string;
+  description?: string;
+  address?: string;
+  ownerId: string;
+  ownerEmail?: string;
+  organizationId?: string; // Optional for standalone stables
 }
 
 /**
  * Data that can be updated on an existing stable
  */
-export type UpdateStableData = Partial<Omit<Stable, 'id' | 'ownerId' | 'createdAt'>>
+export type UpdateStableData = Partial<
+  Omit<Stable, "id" | "ownerId" | "createdAt">
+>;
 
 // ============================================================================
 // Base CRUD Service
@@ -34,9 +34,9 @@ export type UpdateStableData = Partial<Omit<Stable, 'id' | 'ownerId' | 'createdA
  * Base CRUD operations for stables using the factory pattern
  */
 const stableCrud: CrudService<Stable> = createCrudService<Stable>({
-  collectionName: 'stables',
-  timestampsEnabled: true
-})
+  collectionName: "stables",
+  timestampsEnabled: true,
+});
 
 // ============================================================================
 // Extended Stable Service
@@ -71,23 +71,23 @@ const stableCrud: CrudService<Stable> = createCrudService<Stable>({
  */
 export async function createStable(
   userId: string,
-  data: CreateStableData
+  data: CreateStableData,
 ): Promise<string> {
   const stableData = {
     ...data,
     createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now()
-  }
+    updatedAt: Timestamp.now(),
+  };
 
-  const stableId = await stableCrud.create(userId, stableData)
+  const stableId = await stableCrud.create(userId, stableData);
 
   // Update organization stats if stable belongs to an organization
   if (data.organizationId) {
-    const count = await getOrganizationStableCount(data.organizationId)
-    await updateOrganizationStats(data.organizationId, { stableCount: count })
+    const count = await getOrganizationStableCount(data.organizationId);
+    await updateOrganizationStats(data.organizationId, { stableCount: count });
   }
 
-  return stableId
+  return stableId;
 }
 
 /**
@@ -97,7 +97,7 @@ export async function createStable(
  * @returns Promise with stable data or null if not found
  */
 export async function getStable(stableId: string): Promise<Stable | null> {
-  return stableCrud.getById(stableId)
+  return stableCrud.getById(stableId);
 }
 
 /**
@@ -111,9 +111,9 @@ export async function getStable(stableId: string): Promise<Stable | null> {
 export async function updateStable(
   stableId: string,
   userId: string,
-  updates: UpdateStableData
+  updates: UpdateStableData,
 ): Promise<void> {
-  return stableCrud.update(stableId, userId, updates)
+  return stableCrud.update(stableId, userId, updates);
 }
 
 /**
@@ -123,7 +123,7 @@ export async function updateStable(
  * @returns Promise that resolves when deletion is complete
  */
 export async function deleteStable(stableId: string): Promise<void> {
-  return stableCrud.delete(stableId)
+  return stableCrud.delete(stableId);
 }
 
 // ============================================================================
@@ -149,16 +149,16 @@ export async function deleteStable(stableId: string): Promise<void> {
 export async function linkStableToOrganization(
   stableId: string,
   organizationId: string,
-  userId: string
+  userId: string,
 ): Promise<void> {
   // Update stable with organizationId
   await stableCrud.update(stableId, userId, {
-    organizationId
-  })
+    organizationId,
+  });
 
   // Update organization stats
-  const count = await getOrganizationStableCount(organizationId)
-  await updateOrganizationStats(organizationId, { stableCount: count })
+  const count = await getOrganizationStableCount(organizationId);
+  await updateOrganizationStats(organizationId, { stableCount: count });
 }
 
 /**
@@ -177,23 +177,23 @@ export async function linkStableToOrganization(
  */
 export async function unlinkStableFromOrganization(
   stableId: string,
-  userId: string
+  userId: string,
 ): Promise<void> {
   // Get current stable to find organizationId
-  const stable = await getStable(stableId)
-  if (!stable) throw new Error('Stable not found')
+  const stable = await getStable(stableId);
+  if (!stable) throw new Error("Stable not found");
 
-  const previousOrgId = stable.organizationId
+  const previousOrgId = stable.organizationId;
 
   // Remove organizationId from stable
   await stableCrud.update(stableId, userId, {
-    organizationId: undefined
-  })
+    organizationId: undefined,
+  });
 
   // Update organization stats if stable was linked
   if (previousOrgId) {
-    const count = await getOrganizationStableCount(previousOrgId)
-    await updateOrganizationStats(previousOrgId, { stableCount: count })
+    const count = await getOrganizationStableCount(previousOrgId);
+    await updateOrganizationStats(previousOrgId, { stableCount: count });
   }
 }
 
@@ -213,14 +213,15 @@ export async function unlinkStableFromOrganization(
  * ```
  */
 export async function getOrganizationStableCount(
-  organizationId: string
+  organizationId: string,
 ): Promise<number> {
-  const snapshot = await getOrganizationStables(organizationId)
-  return snapshot.size
+  const stables = await getStablesByOrganization(organizationId);
+  return stables.length;
 }
 
 /**
  * Get all stables for an organization
+ * Now uses backend API instead of direct Firestore queries
  *
  * @param organizationId - Organization ID
  * @returns Promise with array of stables
@@ -232,10 +233,16 @@ export async function getOrganizationStableCount(
  * ```
  */
 export async function getStablesByOrganization(
-  organizationId: string
+  organizationId: string,
 ): Promise<Stable[]> {
-  const snapshot = await getOrganizationStables(organizationId)
-  return mapDocsToObjects<Stable>(snapshot)
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  const response = await authFetchJSON<{ stables: Stable[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/organizations/${organizationId}/stables`,
+    { method: "GET" },
+  );
+
+  return response.stables;
 }
 
 /**
@@ -250,5 +257,61 @@ export async function getStablesByOrganization(
  * ```
  */
 export async function getStablesByOwner(userId: string): Promise<Stable[]> {
-  return stableCrud.query([queryHelpers.whereUser(userId, 'ownerId')])
+  return stableCrud.query([queryHelpers.whereUser(userId, "ownerId")]);
+}
+
+// ============================================================================
+// Member-Specific Operations
+// ============================================================================
+
+/**
+ * Get active members for a stable with user details
+ * Returns combined member + user data to avoid N+1 queries
+ * Used by ScheduleEditorPage and StableDetailPage
+ *
+ * @param stableId - Stable ID
+ * @returns Promise with array of members including user details
+ *
+ * @example
+ * ```typescript
+ * const members = await getActiveMembersWithUserDetails('stable123')
+ * members.forEach(member => console.log(member.displayName, member.email))
+ * ```
+ */
+export async function getActiveMembersWithUserDetails(
+  stableId: string,
+): Promise<any[]> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  const response = await authFetchJSON<{ members: any[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/stables/${stableId}/members?includeUserDetails=true`,
+    { method: "GET" },
+  );
+
+  return response.members;
+}
+
+/**
+ * Delete a stable member
+ * Used by StableDetailPage
+ *
+ * @param stableId - Stable ID
+ * @param memberId - Member ID to delete
+ * @returns Promise that resolves when deletion is complete
+ *
+ * @example
+ * ```typescript
+ * await deleteStableMember('stable123', 'member456')
+ * ```
+ */
+export async function deleteStableMember(
+  stableId: string,
+  memberId: string,
+): Promise<void> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/stables/${stableId}/members/${memberId}`,
+    { method: "DELETE" },
+  );
 }

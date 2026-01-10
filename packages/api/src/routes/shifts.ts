@@ -1,0 +1,505 @@
+import type { FastifyInstance } from "fastify";
+import { z } from "zod";
+import { db } from "../utils/firebase.js";
+import {
+  authenticate,
+  requireStableAccess,
+  requireStableManagement,
+} from "../middleware/auth.js";
+import type { AuthenticatedRequest } from "../types/index.js";
+import { canManageSchedules } from "../utils/authorization.js";
+
+const batchCreateShiftsSchema = z.object({
+  scheduleId: z.string().min(1),
+  shifts: z.array(
+    z.object({
+      scheduleId: z.string().min(1),
+      stableId: z.string().min(1),
+      stableName: z.string().min(1),
+      date: z.string().datetime(),
+      shiftTypeId: z.string().min(1),
+      shiftTypeName: z.string().min(1),
+      time: z.string().min(1),
+      points: z.number().positive(),
+      status: z.enum(["unassigned", "assigned"]).default("unassigned"),
+      assignedTo: z.string().nullable().optional(),
+      assignedToName: z.string().nullable().optional(),
+      assignedToEmail: z.string().nullable().optional(),
+    }),
+  ),
+});
+
+const assignShiftSchema = z.object({
+  userId: z.string().min(1),
+  userName: z.string().min(1),
+  userEmail: z.string().email(),
+  assignerId: z.string().min(1).optional(),
+});
+
+const unassignShiftSchema = z.object({
+  unassignerId: z.string().min(1).optional(),
+});
+
+export async function shiftsRoutes(fastify: FastifyInstance) {
+  // Get shifts with query parameters
+  fastify.get(
+    "/",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { scheduleId, stableId, stableIds, startDate, endDate, status } =
+          request.query as {
+            scheduleId?: string;
+            stableId?: string;
+            stableIds?: string;
+            startDate?: string;
+            endDate?: string;
+            status?: string;
+          };
+
+        // Handle stableIds with status=published (query shifts from published schedules)
+        if (stableIds && status === "published") {
+          const ids = stableIds
+            .split(",")
+            .map((id) => id.trim())
+            .filter(Boolean);
+
+          if (ids.length === 0) {
+            return { shifts: [] };
+          }
+
+          if (ids.length > 10) {
+            return reply.status(400).send({
+              error: "Bad Request",
+              message: "Cannot query more than 10 stables at once",
+            });
+          }
+
+          // Step 1: Get published schedules for these stables
+          const schedulesSnapshot = await db
+            .collection("schedules")
+            .where("stableId", "in", ids)
+            .where("status", "==", "published")
+            .get();
+
+          const publishedScheduleIds = schedulesSnapshot.docs.map(
+            (doc) => doc.id,
+          );
+
+          if (publishedScheduleIds.length === 0) {
+            return { shifts: [] };
+          }
+
+          // Step 2: Get shifts for these schedules (handle >10 schedules)
+          if (publishedScheduleIds.length > 10) {
+            // Make multiple queries for >10 schedules (Firestore 'in' limit)
+            const chunks: string[][] = [];
+            for (let i = 0; i < publishedScheduleIds.length; i += 10) {
+              chunks.push(publishedScheduleIds.slice(i, i + 10));
+            }
+
+            const queryPromises = chunks.map((chunk) =>
+              db
+                .collection("shifts")
+                .where("scheduleId", "in", chunk)
+                .orderBy("date", "asc")
+                .get(),
+            );
+
+            const snapshots = await Promise.all(queryPromises);
+            const shifts = snapshots.flatMap((snapshot) =>
+              snapshot.docs.map((doc: any) => ({
+                id: doc.id,
+                ...doc.data(),
+              })),
+            );
+
+            // Sort combined results by date
+            shifts.sort((a, b) => {
+              const dateA = a.date?.toDate?.() || new Date(a.date);
+              const dateB = b.date?.toDate?.() || new Date(b.date);
+              return dateA.getTime() - dateB.getTime();
+            });
+
+            return { shifts };
+          } else {
+            const shiftsSnapshot = await db
+              .collection("shifts")
+              .where("scheduleId", "in", publishedScheduleIds)
+              .orderBy("date", "asc")
+              .get();
+
+            const shifts = shiftsSnapshot.docs.map((doc: any) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+
+            return { shifts };
+          }
+        }
+
+        // Standard query logic for other cases
+        let query = db.collection("shifts");
+
+        // Apply filters
+        if (scheduleId) {
+          query = query.where("scheduleId", "==", scheduleId) as any;
+        }
+
+        // Handle stableIds (multiple stables) or stableId (single stable)
+        if (stableIds) {
+          const ids = stableIds
+            .split(",")
+            .map((id) => id.trim())
+            .filter(Boolean);
+
+          if (ids.length === 0) {
+            return { shifts: [] };
+          }
+
+          if (ids.length > 10) {
+            return reply.status(400).send({
+              error: "Bad Request",
+              message: "Cannot query more than 10 stables at once",
+            });
+          }
+
+          query = query.where("stableId", "in", ids) as any;
+        } else if (stableId) {
+          query = query.where("stableId", "==", stableId) as any;
+        }
+
+        if (status && status !== "published") {
+          query = query.where("status", "==", status) as any;
+        }
+
+        if (startDate && endDate) {
+          query = query
+            .where("date", ">=", new Date(startDate))
+            .where("date", "<=", new Date(endDate)) as any;
+        } else if (startDate) {
+          query = query.where("date", ">=", new Date(startDate)) as any;
+        } else if (endDate) {
+          query = query.where("date", "<=", new Date(endDate)) as any;
+        }
+
+        // Always order by date
+        query = query.orderBy("date", "asc") as any;
+
+        const snapshot = await query.get();
+        const shifts = snapshot.docs.map((doc: any) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        return { shifts };
+      } catch (error) {
+        request.log.error({ error }, "Failed to fetch shifts");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to fetch shifts",
+        });
+      }
+    },
+  );
+
+  // Get unassigned shifts
+  fastify.get(
+    "/unassigned",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { stableId } = request.query as { stableId?: string };
+
+        let query = db.collection("shifts").where("status", "==", "unassigned");
+
+        if (stableId) {
+          query = query.where("stableId", "==", stableId) as any;
+        }
+
+        query = query.orderBy("date", "asc") as any;
+
+        const snapshot = await query.get();
+        const shifts = snapshot.docs.map((doc: any) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        return { shifts };
+      } catch (error) {
+        request.log.error({ error }, "Failed to fetch unassigned shifts");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to fetch unassigned shifts",
+        });
+      }
+    },
+  );
+
+  // Batch create shifts
+  fastify.post(
+    "/batch",
+    {
+      preHandler: [authenticate, requireStableManagement()],
+    },
+    async (request, reply) => {
+      try {
+        const validation = batchCreateShiftsSchema.safeParse(request.body);
+
+        if (!validation.success) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invalid input",
+            details: validation.error.errors,
+          });
+        }
+
+        const user = (request as AuthenticatedRequest).user!;
+        const { scheduleId, shifts } = validation.data;
+
+        // Verify schedule exists and user has permission
+        const scheduleDoc = await db
+          .collection("schedules")
+          .doc(scheduleId)
+          .get();
+        if (!scheduleDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Schedule not found",
+          });
+        }
+
+        const schedule = scheduleDoc.data();
+        const canManage = await canManageSchedules(
+          user.uid,
+          schedule?.stableId,
+        );
+
+        if (!canManage && user.role !== "system_admin") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message:
+              "You do not have permission to create shifts for this schedule",
+          });
+        }
+
+        // Batch create shifts (max 500 per batch due to Firestore limitation)
+        const batchSize = 500;
+        const batches = [];
+
+        for (let i = 0; i < shifts.length; i += batchSize) {
+          const batch = db.batch();
+          const batchShifts = shifts.slice(i, i + batchSize);
+
+          batchShifts.forEach((shift) => {
+            const shiftRef = db.collection("shifts").doc();
+            batch.set(shiftRef, {
+              ...shift,
+              date: new Date(shift.date),
+            });
+          });
+
+          batches.push(batch.commit());
+        }
+
+        await Promise.all(batches);
+
+        return reply.status(201).send({
+          created: shifts.length,
+          message: `Successfully created ${shifts.length} shifts`,
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to create shifts");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to create shifts",
+        });
+      }
+    },
+  );
+
+  // Assign shift
+  fastify.patch(
+    "/:id/assign",
+    {
+      preHandler: [authenticate, requireStableAccess()],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const validation = assignShiftSchema.safeParse(request.body);
+
+        if (!validation.success) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invalid input",
+            details: validation.error.errors,
+          });
+        }
+
+        const user = (request as AuthenticatedRequest).user!;
+        const shiftRef = db.collection("shifts").doc(id);
+        const shiftDoc = await shiftRef.get();
+
+        if (!shiftDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Shift not found",
+          });
+        }
+
+        const shift = shiftDoc.data();
+        const { userId, userName, userEmail } = validation.data;
+
+        // Middleware already verified stable access
+        // Additional check: members can self-assign, managers can assign anyone
+        const canManage = await canManageSchedules(user.uid, shift?.stableId);
+        const isSelfAssigning = userId === user.uid;
+
+        if (!isSelfAssigning && !canManage && user.role !== "system_admin") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message:
+              "You can only assign shifts to yourself unless you are a manager",
+          });
+        }
+
+        await shiftRef.update({
+          status: "assigned",
+          assignedTo: userId,
+          assignedToName: userName,
+          assignedToEmail: userEmail,
+        });
+
+        // TODO: Log shift assignment to audit log if assignerId provided
+
+        const updatedDoc = await shiftRef.get();
+        return {
+          id: updatedDoc.id,
+          ...updatedDoc.data(),
+        };
+      } catch (error) {
+        request.log.error({ error }, "Failed to assign shift");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to assign shift",
+        });
+      }
+    },
+  );
+
+  // Unassign shift
+  fastify.patch(
+    "/:id/unassign",
+    {
+      preHandler: [authenticate, requireStableAccess()],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const validation = unassignShiftSchema.safeParse(request.body);
+
+        if (!validation.success) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invalid input",
+            details: validation.error.errors,
+          });
+        }
+
+        const user = (request as AuthenticatedRequest).user!;
+        const shiftRef = db.collection("shifts").doc(id);
+        const shiftDoc = await shiftRef.get();
+
+        if (!shiftDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Shift not found",
+          });
+        }
+
+        const shift = shiftDoc.data();
+
+        // Check permissions: members can unassign themselves, managers can unassign anyone
+        const canManage = await canManageSchedules(user.uid, shift?.stableId);
+        const isSelfUnassigning = shift?.assignedTo === user.uid;
+
+        if (!isSelfUnassigning && !canManage && user.role !== "system_admin") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message:
+              "You can only unassign your own shifts unless you are a manager",
+          });
+        }
+
+        await shiftRef.update({
+          status: "unassigned",
+          assignedTo: null,
+          assignedToName: null,
+          assignedToEmail: null,
+        });
+
+        // TODO: Log shift unassignment to audit log if unassignerId provided
+
+        const updatedDoc = await shiftRef.get();
+        return {
+          id: updatedDoc.id,
+          ...updatedDoc.data(),
+        };
+      } catch (error) {
+        request.log.error({ error }, "Failed to unassign shift");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to unassign shift",
+        });
+      }
+    },
+  );
+
+  // Delete shift
+  fastify.delete(
+    "/:id",
+    {
+      preHandler: [authenticate, requireStableManagement()],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const user = (request as AuthenticatedRequest).user!;
+        const shiftRef = db.collection("shifts").doc(id);
+        const shiftDoc = await shiftRef.get();
+
+        if (!shiftDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Shift not found",
+          });
+        }
+
+        const shift = shiftDoc.data();
+        const canManage = await canManageSchedules(user.uid, shift?.stableId);
+
+        if (!canManage && user.role !== "system_admin") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to delete this shift",
+          });
+        }
+
+        await shiftRef.delete();
+
+        return reply.status(204).send();
+      } catch (error) {
+        request.log.error({ error }, "Failed to delete shift");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to delete shift",
+        });
+      }
+    },
+  );
+}

@@ -1,88 +1,68 @@
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
-import { doc, setDoc, Timestamp, updateDoc, increment } from 'firebase/firestore'
-import { auth, db } from '@/lib/firebase'
-import { formatFullName } from '@/lib/nameUtils'
-import { createOrganization } from './organizationService'
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { formatFullName } from "@/lib/nameUtils";
 
 export interface RegisterUserData {
-  email: string
-  password: string
-  firstName: string
-  lastName: string
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
 }
 
 /**
  * Register a new user with firstName and lastName
- * Creates both Firebase Auth user and Firestore user document
- * Automatically creates a default organization for the user
+ * Creates Firebase Auth user and calls backend to create Firestore documents
+ * Backend automatically creates organization and membership
  *
  * @param data - User registration data
  * @throws Error if registration fails
+ * @returns Organization ID for the user to set in context
  */
 export async function registerUser(data: RegisterUserData): Promise<string> {
   // 1. Create Firebase Auth user
   const userCredential = await createUserWithEmailAndPassword(
     auth,
     data.email,
-    data.password
-  )
-  const user = userCredential.user
+    data.password,
+  );
+  const user = userCredential.user;
 
   try {
     // 2. Update Firebase Auth profile with full name
     await updateProfile(user, {
-      displayName: formatFullName({ firstName: data.firstName, lastName: data.lastName })
-    })
+      displayName: formatFullName({
+        firstName: data.firstName,
+        lastName: data.lastName,
+      }),
+    });
 
-    // 3. Create Firestore user document
-    await setDoc(doc(db, 'users', user.uid), {
-      uid: user.uid,
-      email: data.email,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      systemRole: 'member',
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
-    })
+    // 3. Call backend to create Firestore user document and organization
+    // Backend handles:
+    // - Creating user document
+    // - Creating organization
+    // - Creating organization member record
+    // - Migrating pending invites
+    const { authFetchJSON } = await import("@/utils/authFetch");
 
-    // 4. Auto-create default organization for the user
-    const fullName = formatFullName({ firstName: data.firstName, lastName: data.lastName })
-    const organizationId = await createOrganization(user.uid, {
-      name: `${fullName}'s Organization`,
-      description: 'My stable organization',
-      contactType: 'Business',
-      primaryEmail: data.email,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-    })
+    const response = await authFetchJSON<{
+      user: { id: string; email: string; firstName: string; lastName: string };
+    }>(`${import.meta.env.VITE_API_URL}/api/v1/auth/signup`, {
+      method: "POST",
+      body: JSON.stringify({
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        systemRole: "member",
+      }),
+    });
 
-    // 5. Add user as owner/administrator of the organization
-    const memberId = `${user.uid}_${organizationId}`
-    await setDoc(doc(db, 'organizationMembers', memberId), {
-      userId: user.uid,
-      userEmail: data.email,
-      userName: fullName,
-      organizationId: organizationId,
-      roles: ['owner', 'administrator'],
-      primaryRole: 'owner',
-      status: 'active',
-      showInPlanning: true,
-      stableAccess: 'all',
-      assignedStableIds: [],
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
-      createdBy: user.uid
-    })
-
-    // 6. Update organization member count
-    await updateDoc(doc(db, 'organizations', organizationId), {
-      'stats.totalMemberCount': increment(1)
-    })
-
-    // 7. Return organization ID for the UI to set in context
-    return organizationId
+    // Backend creates organization, but doesn't return it
+    // We need to fetch user's organizations to get the ID
+    // For now, return empty string - frontend will handle fetching organizations
+    return "";
   } catch (error) {
-    // If Firestore fails, delete the Auth user to maintain consistency
-    await user.delete()
-    throw error
+    // If backend fails, delete the Auth user to maintain consistency
+    await user.delete();
+    throw error;
   }
 }

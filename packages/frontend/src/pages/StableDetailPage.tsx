@@ -1,232 +1,269 @@
-import { useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Settings, Users, Calendar, BarChart3, Pencil, Trash2, Plus, Loader2Icon, House as HorseIcon } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ShiftTypeDialog } from '@/components/ShiftTypeDialog'
-import { HorseCard } from '@/components/HorseCard'
-import { RemoveMemberDialog } from '@/components/RemoveMemberDialog'
-import { EmptyState } from '@/components/EmptyState'
-import { getShiftTypesByStable, createShiftType, updateShiftType, deleteShiftType } from '@/services/shiftTypeService'
-import { getStableHorses, getUserHorsesAtStable, unassignMemberHorses } from '@/services/horseService'
-import type { ShiftType } from '@/types/schedule'
-import type { Horse, StableMember } from '@/types/roles'
-import { useToast } from '@/hooks/use-toast'
-import { useDialog } from '@/hooks/useDialog'
-import { useAsyncData } from '@/hooks/useAsyncData'
-import { useCRUD } from '@/hooks/useCRUD'
-import { doc, getDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
-import { useAuth } from '@/contexts/AuthContext'
+import { useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
+import {
+  ArrowLeft,
+  Settings,
+  Users,
+  Calendar,
+  BarChart3,
+  Pencil,
+  Trash2,
+  Plus,
+  Loader2Icon,
+  House as HorseIcon,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ShiftTypeDialog } from "@/components/ShiftTypeDialog";
+import { HorseCard } from "@/components/HorseCard";
+import { RemoveMemberDialog } from "@/components/RemoveMemberDialog";
+import { EmptyState } from "@/components/EmptyState";
+import {
+  getShiftTypesByStable,
+  createShiftType,
+  updateShiftType,
+  deleteShiftType,
+} from "@/services/shiftTypeService";
+import {
+  getStableHorses,
+  getUserHorsesAtStable,
+  unassignMemberHorses,
+} from "@/services/horseService";
+import {
+  getStable,
+  getActiveMembersWithUserDetails,
+  deleteStableMember,
+} from "@/services/stableService";
+import type { ShiftType } from "@/types/schedule";
+import type { Horse, StableMember } from "@/types/roles";
+import { useToast } from "@/hooks/use-toast";
+import { useDialog } from "@/hooks/useDialog";
+import { useAsyncData } from "@/hooks/useAsyncData";
+import { useCRUD } from "@/hooks/useCRUD";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Stable {
-  id: string
-  name: string
-  description?: string
-  address?: string
-  ownerId: string
-  ownerEmail?: string
+  id: string;
+  name: string;
+  description?: string;
+  address?: string;
+  ownerId: string;
+  ownerEmail?: string;
 }
 
 export default function StableDetailPage() {
-  const { stableId } = useParams()
-  const { toast } = useToast()
-  const { user } = useAuth()
+  const { stableId } = useParams();
+  const { toast } = useToast();
+  const { user } = useAuth();
 
   // Dialog state management
-  const shiftTypeDialog = useDialog<ShiftType>()
-  const removeMemberDialog = useDialog<StableMember>()
+  const shiftTypeDialog = useDialog<ShiftType>();
+  const removeMemberDialog = useDialog<StableMember>();
 
   // Data loading with custom hooks
   const stable = useAsyncData<Stable | null>({
     loadFn: async () => {
-      if (!stableId) return null
-      const stableDoc = await getDoc(doc(db, 'stables', stableId))
-      if (stableDoc.exists()) {
-        return {
-          id: stableDoc.id,
-          ...stableDoc.data()
-        } as Stable
-      }
-      return null
+      if (!stableId) return null;
+      return (await getStable(stableId)) as Stable | null;
     },
-    errorMessage: 'Failed to load stable data. Please try again.'
-  })
+    errorMessage: "Failed to load stable data. Please try again.",
+  });
 
   const shiftTypes = useAsyncData<ShiftType[]>({
     loadFn: () => getShiftTypesByStable(stableId!),
-    errorMessage: 'Failed to load shift types. Please try again.'
-  })
+    errorMessage: "Failed to load shift types. Please try again.",
+  });
 
   const horses = useAsyncData<Horse[]>({
     loadFn: () => getStableHorses(stableId!),
-    errorMessage: 'Failed to load horses. Please try again.'
-  })
+    errorMessage: "Failed to load horses. Please try again.",
+  });
 
-  const members = useAsyncData<{ members: StableMember[], horseCounts: Record<string, number> }>({
+  const members = useAsyncData<{
+    members: StableMember[];
+    horseCounts: Record<string, number>;
+  }>({
     loadFn: async () => {
-      if (!stableId) return { members: [], horseCounts: {} }
+      if (!stableId) return { members: [], horseCounts: {} };
 
-      const q = query(
-        collection(db, 'stableMembers'),
-        where('stableId', '==', stableId),
-        where('status', '==', 'active')
-      )
-      const snapshot = await getDocs(q)
-      const membersData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as StableMember))
+      // Get members with user details (avoids N+1 query for user data)
+      const membersData = (await getActiveMembersWithUserDetails(
+        stableId,
+      )) as StableMember[];
 
       // Load horse counts for each member
-      const counts: Record<string, number> = {}
+      const counts: Record<string, number> = {};
       for (const member of membersData) {
-        const memberHorses = await getUserHorsesAtStable(member.userId, stableId)
-        counts[member.userId] = memberHorses.length
+        const memberHorses = await getUserHorsesAtStable(
+          member.userId,
+          stableId,
+        );
+        counts[member.userId] = memberHorses.length;
       }
 
-      return { members: membersData, horseCounts: counts }
+      return { members: membersData, horseCounts: counts };
     },
-    errorMessage: 'Failed to load members. Please try again.'
-  })
+    errorMessage: "Failed to load members. Please try again.",
+  });
 
   // Load data on mount
   useEffect(() => {
     if (stableId) {
-      stable.load()
-      shiftTypes.load()
-      horses.load()
-      members.load()
+      stable.load();
+      shiftTypes.load();
+      horses.load();
+      members.load();
     }
-  }, [stableId])
+  }, [stableId]);
 
   // CRUD operations for shift types
   const shiftTypeCRUD = useCRUD<ShiftType>({
     createFn: async (data) => {
-      if (!stableId || !user) throw new Error('Stable ID and user are required')
+      if (!stableId || !user)
+        throw new Error("Stable ID and user are required");
       return await createShiftType(
         stableId,
-        data as Omit<ShiftType, 'id' | 'stableId' | 'createdAt' | 'updatedAt' | 'lastModifiedBy'>,
-        user.uid
-      )
+        data as Omit<
+          ShiftType,
+          "id" | "stableId" | "createdAt" | "updatedAt" | "lastModifiedBy"
+        >,
+        user.uid,
+      );
     },
     updateFn: async (id, data) => {
-      if (!user) throw new Error('User is required')
+      if (!user) throw new Error("User is required");
       await updateShiftType(
         id,
-        data as Omit<ShiftType, 'id' | 'stableId' | 'createdAt' | 'lastModifiedBy'>,
-        user.uid
-      )
+        data as Omit<
+          ShiftType,
+          "id" | "stableId" | "createdAt" | "lastModifiedBy"
+        >,
+        user.uid,
+      );
     },
     deleteFn: deleteShiftType,
     onSuccess: async () => {
-      await shiftTypes.reload()
+      await shiftTypes.reload();
     },
     successMessages: {
-      create: 'Shift type created successfully',
-      update: 'Shift type updated successfully',
-      delete: 'Shift type deleted successfully'
-    }
-  })
+      create: "Shift type created successfully",
+      update: "Shift type updated successfully",
+      delete: "Shift type deleted successfully",
+    },
+  });
 
   // Member removal handler
   const handleRemoveMember = async (userId: string) => {
-    if (!stableId) return
+    if (!stableId) return;
 
     try {
       // Unassign all member's horses
-      const unassignedCount = await unassignMemberHorses(userId, stableId)
+      const unassignedCount = await unassignMemberHorses(userId, stableId);
 
       // Delete member from stableMembers collection
-      const memberDoc = members.data?.members.find(m => m.userId === userId)
+      const memberDoc = members.data?.members.find((m) => m.userId === userId);
       if (memberDoc) {
-        await deleteDoc(doc(db, 'stableMembers', memberDoc.id))
+        await deleteStableMember(stableId, memberDoc.id);
       }
 
       toast({
-        title: 'Success',
-        description: `Member removed. ${unassignedCount} ${unassignedCount === 1 ? 'horse was' : 'horses were'} unassigned.`
-      })
+        title: "Success",
+        description: `Member removed. ${unassignedCount} ${unassignedCount === 1 ? "horse was" : "horses were"} unassigned.`,
+      });
 
       // Reload data
-      await members.reload()
-      await horses.reload()
+      await members.reload();
+      await horses.reload();
     } catch (error) {
-      console.error('Error removing member:', error)
+      console.error("Error removing member:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to remove member. Please try again.',
-        variant: 'destructive'
-      })
-      throw error
+        title: "Error",
+        description: "Failed to remove member. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
     }
-  }
+  };
 
   // Shift type handlers
-  const handleSaveShiftType = async (data: Omit<ShiftType, 'id' | 'stableId' | 'createdAt' | 'updatedAt'>) => {
+  const handleSaveShiftType = async (
+    data: Omit<ShiftType, "id" | "stableId" | "createdAt" | "updatedAt">,
+  ) => {
     if (shiftTypeDialog.data) {
-      await shiftTypeCRUD.update(shiftTypeDialog.data.id, data)
+      await shiftTypeCRUD.update(shiftTypeDialog.data.id, data);
     } else {
-      await shiftTypeCRUD.create(data)
+      await shiftTypeCRUD.create(data);
     }
-    shiftTypeDialog.closeDialog()
-  }
+    shiftTypeDialog.closeDialog();
+  };
 
   const handleDeleteShiftType = async (shiftType: ShiftType) => {
     await shiftTypeCRUD.remove(
       shiftType.id,
-      `Are you sure you want to delete ${shiftType.name}? This action cannot be undone.`
-    )
-  }
+      `Are you sure you want to delete ${shiftType.name}? This action cannot be undone.`,
+    );
+  };
 
   const handleCreateShiftType = () => {
-    shiftTypeDialog.openDialog()
-  }
+    shiftTypeDialog.openDialog();
+  };
 
   const handleEditShiftType = (shiftType: ShiftType) => {
-    shiftTypeDialog.openDialog(shiftType)
-  }
+    shiftTypeDialog.openDialog(shiftType);
+  };
 
   if (stable.loading || !stable.data) {
     return (
-      <div className='flex items-center justify-center min-h-[400px]'>
-        <Loader2Icon className='h-8 w-8 animate-spin text-muted-foreground' />
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
-    )
+    );
   }
 
   return (
-    <div className='container mx-auto p-6 space-y-6'>
+    <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div>
-        <Link to='/stables'>
-          <Button variant='ghost' className='mb-4'>
-            <ArrowLeft className='mr-2 h-4 w-4' />
+        <Link to="/stables">
+          <Button variant="ghost" className="mb-4">
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Stables
           </Button>
         </Link>
-        <div className='flex items-start justify-between'>
+        <div className="flex items-start justify-between">
           <div>
-            <h1 className='text-3xl font-bold tracking-tight'>{stable.data.name}</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {stable.data.name}
+            </h1>
             {stable.data.description && (
-              <p className='text-muted-foreground mt-1'>{stable.data.description}</p>
+              <p className="text-muted-foreground mt-1">
+                {stable.data.description}
+              </p>
             )}
             {stable.data.address && (
-              <p className='text-sm text-muted-foreground mt-1'>{stable.data.address}</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {stable.data.address}
+              </p>
             )}
           </div>
-          <div className='flex gap-2'>
+          <div className="flex gap-2">
             <Link to={`/stables/${stableId}/schedule`}>
-              <Button variant='outline'>
-                <Calendar className='mr-2 h-4 w-4' />
+              <Button variant="outline">
+                <Calendar className="mr-2 h-4 w-4" />
                 View Schedule
               </Button>
             </Link>
             <Link to={`/stables/${stableId}/settings`}>
-              <Button variant='outline'>
-                <Settings className='mr-2 h-4 w-4' />
+              <Button variant="outline">
+                <Settings className="mr-2 h-4 w-4" />
                 Settings
               </Button>
             </Link>
@@ -235,68 +272,74 @@ export default function StableDetailPage() {
       </div>
 
       {/* Quick Stats */}
-      <div className='grid gap-4 md:grid-cols-3'>
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardHeader className='pb-2'>
-            <CardTitle className='text-sm font-medium text-muted-foreground'>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Shift Types
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold'>{shiftTypes.data?.length || 0}</div>
+            <div className="text-2xl font-bold">
+              {shiftTypes.data?.length || 0}
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className='pb-2'>
-            <CardTitle className='text-sm font-medium text-muted-foreground'>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Owner
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className='text-sm font-medium'>{stable.data.ownerEmail || 'Unknown'}</div>
+            <div className="text-sm font-medium">
+              {stable.data.ownerEmail || "Unknown"}
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className='pb-2'>
-            <CardTitle className='text-sm font-medium text-muted-foreground'>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Status
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className='text-sm font-medium text-green-600'>Active</div>
+            <div className="text-sm font-medium text-green-600">Active</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue='members' className='space-y-4'>
+      <Tabs defaultValue="members" className="space-y-4">
         <TabsList>
-          <TabsTrigger value='members'>
-            <Users className='mr-2 h-4 w-4' />
+          <TabsTrigger value="members">
+            <Users className="mr-2 h-4 w-4" />
             Members
           </TabsTrigger>
-          <TabsTrigger value='horses'>
-            <HorseIcon className='mr-2 h-4 w-4' />
+          <TabsTrigger value="horses">
+            <HorseIcon className="mr-2 h-4 w-4" />
             Horses
-            <Badge variant='secondary' className='ml-2'>{horses.data?.length || 0}</Badge>
+            <Badge variant="secondary" className="ml-2">
+              {horses.data?.length || 0}
+            </Badge>
           </TabsTrigger>
-          <TabsTrigger value='shifts'>
-            <Calendar className='mr-2 h-4 w-4' />
+          <TabsTrigger value="shifts">
+            <Calendar className="mr-2 h-4 w-4" />
             Shift Types
           </TabsTrigger>
-          <TabsTrigger value='stats'>
-            <BarChart3 className='mr-2 h-4 w-4' />
+          <TabsTrigger value="stats">
+            <BarChart3 className="mr-2 h-4 w-4" />
             Statistics
           </TabsTrigger>
         </TabsList>
 
         {/* Members Tab */}
-        <TabsContent value='members' className='space-y-4'>
-          <div className='flex items-center justify-between'>
-            <h2 className='text-2xl font-semibold'>Stable Members</h2>
+        <TabsContent value="members" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold">Stable Members</h2>
             <Link to={`/stables/${stableId}/invite`}>
               <Button>
-                <Plus className='mr-2 h-4 w-4' />
+                <Plus className="mr-2 h-4 w-4" />
                 Invite Member
               </Button>
             </Link>
@@ -308,31 +351,41 @@ export default function StableDetailPage() {
               title="No members yet"
               description="Invite members to help manage this stable"
               action={{
-                label: 'Invite Member',
-                onClick: () => window.location.href = `/stables/${stableId}/invite`
+                label: "Invite Member",
+                onClick: () =>
+                  (window.location.href = `/stables/${stableId}/invite`),
               }}
             />
           ) : (
-            <div className='grid gap-4'>
-              {members.data.members.map(member => (
+            <div className="grid gap-4">
+              {members.data.members.map((member) => (
                 <Card key={member.id}>
                   <CardHeader>
-                    <div className='flex items-center justify-between'>
+                    <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle className='text-base'>{member.userEmail || 'Unknown User'}</CardTitle>
-                        <CardDescription className='capitalize'>
+                        <CardTitle className="text-base">
+                          {member.userEmail || "Unknown User"}
+                        </CardTitle>
+                        <CardDescription className="capitalize">
                           {member.role}
-                          {(members.data?.horseCounts[member.userId] ?? 0) > 0 && (
-                            <> • {members.data?.horseCounts[member.userId]} {members.data?.horseCounts[member.userId] === 1 ? 'horse' : 'horses'}</>
+                          {(members.data?.horseCounts[member.userId] ?? 0) >
+                            0 && (
+                            <>
+                              {" "}
+                              • {members.data?.horseCounts[member.userId]}{" "}
+                              {members.data?.horseCounts[member.userId] === 1
+                                ? "horse"
+                                : "horses"}
+                            </>
                           )}
                         </CardDescription>
                       </div>
                       {stable.data?.ownerId === user?.uid && (
                         <Button
-                          variant='destructive'
-                          size='sm'
+                          variant="destructive"
+                          size="sm"
                           onClick={() => {
-                            removeMemberDialog.openDialog(member)
+                            removeMemberDialog.openDialog(member);
                           }}
                         >
                           Remove
@@ -347,11 +400,13 @@ export default function StableDetailPage() {
         </TabsContent>
 
         {/* Horses Tab */}
-        <TabsContent value='horses' className='space-y-4'>
-          <div className='flex items-center justify-between'>
-            <h2 className='text-2xl font-semibold'>Stable Horses</h2>
-            <p className='text-sm text-muted-foreground'>
-              {horses.data?.length || 0} {horses.data?.length === 1 ? 'horse' : 'horses'} assigned to this stable
+        <TabsContent value="horses" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold">Stable Horses</h2>
+            <p className="text-sm text-muted-foreground">
+              {horses.data?.length || 0}{" "}
+              {horses.data?.length === 1 ? "horse" : "horses"} assigned to this
+              stable
             </p>
           </div>
 
@@ -362,8 +417,8 @@ export default function StableDetailPage() {
               description="Members can assign their horses to this stable from their 'My Horses' page."
             />
           ) : (
-            <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-              {horses.data.map(horse => (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {horses.data.map((horse) => (
                 <HorseCard
                   key={horse.id}
                   horse={horse}
@@ -377,19 +432,21 @@ export default function StableDetailPage() {
         </TabsContent>
 
         {/* Shift Types Tab */}
-        <TabsContent value='shifts' className='space-y-4'>
-          <div className='flex items-center justify-between'>
-            <h2 className='text-2xl font-semibold'>Shift Types</h2>
+        <TabsContent value="shifts" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold">Shift Types</h2>
             <Button onClick={handleCreateShiftType}>
-              <Plus className='mr-2 h-4 w-4' />
+              <Plus className="mr-2 h-4 w-4" />
               Create Shift Type
             </Button>
           </div>
 
           {shiftTypes.loading ? (
             <Card>
-              <CardContent className='p-6'>
-                <p className='text-muted-foreground text-center'>Loading shift types...</p>
+              <CardContent className="p-6">
+                <p className="text-muted-foreground text-center">
+                  Loading shift types...
+                </p>
               </CardContent>
             </Card>
           ) : !shiftTypes.data || shiftTypes.data.length === 0 ? (
@@ -398,47 +455,49 @@ export default function StableDetailPage() {
               title="No shift types yet"
               description="Create your first shift type to start scheduling"
               action={{
-                label: 'Create Shift Type',
-                onClick: handleCreateShiftType
+                label: "Create Shift Type",
+                onClick: handleCreateShiftType,
               }}
             />
           ) : (
-            <div className='grid gap-4 md:grid-cols-2'>
+            <div className="grid gap-4 md:grid-cols-2">
               {shiftTypes.data.map((shiftType) => (
                 <Card key={shiftType.id}>
                   <CardHeader>
-                    <div className='flex items-start justify-between'>
+                    <div className="flex items-start justify-between">
                       <div>
                         <CardTitle>{shiftType.name}</CardTitle>
                         <CardDescription>{shiftType.time}</CardDescription>
                       </div>
-                      <div className='flex gap-2'>
+                      <div className="flex gap-2">
                         <Button
-                          variant='ghost'
-                          size='icon'
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleEditShiftType(shiftType)}
                         >
-                          <Pencil className='h-4 w-4' />
+                          <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
-                          variant='ghost'
-                          size='icon'
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleDeleteShiftType(shiftType)}
                         >
-                          <Trash2 className='h-4 w-4 text-destructive' />
+                          <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className='space-y-2'>
-                      <div className='flex justify-between text-sm'>
-                        <span className='text-muted-foreground'>Points</span>
-                        <span className='font-medium'>{shiftType.points}</span>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Points</span>
+                        <span className="font-medium">{shiftType.points}</span>
                       </div>
-                      <div className='flex justify-between text-sm'>
-                        <span className='text-muted-foreground'>Days</span>
-                        <span className='font-medium'>{shiftType.daysOfWeek.join(', ')}</span>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Days</span>
+                        <span className="font-medium">
+                          {shiftType.daysOfWeek.join(", ")}
+                        </span>
                       </div>
                     </div>
                   </CardContent>
@@ -449,11 +508,11 @@ export default function StableDetailPage() {
         </TabsContent>
 
         {/* Statistics Tab */}
-        <TabsContent value='stats' className='space-y-4'>
-          <h2 className='text-2xl font-semibold'>Statistics</h2>
+        <TabsContent value="stats" className="space-y-4">
+          <h2 className="text-2xl font-semibold">Statistics</h2>
           <Card>
-            <CardContent className='p-6'>
-              <p className='text-muted-foreground text-center py-12'>
+            <CardContent className="p-6">
+              <p className="text-muted-foreground text-center py-12">
                 Statistics dashboard coming soon...
               </p>
             </CardContent>
@@ -467,7 +526,7 @@ export default function StableDetailPage() {
         onOpenChange={(open) => !open && shiftTypeDialog.closeDialog()}
         onSave={handleSaveShiftType}
         shiftType={shiftTypeDialog.data}
-        title={shiftTypeDialog.data ? 'Edit Shift Type' : 'Create Shift Type'}
+        title={shiftTypeDialog.data ? "Edit Shift Type" : "Create Shift Type"}
       />
 
       {/* Remove Member Dialog */}
@@ -475,9 +534,13 @@ export default function StableDetailPage() {
         open={removeMemberDialog.open}
         onOpenChange={(open) => !open && removeMemberDialog.closeDialog()}
         member={removeMemberDialog.data}
-        horseCount={removeMemberDialog.data ? (members.data?.horseCounts[removeMemberDialog.data.userId] || 0) : 0}
+        horseCount={
+          removeMemberDialog.data
+            ? members.data?.horseCounts[removeMemberDialog.data.userId] || 0
+            : 0
+        }
         onConfirm={handleRemoveMember}
       />
     </div>
-  )
+  );
 }

@@ -1,23 +1,8 @@
-import {
-  collection,
-  doc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  Timestamp
-} from 'firebase/firestore'
-import { db } from '@/lib/firebase'
 import type {
   Contact,
   CreateContactData,
-  ContactDisplay
-} from '@shared/types/contact'
-import { mapDocsToObjects, removeUndefined } from '@/utils/firestoreHelpers'
+  ContactDisplay,
+} from "@shared/types/contact";
 
 // ============================================================================
 // CRUD Operations
@@ -33,49 +18,24 @@ import { mapDocsToObjects, removeUndefined } from '@/utils/firestoreHelpers'
 export async function createContact(
   userId: string,
   data: CreateContactData,
-  organizationId?: string
+  organizationId?: string,
 ): Promise<string> {
-  const contactRef = doc(collection(db, 'contacts'))
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  const baseData = {
-    contactType: data.contactType,
-    accessLevel: data.accessLevel,
-    organizationId: data.accessLevel === 'organization' ? organizationId : null,
-    userId: data.accessLevel === 'user' ? userId : null,
-    email: data.email,
-    phoneNumber: data.phoneNumber,
-    iban: data.iban,
-    invoiceLanguage: data.invoiceLanguage,
-    note: data.note,
-    address: data.address,
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
-    createdBy: userId
-  }
+  const contactData = {
+    ...data,
+    organizationId,
+  };
 
-  let contactData: any
-  if (data.contactType === 'Personal') {
-    contactData = {
-      ...baseData,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      title: data.title,
-      secondPhoneNumber: data.secondPhoneNumber,
-      breedingInfo: data.breedingInfo
-    }
-  } else {
-    contactData = {
-      ...baseData,
-      businessName: data.businessName,
-      companyRegistrationNumber: data.companyRegistrationNumber,
-      vatNumber: data.vatNumber,
-      eoriNumber: data.eoriNumber,
-      contactPerson: data.contactPerson
-    }
-  }
+  const response = await authFetchJSON<{ id: string }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/contacts`,
+    {
+      method: "POST",
+      body: JSON.stringify(contactData),
+    },
+  );
 
-  await setDoc(contactRef, removeUndefined(contactData))
-  return contactRef.id
+  return response.id;
 }
 
 /**
@@ -84,15 +44,18 @@ export async function createContact(
  * @returns Promise with contact data or null if not found
  */
 export async function getContact(contactId: string): Promise<Contact | null> {
-  const contactRef = doc(db, 'contacts', contactId)
-  const contactSnap = await getDoc(contactRef)
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  if (!contactSnap.exists()) return null
+  try {
+    const response = await authFetchJSON<Contact & { id: string }>(
+      `${import.meta.env.VITE_API_URL}/api/v1/contacts/${contactId}`,
+      { method: "GET" },
+    );
 
-  return {
-    id: contactSnap.id,
-    ...contactSnap.data()
-  } as Contact
+    return response;
+  } catch (error) {
+    return null;
+  }
 }
 
 /**
@@ -104,21 +67,23 @@ export async function getContact(contactId: string): Promise<Contact | null> {
  */
 export async function getUserContacts(
   userId: string,
-  organizationId?: string
+  organizationId?: string,
 ): Promise<Contact[]> {
-  const contacts: Contact[] = []
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  // Get organization contacts if organizationId provided
+  const params = new URLSearchParams();
   if (organizationId) {
-    const orgContacts = await getOrganizationContacts(organizationId)
-    contacts.push(...orgContacts)
+    params.append("organizationId", organizationId);
   }
 
-  // Get user's personal contacts
-  const userContacts = await getUserPersonalContacts(userId)
-  contacts.push(...userContacts)
+  const queryString = params.toString() ? `?${params.toString()}` : "";
 
-  return contacts
+  const response = await authFetchJSON<{ contacts: Contact[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/contacts${queryString}`,
+    { method: "GET" },
+  );
+
+  return response.contacts;
 }
 
 /**
@@ -127,17 +92,21 @@ export async function getUserContacts(
  * @returns Promise with array of organization contacts
  */
 export async function getOrganizationContacts(
-  organizationId: string
+  organizationId: string,
 ): Promise<Contact[]> {
-  const q = query(
-    collection(db, 'contacts'),
-    where('accessLevel', '==', 'organization'),
-    where('organizationId', '==', organizationId),
-    orderBy('createdAt', 'desc')
-  )
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  const snapshot = await getDocs(q)
-  return mapDocsToObjects<Contact>(snapshot)
+  const params = new URLSearchParams({
+    organizationId,
+    accessLevel: "organization",
+  });
+
+  const response = await authFetchJSON<{ contacts: Contact[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/contacts?${params.toString()}`,
+    { method: "GET" },
+  );
+
+  return response.contacts;
 }
 
 /**
@@ -145,16 +114,21 @@ export async function getOrganizationContacts(
  * @param userId - User ID
  * @returns Promise with array of user's personal contacts
  */
-export async function getUserPersonalContacts(userId: string): Promise<Contact[]> {
-  const q = query(
-    collection(db, 'contacts'),
-    where('accessLevel', '==', 'user'),
-    where('userId', '==', userId),
-    orderBy('createdAt', 'desc')
-  )
+export async function getUserPersonalContacts(
+  userId: string,
+): Promise<Contact[]> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  const snapshot = await getDocs(q)
-  return mapDocsToObjects<Contact>(snapshot)
+  const params = new URLSearchParams({
+    accessLevel: "user",
+  });
+
+  const response = await authFetchJSON<{ contacts: Contact[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/contacts?${params.toString()}`,
+    { method: "GET" },
+  );
+
+  return response.contacts;
 }
 
 /**
@@ -167,16 +141,17 @@ export async function getUserPersonalContacts(userId: string): Promise<Contact[]
 export async function updateContact(
   contactId: string,
   userId: string,
-  updates: Partial<Contact>
+  updates: Partial<Contact>,
 ): Promise<void> {
-  const contactRef = doc(db, 'contacts', contactId)
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  const dataToUpdate = removeUndefined({
-    ...updates,
-    updatedAt: Timestamp.now()
-  })
-
-  await updateDoc(contactRef, dataToUpdate)
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/contacts/${contactId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(updates),
+    },
+  );
 }
 
 /**
@@ -185,8 +160,12 @@ export async function updateContact(
  * @returns Promise that resolves when delete is complete
  */
 export async function deleteContact(contactId: string): Promise<void> {
-  const contactRef = doc(db, 'contacts', contactId)
-  await deleteDoc(contactRef)
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/contacts/${contactId}`,
+    { method: "DELETE" },
+  );
 }
 
 /**
@@ -197,14 +176,15 @@ export async function deleteContact(contactId: string): Promise<void> {
  */
 export async function getContactsForSelection(
   userId: string,
-  organizationId?: string
+  organizationId?: string,
 ): Promise<ContactDisplay[]> {
-  const contacts = await getUserContacts(userId, organizationId)
+  const contacts = await getUserContacts(userId, organizationId);
 
-  return contacts.map(contact => {
-    const displayName = contact.contactType === 'Personal'
-      ? `${contact.firstName} ${contact.lastName}`
-      : contact.businessName
+  return contacts.map((contact) => {
+    const displayName =
+      contact.contactType === "Personal"
+        ? `${contact.firstName} ${contact.lastName}`
+        : contact.businessName;
 
     return {
       id: contact.id,
@@ -213,7 +193,7 @@ export async function getContactsForSelection(
       accessLevel: contact.accessLevel,
       email: contact.email,
       city: contact.address.city,
-      country: contact.address.country
-    }
-  })
+      country: contact.address.country,
+    };
+  });
 }

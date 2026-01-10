@@ -1,101 +1,110 @@
-import { useRef } from 'react'
-import FullCalendar from '@fullcalendar/react'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import timeGridPlugin from '@fullcalendar/timegrid'
-import interactionPlugin from '@fullcalendar/interaction'
-import listPlugin from '@fullcalendar/list'
-import type { EventClickArg, DateSelectArg, EventDropArg } from '@fullcalendar/core'
-import type { EventResizeDoneArg } from '@fullcalendar/interaction'
-import type { Facility } from '@/types/facility'
-import type { FacilityReservation } from '@/types/facilityReservation'
+import { useRef } from "react";
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import listPlugin from "@fullcalendar/list";
+import type {
+  EventClickArg,
+  DateSelectArg,
+  EventDropArg,
+} from "@fullcalendar/core";
+import type { EventResizeDoneArg } from "@fullcalendar/interaction";
+import type { Facility } from "@/types/facility";
+import type { FacilityReservation } from "@/types/facilityReservation";
+import { toDate } from "@/utils/timestampUtils";
 
 // Default status colors using Tailwind palette
 const DEFAULT_STATUS_COLORS = {
-  pending: 'hsl(var(--warning))',
-  confirmed: 'hsl(var(--success))',
-  cancelled: 'hsl(var(--muted))',
-  completed: 'hsl(var(--primary))',
-  no_show: 'hsl(var(--destructive))'
-} as const
+  pending: "hsl(var(--warning))",
+  confirmed: "hsl(var(--success))",
+  cancelled: "hsl(var(--muted))",
+  completed: "hsl(var(--primary))",
+  no_show: "hsl(var(--destructive))",
+} as const;
 
 // Facility colors for visual distinction (using Tailwind color palette)
 const FACILITY_COLORS = [
-  '#3b82f6', // blue-500
-  '#10b981', // emerald-500
-  '#f59e0b', // amber-500
-  '#8b5cf6', // violet-500
-  '#ec4899', // pink-500
-  '#06b6d4', // cyan-500
-  '#f97316', // orange-500
-  '#84cc16', // lime-500
-]
+  "#3b82f6", // blue-500
+  "#10b981", // emerald-500
+  "#f59e0b", // amber-500
+  "#8b5cf6", // violet-500
+  "#ec4899", // pink-500
+  "#06b6d4", // cyan-500
+  "#f97316", // orange-500
+  "#84cc16", // lime-500
+];
 
 // Configuration interface for calendar customization
 export interface CalendarConfig {
-  slotMinTime?: string
-  slotMaxTime?: string
-  slotDuration?: string
-  slotLabelInterval?: string
-  scrollTime?: string
-  weekends?: boolean
-  nowIndicator?: boolean
-  firstDay?: number // 0=Sunday, 1=Monday
+  slotMinTime?: string;
+  slotMaxTime?: string;
+  slotDuration?: string;
+  slotLabelInterval?: string;
+  scrollTime?: string;
+  weekends?: boolean;
+  nowIndicator?: boolean;
+  firstDay?: number; // 0=Sunday, 1=Monday
 }
 
 export interface ViewOptions {
-  showDayGrid?: boolean
-  showTimeGridWeek?: boolean
-  showTimeGridDay?: boolean
-  showList?: boolean
-  initialView?: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek'
+  showDayGrid?: boolean;
+  showTimeGridWeek?: boolean;
+  showTimeGridDay?: boolean;
+  showList?: boolean;
+  initialView?: "dayGridMonth" | "timeGridWeek" | "timeGridDay" | "listWeek";
 }
 
 // Generic calendar event interface
 export interface CalendarEvent {
-  id: string
-  title: string
-  start: Date
-  end?: Date
-  allDay?: boolean
-  backgroundColor: string
-  borderColor: string
-  textColor?: string
-  borderWidth?: string
-  extendedProps?: Record<string, any>
+  id: string;
+  title: string;
+  start: Date;
+  end?: Date;
+  allDay?: boolean;
+  backgroundColor: string;
+  borderColor: string;
+  textColor?: string;
+  borderWidth?: string;
+  extendedProps?: Record<string, any>;
 }
 
 // Generic calendar view props
 interface GenericCalendarViewProps<T> {
-  items: T[]
-  transformEvent: (item: T) => CalendarEvent
-  onEventClick: (item: T) => void
-  onDateSelect?: (start: Date, end: Date) => void
-  onEventDrop?: (item: T, newStart: Date, newEnd: Date) => void
-  onEventResize?: (item: T, newStart: Date, newEnd: Date) => void
+  items: T[];
+  transformEvent: (item: T) => CalendarEvent;
+  onEventClick: (item: T) => void;
+  onDateSelect?: (start: Date, end: Date) => void;
+  onEventDrop?: (item: T, newStart: Date, newEnd: Date) => void;
+  onEventResize?: (item: T, newStart: Date, newEnd: Date) => void;
 
   // Optional configuration
-  calendarConfig?: CalendarConfig
-  viewOptions?: ViewOptions
-  editable?: boolean
-  className?: string
+  calendarConfig?: CalendarConfig;
+  viewOptions?: ViewOptions;
+  editable?: boolean;
+  className?: string;
 }
 
 interface FacilityCalendarViewProps {
-  facilities: Facility[]
-  reservations: FacilityReservation[]
-  selectedFacilityId?: string | 'all' // Filter by facility
-  onEventClick: (reservation: FacilityReservation) => void
-  onDateSelect: (facilityId: string | undefined, start: Date, end: Date) => void
-  onEventDrop?: (reservationId: string, newStart: Date, newEnd: Date) => void
-  onEventResize?: (reservationId: string, newStart: Date, newEnd: Date) => void
+  facilities: Facility[];
+  reservations: FacilityReservation[];
+  selectedFacilityId?: string | "all"; // Filter by facility
+  onEventClick: (reservation: FacilityReservation) => void;
+  onDateSelect: (
+    facilityId: string | undefined,
+    start: Date,
+    end: Date,
+  ) => void;
+  onEventDrop?: (reservationId: string, newStart: Date, newEnd: Date) => void;
+  onEventResize?: (reservationId: string, newStart: Date, newEnd: Date) => void;
 
   // Optional configuration for modularity
-  statusColors?: Record<string, string>
-  facilityColors?: string[]
-  calendarConfig?: CalendarConfig
-  viewOptions?: ViewOptions
-  editable?: boolean
-  className?: string
+  statusColors?: Record<string, string>;
+  facilityColors?: string[];
+  calendarConfig?: CalendarConfig;
+  viewOptions?: ViewOptions;
+  editable?: boolean;
+  className?: string;
 }
 
 // Generic calendar view component
@@ -109,84 +118,84 @@ export function GenericCalendarView<T>({
   calendarConfig = {},
   viewOptions = {},
   editable = true,
-  className = ''
+  className = "",
 }: GenericCalendarViewProps<T>) {
-  const calendarRef = useRef<FullCalendar>(null)
+  const calendarRef = useRef<FullCalendar>(null);
 
   // Merge with defaults
   const config: Required<CalendarConfig> = {
-    slotMinTime: '06:00:00',
-    slotMaxTime: '22:00:00',
-    slotDuration: '00:30:00',
-    slotLabelInterval: '01:00:00',
-    scrollTime: '08:00:00',
+    slotMinTime: "06:00:00",
+    slotMaxTime: "22:00:00",
+    slotDuration: "00:30:00",
+    slotLabelInterval: "01:00:00",
+    scrollTime: "08:00:00",
     weekends: true,
     nowIndicator: true,
     firstDay: 1, // Monday
-    ...calendarConfig
-  }
+    ...calendarConfig,
+  };
 
   const viewOpts: Required<ViewOptions> = {
     showDayGrid: true,
     showTimeGridWeek: true,
     showTimeGridDay: true,
     showList: true,
-    initialView: 'timeGridWeek',
-    ...viewOptions
-  }
+    initialView: "timeGridWeek",
+    ...viewOptions,
+  };
 
   // Build header toolbar based on view options
   const buildHeaderToolbar = () => {
-    const views: string[] = []
-    if (viewOpts.showDayGrid) views.push('dayGridMonth')
-    if (viewOpts.showTimeGridWeek) views.push('timeGridWeek')
-    if (viewOpts.showTimeGridDay) views.push('timeGridDay')
-    if (viewOpts.showList) views.push('listWeek')
+    const views: string[] = [];
+    if (viewOpts.showDayGrid) views.push("dayGridMonth");
+    if (viewOpts.showTimeGridWeek) views.push("timeGridWeek");
+    if (viewOpts.showTimeGridDay) views.push("timeGridDay");
+    if (viewOpts.showList) views.push("listWeek");
 
     return {
-      left: 'prev,next today',
-      center: 'title',
-      right: views.join(',')
-    }
-  }
+      left: "prev,next today",
+      center: "title",
+      right: views.join(","),
+    };
+  };
 
   // Transform items to FullCalendar events using the provided function
-  const events = items.map(item => transformEvent(item))
+  const events = items.map((item) => transformEvent(item));
 
   const handleEventClick = (info: EventClickArg) => {
-    const item = info.event.extendedProps.item as T
+    const item = info.event.extendedProps.item as T;
     if (item) {
-      onEventClick(item)
+      onEventClick(item);
     }
-  }
+  };
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
     if (onDateSelect) {
-      onDateSelect(selectInfo.start, selectInfo.end)
+      onDateSelect(selectInfo.start, selectInfo.end);
     }
 
     // Clear selection
-    const calendarApi = selectInfo.view.calendar
-    calendarApi.unselect()
-  }
+    const calendarApi = selectInfo.view.calendar;
+    calendarApi.unselect();
+  };
 
   const handleEventDrop = (info: EventDropArg) => {
     if (onEventDrop) {
-      const item = info.event.extendedProps.item as T
+      const item = info.event.extendedProps.item as T;
       if (item) {
-        onEventDrop(item, info.event.start!, info.event.end!)
+        onEventDrop(item, info.event.start!, info.event.end!);
       }
     }
-  }
+  };
 
   const handleEventResize = (info: EventResizeDoneArg) => {
     if (onEventResize) {
-      const item = info.event.extendedProps.item as T
+      const item = info.event.extendedProps.item as T;
       if (item) {
-        onEventResize(item, info.event.start!, info.event.end!)
+        onEventResize(item, info.event.start!, info.event.end!);
       }
     }
-  }
+  };
 
   return (
     <div className={`bg-card rounded-lg border shadow-sm p-4 ${className}`}>
@@ -333,21 +342,21 @@ export function GenericCalendarView<T>({
         eventResize={handleEventResize}
         slotMinTime={config.slotMinTime}
         slotMaxTime={config.slotMaxTime}
-        height='auto'
+        height="auto"
         slotDuration={config.slotDuration}
         slotLabelInterval={config.slotLabelInterval}
         scrollTime={config.scrollTime}
         nowIndicator={config.nowIndicator}
       />
     </div>
-  )
+  );
 }
 
 // Backward-compatible FacilityCalendarView wrapper
 export function FacilityCalendarView({
   facilities,
   reservations,
-  selectedFacilityId = 'all',
+  selectedFacilityId = "all",
   onEventClick,
   onDateSelect,
   onEventDrop,
@@ -357,67 +366,87 @@ export function FacilityCalendarView({
   calendarConfig,
   viewOptions,
   editable,
-  className
+  className,
 }: FacilityCalendarViewProps) {
-
   // Create facility color map
-  const facilityColorMap = new Map<string, string>()
+  const facilityColorMap = new Map<string, string>();
   facilities.forEach((facility, index) => {
     facilityColorMap.set(
       facility.id,
-      facilityColors[index % facilityColors.length] || facilityColors[0] || '#3b82f6'
-    )
-  })
+      facilityColors[index % facilityColors.length] ||
+        facilityColors[0] ||
+        "#3b82f6",
+    );
+  });
 
   // Filter reservations based on selected facility
-  const filteredReservations = selectedFacilityId === 'all'
-    ? reservations
-    : reservations.filter(r => r.facilityId === selectedFacilityId)
+  const filteredReservations =
+    selectedFacilityId === "all"
+      ? reservations
+      : reservations.filter((r) => r.facilityId === selectedFacilityId);
 
   // Transform reservation to calendar event
-  const transformReservation = (reservation: FacilityReservation): CalendarEvent => {
-    const facility = facilities.find(f => f.id === reservation.facilityId)
-    const facilityColor = facilityColorMap.get(reservation.facilityId) || '#3b82f6'
-    const statusColor = statusColors[reservation.status] || statusColors.pending || '#6366f1'
+  const transformReservation = (
+    reservation: FacilityReservation,
+  ): CalendarEvent => {
+    const facility = facilities.find((f) => f.id === reservation.facilityId);
+    const facilityColor =
+      facilityColorMap.get(reservation.facilityId) || "#3b82f6";
+    const statusColor =
+      statusColors[reservation.status] || statusColors.pending || "#6366f1";
 
     return {
       id: reservation.id,
-      title: selectedFacilityId === 'all'
-        ? `${facility?.name || 'Unknown'} - ${reservation.userFullName || reservation.userEmail}`
-        : reservation.userFullName || reservation.userEmail,
-      start: reservation.startTime.toDate(),
-      end: reservation.endTime.toDate(),
+      title:
+        selectedFacilityId === "all"
+          ? `${facility?.name || "Unknown"} - ${reservation.userFullName || reservation.userEmail}`
+          : reservation.userFullName || reservation.userEmail,
+      start: toDate(reservation.startTime) || new Date(),
+      end: toDate(reservation.endTime) || new Date(),
       backgroundColor: statusColor,
       borderColor: facilityColor,
-      textColor: '#ffffff',
+      textColor: "#ffffff",
       extendedProps: {
         item: reservation,
         status: reservation.status,
         facilityId: reservation.facilityId,
-        facilityName: facility?.name || 'Unknown'
-      }
-    }
-  }
+        facilityName: facility?.name || "Unknown",
+      },
+    };
+  };
 
   return (
     <GenericCalendarView
       items={filteredReservations}
       transformEvent={transformReservation}
       onEventClick={onEventClick}
-      onDateSelect={onDateSelect ? (start, end) => {
-        const facilityId = selectedFacilityId !== 'all' ? selectedFacilityId : undefined
-        onDateSelect(facilityId, start, end)
-      } : undefined}
-      onEventDrop={onEventDrop ? (item, newStart, newEnd) => {
-        onEventDrop(item.id, newStart, newEnd)
-      } : undefined}
-      onEventResize={onEventResize ? (item, newStart, newEnd) => {
-        onEventResize(item.id, newStart, newEnd)
-      } : undefined}
+      onDateSelect={
+        onDateSelect
+          ? (start, end) => {
+              const facilityId =
+                selectedFacilityId !== "all" ? selectedFacilityId : undefined;
+              onDateSelect(facilityId, start, end);
+            }
+          : undefined
+      }
+      onEventDrop={
+        onEventDrop
+          ? (item, newStart, newEnd) => {
+              onEventDrop(item.id, newStart, newEnd);
+            }
+          : undefined
+      }
+      onEventResize={
+        onEventResize
+          ? (item, newStart, newEnd) => {
+              onEventResize(item.id, newStart, newEnd);
+            }
+          : undefined
+      }
       calendarConfig={calendarConfig}
       viewOptions={viewOptions}
       editable={editable}
       className={className}
     />
-  )
+  );
 }

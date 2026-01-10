@@ -23,6 +23,7 @@ import {
 import { queryKeys } from "@/lib/queryClient";
 import type { Horse } from "@/types/roles";
 import type { VaccinationRecord } from "@shared/types/vaccination";
+import { toDate } from "@/utils/timestampUtils";
 
 interface VaccinationCardProps {
   horse: Horse;
@@ -158,22 +159,27 @@ export function VaccinationCard({ horse }: VaccinationCardProps) {
                           : ""
                     }`}
                   >
-                    {format(horse.nextVaccinationDue.toDate(), "MMM d, yyyy")}
+                    {toDate(horse.nextVaccinationDue) &&
+                      format(toDate(horse.nextVaccinationDue)!, "MMM d, yyyy")}
                   </span>
                 </div>
               )}
 
               {/* Last Vaccination Date */}
-              {horse.lastVaccinationDate && (
-                <div className="flex items-baseline gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    Last vaccination:
-                  </span>
-                  <span className="text-sm">
-                    {format(horse.lastVaccinationDate.toDate(), "MMM d, yyyy")}
-                  </span>
-                </div>
-              )}
+              {horse.lastVaccinationDate &&
+                toDate(horse.lastVaccinationDate) && (
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      Last vaccination:
+                    </span>
+                    <span className="text-sm">
+                      {format(
+                        toDate(horse.lastVaccinationDate)!,
+                        "MMM d, yyyy",
+                      )}
+                    </span>
+                  </div>
+                )}
             </div>
           ) : (
             <div className="rounded-lg border border-dashed p-6 text-center">
@@ -220,16 +226,17 @@ export function VaccinationCard({ horse }: VaccinationCardProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Vaccination Record</AlertDialogTitle>
             <AlertDialogDescription>
-              {deleteDialog.data && (
-                <>
-                  Are you sure you want to delete the vaccination record from{" "}
-                  {format(
-                    deleteDialog.data.vaccinationDate.toDate(),
-                    "MMM d, yyyy",
-                  )}
-                  ? This action cannot be undone.
-                </>
-              )}
+              {deleteDialog.data &&
+                toDate(deleteDialog.data.vaccinationDate) && (
+                  <>
+                    Are you sure you want to delete the vaccination record from{" "}
+                    {format(
+                      toDate(deleteDialog.data.vaccinationDate)!,
+                      "MMM d, yyyy",
+                    )}
+                    ? This action cannot be undone.
+                  </>
+                )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

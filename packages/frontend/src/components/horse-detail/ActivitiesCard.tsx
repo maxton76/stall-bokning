@@ -17,6 +17,7 @@ import { getHorseActivities } from "@/services/activityService";
 import { queryKeys } from "@/lib/queryClient";
 import type { Horse } from "@/types/roles";
 import type { Activity } from "@/types/activity";
+import { toDate } from "@/utils/timestampUtils";
 
 interface ActivitiesCardProps {
   horse: Horse;
@@ -84,9 +85,11 @@ export function ActivitiesCard({ horse }: ActivitiesCardProps) {
                 </TableHeader>
                 <TableBody>
                   {activities.map((activity) => {
-                    const activityDate = activity.date.toDate();
+                    const activityDate = toDate(activity.date);
                     const isOverdue =
-                      isPast(activityDate) && activity.status === "pending";
+                      activityDate &&
+                      isPast(activityDate) &&
+                      activity.status === "pending";
 
                     return (
                       <TableRow
@@ -133,9 +136,11 @@ export function ActivitiesCard({ horse }: ActivitiesCardProps) {
             {/* Mobile Card View - hidden on desktop */}
             <div className="md:hidden space-y-3">
               {activities.map((activity) => {
-                const activityDate = activity.date.toDate();
+                const activityDate = toDate(activity.date);
                 const isOverdue =
-                  isPast(activityDate) && activity.status === "pending";
+                  activityDate &&
+                  isPast(activityDate) &&
+                  activity.status === "pending";
 
                 return (
                   <Card

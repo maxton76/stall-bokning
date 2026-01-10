@@ -22,25 +22,9 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { queryKeys } from "@/lib/queryClient";
-import {
-  doc,
-  getDoc,
-  collection,
-  addDoc,
-  query,
-  where,
-  getDocs,
-  Timestamp,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
-
-interface Invite {
-  id: string;
-  email: string;
-  status: "pending" | "accepted" | "declined";
-  createdAt: Timestamp;
-  expiresAt: Timestamp;
-}
+import { getStable } from "@/services/stableService";
+import { getInvitesByStable, createInvite } from "@/services/invitationService";
+import { toDate } from "@/utils/timestampUtils";
 
 export default function StableInvitePage() {
   const { stableId } = useParams<{ stableId: string }>();
@@ -58,11 +42,8 @@ export default function StableInvitePage() {
     queryKey: queryKeys.stables.detail(stableId || ""),
     queryFn: async () => {
       if (!stableId) return "";
-      const stableDoc = await getDoc(doc(db, "stables", stableId));
-      if (stableDoc.exists()) {
-        return stableDoc.data().name || "Unnamed Stable";
-      }
-      return "";
+      const stable = await getStable(stableId);
+      return stable?.name || "Unnamed Stable";
     },
     enabled: !!user && !!stableId,
     staleTime: 10 * 60 * 1000,
@@ -73,19 +54,7 @@ export default function StableInvitePage() {
     queryKey: ["invites", "stable", stableId],
     queryFn: async () => {
       if (!user || !stableId) return [];
-
-      const invitesQuery = query(
-        collection(db, "invites"),
-        where("stableId", "==", stableId),
-      );
-      const invitesSnapshot = await getDocs(invitesQuery);
-      return invitesSnapshot.docs.map(
-        (doc) =>
-          ({
-            id: doc.id,
-            ...doc.data(),
-          }) as Invite,
-      );
+      return getInvitesByStable(stableId);
     },
     enabled: !!user && !!stableId,
     staleTime: 2 * 60 * 1000,
@@ -109,19 +78,12 @@ export default function StableInvitePage() {
       }
 
       // Create invite
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
-
-      await addDoc(collection(db, "invites"), {
+      await createInvite({
         stableId,
-        stableName, // ✅ ADDED - from existing state
+        stableName,
         email: inviteEmail.trim(),
-        role: selectedRole, // ✅ ADDED - from new state
-        status: "pending",
-        createdAt: Timestamp.now(),
-        expiresAt: Timestamp.fromDate(expiresAt),
+        role: selectedRole,
         invitedBy: user.uid,
-        invitedByEmail: user.email,
         invitedByName: user.fullName, // Uses computed fullName from firstName/lastName with fallbacks
       });
 
@@ -312,7 +274,8 @@ export default function StableInvitePage() {
                   <div className="flex-1">
                     <p className="font-medium">{invite.email}</p>
                     <p className="text-xs text-muted-foreground">
-                      Sent {invite.createdAt.toDate().toLocaleDateString()}
+                      {toDate(invite.createdAt) &&
+                        `Sent ${toDate(invite.createdAt)!.toLocaleDateString()}`}
                     </p>
                   </div>
                   <Badge className={getStatusColor(invite.status)}>

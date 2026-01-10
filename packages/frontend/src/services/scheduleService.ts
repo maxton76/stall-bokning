@@ -1,424 +1,350 @@
+import type {
+  Schedule,
+  Shift,
+  CreateScheduleData,
+  ShiftType,
+} from "@/types/schedule";
+import { Timestamp } from "firebase/firestore";
+import { parseShiftStartTime, createDateThreshold } from "@/utils/dateHelpers";
 import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  Timestamp,
-  writeBatch
-} from 'firebase/firestore'
-import { db } from '@/lib/firebase'
-import type { Schedule, Shift, CreateScheduleData, ShiftType } from '@/types/schedule'
-import { parseShiftStartTime, createDateThreshold } from '@/utils/dateHelpers'
-import { mapDocsToObjects, extractDocIds, removeUndefined, updateTimestamps } from '@/utils/firestoreHelpers'
-import { isSwedishHoliday, applyHolidayMultiplier } from '@/utils/holidayHelpers'
+  isSwedishHoliday,
+  applyHolidayMultiplier,
+} from "@/utils/holidayHelpers";
 import {
   createTrackingContext,
   updateMemberTracking,
-  type MemberTrackingState
-} from '@/utils/shiftTracking'
+  type MemberTrackingState,
+} from "@/utils/shiftTracking";
+import { toDate } from "@/utils/timestampUtils";
 
 // ============= Schedules =============
 
-export async function createSchedule(data: CreateScheduleData, userId: string): Promise<string> {
+export async function createSchedule(
+  data: CreateScheduleData,
+  userId: string,
+): Promise<string> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
   const scheduleData = {
     name: data.name,
     stableId: data.stableId,
     stableName: data.stableName,
-    startDate: Timestamp.fromDate(data.startDate),
-    endDate: Timestamp.fromDate(data.endDate),
+    startDate: data.startDate.toISOString(),
+    endDate: data.endDate.toISOString(),
     useAutoAssignment: data.useAutoAssignment,
     notifyMembers: data.notifyMembers,
-    status: 'draft' as const,
-    createdAt: Timestamp.now(),
-    createdBy: userId
-  }
+    userId,
+  };
 
-  const scheduleRef = await addDoc(collection(db, 'schedules'), scheduleData)
-  return scheduleRef.id
+  const response = await authFetchJSON<{ id: string }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/schedules`,
+    {
+      method: "POST",
+      body: JSON.stringify(scheduleData),
+    },
+  );
+
+  return response.id;
 }
 
-export async function publishSchedule(scheduleId: string, userId: string): Promise<void> {
-  const dataToUpdate = removeUndefined({
-    status: 'published',
-    publishedAt: Timestamp.now(),
-    publishedBy: userId,
-    ...updateTimestamps(userId)
-  })
+export async function publishSchedule(
+  scheduleId: string,
+  userId: string,
+): Promise<void> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  const scheduleRef = doc(db, 'schedules', scheduleId)
-  await updateDoc(scheduleRef, dataToUpdate)
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/schedules/${scheduleId}/publish`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ userId }),
+    },
+  );
 }
 
 // ============= Auto-Assignment =============
 
 interface MemberWithPoints extends MemberTrackingState {
-  userId: string
-  displayName: string
-  email: string
-  historicalPoints: number
+  userId: string;
+  displayName: string;
+  email: string;
+  historicalPoints: number;
   availability?: {
     neverAvailable?: {
-      dayOfWeek: number
-      timeSlots: { start: string; end: string }[]
-    }[]
+      dayOfWeek: number;
+      timeSlots: { start: string; end: string }[];
+    }[];
     preferredTimes?: {
-      dayOfWeek: number
-      timeSlots: { start: string; end: string }[]
-    }[]
-  }
+      dayOfWeek: number;
+      timeSlots: { start: string; end: string }[];
+    }[];
+  };
   limits?: {
-    maxShiftsPerWeek?: number
-    minShiftsPerWeek?: number
-    maxShiftsPerMonth?: number
-    minShiftsPerMonth?: number
-  }
+    maxShiftsPerWeek?: number;
+    minShiftsPerWeek?: number;
+    maxShiftsPerMonth?: number;
+    minShiftsPerMonth?: number;
+  };
 }
 
 // Helper: Check if member is available for a shift
 function isMemberAvailable(member: MemberWithPoints, shift: Shift): boolean {
-  if (!member.availability?.neverAvailable) return true
+  if (!member.availability?.neverAvailable) return true;
 
-  const shiftDate = shift.date.toDate()
-  const shiftDay = shiftDate.getDay()
-  const shiftTime = parseShiftStartTime(shift.time)
+  const shiftDate = toDate(shift.date);
+  if (!shiftDate) return true; // If date can't be parsed, assume available
+  const shiftDay = shiftDate.getDay();
+  const shiftTime = parseShiftStartTime(shift.time);
 
   for (const restriction of member.availability.neverAvailable) {
     if (restriction.dayOfWeek === shiftDay) {
       // Check if shift time overlaps with restricted time slots
       for (const slot of restriction.timeSlots) {
         if (shiftTime >= slot.start && shiftTime < slot.end) {
-          return false // Member is not available
+          return false; // Member is not available
         }
       }
     }
   }
 
-  return true
+  return true;
 }
 
 // Helper: Check if member has reached their limits
 function hasReachedLimits(member: MemberWithPoints): boolean {
-  if (!member.limits) return false
+  if (!member.limits) return false;
 
-  if (member.limits.maxShiftsPerWeek && member.shiftsThisWeek >= member.limits.maxShiftsPerWeek) {
-    return true
+  if (
+    member.limits.maxShiftsPerWeek &&
+    member.shiftsThisWeek >= member.limits.maxShiftsPerWeek
+  ) {
+    return true;
   }
 
-  if (member.limits.maxShiftsPerMonth && member.shiftsThisMonth >= member.limits.maxShiftsPerMonth) {
-    return true
+  if (
+    member.limits.maxShiftsPerMonth &&
+    member.shiftsThisMonth >= member.limits.maxShiftsPerMonth
+  ) {
+    return true;
   }
 
-  return false
+  return false;
 }
 
 // Helper: Calculate historical points for all members from past schedules
 export async function calculateHistoricalPoints(
   stableId: string,
   memberIds: string[],
-  memoryHorizonDays: number = 90
+  memoryHorizonDays: number = 90,
 ): Promise<Map<string, number>> {
-  const historicalPoints = new Map<string, number>()
-  memberIds.forEach(id => historicalPoints.set(id, 0))
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  const threshold = createDateThreshold(memoryHorizonDays)
+  const historicalPoints = new Map<string, number>();
+  memberIds.forEach((id) => historicalPoints.set(id, 0));
+
+  const threshold = createDateThreshold(memoryHorizonDays);
 
   // Get all published schedules for this stable within the memory horizon
-  const schedulesQuery = query(
-    collection(db, 'schedules'),
-    where('stableId', '==', stableId),
-    where('status', '==', 'published'),
-    where('endDate', '>=', Timestamp.fromDate(threshold))
-  )
-  const schedulesSnapshot = await getDocs(schedulesQuery)
-  const scheduleIds = extractDocIds(schedulesSnapshot)
+  const params = new URLSearchParams({
+    stableId,
+    status: "published",
+    endDate: threshold.toISOString(),
+  });
+
+  const scheduleResponse = await authFetchJSON<{ schedules: Schedule[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/schedules/stable/${stableId}?${params.toString()}`,
+    { method: "GET" },
+  );
+
+  const scheduleIds = scheduleResponse.schedules
+    .map((s) => s.id)
+    .filter(Boolean) as string[];
 
   if (scheduleIds.length === 0) {
-    return historicalPoints
+    return historicalPoints;
   }
 
   // Get all completed shifts from those schedules
-  const shiftsQuery = query(
-    collection(db, 'shifts'),
-    where('scheduleId', 'in', scheduleIds),
-    where('status', '==', 'assigned'),
-    where('date', '>=', Timestamp.fromDate(threshold))
-  )
-  const shiftsSnapshot = await getDocs(shiftsQuery)
+  for (const scheduleId of scheduleIds) {
+    const shiftParams = new URLSearchParams({
+      scheduleId,
+      status: "assigned",
+      startDate: threshold.toISOString(),
+    });
 
-  // Sum up points per member
-  shiftsSnapshot.docs.forEach(doc => {
-    const shift = doc.data() as Shift
-    if (shift.assignedTo && historicalPoints.has(shift.assignedTo)) {
-      const current = historicalPoints.get(shift.assignedTo)!
-      historicalPoints.set(shift.assignedTo, current + shift.points)
-    }
-  })
+    const shiftResponse = await authFetchJSON<{ shifts: Shift[] }>(
+      `${import.meta.env.VITE_API_URL}/api/v1/shifts?${shiftParams.toString()}`,
+      { method: "GET" },
+    );
 
-  return historicalPoints
+    // Sum up points per member
+    shiftResponse.shifts.forEach((shift) => {
+      if (shift.assignedTo && historicalPoints.has(shift.assignedTo)) {
+        const current = historicalPoints.get(shift.assignedTo)!;
+        historicalPoints.set(shift.assignedTo, current + shift.points);
+      }
+    });
+  }
+
+  return historicalPoints;
 }
 
 export async function autoAssignShifts(
   scheduleId: string,
-  _stableId: string, // Reserved for future use (e.g., stable-wide constraints)
+  _stableId: string, // Reserved for future use
   members: {
-    id: string
-    displayName: string
-    email: string
-    availability?: any
-    limits?: any
+    id: string;
+    displayName: string;
+    email: string;
+    availability?: any;
+    limits?: any;
   }[],
   historicalPoints?: Map<string, number>,
-  triggeredByUserId?: string
+  _triggeredByUserId?: string,
 ): Promise<number> {
-  // Load all shifts for this schedule
-  const shiftsQuery = query(
-    collection(db, 'shifts'),
-    where('scheduleId', '==', scheduleId),
-    orderBy('date', 'asc')
-  )
-  const shiftsSnapshot = await getDocs(shiftsQuery)
-  const allShifts = mapDocsToObjects<Shift>(shiftsSnapshot)
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  // Calculate current points for each member (from assigned shifts in this schedule)
-  const memberPoints = new Map<string, MemberWithPoints>()
-  members.forEach(member => {
-    memberPoints.set(member.id, {
-      userId: member.id,
-      displayName: member.displayName,
-      email: member.email,
-      currentPoints: 0,
-      historicalPoints: historicalPoints?.get(member.id) || 0,
-      assignedShifts: 0,
-      shiftsThisWeek: 0,
-      shiftsThisMonth: 0,
-      availability: member.availability,
-      limits: member.limits
-    })
-  })
+  const historicalPointsObj = historicalPoints
+    ? Object.fromEntries(historicalPoints.entries())
+    : undefined;
 
-  // Count already assigned shifts and track weekly/monthly counts
-  const trackingContext = createTrackingContext()
+  const response = await authFetchJSON<{ assignedCount: number }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/schedules/${scheduleId}/auto-assign`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        members,
+        historicalPoints: historicalPointsObj,
+      }),
+    },
+  );
 
-  allShifts.forEach(shift => {
-    if (shift.assignedTo && memberPoints.has(shift.assignedTo)) {
-      const member = memberPoints.get(shift.assignedTo)!
-      updateMemberTracking(member, shift.date, shift.points, trackingContext)
-    }
-  })
-
-  // Get unassigned shifts
-  const unassignedShifts = allShifts.filter(s => s.status === 'unassigned')
-
-  if (unassignedShifts.length === 0) {
-    return 0
-  }
-
-  // Enhanced fairness algorithm with constraints
-  const batch = writeBatch(db)
-  let assignmentCount = 0
-  const assignmentLogs: Array<{
-    shiftId: string
-    shiftDate: Timestamp
-    shiftType: string
-    assignedTo: string
-    assignedToName: string
-    stableId: string
-  }> = []
-
-  for (const shift of unassignedShifts) {
-    // Find best member for this shift
-    let bestMemberId: string | null = null
-    let lowestTotalPoints = Infinity
-
-    memberPoints.forEach((member, memberId) => {
-      // Check constraints
-      if (!isMemberAvailable(member, shift)) return
-      if (hasReachedLimits(member)) return
-
-      // Calculate total points (current + historical for fairness across schedules)
-      const totalPoints = member.currentPoints + member.historicalPoints
-
-      // Prefer members with lowest total points
-      if (totalPoints < lowestTotalPoints) {
-        lowestTotalPoints = totalPoints
-        bestMemberId = memberId
-      }
-    })
-
-    if (bestMemberId !== null) {
-      const bestMember = memberPoints.get(bestMemberId)!
-      const shiftDate = shift.date.toDate()
-
-      // Apply holiday weighting if applicable
-      const isHoliday = isSwedishHoliday(shiftDate)
-      const effectivePoints = applyHolidayMultiplier(shift.points, isHoliday)
-
-      // Assign shift to this member
-      const shiftRef = doc(db, 'shifts', shift.id)
-      batch.update(shiftRef, {
-        status: 'assigned',
-        assignedTo: bestMember.userId,
-        assignedToName: bestMember.displayName,
-        assignedToEmail: bestMember.email
-      })
-
-      // Collect assignment details for audit logging
-      if (triggeredByUserId) {
-        assignmentLogs.push({
-          shiftId: shift.id,
-          shiftDate: shift.date,
-          shiftType: shift.shiftTypeName,
-          assignedTo: bestMember.userId,
-          assignedToName: bestMember.displayName,
-          stableId: shift.stableId
-        })
-      }
-
-      // Update member's counts for next iteration using tracking helper
-      updateMemberTracking(bestMember, shift.date, effectivePoints, trackingContext)
-
-      assignmentCount++
-    }
-  }
-
-  // Commit all assignments
-  await batch.commit()
-
-  // Log all auto-assignments (non-blocking)
-  if (triggeredByUserId && assignmentLogs.length > 0) {
-    const { logShiftAssignment } = await import('./auditLogService')
-    assignmentLogs.forEach(log => {
-      logShiftAssignment(
-        log.shiftId,
-        log.shiftDate,
-        log.shiftType,
-        'auto',
-        log.assignedTo,
-        log.assignedToName,
-        triggeredByUserId,
-        log.stableId
-      ).catch(err => {
-        console.error('Audit log failed:', err)
-      })
-    })
-  }
-
-  return assignmentCount
+  return response.assignedCount;
 }
 
-export async function getSchedule(scheduleId: string): Promise<Schedule | null> {
-  const scheduleRef = doc(db, 'schedules', scheduleId)
-  const scheduleSnap = await getDoc(scheduleRef)
+export async function getSchedule(
+  scheduleId: string,
+): Promise<Schedule | null> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  if (!scheduleSnap.exists()) return null
+  try {
+    const response = await authFetchJSON<Schedule & { id: string }>(
+      `${import.meta.env.VITE_API_URL}/api/v1/schedules/${scheduleId}`,
+      { method: "GET" },
+    );
 
-  return {
-    id: scheduleSnap.id,
-    ...scheduleSnap.data()
-  } as Schedule
+    return response;
+  } catch (error) {
+    return null;
+  }
 }
 
-export async function getSchedulesByStable(stableId: string): Promise<Schedule[]> {
-  const q = query(
-    collection(db, 'schedules'),
-    where('stableId', '==', stableId),
-    orderBy('startDate', 'desc')
-  )
+export async function getSchedulesByStable(
+  stableId: string,
+): Promise<Schedule[]> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  const querySnapshot = await getDocs(q)
-  return mapDocsToObjects<Schedule>(querySnapshot)
+  const response = await authFetchJSON<{ schedules: Schedule[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/schedules/stable/${stableId}`,
+    { method: "GET" },
+  );
+
+  return response.schedules;
 }
 
-export async function getAllSchedulesForUser(userId: string): Promise<Schedule[]> {
-  // Get all stables the user is a member of
-  const stablesQuery = query(
-    collection(db, 'stables'),
-    where('members', 'array-contains', userId)
-  )
-  const stablesSnapshot = await getDocs(stablesQuery)
-  const stableIds = extractDocIds(stablesSnapshot)
+export async function getAllSchedulesForUser(
+  userId: string,
+): Promise<Schedule[]> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  if (stableIds.length === 0) return []
+  const response = await authFetchJSON<{ schedules: Schedule[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/schedules/user/${userId}`,
+    { method: "GET" },
+  );
 
-  // Get all schedules for those stables
-  const schedulesQuery = query(
-    collection(db, 'schedules'),
-    where('stableId', 'in', stableIds),
-    orderBy('startDate', 'desc')
-  )
-
-  const schedulesSnapshot = await getDocs(schedulesQuery)
-  return mapDocsToObjects<Schedule>(schedulesSnapshot)
+  return response.schedules;
 }
 
 // ============= Shifts =============
 
 export async function createShifts(
-  _scheduleId: string, // Included for API consistency, shifts contain scheduleId
-  shifts: Omit<Shift, 'id'>[]
+  _scheduleId: string, // Included for API consistency
+  shifts: Omit<Shift, "id">[],
 ): Promise<void> {
-  const batch = writeBatch(db)
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  shifts.forEach(shift => {
-    const shiftRef = doc(collection(db, 'shifts'))
-    batch.set(shiftRef, shift)
-  })
+  // Convert Timestamp dates to ISO strings for API
+  const shiftsData = shifts.map((shift) => ({
+    ...shift,
+    date:
+      shift.date instanceof Timestamp
+        ? shift.date.toDate().toISOString()
+        : typeof shift.date === "string"
+          ? shift.date
+          : new Date(shift.date).toISOString(),
+  }));
 
-  await batch.commit()
+  await authFetchJSON(`${import.meta.env.VITE_API_URL}/api/v1/shifts/batch`, {
+    method: "POST",
+    body: JSON.stringify({
+      scheduleId: shifts[0]?.scheduleId,
+      shifts: shiftsData,
+    }),
+  });
 }
 
-export async function getShiftsBySchedule(scheduleId: string): Promise<Shift[]> {
-  const q = query(
-    collection(db, 'shifts'),
-    where('scheduleId', '==', scheduleId),
-    orderBy('date', 'asc')
-  )
+export async function getShiftsBySchedule(
+  scheduleId: string,
+): Promise<Shift[]> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  const querySnapshot = await getDocs(q)
-  return mapDocsToObjects<Shift>(querySnapshot)
+  const params = new URLSearchParams({ scheduleId });
+
+  const response = await authFetchJSON<{ shifts: Shift[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/shifts?${params.toString()}`,
+    { method: "GET" },
+  );
+
+  return response.shifts;
 }
 
 export async function getShiftsByDateRange(
   stableId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): Promise<Shift[]> {
-  const q = query(
-    collection(db, 'shifts'),
-    where('stableId', '==', stableId),
-    where('date', '>=', Timestamp.fromDate(startDate)),
-    where('date', '<=', Timestamp.fromDate(endDate)),
-    orderBy('date', 'asc')
-  )
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  const querySnapshot = await getDocs(q)
-  return mapDocsToObjects<Shift>(querySnapshot)
+  const params = new URLSearchParams({
+    stableId,
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString(),
+  });
+
+  const response = await authFetchJSON<{ shifts: Shift[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/shifts?${params.toString()}`,
+    { method: "GET" },
+  );
+
+  return response.shifts;
 }
 
 export async function getUnassignedShifts(stableId?: string): Promise<Shift[]> {
-  let q = query(
-    collection(db, 'shifts'),
-    where('status', '==', 'unassigned'),
-    orderBy('date', 'asc')
-  )
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
+  const params = new URLSearchParams();
   if (stableId) {
-    q = query(
-      collection(db, 'shifts'),
-      where('stableId', '==', stableId),
-      where('status', '==', 'unassigned'),
-      orderBy('date', 'asc')
-    )
+    params.append("stableId", stableId);
   }
 
-  const querySnapshot = await getDocs(q)
-  return mapDocsToObjects<Shift>(querySnapshot)
+  const queryString = params.toString() ? `?${params.toString()}` : "";
+
+  const response = await authFetchJSON<{ shifts: Shift[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/shifts/unassigned${queryString}`,
+    { method: "GET" },
+  );
+
+  return response.shifts;
 }
 
 export async function assignShift(
@@ -426,115 +352,59 @@ export async function assignShift(
   userId: string,
   userName: string,
   userEmail: string,
-  assignerId?: string
+  assignerId?: string,
 ): Promise<void> {
-  // Get existing shift data for audit logging
-  const shiftRef = doc(db, 'shifts', shiftId)
-  const shiftSnap = await getDoc(shiftRef)
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  if (!shiftSnap.exists()) {
-    throw new Error('Shift not found')
-  }
-
-  const shift = { id: shiftSnap.id, ...shiftSnap.data() } as Shift
-
-  // Perform the assignment
-  await updateDoc(shiftRef, {
-    status: 'assigned',
-    assignedTo: userId,
-    assignedToName: userName,
-    assignedToEmail: userEmail
-  })
-
-  // Log shift assignment (non-blocking)
-  if (assignerId) {
-    const { logShiftAssignment } = await import('./auditLogService')
-    logShiftAssignment(
-      shiftId,
-      shift.date,
-      shift.shiftTypeName,
-      'manual',
-      userId,
-      userName,
-      assignerId,
-      shift.stableId
-    ).catch(err => {
-      console.error('Audit log failed:', err)
-    })
-  }
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}/assign`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        userId,
+        userName,
+        userEmail,
+        assignerId,
+      }),
+    },
+  );
 }
 
 export async function unassignShift(
   shiftId: string,
-  unassignerId?: string
+  unassignerId?: string,
 ): Promise<void> {
-  // Get existing shift data for audit logging
-  const shiftRef = doc(db, 'shifts', shiftId)
-  const shiftSnap = await getDoc(shiftRef)
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  if (!shiftSnap.exists()) {
-    throw new Error('Shift not found')
-  }
-
-  const shift = { id: shiftSnap.id, ...shiftSnap.data() } as Shift
-  const previouslyAssignedTo = shift.assignedTo
-  const previouslyAssignedToName = shift.assignedToName
-
-  // Perform the unassignment
-  await updateDoc(shiftRef, {
-    status: 'unassigned',
-    assignedTo: null,
-    assignedToName: null,
-    assignedToEmail: null
-  })
-
-  // Log shift unassignment (non-blocking)
-  if (unassignerId && previouslyAssignedTo) {
-    const { createAuditLog } = await import('./auditLogService')
-    createAuditLog({
-      userId: unassignerId,
-      action: 'unassign',
-      resource: 'shift',
-      resourceId: shiftId,
-      resourceName: shift.shiftTypeName,
-      stableId: shift.stableId,
-      details: {
-        assignment: {
-          shiftId,
-          shiftDate: shift.date,
-          shiftType: shift.shiftTypeName,
-          assignmentType: 'manual',
-          assignedTo: previouslyAssignedTo,
-          assignedToName: previouslyAssignedToName || undefined
-        }
-      }
-    }).catch(err => {
-      console.error('Audit log failed:', err)
-    })
-  }
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}/unassign`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        unassignerId,
+      }),
+    },
+  );
 }
 
 export async function deleteShift(shiftId: string): Promise<void> {
-  await deleteDoc(doc(db, 'shifts', shiftId))
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}`,
+    { method: "DELETE" },
+  );
 }
 
-export async function deleteScheduleAndShifts(scheduleId: string): Promise<void> {
-  // Delete all shifts for this schedule
-  const shiftsQuery = query(
-    collection(db, 'shifts'),
-    where('scheduleId', '==', scheduleId)
-  )
-  const shiftsSnapshot = await getDocs(shiftsQuery)
+export async function deleteScheduleAndShifts(
+  scheduleId: string,
+): Promise<void> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  const batch = writeBatch(db)
-  shiftsSnapshot.docs.forEach(doc => {
-    batch.delete(doc.ref)
-  })
-
-  // Delete the schedule
-  batch.delete(doc(db, 'schedules', scheduleId))
-
-  await batch.commit()
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/schedules/${scheduleId}`,
+    { method: "DELETE" },
+  );
 }
 
 // ============= Helper Functions =============
@@ -545,15 +415,17 @@ export function generateShifts(
   stableName: string,
   startDate: Date,
   endDate: Date,
-  shiftTypes: ShiftType[]
-): Omit<Shift, 'id'>[] {
-  const shifts: Omit<Shift, 'id'>[] = []
-  const currentDate = new Date(startDate)
+  shiftTypes: ShiftType[],
+): Omit<Shift, "id">[] {
+  const shifts: Omit<Shift, "id">[] = [];
+  const currentDate = new Date(startDate);
 
   while (currentDate <= endDate) {
-    const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'short' })
+    const dayName = currentDate.toLocaleDateString("en-US", {
+      weekday: "short",
+    });
 
-    shiftTypes.forEach(shiftType => {
+    shiftTypes.forEach((shiftType) => {
       if (shiftType.daysOfWeek.includes(dayName)) {
         shifts.push({
           scheduleId,
@@ -564,16 +436,45 @@ export function generateShifts(
           shiftTypeName: shiftType.name,
           time: shiftType.time,
           points: shiftType.points,
-          status: 'unassigned',
+          status: "unassigned",
           assignedTo: null,
           assignedToName: null,
-          assignedToEmail: null
-        })
+          assignedToEmail: null,
+        });
       }
-    })
+    });
 
-    currentDate.setDate(currentDate.getDate() + 1)
+    currentDate.setDate(currentDate.getDate() + 1);
   }
 
-  return shifts
+  return shifts;
+}
+
+/**
+ * Get all published shifts for multiple stables
+ * Combines schedule + shift queries for efficiency
+ * Used by SchedulePage to show all shifts across user's stables
+ */
+export async function getPublishedShiftsForStables(
+  stableIds: string[],
+): Promise<Shift[]> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  const response = await authFetchJSON<{ shifts: Shift[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/shifts?` +
+      `stableIds=${stableIds.join(",")}&status=published`,
+    { method: "GET" },
+  );
+
+  return response.shifts;
+}
+
+/**
+ * Get published shifts for a single stable
+ * Used by StableSchedulePage to show all shifts for one stable
+ */
+export async function getPublishedShiftsForStable(
+  stableId: string,
+): Promise<Shift[]> {
+  return getPublishedShiftsForStables([stableId]);
 }

@@ -1,17 +1,6 @@
-import {
-  collection,
-  addDoc,
-  updateDoc,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  Timestamp,
-  collectionGroup
-} from 'firebase/firestore'
-import { db } from '@/lib/firebase'
-import type { LocationHistory } from '@/types/roles'
-import { mapDocsToObjects } from '@/utils/firestoreHelpers'
+import { Timestamp } from "firebase/firestore";
+import type { LocationHistory } from "@/types/roles";
+import { toDate } from "@/utils/timestampUtils";
 
 // ============================================================================
 // Create Operations
@@ -33,25 +22,29 @@ export async function createLocationHistoryEntry(
   stableId: string,
   stableName: string,
   userId: string,
-  arrivalDate?: Timestamp
+  arrivalDate?: Timestamp,
 ): Promise<string> {
-  const historyRef = collection(db, 'horses', horseId, 'locationHistory')
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
   const entryData = {
-    horseId,
-    horseName,
-    locationType: 'stable' as const,
+    locationType: "stable" as const,
     stableId,
     stableName,
-    arrivalDate: arrivalDate || Timestamp.now(),
-    departureDate: null, // null = currently at this location
-    createdAt: Timestamp.now(),
-    createdBy: userId,
-    lastModifiedBy: userId
-  }
+    arrivalDate: arrivalDate
+      ? toDate(arrivalDate)?.toISOString()
+      : new Date().toISOString(),
+    departureDate: null,
+  };
 
-  const docRef = await addDoc(historyRef, entryData)
-  return docRef.id
+  const response = await authFetchJSON<{ id: string }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/location-history/horse/${horseId}`,
+    {
+      method: "POST",
+      body: JSON.stringify(entryData),
+    },
+  );
+
+  return response.id;
 }
 
 /**
@@ -70,31 +63,34 @@ export async function createExternalLocationHistoryEntry(
   horseId: string,
   horseName: string,
   externalLocation: string,
-  moveType: 'temporary' | 'permanent',
+  moveType: "temporary" | "permanent",
   departureDate: Timestamp,
   userId: string,
   contactId?: string,
-  moveReason?: string
+  moveReason?: string,
 ): Promise<string> {
-  const historyRef = collection(db, 'horses', horseId, 'locationHistory')
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
   const entryData = {
-    horseId,
-    horseName,
-    locationType: 'external' as const,
+    locationType: "external" as const,
     externalLocation,
     externalMoveType: moveType,
-    arrivalDate: departureDate, // Arrival at external location = departure from stable
-    departureDate: null, // null = currently at external location
-    createdAt: Timestamp.now(),
-    createdBy: userId,
-    lastModifiedBy: userId,
+    arrivalDate:
+      toDate(departureDate)?.toISOString() || new Date().toISOString(),
+    departureDate: null,
     ...(contactId && { externalContactId: contactId }),
-    ...(moveReason && { externalMoveReason: moveReason })
-  }
+    ...(moveReason && { externalMoveReason: moveReason }),
+  };
 
-  const docRef = await addDoc(historyRef, entryData)
-  return docRef.id
+  const response = await authFetchJSON<{ id: string }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/location-history/horse/${horseId}`,
+    {
+      method: "POST",
+      body: JSON.stringify(entryData),
+    },
+  );
+
+  return response.id;
 }
 
 /**
@@ -108,58 +104,51 @@ export async function createExternalLocationHistoryEntry(
  */
 export async function closeLocationHistoryEntry(
   horseId: string,
-  locationType: 'stable' | 'external',
+  locationType: "stable" | "external",
   locationId: string | null,
   userId: string,
-  departureDate?: Timestamp
+  departureDate?: Timestamp,
 ): Promise<void> {
-  const historyRef = collection(db, 'horses', horseId, 'locationHistory')
+  // Get current open location entry
+  const currentLocation = await getCurrentLocation(horseId);
 
-  // Build query based on location type
-  let snapshot
-  if (locationType === 'stable' && locationId) {
-    // Find the open entry for this specific stable
-    // First try with locationType filter (new entries)
-    const q = query(
-      historyRef,
-      where('locationType', '==', 'stable'),
-      where('stableId', '==', locationId),
-      where('departureDate', '==', null)
-    )
-    snapshot = await getDocs(q)
+  if (!currentLocation) {
+    // No open entry to close
+    return;
+  }
 
-    // If not found, try without locationType filter (backward compatibility for old entries)
-    if (snapshot.empty) {
-      const qLegacy = query(
-        historyRef,
-        where('stableId', '==', locationId),
-        where('departureDate', '==', null)
-      )
-      snapshot = await getDocs(qLegacy)
+  // Validate that we're closing the right location
+  if (locationType === "stable" && locationId) {
+    if (
+      currentLocation.locationType !== "stable" ||
+      currentLocation.stableId !== locationId
+    ) {
+      console.warn("Current location does not match specified stable");
+      return;
     }
-  } else if (locationType === 'external') {
-    // Find the open external location entry
-    const q = query(
-      historyRef,
-      where('locationType', '==', 'external'),
-      where('departureDate', '==', null)
-    )
-    snapshot = await getDocs(q)
+  } else if (locationType === "external") {
+    if (currentLocation.locationType !== "external") {
+      console.warn("Current location is not external");
+      return;
+    }
   } else {
-    // Invalid parameters
-    return
+    return;
   }
 
-  if (!snapshot.empty) {
-    // Should only be one open entry
-    const entryDoc = snapshot.docs[0]
-    if (entryDoc) {
-      await updateDoc(entryDoc.ref, {
-        departureDate: departureDate || Timestamp.now(),
-        lastModifiedBy: userId
-      })
-    }
-  }
+  // Close the entry via API
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/location-history/${horseId}/${currentLocation.id}/close`,
+    {
+      method: "PUT",
+      body: JSON.stringify({
+        departureDate: departureDate
+          ? toDate(departureDate)?.toISOString()
+          : new Date().toISOString(),
+      }),
+    },
+  );
 }
 
 // ============================================================================
@@ -171,11 +160,17 @@ export async function closeLocationHistoryEntry(
  * @param horseId - Horse ID
  * @returns Promise with array of location history entries
  */
-export async function getHorseLocationHistory(horseId: string): Promise<LocationHistory[]> {
-  const historyRef = collection(db, 'horses', horseId, 'locationHistory')
-  const q = query(historyRef, orderBy('arrivalDate', 'desc'))
-  const snapshot = await getDocs(q)
-  return mapDocsToObjects<LocationHistory>(snapshot)
+export async function getHorseLocationHistory(
+  horseId: string,
+): Promise<LocationHistory[]> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  const response = await authFetchJSON<{ history: LocationHistory[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/location-history/horse/${horseId}`,
+    { method: "GET" },
+  );
+
+  return response.history;
 }
 
 /**
@@ -183,72 +178,44 @@ export async function getHorseLocationHistory(horseId: string): Promise<Location
  * @param horseId - Horse ID
  * @returns Promise with current location or null
  */
-export async function getCurrentLocation(horseId: string): Promise<LocationHistory | null> {
-  const historyRef = collection(db, 'horses', horseId, 'locationHistory')
-  const q = query(
-    historyRef,
-    where('departureDate', '==', null),
-    orderBy('arrivalDate', 'desc')
-  )
+export async function getCurrentLocation(
+  horseId: string,
+): Promise<LocationHistory | null> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  const snapshot = await getDocs(q)
+  const response = await authFetchJSON<{
+    currentLocation: LocationHistory | null;
+  }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/location-history/horse/${horseId}/current`,
+    { method: "GET" },
+  );
 
-  if (snapshot.empty) return null
-
-  const doc = snapshot.docs[0]
-  if (!doc) return null
-
-  return {
-    id: doc.id,
-    ...doc.data()
-  } as LocationHistory
+  return response.currentLocation;
 }
 
 /**
  * Get all location history for horses owned by a user
  * First gets user's horses, then queries their location history
+ * Now uses backend API instead of direct Firestore queries
  * @param userId - User ID to filter by horse ownership
  * @returns Promise with array of location history entries
  */
-export async function getUserHorseLocationHistory(userId: string): Promise<LocationHistory[]> {
+export async function getUserHorseLocationHistory(
+  userId: string,
+): Promise<LocationHistory[]> {
   if (!userId) {
-    console.warn('getUserHorseLocationHistory called without userId')
-    return []
+    console.warn("getUserHorseLocationHistory called without userId");
+    return [];
   }
 
-  // Step 1: Get all horses owned by the user
-  const horsesRef = collection(db, 'horses')
-  const horsesQuery = query(horsesRef, where('ownerId', '==', userId))
-  const horsesSnapshot = await getDocs(horsesQuery)
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  if (horsesSnapshot.empty) {
-    console.log('📍 No horses found for user:', userId)
-    return []
-  }
+  const response = await authFetchJSON<{ history: LocationHistory[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/location-history/user/${userId}`,
+    { method: "GET" },
+  );
 
-  // Step 2: Query location history for each horse
-  const allHistory: LocationHistory[] = []
-
-  for (const horseDoc of horsesSnapshot.docs) {
-    const horseId = horseDoc.id
-    const historyRef = collection(db, 'horses', horseId, 'locationHistory')
-    const historyQuery = query(historyRef, orderBy('arrivalDate', 'desc'))
-    const historySnapshot = await getDocs(historyQuery)
-
-    const horseHistory = mapDocsToObjects<LocationHistory>(historySnapshot)
-    allHistory.push(...horseHistory)
-  }
-
-  // Sort combined results by arrival date (newest first)
-  allHistory.sort((a, b) => {
-    const aTime = a.arrivalDate.toDate().getTime()
-    const bTime = b.arrivalDate.toDate().getTime()
-    return bTime - aTime
-  })
-
-  console.log('📍 Found location history entries:', allHistory.length, 'for', horsesSnapshot.docs.length, 'horses')
-
-  return allHistory
+  return response.history;
 }
 
 // ============================================================================
@@ -271,14 +238,14 @@ export async function backfillLocationHistory(
   currentStableId: string,
   currentStableName: string,
   assignedAt: Timestamp,
-  userId: string
+  userId: string,
 ): Promise<void> {
   // Check if entry already exists
-  const existing = await getCurrentLocation(horseId)
+  const existing = await getCurrentLocation(horseId);
 
   if (existing && existing.stableId === currentStableId) {
     // Already has current location entry
-    return
+    return;
   }
 
   // Create history entry for current location
@@ -288,6 +255,6 @@ export async function backfillLocationHistory(
     currentStableId,
     currentStableName,
     userId,
-    assignedAt
-  )
+    assignedAt,
+  );
 }

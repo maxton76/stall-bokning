@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -7,25 +7,30 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Info, MapPin } from 'lucide-react'
-import type { Horse } from '@/types/roles'
+} from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info, MapPin } from "lucide-react";
+import type { Horse } from "@/types/roles";
+import { toDate } from "@/utils/timestampUtils";
 
 interface HorseAssignmentDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  horse: Horse | null
-  availableStables: Array<{ id: string; name: string }>
-  onAssign: (horseId: string, stableId: string, stableName: string) => Promise<void>
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  horse: Horse | null;
+  availableStables: Array<{ id: string; name: string }>;
+  onAssign: (
+    horseId: string,
+    stableId: string,
+    stableName: string,
+  ) => Promise<void>;
 }
 
 export function HorseAssignmentDialog({
@@ -33,53 +38,55 @@ export function HorseAssignmentDialog({
   onOpenChange,
   horse,
   availableStables,
-  onAssign
+  onAssign,
 }: HorseAssignmentDialogProps) {
-  const [selectedStableId, setSelectedStableId] = useState<string>('')
-  const [loading, setLoading] = useState(false)
+  const [selectedStableId, setSelectedStableId] = useState<string>("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (horse && open) {
       // Reset selection when dialog opens
-      setSelectedStableId('')
+      setSelectedStableId("");
     }
-  }, [horse, open])
+  }, [horse, open]);
 
   const handleAssign = async () => {
     if (!horse || !selectedStableId) {
-      alert('Please select a stable')
-      return
+      alert("Please select a stable");
+      return;
     }
 
-    const stable = availableStables.find(s => s.id === selectedStableId)
+    const stable = availableStables.find((s) => s.id === selectedStableId);
     if (!stable) {
-      alert('Invalid stable selection')
-      return
+      alert("Invalid stable selection");
+      return;
     }
 
     try {
-      setLoading(true)
-      await onAssign(horse.id, stable.id, stable.name)
-      onOpenChange(false)
+      setLoading(true);
+      await onAssign(horse.id, stable.id, stable.name);
+      onOpenChange(false);
     } catch (error) {
-      console.error('Error assigning horse:', error)
-      alert('Failed to assign horse. Please try again.')
+      console.error("Error assigning horse:", error);
+      alert("Failed to assign horse. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  if (!horse) return null
+  if (!horse) return null;
 
-  const isTransfer = !!horse.currentStableId
-  const currentStableName = horse.currentStableName || 'Unknown Stable'
+  const isTransfer = !!horse.currentStableId;
+  const currentStableName = horse.currentStableName || "Unknown Stable";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-[500px]'>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            {isTransfer ? 'Transfer Horse to Different Stable' : 'Assign Horse to Stable'}
+            {isTransfer
+              ? "Transfer Horse to Different Stable"
+              : "Assign Horse to Stable"}
           </DialogTitle>
           <DialogDescription>
             {isTransfer
@@ -88,16 +95,16 @@ export function HorseAssignmentDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className='grid gap-4 py-4'>
+        <div className="grid gap-4 py-4">
           {/* Current Assignment Info */}
           {isTransfer && (
             <Alert>
-              <MapPin className='h-4 w-4' />
+              <MapPin className="h-4 w-4" />
               <AlertDescription>
                 <strong>Current stable:</strong> {currentStableName}
-                {horse.assignedAt && (
-                  <span className='text-xs text-muted-foreground ml-2'>
-                    (since {new Date(horse.assignedAt.toDate()).toLocaleDateString()})
+                {horse.assignedAt && toDate(horse.assignedAt) && (
+                  <span className="text-xs text-muted-foreground ml-2">
+                    (since {toDate(horse.assignedAt)!.toLocaleDateString()})
                   </span>
                 )}
               </AlertDescription>
@@ -105,21 +112,21 @@ export function HorseAssignmentDialog({
           )}
 
           {/* Stable Selection */}
-          <div className='grid gap-2'>
-            <Label htmlFor='stable'>
-              {isTransfer ? 'Transfer to Stable' : 'Select Stable'}
+          <div className="grid gap-2">
+            <Label htmlFor="stable">
+              {isTransfer ? "Transfer to Stable" : "Select Stable"}
             </Label>
             <Select
               value={selectedStableId}
               onValueChange={setSelectedStableId}
             >
-              <SelectTrigger id='stable'>
-                <SelectValue placeholder='Choose a stable...' />
+              <SelectTrigger id="stable">
+                <SelectValue placeholder="Choose a stable..." />
               </SelectTrigger>
               <SelectContent>
                 {availableStables
-                  .filter(stable => stable.id !== horse.currentStableId)
-                  .map(stable => (
+                  .filter((stable) => stable.id !== horse.currentStableId)
+                  .map((stable) => (
                     <SelectItem key={stable.id} value={stable.id}>
                       {stable.name}
                     </SelectItem>
@@ -131,25 +138,27 @@ export function HorseAssignmentDialog({
           {/* Info Alert */}
           {availableStables.length === 0 && (
             <Alert>
-              <Info className='h-4 w-4' />
+              <Info className="h-4 w-4" />
               <AlertDescription>
-                You are not a member of any stables. Join a stable first to assign your horses.
+                You are not a member of any stables. Join a stable first to
+                assign your horses.
               </AlertDescription>
             </Alert>
           )}
 
           {availableStables.length === 1 && horse.currentStableId && (
             <Alert>
-              <Info className='h-4 w-4' />
+              <Info className="h-4 w-4" />
               <AlertDescription>
-                You only belong to one stable. To transfer this horse, you need to be a member of multiple stables.
+                You only belong to one stable. To transfer this horse, you need
+                to be a member of multiple stables.
               </AlertDescription>
             </Alert>
           )}
 
           {selectedStableId && (
             <Alert>
-              <Info className='h-4 w-4' />
+              <Info className="h-4 w-4" />
               <AlertDescription>
                 {isTransfer
                   ? `${horse.name} will be moved to the selected stable. This change is reversible.`
@@ -161,7 +170,7 @@ export function HorseAssignmentDialog({
 
         <DialogFooter>
           <Button
-            variant='outline'
+            variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={loading}
           >
@@ -169,16 +178,18 @@ export function HorseAssignmentDialog({
           </Button>
           <Button
             onClick={handleAssign}
-            disabled={loading || !selectedStableId || availableStables.length === 0}
+            disabled={
+              loading || !selectedStableId || availableStables.length === 0
+            }
           >
             {loading
-              ? 'Processing...'
+              ? "Processing..."
               : isTransfer
-              ? 'Transfer Horse'
-              : 'Assign Horse'}
+                ? "Transfer Horse"
+                : "Assign Horse"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

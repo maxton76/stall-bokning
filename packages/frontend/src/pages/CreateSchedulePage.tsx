@@ -16,8 +16,6 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { queryKeys } from "@/lib/queryClient";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import {
   createSchedule,
   createShifts,
@@ -46,12 +44,9 @@ export default function CreateSchedulePage() {
     queryKey: queryKeys.stables.detail(stableId || ""),
     queryFn: async () => {
       if (!stableId) return "";
-      const stableRef = doc(db, "stables", stableId);
-      const stableSnap = await getDoc(stableRef);
-      if (stableSnap.exists()) {
-        return stableSnap.data().name || "";
-      }
-      return "";
+      const { getStable } = await import("@/services/stableService");
+      const stable = await getStable(stableId);
+      return stable?.name || "";
     },
     enabled: !!stableId,
     staleTime: 10 * 60 * 1000,

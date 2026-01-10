@@ -1,19 +1,21 @@
-import { Link } from 'react-router-dom'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Heart, ExternalLink } from 'lucide-react'
-import { format } from 'date-fns'
-import type { Horse } from '@/types/roles'
+import { Link } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Heart, ExternalLink } from "lucide-react";
+import { format } from "date-fns";
+import { toDate } from "@/utils/timestampUtils";
+import type { Horse } from "@/types/roles";
 
 interface CareCardProps {
-  horse: Horse
+  horse: Horse;
 }
 
 export function CareCard({ horse }: CareCardProps) {
-  const birthDate = horse.dateOfBirth
-    ? format(horse.dateOfBirth.toDate(), 'MMM d, yyyy')
-    : null
+  const birthDate =
+    horse.dateOfBirth && toDate(horse.dateOfBirth)
+      ? format(toDate(horse.dateOfBirth)!, "MMM d, yyyy")
+      : null;
 
   return (
     <Card>
@@ -32,26 +34,28 @@ export function CareCard({ horse }: CareCardProps) {
             <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
               <div>
                 <p className="font-medium">{horse.vaccinationRuleName}</p>
-                {horse.nextVaccinationDue && (
-                  <p className="text-sm text-muted-foreground">
-                    Next due: {format(horse.nextVaccinationDue.toDate(), 'MMM d, yyyy')}
-                  </p>
-                )}
+                {horse.nextVaccinationDue &&
+                  toDate(horse.nextVaccinationDue) && (
+                    <p className="text-sm text-muted-foreground">
+                      Next due:{" "}
+                      {format(toDate(horse.nextVaccinationDue)!, "MMM d, yyyy")}
+                    </p>
+                  )}
               </div>
               {horse.vaccinationStatus && (
                 <Badge
                   variant={
-                    horse.vaccinationStatus === 'current'
-                      ? 'default'
-                      : horse.vaccinationStatus === 'expiring_soon'
-                      ? 'secondary'
-                      : 'destructive'
+                    horse.vaccinationStatus === "current"
+                      ? "default"
+                      : horse.vaccinationStatus === "expiring_soon"
+                        ? "secondary"
+                        : "destructive"
                   }
                 >
-                  {horse.vaccinationStatus === 'current' && 'Up to date'}
-                  {horse.vaccinationStatus === 'expiring_soon' && 'Due soon'}
-                  {horse.vaccinationStatus === 'expired' && 'Overdue'}
-                  {horse.vaccinationStatus === 'no_records' && 'No records'}
+                  {horse.vaccinationStatus === "current" && "Up to date"}
+                  {horse.vaccinationStatus === "expiring_soon" && "Due soon"}
+                  {horse.vaccinationStatus === "expired" && "Overdue"}
+                  {horse.vaccinationStatus === "no_records" && "No records"}
                 </Badge>
               )}
             </div>
@@ -141,5 +145,5 @@ export function CareCard({ horse }: CareCardProps) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

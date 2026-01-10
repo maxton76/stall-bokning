@@ -1,15 +1,16 @@
-import { Plus, Check } from 'lucide-react'
-import { format } from 'date-fns'
-import { cn } from '@/lib/utils'
-import type { ActivityTypeConfig, Activity } from '@/types/activity'
+import { Plus, Check } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import type { ActivityTypeConfig, Activity } from "@/types/activity";
+import { toDate } from "@/utils/timestampUtils";
 
 interface CareTableCellProps {
-  horseId: string
-  horseName: string
-  activityTypeId: string
-  activityType: ActivityTypeConfig
-  lastActivity?: Activity
-  onClick: (horseId: string, activityTypeId: string) => void
+  horseId: string;
+  horseName: string;
+  activityTypeId: string;
+  activityType: ActivityTypeConfig;
+  lastActivity?: Activity;
+  onClick: (horseId: string, activityTypeId: string) => void;
 }
 
 export function CareTableCell({
@@ -20,29 +21,29 @@ export function CareTableCell({
   lastActivity,
   onClick,
 }: CareTableCellProps) {
-  const handleClick = () => onClick(horseId, activityTypeId)
+  const handleClick = () => onClick(horseId, activityTypeId);
 
   return (
     <button
       onClick={handleClick}
       className={cn(
-        'w-full h-full flex flex-col items-center justify-center p-3',
-        'hover:bg-accent transition-colors',
-        'border-l border-border',
-        'min-h-[80px]'
+        "w-full h-full flex flex-col items-center justify-center p-3",
+        "hover:bg-accent transition-colors",
+        "border-l border-border",
+        "min-h-[80px]",
       )}
-      aria-label={`${lastActivity ? 'View' : 'Add'} ${activityType.name} activity for ${horseName}`}
+      aria-label={`${lastActivity ? "View" : "Add"} ${activityType.name} activity for ${horseName}`}
     >
-      {lastActivity ? (
+      {lastActivity && toDate(lastActivity.date) ? (
         <div className="flex flex-col items-center gap-1">
           <Check className="h-4 w-4 text-green-600" />
           <span className="text-xs text-muted-foreground">
-            {format(lastActivity.date.toDate(), 'MMM d')}
+            {format(toDate(lastActivity.date)!, "MMM d")}
           </span>
         </div>
       ) : (
         <Plus className="h-5 w-5 text-muted-foreground" />
       )}
     </button>
-  )
+  );
 }

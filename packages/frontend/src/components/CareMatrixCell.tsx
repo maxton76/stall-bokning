@@ -1,18 +1,19 @@
-import { Plus, AlertCircle } from 'lucide-react'
-import { format } from 'date-fns'
-import { cn } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
-import type { Activity } from '@/types/activity'
+import { Plus, AlertCircle } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import type { Activity } from "@/types/activity";
+import { toDate } from "@/utils/timestampUtils";
 
 interface CareMatrixCellProps {
-  horseId: string
-  horseName: string
-  activityTypeId: string
-  activityTypeName: string
-  activityTypeColor: string
-  lastActivity?: Activity
-  nextActivity?: Activity
-  onClick: (horseId: string, activityTypeId: string) => void
+  horseId: string;
+  horseName: string;
+  activityTypeId: string;
+  activityTypeName: string;
+  activityTypeColor: string;
+  lastActivity?: Activity;
+  nextActivity?: Activity;
+  onClick: (horseId: string, activityTypeId: string) => void;
 }
 
 export function CareMatrixCell({
@@ -22,30 +23,34 @@ export function CareMatrixCell({
   nextActivity,
   onClick,
 }: CareMatrixCellProps) {
-  const hasLastActivity = !!lastActivity
-  const hasNextActivity = !!nextActivity
+  const hasLastActivity = !!lastActivity;
+  const hasNextActivity = !!nextActivity;
 
   // Determine if overdue (no next scheduled and no recent last activity)
-  const isOverdue = !hasNextActivity && hasLastActivity
+  const isOverdue = !hasNextActivity && hasLastActivity;
 
   return (
     <button
       onClick={() => onClick(horseId, activityTypeId)}
       className={cn(
-        'w-full h-full flex flex-col items-center justify-center p-3 gap-2',
-        'hover:bg-accent transition-colors',
-        'border-l border-border',
-        'min-h-[80px]'
+        "w-full h-full flex flex-col items-center justify-center p-3 gap-2",
+        "hover:bg-accent transition-colors",
+        "border-l border-border",
+        "min-h-[80px]",
       )}
-      aria-label={hasNextActivity ? `View ${activityTypeId} activity` : `Add ${activityTypeId} activity`}
+      aria-label={
+        hasNextActivity
+          ? `View ${activityTypeId} activity`
+          : `Add ${activityTypeId} activity`
+      }
     >
       {/* Next scheduled date in green badge */}
-      {hasNextActivity && (
+      {hasNextActivity && toDate(nextActivity.date) && (
         <Badge
           variant="outline"
           className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
         >
-          Next {format(nextActivity.date.toDate(), 'M/d/yy')}
+          Next {format(toDate(nextActivity.date)!, "M/d/yy")}
         </Badge>
       )}
 
@@ -65,5 +70,5 @@ export function CareMatrixCell({
         </div>
       )}
     </button>
-  )
+  );
 }

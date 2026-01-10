@@ -26,14 +26,12 @@ import {
   Loader2Icon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSchedules, useShiftActions } from "@/hooks/useSchedules";
+import { useShiftActions } from "@/hooks/useSchedules";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserStables } from "@/hooks/useUserStables";
-import { queryKeys } from "@/lib/queryClient";
 import type { Shift } from "@/types/schedule";
-import { getAllSchedulesForUser } from "@/services/scheduleService";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { getPublishedShiftsForStables } from "@/services/scheduleService";
+import { toDate } from "@/utils/timestampUtils";
 
 export default function SchedulePage() {
   const { user } = useAuth();
@@ -66,34 +64,7 @@ export default function SchedulePage() {
         stableIds,
       );
 
-      // Get all published schedules for those stables
-      const schedulesQuery = query(
-        collection(db, "schedules"),
-        where("stableId", "in", stableIds),
-        where("status", "==", "published"),
-      );
-      const schedulesSnapshot = await getDocs(schedulesQuery);
-      const publishedScheduleIds = schedulesSnapshot.docs.map((doc) => doc.id);
-
-      if (publishedScheduleIds.length === 0) {
-        return [];
-      }
-
-      // Get all shifts for published schedules
-      const shiftsQuery = query(
-        collection(db, "shifts"),
-        where("scheduleId", "in", publishedScheduleIds),
-        orderBy("date", "asc"),
-      );
-
-      const shiftsSnapshot = await getDocs(shiftsQuery);
-      const shiftsData = shiftsSnapshot.docs.map(
-        (doc) =>
-          ({
-            id: doc.id,
-            ...doc.data(),
-          }) as Shift,
-      );
+      const shiftsData = await getPublishedShiftsForStables(stableIds);
 
       console.log("Loaded shifts:", shiftsData.length);
       return shiftsData;
@@ -107,7 +78,7 @@ export default function SchedulePage() {
   // Auto-select stable when user has exactly one
   useEffect(() => {
     if (stables.length === 1 && selectedStable === "all") {
-      setSelectedStable(stables[0].id);
+      setSelectedStable(stables[0]!.id);
     } else if (stables.length === 0) {
       setSelectedStable("all");
     }
@@ -125,9 +96,10 @@ export default function SchedulePage() {
 
   const getShiftCoverageForDate = (date: Date) => {
     const dateStr = date.toDateString();
-    const shiftsOnDate = shifts.filter(
-      (s) => s.date.toDate().toDateString() === dateStr,
-    );
+    const shiftsOnDate = shifts.filter((s) => {
+      const shiftDate = toDate(s.date);
+      return shiftDate && shiftDate.toDateString() === dateStr;
+    });
 
     if (shiftsOnDate.length === 0)
       return { total: 0, assigned: 0, status: "none" };
@@ -173,8 +145,15 @@ export default function SchedulePage() {
   const upcomingUnassigned = useMemo(() => {
     const now = new Date();
     return stableFilteredShifts
-      .filter((s) => s.status === "unassigned" && s.date.toDate() >= now)
-      .sort((a, b) => a.date.toMillis() - b.date.toMillis())
+      .filter((s) => {
+        const shiftDate = toDate(s.date);
+        return s.status === "unassigned" && shiftDate && shiftDate >= now;
+      })
+      .sort((a, b) => {
+        const aTime = toDate(a.date)?.getTime() ?? 0;
+        const bTime = toDate(b.date)?.getTime() ?? 0;
+        return aTime - bTime;
+      })
       .slice(0, 5);
   }, [stableFilteredShifts]);
 
@@ -407,12 +386,10 @@ export default function SchedulePage() {
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <CalendarIcon className="h-3 w-3" />
-                        {shift.date
-                          .toDate()
-                          .toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                          })}
+                        {toDate(shift.date)?.toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })}
                       </span>
                       <span className="flex items-center gap-1">
                         <ClockIcon className="h-3 w-3" />
@@ -504,12 +481,10 @@ export default function SchedulePage() {
                     <div className="text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <CalendarIcon className="h-4 w-4" />
-                        {shift.date
-                          .toDate()
-                          .toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                          })}
+                        {toDate(shift.date)?.toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })}
                       </span>
                     </div>
                     <div className="text-sm text-muted-foreground">

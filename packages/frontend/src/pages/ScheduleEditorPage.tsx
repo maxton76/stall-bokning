@@ -27,26 +27,19 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  doc,
-  getDoc,
-  collection,
-  query,
-  where,
-  getDocs,
-  orderBy,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import {
   getSchedule,
+  getShiftsBySchedule,
   assignShift,
   unassignShift,
   publishSchedule,
   autoAssignShifts,
   calculateHistoricalPoints,
 } from "@/services/scheduleService";
+import { getActiveMembersWithUserDetails } from "@/services/stableService";
 import { queryKeys } from "@/lib/queryClient";
-import type { Schedule, Shift } from "@/types/schedule";
-import { formatFullName, formatDisplayName } from "@/lib/nameUtils";
+import type { Shift } from "@/types/schedule";
+import { formatFullName } from "@/lib/nameUtils";
+import { toDate } from "@/utils/timestampUtils";
 
 interface StableMember {
   id: string;
@@ -82,19 +75,7 @@ export default function ScheduleEditorPage() {
     queryKey: ["shifts", "schedule", scheduleId],
     queryFn: async () => {
       if (!scheduleId) return [];
-      const shiftsQuery = query(
-        collection(db, "shifts"),
-        where("scheduleId", "==", scheduleId),
-        orderBy("date", "asc"),
-      );
-      const shiftsSnapshot = await getDocs(shiftsQuery);
-      return shiftsSnapshot.docs.map(
-        (doc) =>
-          ({
-            id: doc.id,
-            ...doc.data(),
-          }) as Shift,
-      );
+      return await getShiftsBySchedule(scheduleId);
     },
     enabled: !!scheduleId,
     staleTime: 2 * 60 * 1000,
@@ -109,85 +90,29 @@ export default function ScheduleEditorPage() {
       if (!stableId) return [];
 
       try {
-        // Load stable members from stableMembers collection (modern pattern)
-        const membersQuery = query(
-          collection(db, "stableMembers"),
-          where("stableId", "==", stableId),
-          where("status", "==", "active"),
-        );
-        const membersSnapshot = await getDocs(membersQuery);
-        console.log(
-          "✅ Members query returned:",
-          membersSnapshot.size,
-          "documents",
-        );
-        console.log(
-          "📊 Member data:",
-          membersSnapshot.docs.map((d) => ({ id: d.id, ...d.data() })),
-        );
+        // Get members with user details (backend handles the N+1 query optimization)
+        const membersData = await getActiveMembersWithUserDetails(stableId);
 
-        // Load user details for each member
-        const memberPromises = membersSnapshot.docs.map(async (memberDoc) => {
-          const memberData = memberDoc.data();
-          console.log("🔍 Looking up user:", memberData.userId);
-          const userRef = doc(db, "users", memberData.userId);
-          const userSnap = await getDoc(userRef);
+        console.log("✅ Members loaded:", membersData.length);
 
-          if (userSnap.exists()) {
-            const userData = userSnap.data();
-            console.log("✅ Found user:", userData);
-            return {
-              id: memberData.userId,
-              displayName: formatFullName({
-                firstName: userData.firstName,
-                lastName: userData.lastName,
-                email: userData.email,
-              }),
-              email: userData.email,
-              currentPoints: 0, // TODO: Calculate from shifts
-            };
-          }
-          console.warn(
-            "❌ User not found in users collection:",
-            memberData.userId,
-          );
-          console.log("💡 Using cached data from stableMember instead");
+        // Map to StableMember interface format
+        const membersList = membersData.map((member: any) => ({
+          id: member.userId,
+          displayName:
+            member.displayName ||
+            formatFullName({
+              firstName: member.firstName,
+              lastName: member.lastName,
+              email: member.email,
+            }),
+          email: member.email || "",
+          currentPoints: 0, // TODO: Calculate from shifts
+        })) as StableMember[];
 
-          // Use cached firstName/lastName from stableMember with email parsing fallback
-          const displayName = formatDisplayName(
-            {
-              firstName: memberData.firstName,
-              lastName: memberData.lastName,
-              email: memberData.userEmail,
-            },
-            {
-              parseEmail: true,
-              fallback: "Unknown User",
-            },
-          );
-
-          return {
-            id: memberData.userId,
-            displayName,
-            email: memberData.userEmail || "",
-            currentPoints: 0,
-          };
-        });
-
-        const membersList = (await Promise.all(memberPromises)).filter(
-          Boolean,
-        ) as StableMember[];
         console.log("📊 Final members list:", membersList);
         return membersList;
       } catch (error) {
         console.error("❌ Error loading members:", error);
-        // Show error to user if member loading fails
-        if (error instanceof Error && error.message.includes("index")) {
-          console.error("🔍 Firestore Index Required:", error.message);
-          alert(
-            "Database configuration needed. Please check console for details.",
-          );
-        }
         return [];
       }
     },
@@ -351,11 +276,14 @@ export default function ScheduleEditorPage() {
   const shiftsByDate = useMemo(() => {
     const grouped = new Map<string, Shift[]>();
     shifts.forEach((shift) => {
-      const dateStr = shift.date.toDate().toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-      });
+      const shiftDate = toDate(shift.date);
+      const dateStr = shiftDate
+        ? shiftDate.toLocaleDateString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+          })
+        : "Unknown Date";
       const existing = grouped.get(dateStr) || [];
       grouped.set(dateStr, [...existing, shift]);
     });

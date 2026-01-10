@@ -1,33 +1,34 @@
-import { Timestamp } from 'firebase/firestore'
-import { getWeekNumber } from './dateHelpers'
+import { Timestamp } from "firebase/firestore";
+import { getWeekNumber } from "./dateHelpers";
+import { toDate } from "./timestampUtils";
 
 /**
  * Context for tracking shifts
  */
 export interface ShiftTrackingContext {
-  currentWeek: number
-  currentMonth: number
+  currentWeek: number;
+  currentMonth: number;
 }
 
 /**
  * Member tracking state
  */
 export interface MemberTrackingState {
-  shiftsThisWeek: number
-  shiftsThisMonth: number
-  currentPoints: number
-  assignedShifts: number
+  shiftsThisWeek: number;
+  shiftsThisMonth: number;
+  currentPoints: number;
+  assignedShifts: number;
 }
 
 /**
  * Create tracking context for current time period
  */
 export function createTrackingContext(): ShiftTrackingContext {
-  const now = new Date()
+  const now = new Date();
   return {
     currentWeek: getWeekNumber(now),
-    currentMonth: now.getMonth()
-  }
+    currentMonth: now.getMonth(),
+  };
 }
 
 /**
@@ -37,19 +38,20 @@ export function updateMemberTracking(
   member: MemberTrackingState,
   shiftDate: Timestamp,
   shiftPoints: number,
-  context: ShiftTrackingContext
+  context: ShiftTrackingContext,
 ): void {
-  member.currentPoints += shiftPoints
-  member.assignedShifts += 1
+  member.currentPoints += shiftPoints;
+  member.assignedShifts += 1;
 
-  const date = shiftDate.toDate()
-  const shiftWeek = getWeekNumber(date)
-  const shiftMonth = date.getMonth()
+  const date = toDate(shiftDate);
+  if (!date) return; // Skip if date can't be parsed
+  const shiftWeek = getWeekNumber(date);
+  const shiftMonth = date.getMonth();
 
   if (shiftWeek === context.currentWeek) {
-    member.shiftsThisWeek += 1
+    member.shiftsThisWeek += 1;
   }
   if (shiftMonth === context.currentMonth) {
-    member.shiftsThisMonth += 1
+    member.shiftsThisMonth += 1;
   }
 }

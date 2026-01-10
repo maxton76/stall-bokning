@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ShieldAlert, ShieldX, ChevronRight, AlertCircle } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { getExpiringSoon } from "@/services/vaccinationService";
+import { toDate } from "@/utils/timestampUtils";
 import { queryKeys } from "@/lib/queryClient";
 import type { Horse } from "@/types/roles";
 
@@ -60,15 +61,17 @@ export function VaccinationAlerts({
     return (
       horses
         .filter((horse) => horse.nextVaccinationDue)
-        .map((horse) => ({
-          horse,
-          daysUntilDue: differenceInDays(
-            horse.nextVaccinationDue!.toDate(),
-            new Date(),
-          ),
-          nextDueDate: horse.nextVaccinationDue!.toDate(),
-          vaccinationRuleName: horse.vaccinationRuleName,
-        }))
+        .map((horse) => {
+          const nextDueDate = toDate(horse.nextVaccinationDue!);
+          return {
+            horse,
+            daysUntilDue: nextDueDate
+              ? differenceInDays(nextDueDate, new Date())
+              : 0,
+            nextDueDate: nextDueDate || new Date(),
+            vaccinationRuleName: horse.vaccinationRuleName,
+          };
+        })
         // Sort by urgency (most urgent first)
         .sort((a, b) => a.daysUntilDue - b.daysUntilDue)
     );

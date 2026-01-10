@@ -436,8 +436,9 @@ service cloud.firestore {
     // ============================================================================
 
     match /horses/{horseId} {
-      // LIST: Simple authentication check - let query filter results
-      allow list: if isAuthenticated();
+      // LIST: Force backend API for listing to prevent enumeration
+      // Backend will filter by ownership and stable membership
+      allow list: if false;
 
       // GET: Full access check - owner or stable members if assigned
       allow get: if isAuthenticated() && (
@@ -483,9 +484,9 @@ service cloud.firestore {
     // Note: Using {path=**} to support both direct queries and collectionGroup queries
 
     match /{path=**}/locationHistory/{entryId} {
-      // LIST: Simple authentication check - let query filter results
-      // Works for both collectionGroup and direct subcollection queries
-      allow list: if isAuthenticated();
+      // LIST: Disabled to prevent collectionGroup enumeration attacks
+      // Backend API should handle location history queries with proper filtering
+      allow list: if false;
 
       // GET: Horse owner or stable members can view
       allow get: if isAuthenticated() && (
@@ -527,18 +528,24 @@ service cloud.firestore {
     // ============================================================================
 
     match /organizations/{organizationId} {
-      // LIST: All authenticated users can list organizations (query filters results)
-      allow list: if isAuthenticated();
+      // LIST: Organization members only (force backend API for listing)
+      // Backend will implement proper filtering based on user's memberships
+      allow list: if false;
 
-      // GET: Allow all authenticated users (temporary - will use custom claims later)
-      // TODO: Restrict to organization members using custom claims
-      allow get: if isAuthenticated();
+      // GET: Only organization members or system admins
+      // Users can only access organizations they are members of
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationMember(organizationId)
+      );
 
-      // CREATE: Any authenticated user can create organizations (Development mode)
+      // CREATE: Only users with stable_owner role or system admins can create organizations
       // User must become the ownerId
-      // TODO: In production, restrict to stable_owner role or system_admin
-      allow create: if isAuthenticated() &&
-        request.resource.data.ownerId == request.auth.uid;
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        hasStableOwnerRole()
+      ) &&
+      request.resource.data.ownerId == request.auth.uid;
 
       // UPDATE: Organization owner or administrators
       // Prevent ownerId changes
@@ -571,12 +578,16 @@ service cloud.firestore {
         return memberId.split('_')[0];
       }
 
-      // LIST: All authenticated users can list (query filters results)
-      allow list: if isAuthenticated();
+      // LIST: Force backend API for listing (prevents member enumeration)
+      allow list: if false;
 
-      // GET: Allow all authenticated users to read organization memberships
-      // This is needed to avoid circular dependency when checking organization access
-      allow get: if isAuthenticated();
+      // GET: Restricted to organization members, system admins, or user reading their own membership
+      // Users can only access memberships in organizations they belong to or their own membership records
+      allow get: if isAuthenticated() && isValidMemberId() && (
+        isSystemAdmin() ||
+        isOrganizationMember(extractOrganizationId()) ||
+        isOwner(extractUserId())
+      );
 
       // CREATE: Organization owner or administrators can invite
       // Validate memberId matches data fields
@@ -615,11 +626,9 @@ service cloud.firestore {
     // ============================================================================
 
     match /invites/{inviteId} {
-      // LIST: Organization members and admins can list invites
-      allow list: if isAuthenticated() && (
-        isSystemAdmin() ||
-        isOrganizationMember(resource.data.organizationId)
-      );
+      // LIST: Force backend API for listing (resource.data not available in list)
+      // Backend will filter by organization membership
+      allow list: if false;
 
       // GET: Organization members can view invites, or users with matching email
       allow get: if isAuthenticated() && (
@@ -721,8 +730,9 @@ service cloud.firestore {
     // ============================================================================
 
     match /activityTypes/{activityTypeId} {
-      // LIST: Efficient query - no get() calls needed for list operations
-      allow list: if isAuthenticated();
+      // LIST: Force backend API for listing to prevent enumeration
+      // Backend will filter by stable membership
+      allow list: if false;
 
       // GET: Full access check - stable members only
       allow get: if canAccessStable(resource.data.stableId);
@@ -762,8 +772,9 @@ service cloud.firestore {
     // ============================================================================
 
     match /activities/{activityId} {
-      // LIST: Efficient query - no get() calls needed for list operations
-      allow list: if isAuthenticated();
+      // LIST: Force backend API for listing to prevent enumeration
+      // Backend will filter by stable membership
+      allow list: if false;
 
       // GET: Full access check - any stable member can read
       allow get: if isAuthenticated() && (
@@ -1014,12 +1025,10 @@ service cloud.firestore {
       // GET: System admins only
       allow get: if isSystemAdmin();
 
-      // CREATE: Users can only create logs for their own actions
-      // Timestamp must match server time
-      // Audit logs are write-once, immutable
-      allow create: if isAuthenticated() &&
-        request.resource.data.userId == request.auth.uid &&
-        request.resource.data.timestamp == request.time;
+      // CREATE: Backend only (via Cloud Functions with service account)
+      // Audit logs must be created by trusted backend services for integrity
+      // Client-side audit log creation disabled for security
+      allow create: if false;
 
       // UPDATE: Audit logs are immutable - no updates allowed
       allow update: if false;

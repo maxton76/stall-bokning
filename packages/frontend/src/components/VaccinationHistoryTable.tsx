@@ -1,40 +1,41 @@
-import { useState } from 'react'
+import { useState } from "react";
 import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
   flexRender,
   SortingState,
-  ColumnDef
-} from '@tanstack/react-table'
+  ColumnDef,
+} from "@tanstack/react-table";
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow
-} from '@/components/ui/table'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+  TableRow,
+} from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu'
-import { Badge } from '@/components/ui/badge'
-import { MoreHorizontal, Pencil, Trash2, Plus } from 'lucide-react'
-import { format, differenceInDays } from 'date-fns'
-import type { VaccinationRecord } from '@shared/types/vaccination'
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { MoreHorizontal, Pencil, Trash2, Plus } from "lucide-react";
+import { format, differenceInDays } from "date-fns";
+import type { VaccinationRecord } from "@shared/types/vaccination";
+import { toDate } from "@/utils/timestampUtils";
 
 interface VaccinationHistoryTableProps {
-  records: VaccinationRecord[]
-  onEdit: (record: VaccinationRecord) => void
-  onDelete: (record: VaccinationRecord) => void
-  onAdd: () => void
-  loading?: boolean
+  records: VaccinationRecord[];
+  onEdit: (record: VaccinationRecord) => void;
+  onDelete: (record: VaccinationRecord) => void;
+  onAdd: () => void;
+  loading?: boolean;
 }
 
 export function VaccinationHistoryTable({
@@ -42,117 +43,127 @@ export function VaccinationHistoryTable({
   onEdit,
   onDelete,
   onAdd,
-  loading = false
+  loading = false,
 }: VaccinationHistoryTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
-    { id: 'vaccinationDate', desc: true } // Default sort by date descending (most recent first)
-  ])
+    { id: "vaccinationDate", desc: true }, // Default sort by date descending (most recent first)
+  ]);
 
   const columns: ColumnDef<VaccinationRecord>[] = [
     {
-      accessorKey: 'vaccinationDate',
-      header: 'Vaccination Date',
+      accessorKey: "vaccinationDate",
+      header: "Vaccination Date",
       cell: ({ row }) => {
-        const date = row.original.vaccinationDate.toDate()
-        return format(date, 'MMM d, yyyy')
+        const date = toDate(row.original.vaccinationDate);
+        return date ? format(date, "MMM d, yyyy") : "—";
       },
       sortingFn: (rowA, rowB) => {
-        const dateA = rowA.original.vaccinationDate.toMillis()
-        const dateB = rowB.original.vaccinationDate.toMillis()
-        return dateA - dateB
-      }
+        const dateA = toDate(rowA.original.vaccinationDate);
+        const dateB = toDate(rowB.original.vaccinationDate);
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        return dateA.getTime() - dateB.getTime();
+      },
     },
     {
-      accessorKey: 'vaccinationRuleName',
-      header: 'Vaccination Rule',
+      accessorKey: "vaccinationRuleName",
+      header: "Vaccination Rule",
       cell: ({ row }) => {
         return (
           <span className="font-medium">
-            {row.getValue('vaccinationRuleName') as string}
+            {row.getValue("vaccinationRuleName") as string}
           </span>
-        )
-      }
+        );
+      },
     },
     {
-      accessorKey: 'nextDueDate',
-      header: 'Next Due Date',
+      accessorKey: "nextDueDate",
+      header: "Next Due Date",
       cell: ({ row }) => {
-        const date = row.original.nextDueDate.toDate()
-        return format(date, 'MMM d, yyyy')
+        const date = toDate(row.original.nextDueDate);
+        return date ? format(date, "MMM d, yyyy") : "—";
       },
       sortingFn: (rowA, rowB) => {
-        const dateA = rowA.original.nextDueDate.toMillis()
-        const dateB = rowB.original.nextDueDate.toMillis()
-        return dateA - dateB
-      }
+        const dateA = toDate(rowA.original.nextDueDate);
+        const dateB = toDate(rowB.original.nextDueDate);
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        return dateA.getTime() - dateB.getTime();
+      },
     },
     {
-      id: 'daysUntilDue',
-      header: 'Days Until Due',
+      id: "daysUntilDue",
+      header: "Days Until Due",
       cell: ({ row }) => {
-        const nextDueDate = row.original.nextDueDate.toDate()
-        const today = new Date()
-        const daysUntilDue = differenceInDays(nextDueDate, today)
+        const nextDueDate = toDate(row.original.nextDueDate);
+        if (!nextDueDate) return "—";
+        const today = new Date();
+        const daysUntilDue = differenceInDays(nextDueDate, today);
 
         // Determine status color
-        let variant: 'default' | 'destructive' | 'secondary' | 'outline' = 'default'
-        let text = `${Math.abs(daysUntilDue)} days`
+        let variant: "default" | "destructive" | "secondary" | "outline" =
+          "default";
+        let text = `${Math.abs(daysUntilDue)} days`;
 
         if (daysUntilDue < 0) {
           // Overdue - red
-          variant = 'destructive'
-          text = `${Math.abs(daysUntilDue)} days overdue`
+          variant = "destructive";
+          text = `${Math.abs(daysUntilDue)} days overdue`;
         } else if (daysUntilDue <= 30) {
           // Expiring soon (within 30 days) - amber/warning
-          variant = 'outline'
-          text = `${daysUntilDue} days`
+          variant = "outline";
+          text = `${daysUntilDue} days`;
         } else {
           // Current - green/default
-          variant = 'secondary'
-          text = `${daysUntilDue} days`
+          variant = "secondary";
+          text = `${daysUntilDue} days`;
         }
 
         return (
           <Badge variant={variant} className="font-normal">
             {text}
           </Badge>
-        )
+        );
       },
       sortingFn: (rowA, rowB) => {
-        const daysA = differenceInDays(rowA.original.nextDueDate.toDate(), new Date())
-        const daysB = differenceInDays(rowB.original.nextDueDate.toDate(), new Date())
-        return daysA - daysB
-      }
+        const dateA = toDate(rowA.original.nextDueDate);
+        const dateB = toDate(rowB.original.nextDueDate);
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        const daysA = differenceInDays(dateA, new Date());
+        const daysB = differenceInDays(dateB, new Date());
+        return daysA - daysB;
+      },
     },
     {
-      accessorKey: 'veterinarianName',
-      header: 'Veterinarian',
+      accessorKey: "veterinarianName",
+      header: "Veterinarian",
       cell: ({ row }) => {
-        const vet = row.getValue('veterinarianName') as string | undefined
+        const vet = row.getValue("veterinarianName") as string | undefined;
         return vet ? (
           <span>{vet}</span>
         ) : (
           <span className="text-muted-foreground">—</span>
-        )
-      }
+        );
+      },
     },
     {
-      accessorKey: 'vaccineProduct',
-      header: 'Vaccine Product',
+      accessorKey: "vaccineProduct",
+      header: "Vaccine Product",
       cell: ({ row }) => {
-        const product = row.getValue('vaccineProduct') as string | undefined
+        const product = row.getValue("vaccineProduct") as string | undefined;
         return product ? (
           <span className="text-sm">{product}</span>
         ) : (
           <span className="text-muted-foreground">—</span>
-        )
-      }
+        );
+      },
     },
     {
-      id: 'actions',
-      header: 'Actions',
+      id: "actions",
+      header: "Actions",
       cell: ({ row }) => {
-        const record = row.original
+        const record = row.original;
 
         return (
           <DropdownMenu>
@@ -177,10 +188,10 @@ export function VaccinationHistoryTable({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        )
-      }
-    }
-  ]
+        );
+      },
+    },
+  ];
 
   const table = useReactTable({
     data: records,
@@ -189,18 +200,20 @@ export function VaccinationHistoryTable({
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: setSorting,
     state: {
-      sorting
-    }
-  })
+      sorting,
+    },
+  });
 
   return (
     <div className="space-y-4">
       {/* Header with Add Button */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <div>
-          <h3 className="text-base sm:text-lg font-semibold">Vaccination History</h3>
+          <h3 className="text-base sm:text-lg font-semibold">
+            Vaccination History
+          </h3>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            {records.length} {records.length === 1 ? 'record' : 'records'}
+            {records.length} {records.length === 1 ? "record" : "records"}
           </p>
         </div>
         <Button onClick={onAdd} size="sm">
@@ -212,16 +225,16 @@ export function VaccinationHistoryTable({
       {/* Desktop Table View - hidden on mobile */}
       <div className="hidden md:block rounded-md border">
         <Table>
-            <TableHeader>
-            {table.getHeaderGroups().map(headerGroup => (
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
+                {headerGroup.headers.map((header) => (
                   <TableHead key={header.id}>
                     {header.isPlaceholder
                       ? null
                       : flexRender(
                           header.column.columnDef.header,
-                          header.getContext()
+                          header.getContext(),
                         )}
                   </TableHead>
                 ))}
@@ -241,26 +254,26 @@ export function VaccinationHistoryTable({
                 </TableCell>
               </TableRow>
             ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map(row => (
+              table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
                   className="border-b hover:bg-muted/50 transition-colors cursor-pointer"
                   onClick={() => onEdit(row.original)}
                 >
-                  {row.getVisibleCells().map(cell => (
+                  {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
                       className="py-3 align-middle"
                       onClick={(e) => {
                         // Prevent row click when clicking on actions menu
-                        if (cell.column.id === 'actions') {
-                          e.stopPropagation()
+                        if (cell.column.id === "actions") {
+                          e.stopPropagation();
                         }
                       }}
                     >
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}
@@ -292,25 +305,31 @@ export function VaccinationHistoryTable({
             Loading vaccination records...
           </div>
         ) : table.getRowModel().rows?.length ? (
-          table.getRowModel().rows.map(row => {
-            const record = row.original
-            const vaccinationDate = record.vaccinationDate.toDate()
-            const nextDueDate = record.nextDueDate.toDate()
-            const today = new Date()
-            const daysUntilDue = differenceInDays(nextDueDate, today)
+          table.getRowModel().rows.map((row) => {
+            const record = row.original;
+            const vaccinationDate = toDate(record.vaccinationDate);
+            const nextDueDate = toDate(record.nextDueDate);
+            const today = new Date();
+            const daysUntilDue = nextDueDate
+              ? differenceInDays(nextDueDate, today)
+              : null;
 
-            let statusVariant: 'default' | 'destructive' | 'secondary' | 'outline' = 'default'
-            let statusText = `${Math.abs(daysUntilDue)} days`
+            let statusVariant:
+              | "default"
+              | "destructive"
+              | "secondary"
+              | "outline" = "default";
+            let statusText = `${Math.abs(daysUntilDue)} days`;
 
             if (daysUntilDue < 0) {
-              statusVariant = 'destructive'
-              statusText = `${Math.abs(daysUntilDue)} days overdue`
+              statusVariant = "destructive";
+              statusText = `${Math.abs(daysUntilDue)} days overdue`;
             } else if (daysUntilDue <= 30) {
-              statusVariant = 'outline'
-              statusText = `${daysUntilDue} days`
+              statusVariant = "outline";
+              statusText = `${daysUntilDue} days`;
             } else {
-              statusVariant = 'secondary'
-              statusText = `${daysUntilDue} days`
+              statusVariant = "secondary";
+              statusText = `${daysUntilDue} days`;
             }
 
             return (
@@ -326,7 +345,7 @@ export function VaccinationHistoryTable({
                         {record.vaccinationRuleName}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        Vaccinated: {format(vaccinationDate, 'MMM d, yyyy')}
+                        Vaccinated: {format(vaccinationDate, "MMM d, yyyy")}
                       </p>
                     </div>
                     <Badge variant={statusVariant} className="font-normal ml-2">
@@ -337,12 +356,16 @@ export function VaccinationHistoryTable({
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Next Due:</span>
-                      <span className="font-medium">{format(nextDueDate, 'MMM d, yyyy')}</span>
+                      <span className="font-medium">
+                        {format(nextDueDate, "MMM d, yyyy")}
+                      </span>
                     </div>
 
                     {record.veterinarianName && (
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Veterinarian:</span>
+                        <span className="text-muted-foreground">
+                          Veterinarian:
+                        </span>
                         <span>{record.veterinarianName}</span>
                       </div>
                     )}
@@ -361,8 +384,8 @@ export function VaccinationHistoryTable({
                       variant="ghost"
                       size="sm"
                       onClick={(e) => {
-                        e.stopPropagation()
-                        onEdit(record)
+                        e.stopPropagation();
+                        onEdit(record);
                       }}
                     >
                       <Pencil className="h-4 w-4 mr-1" />
@@ -372,8 +395,8 @@ export function VaccinationHistoryTable({
                       variant="ghost"
                       size="sm"
                       onClick={(e) => {
-                        e.stopPropagation()
-                        onDelete(record)
+                        e.stopPropagation();
+                        onDelete(record);
                       }}
                       className="text-destructive hover:text-destructive"
                     >
@@ -383,7 +406,7 @@ export function VaccinationHistoryTable({
                   </div>
                 </CardContent>
               </Card>
-            )
+            );
           })
         ) : (
           <Card>
@@ -397,5 +420,5 @@ export function VaccinationHistoryTable({
         )}
       </div>
     </div>
-  )
+  );
 }

@@ -1,18 +1,4 @@
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  getDocs,
-  getDoc,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  Timestamp
-} from 'firebase/firestore'
-import { db } from '@/lib/firebase'
-import type { VaccinationRule } from '@/types/roles'
+import type { VaccinationRule } from "@/types/roles";
 
 // ============================================================================
 // Type Guards & Helpers
@@ -22,21 +8,21 @@ import type { VaccinationRule } from '@/types/roles'
  * Check if a vaccination rule is a system-wide rule
  */
 export function isSystemRule(rule: VaccinationRule): boolean {
-  return rule.scope === 'system' && rule.systemWide === true
+  return rule.scope === "system" && rule.systemWide === true;
 }
 
 /**
  * Check if a vaccination rule is an organization-level rule
  */
 export function isOrganizationRule(rule: VaccinationRule): boolean {
-  return rule.scope === 'organization' && !!rule.organizationId
+  return rule.scope === "organization" && !!rule.organizationId;
 }
 
 /**
  * Check if a vaccination rule is a user-level rule
  */
 export function isUserRule(rule: VaccinationRule): boolean {
-  return rule.scope === 'user' && !!rule.userId
+  return rule.scope === "user" && !!rule.userId;
 }
 
 /**
@@ -46,9 +32,9 @@ export function validateVaccinationRuleScope(rule: VaccinationRule): boolean {
   const scopeFields = [
     rule.systemWide === true,
     !!rule.organizationId,
-    !!rule.userId
-  ]
-  return scopeFields.filter(Boolean).length === 1
+    !!rule.userId,
+  ];
+  return scopeFields.filter(Boolean).length === 1;
 }
 
 // ============================================================================
@@ -65,16 +51,16 @@ export function canEditVaccinationRule(
   rule: VaccinationRule,
   userId: string,
   organizationId?: string,
-  isOrgAdmin = false
+  isOrgAdmin = false,
 ): boolean {
-  if (isSystemRule(rule)) return false
+  if (isSystemRule(rule)) return false;
   if (isOrganizationRule(rule)) {
-    return isOrgAdmin && rule.organizationId === organizationId
+    return isOrgAdmin && rule.organizationId === organizationId;
   }
   if (isUserRule(rule)) {
-    return rule.userId === userId
+    return rule.userId === userId;
   }
-  return false
+  return false;
 }
 
 /**
@@ -85,9 +71,9 @@ export function canDeleteVaccinationRule(
   rule: VaccinationRule,
   userId: string,
   organizationId?: string,
-  isOrgAdmin = false
+  isOrgAdmin = false,
 ): boolean {
-  return canEditVaccinationRule(rule, userId, organizationId, isOrgAdmin)
+  return canEditVaccinationRule(rule, userId, organizationId, isOrgAdmin);
 }
 
 // ============================================================================
@@ -98,129 +84,154 @@ export function canDeleteVaccinationRule(
  * Get all system-wide vaccination rules (FEI, KNHS)
  */
 export async function getSystemVaccinationRules(): Promise<VaccinationRule[]> {
-  const q = query(
-    collection(db, 'vaccinationRules'),
-    where('scope', '==', 'system'),
-    where('systemWide', '==', true),
-    orderBy('createdAt', 'desc')
-  )
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  const snapshot = await getDocs(q)
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VaccinationRule))
+  const response = await authFetchJSON<{ rules: VaccinationRule[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/vaccination-rules?scope=system`,
+    { method: "GET" },
+  );
+
+  return response.rules;
 }
 
 /**
  * Get all organization-level vaccination rules
  */
-export async function getOrganizationVaccinationRules(organizationId: string): Promise<VaccinationRule[]> {
-  const q = query(
-    collection(db, 'vaccinationRules'),
-    where('scope', '==', 'organization'),
-    where('organizationId', '==', organizationId),
-    orderBy('createdAt', 'desc')
-  )
+export async function getOrganizationVaccinationRules(
+  organizationId: string,
+): Promise<VaccinationRule[]> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  const snapshot = await getDocs(q)
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VaccinationRule))
+  const response = await authFetchJSON<{ rules: VaccinationRule[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/vaccination-rules?scope=organization&organizationId=${organizationId}`,
+    { method: "GET" },
+  );
+
+  return response.rules;
 }
 
 /**
  * Get all user-level vaccination rules
  */
-export async function getUserVaccinationRules(userId: string): Promise<VaccinationRule[]> {
-  const q = query(
-    collection(db, 'vaccinationRules'),
-    where('scope', '==', 'user'),
-    where('userId', '==', userId),
-    orderBy('createdAt', 'desc')
-  )
+export async function getUserVaccinationRules(
+  userId: string,
+): Promise<VaccinationRule[]> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  const snapshot = await getDocs(q)
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VaccinationRule))
+  const response = await authFetchJSON<{ rules: VaccinationRule[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/vaccination-rules?scope=user`,
+    { method: "GET" },
+  );
+
+  return response.rules;
 }
 
 /**
  * Get ALL accessible vaccination rules (system + organization + user)
  * Parallel execution for optimal performance
+ * Handles permission errors gracefully - if user doesn't have access to org rules, just skip them
  */
 export async function getAllAvailableVaccinationRules(
   userId?: string,
-  organizationId?: string
+  organizationId?: string,
 ): Promise<VaccinationRule[]> {
-  // Run queries in parallel for performance
-  const [systemRules, orgRules, userRules] = await Promise.all([
+  // Run queries in parallel for performance, handle failures gracefully
+  const results = await Promise.allSettled([
     getSystemVaccinationRules(),
-    organizationId ? getOrganizationVaccinationRules(organizationId) : Promise.resolve([]),
-    userId ? getUserVaccinationRules(userId) : Promise.resolve([])
-  ])
+    organizationId
+      ? getOrganizationVaccinationRules(organizationId)
+      : Promise.resolve([]),
+    userId ? getUserVaccinationRules(userId) : Promise.resolve([]),
+  ]);
+
+  // Extract successful results, ignore failed ones (e.g., permission errors)
+  const systemRules = results[0].status === "fulfilled" ? results[0].value : [];
+  const orgRules = results[1].status === "fulfilled" ? results[1].value : [];
+  const userRules = results[2].status === "fulfilled" ? results[2].value : [];
 
   // Combine: system rules first, then org rules, then user rules
-  return [...systemRules, ...orgRules, ...userRules]
+  return [...systemRules, ...orgRules, ...userRules];
 }
 
 /**
  * Legacy function for backward compatibility
  * @deprecated Use getAllAvailableVaccinationRules instead
  */
-export async function getAllVaccinationRules(_stableId?: string): Promise<VaccinationRule[]> {
+export async function getAllVaccinationRules(
+  _stableId?: string,
+): Promise<VaccinationRule[]> {
   // For now, just return system rules
   // This will be updated once migration is complete
-  return getSystemVaccinationRules()
+  return getSystemVaccinationRules();
 }
 
 /**
  * Get a single vaccination rule by ID
  */
-export async function getVaccinationRule(ruleId: string): Promise<VaccinationRule | null> {
-  const docRef = doc(db, 'vaccinationRules', ruleId)
-  const docSnap = await getDoc(docRef)
+export async function getVaccinationRule(
+  ruleId: string,
+): Promise<VaccinationRule | null> {
+  try {
+    const { authFetchJSON } = await import("@/utils/authFetch");
 
-  if (!docSnap.exists()) {
-    return null
+    const response = await authFetchJSON<VaccinationRule>(
+      `${import.meta.env.VITE_API_URL}/api/v1/vaccination-rules/${ruleId}`,
+      { method: "GET" },
+    );
+
+    return response;
+  } catch (error) {
+    return null;
   }
-
-  return { id: docSnap.id, ...docSnap.data() } as VaccinationRule
 }
 
 // ============================================================================
 // CRUD Operations
 // ============================================================================
 
-type CreateRuleData = Omit<VaccinationRule, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>
+type CreateRuleData = Omit<
+  VaccinationRule,
+  "id" | "createdAt" | "updatedAt" | "createdBy"
+>;
 
 /**
  * Create a new vaccination rule (organization or user scope only)
  * System rules cannot be created via this function
  */
 export async function createVaccinationRule(
-  scope: 'organization' | 'user',
+  scope: "organization" | "user",
   userId: string,
-  ruleData: Omit<CreateRuleData, 'scope' | 'systemWide' | 'organizationId' | 'userId'>,
-  scopeId: string
+  ruleData: Omit<
+    CreateRuleData,
+    "scope" | "systemWide" | "organizationId" | "userId"
+  >,
+  scopeId: string,
 ): Promise<string> {
-  const now = Timestamp.now()
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  const data: Partial<VaccinationRule> = {
+  const data: any = {
     scope,
-    name: ruleData.name,
+    vaccineName: ruleData.name,
+    intervalMonths: ruleData.periodMonths,
+    alertDaysBefore: 30,
+    isActive: true,
     description: ruleData.description,
-    periodMonths: ruleData.periodMonths,
-    periodDays: ruleData.periodDays,
-    daysNotCompeting: ruleData.daysNotCompeting,
-    createdAt: now,
-    updatedAt: now,
-    createdBy: userId
-  }
+  };
 
   // Set scope-specific fields
-  if (scope === 'organization') {
-    data.organizationId = scopeId
-  } else if (scope === 'user') {
-    data.userId = scopeId
+  if (scope === "organization") {
+    data.organizationId = scopeId;
   }
 
-  const docRef = await addDoc(collection(db, 'vaccinationRules'), data)
-  return docRef.id
+  const response = await authFetchJSON<{ id: string }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/vaccination-rules`,
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    },
+  );
+
+  return response.id;
 }
 
 /**
@@ -230,23 +241,43 @@ export async function createVaccinationRule(
 export async function updateVaccinationRule(
   ruleId: string,
   _userId: string,
-  updates: Partial<Omit<VaccinationRule, 'id' | 'scope' | 'systemWide' | 'organizationId' | 'userId' | 'createdAt' | 'createdBy'>>
+  updates: Partial<
+    Omit<
+      VaccinationRule,
+      | "id"
+      | "scope"
+      | "systemWide"
+      | "organizationId"
+      | "userId"
+      | "createdAt"
+      | "createdBy"
+    >
+  >,
 ): Promise<void> {
   // Validate that the rule is not a system rule
-  const rule = await getVaccinationRule(ruleId)
+  const rule = await getVaccinationRule(ruleId);
   if (!rule) {
-    throw new Error('Vaccination rule not found')
+    throw new Error("Vaccination rule not found");
   }
 
   if (isSystemRule(rule)) {
-    throw new Error('Cannot update system vaccination rules')
+    throw new Error("Cannot update system vaccination rules");
   }
 
-  const docRef = doc(db, 'vaccinationRules', ruleId)
-  await updateDoc(docRef, {
-    ...updates,
-    updatedAt: Timestamp.now()
-  })
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  const data: any = {};
+  if (updates.name) data.vaccineName = updates.name;
+  if (updates.periodMonths) data.intervalMonths = updates.periodMonths;
+  if (updates.description !== undefined) data.description = updates.description;
+
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/vaccination-rules/${ruleId}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(data),
+    },
+  );
 }
 
 /**
@@ -255,15 +286,21 @@ export async function updateVaccinationRule(
  */
 export async function deleteVaccinationRule(ruleId: string): Promise<void> {
   // Validate that the rule is not a system rule
-  const rule = await getVaccinationRule(ruleId)
+  const rule = await getVaccinationRule(ruleId);
   if (!rule) {
-    throw new Error('Vaccination rule not found')
+    throw new Error("Vaccination rule not found");
   }
 
   if (isSystemRule(rule)) {
-    throw new Error('Cannot delete system vaccination rules')
+    throw new Error("Cannot delete system vaccination rules");
   }
 
-  const docRef = doc(db, 'vaccinationRules', ruleId)
-  await deleteDoc(docRef)
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/vaccination-rules/${ruleId}`,
+    {
+      method: "DELETE",
+    },
+  );
 }

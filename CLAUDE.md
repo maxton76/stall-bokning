@@ -75,7 +75,7 @@ cp .env.example .env                     # Create environment files
 # Start all services (requires 3 terminals)
 firebase emulators:start                 # Terminal 1: Firebase emulators (Auth, Firestore, Functions, Storage)
 cd packages/frontend && npm run dev      # Terminal 2: Frontend dev server (http://localhost:5555)
-cd packages/api && npm run dev           # Terminal 3: Cloud Run API (http://localhost:8080)
+cd packages/api && npm run dev           # Terminal 3: Cloud Run API (http://localhost:5003)
 
 # Emulator UI available at: http://localhost:4000
 ```
@@ -127,13 +127,13 @@ gcloud logging read "resource.type=cloud_run_revision" --limit 50
 ### Troubleshooting
 ```bash
 # Kill process on occupied port
-lsof -ti:8080 | xargs kill -9
+lsof -ti:5003 | xargs kill -9
 
 # Restart dev environment after .env changes
 # (Vite requires VITE_ prefix for frontend variables)
 
 # Stripe webhook testing locally
-stripe listen --forward-to localhost:8080/api/v1/webhooks/stripe
+stripe listen --forward-to localhost:5003/api/v1/webhooks/stripe
 ```
 
 ## Important Development Notes

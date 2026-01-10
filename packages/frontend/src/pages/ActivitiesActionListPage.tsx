@@ -1,37 +1,46 @@
-import { useState, useEffect, useMemo } from 'react'
-import { Plus, Pencil, Trash2, CheckCircle2, ChevronLeft, ChevronRight, MoreVertical } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
+import { useState, useEffect, useMemo } from "react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  MoreVertical,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+} from "@/components/ui/dropdown-menu";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { useAuth } from '@/contexts/AuthContext'
-import { useDialog } from '@/hooks/useDialog'
-import { useAsyncData } from '@/hooks/useAsyncData'
-import { useCRUD } from '@/hooks/useCRUD'
-import { useUserStables } from '@/hooks/useUserStables'
-import { useActivityFilters } from '@/hooks/useActivityFilters'
-import { useActivityTypes } from '@/hooks/useActivityTypes'
-import { useActivityTypeConfig } from '@/hooks/useActivityTypeConfig'
-import { ActivityFormDialog } from '@/components/ActivityFormDialog'
-import { ActivityFilterPopover } from '@/components/activities/ActivityFilterPopover'
-import { AssigneeAvatar } from '@/components/activities/AssigneeAvatar'
-import { Timestamp } from 'firebase/firestore'
-import { cn } from '@/lib/utils'
+} from "@/components/ui/select";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDialog } from "@/hooks/useDialog";
+import { useAsyncData } from "@/hooks/useAsyncData";
+import { useCRUD } from "@/hooks/useCRUD";
+import { useUserStables } from "@/hooks/useUserStables";
+import { useActivityFilters } from "@/hooks/useActivityFilters";
+import { useActivityTypes } from "@/hooks/useActivityTypes";
+import { useActivityTypeConfig } from "@/hooks/useActivityTypeConfig";
+import { ActivityFormDialog } from "@/components/ActivityFormDialog";
+import { ActivityFilterPopover } from "@/components/activities/ActivityFilterPopover";
+import { AssigneeAvatar } from "@/components/activities/AssigneeAvatar";
+import { Timestamp } from "firebase/firestore";
+import { cn } from "@/lib/utils";
+import { toDate } from "@/utils/timestampUtils";
 import {
   getActivitiesByPeriod,
   createActivity,
@@ -40,16 +49,16 @@ import {
   updateActivity,
   deleteActivity,
   completeActivity,
-} from '@/services/activityService'
-import { getUserHorses } from '@/services/horseService'
+} from "@/services/activityService";
+import { getUserHorses } from "@/services/horseService";
 import type {
   ActivityEntry,
   ActivityFilters,
   PeriodType,
-} from '@/types/activity'
-import type { Horse } from '@/types/roles'
-import { ACTIVITY_TYPES as ACTIVITY_TYPE_CONFIG } from '@/types/activity'
-import { useToast } from '@/hooks/use-toast'
+} from "@/types/activity";
+import type { Horse } from "@/types/roles";
+import { ACTIVITY_TYPES as ACTIVITY_TYPE_CONFIG } from "@/types/activity";
+import { useToast } from "@/hooks/use-toast";
 import {
   format,
   isSameDay,
@@ -65,292 +74,303 @@ import {
   subYears,
   startOfWeek,
   endOfWeek,
-} from 'date-fns'
+} from "date-fns";
 
 const PERIOD_TYPES: Array<{ value: PeriodType; label: string }> = [
-  { value: 'day', label: 'Day' },
-  { value: 'week', label: 'Week' },
-  { value: 'month', label: 'Month' },
-]
+  { value: "day", label: "Day" },
+  { value: "week", label: "Week" },
+  { value: "month", label: "Month" },
+];
 
 export default function ActivitiesActionListPage() {
-  const { user } = useAuth()
-  const { toast } = useToast()
-  const [periodType, setPeriodType] = useState<PeriodType>('day')
-  const [currentDate, setCurrentDate] = useState<Date>(new Date())
-  const [selectedStableId, setSelectedStableId] = useState<string>('')
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [periodType, setPeriodType] = useState<PeriodType>("day");
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [selectedStableId, setSelectedStableId] = useState<string>("");
   const [filters, setFilters] = useState<ActivityFilters>({
-    groupBy: 'none',
+    groupBy: "none",
     forMe: false,
     showFinished: false,
-    entryTypes: ['activity', 'task', 'message'],
-  })
-  const [completingIds, setCompletingIds] = useState<Set<string>>(new Set())
+    entryTypes: ["activity", "task", "message"],
+  });
+  const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
 
   // Navigation handlers
   const handleNext = () => {
     setCurrentDate((current) => {
-      const now = new Date()
-      const oneYearAhead = addYears(now, 1)
+      const now = new Date();
+      const oneYearAhead = addYears(now, 1);
 
-      let newDate: Date
+      let newDate: Date;
       switch (periodType) {
-        case 'day':
-          newDate = addDays(current, 1)
-          break
-        case 'week':
-          newDate = addWeeks(current, 1)
-          break
-        case 'month':
-          newDate = addMonths(current, 1)
-          break
+        case "day":
+          newDate = addDays(current, 1);
+          break;
+        case "week":
+          newDate = addWeeks(current, 1);
+          break;
+        case "month":
+          newDate = addMonths(current, 1);
+          break;
         default:
-          return current
+          return current;
       }
 
       // Limit to 1 year ahead
-      return newDate <= oneYearAhead ? newDate : current
-    })
-  }
+      return newDate <= oneYearAhead ? newDate : current;
+    });
+  };
 
   const handlePrevious = () => {
     setCurrentDate((current) => {
-      const now = new Date()
-      const oneYearBehind = subYears(now, 1)
+      const now = new Date();
+      const oneYearBehind = subYears(now, 1);
 
-      let newDate: Date
+      let newDate: Date;
       switch (periodType) {
-        case 'day':
-          newDate = subDays(current, 1)
-          break
-        case 'week':
-          newDate = subWeeks(current, 1)
-          break
-        case 'month':
-          newDate = subMonths(current, 1)
-          break
+        case "day":
+          newDate = subDays(current, 1);
+          break;
+        case "week":
+          newDate = subWeeks(current, 1);
+          break;
+        case "month":
+          newDate = subMonths(current, 1);
+          break;
         default:
-          return current
+          return current;
       }
 
       // Limit to 1 year behind
-      return newDate >= oneYearBehind ? newDate : current
-    })
-  }
+      return newDate >= oneYearBehind ? newDate : current;
+    });
+  };
 
   const handleToday = () => {
-    setCurrentDate(new Date())
-  }
+    setCurrentDate(new Date());
+  };
 
   const getDateRangeLabel = (date: Date, type: PeriodType): string => {
-    const now = new Date()
+    const now = new Date();
 
     switch (type) {
-      case 'day':
-        if (isSameDay(date, now)) return 'Today'
-        if (isSameDay(date, addDays(now, 1))) return 'Tomorrow'
-        return format(date, 'MMMM d, yyyy')
+      case "day":
+        if (isSameDay(date, now)) return "Today";
+        if (isSameDay(date, addDays(now, 1))) return "Tomorrow";
+        return format(date, "MMMM d, yyyy");
 
-      case 'week':
-        const weekStart = startOfWeek(date, { weekStartsOn: 1 })
-        const weekEnd = endOfWeek(date, { weekStartsOn: 1 })
+      case "week":
+        const weekStart = startOfWeek(date, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
 
-        if (isSameWeek(date, now, { weekStartsOn: 1 })) return 'This Week'
-        if (isSameWeek(date, addWeeks(now, 1), { weekStartsOn: 1 })) return 'Next Week'
+        if (isSameWeek(date, now, { weekStartsOn: 1 })) return "This Week";
+        if (isSameWeek(date, addWeeks(now, 1), { weekStartsOn: 1 }))
+          return "Next Week";
 
-        return `Week of ${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`
+        return `Week of ${format(weekStart, "MMM d")} - ${format(weekEnd, "MMM d, yyyy")}`;
 
-      case 'month':
-        if (isSameMonth(date, now)) return 'This Month'
-        if (isSameMonth(date, addMonths(now, 1))) return 'Next Month'
+      case "month":
+        if (isSameMonth(date, now)) return "This Month";
+        if (isSameMonth(date, addMonths(now, 1))) return "Next Month";
 
-        return format(date, 'MMMM yyyy')
+        return format(date, "MMMM yyyy");
     }
-  }
+  };
 
   // Determine if navigation buttons should be disabled
-  const now = new Date()
-  const oneYearAhead = addYears(now, 1)
-  const oneYearBehind = subYears(now, 1)
-  const isNextDisabled = currentDate >= oneYearAhead
-  const isPreviousDisabled = currentDate <= oneYearBehind
+  const now = new Date();
+  const oneYearAhead = addYears(now, 1);
+  const oneYearBehind = subYears(now, 1);
+  const isNextDisabled = currentDate >= oneYearAhead;
+  const isPreviousDisabled = currentDate <= oneYearBehind;
 
   // Load user's stables
-  const { stables, loading: stablesLoading } = useUserStables(user?.uid)
+  const { stables, loading: stablesLoading } = useUserStables(user?.uid);
 
   // Auto-select first stable
   useEffect(() => {
     if (stables.length > 0 && !selectedStableId && stables[0]) {
-      setSelectedStableId(stables[0].id)
+      setSelectedStableId(stables[0].id);
     }
-  }, [stables, selectedStableId])
+  }, [stables, selectedStableId]);
 
   // Load activities for selected stable and period
   const activities = useAsyncData<ActivityEntry[]>({
     loadFn: async () => {
-      if (!selectedStableId) return []
-      return await getActivitiesByPeriod(selectedStableId, currentDate, periodType)
+      if (!selectedStableId) return [];
+      return await getActivitiesByPeriod(
+        selectedStableId,
+        currentDate,
+        periodType,
+      );
     },
-  })
+  });
 
   // Load horses for activity form
   const horses = useAsyncData<Horse[]>({
     loadFn: async () => {
-      if (!user) return []
-      return await getUserHorses(user.uid)
+      if (!user) return [];
+      return await getUserHorses(user.uid);
     },
-  })
+  });
 
   // Load activity types for selected stable (auto-reloads on stable change)
-  const activityTypes = useActivityTypes(selectedStableId, true)
+  const activityTypes = useActivityTypes(selectedStableId, true);
 
   // Reload activities when stable, period type, or date changes
   useEffect(() => {
     if (selectedStableId) {
-      activities.load()
+      activities.load();
     }
-  }, [selectedStableId, currentDate, periodType])
+  }, [selectedStableId, currentDate, periodType]);
 
   // Load horses on mount
   useEffect(() => {
     if (user) {
-      horses.load()
+      horses.load();
     }
-  }, [user])
+  }, [user]);
 
   // Filter and group activities
-  const { filteredActivities, groupedActivities, temporalSections } = useActivityFilters(
-    activities.data || [],
-    filters,
-    user?.uid,
-    periodType
-  )
+  const { filteredActivities, groupedActivities, temporalSections } =
+    useActivityFilters(activities.data || [], filters, user?.uid, periodType);
 
   // Dialog state
-  const formDialog = useDialog<ActivityEntry>()
+  const formDialog = useDialog<ActivityEntry>();
 
   // CRUD operations
   const { create, update, remove } = useCRUD<ActivityEntry>({
     createFn: async (data: any) => {
-      if (!selectedStableId || !user) throw new Error('Missing required data')
-      const stable = stables.find((s) => s.id === selectedStableId)
-      if (!stable) throw new Error('Stable not found')
+      if (!selectedStableId || !user) throw new Error("Missing required data");
+      const stable = stables.find((s) => s.id === selectedStableId);
+      if (!stable) throw new Error("Stable not found");
 
-      if (data.type === 'activity') {
-        return await createActivity(user.uid, selectedStableId, data, stable.name)
-      } else if (data.type === 'task') {
-        return await createTask(user.uid, selectedStableId, data, stable.name)
+      if (data.type === "activity") {
+        return await createActivity(
+          user.uid,
+          selectedStableId,
+          data,
+          stable.name,
+        );
+      } else if (data.type === "task") {
+        return await createTask(user.uid, selectedStableId, data, stable.name);
       } else {
-        return await createMessage(user.uid, selectedStableId, data, stable.name)
+        return await createMessage(
+          user.uid,
+          selectedStableId,
+          data,
+          stable.name,
+        );
       }
     },
     updateFn: async (id, data) => {
-      if (!user) throw new Error('User not authenticated')
-      await updateActivity(id, user.uid, data)
+      if (!user) throw new Error("User not authenticated");
+      await updateActivity(id, user.uid, data);
     },
     deleteFn: async (id) => {
-      await deleteActivity(id)
+      await deleteActivity(id);
     },
     onSuccess: async () => {
-      await activities.reload()
+      await activities.reload();
     },
     successMessages: {
-      create: 'Entry created successfully',
-      update: 'Entry updated successfully',
-      delete: 'Entry deleted successfully',
+      create: "Entry created successfully",
+      update: "Entry updated successfully",
+      delete: "Entry deleted successfully",
     },
-  })
+  });
 
   // Handlers
   const handleAddEntry = () => {
-    formDialog.openDialog()
-  }
+    formDialog.openDialog();
+  };
 
   const handleEditEntry = (entry: ActivityEntry) => {
-    formDialog.openDialog(entry)
-  }
+    formDialog.openDialog(entry);
+  };
 
   const handleDeleteEntry = async (entry: ActivityEntry) => {
     const entryTitle =
-      entry.type === 'activity'
+      entry.type === "activity"
         ? `${entry.horseName} - ${ACTIVITY_TYPE_CONFIG.find((t) => t.value === entry.activityType)?.label}`
-        : entry.title
+        : entry.title;
 
     if (confirm(`Are you sure you want to delete "${entryTitle}"?`)) {
-      await remove(entry.id)
+      await remove(entry.id);
     }
-  }
+  };
 
   const handleCompleteEntry = async (entry: ActivityEntry) => {
-    if (!user || entry.status === 'completed') return
+    if (!user || entry.status === "completed") return;
 
-    setCompletingIds(prev => new Set(prev).add(entry.id))
+    setCompletingIds((prev) => new Set(prev).add(entry.id));
 
     try {
       // Optimistic update
-      const optimisticActivities = (activities.data || []).map(a =>
-        a.id === entry.id ? { ...a, status: 'completed' as const } : a
-      )
-      activities.setData?.(optimisticActivities)
+      const optimisticActivities = (activities.data || []).map((a) =>
+        a.id === entry.id ? { ...a, status: "completed" as const } : a,
+      );
+      activities.setData?.(optimisticActivities);
 
-      await completeActivity(entry.id, user.uid)
+      await completeActivity(entry.id, user.uid);
 
       toast({
-        title: 'Completed',
-        description: 'Entry marked as completed',
-      })
+        title: "Completed",
+        description: "Entry marked as completed",
+      });
 
-      await activities.reload()
+      await activities.reload();
     } catch (error) {
-      console.error('Failed to complete:', error)
-      await activities.reload()
+      console.error("Failed to complete:", error);
+      await activities.reload();
       toast({
-        title: 'Error',
-        description: 'Failed to mark as completed',
-        variant: 'destructive',
-      })
+        title: "Error",
+        description: "Failed to mark as completed",
+        variant: "destructive",
+      });
     } finally {
-      setCompletingIds(prev => {
-        const next = new Set(prev)
-        next.delete(entry.id)
-        return next
-      })
+      setCompletingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(entry.id);
+        return next;
+      });
     }
-  }
+  };
 
   const handleSaveEntry = async (data: any) => {
     try {
       if (formDialog.data) {
         // Update existing entry
-        await update(formDialog.data.id, data)
+        await update(formDialog.data.id, data);
       } else {
         // Create new entry
-        await create(data)
+        await create(data);
       }
-      formDialog.closeDialog()
+      formDialog.closeDialog();
     } catch (error) {
-      console.error('Failed to save entry:', error)
+      console.error("Failed to save entry:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to save entry. Please try again.',
-        variant: 'destructive',
-      })
+        title: "Error",
+        description: "Failed to save entry. Please try again.",
+        variant: "destructive",
+      });
     }
-  }
+  };
 
   // Get stable members for assignment dropdown
   const stableMembers = useMemo(() => {
     // This would typically come from a stable members service
     // For now, return empty array
-    return []
-  }, [selectedStableId])
+    return [];
+  }, [selectedStableId]);
 
   if (stablesLoading) {
     return (
       <div className="container mx-auto p-6">
         <p className="text-muted-foreground">Loading stables...</p>
       </div>
-    )
+    );
   }
 
   if (stables.length === 0) {
@@ -365,7 +385,7 @@ export default function ActivitiesActionListPage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -391,7 +411,10 @@ export default function ActivitiesActionListPage() {
           <div className="flex flex-col md:flex-row md:items-center gap-4">
             {/* Stable Selector */}
             <div className="w-full md:w-64">
-              <Select value={selectedStableId} onValueChange={setSelectedStableId}>
+              <Select
+                value={selectedStableId}
+                onValueChange={setSelectedStableId}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a stable" />
                 </SelectTrigger>
@@ -406,7 +429,11 @@ export default function ActivitiesActionListPage() {
             </div>
 
             {/* Period Type Selection */}
-            <Tabs value={periodType} onValueChange={(v) => setPeriodType(v as PeriodType)} className="flex-1">
+            <Tabs
+              value={periodType}
+              onValueChange={(v) => setPeriodType(v as PeriodType)}
+              className="flex-1"
+            >
               <TabsList className="grid w-full md:w-[300px] grid-cols-3">
                 {PERIOD_TYPES.map((type) => (
                   <TabsTrigger key={type.value} value={type.value}>
@@ -417,7 +444,10 @@ export default function ActivitiesActionListPage() {
             </Tabs>
 
             {/* Filter Button */}
-            <ActivityFilterPopover filters={filters} onFiltersChange={setFilters} />
+            <ActivityFilterPopover
+              filters={filters}
+              onFiltersChange={setFilters}
+            />
           </div>
 
           {/* Navigation Controls + Date Range */}
@@ -461,7 +491,9 @@ export default function ActivitiesActionListPage() {
             </div>
           ) : filteredActivities.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">No activities for this period.</p>
+              <p className="text-muted-foreground">
+                No activities for this period.
+              </p>
             </div>
           ) : temporalSections ? (
             // TEMPORAL SECTIONS VIEW
@@ -469,7 +501,9 @@ export default function ActivitiesActionListPage() {
               {temporalSections.overdue.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <h3 className="text-sm font-semibold text-red-600">Overdue</h3>
+                    <h3 className="text-sm font-semibold text-red-600">
+                      Overdue
+                    </h3>
                     <Badge variant="destructive" className="text-xs">
                       {temporalSections.overdue.length}
                     </Badge>
@@ -519,7 +553,9 @@ export default function ActivitiesActionListPage() {
               {temporalSections.upcoming.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <h3 className="text-sm font-semibold text-muted-foreground">Upcoming</h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground">
+                      Upcoming
+                    </h3>
                     <Badge variant="outline" className="text-xs">
                       {temporalSections.upcoming.length}
                     </Badge>
@@ -541,7 +577,7 @@ export default function ActivitiesActionListPage() {
                 </div>
               )}
             </div>
-          ) : filters.groupBy === 'none' ? (
+          ) : filters.groupBy === "none" ? (
             // UNGROUPED LIST
             <div className="space-y-1">
               {filteredActivities.map((entry) => (
@@ -594,70 +630,88 @@ export default function ActivitiesActionListPage() {
         activityTypes={activityTypes.data || []}
       />
     </div>
-  )
+  );
 }
 
 // Activity Card Component
 interface ActivityCardProps {
-  entry: ActivityEntry
-  onEdit: () => void
-  onDelete: () => void
-  onComplete: () => void
-  isCompleting: boolean
-  activityTypes: Array<any> // Activity type configs
-  horses: Array<{ id: string; name: string }> // Horse lookup data
+  entry: ActivityEntry;
+  onEdit: () => void;
+  onDelete: () => void;
+  onComplete: () => void;
+  isCompleting: boolean;
+  activityTypes: Array<any>; // Activity type configs
+  horses: Array<{ id: string; name: string }>; // Horse lookup data
 }
 
 // Helper functions for ActivityCard
-function getEntryTitle(entry: ActivityEntry, activityTypes: any[], horses: Array<{ id: string; name: string }>): string {
-  if (entry.type === 'activity') {
-    const typeConfig = activityTypes.find(t => t.id === entry.activityTypeConfigId)
-    const typeName = typeConfig?.name || 'Activity'
+function getEntryTitle(
+  entry: ActivityEntry,
+  activityTypes: any[],
+  horses: Array<{ id: string; name: string }>,
+): string {
+  if (entry.type === "activity") {
+    const typeConfig = activityTypes.find(
+      (t) => t.id === entry.activityTypeConfigId,
+    );
+    const typeName = typeConfig?.name || "Activity";
 
     // Try to get horse name from entry, otherwise look it up from horses array
-    let horseName = entry.horseName
+    let horseName = entry.horseName;
     if (!horseName && entry.horseId) {
-      const horse = horses.find(h => h.id === entry.horseId)
-      horseName = horse?.name
+      const horse = horses.find((h) => h.id === entry.horseId);
+      horseName = horse?.name;
     }
-    horseName = horseName || 'Unknown Horse'
+    horseName = horseName || "Unknown Horse";
 
-    return `${horseName} - ${typeName}`
+    return `${horseName} - ${typeName}`;
   }
-  return entry.title
+  return entry.title;
 }
 
 function isOverdue(entry: ActivityEntry): boolean {
-  if (entry.status === 'completed') return false
-  return entry.date.toDate() < new Date()
+  if (entry.status === "completed") return false;
+  const entryDate = toDate(entry.date);
+  return entryDate ? entryDate < new Date() : false;
 }
 
 function formatActivityDate(timestamp: Timestamp): string {
-  const date = timestamp.toDate()
-  const today = new Date()
+  const date = toDate(timestamp);
+  if (!date) return "Unknown";
+  const today = new Date();
 
-  if (isSameDay(date, today)) return 'Today'
-  if (isSameDay(date, addDays(today, 1))) return 'Tomorrow'
-  return format(date, 'MMM d, yyyy')
+  if (isSameDay(date, today)) return "Today";
+  if (isSameDay(date, addDays(today, 1))) return "Tomorrow";
+  return format(date, "MMM d, yyyy");
 }
 
 function getBadge(entry: ActivityEntry, activityTypes: any[]): string | null {
-  if (entry.type === 'activity') {
-    const typeConfig = activityTypes.find(t => t.id === entry.activityTypeConfigId)
-    return typeConfig?.category || null
+  if (entry.type === "activity") {
+    const typeConfig = activityTypes.find(
+      (t) => t.id === entry.activityTypeConfigId,
+    );
+    return typeConfig?.category || null;
   }
-  return entry.type.charAt(0).toUpperCase() + entry.type.slice(1)
+  return entry.type.charAt(0).toUpperCase() + entry.type.slice(1);
 }
 
 function getAssigneeName(entry: ActivityEntry): string | null {
-  return (entry.type === 'activity' || entry.type === 'task')
+  return entry.type === "activity" || entry.type === "task"
     ? entry.assignedToName || null
-    : null
+    : null;
 }
 
-function ActivityCard({ entry, onComplete, onEdit, onDelete, activityTypes, horses, isCompleting }: ActivityCardProps) {
-  const badge = getBadge(entry, activityTypes)
-  const assigneeName = getAssigneeName(entry)
+function ActivityCard({
+  entry,
+  onComplete,
+  onEdit,
+  onDelete,
+  activityTypes,
+  horses,
+  isCompleting,
+}: ActivityCardProps) {
+  const badge = getBadge(entry, activityTypes);
+  const assigneeName = getAssigneeName(entry);
 
   return (
     <div
@@ -667,9 +721,9 @@ function ActivityCard({ entry, onComplete, onEdit, onDelete, activityTypes, hors
       {/* Checkbox - Left */}
       <div onClick={(e) => e.stopPropagation()}>
         <Checkbox
-          checked={entry.status === 'completed'}
+          checked={entry.status === "completed"}
           onCheckedChange={() => onComplete()}
-          disabled={entry.status === 'completed' || isCompleting}
+          disabled={entry.status === "completed" || isCompleting}
           className="shrink-0"
         />
       </div>
@@ -681,10 +735,14 @@ function ActivityCard({ entry, onComplete, onEdit, onDelete, activityTypes, hors
         </p>
 
         <div className="flex items-center gap-2 mt-0.5">
-          <span className={cn(
-            "text-xs",
-            isOverdue(entry) ? "text-red-600 font-medium" : "text-muted-foreground"
-          )}>
+          <span
+            className={cn(
+              "text-xs",
+              isOverdue(entry)
+                ? "text-red-600 font-medium"
+                : "text-muted-foreground",
+            )}
+          >
             {formatActivityDate(entry.date)}
           </span>
           {badge && (
@@ -699,7 +757,10 @@ function ActivityCard({ entry, onComplete, onEdit, onDelete, activityTypes, hors
       </div>
 
       {/* Avatar + Context Menu - Right */}
-      <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="flex items-center gap-2 shrink-0"
+        onClick={(e) => e.stopPropagation()}
+      >
         <AssigneeAvatar name={assigneeName} size="sm" />
 
         <DropdownMenu>
@@ -726,5 +787,5 @@ function ActivityCard({ entry, onComplete, onEdit, onDelete, activityTypes, hors
         </DropdownMenu>
       </div>
     </div>
-  )
+  );
 }

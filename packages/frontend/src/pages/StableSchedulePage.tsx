@@ -24,16 +24,9 @@ import { useShiftActions } from "@/hooks/useSchedules";
 import { useAuth } from "@/contexts/AuthContext";
 import { queryKeys } from "@/lib/queryClient";
 import type { Shift } from "@/types/schedule";
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  orderBy,
-  doc,
-  getDoc,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { getStable } from "@/services/stableService";
+import { getPublishedShiftsForStable } from "@/services/scheduleService";
+import { toDate } from "@/utils/timestampUtils";
 
 export default function StableSchedulePage() {
   const { stableId } = useParams<{ stableId: string }>();
@@ -52,11 +45,8 @@ export default function StableSchedulePage() {
     queryKey: queryKeys.stables.detail(stableId || ""),
     queryFn: async () => {
       if (!stableId) return "";
-      const stableDoc = await getDoc(doc(db, "stables", stableId));
-      if (stableDoc.exists()) {
-        return stableDoc.data().name || "Unnamed Stable";
-      }
-      return "";
+      const stable = await getStable(stableId);
+      return stable?.name || "Unnamed Stable";
     },
     enabled: !!stableId,
     staleTime: 10 * 60 * 1000,
@@ -67,33 +57,7 @@ export default function StableSchedulePage() {
     queryKey: ["shifts", "stable", stableId],
     queryFn: async () => {
       if (!user || !stableId) return [];
-
-      // Get all published schedules for this stable
-      const schedulesQuery = query(
-        collection(db, "schedules"),
-        where("stableId", "==", stableId),
-        where("status", "==", "published"),
-      );
-      const schedulesSnapshot = await getDocs(schedulesQuery);
-      const publishedScheduleIds = schedulesSnapshot.docs.map((doc) => doc.id);
-
-      if (publishedScheduleIds.length === 0) return [];
-
-      // Get all shifts for published schedules
-      const shiftsQuery = query(
-        collection(db, "shifts"),
-        where("scheduleId", "in", publishedScheduleIds),
-        orderBy("date", "asc"),
-      );
-
-      const shiftsSnapshot = await getDocs(shiftsQuery);
-      return shiftsSnapshot.docs.map(
-        (doc) =>
-          ({
-            id: doc.id,
-            ...doc.data(),
-          }) as Shift,
-      );
+      return getPublishedShiftsForStable(stableId);
     },
     enabled: !!user && !!stableId,
     staleTime: 2 * 60 * 1000,
@@ -103,9 +67,10 @@ export default function StableSchedulePage() {
 
   const getShiftCoverageForDate = (date: Date) => {
     const dateStr = date.toDateString();
-    const shiftsOnDate = shifts.filter(
-      (s) => s.date.toDate().toDateString() === dateStr,
-    );
+    const shiftsOnDate = shifts.filter((s) => {
+      const shiftDate = toDate(s.date);
+      return shiftDate && shiftDate.toDateString() === dateStr;
+    });
 
     if (shiftsOnDate.length === 0)
       return { total: 0, assigned: 0, status: "none" };
@@ -141,8 +106,15 @@ export default function StableSchedulePage() {
   const upcomingUnassigned = useMemo(() => {
     const now = new Date();
     return shifts
-      .filter((s) => s.status === "unassigned" && s.date.toDate() >= now)
-      .sort((a, b) => a.date.toMillis() - b.date.toMillis())
+      .filter((s) => {
+        const shiftDate = toDate(s.date);
+        return s.status === "unassigned" && shiftDate && shiftDate >= now;
+      })
+      .sort((a, b) => {
+        const aTime = toDate(a.date)?.getTime() ?? 0;
+        const bTime = toDate(b.date)?.getTime() ?? 0;
+        return aTime - bTime;
+      })
       .slice(0, 5);
   }, [shifts]);
 
@@ -329,7 +301,7 @@ export default function StableSchedulePage() {
                         {shift.shiftTypeName}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {shift.date.toDate().toLocaleDateString()}
+                        {toDate(shift.date)?.toLocaleDateString()}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {shift.time}
@@ -405,7 +377,7 @@ export default function StableSchedulePage() {
                       <div>
                         <p className="font-medium">{shift.shiftTypeName}</p>
                         <p className="text-sm text-muted-foreground">
-                          {shift.date.toDate().toLocaleDateString()} •{" "}
+                          {toDate(shift.date)?.toLocaleDateString()} •{" "}
                           {shift.time}
                         </p>
                       </div>

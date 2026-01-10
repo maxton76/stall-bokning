@@ -8,13 +8,17 @@ import {
   limit,
   Timestamp,
   writeBatch,
-  updateDoc
-} from 'firebase/firestore'
-import { db } from '@/lib/firebase'
-import type { Horse, UserHorseInventory } from '@/types/roles'
-import { mapDocsToObjects } from '@/utils/firestoreHelpers'
-import { createLocationHistoryEntry, closeLocationHistoryEntry, createExternalLocationHistoryEntry } from './locationHistoryService'
-import { createCrudService } from './firestoreCrud'
+  updateDoc,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import type { Horse, UserHorseInventory } from "@/types/roles";
+import { mapDocsToObjects } from "@/utils/firestoreHelpers";
+import {
+  createLocationHistoryEntry,
+  closeLocationHistoryEntry,
+  createExternalLocationHistoryEntry,
+} from "./locationHistoryService";
+import { createCrudService } from "./firestoreCrud";
 
 // ============================================================================
 // Helper Functions
@@ -32,10 +36,10 @@ function sanitizeHorseData(horseData: Partial<Horse>): Partial<Horse> {
       currentStableId: undefined,
       currentStableName: undefined,
       assignedAt: undefined,
-      usage: undefined
-    }
+      usage: undefined,
+    };
   }
-  return horseData
+  return horseData;
 }
 
 // ============================================================================
@@ -46,10 +50,10 @@ function sanitizeHorseData(horseData: Partial<Horse>): Partial<Horse> {
  * Horse CRUD service using the standardized factory
  */
 const horseCrud = createCrudService<Horse>({
-  collectionName: 'horses',
+  collectionName: "horses",
   timestampsEnabled: true,
-  sanitizeFn: sanitizeHorseData
-})
+  sanitizeFn: sanitizeHorseData,
+});
 
 /**
  * Create a new horse
@@ -59,15 +63,21 @@ const horseCrud = createCrudService<Horse>({
  */
 export async function createHorse(
   userId: string,
-  horseData: Omit<Horse, 'id' | 'ownerId' | 'createdAt' | 'updatedAt' | 'lastModifiedBy'>
+  horseData: Omit<
+    Horse,
+    "id" | "ownerId" | "createdAt" | "updatedAt" | "lastModifiedBy"
+  >,
 ): Promise<string> {
   const dataWithOwner = {
     ...horseData,
     ownerId: userId,
-    isExternal: horseData.isExternal ?? false
-  } as Omit<Horse, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'lastModifiedBy'>
+    isExternal: horseData.isExternal ?? false,
+  } as Omit<
+    Horse,
+    "id" | "createdAt" | "updatedAt" | "createdBy" | "lastModifiedBy"
+  >;
 
-  const horseId = await horseCrud.create(userId, dataWithOwner)
+  const horseId = await horseCrud.create(userId, dataWithOwner);
 
   // Create initial location history entry if horse is assigned to a stable
   if (horseData.currentStableId && horseData.currentStableName) {
@@ -77,20 +87,36 @@ export async function createHorse(
       horseData.currentStableId,
       horseData.currentStableName,
       userId,
-      horseData.assignedAt // Use assignedAt timestamp if provided
-    )
+      horseData.assignedAt, // Use assignedAt timestamp if provided
+    );
   }
 
-  return horseId
+  return horseId;
 }
 
 /**
  * Get a single horse by ID
+ * Now uses backend API instead of direct Firestore queries
  * @param horseId - Horse ID
  * @returns Promise with horse data or null if not found
  */
 export async function getHorse(horseId: string): Promise<Horse | null> {
-  return horseCrud.getById(horseId)
+  try {
+    const { authFetchJSON } = await import("@/utils/authFetch");
+
+    const horse = await authFetchJSON<Horse>(
+      `${import.meta.env.VITE_API_URL}/api/v1/horses/${horseId}`,
+      { method: "GET" },
+    );
+
+    return horse;
+  } catch (error: any) {
+    // Return null if horse not found or access denied
+    if (error.status === 404 || error.status === 403) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 /**
@@ -103,23 +129,24 @@ export async function getHorse(horseId: string): Promise<Horse | null> {
 export async function updateHorse(
   horseId: string,
   userId: string,
-  updates: Partial<Omit<Horse, 'id' | 'ownerId' | 'createdAt'>>
+  updates: Partial<Omit<Horse, "id" | "ownerId" | "createdAt">>,
 ): Promise<void> {
   // Get existing horse data for audit logging
-  const existingHorse = await getHorse(horseId)
+  const existingHorse = await getHorse(horseId);
   if (!existingHorse) {
-    throw new Error('Horse not found')
+    throw new Error("Horse not found");
   }
 
   // Perform the update
-  await horseCrud.update(horseId, userId, updates)
+  await horseCrud.update(horseId, userId, updates);
 
   // Log horse data changes (non-blocking)
-  const { logHorseUpdate, calculateChanges } = await import('./auditLogService')
+  const { logHorseUpdate, calculateChanges } =
+    await import("./auditLogService");
   const changes = calculateChanges(
     existingHorse as unknown as Record<string, unknown>,
-    { ...existingHorse, ...updates } as unknown as Record<string, unknown>
-  )
+    { ...existingHorse, ...updates } as unknown as Record<string, unknown>,
+  );
 
   if (changes.length > 0) {
     logHorseUpdate(
@@ -127,10 +154,10 @@ export async function updateHorse(
       existingHorse.name,
       existingHorse.currentStableId,
       changes,
-      userId
-    ).catch(err => {
-      console.error('Audit log failed:', err)
-    })
+      userId,
+    ).catch((err) => {
+      console.error("Audit log failed:", err);
+    });
   }
 }
 
@@ -140,7 +167,7 @@ export async function updateHorse(
  * @returns Promise that resolves when deletion is complete
  */
 export async function deleteHorse(horseId: string): Promise<void> {
-  return horseCrud.delete(horseId)
+  return horseCrud.delete(horseId);
 }
 
 // ============================================================================
@@ -148,33 +175,39 @@ export async function deleteHorse(horseId: string): Promise<void> {
 // ============================================================================
 
 /**
- * Get all horses owned by a user
+ * Get all horses owned by a user OR in user's stables
+ * Now uses backend API instead of direct Firestore queries
  * @param userId - User ID
  * @returns Promise with array of horses
  */
 export async function getUserHorses(userId: string): Promise<Horse[]> {
-  const q = query(
-    collection(db, 'horses'),
-    where('ownerId', '==', userId),
-    where('status', '==', 'active')
-  )
-  const snapshot = await getDocs(q)
-  return mapDocsToObjects<Horse>(snapshot)
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  const response = await authFetchJSON<{ horses: Horse[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/horses`,
+    { method: "GET" },
+  );
+
+  // Filter to active horses only (API returns all horses user has access to)
+  return response.horses.filter((horse) => horse.status === "active");
 }
 
 /**
  * Get all horses assigned to a stable
+ * Now uses backend API instead of direct Firestore queries
  * @param stableId - Stable ID
  * @returns Promise with array of horses
  */
 export async function getStableHorses(stableId: string): Promise<Horse[]> {
-  const q = query(
-    collection(db, 'horses'),
-    where('currentStableId', '==', stableId),
-    where('status', '==', 'active')
-  )
-  const snapshot = await getDocs(q)
-  return mapDocsToObjects<Horse>(snapshot)
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  const response = await authFetchJSON<{ horses: Horse[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/horses?stableId=${stableId}`,
+    { method: "GET" },
+  );
+
+  // Filter to active horses only
+  return response.horses.filter((horse) => horse.status === "active");
 }
 
 /**
@@ -185,16 +218,22 @@ export async function getStableHorses(stableId: string): Promise<Horse[]> {
  */
 export async function getUserHorsesAtStable(
   userId: string,
-  stableId: string
+  stableId: string,
 ): Promise<Horse[]> {
-  const q = query(
-    collection(db, 'horses'),
-    where('ownerId', '==', userId),
-    where('currentStableId', '==', stableId),
-    where('status', '==', 'active')
-  )
-  const snapshot = await getDocs(q)
-  return mapDocsToObjects<Horse>(snapshot)
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  const params = new URLSearchParams({
+    ownerId: userId,
+    stableId: stableId,
+    status: "active",
+  });
+
+  const response = await authFetchJSON<{ horses: Horse[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/horses?${params.toString()}`,
+    { method: "GET" },
+  );
+
+  return response.horses;
 }
 
 /**
@@ -205,24 +244,24 @@ export async function getUserHorsesAtStable(
  */
 export async function getUserHorsesAtStables(
   userId: string,
-  stableIds: string[]
+  stableIds: string[],
 ): Promise<Horse[]> {
-  if (stableIds.length === 0) return []
+  if (stableIds.length === 0) return [];
 
   // Query horses for each stable and combine results
-  const allHorses: Horse[] = []
+  const allHorses: Horse[] = [];
 
   for (const stableId of stableIds) {
-    const horses = await getUserHorsesAtStable(userId, stableId)
-    allHorses.push(...horses)
+    const horses = await getUserHorsesAtStable(userId, stableId);
+    allHorses.push(...horses);
   }
 
   // Remove duplicates (in case a horse is somehow assigned to multiple stables)
   const uniqueHorses = allHorses.filter(
-    (horse, index, self) => index === self.findIndex(h => h.id === horse.id)
-  )
+    (horse, index, self) => index === self.findIndex((h) => h.id === horse.id),
+  );
 
-  return uniqueHorses
+  return uniqueHorses;
 }
 
 /**
@@ -231,8 +270,8 @@ export async function getUserHorsesAtStables(
  * @returns Promise with array of unassigned horses
  */
 export async function getUnassignedHorses(userId: string): Promise<Horse[]> {
-  const allHorses = await getUserHorses(userId)
-  return allHorses.filter(horse => !horse.currentStableId)
+  const allHorses = await getUserHorses(userId);
+  return allHorses.filter((horse) => !horse.currentStableId);
 }
 
 // ============================================================================
@@ -252,34 +291,20 @@ export async function assignHorseToStable(
   horseId: string,
   stableId: string,
   stableName: string,
-  userId: string
+  userId: string,
 ): Promise<void> {
-  // Get horse to retrieve name for location history
-  const horse = await getHorse(horseId)
-  if (!horse) throw new Error('Horse not found')
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  const batch = writeBatch(db)
-  const horseRef = doc(db, 'horses', horseId)
-
-  // Update horse assignment
-  batch.update(horseRef, {
-    currentStableId: stableId,
-    currentStableName: stableName,
-    assignedAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
-    lastModifiedBy: userId
-  })
-
-  await batch.commit()
-
-  // Create location history entry (after batch commit)
-  await createLocationHistoryEntry(
-    horseId,
-    horse.name,
-    stableId,
-    stableName,
-    userId
-  )
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/horses/${horseId}/assign-to-stable`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        stableId,
+        stableName,
+      }),
+    },
+  );
 }
 
 /**
@@ -291,32 +316,16 @@ export async function assignHorseToStable(
  */
 export async function unassignHorseFromStable(
   horseId: string,
-  userId: string
+  userId: string,
 ): Promise<void> {
-  // Get horse to retrieve current stable for location history
-  const horse = await getHorse(horseId)
-  if (!horse) throw new Error('Horse not found')
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  const currentStableId = horse.currentStableId
-
-  const batch = writeBatch(db)
-  const horseRef = doc(db, 'horses', horseId)
-
-  // Update horse assignment
-  batch.update(horseRef, {
-    currentStableId: null,
-    currentStableName: null,
-    assignedAt: null,
-    updatedAt: Timestamp.now(),
-    lastModifiedBy: userId
-  })
-
-  await batch.commit()
-
-  // Close location history entry (after batch commit)
-  if (currentStableId) {
-    await closeLocationHistoryEntry(horseId, 'stable', currentStableId, userId)
-  }
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/horses/${horseId}/unassign-from-stable`,
+    {
+      method: "POST",
+    },
+  );
 }
 
 /**
@@ -334,48 +343,21 @@ export async function transferHorse(
   fromStableId: string,
   toStableId: string,
   toStableName: string,
-  userId: string
+  userId: string,
 ): Promise<void> {
-  // Verify current assignment matches fromStableId
-  const horse = await getHorse(horseId)
-  if (!horse) {
-    throw new Error('Horse not found')
-  }
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  // Handle both transfers and initial assignments
-  const currentStable = horse.currentStableId || ''
-  const expectedStable = fromStableId || ''
-  if (currentStable !== expectedStable) {
-    throw new Error('Horse is not assigned to the specified stable')
-  }
-
-  const batch = writeBatch(db)
-  const horseRef = doc(db, 'horses', horseId)
-
-  // Update horse assignment
-  batch.update(horseRef, {
-    currentStableId: toStableId,
-    currentStableName: toStableName,
-    assignedAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
-    lastModifiedBy: userId
-  })
-
-  await batch.commit()
-
-  // Close old location history entry (if horse was previously assigned)
-  if (fromStableId) {
-    await closeLocationHistoryEntry(horseId, 'stable', fromStableId, userId)
-  }
-
-  // Create new location history entry
-  await createLocationHistoryEntry(
-    horseId,
-    horse.name,
-    toStableId,
-    toStableName,
-    userId
-  )
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/horses/${horseId}/transfer`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        fromStableId,
+        toStableId,
+        toStableName,
+      }),
+    },
+  );
 }
 
 /**
@@ -384,53 +366,69 @@ export async function transferHorse(
  * @param horse - Horse object
  * @returns Promise with organization ID or null
  */
-export async function getHorseOrganizationId(horse: Horse): Promise<string | null> {
-  console.log('🔍 getHorseOrganizationId: Starting for horse:', {
+export async function getHorseOrganizationId(
+  horse: Horse,
+): Promise<string | null> {
+  console.log("🔍 getHorseOrganizationId: Starting for horse:", {
     horseId: horse.id,
     horseName: horse.name,
     currentStableId: horse.currentStableId,
-    ownerId: horse.ownerId
-  })
+    ownerId: horse.ownerId,
+  });
 
   // If horse is assigned to a stable, get organization from stable
   if (horse.currentStableId) {
-    console.log('🏛️ getHorseOrganizationId: Horse has stable, fetching stable doc:', horse.currentStableId)
-    const stableDoc = await getDoc(doc(db, 'stables', horse.currentStableId))
+    console.log(
+      "🏛️ getHorseOrganizationId: Horse has stable, fetching stable doc:",
+      horse.currentStableId,
+    );
+    const stableDoc = await getDoc(doc(db, "stables", horse.currentStableId));
     if (stableDoc.exists()) {
-      const organizationId = stableDoc.data().organizationId || null
-      console.log('✅ getHorseOrganizationId: Found organization from stable:', organizationId)
-      return organizationId
+      const organizationId = stableDoc.data().organizationId || null;
+      console.log(
+        "✅ getHorseOrganizationId: Found organization from stable:",
+        organizationId,
+      );
+      return organizationId;
     }
-    console.warn('⚠️ getHorseOrganizationId: Stable doc not found')
+    console.warn("⚠️ getHorseOrganizationId: Stable doc not found");
   }
 
   // For unassigned horses, get organization from owner's membership
   if (horse.ownerId) {
-    console.log('👤 getHorseOrganizationId: Horse unassigned, checking owner membership:', horse.ownerId)
+    console.log(
+      "👤 getHorseOrganizationId: Horse unassigned, checking owner membership:",
+      horse.ownerId,
+    );
     const membershipsQuery = query(
-      collection(db, 'organizationMembers'),
-      where('userId', '==', horse.ownerId),
-      where('status', '==', 'active'),
-      limit(1)
-    )
-    const membershipsSnapshot = await getDocs(membershipsQuery)
+      collection(db, "organizationMembers"),
+      where("userId", "==", horse.ownerId),
+      where("status", "==", "active"),
+      limit(1),
+    );
+    const membershipsSnapshot = await getDocs(membershipsQuery);
 
-    console.log('📋 getHorseOrganizationId: Membership query results:', {
+    console.log("📋 getHorseOrganizationId: Membership query results:", {
       empty: membershipsSnapshot.empty,
       size: membershipsSnapshot.size,
-      docs: membershipsSnapshot.docs.map(d => ({ id: d.id, data: d.data() }))
-    })
+      docs: membershipsSnapshot.docs.map((d) => ({ id: d.id, data: d.data() })),
+    });
 
     if (!membershipsSnapshot.empty) {
-      const organizationId = membershipsSnapshot.docs[0].data().organizationId
-      console.log('✅ getHorseOrganizationId: Found organization from owner membership:', organizationId)
-      return organizationId
+      const organizationId = membershipsSnapshot.docs[0].data().organizationId;
+      console.log(
+        "✅ getHorseOrganizationId: Found organization from owner membership:",
+        organizationId,
+      );
+      return organizationId;
     }
-    console.warn('⚠️ getHorseOrganizationId: No active memberships found for owner')
+    console.warn(
+      "⚠️ getHorseOrganizationId: No active memberships found for owner",
+    );
   }
 
-  console.warn('❌ getHorseOrganizationId: No organization found')
-  return null
+  console.warn("❌ getHorseOrganizationId: No organization found");
+  return null;
 }
 
 // ============================================================================
@@ -446,26 +444,26 @@ export async function getHorseOrganizationId(horse: Horse): Promise<string | nul
  */
 export async function unassignMemberHorses(
   userId: string,
-  stableId: string
+  stableId: string,
 ): Promise<number> {
-  const horses = await getUserHorsesAtStable(userId, stableId)
+  const horses = await getUserHorsesAtStable(userId, stableId);
 
-  if (horses.length === 0) return 0
+  if (horses.length === 0) return 0;
 
-  const batch = writeBatch(db)
-  horses.forEach(horse => {
-    const horseRef = doc(db, 'horses', horse.id)
+  const batch = writeBatch(db);
+  horses.forEach((horse) => {
+    const horseRef = doc(db, "horses", horse.id);
     batch.update(horseRef, {
       currentStableId: null,
       currentStableName: null,
       assignedAt: null,
       updatedAt: Timestamp.now(),
-      lastModifiedBy: userId
-    })
-  })
+      lastModifiedBy: userId,
+    });
+  });
 
-  await batch.commit()
-  return horses.length
+  await batch.commit();
+  return horses.length;
 }
 
 // ============================================================================
@@ -478,43 +476,45 @@ export async function unassignMemberHorses(
  * @returns Promise with user's horse inventory data
  */
 export async function getUserHorseInventory(
-  userId: string
+  userId: string,
 ): Promise<UserHorseInventory> {
-  const allHorses = await getUserHorses(userId)
-  const assignedHorses = allHorses.filter(h => h.currentStableId)
-  const unassignedHorses = allHorses.filter(h => !h.currentStableId)
+  const allHorses = await getUserHorses(userId);
+  const assignedHorses = allHorses.filter((h) => h.currentStableId);
+  const unassignedHorses = allHorses.filter((h) => !h.currentStableId);
 
   // Group assigned horses by stable
-  const stableMap = new Map<string, { stableName: string; horses: Horse[] }>()
+  const stableMap = new Map<string, { stableName: string; horses: Horse[] }>();
 
-  assignedHorses.forEach(horse => {
-    if (!horse.currentStableId) return
+  assignedHorses.forEach((horse) => {
+    if (!horse.currentStableId) return;
 
-    const existing = stableMap.get(horse.currentStableId)
+    const existing = stableMap.get(horse.currentStableId);
     if (existing) {
-      existing.horses.push(horse)
+      existing.horses.push(horse);
     } else {
       stableMap.set(horse.currentStableId, {
-        stableName: horse.currentStableName || 'Unknown Stable',
-        horses: [horse]
-      })
+        stableName: horse.currentStableName || "Unknown Stable",
+        horses: [horse],
+      });
     }
-  })
+  });
 
-  const stableAssignments = Array.from(stableMap.entries()).map(([stableId, data]) => ({
-    stableId,
-    stableName: data.stableName,
-    horseCount: data.horses.length,
-    horses: data.horses
-  }))
+  const stableAssignments = Array.from(stableMap.entries()).map(
+    ([stableId, data]) => ({
+      stableId,
+      stableName: data.stableName,
+      horseCount: data.horses.length,
+      horses: data.horses,
+    }),
+  );
 
   return {
     userId,
     totalHorses: allHorses.length,
     assignedHorses: assignedHorses.length,
     unassignedHorses: unassignedHorses.length,
-    stableAssignments
-  }
+    stableAssignments,
+  };
 }
 
 // ============================================================================
@@ -523,78 +523,80 @@ export async function getUserHorseInventory(
 
 /**
  * Assign a horse to a group
+ * Now uses backend API instead of direct Firestore operations
  * @param horseId - Horse ID
  * @param groupId - Group ID
  * @param groupName - Group name (for caching)
- * @param userId - ID of user making the assignment
+ * @param userId - ID of user making the assignment (kept for compatibility, not used)
  * @returns Promise that resolves when assignment is complete
  */
 export async function assignHorseToGroup(
   horseId: string,
   groupId: string,
   groupName: string,
-  userId: string
+  userId: string,
 ): Promise<void> {
-  const horseRef = doc(db, 'horses', horseId)
-  await updateDoc(horseRef, {
-    horseGroupId: groupId,
-    horseGroupName: groupName,
-    updatedAt: Timestamp.now(),
-    lastModifiedBy: userId
-  })
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/horses/${horseId}/assign-to-group`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        groupId,
+        groupName,
+      }),
+    },
+  );
 }
 
 /**
  * Unassign a horse from its current group
+ * Now uses backend API instead of direct Firestore operations
  * @param horseId - Horse ID
- * @param userId - ID of user making the unassignment
+ * @param userId - ID of user making the unassignment (kept for compatibility, not used)
  * @returns Promise that resolves when unassignment is complete
  */
 export async function unassignHorseFromGroup(
   horseId: string,
-  userId: string
+  userId: string,
 ): Promise<void> {
-  const horseRef = doc(db, 'horses', horseId)
-  await updateDoc(horseRef, {
-    horseGroupId: null,
-    horseGroupName: null,
-    updatedAt: Timestamp.now(),
-    lastModifiedBy: userId
-  })
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/horses/${horseId}/unassign-from-group`,
+    {
+      method: "POST",
+    },
+  );
 }
 
 /**
  * Unassign all horses from a specific group
  * Called when a group is deleted
+ * Now uses backend API instead of direct Firestore operations
  * @param groupId - Group ID
- * @param userId - ID of user making the changes
+ * @param userId - ID of user making the changes (kept for compatibility, not used)
  * @returns Promise with the number of horses unassigned
  */
 export async function unassignHorsesFromGroup(
   groupId: string,
-  userId: string
+  userId: string,
 ): Promise<number> {
-  const q = query(
-    collection(db, 'horses'),
-    where('horseGroupId', '==', groupId),
-    where('status', '==', 'active')
-  )
-  const snapshot = await getDocs(q)
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  if (snapshot.empty) return 0
+  const response = await authFetchJSON<{
+    success: boolean;
+    unassignedCount: number;
+  }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/horses/batch/unassign-from-group`,
+    {
+      method: "POST",
+      body: JSON.stringify({ groupId }),
+    },
+  );
 
-  const batch = writeBatch(db)
-  snapshot.docs.forEach(horseDoc => {
-    batch.update(horseDoc.ref, {
-      horseGroupId: null,
-      horseGroupName: null,
-      updatedAt: Timestamp.now(),
-      lastModifiedBy: userId
-    })
-  })
-
-  await batch.commit()
-  return snapshot.size
+  return response.unassignedCount;
 }
 
 // ============================================================================
@@ -613,15 +615,15 @@ export async function assignVaccinationRuleToHorse(
   horseId: string,
   ruleId: string,
   ruleName: string,
-  userId: string
+  userId: string,
 ): Promise<void> {
-  const horseRef = doc(db, 'horses', horseId)
+  const horseRef = doc(db, "horses", horseId);
   await updateDoc(horseRef, {
     vaccinationRuleId: ruleId,
     vaccinationRuleName: ruleName,
     updatedAt: Timestamp.now(),
-    lastModifiedBy: userId
-  })
+    lastModifiedBy: userId,
+  });
 }
 
 /**
@@ -632,49 +634,43 @@ export async function assignVaccinationRuleToHorse(
  */
 export async function unassignVaccinationRuleFromHorse(
   horseId: string,
-  userId: string
+  userId: string,
 ): Promise<void> {
-  const horseRef = doc(db, 'horses', horseId)
+  const horseRef = doc(db, "horses", horseId);
   await updateDoc(horseRef, {
     vaccinationRuleId: null,
     vaccinationRuleName: null,
     updatedAt: Timestamp.now(),
-    lastModifiedBy: userId
-  })
+    lastModifiedBy: userId,
+  });
 }
 
 /**
  * Unassign all horses from a specific vaccination rule
  * Called when a vaccination rule is deleted
+ * Now uses backend API instead of direct Firestore operations
  * @param ruleId - Vaccination rule ID
- * @param userId - ID of user making the changes
+ * @param userId - ID of user making the changes (kept for compatibility, not used)
  * @returns Promise with the number of horses unassigned
  */
 export async function unassignHorsesFromVaccinationRule(
   ruleId: string,
-  userId: string
+  userId: string,
 ): Promise<number> {
-  const q = query(
-    collection(db, 'horses'),
-    where('vaccinationRuleId', '==', ruleId),
-    where('status', '==', 'active')
-  )
-  const snapshot = await getDocs(q)
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  if (snapshot.empty) return 0
+  const response = await authFetchJSON<{
+    success: boolean;
+    unassignedCount: number;
+  }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/horses/batch/unassign-from-vaccination-rule`,
+    {
+      method: "POST",
+      body: JSON.stringify({ ruleId }),
+    },
+  );
 
-  const batch = writeBatch(db)
-  snapshot.docs.forEach(horseDoc => {
-    batch.update(horseDoc.ref, {
-      vaccinationRuleId: null,
-      vaccinationRuleName: null,
-      updatedAt: Timestamp.now(),
-      lastModifiedBy: userId
-    })
-  })
-
-  await batch.commit()
-  return snapshot.size
+  return response.unassignedCount;
 }
 
 // ============================================================================
@@ -692,75 +688,41 @@ export async function moveHorseToExternalLocation(
   horseId: string,
   userId: string,
   data: {
-    contactId?: string        // Contact reference (optional)
-    externalLocation?: string
-    moveType: 'temporary' | 'permanent'
-    departureDate: Date
-    reason?: string
-    removeHorse?: boolean
-  }
+    contactId?: string; // Contact reference (optional)
+    externalLocation?: string;
+    moveType: "temporary" | "permanent";
+    departureDate: Date;
+    reason?: string;
+    removeHorse?: boolean;
+  },
 ): Promise<void> {
-  const horseRef = doc(db, 'horses', horseId)
-
-  // Get horse document to access current state
-  const horseSnapshot = await getDoc(horseRef)
-  if (!horseSnapshot.exists()) {
-    throw new Error('Horse not found')
-  }
-  const horse = { id: horseSnapshot.id, ...horseSnapshot.data() } as Horse
-
   // If contactId provided, fetch contact for location name
-  let locationName = data.externalLocation || 'External location'
+  let locationName = data.externalLocation || "External location";
   if (data.contactId) {
-    const { getContact } = await import('./contactService')
-    const contact = await getContact(data.contactId)
+    const { getContact } = await import("./contactService");
+    const contact = await getContact(data.contactId);
     if (contact) {
-      locationName = contact.contactType === 'Personal'
-        ? `${contact.firstName} ${contact.lastName}`
-        : contact.businessName
+      locationName =
+        contact.contactType === "Personal"
+          ? `${contact.firstName} ${contact.lastName}`
+          : contact.businessName;
     }
   }
 
-  // Close current stable location history if horse is currently at a stable
-  if (horse.currentStableId) {
-    await closeLocationHistoryEntry(
-      horseId,
-      'stable',
-      horse.currentStableId,
-      userId
-    )
-  }
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  const updateData: Partial<Horse> = {
-    externalContactId: data.contactId,
-    externalLocation: locationName,
-    externalMoveType: data.moveType,
-    externalDepartureDate: Timestamp.fromDate(data.departureDate),
-    // Clear stable assignment when moving to external location
-    currentStableId: undefined,
-    currentStableName: undefined,
-    updatedAt: Timestamp.now(),
-    lastModifiedBy: userId
-  }
-
-  // For permanent moves, mark as external and update additional fields
-  if (data.moveType === 'permanent') {
-    updateData.isExternal = true
-    updateData.externalMoveReason = data.reason
-    updateData.isRemoved = data.removeHorse || false
-  }
-
-  await updateDoc(horseRef, updateData)
-
-  // Create external location history entry
-  await createExternalLocationHistoryEntry(
-    horseId,
-    horse.name,
-    locationName,
-    data.moveType,
-    Timestamp.fromDate(data.departureDate),
-    userId,
-    data.contactId,
-    data.reason
-  )
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/horses/${horseId}/move-external`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        contactId: data.contactId,
+        externalLocation: locationName,
+        moveType: data.moveType,
+        departureDate: data.departureDate.toISOString(),
+        reason: data.reason,
+        removeHorse: data.removeHorse || false,
+      }),
+    },
+  );
 }
