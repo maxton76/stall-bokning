@@ -1,37 +1,36 @@
-import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { MapPin, Loader2Icon } from 'lucide-react'
-import { format } from 'date-fns'
-import { getHorseLocationHistory } from '@/services/locationHistoryService'
-import type { Horse } from '@/types/roles'
-import type { LocationHistory } from '@/types/roles'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { MapPin, Loader2Icon } from "lucide-react";
+import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { getHorseLocationHistory } from "@/services/locationHistoryService";
+import { queryKeys } from "@/lib/queryClient";
+import type { Horse } from "@/types/roles";
+import type { LocationHistory } from "@/types/roles";
 
 interface LocationHistoryCardProps {
-  horse: Horse
+  horse: Horse;
 }
 
 export function LocationHistoryCard({ horse }: LocationHistoryCardProps) {
-  const [history, setHistory] = useState<LocationHistory[]>([])
-  const [loading, setLoading] = useState(true)
+  // Fetch location history with TanStack Query
+  const {
+    data: history = [],
+    isLoading: loading,
+    error,
+  } = useQuery({
+    queryKey: queryKeys.locationHistory.list(horse.id),
+    queryFn: () => getHorseLocationHistory(horse.id),
+    enabled: !!horse.id,
+    staleTime: 10 * 60 * 1000, // 10 minutes - location history changes infrequently
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
 
-  useEffect(() => {
-    const loadHistory = async () => {
-      try {
-        setLoading(true)
-        const data = await getHorseLocationHistory(horse.id)
-        setHistory(data)
-      } catch (error) {
-        console.error('Failed to load location history:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (horse.id) {
-      loadHistory()
-    }
-  }, [horse.id])
+  // Handle query error
+  if (error) {
+    console.error("Failed to load location history:", error);
+  }
 
   return (
     <Card>
@@ -56,16 +55,14 @@ export function LocationHistoryCard({ horse }: LocationHistoryCardProps) {
         ) : (
           <div className="space-y-4">
             {history.map((entry, index) => {
-              const isCurrent = !entry.departureDate
-              const isFirst = index === 0
+              const isCurrent = !entry.departureDate;
+              const isFirst = index === 0;
 
               return (
                 <div
                   key={entry.id}
                   className={`flex flex-col gap-1 p-3 rounded-lg border ${
-                    isCurrent
-                      ? 'bg-primary/5 border-primary/20'
-                      : 'bg-muted/30'
+                    isCurrent ? "bg-primary/5 border-primary/20" : "bg-muted/30"
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -81,18 +78,18 @@ export function LocationHistoryCard({ horse }: LocationHistoryCardProps) {
 
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div>
-                      <span className="font-medium">Arrived:</span>{' '}
-                      {format(entry.arrivalDate.toDate(), 'MMM d, yyyy')}
+                      <span className="font-medium">Arrived:</span>{" "}
+                      {format(entry.arrivalDate.toDate(), "MMM d, yyyy")}
                     </div>
                     {entry.departureDate && (
                       <div>
-                        <span className="font-medium">Departed:</span>{' '}
-                        {format(entry.departureDate.toDate(), 'MMM d, yyyy')}
+                        <span className="font-medium">Departed:</span>{" "}
+                        {format(entry.departureDate.toDate(), "MMM d, yyyy")}
                       </div>
                     )}
                   </div>
                 </div>
-              )
+              );
             })}
           </div>
         )}
@@ -110,13 +107,13 @@ export function LocationHistoryCard({ horse }: LocationHistoryCardProps) {
             </div>
             {horse.assignedAt && (
               <div className="text-sm text-muted-foreground">
-                <span className="font-medium">Arrived:</span>{' '}
-                {format(horse.assignedAt.toDate(), 'MMM d, yyyy')}
+                <span className="font-medium">Arrived:</span>{" "}
+                {format(horse.assignedAt.toDate(), "MMM d, yyyy")}
               </div>
             )}
           </div>
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

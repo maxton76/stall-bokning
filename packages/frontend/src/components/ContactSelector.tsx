@@ -1,19 +1,21 @@
-import { useEffect, useState } from 'react'
-import { FormSelect } from '@/components/form'
-import { Button } from '@/components/ui/button'
-import { getContactsForSelection } from '@/services/contactService'
-import type { ContactDisplay } from '@shared/types/contact'
-import type { UseFormReturn, FieldValues, Path } from 'react-hook-form'
+import { useQuery } from "@tanstack/react-query";
+import { FormSelect } from "@/components/form";
+import { Button } from "@/components/ui/button";
+import { getContactsForSelection } from "@/services/contactService";
+import { queryKeys } from "@/lib/queryClient";
+import type { ContactDisplay } from "@shared/types/contact";
+import type { UseFormReturn, FieldValues, Path } from "react-hook-form";
+import { useEffect } from "react";
 
 interface ContactSelectorProps<T extends FieldValues> {
-  form: UseFormReturn<T>
-  name: Path<T>
-  organizationId?: string
-  userId: string
-  label?: string
-  placeholder?: string
-  onCreateNew: () => void
-  onContactsLoaded?: (contacts: ContactDisplay[]) => void
+  form: UseFormReturn<T>;
+  name: Path<T>;
+  organizationId?: string;
+  userId: string;
+  label?: string;
+  placeholder?: string;
+  onCreateNew: () => void;
+  onContactsLoaded?: (contacts: ContactDisplay[]) => void;
 }
 
 export function ContactSelector<T extends FieldValues>({
@@ -21,51 +23,58 @@ export function ContactSelector<T extends FieldValues>({
   name,
   organizationId,
   userId,
-  label = 'Select Contact',
-  placeholder = 'Choose a contact',
+  label = "Select Contact",
+  placeholder = "Choose a contact",
   onCreateNew,
-  onContactsLoaded
+  onContactsLoaded,
 }: ContactSelectorProps<T>) {
-  const [contacts, setContacts] = useState<ContactDisplay[]>([])
-  const [loading, setLoading] = useState(true)
+  // Fetch contacts with TanStack Query
+  const {
+    data: contacts = [],
+    isLoading: loading,
+    error,
+  } = useQuery({
+    queryKey: queryKeys.contacts.list({ userId, organizationId }),
+    queryFn: () => getContactsForSelection(userId, organizationId),
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
 
-  useEffect(() => {
-    loadContacts()
-  }, [userId, organizationId])
-
-  const loadContacts = async () => {
-    try {
-      setLoading(true)
-      const data = await getContactsForSelection(userId, organizationId)
-      setContacts(data)
-      onContactsLoaded?.(data)
-    } catch (error) {
-      console.error('Failed to load contacts:', error)
-    } finally {
-      setLoading(false)
-    }
+  // Handle query error
+  if (error) {
+    console.error("Failed to load contacts:", error);
   }
+
+  // Notify parent when contacts are loaded
+  useEffect(() => {
+    if (contacts.length > 0 && onContactsLoaded) {
+      onContactsLoaded(contacts);
+    }
+  }, [contacts, onContactsLoaded]);
 
   const formatContactDisplay = (contact: ContactDisplay) => {
-    const accessBadge = contact.accessLevel === 'organization' ? 'Org' : 'Personal'
-    return `${contact.displayName} (${contact.city}, ${contact.country}) [${accessBadge}]`
-  }
+    const accessBadge =
+      contact.accessLevel === "organization" ? "Org" : "Personal";
+    return `${contact.displayName} (${contact.city}, ${contact.country}) [${accessBadge}]`;
+  };
 
   // Group contacts by access level (Organization first, then Personal)
-  const orgContacts = contacts.filter(c => c.accessLevel === 'organization')
-  const userContacts = contacts.filter(c => c.accessLevel === 'user')
+  const orgContacts = contacts.filter((c) => c.accessLevel === "organization");
+  const userContacts = contacts.filter((c) => c.accessLevel === "user");
 
   // Create options array with organization contacts first
   const options = [
-    ...orgContacts.map(c => ({
+    ...orgContacts.map((c) => ({
       value: c.id,
-      label: formatContactDisplay(c)
+      label: formatContactDisplay(c),
     })),
-    ...userContacts.map(c => ({
+    ...userContacts.map((c) => ({
       value: c.id,
-      label: formatContactDisplay(c)
-    }))
-  ]
+      label: formatContactDisplay(c),
+    })),
+  ];
 
   return (
     <div className="space-y-2">
@@ -73,7 +82,7 @@ export function ContactSelector<T extends FieldValues>({
         form={form}
         name={name}
         label={label}
-        placeholder={loading ? 'Loading contacts...' : placeholder}
+        placeholder={loading ? "Loading contacts..." : placeholder}
         options={options}
         disabled={loading}
       />
@@ -88,5 +97,5 @@ export function ContactSelector<T extends FieldValues>({
         + Create new contact
       </Button>
     </div>
-  )
+  );
 }

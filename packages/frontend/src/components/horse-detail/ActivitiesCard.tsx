@@ -1,47 +1,46 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Calendar, ExternalLink, Loader2Icon } from 'lucide-react'
-import { format, isPast } from 'date-fns'
+import { Link } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar, ExternalLink, Loader2Icon } from "lucide-react";
+import { format, isPast } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow
-} from '@/components/ui/table'
-import { getHorseActivities } from '@/services/activityService'
-import type { Horse } from '@/types/roles'
-import type { Activity } from '@/types/activity'
+  TableRow,
+} from "@/components/ui/table";
+import { getHorseActivities } from "@/services/activityService";
+import { queryKeys } from "@/lib/queryClient";
+import type { Horse } from "@/types/roles";
+import type { Activity } from "@/types/activity";
 
 interface ActivitiesCardProps {
-  horse: Horse
+  horse: Horse;
 }
 
 export function ActivitiesCard({ horse }: ActivitiesCardProps) {
-  const [activities, setActivities] = useState<Activity[]>([])
-  const [loading, setLoading] = useState(true)
+  // Fetch activities with TanStack Query
+  const {
+    data: activities = [],
+    isLoading: loading,
+    error,
+  } = useQuery({
+    queryKey: queryKeys.activities.list({ horseId: horse.id, limit: 10 }),
+    queryFn: () => getHorseActivities(horse.id, 10),
+    enabled: !!horse.id,
+    staleTime: 3 * 60 * 1000, // 3 minutes - activities change more frequently
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
 
-  useEffect(() => {
-    const loadActivities = async () => {
-      try {
-        setLoading(true)
-        const data = await getHorseActivities(horse.id, 10)
-        setActivities(data)
-      } catch (error) {
-        console.error('Failed to load activities:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (horse.id) {
-      loadActivities()
-    }
-  }, [horse.id])
+  // Handle query error
+  if (error) {
+    console.error("Failed to load activities:", error);
+  }
 
   return (
     <Card>
@@ -84,91 +83,95 @@ export function ActivitiesCard({ horse }: ActivitiesCardProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                {activities.map((activity) => {
-                  const activityDate = activity.date.toDate()
-                  const isOverdue = isPast(activityDate) && activity.status === 'pending'
+                  {activities.map((activity) => {
+                    const activityDate = activity.date.toDate();
+                    const isOverdue =
+                      isPast(activityDate) && activity.status === "pending";
 
-                  return (
-                    <TableRow
-                      key={activity.id}
-                      className={isOverdue ? 'bg-destructive/5' : ''}
-                    >
-                      <TableCell>
-                        <span
-                          className={`${
-                            isOverdue ? 'text-destructive font-medium' : ''
-                          }`}
-                        >
-                          {format(activityDate, 'MMM d, yyyy')}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="capitalize">
-                          {activity.activityType?.replace('_', ' ')}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            activity.status === 'completed'
-                              ? 'default'
-                              : isOverdue
-                              ? 'destructive'
-                              : 'secondary'
-                          }
-                        >
-                          {activity.status === 'completed' && 'Completed'}
-                          {activity.status === 'pending' &&
-                            (isOverdue ? 'Overdue' : 'Pending')}
-                          {activity.status === 'cancelled' && 'Cancelled'}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
+                    return (
+                      <TableRow
+                        key={activity.id}
+                        className={isOverdue ? "bg-destructive/5" : ""}
+                      >
+                        <TableCell>
+                          <span
+                            className={`${
+                              isOverdue ? "text-destructive font-medium" : ""
+                            }`}
+                          >
+                            {format(activityDate, "MMM d, yyyy")}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="capitalize">
+                            {activity.activityType?.replace("_", " ")}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              activity.status === "completed"
+                                ? "default"
+                                : isOverdue
+                                  ? "destructive"
+                                  : "secondary"
+                            }
+                          >
+                            {activity.status === "completed" && "Completed"}
+                            {activity.status === "pending" &&
+                              (isOverdue ? "Overdue" : "Pending")}
+                            {activity.status === "cancelled" && "Cancelled"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
 
             {/* Mobile Card View - hidden on desktop */}
             <div className="md:hidden space-y-3">
               {activities.map((activity) => {
-                const activityDate = activity.date.toDate()
-                const isOverdue = isPast(activityDate) && activity.status === 'pending'
+                const activityDate = activity.date.toDate();
+                const isOverdue =
+                  isPast(activityDate) && activity.status === "pending";
 
                 return (
                   <Card
                     key={activity.id}
-                    className={`${isOverdue ? 'border-destructive/50 bg-destructive/5' : ''}`}
+                    className={`${isOverdue ? "border-destructive/50 bg-destructive/5" : ""}`}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
                           <h3 className="font-semibold text-base mb-1 capitalize">
-                            {activity.activityType?.replace('_', ' ')}
+                            {activity.activityType?.replace("_", " ")}
                           </h3>
-                          <p className={`text-sm ${isOverdue ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
-                            {format(activityDate, 'MMM d, yyyy')}
+                          <p
+                            className={`text-sm ${isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}`}
+                          >
+                            {format(activityDate, "MMM d, yyyy")}
                           </p>
                         </div>
                         <Badge
                           variant={
-                            activity.status === 'completed'
-                              ? 'default'
+                            activity.status === "completed"
+                              ? "default"
                               : isOverdue
-                              ? 'destructive'
-                              : 'secondary'
+                                ? "destructive"
+                                : "secondary"
                           }
                         >
-                          {activity.status === 'completed' && 'Completed'}
-                          {activity.status === 'pending' &&
-                            (isOverdue ? 'Overdue' : 'Pending')}
-                          {activity.status === 'cancelled' && 'Cancelled'}
+                          {activity.status === "completed" && "Completed"}
+                          {activity.status === "pending" &&
+                            (isOverdue ? "Overdue" : "Pending")}
+                          {activity.status === "cancelled" && "Cancelled"}
                         </Badge>
                       </div>
                     </CardContent>
                   </Card>
-                )
+                );
               })}
             </div>
           </>
@@ -177,12 +180,12 @@ export function ActivitiesCard({ horse }: ActivitiesCardProps) {
         {activities.length > 0 && (
           <div className="mt-4 text-center">
             <p className="text-sm text-muted-foreground">
-              Showing {activities.length} most recent{' '}
-              {activities.length === 1 ? 'activity' : 'activities'}
+              Showing {activities.length} most recent{" "}
+              {activities.length === 1 ? "activity" : "activities"}
             </p>
           </div>
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,78 +9,97 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Syringe, Loader2Icon } from 'lucide-react'
-import { format } from 'date-fns'
-import { useDialog } from '@/hooks/useDialog'
-import { VaccinationHistoryTable } from '@/components/VaccinationHistoryTable'
-import { VaccinationRecordDialog } from '@/components/VaccinationRecordDialog'
+} from "@/components/ui/alert-dialog";
+import { Syringe, Loader2Icon } from "lucide-react";
+import { format } from "date-fns";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useDialog } from "@/hooks/useDialog";
+import { VaccinationHistoryTable } from "@/components/VaccinationHistoryTable";
+import { VaccinationRecordDialog } from "@/components/VaccinationRecordDialog";
 import {
   getHorseVaccinationRecords,
-  deleteVaccinationRecord
-} from '@/services/vaccinationService'
-import type { Horse } from '@/types/roles'
-import type { VaccinationRecord } from '@shared/types/vaccination'
+  deleteVaccinationRecord,
+} from "@/services/vaccinationService";
+import { queryKeys } from "@/lib/queryClient";
+import type { Horse } from "@/types/roles";
+import type { VaccinationRecord } from "@shared/types/vaccination";
 
 interface VaccinationCardProps {
-  horse: Horse
+  horse: Horse;
 }
 
 export function VaccinationCard({ horse }: VaccinationCardProps) {
-  const [records, setRecords] = useState<VaccinationRecord[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient();
 
   // Dialog states
-  const recordDialog = useDialog<VaccinationRecord>()
-  const deleteDialog = useDialog<VaccinationRecord>()
+  const recordDialog = useDialog<VaccinationRecord>();
+  const deleteDialog = useDialog<VaccinationRecord>();
 
-  // Load vaccination records
-  const loadRecords = async () => {
-    try {
-      setLoading(true)
-      const data = await getHorseVaccinationRecords(horse.id)
-      setRecords(data)
-    } catch (error) {
-      console.error('Failed to load vaccination records:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Fetch vaccination records with TanStack Query
+  const {
+    data: records = [],
+    isLoading: loading,
+    error,
+  } = useQuery({
+    queryKey: queryKeys.vaccinations.byHorse(horse.id),
+    queryFn: () => getHorseVaccinationRecords(horse.id),
+    enabled: !!horse.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
 
-  useEffect(() => {
-    if (horse.id) {
-      loadRecords()
-    }
-  }, [horse.id])
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteVaccinationRecord(id),
+    onSuccess: () => {
+      // Invalidate and refetch vaccination records
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.vaccinations.byHorse(horse.id),
+      });
+      // Also invalidate horses query to update vaccination status badge
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.horses.detail(horse.id),
+      });
+      deleteDialog.closeDialog();
+    },
+    onError: (error) => {
+      console.error("Failed to delete vaccination record:", error);
+    },
+  });
 
   // Handlers
   const handleAdd = () => {
-    recordDialog.openDialog(null)
-  }
+    recordDialog.openDialog(undefined);
+  };
 
   const handleEdit = (record: VaccinationRecord) => {
-    recordDialog.openDialog(record)
-  }
+    recordDialog.openDialog(record);
+  };
 
   const handleDelete = (record: VaccinationRecord) => {
-    deleteDialog.openDialog(record)
-  }
+    deleteDialog.openDialog(record);
+  };
 
   const confirmDelete = async () => {
-    if (!deleteDialog.data) return
+    if (!deleteDialog.data) return;
+    deleteMutation.mutate(deleteDialog.data.id);
+  };
 
-    try {
-      await deleteVaccinationRecord(deleteDialog.data.id)
-      deleteDialog.closeDialog()
-      await loadRecords() // Reload records
-    } catch (error) {
-      console.error('Failed to delete vaccination record:', error)
-    }
-  }
+  const handleSuccess = () => {
+    recordDialog.closeDialog();
+    // Invalidate queries to refetch data
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.vaccinations.byHorse(horse.id),
+    });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.horses.detail(horse.id),
+    });
+  };
 
-  const handleSuccess = async () => {
-    recordDialog.closeDialog()
-    await loadRecords() // Reload records
+  // Handle query error
+  if (error) {
+    console.error("Failed to load vaccination records:", error);
   }
 
   return (
@@ -100,23 +118,27 @@ export function VaccinationCard({ horse }: VaccinationCardProps) {
             <div className="rounded-lg border p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-semibold">Current Vaccination Rule</h3>
-                  <p className="font-medium mt-1">{horse.vaccinationRuleName}</p>
+                  <h3 className="text-sm font-semibold">
+                    Current Vaccination Rule
+                  </h3>
+                  <p className="font-medium mt-1">
+                    {horse.vaccinationRuleName}
+                  </p>
                 </div>
                 {horse.vaccinationStatus && (
                   <Badge
                     variant={
-                      horse.vaccinationStatus === 'current'
-                        ? 'default'
-                        : horse.vaccinationStatus === 'expiring_soon'
-                        ? 'secondary'
-                        : 'destructive'
+                      horse.vaccinationStatus === "current"
+                        ? "default"
+                        : horse.vaccinationStatus === "expiring_soon"
+                          ? "secondary"
+                          : "destructive"
                     }
                   >
-                    {horse.vaccinationStatus === 'current' && 'Up to date'}
-                    {horse.vaccinationStatus === 'expiring_soon' && 'Due soon'}
-                    {horse.vaccinationStatus === 'expired' && 'Overdue'}
-                    {horse.vaccinationStatus === 'no_records' && 'No records'}
+                    {horse.vaccinationStatus === "current" && "Up to date"}
+                    {horse.vaccinationStatus === "expiring_soon" && "Due soon"}
+                    {horse.vaccinationStatus === "expired" && "Overdue"}
+                    {horse.vaccinationStatus === "no_records" && "No records"}
                   </Badge>
                 )}
               </div>
@@ -124,17 +146,19 @@ export function VaccinationCard({ horse }: VaccinationCardProps) {
               {/* Next Due Date */}
               {horse.nextVaccinationDue && (
                 <div className="flex items-baseline gap-2 pt-2 border-t">
-                  <span className="text-sm text-muted-foreground">Next due:</span>
+                  <span className="text-sm text-muted-foreground">
+                    Next due:
+                  </span>
                   <span
                     className={`font-medium ${
-                      horse.vaccinationStatus === 'expired'
-                        ? 'text-destructive'
-                        : horse.vaccinationStatus === 'expiring_soon'
-                        ? 'text-amber-600'
-                        : ''
+                      horse.vaccinationStatus === "expired"
+                        ? "text-destructive"
+                        : horse.vaccinationStatus === "expiring_soon"
+                          ? "text-amber-600"
+                          : ""
                     }`}
                   >
-                    {format(horse.nextVaccinationDue.toDate(), 'MMM d, yyyy')}
+                    {format(horse.nextVaccinationDue.toDate(), "MMM d, yyyy")}
                   </span>
                 </div>
               )}
@@ -142,9 +166,11 @@ export function VaccinationCard({ horse }: VaccinationCardProps) {
               {/* Last Vaccination Date */}
               {horse.lastVaccinationDate && (
                 <div className="flex items-baseline gap-2">
-                  <span className="text-sm text-muted-foreground">Last vaccination:</span>
+                  <span className="text-sm text-muted-foreground">
+                    Last vaccination:
+                  </span>
                   <span className="text-sm">
-                    {format(horse.lastVaccinationDate.toDate(), 'MMM d, yyyy')}
+                    {format(horse.lastVaccinationDate.toDate(), "MMM d, yyyy")}
                   </span>
                 </div>
               )}
@@ -181,7 +207,7 @@ export function VaccinationCard({ horse }: VaccinationCardProps) {
         open={recordDialog.open}
         onOpenChange={(open) => !open && recordDialog.closeDialog()}
         horse={horse}
-        organizationId={horse.currentStableId || ''}
+        organizationId={horse.currentStableId || ""}
         record={recordDialog.data}
         onSuccess={handleSuccess}
       />
@@ -196,21 +222,27 @@ export function VaccinationCard({ horse }: VaccinationCardProps) {
             <AlertDialogDescription>
               {deleteDialog.data && (
                 <>
-                  Are you sure you want to delete the vaccination record from{' '}
-                  {format(deleteDialog.data.vaccinationDate.toDate(), 'MMM d, yyyy')}?
-                  This action cannot be undone.
+                  Are you sure you want to delete the vaccination record from{" "}
+                  {format(
+                    deleteDialog.data.vaccinationDate.toDate(),
+                    "MMM d, yyyy",
+                  )}
+                  ? This action cannot be undone.
                 </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>
-  )
+  );
 }
