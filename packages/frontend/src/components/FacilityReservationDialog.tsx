@@ -1,63 +1,75 @@
-import { useEffect, useState } from 'react'
-import { z } from 'zod'
-import { AlertCircle, CalendarIcon } from 'lucide-react'
-import { format } from 'date-fns'
-import { Timestamp } from 'firebase/firestore'
-import { BaseFormDialog } from '@/components/BaseFormDialog'
-import { useFormDialog } from '@/hooks/useFormDialog'
-import { FormInput, FormSelect, FormTextarea } from '@/components/form'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Calendar } from '@/components/ui/calendar'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { cn } from '@/lib/utils'
-import { checkReservationConflicts } from '@/services/facilityReservationService'
-import type { FacilityReservation } from '@/types/facilityReservation'
-import type { Facility } from '@/types/facility'
+import { useEffect } from "react";
+import { z } from "zod";
+import { useQuery } from "@tanstack/react-query";
+import { AlertCircle, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { Timestamp } from "firebase/firestore";
+import { BaseFormDialog } from "@/components/BaseFormDialog";
+import { useFormDialog } from "@/hooks/useFormDialog";
+import { FormInput, FormSelect, FormTextarea } from "@/components/form";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { checkReservationConflicts } from "@/services/facilityReservationService";
+import { queryKeys } from "@/lib/queryClient";
+import type { FacilityReservation } from "@/types/facilityReservation";
+import type { Facility } from "@/types/facility";
 
-const reservationSchema = z.object({
-  facilityId: z.string().min(1, 'Facility is required'),
-  date: z.date({ message: 'Date is required' }),
-  startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format'),
-  endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format'),
-  horseId: z.string().min(1, 'Horse is required'),
-  contactInfo: z.string().optional(),
-  notes: z.string().optional(),
-}).refine(
-  (data) => {
-    const startParts = data.startTime.split(':')
-    const endParts = data.endTime.split(':')
-    if (startParts.length !== 2 || endParts.length !== 2) return false
+const reservationSchema = z
+  .object({
+    facilityId: z.string().min(1, "Facility is required"),
+    date: z.date({ message: "Date is required" }),
+    startTime: z
+      .string()
+      .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format"),
+    endTime: z
+      .string()
+      .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format"),
+    horseId: z.string().min(1, "Horse is required"),
+    contactInfo: z.string().optional(),
+    notes: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      const startParts = data.startTime.split(":");
+      const endParts = data.endTime.split(":");
+      if (startParts.length !== 2 || endParts.length !== 2) return false;
 
-    const startHour = parseInt(startParts[0] || '0', 10)
-    const startMin = parseInt(startParts[1] || '0', 10)
-    const endHour = parseInt(endParts[0] || '0', 10)
-    const endMin = parseInt(endParts[1] || '0', 10)
+      const startHour = parseInt(startParts[0] || "0", 10);
+      const startMin = parseInt(startParts[1] || "0", 10);
+      const endHour = parseInt(endParts[0] || "0", 10);
+      const endMin = parseInt(endParts[1] || "0", 10);
 
-    return (endHour * 60 + endMin) > (startHour * 60 + startMin)
-  },
-  {
-    message: 'End time must be after start time',
-    path: ['endTime'],
-  }
-)
+      return endHour * 60 + endMin > startHour * 60 + startMin;
+    },
+    {
+      message: "End time must be after start time",
+      path: ["endTime"],
+    },
+  );
 
-type ReservationFormData = z.infer<typeof reservationSchema>
+type ReservationFormData = z.infer<typeof reservationSchema>;
 
 interface FacilityReservationDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  reservation?: FacilityReservation
-  facilities: Facility[]
-  horses?: Array<{ id: string; name: string }>
-  onSave: (data: ReservationFormData) => Promise<void>
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  reservation?: FacilityReservation;
+  facilities: Facility[];
+  horses?: Array<{ id: string; name: string }>;
+  onSave: (data: ReservationFormData) => Promise<void>;
   initialValues?: {
-    facilityId?: string
-    date?: Date
-    startTime?: string
-    endTime?: string
-  }
+    facilityId?: string;
+    date?: Date;
+    startTime?: string;
+    endTime?: string;
+  };
 }
 
 export function FacilityReservationDialog({
@@ -69,129 +81,135 @@ export function FacilityReservationDialog({
   onSave,
   initialValues,
 }: FacilityReservationDialogProps) {
-  const [conflicts, setConflicts] = useState<FacilityReservation[]>([])
-  const [checkingConflicts, setCheckingConflicts] = useState(false)
-  const isEditMode = !!reservation
+  const isEditMode = !!reservation;
 
   const { form, handleSubmit, resetForm } = useFormDialog<ReservationFormData>({
     schema: reservationSchema,
     defaultValues: {
-      facilityId: '',
+      facilityId: "",
       date: new Date(),
-      startTime: '09:00',
-      endTime: '10:00',
-      horseId: '',
-      contactInfo: '',
-      notes: '',
+      startTime: "09:00",
+      endTime: "10:00",
+      horseId: "",
+      contactInfo: "",
+      notes: "",
     },
     onSubmit: async (data) => {
-      await onSave(data)
+      await onSave(data);
     },
     onSuccess: () => {
-      setConflicts([])
-      onOpenChange(false)
+      onOpenChange(false);
     },
-    successMessage: isEditMode ? 'Reservation updated successfully' : 'Reservation created successfully',
-    errorMessage: isEditMode ? 'Failed to update reservation' : 'Failed to create reservation',
-  })
+    successMessage: isEditMode
+      ? "Reservation updated successfully"
+      : "Reservation created successfully",
+    errorMessage: isEditMode
+      ? "Failed to update reservation"
+      : "Failed to create reservation",
+  });
 
   // Reset form when dialog opens with reservation data or initial values
   useEffect(() => {
     if (reservation) {
-      const startDate = reservation.startTime.toDate()
+      const startDate = reservation.startTime.toDate();
       resetForm({
         facilityId: reservation.facilityId,
         date: startDate,
-        startTime: format(startDate, 'HH:mm'),
-        endTime: format(reservation.endTime.toDate(), 'HH:mm'),
-        horseId: reservation.horseId || '',
-        contactInfo: reservation.contactInfo || '',
-        notes: reservation.notes || '',
-      })
+        startTime: format(startDate, "HH:mm"),
+        endTime: format(reservation.endTime.toDate(), "HH:mm"),
+        horseId: reservation.horseId || "",
+        contactInfo: reservation.contactInfo || "",
+        notes: reservation.notes || "",
+      });
     } else if (initialValues) {
       resetForm({
-        facilityId: initialValues.facilityId || '',
+        facilityId: initialValues.facilityId || "",
         date: initialValues.date || new Date(),
-        startTime: initialValues.startTime || '09:00',
-        endTime: initialValues.endTime || '10:00',
-        horseId: '',
-        contactInfo: '',
-        notes: '',
-      })
+        startTime: initialValues.startTime || "09:00",
+        endTime: initialValues.endTime || "10:00",
+        horseId: "",
+        contactInfo: "",
+        notes: "",
+      });
     } else {
-      resetForm()
+      resetForm();
     }
-  }, [reservation, initialValues, open])
+  }, [reservation, initialValues, open]);
 
   // Watch fields for conflict checking
-  const facilityId = form.watch('facilityId')
-  const date = form.watch('date')
-  const startTime = form.watch('startTime')
-  const endTime = form.watch('endTime')
+  const facilityId = form.watch("facilityId");
+  const date = form.watch("date");
+  const startTime = form.watch("startTime");
+  const endTime = form.watch("endTime");
+
+  // Calculate start and end date times
+  const getDateTimes = () => {
+    if (!facilityId || !date || !startTime || !endTime) return null;
+
+    const startParts = startTime.split(":");
+    const endParts = endTime.split(":");
+
+    if (startParts.length !== 2 || endParts.length !== 2) return null;
+
+    const startHour = parseInt(startParts[0] || "0", 10);
+    const startMin = parseInt(startParts[1] || "0", 10);
+    const endHour = parseInt(endParts[0] || "0", 10);
+    const endMin = parseInt(endParts[1] || "0", 10);
+
+    const startDateTime = new Date(date);
+    startDateTime.setHours(startHour, startMin, 0, 0);
+
+    const endDateTime = new Date(date);
+    endDateTime.setHours(endHour, endMin, 0, 0);
+
+    return {
+      startDateTime: Timestamp.fromDate(startDateTime),
+      endDateTime: Timestamp.fromDate(endDateTime),
+    };
+  };
+
+  const dateTimes = getDateTimes();
 
   // Check for conflicts when relevant fields change
-  useEffect(() => {
-    const checkConflicts = async () => {
-      if (!facilityId || !date || !startTime || !endTime) {
-        setConflicts([])
-        return
-      }
+  const { data: conflicts = [], isLoading: checkingConflicts } = useQuery({
+    queryKey: queryKeys.facilityReservations.conflicts(
+      facilityId || "",
+      dateTimes?.startDateTime.toDate() || new Date(),
+      dateTimes?.endDateTime.toDate() || new Date(),
+    ),
+    queryFn: async () => {
+      if (!dateTimes) return [];
+      return checkReservationConflicts(
+        facilityId!,
+        dateTimes.startDateTime,
+        dateTimes.endDateTime,
+        reservation?.id,
+      );
+    },
+    enabled: !!dateTimes && !!facilityId,
+    staleTime: 0, // Always check for conflicts
+    refetchOnWindowFocus: false,
+  });
 
-      setCheckingConflicts(true)
-      try {
-        const startParts = startTime.split(':')
-        const endParts = endTime.split(':')
-
-        if (startParts.length !== 2 || endParts.length !== 2) {
-          setConflicts([])
-          return
-        }
-
-        const startHour = parseInt(startParts[0] || '0', 10)
-        const startMin = parseInt(startParts[1] || '0', 10)
-        const endHour = parseInt(endParts[0] || '0', 10)
-        const endMin = parseInt(endParts[1] || '0', 10)
-
-        const startDateTime = new Date(date)
-        startDateTime.setHours(startHour, startMin, 0, 0)
-
-        const endDateTime = new Date(date)
-        endDateTime.setHours(endHour, endMin, 0, 0)
-
-        const foundConflicts = await checkReservationConflicts(
-          facilityId,
-          Timestamp.fromDate(startDateTime),
-          Timestamp.fromDate(endDateTime),
-          reservation?.id
-        )
-
-        setConflicts(foundConflicts)
-      } catch (error) {
-        console.error('Error checking conflicts:', error)
-        setConflicts([])
-      } finally {
-        setCheckingConflicts(false)
-      }
-    }
-
-    // Debounce conflict checking
-    const timeoutId = setTimeout(checkConflicts, 500)
-    return () => clearTimeout(timeoutId)
-  }, [facilityId, date, startTime, endTime, reservation?.id])
-
-  const facilityOptions = facilities.map(f => ({ value: f.id, label: f.name }))
-  const horseOptions = horses.map(h => ({ value: h.id, label: h.name }))
+  const facilityOptions = facilities.map((f) => ({
+    value: f.id,
+    label: f.name,
+  }));
+  const horseOptions = horses.map((h) => ({ value: h.id, label: h.name }));
 
   return (
     <BaseFormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={isEditMode ? 'Edit Reservation' : 'New Reservation'}
-      description={isEditMode ? 'Update reservation details' : 'Create a new facility reservation'}
+      title={isEditMode ? "Edit Reservation" : "New Reservation"}
+      description={
+        isEditMode
+          ? "Update reservation details"
+          : "Create a new facility reservation"
+      }
       form={form}
       onSubmit={handleSubmit}
-      submitLabel={isEditMode ? 'Update Reservation' : 'Create Reservation'}
-      submitDisabled={conflicts.length > 0 || checkingConflicts}
+      submitLabel={isEditMode ? "Update Reservation" : "Create Reservation"}
       maxWidth="sm:max-w-[500px]"
     >
       <FormSelect
@@ -213,25 +231,27 @@ export function FacilityReservationDialog({
             <Button
               variant="outline"
               className={cn(
-                'w-full justify-start text-left font-normal',
-                !date && 'text-muted-foreground'
+                "w-full justify-start text-left font-normal",
+                !date && "text-muted-foreground",
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {date ? format(date, 'PPP') : 'Pick a date'}
+              {date ? format(date, "PPP") : "Pick a date"}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0">
             <Calendar
               mode="single"
               selected={date}
-              onSelect={(date) => date && form.setValue('date', date)}
+              onSelect={(date) => date && form.setValue("date", date)}
               initialFocus
             />
           </PopoverContent>
         </Popover>
         {form.formState.errors.date && (
-          <p className="text-sm text-destructive">{form.formState.errors.date.message}</p>
+          <p className="text-sm text-destructive">
+            {form.formState.errors.date.message}
+          </p>
         )}
       </div>
 
@@ -259,10 +279,13 @@ export function FacilityReservationDialog({
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Scheduling Conflict</AlertTitle>
           <AlertDescription>
-            This time slot overlaps with {conflicts.length} existing reservation(s).
+            This time slot overlaps with {conflicts.length} existing
+            reservation(s).
             {conflicts.map((conflict, idx) => (
               <div key={idx} className="mt-2 text-sm">
-                • {conflict.userFullName || conflict.userEmail} ({format(conflict.startTime.toDate(), 'HH:mm')} - {format(conflict.endTime.toDate(), 'HH:mm')})
+                • {conflict.userFullName || conflict.userEmail} (
+                {format(conflict.startTime.toDate(), "HH:mm")} -{" "}
+                {format(conflict.endTime.toDate(), "HH:mm")})
               </div>
             ))}
           </AlertDescription>
@@ -293,5 +316,5 @@ export function FacilityReservationDialog({
         rows={3}
       />
     </BaseFormDialog>
-  )
+  );
 }
