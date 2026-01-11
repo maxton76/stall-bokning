@@ -55,3 +55,4 @@ Thumbs.db
 .cache/
 .temp/
 *.tsbuildinfo
+.firebase-data/

@@ -111,6 +111,11 @@ firebase deploy --only firestore:indexes # Deploy database indexes
 firebase deploy --only hosting           # Deploy frontend
 firebase deploy --only functions         # Deploy Cloud Functions
 firebase functions:log                   # View function logs
+
+# Emulator data persistence
+npm run emulator:export                  # Export current emulator data to .firebase-data/
+npm run emulator:clear                   # Clear all saved emulator data
+npm run emulator:start                   # Start with auto-import and export-on-exit
 ```
 
 ### Google Cloud Operations
@@ -150,6 +155,14 @@ stripe listen --forward-to localhost:5003/api/v1/webhooks/stripe
 - Authorized JavaScript origins: `http://localhost:5173`, `https://stall-bokning-dev.web.app`
 - Authorized redirect URIs: `http://localhost:5173/__/auth/handler`
 - Firebase SDK handles OAuth flow automatically
+
+**Emulator Data Persistence**:
+- Emulator data automatically saved to `.firebase-data/` directory
+- Data persists across emulator restarts (users, Firestore, Storage)
+- Manual export: `npm run emulator:export` (saves current state)
+- Manual import: Automatic on `npm run emulator:start`
+- Clear data: `npm run emulator:clear` (removes all saved data)
+- `.firebase-data/` is gitignored (not committed to repository)
 
 ### Environment Variables
 
