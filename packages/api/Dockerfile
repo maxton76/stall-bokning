@@ -3,14 +3,19 @@ FROM node:24-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy shared package first (pre-built)
+COPY shared/ ./shared/
+
+# Copy Docker-specific package files
+COPY package.docker.json ./package.json
+COPY package-lock.json ./
 
 # Install all dependencies (including dev dependencies)
-RUN npm ci
+RUN npm install
 
 # Copy source code
-COPY . .
+COPY src/ ./src/
+COPY tsconfig.json ./
 
 # Build TypeScript
 RUN npm run build
@@ -20,13 +25,17 @@ FROM node:24-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy shared package
+COPY shared/ ./shared/
+
+# Copy Docker-specific package files
+COPY package.docker.json ./package.json
+COPY package-lock.json ./
 
 # Install only production dependencies
-RUN npm ci --only=production
+RUN npm install --production
 
-# Copy built application from builder
+# Copy built API application from builder
 COPY --from=builder /app/dist ./dist
 
 # Create non-root user for security

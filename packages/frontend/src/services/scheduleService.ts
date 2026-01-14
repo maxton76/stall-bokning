@@ -396,6 +396,62 @@ export async function deleteShift(shiftId: string): Promise<void> {
   );
 }
 
+// ============= Shift Completion =============
+
+/**
+ * Mark a shift as completed
+ */
+export async function completeShift(
+  shiftId: string,
+  notes?: string,
+): Promise<void> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}/complete`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ notes }),
+    },
+  );
+}
+
+/**
+ * Cancel a shift with a reason
+ */
+export async function cancelShift(
+  shiftId: string,
+  reason: string,
+): Promise<void> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}/cancel`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ reason }),
+    },
+  );
+}
+
+/**
+ * Mark a shift as missed (managers only)
+ */
+export async function markShiftMissed(
+  shiftId: string,
+  reason?: string,
+): Promise<void> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}/missed`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ reason }),
+    },
+  );
+}
+
 export async function deleteScheduleAndShifts(
   scheduleId: string,
 ): Promise<void> {

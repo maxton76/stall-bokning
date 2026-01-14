@@ -3,9 +3,9 @@
  * Can be used with User, StableMember, or any object with name fields
  */
 export interface NameData {
-  firstName?: string | null
-  lastName?: string | null
-  email?: string | null
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
 }
 
 /**
@@ -16,22 +16,22 @@ export interface FormatNameOptions {
    * Fallback value if name cannot be formatted
    * @default 'Unknown User'
    */
-  fallback?: string
+  fallback?: string;
 
   /**
    * Whether to use email as fallback
    * @default false
    */
-  useEmailFallback?: boolean
+  useEmailFallback?: boolean;
 
   /**
    * Whether to parse email into a friendly name
    * @default false
    */
-  parseEmail?: boolean
+  parseEmail?: boolean;
 }
 
-const DEFAULT_FALLBACK = 'Unknown User'
+const DEFAULT_FALLBACK = "Unknown User";
 
 /**
  * Format a full name from firstName and lastName
@@ -49,17 +49,17 @@ const DEFAULT_FALLBACK = 'Unknown User'
  */
 export function formatFullName(
   data: NameData,
-  options?: Pick<FormatNameOptions, 'fallback'>
+  options?: Pick<FormatNameOptions, "fallback">,
 ): string {
-  const { firstName, lastName } = data
-  const { fallback = DEFAULT_FALLBACK } = options || {}
+  const { firstName, lastName } = data;
+  const { fallback = DEFAULT_FALLBACK } = options || {};
 
   // Both names must be present and non-empty
   if (firstName?.trim() && lastName?.trim()) {
-    return `${firstName.trim()} ${lastName.trim()}`
+    return `${firstName.trim()} ${lastName.trim()}`;
   }
 
-  return fallback
+  return fallback;
 }
 
 /**
@@ -86,38 +86,38 @@ export function formatFullName(
  */
 export function formatDisplayName(
   data: NameData,
-  options?: FormatNameOptions
+  options?: FormatNameOptions,
 ): string {
   const {
     fallback = DEFAULT_FALLBACK,
     useEmailFallback = false,
-    parseEmail = false
-  } = options || {}
+    parseEmail = false,
+  } = options || {};
 
   // Try full name first
-  const fullName = formatFullName(data, { fallback: '' })
+  const fullName = formatFullName(data, { fallback: "" });
   if (fullName) {
-    return fullName
+    return fullName;
   }
 
   // Try email fallback strategies if enabled
   if (useEmailFallback || parseEmail) {
     if (parseEmail) {
-      const parsedName = parseEmailToName(data.email)
+      const parsedName = parseEmailToName(data.email);
       if (parsedName) {
-        return parsedName
+        return parsedName;
       }
     }
 
     if (useEmailFallback) {
-      const emailPrefix = extractEmailPrefix(data.email)
+      const emailPrefix = extractEmailPrefix(data.email);
       if (emailPrefix) {
-        return emailPrefix
+        return emailPrefix;
       }
     }
   }
 
-  return fallback
+  return fallback;
 }
 
 /**
@@ -131,13 +131,15 @@ export function formatDisplayName(
  * extractEmailPrefix(null)
  * // => null
  */
-export function extractEmailPrefix(email: string | null | undefined): string | null {
+export function extractEmailPrefix(
+  email: string | null | undefined,
+): string | null {
   if (!email?.trim()) {
-    return null
+    return null;
   }
 
-  const parts = email.trim().split('@')
-  return parts[0] || null
+  const parts = email.trim().split("@");
+  return parts[0] || null;
 }
 
 /**
@@ -154,25 +156,27 @@ export function extractEmailPrefix(email: string | null | undefined): string | n
  * parseEmailToName(null)
  * // => null
  */
-export function parseEmailToName(email: string | null | undefined): string | null {
-  const prefix = extractEmailPrefix(email)
+export function parseEmailToName(
+  email: string | null | undefined,
+): string | null {
+  const prefix = extractEmailPrefix(email);
   if (!prefix) {
-    return null
+    return null;
   }
 
   // Split on common delimiters: . _ -
-  const parts = prefix.split(/[._-]/)
+  const parts = prefix.split(/[._-]/);
 
   // Capitalize each part
   const capitalizedParts = parts
-    .map(part => {
-      const trimmed = part.trim()
-      if (!trimmed) return ''
-      return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase()
+    .map((part) => {
+      const trimmed = part.trim();
+      if (!trimmed) return "";
+      return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
     })
-    .filter(Boolean)
+    .filter(Boolean);
 
-  return capitalizedParts.length > 0 ? capitalizedParts.join(' ') : null
+  return capitalizedParts.length > 0 ? capitalizedParts.join(" ") : null;
 }
 
 /**
@@ -190,38 +194,38 @@ export function parseEmailToName(email: string | null | undefined): string | nul
  * // => 'JD'
  */
 export function getInitials(data: NameData): string {
-  const { firstName, lastName } = data
+  const { firstName, lastName } = data;
 
   // Try firstName + lastName initials
   if (firstName?.trim() && lastName?.trim()) {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   }
 
   // Try firstName only (first 2 chars)
   if (firstName?.trim()) {
-    return firstName.substring(0, 2).toUpperCase()
+    return firstName.substring(0, 2).toUpperCase();
   }
 
   // Try lastName only (first 2 chars)
   if (lastName?.trim()) {
-    return lastName.substring(0, 2).toUpperCase()
+    return lastName.substring(0, 2).toUpperCase();
   }
 
   // Try parsed email
-  const parsedName = parseEmailToName(data.email)
+  const parsedName = parseEmailToName(data.email);
   if (parsedName) {
-    const parts = parsedName.split(' ')
+    const parts = parsedName.split(" ");
     if (parts.length >= 2) {
-      return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase()
+      return `${parts[0]!.charAt(0)}${parts[1]!.charAt(0)}`.toUpperCase();
     }
-    return parsedName.substring(0, 2).toUpperCase()
+    return parsedName.substring(0, 2).toUpperCase();
   }
 
   // Try email prefix
-  const emailPrefix = extractEmailPrefix(data.email)
+  const emailPrefix = extractEmailPrefix(data.email);
   if (emailPrefix) {
-    return emailPrefix.substring(0, 2).toUpperCase()
+    return emailPrefix.substring(0, 2).toUpperCase();
   }
 
-  return 'U?' // Ultimate fallback
+  return "U?"; // Ultimate fallback
 }

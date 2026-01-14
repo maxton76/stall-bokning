@@ -3,7 +3,7 @@ import { db } from "../utils/firebase.js";
 import type {
   Organization,
   CreateOrganizationData,
-} from "@shared/types/organization";
+} from "@stall-bokning/shared/types/organization";
 
 /**
  * Organization Repository

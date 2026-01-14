@@ -31,7 +31,7 @@ import { getFacilitiesByStable } from "@/services/facilityService";
 import { getUserHorsesAtStable } from "@/services/horseService";
 import type { FacilityReservation } from "@/types/facilityReservation";
 import type { Facility, FacilityType } from "@/types/facility";
-import type { Horse } from "@/types/horse";
+import type { Horse } from "@stall-bokning/shared/types/domain";
 import { FacilityReservationDialog } from "@/components/FacilityReservationDialog";
 import { FacilityCalendarView } from "@/components/FacilityCalendarView";
 import { Timestamp } from "firebase/firestore";
@@ -90,7 +90,7 @@ export default function FacilitiesReservationsPage() {
   // Auto-select first stable when stables load
   useEffect(() => {
     if (stables.length > 0 && !selectedStableId) {
-      setSelectedStableId(stables[0].id);
+      setSelectedStableId(stables[0]!.id);
     }
   }, [stables, selectedStableId]);
 

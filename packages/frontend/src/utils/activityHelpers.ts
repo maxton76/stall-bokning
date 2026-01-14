@@ -105,6 +105,7 @@ export function getActivityStatusColor(status: ActivityStatus): string {
  */
 export function getDaysSinceActivity(activity: Activity): number {
   const activityDate = toDate(activity.date);
+  if (!activityDate) return 0;
   const now = new Date();
   const diffTime = Math.abs(now.getTime() - activityDate.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -169,6 +170,7 @@ export function sectionActivitiesByTime(
 
   activities.forEach((entry) => {
     const entryDate = toDate(entry.date);
+    if (!entryDate) return;
 
     if (entryDate < todayStart && entry.status !== "completed") {
       sections.overdue.push(entry);

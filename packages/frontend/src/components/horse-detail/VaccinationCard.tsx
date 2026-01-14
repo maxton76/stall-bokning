@@ -21,6 +21,7 @@ import {
   deleteVaccinationRecord,
 } from "@/services/vaccinationService";
 import { queryKeys } from "@/lib/queryClient";
+import { useOrganizationContext } from "@/contexts/OrganizationContext";
 import type { Horse } from "@/types/roles";
 import type { VaccinationRecord } from "@shared/types/vaccination";
 import { toDate } from "@/utils/timestampUtils";
@@ -31,6 +32,7 @@ interface VaccinationCardProps {
 
 export function VaccinationCard({ horse }: VaccinationCardProps) {
   const queryClient = useQueryClient();
+  const { currentOrganizationId } = useOrganizationContext();
 
   // Dialog states
   const recordDialog = useDialog<VaccinationRecord>();
@@ -213,7 +215,7 @@ export function VaccinationCard({ horse }: VaccinationCardProps) {
         open={recordDialog.open}
         onOpenChange={(open) => !open && recordDialog.closeDialog()}
         horse={horse}
-        organizationId={horse.currentStableId || ""}
+        organizationId={currentOrganizationId || ""}
         record={recordDialog.data}
         onSuccess={handleSuccess}
       />

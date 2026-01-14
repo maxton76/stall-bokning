@@ -7,6 +7,7 @@ import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import SignupPage from "./pages/SignupPage";
+import CompleteProfilePage from "./pages/CompleteProfilePage";
 import InviteAcceptPage from "./pages/InviteAcceptPage";
 import DashboardPage from "./pages/DashboardPage";
 import StablesPage from "./pages/StablesPage";
@@ -50,6 +51,7 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/complete-profile" element={<CompleteProfilePage />} />
             <Route path="/invites/accept" element={<InviteAcceptPage />} />
 
             {/* Authenticated routes with layout */}

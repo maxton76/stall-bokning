@@ -40,6 +40,18 @@ const unassignShiftSchema = z.object({
   unassignerId: z.string().min(1).optional(),
 });
 
+const completeShiftSchema = z.object({
+  notes: z.string().optional(),
+});
+
+const cancelShiftSchema = z.object({
+  reason: z.string().min(1, "Cancellation reason is required"),
+});
+
+const markMissedSchema = z.object({
+  reason: z.string().optional(),
+});
+
 export async function shiftsRoutes(fastify: FastifyInstance) {
   // Get shifts with query parameters
   fastify.get(
@@ -455,6 +467,232 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to unassign shift",
+        });
+      }
+    },
+  );
+
+  // Complete shift - marks a shift as completed
+  fastify.patch(
+    "/:id/complete",
+    {
+      preHandler: [authenticate, requireStableAccess()],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const validation = completeShiftSchema.safeParse(request.body);
+
+        if (!validation.success) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invalid input",
+            details: validation.error.errors,
+          });
+        }
+
+        const user = (request as AuthenticatedRequest).user!;
+        const shiftRef = db.collection("shifts").doc(id);
+        const shiftDoc = await shiftRef.get();
+
+        if (!shiftDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Shift not found",
+          });
+        }
+
+        const shift = shiftDoc.data();
+
+        // Only assigned shifts can be completed
+        if (shift?.status !== "assigned") {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Only assigned shifts can be marked as completed",
+          });
+        }
+
+        // Check permissions: assigned user can complete their own shift, managers can complete any
+        const canManage = await canManageSchedules(user.uid, shift?.stableId);
+        const isAssignedUser = shift?.assignedTo === user.uid;
+
+        if (!isAssignedUser && !canManage && user.role !== "system_admin") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message:
+              "You can only complete your own shifts unless you are a manager",
+          });
+        }
+
+        await shiftRef.update({
+          status: "completed",
+          completedAt: new Date(),
+          completedBy: user.uid,
+          completionNotes: validation.data.notes || null,
+        });
+
+        const updatedDoc = await shiftRef.get();
+        return {
+          id: updatedDoc.id,
+          ...updatedDoc.data(),
+        };
+      } catch (error) {
+        request.log.error({ error }, "Failed to complete shift");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to complete shift",
+        });
+      }
+    },
+  );
+
+  // Cancel shift - cancels a shift with a reason
+  fastify.patch(
+    "/:id/cancel",
+    {
+      preHandler: [authenticate, requireStableAccess()],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const validation = cancelShiftSchema.safeParse(request.body);
+
+        if (!validation.success) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invalid input",
+            details: validation.error.errors,
+          });
+        }
+
+        const user = (request as AuthenticatedRequest).user!;
+        const shiftRef = db.collection("shifts").doc(id);
+        const shiftDoc = await shiftRef.get();
+
+        if (!shiftDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Shift not found",
+          });
+        }
+
+        const shift = shiftDoc.data();
+
+        // Cannot cancel completed or already cancelled shifts
+        if (shift?.status === "completed" || shift?.status === "cancelled") {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: `Cannot cancel a shift that is already ${shift?.status}`,
+          });
+        }
+
+        // Check permissions: assigned user can cancel their own shift, managers can cancel any
+        const canManage = await canManageSchedules(user.uid, shift?.stableId);
+        const isAssignedUser = shift?.assignedTo === user.uid;
+        const isUnassigned = shift?.status === "unassigned";
+
+        // Managers can cancel any shift, assigned users can cancel their own
+        if (
+          !isUnassigned &&
+          !isAssignedUser &&
+          !canManage &&
+          user.role !== "system_admin"
+        ) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message:
+              "You can only cancel your own shifts unless you are a manager",
+          });
+        }
+
+        await shiftRef.update({
+          status: "cancelled",
+          cancelledAt: new Date(),
+          cancelledBy: user.uid,
+          cancellationReason: validation.data.reason,
+        });
+
+        const updatedDoc = await shiftRef.get();
+        return {
+          id: updatedDoc.id,
+          ...updatedDoc.data(),
+        };
+      } catch (error) {
+        request.log.error({ error }, "Failed to cancel shift");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to cancel shift",
+        });
+      }
+    },
+  );
+
+  // Mark shift as missed - managers only
+  fastify.patch(
+    "/:id/missed",
+    {
+      preHandler: [authenticate, requireStableManagement()],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const validation = markMissedSchema.safeParse(request.body);
+
+        if (!validation.success) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invalid input",
+            details: validation.error.errors,
+          });
+        }
+
+        const user = (request as AuthenticatedRequest).user!;
+        const shiftRef = db.collection("shifts").doc(id);
+        const shiftDoc = await shiftRef.get();
+
+        if (!shiftDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Shift not found",
+          });
+        }
+
+        const shift = shiftDoc.data();
+
+        // Only assigned shifts can be marked as missed
+        if (shift?.status !== "assigned") {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Only assigned shifts can be marked as missed",
+          });
+        }
+
+        // Only managers can mark shifts as missed (already enforced by requireStableManagement)
+        const canManage = await canManageSchedules(user.uid, shift?.stableId);
+        if (!canManage && user.role !== "system_admin") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "Only managers can mark shifts as missed",
+          });
+        }
+
+        await shiftRef.update({
+          status: "missed",
+          markedMissedAt: new Date(),
+          markedMissedBy: user.uid,
+          missedReason: validation.data.reason || null,
+        });
+
+        const updatedDoc = await shiftRef.get();
+        return {
+          id: updatedDoc.id,
+          ...updatedDoc.data(),
+        };
+      } catch (error) {
+        request.log.error({ error }, "Failed to mark shift as missed");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to mark shift as missed",
         });
       }
     },

@@ -21,7 +21,10 @@ import {
   deleteActivity,
   completeActivity,
 } from "@/services/activityService";
-import { getOrganizationStables } from "@/lib/firestoreQueries";
+import {
+  getOrganizationStables,
+  getUserStablesData,
+} from "@/lib/firestoreQueries";
 import { mapDocsToObjects } from "@/utils/firestoreHelpers";
 import { getContactsForSelection } from "@/services/contactService";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
@@ -90,15 +93,23 @@ export function MoveHorseDialog({
     staleTime: 10 * 60 * 1000,
   });
 
-  // Fetch organization stables
+  // Fetch organization stables (with fallback to user's stables if no org)
   const { data: allStables = [], isLoading: loadingStables } = useQuery({
-    queryKey: queryKeys.stables.list(orgId || ""),
+    queryKey: queryKeys.stables.list(orgId || `user-${user?.uid}`),
     queryFn: async () => {
-      if (!orgId) return [];
-      const snapshot = await getOrganizationStables(orgId);
-      return mapDocsToObjects<Stable>(snapshot);
+      // If we have an organization ID, get all organization stables
+      if (orgId) {
+        const snapshot = await getOrganizationStables(orgId);
+        return mapDocsToObjects<Stable>(snapshot);
+      }
+      // Fallback: Get stables the user has access to (owned + member)
+      if (user?.uid) {
+        const userStables = await getUserStablesData(user.uid);
+        return userStables as unknown as Stable[];
+      }
+      return [];
     },
-    enabled: open && !!orgId,
+    enabled: open && !!user,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -113,7 +124,7 @@ export function MoveHorseDialog({
       userId: user?.uid,
       organizationId: orgId,
     }),
-    queryFn: () => getContactsForSelection(user!.uid, orgId),
+    queryFn: () => getContactsForSelection(user!.uid, orgId ?? undefined),
     enabled: open && !!user,
     staleTime: 5 * 60 * 1000,
   });
@@ -138,7 +149,7 @@ export function MoveHorseDialog({
       destination: undefined,
       externalLocation: "",
       moveType: "temporary",
-      departureDate: new Date().toISOString().split("T")[0], // Format as "yyyy-MM-dd" for date input
+      departureDate: new Date().toISOString().split("T")[0]! as any, // Format as "yyyy-MM-dd" for date input
       reason: undefined,
       removeHorse: false,
     },

@@ -1,8 +1,13 @@
-import { useForm, type UseFormReturn, type FieldValues, type DefaultValues } from 'react-hook-form'
-import { useCallback } from 'react'
-import { zodResolver } from '@hookform/resolvers/zod'
-import type { ZodSchema } from 'zod'
-import { useToast } from '@/hooks/use-toast'
+import {
+  useForm,
+  type UseFormReturn,
+  type FieldValues,
+  type DefaultValues,
+} from "react-hook-form";
+import { useCallback } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { ZodSchema } from "zod";
+import { useToast } from "@/hooks/use-toast";
 
 /**
  * Options for useFormDialog hook
@@ -10,19 +15,19 @@ import { useToast } from '@/hooks/use-toast'
  */
 export interface UseFormDialogOptions<T extends FieldValues> {
   /** Zod validation schema */
-  schema: ZodSchema<T>
+  schema: ZodSchema<T>;
   /** Default form values */
-  defaultValues: DefaultValues<T>
+  defaultValues: DefaultValues<T>;
   /** Submit handler - receives validated data */
-  onSubmit: (data: T) => Promise<void>
+  onSubmit: (data: T) => Promise<void>;
   /** Success callback - called after successful submit */
-  onSuccess?: () => void
+  onSuccess?: () => void;
   /** Error callback - called on submit error */
-  onError?: (error: Error) => void
+  onError?: (error: Error) => void;
   /** Success toast message (optional, default: "Success") */
-  successMessage?: string
+  successMessage?: string;
   /** Error toast message (optional, default: generic error message) */
-  errorMessage?: string
+  errorMessage?: string;
 }
 
 /**
@@ -31,11 +36,11 @@ export interface UseFormDialogOptions<T extends FieldValues> {
  */
 export interface UseFormDialogReturn<T extends FieldValues> {
   /** React Hook Form instance */
-  form: UseFormReturn<T>
+  form: UseFormReturn<T>;
   /** Submit handler with error handling and toast notifications */
-  handleSubmit: (data: T) => Promise<void>
+  handleSubmit: (data: T) => Promise<void>;
   /** Reset form with optional new values */
-  resetForm: (values?: Partial<T>) => void
+  resetForm: (values?: Partial<T>) => void;
 }
 
 /**
@@ -92,65 +97,72 @@ export interface UseFormDialogReturn<T extends FieldValues> {
  * ```
  */
 export function useFormDialog<T extends FieldValues>(
-  options: UseFormDialogOptions<T>
+  options: UseFormDialogOptions<T>,
 ): UseFormDialogReturn<T> {
-  const { toast } = useToast()
+  const { toast } = useToast();
 
   // Initialize form with react-hook-form
   const form = useForm<T>({
-    resolver: zodResolver(options.schema) as any,
+    resolver: zodResolver(options.schema as any) as any,
     defaultValues: options.defaultValues,
-  })
+  });
 
   /**
    * Submit handler with error handling and toast notifications
    */
   const handleSubmit = async (data: T): Promise<void> => {
     try {
-      await options.onSubmit(data)
+      await options.onSubmit(data);
 
       // Show success toast
       toast({
-        title: 'Success',
-        description: options.successMessage || 'Operation completed successfully',
-      })
+        title: "Success",
+        description:
+          options.successMessage || "Operation completed successfully",
+      });
 
       // Call success callback
-      options.onSuccess?.()
+      options.onSuccess?.();
     } catch (error) {
-      const err = error as Error
-      console.error('Form submission error:', err)
+      const err = error as Error;
+      console.error("Form submission error:", err);
 
       // Show error toast
       toast({
-        title: 'Error',
-        description: options.errorMessage || err.message || 'An error occurred. Please try again.',
-        variant: 'destructive',
-      })
+        title: "Error",
+        description:
+          options.errorMessage ||
+          err.message ||
+          "An error occurred. Please try again.",
+        variant: "destructive",
+      });
 
       // Call error callback
-      options.onError?.(err)
+      options.onError?.(err);
 
       // Re-throw to allow component-level error handling if needed
-      throw err
+      throw err;
     }
-  }
+  };
 
   /**
    * Reset form with optional new values
    * @param values - New values to populate form (optional)
    */
-  const resetForm = useCallback((values?: Partial<T>) => {
-    if (values) {
-      form.reset(values as DefaultValues<T>)
-    } else {
-      form.reset(options.defaultValues)
-    }
-  }, [form, options.defaultValues])
+  const resetForm = useCallback(
+    (values?: Partial<T>) => {
+      if (values) {
+        form.reset(values as DefaultValues<T>);
+      } else {
+        form.reset(options.defaultValues);
+      }
+    },
+    [form, options.defaultValues],
+  );
 
   return {
     form,
     handleSubmit,
     resetForm,
-  }
+  };
 }

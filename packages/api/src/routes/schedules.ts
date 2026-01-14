@@ -8,24 +8,78 @@ import {
 } from "../middleware/auth.js";
 import type { AuthenticatedRequest, Schedule } from "../types/index.js";
 import { canManageSchedules } from "../utils/authorization.js";
+import {
+  autoAssignShifts,
+  calculateAssignmentSummary,
+  type MemberForAssignment,
+  type ShiftForAssignment,
+  type AssignmentConfig,
+} from "../services/autoAssignmentService.js";
 
 const createScheduleSchema = z.object({
+  name: z.string().min(1),
   stableId: z.string().min(1),
-  stallNumber: z.string().min(1),
+  stableName: z.string().min(1),
   startDate: z.string().datetime(),
   endDate: z.string().datetime(),
-  pricePerMonth: z.number().positive(),
+  useAutoAssignment: z.boolean().optional().default(false),
+  notifyMembers: z.boolean().optional().default(false),
 });
 
 const updateScheduleSchema = z.object({
-  status: z.enum(["pending", "confirmed", "cancelled"]).optional(),
+  name: z.string().min(1).optional(),
+  status: z.enum(["draft", "published", "archived"]).optional(),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
+  useAutoAssignment: z.boolean().optional(),
+  notifyMembers: z.boolean().optional(),
 });
 
 const publishScheduleSchema = z.object({
   userId: z.string().min(1),
 });
+
+// Availability schema for member constraints
+const availabilitySchema = z
+  .object({
+    neverAvailable: z
+      .array(
+        z.object({
+          dayOfWeek: z.number().min(0).max(6),
+          timeSlots: z.array(
+            z.object({
+              start: z.string(),
+              end: z.string(),
+            }),
+          ),
+        }),
+      )
+      .optional(),
+    preferredTimes: z
+      .array(
+        z.object({
+          dayOfWeek: z.number().min(0).max(6),
+          timeSlots: z.array(
+            z.object({
+              start: z.string(),
+              end: z.string(),
+            }),
+          ),
+        }),
+      )
+      .optional(),
+  })
+  .optional();
+
+// Limits schema for member constraints
+const limitsSchema = z
+  .object({
+    maxShiftsPerWeek: z.number().min(0).optional(),
+    minShiftsPerWeek: z.number().min(0).optional(),
+    maxShiftsPerMonth: z.number().min(0).optional(),
+    minShiftsPerMonth: z.number().min(0).optional(),
+  })
+  .optional();
 
 const autoAssignSchema = z.object({
   members: z.array(
@@ -33,11 +87,18 @@ const autoAssignSchema = z.object({
       id: z.string().min(1),
       displayName: z.string().min(1),
       email: z.string().email(),
-      availability: z.any().optional(),
-      limits: z.any().optional(),
+      availability: availabilitySchema,
+      limits: limitsSchema,
     }),
   ),
   historicalPoints: z.record(z.number()).optional(),
+  config: z
+    .object({
+      holidayMultiplier: z.number().min(1).max(5).optional(),
+      preferenceBonus: z.number().optional(),
+      memoryHorizonDays: z.number().min(1).max(365).optional(),
+    })
+    .optional(),
 });
 
 export async function schedulesRoutes(fastify: FastifyInstance) {
@@ -83,10 +144,11 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
       try {
         const { stableId } = request.params as { stableId: string };
 
+        // Support both legacy "confirmed" status and new "published" status
         const snapshot = await db
           .collection("schedules")
           .where("stableId", "==", stableId)
-          .where("status", "==", "confirmed")
+          .where("status", "in", ["published", "confirmed"])
           .get();
 
         const schedules = snapshot.docs.map((doc) => ({
@@ -127,12 +189,16 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
 
         // Middleware already verified stable management permissions
         const scheduleData: Schedule = {
-          ...validation.data,
+          name: validation.data.name,
+          stableId: validation.data.stableId,
+          stableName: validation.data.stableName,
           startDate: new Date(validation.data.startDate),
           endDate: new Date(validation.data.endDate),
-          userId: user.uid,
-          status: "pending",
+          useAutoAssignment: validation.data.useAutoAssignment,
+          notifyMembers: validation.data.notifyMembers,
+          status: "draft",
           createdAt: new Date(),
+          createdBy: user.uid,
           updatedAt: new Date(),
         };
 
@@ -189,7 +255,7 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
         const canManage = await canManageSchedules(user.uid, schedule.stableId);
 
         if (
-          schedule.userId !== user.uid &&
+          schedule.createdBy !== user.uid &&
           !canManage &&
           user.role !== "system_admin"
         ) {
@@ -199,16 +265,31 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const updateData: Partial<Schedule> & { updatedAt: Date } = {
-          status: validation.data.status,
+        const updateData: Partial<Schedule> & {
+          updatedAt: Date;
+          updatedBy: string;
+        } = {
           updatedAt: new Date(),
+          updatedBy: user.uid,
         };
 
+        if (validation.data.name !== undefined) {
+          updateData.name = validation.data.name;
+        }
+        if (validation.data.status !== undefined) {
+          updateData.status = validation.data.status;
+        }
         if (validation.data.startDate) {
           updateData.startDate = new Date(validation.data.startDate);
         }
         if (validation.data.endDate) {
           updateData.endDate = new Date(validation.data.endDate);
+        }
+        if (validation.data.useAutoAssignment !== undefined) {
+          updateData.useAutoAssignment = validation.data.useAutoAssignment;
+        }
+        if (validation.data.notifyMembers !== undefined) {
+          updateData.notifyMembers = validation.data.notifyMembers;
         }
 
         await docRef.update(updateData);
@@ -253,7 +334,7 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
         // Check access permissions
         const canManage = await canManageSchedules(user.uid, schedule.stableId);
         if (
-          schedule.userId !== user.uid &&
+          schedule.createdBy !== user.uid &&
           !canManage &&
           user.role !== "system_admin"
         ) {
@@ -437,7 +518,7 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const { members } = validation.data;
+        const { members, historicalPoints, config } = validation.data;
 
         // Load all shifts for this schedule
         const shiftsSnapshot = await db
@@ -451,50 +532,85 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
           ...doc.data(),
         })) as any[];
 
-        // Auto-assignment logic (simplified - full logic would be in a service layer)
-        const batch = db.batch();
-        let assignmentCount = 0;
-
-        const unassignedShifts = allShifts.filter(
-          (s) => s.status === "unassigned",
+        // Prepare shifts for assignment service
+        const shiftsForAssignment: ShiftForAssignment[] = allShifts.map(
+          (shift) => ({
+            id: shift.id,
+            date: shift.date?.toDate?.() || shift.date,
+            time: shift.time,
+            points: shift.points || 1,
+            status: shift.status,
+            assignedTo: shift.assignedTo,
+          }),
         );
-        const memberPoints = new Map(members.map((m) => [m.id, 0]));
 
-        for (const shift of unassignedShifts) {
-          let bestMemberId: string | null = null;
-          let lowestPoints = Infinity;
+        // Prepare members for assignment service with historical points
+        const membersForAssignment: MemberForAssignment[] = members.map(
+          (member) => ({
+            userId: member.id,
+            displayName: member.displayName,
+            email: member.email,
+            historicalPoints: historicalPoints?.[member.id] || 0,
+            availability: member.availability,
+            limits: member.limits,
+          }),
+        );
 
-          memberPoints.forEach((points, memberId) => {
-            if (points < lowestPoints) {
-              lowestPoints = points;
-              bestMemberId = memberId;
-            }
+        // Prepare config for assignment service
+        const assignmentConfig: AssignmentConfig = {
+          holidayMultiplier: config?.holidayMultiplier,
+          preferenceBonus: config?.preferenceBonus,
+          memoryHorizonDays: config?.memoryHorizonDays,
+        };
+
+        // Run the fairness-based auto-assignment algorithm
+        const assignmentResults = autoAssignShifts(
+          shiftsForAssignment,
+          membersForAssignment,
+          assignmentConfig,
+        );
+
+        // Apply assignments to database
+        const batch = db.batch();
+
+        for (const result of assignmentResults) {
+          const shiftRef = db.collection("shifts").doc(result.shiftId);
+          batch.update(shiftRef, {
+            status: "assigned",
+            assignedTo: result.assignedTo,
+            assignedToName: result.assignedToName,
+            assignedToEmail: result.assignedToEmail,
+            pointsAwarded: result.pointsAwarded,
+            isHolidayShift: result.isHoliday,
+            assignedAt: new Date(),
+            assignedBy: user.uid,
           });
-
-          if (bestMemberId) {
-            const member = members.find((m) => m.id === bestMemberId)!;
-            const shiftRef = db.collection("shifts").doc(shift.id);
-
-            batch.update(shiftRef, {
-              status: "assigned",
-              assignedTo: member.id,
-              assignedToName: member.displayName,
-              assignedToEmail: member.email,
-            });
-
-            memberPoints.set(
-              bestMemberId,
-              (memberPoints.get(bestMemberId) || 0) + (shift.points || 1),
-            );
-            assignmentCount++;
-          }
         }
 
         await batch.commit();
 
+        // Calculate summary statistics
+        const summary = calculateAssignmentSummary(assignmentResults);
+        const memberStats = Object.fromEntries(
+          Array.from(summary.memberDistribution.entries()).map(
+            ([userId, stats]) => [
+              userId,
+              {
+                shiftsAssigned: stats.shifts,
+                totalPoints: stats.points,
+              },
+            ],
+          ),
+        );
+
         return {
-          assignedCount: assignmentCount,
-          totalShifts: unassignedShifts.length,
+          assignedCount: summary.totalAssigned,
+          totalShifts: shiftsForAssignment.filter(
+            (s) => s.status === "unassigned",
+          ).length,
+          totalPointsAwarded: summary.totalPoints,
+          holidayShifts: summary.holidayShifts,
+          memberStats,
         };
       } catch (error) {
         request.log.error({ error }, "Failed to auto-assign shifts");

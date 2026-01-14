@@ -3,7 +3,7 @@ import type {
   OrganizationMember,
   OrganizationRole,
   MembershipStatus,
-} from "@shared/types/organization";
+} from "@stall-bokning/shared/types/organization";
 
 /**
  * Member Repository

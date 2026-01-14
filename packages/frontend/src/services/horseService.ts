@@ -415,7 +415,7 @@ export async function getHorseOrganizationId(
     });
 
     if (!membershipsSnapshot.empty) {
-      const organizationId = membershipsSnapshot.docs[0].data().organizationId;
+      const organizationId = membershipsSnapshot.docs[0]!.data().organizationId;
       console.log(
         "✅ getHorseOrganizationId: Found organization from owner membership:",
         organizationId,

@@ -1,49 +1,50 @@
-import { useState } from 'react'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Popover,
   PopoverContent,
-  PopoverTrigger
-} from '@/components/ui/popover'
-import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Filter, Search } from 'lucide-react'
-import type { HorseFilters, FilterConfig } from '@shared/types/filters'
-import type { Stable, HorseGroup } from '@/types/roles'
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Filter, Search } from "lucide-react";
+import type { HorseFilters, FilterConfig } from "@shared/types/filters";
+import type { HorseUsage } from "@stall-bokning/shared/types/domain";
+import type { Stable, HorseGroup } from "@/types/roles";
 
 interface HorseFilterPopoverProps {
   /** Current filter state */
-  filters: HorseFilters
+  filters: HorseFilters;
 
   /** Callback when filters change */
-  onFiltersChange: (filters: HorseFilters) => void
+  onFiltersChange: (filters: HorseFilters) => void;
 
   /** Configuration for which filters to show */
-  config: FilterConfig
+  config: FilterConfig;
 
   /** Stables for dropdown (optional) */
-  stables?: Stable[]
+  stables?: Stable[];
 
   /** Horse groups for checkboxes (optional) */
-  groups?: HorseGroup[]
+  groups?: HorseGroup[];
 
   /** Number of active filters */
-  activeFilterCount?: number
+  activeFilterCount?: number;
 
   /** Callback to clear all filters */
-  onClearAll?: () => void
+  onClearAll?: () => void;
 
   /** Custom trigger button (optional) */
-  children?: React.ReactNode
+  children?: React.ReactNode;
 }
 
 export function HorseFilterPopover({
@@ -54,42 +55,44 @@ export function HorseFilterPopover({
   groups = [],
   activeFilterCount = 0,
   onClearAll,
-  children
+  children,
 }: HorseFilterPopoverProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
 
   const updateFilter = <K extends keyof HorseFilters>(
     key: K,
-    value: HorseFilters[K]
+    value: HorseFilters[K],
   ) => {
-    onFiltersChange({ ...filters, [key]: value })
-  }
+    onFiltersChange({ ...filters, [key]: value });
+  };
 
-  const toggleGender = (gender: 'gelding' | 'stallion' | 'mare') => {
+  const toggleGender = (gender: "gelding" | "stallion" | "mare") => {
     const newGenders = filters.genders.includes(gender)
-      ? filters.genders.filter((g: 'gelding' | 'stallion' | 'mare') => g !== gender)
-      : [...filters.genders, gender]
-    updateFilter('genders', newGenders)
-  }
+      ? filters.genders.filter(
+          (g: "gelding" | "stallion" | "mare") => g !== gender,
+        )
+      : [...filters.genders, gender];
+    updateFilter("genders", newGenders);
+  };
 
-  const toggleUsage = (usage: string) => {
+  const toggleUsage = (usage: HorseUsage) => {
     const newUsage = filters.usage.includes(usage)
-      ? filters.usage.filter((u: string) => u !== usage)
-      : [...filters.usage, usage]
-    updateFilter('usage', newUsage)
-  }
+      ? filters.usage.filter((u: HorseUsage) => u !== usage)
+      : [...filters.usage, usage];
+    updateFilter("usage", newUsage as HorseUsage[]);
+  };
 
   const toggleGroup = (groupId: string) => {
     const newGroups = filters.groups.includes(groupId)
       ? filters.groups.filter((g: string) => g !== groupId)
-      : [...filters.groups, groupId]
-    updateFilter('groups', newGroups)
-  }
+      : [...filters.groups, groupId];
+    updateFilter("groups", newGroups);
+  };
 
   const handleClearAll = () => {
-    onClearAll?.()
-    setIsOpen(false)
-  }
+    onClearAll?.();
+    setIsOpen(false);
+  };
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -112,11 +115,7 @@ export function HorseFilterPopover({
           <div className="flex items-center justify-between">
             <h4 className="font-medium">Filters</h4>
             {activeFilterCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClearAll}
-              >
+              <Button variant="ghost" size="sm" onClick={handleClearAll}>
                 Clear all
               </Button>
             )}
@@ -131,7 +130,7 @@ export function HorseFilterPopover({
                 <Input
                   placeholder="Name, UELN, chip number, breed..."
                   value={filters.searchQuery}
-                  onChange={(e) => updateFilter('searchQuery', e.target.value)}
+                  onChange={(e) => updateFilter("searchQuery", e.target.value)}
                   className="pl-8"
                 />
               </div>
@@ -143,8 +142,10 @@ export function HorseFilterPopover({
             <div className="space-y-2">
               <Label>Stable</Label>
               <Select
-                value={filters.stableId || 'all'}
-                onValueChange={(value) => updateFilter('stableId', value === 'all' ? undefined : value)}
+                value={filters.stableId || "all"}
+                onValueChange={(value) =>
+                  updateFilter("stableId", value === "all" ? undefined : value)
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -152,7 +153,7 @@ export function HorseFilterPopover({
                 <SelectContent>
                   <SelectItem value="all">All Stables</SelectItem>
                   <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {stables.map(stable => (
+                  {stables.map((stable) => (
                     <SelectItem key={stable.id} value={stable.id}>
                       {stable.name}
                     </SelectItem>
@@ -167,7 +168,7 @@ export function HorseFilterPopover({
             <div className="space-y-2">
               <Label>Gender</Label>
               <div className="space-y-2">
-                {['gelding', 'stallion', 'mare'].map(gender => (
+                {["gelding", "stallion", "mare"].map((gender) => (
                   <div key={gender} className="flex items-center space-x-2">
                     <Checkbox
                       id={`gender-${gender}`}
@@ -194,11 +195,11 @@ export function HorseFilterPopover({
                 <Input
                   type="number"
                   placeholder="Min"
-                  value={filters.ageMin ?? ''}
+                  value={filters.ageMin ?? ""}
                   onChange={(e) =>
                     updateFilter(
-                      'ageMin',
-                      e.target.value ? parseInt(e.target.value) : undefined
+                      "ageMin",
+                      e.target.value ? parseInt(e.target.value) : undefined,
                     )
                   }
                   min={0}
@@ -206,11 +207,11 @@ export function HorseFilterPopover({
                 <Input
                   type="number"
                   placeholder="Max"
-                  value={filters.ageMax ?? ''}
+                  value={filters.ageMax ?? ""}
                   onChange={(e) =>
                     updateFilter(
-                      'ageMax',
-                      e.target.value ? parseInt(e.target.value) : undefined
+                      "ageMax",
+                      e.target.value ? parseInt(e.target.value) : undefined,
                     )
                   }
                   min={0}
@@ -224,12 +225,12 @@ export function HorseFilterPopover({
             <div className="space-y-2">
               <Label>Usage</Label>
               <div className="space-y-2">
-                {['care', 'sport', 'breeding'].map(usage => (
+                {(["care", "sport", "breeding"] as const).map((usage) => (
                   <div key={usage} className="flex items-center space-x-2">
                     <Checkbox
                       id={`usage-${usage}`}
                       checked={filters.usage.includes(usage)}
-                      onCheckedChange={() => toggleUsage(usage)}
+                      onCheckedChange={() => toggleUsage(usage as HorseUsage)}
                     />
                     <label
                       htmlFor={`usage-${usage}`}
@@ -248,7 +249,7 @@ export function HorseFilterPopover({
             <div className="space-y-2">
               <Label>Groups</Label>
               <div className="space-y-2 max-h-40 overflow-y-auto">
-                {groups.map(group => (
+                {groups.map((group) => (
                   <div key={group.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={`group-${group.id}`}
@@ -278,9 +279,14 @@ export function HorseFilterPopover({
             <div className="space-y-2">
               <Label>Status</Label>
               <Select
-                value={filters.status || 'all'}
+                value={filters.status || "all"}
                 onValueChange={(value) =>
-                  updateFilter('status', value === 'all' ? undefined : value as 'active' | 'inactive')
+                  updateFilter(
+                    "status",
+                    value === "all"
+                      ? undefined
+                      : (value as "active" | "inactive"),
+                  )
                 }
               >
                 <SelectTrigger>
@@ -297,5 +303,5 @@ export function HorseFilterPopover({
         </div>
       </PopoverContent>
     </Popover>
-  )
+  );
 }

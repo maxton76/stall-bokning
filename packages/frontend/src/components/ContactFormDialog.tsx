@@ -1,42 +1,42 @@
-import { useEffect, useState } from 'react'
-import { z } from 'zod'
-import { BaseFormDialog } from '@/components/BaseFormDialog'
-import { useFormDialog } from '@/hooks/useFormDialog'
-import { FormInput, FormSelect, FormTextarea } from '@/components/form'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { useEffect, useState } from "react";
+import { z } from "zod";
+import { BaseFormDialog } from "@/components/BaseFormDialog";
+import { useFormDialog } from "@/hooks/useFormDialog";
+import { FormInput, FormSelect, FormTextarea } from "@/components/form";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@/components/ui/accordion'
-import { useAuth } from '@/contexts/AuthContext'
-import { createContact, updateContact } from '@/services/contactService'
-import type { Contact } from '@shared/types/contact'
+} from "@/components/ui/accordion";
+import { useAuth } from "@/contexts/AuthContext";
+import { createContact, updateContact } from "@/services/contactService";
+import type { Contact, CreateContactData } from "@shared/types/contact";
 
 interface ContactFormDialogProps {
-  open: boolean
-  onClose: () => void
-  contact?: Contact          // For editing existing contact
-  organizationId?: string    // Required for organization-level contacts
-  onSuccess: () => void
+  open: boolean;
+  onClose: () => void;
+  contact?: Contact; // For editing existing contact
+  organizationId?: string; // Required for organization-level contacts
+  onSuccess: () => void;
 }
 
 // Zod schema for contact form with discriminated union
-const contactSchema = z.discriminatedUnion('contactType', [
+const contactSchema = z.discriminatedUnion("contactType", [
   // Personal contact schema - Only firstName and lastName required
   z.object({
-    contactType: z.literal('Personal'),
-    accessLevel: z.enum(['organization', 'user']),
-    firstName: z.string().min(1, 'First name is required'),
-    lastName: z.string().min(1, 'Last name is required'),
+    contactType: z.literal("Personal"),
+    accessLevel: z.enum(["organization", "user"]),
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
     title: z.string().optional(),
-    email: z.string().email('Invalid email').or(z.literal('')).optional(),
+    email: z.string().email("Invalid email").or(z.literal("")).optional(),
     phoneNumber: z.string().optional(),
     secondPhoneNumber: z.string().optional(),
     iban: z.string().optional(),
-    invoiceLanguage: z.enum(['en', 'sv', 'de', 'fr', 'nl']),
+    invoiceLanguage: z.enum(["en", "sv", "de", "fr", "nl"]),
     note: z.string().optional(),
     address: z.object({
       street: z.string().optional(),
@@ -47,33 +47,37 @@ const contactSchema = z.discriminatedUnion('contactType', [
       stateProvince: z.string().optional(),
       country: z.string().optional(),
     }),
-    breedingInfo: z.object({
-      studbookPreference: z.string().optional(),
-      defaultShippingMethod: z.string().optional(),
-      semenCollectionStation: z.string().optional(),
-      semenCollectionStationNumber: z.string().optional(),
-    }).optional(),
+    breedingInfo: z
+      .object({
+        studbookPreference: z.string().optional(),
+        defaultShippingMethod: z.string().optional(),
+        semenCollectionStation: z.string().optional(),
+        semenCollectionStationNumber: z.string().optional(),
+      })
+      .optional(),
   }),
 
   // Business contact schema - Only businessName required
   z.object({
-    contactType: z.literal('Business'),
-    accessLevel: z.enum(['organization', 'user']),
-    businessName: z.string().min(1, 'Business name is required'),
-    email: z.string().email('Invalid email').or(z.literal('')).optional(),
+    contactType: z.literal("Business"),
+    accessLevel: z.enum(["organization", "user"]),
+    businessName: z.string().min(1, "Business name is required"),
+    email: z.string().email("Invalid email").or(z.literal("")).optional(),
     phoneNumber: z.string().optional(),
     companyRegistrationNumber: z.string().optional(),
     vatNumber: z.string().optional(),
     iban: z.string().optional(),
     eoriNumber: z.string().optional(),
-    invoiceLanguage: z.enum(['en', 'sv', 'de', 'fr', 'nl']),
+    invoiceLanguage: z.enum(["en", "sv", "de", "fr", "nl"]),
     note: z.string().optional(),
-    contactPerson: z.object({
-      firstName: z.string().optional(),
-      lastName: z.string().optional(),
-      title: z.string().optional(),
-      secondPhoneNumber: z.string().optional(),
-    }).optional(),
+    contactPerson: z
+      .object({
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+        title: z.string().optional(),
+        secondPhoneNumber: z.string().optional(),
+      })
+      .optional(),
     address: z.object({
       street: z.string().optional(),
       houseNumber: z.string().optional(),
@@ -84,101 +88,105 @@ const contactSchema = z.discriminatedUnion('contactType', [
       country: z.string().optional(),
     }),
   }),
-])
+]);
 
-type ContactFormData = z.infer<typeof contactSchema>
+type ContactFormData = z.infer<typeof contactSchema>;
 
 const INVOICE_LANGUAGES = [
-  { value: 'en', label: 'English' },
-  { value: 'sv', label: 'Swedish' },
-  { value: 'de', label: 'German' },
-  { value: 'fr', label: 'French' },
-  { value: 'nl', label: 'Dutch' },
-]
+  { value: "en", label: "English" },
+  { value: "sv", label: "Swedish" },
+  { value: "de", label: "German" },
+  { value: "fr", label: "French" },
+  { value: "nl", label: "Dutch" },
+];
 
 export function ContactFormDialog({
   open,
   onClose,
   contact,
   organizationId,
-  onSuccess
+  onSuccess,
 }: ContactFormDialogProps) {
-  const { user } = useAuth()
+  const { user } = useAuth();
 
   // Default values for new contacts
   const getDefaultValues = (): ContactFormData => {
     if (contact) {
-      return contact as ContactFormData
+      return contact as ContactFormData;
     }
 
     // Default for new Personal contact
     return {
-      contactType: 'Personal',
-      accessLevel: organizationId ? 'organization' : 'user',
-      firstName: '',
-      lastName: '',
-      title: '',
-      email: '',
-      phoneNumber: '',
-      secondPhoneNumber: '',
-      iban: '',
-      invoiceLanguage: 'en',
-      note: '',
+      contactType: "Personal",
+      accessLevel: organizationId ? "organization" : "user",
+      firstName: "",
+      lastName: "",
+      title: "",
+      email: "",
+      phoneNumber: "",
+      secondPhoneNumber: "",
+      iban: "",
+      invoiceLanguage: "en",
+      note: "",
       address: {
-        street: '',
-        houseNumber: '',
-        addressLine2: '',
-        postcode: '',
-        city: '',
-        stateProvince: '',
-        country: '',
+        street: "",
+        houseNumber: "",
+        addressLine2: "",
+        postcode: "",
+        city: "",
+        stateProvince: "",
+        country: "",
       },
       breedingInfo: {
-        studbookPreference: '',
-        defaultShippingMethod: '',
-        semenCollectionStation: '',
-        semenCollectionStationNumber: '',
+        studbookPreference: "",
+        defaultShippingMethod: "",
+        semenCollectionStation: "",
+        semenCollectionStationNumber: "",
       },
-    } as ContactFormData
-  }
+    } as ContactFormData;
+  };
 
   const { form, handleSubmit, resetForm } = useFormDialog<ContactFormData>({
     schema: contactSchema,
     defaultValues: getDefaultValues(),
     onSubmit: async (data) => {
-      if (!user) throw new Error('User not authenticated')
+      if (!user) throw new Error("User not authenticated");
 
       if (contact) {
-        await updateContact(contact.id, user.uid, data)
+        await updateContact(contact.id, user.uid, data as Partial<Contact>);
       } else {
-        await createContact(user.uid, data, organizationId)
+        await createContact(
+          user.uid,
+          data as CreateContactData,
+          organizationId,
+        );
       }
     },
     onSuccess: () => {
-      onSuccess()
-      resetForm()
+      onSuccess();
+      resetForm();
     },
-  })
+  });
 
-  const contactType = form.watch('contactType')
+  const contactType = form.watch("contactType");
 
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
-      resetForm(getDefaultValues())
+      resetForm(getDefaultValues());
     }
-  }, [open])
+  }, [open]);
 
   return (
     <BaseFormDialog
       open={open}
       onOpenChange={(isOpen) => {
         if (!isOpen) {
-          onClose()
-          resetForm()
+          onClose();
+          resetForm();
         }
       }}
-      title={contact ? 'Edit Contact' : 'New Contact'}
+      title={contact ? "Edit Contact" : "New Contact"}
       description="Create or update contact information"
       form={form}
       onSubmit={handleSubmit}
@@ -195,9 +203,9 @@ export function ContactFormDialog({
             value={contactType}
             onValueChange={(value) => {
               // Reset form with new contact type default values
-              const newDefaults = getDefaultValues()
-              newDefaults.contactType = value as 'Personal' | 'Business'
-              resetForm(newDefaults)
+              const newDefaults = getDefaultValues();
+              newDefaults.contactType = value as "Personal" | "Business";
+              resetForm(newDefaults);
             }}
             disabled={!!contact} // Can't change type when editing
           >
@@ -221,14 +229,17 @@ export function ContactFormDialog({
           <div className="grid gap-2">
             <Label htmlFor="accessLevel">Visibility *</Label>
             <RadioGroup
-              value={form.watch('accessLevel')}
+              value={form.watch("accessLevel")}
               onValueChange={(value) =>
-                form.setValue('accessLevel', value as 'organization' | 'user')
+                form.setValue("accessLevel", value as "organization" | "user")
               }
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="organization" id="organization" />
-                <Label htmlFor="organization" className="font-normal cursor-pointer">
+                <Label
+                  htmlFor="organization"
+                  className="font-normal cursor-pointer"
+                >
                   Organization - Visible to all members
                 </Label>
               </div>
@@ -243,7 +254,7 @@ export function ContactFormDialog({
         )}
 
         {/* Conditional Fields Based on Contact Type */}
-        {contactType === 'Personal' ? (
+        {contactType === "Personal" ? (
           <>
             <div className="grid grid-cols-2 gap-4">
               <FormInput
@@ -297,7 +308,7 @@ export function ContactFormDialog({
           />
         </div>
 
-        {contactType === 'Personal' && (
+        {contactType === "Personal" && (
           <FormInput
             form={form}
             name="secondPhoneNumber"
@@ -308,7 +319,7 @@ export function ContactFormDialog({
         )}
 
         {/* Business-Specific Fields */}
-        {contactType === 'Business' && (
+        {contactType === "Business" && (
           <>
             <div className="grid grid-cols-2 gap-4">
               <FormInput
@@ -343,7 +354,7 @@ export function ContactFormDialog({
         )}
 
         {/* Common Fields */}
-        {contactType === 'Personal' && (
+        {contactType === "Personal" && (
           <FormInput
             form={form}
             name="iban"
@@ -420,7 +431,7 @@ export function ContactFormDialog({
           </AccordionItem>
 
           {/* Contact Person Section (Business Only) */}
-          {contactType === 'Business' && (
+          {contactType === "Business" && (
             <AccordionItem value="contactPerson">
               <AccordionTrigger>Contact Person (Optional)</AccordionTrigger>
               <AccordionContent className="space-y-4 pt-4">
@@ -458,9 +469,11 @@ export function ContactFormDialog({
           )}
 
           {/* Breeding Info Section (Personal Only) */}
-          {contactType === 'Personal' && (
+          {contactType === "Personal" && (
             <AccordionItem value="breedingInfo">
-              <AccordionTrigger>Breeding Information (Optional)</AccordionTrigger>
+              <AccordionTrigger>
+                Breeding Information (Optional)
+              </AccordionTrigger>
               <AccordionContent className="space-y-4 pt-4">
                 <FormInput
                   form={form}
@@ -505,5 +518,5 @@ export function ContactFormDialog({
         />
       </div>
     </BaseFormDialog>
-  )
+  );
 }

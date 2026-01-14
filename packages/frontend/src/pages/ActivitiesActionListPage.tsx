@@ -589,6 +589,7 @@ export default function ActivitiesActionListPage() {
                   onComplete={() => handleCompleteEntry(entry)}
                   isCompleting={completingIds.has(entry.id)}
                   activityTypes={activityTypes.data || []}
+                  horses={horses.data || []}
                 />
               ))}
             </div>
@@ -660,9 +661,10 @@ function getEntryTitle(
     let horseName = entry.horseName;
     if (!horseName && entry.horseId) {
       const horse = horses.find((h) => h.id === entry.horseId);
-      horseName = horse?.name;
+      horseName = horse?.name || "Unknown Horse";
+    } else if (!horseName) {
+      horseName = "Unknown Horse";
     }
-    horseName = horseName || "Unknown Horse";
 
     return `${horseName} - ${typeName}`;
   }

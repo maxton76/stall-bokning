@@ -1,5 +1,6 @@
 import type { Timestamp } from "firebase/firestore";
 import type { VaccinationStatus } from "./vaccination.js";
+import type { MembershipStatus } from "./organization.js";
 
 /**
  * System-level roles (platform-wide)
@@ -12,12 +13,6 @@ export type SystemRole = "system_admin" | "stable_owner" | "member";
  * Users can have different roles in different stables
  */
 export type StableMemberRole = "manager" | "member";
-
-/**
- * Membership status for both stable and organization members
- * CONSOLIDATED from 3 locations (frontend/types/roles.ts, api/types/index.ts, shared/types/organization.ts)
- */
-export type MembershipStatus = "active" | "inactive" | "pending";
 
 /**
  * User document structure
@@ -34,6 +29,15 @@ export interface User {
 }
 
 /**
+ * Points system configuration for a stable
+ */
+export interface PointsSystemConfig {
+  resetPeriod: "monthly" | "quarterly" | "yearly" | "rolling" | "never";
+  memoryHorizonDays: number; // For rolling window (default 90)
+  holidayMultiplier: number; // Default 1.5
+}
+
+/**
  * Stable document structure
  * CONSOLIDATED from frontend and API (removed duplicate capacity/price fields from API version)
  */
@@ -45,8 +49,47 @@ export interface Stable {
   ownerId: string; // Must be a user with systemRole='stable_owner'
   ownerEmail?: string; // Cached for display
   organizationId?: string; // Link to parent organization (optional for backward compatibility)
+
+  // Points system configuration
+  pointsSystem?: PointsSystemConfig;
+
   createdAt: Timestamp;
   updatedAt: Timestamp;
+}
+
+/**
+ * Member availability constraints
+ */
+export interface MemberAvailability {
+  neverAvailable?: {
+    dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0=Sunday
+    timeSlots: { start: string; end: string }[]; // "HH:MM" format
+  }[];
+  preferredTimes?: {
+    dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+    timeSlots: { start: string; end: string }[];
+  }[];
+}
+
+/**
+ * Member shift limits
+ */
+export interface MemberLimits {
+  maxShiftsPerWeek?: number;
+  minShiftsPerWeek?: number;
+  maxShiftsPerMonth?: number;
+  minShiftsPerMonth?: number;
+}
+
+/**
+ * Member statistics for fairness tracking
+ */
+export interface MemberStats {
+  totalPoints: number; // All-time completed shift points
+  totalShifts: number; // All-time completed shifts
+  currentPeriodPoints: number; // Since last reset
+  lastShiftDate?: Timestamp; // Most recent completed shift
+  lastPointsReset?: Timestamp; // When points were last reset
 }
 
 /**
@@ -65,6 +108,13 @@ export interface StableMember {
   joinedAt: Timestamp;
   invitedBy?: string; // userId who sent the invite
   inviteAcceptedAt?: Timestamp;
+
+  // Shift assignment constraints
+  availability?: MemberAvailability;
+  limits?: MemberLimits;
+
+  // Fairness tracking statistics
+  stats?: MemberStats;
 }
 
 /**
@@ -268,17 +318,61 @@ export interface Schedule {
 }
 
 /**
- * Shift document structure (from API types)
+ * Shift status - expanded lifecycle
+ */
+export type ShiftStatus =
+  | "unassigned"
+  | "assigned"
+  | "completed"
+  | "cancelled"
+  | "missed";
+
+/**
+ * Shift document structure (enhanced for fairness system)
  */
 export interface Shift {
   id?: string;
+  scheduleId: string;
   stableId: string;
-  userId: string;
-  date: Date;
-  startTime: string;
-  endTime: string;
-  role: string;
-  status: "scheduled" | "completed" | "cancelled";
-  createdAt?: Date;
-  updatedAt?: Date;
+  stableName?: string;
+  date: Date | Timestamp;
+  shiftTypeId?: string;
+  shiftTypeName?: string;
+  time: string; // "HH:MM-HH:MM" format
+  points: number;
+  status: ShiftStatus;
+
+  // Assignment tracking
+  assignedTo: string | null;
+  assignedToName: string | null;
+  assignedToEmail: string | null;
+  assignedAt?: Timestamp;
+  assignedBy?: string;
+
+  // Points tracking
+  pointsAwarded?: number; // Actual points awarded (may include holiday multiplier)
+  isHolidayShift?: boolean;
+
+  // Completion tracking
+  completedAt?: Timestamp;
+  completedBy?: string;
+
+  // Cancellation tracking
+  cancelledAt?: Timestamp;
+  cancelledBy?: string;
+  cancellationReason?: string;
+
+  // Missed shift tracking
+  markedMissedAt?: Timestamp;
+  markedMissedBy?: string;
+  missedReason?: string;
+
+  // Legacy fields (for backward compatibility)
+  userId?: string;
+  startTime?: string;
+  endTime?: string;
+  role?: string;
+
+  createdAt?: Date | Timestamp;
+  updatedAt?: Date | Timestamp;
 }

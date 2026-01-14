@@ -18,20 +18,95 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
   CalendarIcon,
   ClockIcon,
   AlertCircleIcon,
   CheckCircleIcon,
   UsersIcon,
   Loader2Icon,
+  MoreHorizontalIcon,
+  CheckIcon,
+  XCircleIcon,
+  AlertTriangleIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useShiftActions } from "@/hooks/useSchedules";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserStables } from "@/hooks/useUserStables";
-import type { Shift } from "@/types/schedule";
+import type { Shift, ShiftStatus } from "@/types/schedule";
 import { getPublishedShiftsForStables } from "@/services/scheduleService";
 import { toDate } from "@/utils/timestampUtils";
+
+// Helper to get badge for shift status
+function getStatusBadge(
+  status: ShiftStatus,
+  assignedToEmail?: string | null,
+  currentUserEmail?: string,
+) {
+  switch (status) {
+    case "completed":
+      return (
+        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+          <CheckIcon className="h-3 w-3 mr-1" />
+          Completed
+        </Badge>
+      );
+    case "cancelled":
+      return (
+        <Badge variant="secondary" className="bg-gray-100 text-gray-600">
+          <XCircleIcon className="h-3 w-3 mr-1" />
+          Cancelled
+        </Badge>
+      );
+    case "missed":
+      return (
+        <Badge
+          variant="destructive"
+          className="bg-orange-100 text-orange-800 hover:bg-orange-100"
+        >
+          <AlertTriangleIcon className="h-3 w-3 mr-1" />
+          Missed
+        </Badge>
+      );
+    case "assigned":
+      return (
+        <Badge
+          variant="outline"
+          className="bg-green-50 text-green-700 border-green-200"
+        >
+          {assignedToEmail === currentUserEmail ? "You" : "Assigned"}
+        </Badge>
+      );
+    case "unassigned":
+    default:
+      return <Badge variant="destructive">Unassigned</Badge>;
+  }
+}
+
+type FilterType =
+  | "all"
+  | "unassigned"
+  | "assigned"
+  | "completed"
+  | "cancelled"
+  | "missed";
 
 export default function SchedulePage() {
   const { user } = useAuth();
@@ -39,12 +114,19 @@ export default function SchedulePage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     new Date(),
   );
-  const [filter, setFilter] = useState<"all" | "unassigned" | "assigned">(
-    "all",
-  );
+  const [filter, setFilter] = useState<FilterType>("all");
   const [selectedStable, setSelectedStable] = useState<string>("all"); // Auto-selected by useEffect if only 1 stable
-  const { assign, unassign } = useShiftActions();
+  const { assign, unassign, complete, cancel, markMissed } = useShiftActions();
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
+
+  // Dialog state for completion actions
+  const [completionDialog, setCompletionDialog] = useState<{
+    open: boolean;
+    type: "complete" | "cancel" | "missed" | null;
+    shiftId: string;
+    shiftName: string;
+  }>({ open: false, type: null, shiftId: "", shiftName: "" });
+  const [dialogInput, setDialogInput] = useState("");
 
   // Get stable IDs
   const stableIds = stables.map((stable) => stable.id);
@@ -129,10 +211,30 @@ export default function SchedulePage() {
     const assigned = stableFilteredShifts.filter(
       (s) => s.status === "assigned",
     ).length;
+    const completed = stableFilteredShifts.filter(
+      (s) => s.status === "completed",
+    ).length;
+    const cancelled = stableFilteredShifts.filter(
+      (s) => s.status === "cancelled",
+    ).length;
+    const missed = stableFilteredShifts.filter(
+      (s) => s.status === "missed",
+    ).length;
+    const activeShifts = totalShifts - cancelled; // Exclude cancelled from coverage calc
     const coverage =
-      totalShifts > 0 ? Math.round((assigned / totalShifts) * 100) : 0;
+      activeShifts > 0
+        ? Math.round(((assigned + completed) / activeShifts) * 100)
+        : 0;
 
-    return { totalShifts, unassigned, assigned, coverage };
+    return {
+      totalShifts,
+      unassigned,
+      assigned,
+      completed,
+      cancelled,
+      missed,
+      coverage,
+    };
   }, [stableFilteredShifts]);
 
   const filteredShifts = useMemo(() => {
@@ -185,6 +287,47 @@ export default function SchedulePage() {
       });
     } catch (error) {
       console.error("Error unassigning shift:", error);
+    }
+  };
+
+  const openCompletionDialog = (
+    type: "complete" | "cancel" | "missed",
+    shiftId: string,
+    shiftName: string,
+  ) => {
+    setCompletionDialog({ open: true, type, shiftId, shiftName });
+    setDialogInput("");
+  };
+
+  const handleCompletionAction = async () => {
+    const { type, shiftId } = completionDialog;
+    if (!type || !shiftId) return;
+
+    try {
+      if (type === "complete") {
+        await complete(shiftId, dialogInput || undefined);
+      } else if (type === "cancel") {
+        if (!dialogInput.trim()) {
+          alert("Please provide a reason for cancellation");
+          return;
+        }
+        await cancel(shiftId, dialogInput);
+      } else if (type === "missed") {
+        await markMissed(shiftId, dialogInput || undefined);
+      }
+
+      queryClient.invalidateQueries({
+        queryKey: ["shifts", "all", { stableIds }],
+      });
+      setCompletionDialog({
+        open: false,
+        type: null,
+        shiftId: "",
+        shiftName: "",
+      });
+      setDialogInput("");
+    } catch (error) {
+      console.error(`Error ${type}ing shift:`, error);
     }
   };
 
@@ -315,37 +458,41 @@ export default function SchedulePage() {
               selected={selectedDate}
               onSelect={setSelectedDate}
               className="rounded-md border"
-              components={{
-                DayContent: ({ date }) => {
-                  const coverage = getShiftCoverageForDate(date);
+              components={
+                {
+                  DayContent: ({ date }: any) => {
+                    const coverage = getShiftCoverageForDate(date);
 
-                  return (
-                    <div className="relative w-full h-full flex flex-col items-center justify-center">
-                      <span>{date.getDate()}</span>
-                      {coverage.total > 0 && (
-                        <div className="absolute bottom-1 flex gap-0.5">
-                          <div
-                            className={cn(
-                              "h-1 w-1 rounded-full",
-                              coverage.status === "full" && "bg-green-600",
-                              coverage.status === "partial" && "bg-yellow-600",
-                              coverage.status === "empty" && "bg-red-600",
-                            )}
-                          />
-                          <div
-                            className={cn(
-                              "h-1 w-1 rounded-full",
-                              coverage.status === "full" && "bg-green-600",
-                              coverage.status === "partial" && "bg-yellow-600",
-                              coverage.status === "empty" && "bg-red-600",
-                            )}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  );
-                },
-              }}
+                    return (
+                      <div className="relative w-full h-full flex flex-col items-center justify-center">
+                        <span>{date.getDate()}</span>
+                        {coverage.total > 0 && (
+                          <div className="absolute bottom-1 flex gap-0.5">
+                            <div
+                              className={cn(
+                                "h-1 w-1 rounded-full",
+                                coverage.status === "full" && "bg-green-600",
+                                coverage.status === "partial" &&
+                                  "bg-yellow-600",
+                                coverage.status === "empty" && "bg-red-600",
+                              )}
+                            />
+                            <div
+                              className={cn(
+                                "h-1 w-1 rounded-full",
+                                coverage.status === "full" && "bg-green-600",
+                                coverage.status === "partial" &&
+                                  "bg-yellow-600",
+                                coverage.status === "empty" && "bg-red-600",
+                              )}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  },
+                } as any
+              }
             />
           </CardContent>
         </Card>
@@ -422,27 +569,48 @@ export default function SchedulePage() {
                 View and manage all scheduled shifts
               </CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant={filter === "all" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setFilter("all")}
               >
-                All
+                All ({stats.totalShifts})
               </Button>
               <Button
                 variant={filter === "unassigned" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setFilter("unassigned")}
               >
-                Unassigned
+                Unassigned ({stats.unassigned})
               </Button>
               <Button
                 variant={filter === "assigned" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setFilter("assigned")}
               >
-                Assigned
+                Assigned ({stats.assigned})
+              </Button>
+              <Button
+                variant={filter === "completed" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter("completed")}
+              >
+                Completed ({stats.completed})
+              </Button>
+              <Button
+                variant={filter === "cancelled" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter("cancelled")}
+              >
+                Cancelled ({stats.cancelled})
+              </Button>
+              <Button
+                variant={filter === "missed" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter("missed")}
+              >
+                Missed ({stats.missed})
               </Button>
             </div>
           </div>
@@ -473,6 +641,12 @@ export default function SchedulePage() {
                         <p className="font-medium">{shift.shiftTypeName}</p>
                         <p className="text-sm text-muted-foreground">
                           {shift.stableName}
+                          {shift.assignedToName &&
+                            shift.status !== "unassigned" && (
+                              <span className="ml-2">
+                                • {shift.assignedToName}
+                              </span>
+                            )}
                         </p>
                       </div>
                     </div>
@@ -493,35 +667,69 @@ export default function SchedulePage() {
                         {shift.time}
                       </span>
                     </div>
-                    <div className="w-32">
-                      {shift.status === "assigned" ? (
-                        <Badge
-                          variant="outline"
-                          className="bg-green-50 text-green-700 border-green-200"
-                        >
-                          {shift.assignedToEmail === user?.email
-                            ? "You"
-                            : shift.assignedToName}
-                        </Badge>
-                      ) : (
-                        <Badge variant="destructive">Unassigned</Badge>
+                    <div className="w-28">
+                      {getStatusBadge(
+                        shift.status,
+                        shift.assignedToEmail ?? undefined,
+                        user?.email ?? undefined,
                       )}
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        if (shift.status === "assigned") {
-                          handleUnassignShift(shift.id);
-                        } else {
-                          handleAssignShift(shift);
-                        }
-                      }}
-                    >
-                      {shift.status === "assigned"
-                        ? "Unassign"
-                        : "Assign to Me"}
-                    </Button>
+                    {/* Action buttons based on status */}
+                    {shift.status === "unassigned" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleAssignShift(shift)}
+                      >
+                        Assign to Me
+                      </Button>
+                    )}
+                    {shift.status === "assigned" && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            <MoreHorizontalIcon className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() =>
+                              openCompletionDialog(
+                                "complete",
+                                shift.id,
+                                shift.shiftTypeName,
+                              )
+                            }
+                          >
+                            <CheckIcon className="mr-2 h-4 w-4 text-green-600" />
+                            Mark Completed
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              openCompletionDialog(
+                                "cancel",
+                                shift.id,
+                                shift.shiftTypeName,
+                              )
+                            }
+                          >
+                            <XCircleIcon className="mr-2 h-4 w-4 text-gray-500" />
+                            Cancel Shift
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleUnassignShift(shift.id)}
+                          >
+                            Unassign
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                    {(shift.status === "completed" ||
+                      shift.status === "cancelled" ||
+                      shift.status === "missed") && (
+                      <div className="w-[68px]" /> // Spacer for alignment
+                    )}
                   </div>
                 </div>
               ))}
@@ -529,6 +737,79 @@ export default function SchedulePage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Completion Dialog */}
+      <Dialog
+        open={completionDialog.open}
+        onOpenChange={(open) =>
+          !open &&
+          setCompletionDialog({
+            open: false,
+            type: null,
+            shiftId: "",
+            shiftName: "",
+          })
+        }
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {completionDialog.type === "complete" && "Complete Shift"}
+              {completionDialog.type === "cancel" && "Cancel Shift"}
+              {completionDialog.type === "missed" && "Mark Shift as Missed"}
+            </DialogTitle>
+            <DialogDescription>
+              {completionDialog.type === "complete" &&
+                `Mark "${completionDialog.shiftName}" as completed. You can optionally add notes.`}
+              {completionDialog.type === "cancel" &&
+                `Cancel "${completionDialog.shiftName}". Please provide a reason.`}
+              {completionDialog.type === "missed" &&
+                `Mark "${completionDialog.shiftName}" as missed. You can optionally add a reason.`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="dialog-input">
+                {completionDialog.type === "complete" && "Notes (optional)"}
+                {completionDialog.type === "cancel" && "Reason (required)"}
+                {completionDialog.type === "missed" && "Reason (optional)"}
+              </Label>
+              <Textarea
+                id="dialog-input"
+                placeholder={
+                  completionDialog.type === "complete"
+                    ? "Add any notes about this shift..."
+                    : completionDialog.type === "cancel"
+                      ? "Why is this shift being cancelled?"
+                      : "Why was this shift missed?"
+                }
+                value={dialogInput}
+                onChange={(e) => setDialogInput(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() =>
+                setCompletionDialog({
+                  open: false,
+                  type: null,
+                  shiftId: "",
+                  shiftName: "",
+                })
+              }
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleCompletionAction}>
+              {completionDialog.type === "complete" && "Complete"}
+              {completionDialog.type === "cancel" && "Cancel Shift"}
+              {completionDialog.type === "missed" && "Mark Missed"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

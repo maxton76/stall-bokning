@@ -319,17 +319,20 @@ export function VaccinationHistoryTable({
               | "destructive"
               | "secondary"
               | "outline" = "default";
-            let statusText = `${Math.abs(daysUntilDue)} days`;
+            let statusText =
+              daysUntilDue !== null ? `${Math.abs(daysUntilDue)} days` : "N/A";
 
-            if (daysUntilDue < 0) {
-              statusVariant = "destructive";
-              statusText = `${Math.abs(daysUntilDue)} days overdue`;
-            } else if (daysUntilDue <= 30) {
-              statusVariant = "outline";
-              statusText = `${daysUntilDue} days`;
-            } else {
-              statusVariant = "secondary";
-              statusText = `${daysUntilDue} days`;
+            if (daysUntilDue !== null) {
+              if (daysUntilDue < 0) {
+                statusVariant = "destructive";
+                statusText = `${Math.abs(daysUntilDue)} days overdue`;
+              } else if (daysUntilDue <= 30) {
+                statusVariant = "outline";
+                statusText = `${daysUntilDue} days`;
+              } else {
+                statusVariant = "secondary";
+                statusText = `${daysUntilDue} days`;
+              }
             }
 
             return (
@@ -345,7 +348,10 @@ export function VaccinationHistoryTable({
                         {record.vaccinationRuleName}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        Vaccinated: {format(vaccinationDate, "MMM d, yyyy")}
+                        Vaccinated:{" "}
+                        {vaccinationDate
+                          ? format(vaccinationDate, "MMM d, yyyy")
+                          : "N/A"}
                       </p>
                     </div>
                     <Badge variant={statusVariant} className="font-normal ml-2">
@@ -357,7 +363,9 @@ export function VaccinationHistoryTable({
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Next Due:</span>
                       <span className="font-medium">
-                        {format(nextDueDate, "MMM d, yyyy")}
+                        {nextDueDate
+                          ? format(nextDueDate, "MMM d, yyyy")
+                          : "N/A"}
                       </span>
                     </div>
 

@@ -1,6 +1,6 @@
-import type { UseFormReturn, FieldValues, Path } from 'react-hook-form'
-import { Input } from '@/components/ui/input'
-import { FormField } from './FormField'
+import type { UseFormReturn, FieldValues, Path } from "react-hook-form";
+import { Input } from "@/components/ui/input";
+import { FormField } from "./FormField";
 
 /**
  * Form input component with integrated label and error display
@@ -19,37 +19,37 @@ import { FormField } from './FormField'
  */
 export interface FormInputProps<T extends FieldValues> {
   /** Field name (must match form schema) */
-  name: Path<T>
+  name: Path<T>;
   /** Field label */
-  label: string
+  label: string;
   /** React Hook Form instance */
-  form: UseFormReturn<T>
+  form: UseFormReturn<T>;
   /** Input type */
-  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url'
+  type?: "text" | "email" | "password" | "number" | "tel" | "url" | "time";
   /** Placeholder text */
-  placeholder?: string
+  placeholder?: string;
   /** Whether field is required */
-  required?: boolean
+  required?: boolean;
   /** Whether field is disabled */
-  disabled?: boolean
+  disabled?: boolean;
   /** Helper text */
-  helperText?: string
+  helperText?: string;
   /** Custom class name */
-  className?: string
+  className?: string;
 }
 
 export function FormInput<T extends FieldValues>({
   name,
   label,
   form,
-  type = 'text',
+  type = "text",
   placeholder,
   required,
   disabled,
   helperText,
   className,
 }: FormInputProps<T>) {
-  const error = form.formState.errors[name]?.message as string | undefined
+  const error = form.formState.errors[name]?.message as string | undefined;
 
   return (
     <FormField
@@ -68,5 +68,5 @@ export function FormInput<T extends FieldValues>({
         {...form.register(name)}
       />
     </FormField>
-  )
+  );
 }

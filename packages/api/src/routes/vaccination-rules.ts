@@ -44,13 +44,18 @@ async function hasOrganizationAccess(
 ): Promise<boolean> {
   if (userRole === "system_admin") return true;
 
+  // Check if user is the organization owner
+  const orgDoc = await db.collection("organizations").doc(organizationId).get();
+  if (orgDoc.exists && orgDoc.data()?.ownerId === userId) return true;
+
   // Check direct organization membership
   const orgMemberDoc = await db
     .collection("organizationMembers")
     .doc(`${userId}_${organizationId}`)
     .get();
 
-  if (orgMemberDoc.exists) return true;
+  if (orgMemberDoc.exists && orgMemberDoc.data()?.status === "active")
+    return true;
 
   // Check stable membership - user might have access through a stable in this organization
   const stablesSnapshot = await db
@@ -60,11 +65,10 @@ async function hasOrganizationAccess(
 
   for (const stableDoc of stablesSnapshot.docs) {
     const stableId = stableDoc.id;
+    const stableData = stableDoc.data();
 
     // Check if user is stable owner
-    if (stableDoc.data().ownerId === userId) {
-      return true;
-    }
+    if (stableData.ownerId === userId) return true;
 
     // Check if user is stable member
     const memberDoc = await db
@@ -72,9 +76,7 @@ async function hasOrganizationAccess(
       .doc(`${userId}_${stableId}`)
       .get();
 
-    if (memberDoc.exists && memberDoc.data()?.status === "active") {
-      return true;
-    }
+    if (memberDoc.exists && memberDoc.data()?.status === "active") return true;
   }
 
   return false;

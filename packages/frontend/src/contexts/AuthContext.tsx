@@ -1,154 +1,201 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  ReactNode,
+} from "react";
 import {
   signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   setPersistence,
-  browserLocalPersistence
-} from 'firebase/auth'
-import { auth } from '@/lib/firebase'
-import { AppUser } from '@/types/auth'
+  browserLocalPersistence,
+} from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { AppUser } from "@/types/auth";
 import {
   fetchUserProfile,
   createAppUser,
-  invalidateProfileCache
-} from '@/services/profileService'
+  invalidateProfileCache,
+} from "@/services/profileService";
 
 interface AuthContextType {
-  user: AppUser | null
-  loading: boolean
-  profileLoading: boolean
-  signIn: (email: string, password: string) => Promise<void>
-  signOut: () => Promise<void>
-  refreshProfile: () => Promise<void>
-  error: string | null
+  user: AppUser | null;
+  loading: boolean;
+  profileLoading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+  error: string | null;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function useAuth() {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error("useAuth must be used within an AuthProvider");
   }
-  return context
+  return context;
 }
 
 interface AuthProviderProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<AppUser | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [profileLoading, setProfileLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Set persistence to local storage
     setPersistence(auth, browserLocalPersistence).catch((err) => {
-      console.error('Error setting persistence:', err)
-    })
+      console.error("Error setting persistence:", err);
+    });
 
     // Subscribe to auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         // User signed in - fetch profile
-        setProfileLoading(true)
+        setProfileLoading(true);
         try {
-          const profile = await fetchUserProfile(firebaseUser.uid)
-          const appUser = createAppUser(firebaseUser, profile)
-          setUser(appUser)
+          const profile = await fetchUserProfile(firebaseUser.uid);
+          const appUser = createAppUser(firebaseUser, profile);
+          setUser(appUser);
 
           if (!profile) {
-            console.warn('User profile not found in Firestore, using Firebase data only')
+            console.warn(
+              "User profile not found in Firestore, using Firebase data only",
+            );
           }
         } catch (error) {
-          console.error('Profile fetch error:', error)
+          console.error("Profile fetch error:", error);
           // Still create user with Firebase data only
-          setUser(createAppUser(firebaseUser, null))
+          setUser(createAppUser(firebaseUser, null));
         } finally {
-          setProfileLoading(false)
+          setProfileLoading(false);
         }
       } else {
         // User signed out
-        setUser(null)
+        setUser(null);
       }
-      setLoading(false)
-    })
+      setLoading(false);
+    });
 
-    return unsubscribe
-  }, [])
+    return unsubscribe;
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
-      setError(null)
-      setLoading(true)
-      await signInWithEmailAndPassword(auth, email, password)
+      setError(null);
+      setLoading(true);
+      await signInWithEmailAndPassword(auth, email, password);
     } catch (err: any) {
-      console.error('Sign in error:', err)
+      console.error("Sign in error:", err);
 
       // User-friendly error messages
-      let errorMessage = 'Failed to sign in. Please try again.'
+      let errorMessage = "Failed to sign in. Please try again.";
 
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-        errorMessage = 'Invalid email or password.'
-      } else if (err.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many failed attempts. Please try again later.'
-      } else if (err.code === 'auth/network-request-failed') {
-        errorMessage = 'Network error. Please check your connection.'
+      if (
+        err.code === "auth/invalid-credential" ||
+        err.code === "auth/user-not-found" ||
+        err.code === "auth/wrong-password"
+      ) {
+        errorMessage = "Invalid email or password.";
+      } else if (err.code === "auth/too-many-requests") {
+        errorMessage = "Too many failed attempts. Please try again later.";
+      } else if (err.code === "auth/network-request-failed") {
+        errorMessage = "Network error. Please check your connection.";
       }
 
-      setError(errorMessage)
-      throw new Error(errorMessage)
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
+
+  const signInWithGoogle = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      // onAuthStateChanged will handle the user profile fetch
+    } catch (err: any) {
+      console.error("Google sign in error:", err);
+
+      // User-friendly error messages
+      let errorMessage = "Failed to sign in with Google. Please try again.";
+
+      if (err.code === "auth/popup-closed-by-user") {
+        errorMessage = "Sign in cancelled.";
+      } else if (err.code === "auth/popup-blocked") {
+        errorMessage = "Pop-up blocked. Please allow pop-ups for this site.";
+      } else if (err.code === "auth/network-request-failed") {
+        errorMessage = "Network error. Please check your connection.";
+      } else if (err.code === "auth/unauthorized-domain") {
+        errorMessage = "This domain is not authorized. Please contact support.";
+      }
+
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const signOut = async () => {
     try {
-      setError(null)
+      setError(null);
       // Invalidate cache on sign out
       if (user?.uid) {
-        invalidateProfileCache(user.uid)
+        invalidateProfileCache(user.uid);
       }
-      await firebaseSignOut(auth)
+      await firebaseSignOut(auth);
     } catch (err: any) {
-      console.error('Sign out error:', err)
-      setError('Failed to sign out. Please try again.')
-      throw err
+      console.error("Sign out error:", err);
+      setError("Failed to sign out. Please try again.");
+      throw err;
     }
-  }
+  };
 
   const refreshProfile = useCallback(async () => {
-    if (!user?.uid) return
+    if (!user?.uid) return;
 
-    const firebaseUser = auth.currentUser
-    if (!firebaseUser) return
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) return;
 
-    setProfileLoading(true)
+    setProfileLoading(true);
     try {
       // Force refresh bypasses cache
-      const profile = await fetchUserProfile(user.uid, true)
-      const appUser = createAppUser(firebaseUser, profile)
-      setUser(appUser)
+      const profile = await fetchUserProfile(user.uid, true);
+      const appUser = createAppUser(firebaseUser, profile);
+      setUser(appUser);
     } catch (error) {
-      console.error('Profile refresh error:', error)
+      console.error("Profile refresh error:", error);
     } finally {
-      setProfileLoading(false)
+      setProfileLoading(false);
     }
-  }, [user?.uid])
+  }, [user?.uid]);
 
   const value = {
     user,
     loading,
     profileLoading,
     signIn,
+    signInWithGoogle,
     signOut,
     refreshProfile,
-    error
-  }
+    error,
+  };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

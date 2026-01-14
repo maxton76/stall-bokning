@@ -102,7 +102,9 @@ export function ActivitiesCard({ horse }: ActivitiesCardProps) {
                               isOverdue ? "text-destructive font-medium" : ""
                             }`}
                           >
-                            {format(activityDate, "MMM d, yyyy")}
+                            {activityDate
+                              ? format(activityDate, "MMM d, yyyy")
+                              : "N/A"}
                           </span>
                         </TableCell>
                         <TableCell>
@@ -156,7 +158,9 @@ export function ActivitiesCard({ horse }: ActivitiesCardProps) {
                           <p
                             className={`text-sm ${isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}`}
                           >
-                            {format(activityDate, "MMM d, yyyy")}
+                            {activityDate
+                              ? format(activityDate, "MMM d, yyyy")
+                              : "N/A"}
                           </p>
                         </div>
                         <Badge

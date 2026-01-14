@@ -164,6 +164,10 @@ export async function getActivitiesByDateTab(
     case "dayAfter":
       targetDate = addDays(now, 2);
       break;
+    default:
+      // For week, month, all - default to today
+      targetDate = now;
+      break;
   }
 
   return getStableActivities(stableId, targetDate, targetDate);

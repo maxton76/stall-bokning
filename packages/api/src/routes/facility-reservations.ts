@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
-import { Timestamp } from "firebase-admin/firestore";
+import { Timestamp, QueryDocumentSnapshot } from "firebase-admin/firestore";
 
 /**
  * Convert Firestore Timestamps to ISO date strings for JSON serialization
@@ -315,7 +315,7 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
 
         const snapshot = await query.get();
 
-        const reservations = snapshot.docs.map((doc) =>
+        const reservations = snapshot.docs.map((doc: QueryDocumentSnapshot) =>
           serializeTimestamps({
             id: doc.id,
             ...doc.data(),

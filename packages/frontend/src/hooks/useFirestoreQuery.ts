@@ -51,7 +51,7 @@ export function useFirestoreDoc<T extends { id?: string }>(
     queryKey: [...queryKey, options?.parentId],
     queryFn: () => {
       if (!id) return null;
-      return service.getById(id, options?.parentId);
+      return service.getById(id);
     },
     enabled: options?.enabled !== false && !!id,
   });
@@ -87,7 +87,7 @@ export function useFirestoreQuery<T extends { id?: string }>(
 ): UseQueryResult<T[], Error> {
   return useQuery({
     queryKey: [...queryKey, options?.parentId],
-    queryFn: () => service.query(constraints, options?.parentId),
+    queryFn: () => service.query(constraints),
     enabled: options?.enabled !== false,
   });
 }
@@ -232,8 +232,8 @@ export function useFirestoreUpdate<T extends { id?: string }>(
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, userId, updates, parentId }) =>
-      service.update(id, userId, updates, parentId),
+    mutationFn: ({ id, userId, updates }) =>
+      service.update(id, userId, updates),
     onSuccess: () => {
       // Invalidate specified query keys
       options?.invalidateKeys?.forEach((key) => {
@@ -281,7 +281,7 @@ export function useFirestoreDelete<T extends { id?: string }>(
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, parentId }) => service.delete(id, parentId),
+    mutationFn: ({ id }) => service.delete(id),
     onSuccess: () => {
       // Invalidate specified query keys
       options?.invalidateKeys?.forEach((key) => {

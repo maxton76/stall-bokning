@@ -5,6 +5,7 @@ import { Plus, Loader2Icon, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrganizationContext } from "@/contexts/OrganizationContext";
 import { HorseFormDialog } from "@/components/HorseFormDialog";
 import { HorseAssignmentDialog } from "@/components/HorseAssignmentDialog";
 import { VaccinationRecordDialog } from "@/components/VaccinationRecordDialog";
@@ -46,6 +47,7 @@ import { useUserStables } from "@/hooks/useUserStables";
 
 export default function MyHorsesPage() {
   const { user } = useAuth();
+  const { currentOrganizationId } = useOrganizationContext();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -329,7 +331,7 @@ export default function MyHorsesPage() {
             filters={filters}
             onFiltersChange={setFilters}
             config={filterConfig}
-            stables={stables}
+            stables={stables as any}
             activeFilterCount={activeFilterCount}
             onClearAll={clearAllFilters}
           />
@@ -391,9 +393,7 @@ export default function MyHorsesPage() {
             !open && vaccinationRecordDialog.closeDialog()
           }
           horse={selectedHorseForVaccination}
-          organizationId={
-            selectedHorseForVaccination.currentStableId || "personal"
-          }
+          organizationId={currentOrganizationId || ""}
           record={vaccinationRecordDialog.data}
           onSuccess={handleVaccinationRecordSuccess}
         />

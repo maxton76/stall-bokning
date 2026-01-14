@@ -237,7 +237,7 @@ export function HorseFormDialog({
     if (!timestamp) return "";
     const date = toDate(timestamp);
     if (!date) return "";
-    return date.toISOString().split("T")[0];
+    return date.toISOString().split("T")[0]!;
   };
 
   // Reset form when dialog opens

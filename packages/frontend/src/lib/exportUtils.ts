@@ -81,7 +81,7 @@ export function exportToCSV(horses: Horse[], filename?: string): void {
   }
 
   // Get headers from first object
-  const headers = Object.keys(data[0]);
+  const headers = Object.keys(data[0]!);
 
   // Create CSV content
   const csvContent = [

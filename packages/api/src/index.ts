@@ -19,7 +19,7 @@ import inviteRoutes from "./routes/invites.js";
 import organizationMemberRoutes from "./routes/organizationMembers.js";
 import authRoutes from "./routes/auth.js";
 
-const PORT = Number(process.env.PORT) || 5003;
+const PORT = Number(process.env.PORT) || 8080;
 const HOST = process.env.HOST || "0.0.0.0";
 const NODE_ENV = process.env.NODE_ENV || "development";
 

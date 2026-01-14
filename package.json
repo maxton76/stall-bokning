@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "Stable booking and shift management system",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "emulator:start": "firebase emulators:start --import=./.firebase-data --export-on-exit=./.firebase-data",
     "emulator:stop": "pkill -f 'firebase emulators'",

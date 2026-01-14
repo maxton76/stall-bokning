@@ -69,6 +69,14 @@
       ]
     },
     {
+      "collectionGroup": "horseGroups",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "organizationId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "organizationMembers",
       "queryScope": "COLLECTION",
       "fields": [
@@ -196,6 +204,16 @@
       ]
     },
     {
+      "collectionGroup": "activities",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "type", "order": "ASCENDING" },
+        { "fieldPath": "horseId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "activityTypes",
       "queryScope": "COLLECTION",
       "fields": [
@@ -274,6 +292,14 @@
       "fields": [
         { "fieldPath": "organizationId", "order": "ASCENDING" },
         { "fieldPath": "nextDueDate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "vaccinationRecords",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "organizationId", "order": "ASCENDING" },
+        { "fieldPath": "vaccinationDate", "order": "DESCENDING" }
       ]
     },
     {

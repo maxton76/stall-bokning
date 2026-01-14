@@ -91,11 +91,11 @@ export async function vaccinationRecordsRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Get vaccination records
+        // Get vaccination records - using frontend field name for ordering
         const snapshot = await db
           .collection("vaccinationRecords")
           .where("horseId", "==", horseId)
-          .orderBy("administeredDate", "desc")
+          .orderBy("vaccinationDate", "desc")
           .get();
 
         const records = snapshot.docs.map((doc) =>
@@ -143,11 +143,11 @@ export async function vaccinationRecordsRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Get vaccination records
+        // Get vaccination records - using frontend field name for ordering
         const snapshot = await db
           .collection("vaccinationRecords")
           .where("organizationId", "==", organizationId)
-          .orderBy("administeredDate", "desc")
+          .orderBy("vaccinationDate", "desc")
           .get();
 
         const records = snapshot.docs.map((doc) =>
@@ -174,6 +174,11 @@ export async function vaccinationRecordsRoutes(fastify: FastifyInstance) {
   /**
    * POST /api/v1/vaccination-records
    * Create a new vaccination record
+   * Accepts both API field names and frontend field names for compatibility:
+   *   - vaccineName OR vaccinationRuleName
+   *   - administeredDate OR vaccinationDate
+   *   - expiryDate OR nextDueDate
+   *   - veterinarian OR veterinarianName
    */
   fastify.post(
     "/",
@@ -185,12 +190,18 @@ export async function vaccinationRecordsRoutes(fastify: FastifyInstance) {
         const user = (request as AuthenticatedRequest).user!;
         const data = request.body as any;
 
+        // Map frontend field names to API field names
+        const vaccineName = data.vaccineName || data.vaccinationRuleName;
+        const administeredDate = data.administeredDate || data.vaccinationDate;
+        const expiryDate = data.expiryDate || data.nextDueDate;
+        const veterinarian = data.veterinarian || data.veterinarianName;
+
         // Validate required fields
-        if (!data.horseId || !data.vaccineName || !data.administeredDate) {
+        if (!data.horseId || !vaccineName || !administeredDate) {
           return reply.status(400).send({
             error: "Bad Request",
             message:
-              "Missing required fields: horseId, vaccineName, administeredDate",
+              "Missing required fields: horseId, vaccineName (or vaccinationRuleName), administeredDate (or vaccinationDate)",
           });
         }
 
@@ -207,22 +218,54 @@ export async function vaccinationRecordsRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Create record
+        // Parse administeredDate - handle both ISO strings and Firestore Timestamp objects
+        let parsedAdministeredDate: Date;
+        if (typeof administeredDate === "string") {
+          parsedAdministeredDate = new Date(administeredDate);
+        } else if (
+          administeredDate &&
+          typeof administeredDate === "object" &&
+          administeredDate.seconds
+        ) {
+          // Firestore Timestamp format { seconds: number, nanoseconds: number }
+          parsedAdministeredDate = new Date(administeredDate.seconds * 1000);
+        } else {
+          parsedAdministeredDate = new Date(administeredDate);
+        }
+
+        // Parse expiryDate if provided
+        let parsedExpiryDate: Date | null = null;
+        if (expiryDate) {
+          if (typeof expiryDate === "string") {
+            parsedExpiryDate = new Date(expiryDate);
+          } else if (typeof expiryDate === "object" && expiryDate.seconds) {
+            parsedExpiryDate = new Date(expiryDate.seconds * 1000);
+          } else {
+            parsedExpiryDate = new Date(expiryDate);
+          }
+        }
+
+        // Create record - using frontend-compatible field names from shared VaccinationRecord type
         const recordData = {
           horseId: data.horseId,
-          horseName: data.horseName,
-          vaccineName: data.vaccineName,
-          administeredDate: Timestamp.fromDate(new Date(data.administeredDate)),
-          expiryDate: data.expiryDate
-            ? Timestamp.fromDate(new Date(data.expiryDate))
-            : null,
-          batchNumber: data.batchNumber || null,
-          veterinarian: data.veterinarian || null,
-          notes: data.notes || null,
+          horseName: data.horseName || null,
           organizationId: data.organizationId || null,
+          // Vaccination details - using frontend field names
+          vaccinationRuleId: data.vaccinationRuleId || null,
+          vaccinationRuleName: vaccineName, // Frontend expects vaccinationRuleName
+          vaccinationDate: Timestamp.fromDate(parsedAdministeredDate), // Frontend expects vaccinationDate
+          nextDueDate: parsedExpiryDate
+            ? Timestamp.fromDate(parsedExpiryDate)
+            : null, // Frontend expects nextDueDate
+          // Veterinary details
+          veterinarianName: veterinarian || null, // Frontend expects veterinarianName
+          vaccineProduct: data.vaccineProduct || null,
+          batchNumber: data.batchNumber || null,
+          notes: data.notes || null,
+          // Metadata
           createdAt: Timestamp.now(),
           createdBy: user.uid,
-          lastModifiedAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
           lastModifiedBy: user.uid,
         };
 
@@ -263,6 +306,7 @@ export async function vaccinationRecordsRoutes(fastify: FastifyInstance) {
   /**
    * PUT /api/v1/vaccination-records/:id
    * Update a vaccination record
+   * Accepts both API field names and frontend field names for compatibility
    */
   fastify.put(
     "/:id",
@@ -301,26 +345,64 @@ export async function vaccinationRecordsRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Update record
+        // Map frontend field names to API field names
+        const vaccineName = data.vaccineName || data.vaccinationRuleName;
+        const administeredDate = data.administeredDate || data.vaccinationDate;
+        const expiryDate =
+          data.expiryDate !== undefined ? data.expiryDate : data.nextDueDate;
+        const veterinarian =
+          data.veterinarian !== undefined
+            ? data.veterinarian
+            : data.veterinarianName;
+
+        // Update record - using frontend-compatible field names
         const updates: any = {
-          lastModifiedAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
           lastModifiedBy: user.uid,
         };
 
-        if (data.vaccineName) updates.vaccineName = data.vaccineName;
-        if (data.administeredDate)
-          updates.administeredDate = Timestamp.fromDate(
-            new Date(data.administeredDate),
-          );
-        if (data.expiryDate !== undefined) {
-          updates.expiryDate = data.expiryDate
-            ? Timestamp.fromDate(new Date(data.expiryDate))
-            : null;
+        if (vaccineName) updates.vaccinationRuleName = vaccineName; // Frontend field name
+        if (data.vaccinationRuleId)
+          updates.vaccinationRuleId = data.vaccinationRuleId;
+        if (data.vaccineProduct !== undefined)
+          updates.vaccineProduct = data.vaccineProduct;
+
+        // Parse vaccinationDate if provided
+        if (administeredDate) {
+          let parsedDate: Date;
+          if (typeof administeredDate === "string") {
+            parsedDate = new Date(administeredDate);
+          } else if (
+            typeof administeredDate === "object" &&
+            administeredDate.seconds
+          ) {
+            parsedDate = new Date(administeredDate.seconds * 1000);
+          } else {
+            parsedDate = new Date(administeredDate);
+          }
+          updates.vaccinationDate = Timestamp.fromDate(parsedDate); // Frontend field name
         }
+
+        // Parse nextDueDate if provided
+        if (expiryDate !== undefined) {
+          if (expiryDate) {
+            let parsedDate: Date;
+            if (typeof expiryDate === "string") {
+              parsedDate = new Date(expiryDate);
+            } else if (typeof expiryDate === "object" && expiryDate.seconds) {
+              parsedDate = new Date(expiryDate.seconds * 1000);
+            } else {
+              parsedDate = new Date(expiryDate);
+            }
+            updates.nextDueDate = Timestamp.fromDate(parsedDate); // Frontend field name
+          } else {
+            updates.nextDueDate = null;
+          }
+        }
+
         if (data.batchNumber !== undefined)
           updates.batchNumber = data.batchNumber;
-        if (data.veterinarian !== undefined)
-          updates.veterinarian = data.veterinarian;
+        if (veterinarian !== undefined) updates.veterinarianName = veterinarian; // Frontend field name
         if (data.notes !== undefined) updates.notes = data.notes;
 
         await docRef.update(updates);
@@ -423,11 +505,11 @@ export async function vaccinationRecordsRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Get most recent vaccination record
+        // Get most recent vaccination record - using frontend field name
         const recordsSnapshot = await db
           .collection("vaccinationRecords")
           .where("horseId", "==", horseId)
-          .orderBy("administeredDate", "desc")
+          .orderBy("vaccinationDate", "desc")
           .limit(1)
           .get();
 
@@ -444,15 +526,14 @@ export async function vaccinationRecordsRoutes(fastify: FastifyInstance) {
           return { success: true, status: "no_records" };
         }
 
-        // Get latest record
+        // Get latest record - using frontend field names
         const latestRecord = recordsSnapshot.docs[0].data();
 
         // Calculate status
-        const horse = horseDoc.data()!;
         let vaccinationStatus = "no_records";
 
-        if (latestRecord.expiryDate) {
-          const nextDue = latestRecord.expiryDate.toDate();
+        if (latestRecord.nextDueDate) {
+          const nextDue = latestRecord.nextDueDate.toDate();
           const today = new Date();
           const daysUntilDue = Math.ceil(
             (nextDue.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
@@ -469,8 +550,8 @@ export async function vaccinationRecordsRoutes(fastify: FastifyInstance) {
 
         // Update horse document with cached fields
         await horseRef.update({
-          lastVaccinationDate: latestRecord.administeredDate,
-          nextVaccinationDue: latestRecord.expiryDate || null,
+          lastVaccinationDate: latestRecord.vaccinationDate,
+          nextVaccinationDue: latestRecord.nextDueDate || null,
           vaccinationStatus,
           updatedAt: Timestamp.now(),
           lastModifiedBy: user.uid,
