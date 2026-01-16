@@ -23,26 +23,35 @@ const warnings = []
 // ============================================================================
 
 /**
- * Check for manual Firestore operations in services
+ * Check for direct Firestore WRITE operations in frontend services
+ *
+ * API-First Architecture:
+ * - WRITES must go through API (authFetchJSON) - block addDoc, updateDoc, deleteDoc, setDoc
+ * - READS can use Firestore SDK directly - allow collection, getDocs, getDoc, query
  */
-function validateCrudFactory(filePath, content) {
+function validateApiFirstPattern(filePath, content) {
   if (!filePath.includes('packages/frontend/src/services/')) return
-  if (filePath.includes('firestoreCrud.ts')) return // Skip the factory itself
 
-  const antiPatterns = [
-    { pattern: /collection\(db,\s*['"]/, message: 'Use CRUD factory instead of manual collection()' },
-    { pattern: /getDocs\(/, message: 'Use CRUD factory .query() instead of getDocs()' },
-    { pattern: /addDoc\(/, message: 'Use CRUD factory .create() instead of addDoc()' },
-    { pattern: /updateDoc\(/, message: 'Use CRUD factory .update() instead of updateDoc()' },
-    { pattern: /deleteDoc\(/, message: 'Use CRUD factory .delete() instead of deleteDoc()' },
+  // Block direct Firestore WRITE operations - these must go through API
+  const writePatterns = [
+    { pattern: /addDoc\(/, message: 'Use API endpoint instead of direct addDoc() - writes must go through API' },
+    { pattern: /updateDoc\(/, message: 'Use API endpoint instead of direct updateDoc() - writes must go through API' },
+    { pattern: /deleteDoc\(/, message: 'Use API endpoint instead of direct deleteDoc() - writes must go through API' },
+    { pattern: /setDoc\(/, message: 'Use API endpoint instead of direct setDoc() - writes must go through API' },
   ]
 
-  // Exception: Allow if createCrudService is used in file
-  if (content.includes('createCrudService')) return
+  // Exception: Services using authFetchJSON are following API-first pattern
+  // They may still have Firestore reads for real-time or helper queries
+  const usesApiPattern = content.includes('authFetchJSON')
 
-  antiPatterns.forEach(({ pattern, message }) => {
+  writePatterns.forEach(({ pattern, message }) => {
     if (pattern.test(content)) {
-      errors.push(`${filePath}: ${message}`)
+      // If using API pattern, this might be legacy code being migrated - warn instead of error
+      if (usesApiPattern) {
+        warnings.push(`${filePath}: ${message}`)
+      } else {
+        errors.push(`${filePath}: ${message}`)
+      }
     }
   })
 }
@@ -146,7 +155,7 @@ stagedFiles.forEach(filePath => {
 
     const content = fs.readFileSync(fullPath, 'utf8')
 
-    validateCrudFactory(filePath, content)
+    validateApiFirstPattern(filePath, content)
     validateTanStackQuery(filePath, content)
     validateSharedTypes(filePath, content)
     validateConstants(filePath, content)
