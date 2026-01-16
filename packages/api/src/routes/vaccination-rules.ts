@@ -2,40 +2,11 @@ import type { FastifyInstance } from "fastify";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
-import { Timestamp } from "firebase-admin/firestore";
-
-/**
- * Convert Firestore Timestamps to ISO date strings for JSON serialization
- */
-function serializeTimestamps(obj: any): any {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
-
-  if (obj instanceof Timestamp || (obj && typeof obj.toDate === "function")) {
-    return obj.toDate().toISOString();
-  }
-
-  if (Array.isArray(obj)) {
-    return obj.map((item) => serializeTimestamps(item));
-  }
-
-  if (typeof obj === "object" && obj.constructor === Object) {
-    const serialized: any = {};
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        serialized[key] = serializeTimestamps(obj[key]);
-      }
-    }
-    return serialized;
-  }
-
-  return obj;
-}
+import { serializeTimestamps } from "../utils/serialization.js";
 
 /**
  * Check if user has access to an organization
- * Checks both direct organization membership and stable membership
+ * Checks organization ownership and membership via organizationMembers collection
  */
 async function hasOrganizationAccess(
   organizationId: string,
@@ -48,7 +19,7 @@ async function hasOrganizationAccess(
   const orgDoc = await db.collection("organizations").doc(organizationId).get();
   if (orgDoc.exists && orgDoc.data()?.ownerId === userId) return true;
 
-  // Check direct organization membership
+  // Check organization membership (includes stable access via stableAccess field)
   const orgMemberDoc = await db
     .collection("organizationMembers")
     .doc(`${userId}_${organizationId}`)
@@ -56,28 +27,6 @@ async function hasOrganizationAccess(
 
   if (orgMemberDoc.exists && orgMemberDoc.data()?.status === "active")
     return true;
-
-  // Check stable membership - user might have access through a stable in this organization
-  const stablesSnapshot = await db
-    .collection("stables")
-    .where("organizationId", "==", organizationId)
-    .get();
-
-  for (const stableDoc of stablesSnapshot.docs) {
-    const stableId = stableDoc.id;
-    const stableData = stableDoc.data();
-
-    // Check if user is stable owner
-    if (stableData.ownerId === userId) return true;
-
-    // Check if user is stable member
-    const memberDoc = await db
-      .collection("stableMembers")
-      .doc(`${userId}_${stableId}`)
-      .get();
-
-    if (memberDoc.exists && memberDoc.data()?.status === "active") return true;
-  }
 
   return false;
 }

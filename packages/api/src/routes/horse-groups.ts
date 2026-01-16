@@ -2,30 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
-import { Timestamp } from "firebase-admin/firestore";
-
-/**
- * Convert Firestore Timestamps to ISO date strings
- */
-function serializeTimestamps(obj: any): any {
-  if (obj === null || obj === undefined) return obj;
-  if (obj instanceof Timestamp || (obj && typeof obj.toDate === "function")) {
-    return obj.toDate().toISOString();
-  }
-  if (Array.isArray(obj)) {
-    return obj.map((item) => serializeTimestamps(item));
-  }
-  if (typeof obj === "object" && obj.constructor === Object) {
-    const serialized: any = {};
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        serialized[key] = serializeTimestamps(obj[key]);
-      }
-    }
-    return serialized;
-  }
-  return obj;
-}
+import { serializeTimestamps } from "../utils/serialization.js";
 
 /**
  * Check if user has access to an organization
@@ -96,6 +73,7 @@ export async function horseGroupsRoutes(fastify: FastifyInstance) {
   /**
    * GET /api/v1/horse-groups/organization/:organizationId
    * Get all horse groups for an organization
+   * Note: Also accepts stableId for backward compatibility - will resolve to organization
    */
   fastify.get(
     "/organization/:organizationId",
@@ -105,7 +83,26 @@ export async function horseGroupsRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       try {
         const user = (request as AuthenticatedRequest).user!;
-        const { organizationId } = request.params as { organizationId: string };
+        let { organizationId } = request.params as { organizationId: string };
+
+        // Check if this is actually a stable ID (for backward compatibility)
+        // Try to find an organization first, if not found, check if it's a stable
+        const orgDoc = await db
+          .collection("organizations")
+          .doc(organizationId)
+          .get();
+
+        if (!orgDoc.exists) {
+          // Not an organization - check if it's a stable
+          const stableDoc = await db
+            .collection("stables")
+            .doc(organizationId)
+            .get();
+          if (stableDoc.exists && stableDoc.data()?.organizationId) {
+            // It's a stable, use its organizationId
+            organizationId = stableDoc.data()!.organizationId;
+          }
+        }
 
         // Check organization access
         const hasAccess = await hasOrganizationAccess(

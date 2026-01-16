@@ -13,7 +13,11 @@ interface CareMatrixCellProps {
   activityTypeColor: string;
   lastActivity?: Activity;
   nextActivity?: Activity;
-  onClick: (horseId: string, activityTypeId: string) => void;
+  onClick: (
+    horseId: string,
+    activityTypeId: string,
+    nextActivity?: Activity,
+  ) => void;
 }
 
 export function CareMatrixCell({
@@ -26,12 +30,18 @@ export function CareMatrixCell({
   const hasLastActivity = !!lastActivity;
   const hasNextActivity = !!nextActivity;
 
-  // Determine if overdue (no next scheduled and no recent last activity)
-  const isOverdue = !hasNextActivity && hasLastActivity;
+  // Determine if overdue: there's a pending activity with a date in the past
+  const now = new Date();
+  const nextActivityDate = nextActivity ? toDate(nextActivity.date) : null;
+  const isOverdue =
+    hasNextActivity && nextActivityDate && nextActivityDate < now;
+
+  // Get last activity date for display
+  const lastActivityDate = lastActivity ? toDate(lastActivity.date) : null;
 
   return (
     <button
-      onClick={() => onClick(horseId, activityTypeId)}
+      onClick={() => onClick(horseId, activityTypeId, nextActivity)}
       className={cn(
         "w-full h-full flex flex-col items-center justify-center p-3 gap-2",
         "hover:bg-accent transition-colors",
@@ -44,6 +54,16 @@ export function CareMatrixCell({
           : `Add ${activityTypeId} activity`
       }
     >
+      {/* Last completed activity date */}
+      {hasLastActivity && lastActivityDate && (
+        <Badge
+          variant="outline"
+          className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+        >
+          Done {format(lastActivityDate, "M/d/yy")}
+        </Badge>
+      )}
+
       {/* Next scheduled date in green badge */}
       {hasNextActivity && toDate(nextActivity.date) && (
         <Badge
@@ -61,8 +81,8 @@ export function CareMatrixCell({
         </div>
       )}
 
-      {/* Add button when no activities */}
-      {!hasLastActivity && !hasNextActivity && (
+      {/* Add button when no pending activity scheduled */}
+      {!hasNextActivity && (
         <div className="text-gray-300 hover:text-gray-400 transition-colors">
           <div className="rounded-full border-2 border-current p-1">
             <Plus className="h-4 w-4" />

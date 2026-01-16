@@ -6,3 +6,5 @@ export * from "./vaccination.js";
 export * from "./organization.js";
 export * from "./domain.js";
 export * from "./permissions.js";
+export * from "./feeding.js";
+export * from "./availability.js";

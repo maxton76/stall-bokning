@@ -95,8 +95,8 @@ export default function CompleteProfilePage() {
       // Refresh user profile in AuthContext
       await refreshProfile();
 
-      // Navigate to dashboard
-      navigate("/dashboard");
+      // Navigate to horses page
+      navigate("/horses");
     } catch (err: any) {
       console.error("Profile completion error:", err);
       setError(err.message || "Failed to complete profile");

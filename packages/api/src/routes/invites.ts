@@ -262,6 +262,7 @@ export default async function inviteRoutes(fastify: FastifyInstance) {
   );
 
   // POST /api/v1/invites/stable/:id/accept - Accept stable invitation by ID (requires authentication)
+  // NOTE: This endpoint now creates organizationMembers instead of stableMembers
   fastify.post(
     "/stable/:id/accept",
     {
@@ -271,14 +272,13 @@ export default async function inviteRoutes(fastify: FastifyInstance) {
       try {
         const { id } = request.params as { id: string };
         const user = (request as AuthenticatedRequest).user!;
-        const { firstName, lastName, stableId, stableName, role } =
-          request.body as {
-            firstName: string;
-            lastName: string;
-            stableId: string;
-            stableName: string;
-            role: "manager" | "member";
-          };
+        const { firstName, lastName, stableId, role } = request.body as {
+          firstName: string;
+          lastName: string;
+          stableId: string;
+          stableName?: string; // kept for backward compatibility but not used
+          role: "manager" | "member";
+        };
 
         // Get invitation
         const inviteRef = db.collection("invites").doc(id);
@@ -318,25 +318,65 @@ export default async function inviteRoutes(fastify: FastifyInstance) {
           });
         }
 
+        // Get stable to find organization
+        const stableDoc = await db.collection("stables").doc(stableId).get();
+        if (!stableDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Stable not found",
+          });
+        }
+
+        const stableData = stableDoc.data()!;
+        const organizationId = stableData.organizationId;
+
+        if (!organizationId) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Stable is not associated with an organization",
+          });
+        }
+
+        // Get organization name
+        const orgDoc = await db
+          .collection("organizations")
+          .doc(organizationId)
+          .get();
+        const organizationName = orgDoc.exists
+          ? orgDoc.data()?.name
+          : "Unknown Organization";
+
         // Create batch transaction
         const batch = db.batch();
 
-        // Create stable member document
+        // Create organization member document (instead of stableMembers)
         const memberRef = db
-          .collection("stableMembers")
-          .doc(`${user.uid}_${stableId}`);
-        batch.set(memberRef, {
-          stableId,
-          stableName,
-          userId: user.uid,
-          userEmail: user.email,
-          firstName,
-          lastName,
-          role,
-          status: "active",
-          joinedAt: new Date(),
-          inviteAcceptedAt: new Date(),
-        });
+          .collection("organizationMembers")
+          .doc(`${user.uid}_${organizationId}`);
+
+        // Map legacy role to organization roles
+        const orgRoles = role === "manager" ? ["manager"] : ["member"];
+
+        batch.set(
+          memberRef,
+          {
+            userId: user.uid,
+            organizationId,
+            organizationName,
+            userEmail: user.email,
+            firstName,
+            lastName,
+            roles: orgRoles,
+            stableAccess: "specific",
+            assignedStableIds: [stableId],
+            status: "active",
+            joinedAt: new Date(),
+            inviteAcceptedAt: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          { merge: true },
+        ); // merge: true to update if exists
 
         // Update invitation status
         batch.update(inviteRef, {
@@ -352,6 +392,7 @@ export default async function inviteRoutes(fastify: FastifyInstance) {
         return reply.send({
           message: "Invitation accepted successfully",
           stableId,
+          organizationId,
         });
       } catch (error) {
         request.log.error({ error }, "Failed to accept invitation");

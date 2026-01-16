@@ -10,7 +10,12 @@ interface CareTableCellProps {
   activityTypeId: string;
   activityType: ActivityTypeConfig;
   lastActivity?: Activity;
-  onClick: (horseId: string, activityTypeId: string) => void;
+  nextActivity?: Activity;
+  onClick: (
+    horseId: string,
+    activityTypeId: string,
+    nextActivity?: Activity,
+  ) => void;
 }
 
 export function CareTableCell({
@@ -19,9 +24,11 @@ export function CareTableCell({
   activityTypeId,
   activityType,
   lastActivity,
+  nextActivity,
   onClick,
 }: CareTableCellProps) {
-  const handleClick = () => onClick(horseId, activityTypeId);
+  const handleClick = () => onClick(horseId, activityTypeId, nextActivity);
+  const hasNextActivity = !!nextActivity;
 
   return (
     <button
@@ -32,16 +39,25 @@ export function CareTableCell({
         "border-l border-border",
         "min-h-[80px]",
       )}
-      aria-label={`${lastActivity ? "View" : "Add"} ${activityType.name} activity for ${horseName}`}
+      aria-label={`${hasNextActivity ? "Edit" : lastActivity ? "View" : "Add"} ${activityType.name} activity for ${horseName}`}
     >
-      {lastActivity && toDate(lastActivity.date) ? (
+      {/* Show last completed activity */}
+      {lastActivity && toDate(lastActivity.date) && (
         <div className="flex flex-col items-center gap-1">
           <Check className="h-4 w-4 text-green-600" />
           <span className="text-xs text-muted-foreground">
             {format(toDate(lastActivity.date)!, "MMM d")}
           </span>
         </div>
-      ) : (
+      )}
+      {/* Show next scheduled activity */}
+      {nextActivity && toDate(nextActivity.date) && (
+        <div className="text-xs text-blue-600">
+          Next: {format(toDate(nextActivity.date)!, "MMM d")}
+        </div>
+      )}
+      {/* Show add button if no activities */}
+      {!lastActivity && !nextActivity && (
         <Plus className="h-5 w-5 text-muted-foreground" />
       )}
     </button>

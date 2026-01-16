@@ -1,10 +1,16 @@
-import { useState, useEffect } from 'react'
-import { Settings, Bell, Users, Plus, Pencil, Trash2 } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { useState, useEffect, useRef } from "react";
+import { Settings, Bell, Users, Plus, Pencil, Trash2 } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -12,7 +18,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,70 +28,90 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { ActivityTypeFormDialog } from '@/components/ActivityTypeFormDialog'
-import { useAuth } from '@/contexts/AuthContext'
-import { useUserStables } from '@/hooks/useUserStables'
-import { useAsyncData } from '@/hooks/useAsyncData'
-import { useCRUD } from '@/hooks/useCRUD'
-import { useDialog } from '@/hooks/useDialog'
-import type { ActivityTypeConfig } from '@/types/activity'
+} from "@/components/ui/alert-dialog";
+import { ActivityTypeFormDialog } from "@/components/ActivityTypeFormDialog";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserStables } from "@/hooks/useUserStables";
+import { useAsyncData } from "@/hooks/useAsyncData";
+import { useCRUD } from "@/hooks/useCRUD";
+import { useDialog } from "@/hooks/useDialog";
+import type { ActivityTypeConfig } from "@/types/activity";
 import {
   getActivityTypesByStable,
   createActivityType,
   updateActivityType,
   deleteActivityType,
   seedStandardActivityTypes,
-} from '@/services/activityTypeService'
+} from "@/services/activityTypeService";
 
 export default function ActivitiesSettingsPage() {
-  const { user } = useAuth()
-  const [selectedStableId, setSelectedStableId] = useState<string>('')
+  const { user } = useAuth();
+  const [selectedStableId, setSelectedStableId] = useState<string>("");
+
+  // Track which stables have had seeding attempted to prevent infinite loops
+  const seedAttemptedRef = useRef<Set<string>>(new Set());
 
   // Dialog state using useDialog hook
-  const formDialog = useDialog<ActivityTypeConfig>()
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [deletingType, setDeletingType] = useState<ActivityTypeConfig | undefined>()
+  const formDialog = useDialog<ActivityTypeConfig>();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingType, setDeletingType] = useState<
+    ActivityTypeConfig | undefined
+  >();
 
   // Load user's stables
-  const { stables, loading: stablesLoading } = useUserStables(user?.uid)
+  const { stables, loading: stablesLoading } = useUserStables(user?.uid);
 
   // Auto-select first stable
   useEffect(() => {
     if (stables.length > 0 && !selectedStableId && stables[0]) {
-      setSelectedStableId(stables[0].id)
+      setSelectedStableId(stables[0].id);
     }
-  }, [stables, selectedStableId])
+  }, [stables, selectedStableId]);
 
   // Load activity types for selected stable
   const activityTypes = useAsyncData<ActivityTypeConfig[]>({
     loadFn: async () => {
-      if (!selectedStableId) return []
-      return await getActivityTypesByStable(selectedStableId, false) // Include inactive
+      if (!selectedStableId) return [];
+      return await getActivityTypesByStable(selectedStableId, false); // Include inactive
     },
-  })
+  });
 
   // Reload types when stable changes
   useEffect(() => {
     if (selectedStableId) {
-      activityTypes.load()
+      activityTypes.load();
     }
-  }, [selectedStableId])
+  }, [selectedStableId]);
 
-  // Seed standard types if none exist
+  // Seed standard types if none exist (only attempt once per stable to prevent infinite loops)
   useEffect(() => {
     const seedIfNeeded = async () => {
-      if (selectedStableId && activityTypes.data && activityTypes.data.length === 0 && user) {
+      // Skip if already attempted for this stable
+      if (seedAttemptedRef.current.has(selectedStableId)) {
+        return;
+      }
+
+      if (
+        selectedStableId &&
+        activityTypes.data &&
+        activityTypes.data.length === 0 &&
+        user
+      ) {
+        // Mark as attempted BEFORE the async call to prevent race conditions
+        seedAttemptedRef.current.add(selectedStableId);
+
         try {
-          await seedStandardActivityTypes(selectedStableId, user.uid)
-          activityTypes.load()
+          await seedStandardActivityTypes(selectedStableId, user.uid);
+          activityTypes.load();
         } catch (error) {
-          console.error('Failed to seed activity types:', error)
+          console.error("Failed to seed activity types:", error);
+          // Note: We keep the stable in seedAttemptedRef to prevent infinite retries
+          // User can manually trigger a refresh or navigate away and back if needed
         }
       }
-    }
-    seedIfNeeded()
-  }, [selectedStableId, activityTypes.data, user])
+    };
+    seedIfNeeded();
+  }, [selectedStableId, activityTypes.data, user]);
 
   // Notification settings
   const [notificationSettings, setNotificationSettings] = useState({
@@ -94,96 +120,99 @@ export default function ActivitiesSettingsPage() {
     taskCompleted: false,
     careActivityDue: true,
     dailyDigest: false,
-  })
+  });
 
   const handleNotificationChange = (key: string) => {
-    setNotificationSettings(prev => ({
+    setNotificationSettings((prev) => ({
       ...prev,
-      [key]: !prev[key as keyof typeof prev]
-    }))
-  }
+      [key]: !prev[key as keyof typeof prev],
+    }));
+  };
 
   // CRUD operations using useCRUD hook
   const { create, update, remove } = useCRUD<ActivityTypeConfig>({
     createFn: async (data: any) => {
-      if (!user || !selectedStableId) throw new Error('Missing required data')
-      const nextSortOrder = (activityTypes.data || []).length + 1
+      if (!user || !selectedStableId) throw new Error("Missing required data");
+      const nextSortOrder = (activityTypes.data || []).length + 1;
       return await createActivityType(user.uid, selectedStableId, {
         ...data,
         isStandard: false,
         isActive: true,
         sortOrder: nextSortOrder,
-      })
+      });
     },
     updateFn: async (id, data) => {
-      if (!user) throw new Error('User not authenticated')
-      await updateActivityType(id, user.uid, data)
+      if (!user) throw new Error("User not authenticated");
+      await updateActivityType(id, user.uid, data);
     },
     deleteFn: async (id) => {
-      if (!user) throw new Error('User not authenticated')
-      await deleteActivityType(id, user.uid)
+      if (!user) throw new Error("User not authenticated");
+      await deleteActivityType(id, user.uid);
     },
     onSuccess: async () => {
-      await activityTypes.reload()
+      await activityTypes.reload();
     },
     successMessages: {
-      create: 'Activity type created successfully',
-      update: 'Activity type updated successfully',
-      delete: 'Activity type deleted successfully',
+      create: "Activity type created successfully",
+      update: "Activity type updated successfully",
+      delete: "Activity type deleted successfully",
     },
-  })
+  });
 
   // Handlers
   const handleAdd = () => {
-    formDialog.openDialog()
-  }
+    formDialog.openDialog();
+  };
 
   const handleEdit = (type: ActivityTypeConfig) => {
-    formDialog.openDialog(type)
-  }
+    formDialog.openDialog(type);
+  };
 
   const handleDelete = (type: ActivityTypeConfig) => {
-    setDeletingType(type)
-    setDeleteDialogOpen(true)
-  }
+    setDeletingType(type);
+    setDeleteDialogOpen(true);
+  };
 
   const handleSave = async (data: {
-    name: string
-    color: string
-    category: 'Sport' | 'Care' | 'Breeding'
-    roles: string[]
-    icon?: string
+    name: string;
+    color: string;
+    category: "Sport" | "Care" | "Breeding";
+    roles: string[];
+    icon?: string;
   }) => {
     if (formDialog.data) {
       // Update existing type
-      await update(formDialog.data.id, data)
+      await update(formDialog.data.id, data);
     } else {
       // Create new type
-      await create(data)
+      await create(data);
     }
-    formDialog.closeDialog()
-  }
+    formDialog.closeDialog();
+  };
 
   const confirmDelete = async () => {
-    if (!deletingType) return
-    await remove(deletingType.id)
-    setDeleteDialogOpen(false)
-    setDeletingType(undefined)
-  }
+    if (!deletingType) return;
+    await remove(deletingType.id);
+    setDeleteDialogOpen(false);
+    setDeletingType(undefined);
+  };
 
   // Group types by category
-  const groupedTypes = (activityTypes.data || []).reduce((acc, type) => {
-    if (!acc[type.category]) acc[type.category] = []
-    acc[type.category]!.push(type)
-    return acc
-  }, {} as Record<string, ActivityTypeConfig[]>)
+  const groupedTypes = (activityTypes.data || []).reduce(
+    (acc, type) => {
+      if (!acc[type.category]) acc[type.category] = [];
+      acc[type.category]!.push(type);
+      return acc;
+    },
+    {} as Record<string, ActivityTypeConfig[]>,
+  );
 
   if (stablesLoading) {
     return (
       <div className="container mx-auto p-6">
         <p className="text-muted-foreground">Loading stables...</p>
       </div>
-    )
+    );
   }
 
   if (stables.length === 0) {
@@ -198,7 +227,7 @@ export default function ActivitiesSettingsPage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -207,7 +236,9 @@ export default function ActivitiesSettingsPage() {
       <div className="flex items-center gap-3">
         <Settings className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Activities Settings</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Activities Settings
+          </h1>
           <p className="text-muted-foreground mt-1">
             Configure activity types, notifications, and preferences
           </p>
@@ -234,31 +265,38 @@ export default function ActivitiesSettingsPage() {
           <CardContent>
             {activityTypes.loading ? (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">Loading activity types...</p>
+                <p className="text-muted-foreground">
+                  Loading activity types...
+                </p>
               </div>
             ) : (activityTypes.data || []).length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-muted-foreground">
-                  No activity types found. Standard types will be seeded automatically.
+                  No activity types found. Standard types will be seeded
+                  automatically.
                 </p>
               </div>
             ) : (
               <div className="space-y-6">
                 {/* Table by Category */}
-                {(['Care', 'Sport', 'Breeding'] as const).map((category) => {
-                  const types = groupedTypes[category] || []
-                  if (types.length === 0) return null
+                {(["Care", "Sport", "Breeding"] as const).map((category) => {
+                  const types = groupedTypes[category] || [];
+                  if (types.length === 0) return null;
 
                   return (
                     <div key={category} className="space-y-2">
-                      <h3 className="text-sm font-medium text-muted-foreground">{category} Activities</h3>
+                      <h3 className="text-sm font-medium text-muted-foreground">
+                        {category} Activities
+                      </h3>
                       <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Name</TableHead>
                             <TableHead>Roles</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead className="w-24 text-right">Actions</TableHead>
+                            <TableHead className="w-24 text-right">
+                              Actions
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -270,29 +308,40 @@ export default function ActivitiesSettingsPage() {
                                     className="px-3 py-1.5 rounded-md font-medium text-sm w-32"
                                     style={{
                                       backgroundColor: type.color,
-                                      color: '#000',
-                                      opacity: 0.85
+                                      color: "#000",
+                                      opacity: 0.85,
                                     }}
                                   >
                                     {type.name}
                                   </div>
                                   {type.isStandard && (
-                                    <Badge variant="outline" className="text-xs">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
                                       Standard
                                     </Badge>
                                   )}
                                 </div>
                               </TableCell>
                               <TableCell className="text-sm text-muted-foreground">
-                                {type.roles.length > 0 ? type.roles.join(', ') : '-'}
+                                {type.roles.length > 0
+                                  ? type.roles.join(", ")
+                                  : "-"}
                               </TableCell>
                               <TableCell>
                                 {type.isActive ? (
-                                  <Badge variant="outline" className="bg-green-50 text-green-700">
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-green-50 text-green-700"
+                                  >
                                     Active
                                   </Badge>
                                 ) : (
-                                  <Badge variant="outline" className="bg-gray-50 text-gray-700">
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-gray-50 text-gray-700"
+                                  >
                                     Inactive
                                   </Badge>
                                 )}
@@ -322,7 +371,7 @@ export default function ActivitiesSettingsPage() {
                         </TableBody>
                       </Table>
                     </div>
-                  )
+                  );
                 })}
               </div>
             )}
@@ -351,7 +400,9 @@ export default function ActivitiesSettingsPage() {
               <Switch
                 id="email-reminders"
                 checked={notificationSettings.emailReminders}
-                onCheckedChange={() => handleNotificationChange('emailReminders')}
+                onCheckedChange={() =>
+                  handleNotificationChange("emailReminders")
+                }
               />
             </div>
 
@@ -365,7 +416,9 @@ export default function ActivitiesSettingsPage() {
               <Switch
                 id="activity-assigned"
                 checked={notificationSettings.activityAssigned}
-                onCheckedChange={() => handleNotificationChange('activityAssigned')}
+                onCheckedChange={() =>
+                  handleNotificationChange("activityAssigned")
+                }
               />
             </div>
 
@@ -379,7 +432,9 @@ export default function ActivitiesSettingsPage() {
               <Switch
                 id="task-completed"
                 checked={notificationSettings.taskCompleted}
-                onCheckedChange={() => handleNotificationChange('taskCompleted')}
+                onCheckedChange={() =>
+                  handleNotificationChange("taskCompleted")
+                }
               />
             </div>
 
@@ -393,7 +448,9 @@ export default function ActivitiesSettingsPage() {
               <Switch
                 id="care-activity-due"
                 checked={notificationSettings.careActivityDue}
-                onCheckedChange={() => handleNotificationChange('careActivityDue')}
+                onCheckedChange={() =>
+                  handleNotificationChange("careActivityDue")
+                }
               />
             </div>
 
@@ -407,7 +464,7 @@ export default function ActivitiesSettingsPage() {
               <Switch
                 id="daily-digest"
                 checked={notificationSettings.dailyDigest}
-                onCheckedChange={() => handleNotificationChange('dailyDigest')}
+                onCheckedChange={() => handleNotificationChange("dailyDigest")}
               />
             </div>
           </CardContent>
@@ -456,9 +513,11 @@ export default function ActivitiesSettingsPage() {
             <div className="space-y-1">
               <p className="text-sm font-medium">About Activity Settings</p>
               <p className="text-sm text-muted-foreground">
-                These settings are saved automatically and apply to all activities across your stables.
-                Standard activity types are provided by the system but can have their colors and icons customized.
-                You can create custom activity types specific to your stable's needs.
+                These settings are saved automatically and apply to all
+                activities across your stables. Standard activity types are
+                provided by the system but can have their colors and icons
+                customized. You can create custom activity types specific to
+                your stable's needs.
               </p>
             </div>
           </div>
@@ -481,18 +540,21 @@ export default function ActivitiesSettingsPage() {
             <AlertDialogDescription>
               Are you sure you want to delete "{deletingType?.name}"?
               {deletingType?.isStandard
-                ? ' Standard types will be soft-deleted (marked inactive) and can be restored later.'
-                : ' This action cannot be undone.'}
+                ? " Standard types will be soft-deleted (marked inactive) and can be restored later."
+                : " This action cannot be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-500 hover:bg-red-600">
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-500 hover:bg-red-600"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }

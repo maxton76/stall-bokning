@@ -3,7 +3,6 @@ import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft,
   Settings,
-  Users,
   Calendar,
   BarChart3,
   Pencil,
@@ -24,7 +23,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShiftTypeDialog } from "@/components/ShiftTypeDialog";
 import { HorseCard } from "@/components/HorseCard";
-import { RemoveMemberDialog } from "@/components/RemoveMemberDialog";
 import { EmptyState } from "@/components/EmptyState";
 import {
   getShiftTypesByStable,
@@ -32,18 +30,10 @@ import {
   updateShiftType,
   deleteShiftType,
 } from "@/services/shiftTypeService";
-import {
-  getStableHorses,
-  getUserHorsesAtStable,
-  unassignMemberHorses,
-} from "@/services/horseService";
-import {
-  getStable,
-  getActiveMembersWithUserDetails,
-  deleteStableMember,
-} from "@/services/stableService";
+import { getStableHorses } from "@/services/horseService";
+import { getStable } from "@/services/stableService";
 import type { ShiftType } from "@/types/schedule";
-import type { Horse, StableMember } from "@/types/roles";
+import type { Horse } from "@/types/roles";
 import { useToast } from "@/hooks/use-toast";
 import { useDialog } from "@/hooks/useDialog";
 import { useAsyncData } from "@/hooks/useAsyncData";
@@ -66,7 +56,6 @@ export default function StableDetailPage() {
 
   // Dialog state management
   const shiftTypeDialog = useDialog<ShiftType>();
-  const removeMemberDialog = useDialog<StableMember>();
 
   // Data loading with custom hooks
   const stable = useAsyncData<Stable | null>({
@@ -87,40 +76,12 @@ export default function StableDetailPage() {
     errorMessage: "Failed to load horses. Please try again.",
   });
 
-  const members = useAsyncData<{
-    members: StableMember[];
-    horseCounts: Record<string, number>;
-  }>({
-    loadFn: async () => {
-      if (!stableId) return { members: [], horseCounts: {} };
-
-      // Get members with user details (avoids N+1 query for user data)
-      const membersData = (await getActiveMembersWithUserDetails(
-        stableId,
-      )) as StableMember[];
-
-      // Load horse counts for each member
-      const counts: Record<string, number> = {};
-      for (const member of membersData) {
-        const memberHorses = await getUserHorsesAtStable(
-          member.userId,
-          stableId,
-        );
-        counts[member.userId] = memberHorses.length;
-      }
-
-      return { members: membersData, horseCounts: counts };
-    },
-    errorMessage: "Failed to load members. Please try again.",
-  });
-
   // Load data on mount
   useEffect(() => {
     if (stableId) {
       stable.load();
       shiftTypes.load();
       horses.load();
-      members.load();
     }
   }, [stableId]);
 
@@ -159,39 +120,6 @@ export default function StableDetailPage() {
       delete: "Shift type deleted successfully",
     },
   });
-
-  // Member removal handler
-  const handleRemoveMember = async (userId: string) => {
-    if (!stableId) return;
-
-    try {
-      // Unassign all member's horses
-      const unassignedCount = await unassignMemberHorses(userId, stableId);
-
-      // Delete member from stableMembers collection
-      const memberDoc = members.data?.members.find((m) => m.userId === userId);
-      if (memberDoc) {
-        await deleteStableMember(stableId, memberDoc.id);
-      }
-
-      toast({
-        title: "Success",
-        description: `Member removed. ${unassignedCount} ${unassignedCount === 1 ? "horse was" : "horses were"} unassigned.`,
-      });
-
-      // Reload data
-      await members.reload();
-      await horses.reload();
-    } catch (error) {
-      console.error("Error removing member:", error);
-      toast({
-        title: "Error",
-        description: "Failed to remove member. Please try again.",
-        variant: "destructive",
-      });
-      throw error;
-    }
-  };
 
   // Shift type handlers
   const handleSaveShiftType = async (
@@ -310,12 +238,8 @@ export default function StableDetailPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="members" className="space-y-4">
+      <Tabs defaultValue="horses" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="members">
-            <Users className="mr-2 h-4 w-4" />
-            Members
-          </TabsTrigger>
           <TabsTrigger value="horses">
             <HorseIcon className="mr-2 h-4 w-4" />
             Horses
@@ -332,72 +256,6 @@ export default function StableDetailPage() {
             Statistics
           </TabsTrigger>
         </TabsList>
-
-        {/* Members Tab */}
-        <TabsContent value="members" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold">Stable Members</h2>
-            <Link to={`/stables/${stableId}/invite`}>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Invite Member
-              </Button>
-            </Link>
-          </div>
-
-          {!members.data || members.data.members.length === 0 ? (
-            <EmptyState
-              icon={Users}
-              title="No members yet"
-              description="Invite members to help manage this stable"
-              action={{
-                label: "Invite Member",
-                onClick: () =>
-                  (window.location.href = `/stables/${stableId}/invite`),
-              }}
-            />
-          ) : (
-            <div className="grid gap-4">
-              {members.data.members.map((member) => (
-                <Card key={member.id}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-base">
-                          {member.userEmail || "Unknown User"}
-                        </CardTitle>
-                        <CardDescription className="capitalize">
-                          {member.role}
-                          {(members.data?.horseCounts[member.userId] ?? 0) >
-                            0 && (
-                            <>
-                              {" "}
-                              • {members.data?.horseCounts[member.userId]}{" "}
-                              {members.data?.horseCounts[member.userId] === 1
-                                ? "horse"
-                                : "horses"}
-                            </>
-                          )}
-                        </CardDescription>
-                      </div>
-                      {stable.data?.ownerId === user?.uid && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => {
-                            removeMemberDialog.openDialog(member);
-                          }}
-                        >
-                          Remove
-                        </Button>
-                      )}
-                    </div>
-                  </CardHeader>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
 
         {/* Horses Tab */}
         <TabsContent value="horses" className="space-y-4">
@@ -527,19 +385,6 @@ export default function StableDetailPage() {
         onSave={handleSaveShiftType}
         shiftType={shiftTypeDialog.data}
         title={shiftTypeDialog.data ? "Edit Shift Type" : "Create Shift Type"}
-      />
-
-      {/* Remove Member Dialog */}
-      <RemoveMemberDialog
-        open={removeMemberDialog.open}
-        onOpenChange={(open) => !open && removeMemberDialog.closeDialog()}
-        member={removeMemberDialog.data}
-        horseCount={
-          removeMemberDialog.data
-            ? members.data?.horseCounts[removeMemberDialog.data.userId] || 0
-            : 0
-        }
-        onConfirm={handleRemoveMember}
       />
     </div>
   );

@@ -21,6 +21,10 @@ import authRoutes from "./routes/auth.js";
 import { shiftTypesRoutes } from "./routes/shift-types.js";
 import { horseGroupsRoutes } from "./routes/horse-groups.js";
 import { auditLogsRoutes } from "./routes/audit-logs.js";
+import { feedTypesRoutes } from "./routes/feed-types.js";
+import { feedingTimesRoutes } from "./routes/feeding-times.js";
+import { horseFeedingsRoutes } from "./routes/horse-feedings.js";
+import { availabilityRoutes } from "./routes/availability.js";
 
 const PORT = Number(process.env.PORT) || 8080;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -113,6 +117,14 @@ await fastify.register(organizationMemberRoutes, {
 await fastify.register(shiftTypesRoutes, { prefix: "/api/v1/shift-types" });
 await fastify.register(horseGroupsRoutes, { prefix: "/api/v1/horse-groups" });
 await fastify.register(auditLogsRoutes, { prefix: "/api/v1/audit-logs" });
+await fastify.register(feedTypesRoutes, { prefix: "/api/v1/feed-types" });
+await fastify.register(feedingTimesRoutes, { prefix: "/api/v1/feeding-times" });
+await fastify.register(horseFeedingsRoutes, {
+  prefix: "/api/v1/horse-feedings",
+});
+await fastify.register(availabilityRoutes, {
+  prefix: "/api/v1/availability",
+});
 
 // 404 handler
 fastify.setNotFoundHandler((request, reply) => {

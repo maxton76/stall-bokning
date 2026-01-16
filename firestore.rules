@@ -41,10 +41,14 @@ service cloud.firestore {
     }
 
     // ============================================================================
-    // STABLE MEMBERSHIP HELPERS (CORRECTED)
+    // STABLE ACCESS HELPERS (ORGANIZATION-BASED)
     // ============================================================================
     // Note: Firebase linter may show warnings for 'request', 'exists', 'get'.
     // These are false positives - they are official Firestore Security Rules built-ins.
+    //
+    // Stable access is now determined via organization membership:
+    // - stableAccess: 'all' grants access to all stables in the organization
+    // - stableAccess: 'specific' + assignedStableIds grants access to listed stables
 
     // Check if user is the OWNER of a specific stable
     function isStableOwnerOf(stableId) {
@@ -53,42 +57,45 @@ service cloud.firestore {
         get(/databases/$(database)/documents/stables/$(stableId)).data.ownerId == request.auth.uid;
     }
 
-    // Check if user is an active MEMBER of a specific stable
-    function isStableMember(stableId) {
-      let memberId = request.auth.uid + '_' + stableId;
-      return isAuthenticated() &&
-        exists(/databases/$(database)/documents/stableMembers/$(memberId)) &&
-        get(/databases/$(database)/documents/stableMembers/$(memberId)).data.status == 'active';
-    }
-
-    // Get member's role in stable ('manager' or 'member')
-    function getStableMemberRole(stableId) {
-      let memberId = request.auth.uid + '_' + stableId;
-      return isStableMember(stableId)
-        ? get(/databases/$(database)/documents/stableMembers/$(memberId)).data.role
+    // Get organization member document for a stable's organization
+    function getOrgMemberForStable(stableId) {
+      let stable = get(/databases/$(database)/documents/stables/$(stableId)).data;
+      let orgId = stable.organizationId;
+      let memberId = request.auth.uid + '_' + orgId;
+      return orgId != null && exists(/databases/$(database)/documents/organizationMembers/$(memberId))
+        ? get(/databases/$(database)/documents/organizationMembers/$(memberId)).data
         : null;
     }
 
-    // Check if user is a MANAGER of a specific stable
-    function isStableManager(stableId) {
-      return getStableMemberRole(stableId) == 'manager';
+    // Check if user has access to a stable via organization membership
+    function hasOrgStableAccess(stableId) {
+      let member = getOrgMemberForStable(stableId);
+      return member != null &&
+             member.status == 'active' &&
+             (member.stableAccess == 'all' ||
+              (member.stableAccess == 'specific' && member.assignedStableIds.hasAny([stableId])));
     }
 
-    // Check if user can MANAGE a stable (owner OR manager)
+    // Check if user is an organization administrator with stable access
+    function isOrgAdminForStable(stableId) {
+      let member = getOrgMemberForStable(stableId);
+      return member != null &&
+             member.status == 'active' &&
+             member.roles.hasAny(['administrator']) &&
+             (member.stableAccess == 'all' ||
+              (member.stableAccess == 'specific' && member.assignedStableIds.hasAny([stableId])));
+    }
+
+    // Check if user can MANAGE a stable (owner OR organization administrator)
     function canManageStable(stableId) {
-      return isSystemAdmin() || isStableOwnerOf(stableId) || isStableManager(stableId);
+      return isSystemAdmin() || isStableOwnerOf(stableId) || isOrgAdminForStable(stableId);
     }
 
-    // Check if user can ACCESS stable (owner, manager, or member)
-    // ENHANCED: Supports both standalone and organization-based stables
+    // Check if user can ACCESS stable (owner OR organization member with stable access)
     function canAccessStable(stableId) {
-      let stable = get(/databases/$(database)/documents/stables/$(stableId)).data;
-      let isStandaloneStable = !stable.keys().hasAny(['organizationId']) || stable.organizationId == null;
-
       return isSystemAdmin() ||
              isStableOwnerOf(stableId) ||
-             (isStandaloneStable && isStableMember(stableId)) ||
-             (!isStandaloneStable && isOrganizationMember(stable.organizationId));
+             hasOrgStableAccess(stableId);
     }
 
     // ============================================================================
@@ -393,64 +400,16 @@ service cloud.firestore {
     }
 
     // ============================================================================
-    // STABLE MEMBERS COLLECTION - MEMBERSHIP MANAGEMENT
+    // STABLE MEMBERS COLLECTION - DEPRECATED
     // ============================================================================
+    // NOTE: stableMembers collection has been replaced by organizationMembers.
+    // Stable access is now controlled via organizationMembers.stableAccess and
+    // organizationMembers.assignedStableIds fields.
+    // This collection is kept read-only for backward compatibility during migration.
 
     match /stableMembers/{memberId} {
-      // Validate memberId format: {userId}_{stableId}
-      function isValidMemberId() {
-        return memberId.matches('^[a-zA-Z0-9]+_[a-zA-Z0-9]+$');
-      }
-
-      function extractStableId() {
-        return memberId.split('_')[1];
-      }
-
-      function extractUserId() {
-        return memberId.split('_')[0];
-      }
-
-      // LIST: Simple authentication check - let query filter results
-      allow list: if isAuthenticated();
-
-      // GET: Full access check - stable members + system_admin + self
-      allow get: if isAuthenticated() && isValidMemberId() && (
-        isSystemAdmin() ||
-        canAccessStable(extractStableId()) ||
-        isOwner(extractUserId())
-      );
-
-      // CREATE: Owner or manager can invite
-      // Member CANNOT be the stable owner
-      allow create: if isAuthenticated() && isValidMemberId() && (
-        isSystemAdmin() ||
-        canManageStable(request.resource.data.stableId)
-      ) &&
-      // Validation: memberId matches data
-      extractUserId() == request.resource.data.userId &&
-      extractStableId() == request.resource.data.stableId &&
-      // Validation: invited user is NOT the stable owner
-      request.resource.data.userId != get(/databases/$(database)/documents/stables/$(request.resource.data.stableId)).data.ownerId;
-
-      // UPDATE: Owner can change anything, manager can change status, member can update own status
-      allow update: if isAuthenticated() && isValidMemberId() && (
-        isSystemAdmin() ||
-        isStableOwnerOf(resource.data.stableId) || // Owner full control
-        (isStableManager(resource.data.stableId) && // Manager can change status only
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'inviteAcceptedAt'])) ||
-        (isOwner(extractUserId()) && // Member can update own status
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
-      ) &&
-      // Prevent changes to immutable fields
-      request.resource.data.stableId == resource.data.stableId &&
-      request.resource.data.userId == resource.data.userId;
-
-      // DELETE: Owner or self-remove
-      allow delete: if isAuthenticated() && isValidMemberId() && (
-        isSystemAdmin() ||
-        isStableOwnerOf(resource.data.stableId) ||
-        isOwner(extractUserId())
-      );
+      // All operations disabled - collection is deprecated
+      allow read, write: if false;
     }
 
     // ============================================================================
@@ -504,9 +463,9 @@ service cloud.firestore {
     // ============================================================================
 
     match /organizations/{organizationId} {
-      // LIST: Organization members only (force backend API for listing)
-      // Backend will implement proper filtering based on user's memberships
-      allow list: if false;
+      // LIST: Users can list organizations they own (for stable access resolution)
+      // The query must filter by ownerId == request.auth.uid
+      allow list: if isAuthenticated();
 
       // GET: Only organization members or system admins
       // Users can only access organizations they are members of
@@ -554,8 +513,9 @@ service cloud.firestore {
         return memberId.split('_')[0];
       }
 
-      // LIST: Force backend API for listing (prevents member enumeration)
-      allow list: if false;
+      // LIST: Users can list their own memberships (for stable access resolution)
+      // Query must filter by userId == request.auth.uid
+      allow list: if isAuthenticated();
 
       // GET: Restricted to organization members, system admins, or user reading their own membership
       // Users can only access memberships in organizations they belong to or their own membership records
@@ -931,6 +891,247 @@ service cloud.firestore {
          (isOrganizationOwner(resource.data.organizationId) ||
           isOrganizationAdministrator(resource.data.organizationId)))
       );
+    }
+
+    // ============================================================================
+    // FEED TYPES COLLECTION - STABLE-SCOPED CONFIGURATION
+    // ============================================================================
+
+    match /feedTypes/{feedTypeId} {
+      // LIST: Authenticated users (filtering by stableId happens in query)
+      allow list: if isAuthenticated();
+
+      // GET: Full access check - stable members only
+      allow get: if canAccessStable(resource.data.stableId);
+
+      // CREATE: Owner or manager
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(request.resource.data.stableId)
+      );
+
+      // UPDATE: Owner or manager
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(resource.data.stableId)
+      );
+
+      // DELETE: Owner or manager
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(resource.data.stableId)
+      );
+    }
+
+    // ============================================================================
+    // FEEDING TIMES COLLECTION - STABLE-SCOPED CONFIGURATION
+    // ============================================================================
+
+    match /feedingTimes/{feedingTimeId} {
+      // LIST: Authenticated users (filtering by stableId happens in query)
+      allow list: if isAuthenticated();
+
+      // GET: Full access check - stable members only
+      allow get: if canAccessStable(resource.data.stableId);
+
+      // CREATE: Owner or manager
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(request.resource.data.stableId)
+      );
+
+      // UPDATE: Owner or manager
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(resource.data.stableId)
+      );
+
+      // DELETE: Owner or manager
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(resource.data.stableId)
+      );
+    }
+
+    // ============================================================================
+    // HORSE FEEDINGS COLLECTION - HORSE FEEDING SCHEDULES
+    // ============================================================================
+
+    match /horseFeedings/{horseFeedingId} {
+      // LIST: Authenticated users (filtering by stableId/horseId happens in query)
+      allow list: if isAuthenticated();
+
+      // GET: Full access check - stable members only
+      allow get: if canAccessStable(resource.data.stableId);
+
+      // CREATE: Any stable member can create feedings
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canAccessStable(request.resource.data.stableId)
+      );
+
+      // UPDATE: Stable member or manager
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canAccessStable(resource.data.stableId)
+      );
+
+      // DELETE: Stable member or manager
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canAccessStable(resource.data.stableId)
+      );
+    }
+
+    // ============================================================================
+    // LEAVE REQUESTS COLLECTION - AVAILABILITY MANAGEMENT
+    // ============================================================================
+
+    match /leaveRequests/{requestId} {
+      // LIST: Force backend API for listing to prevent cross-org enumeration
+      // Backend will filter by userId or organizationId with proper authorization
+      allow list: if false;
+
+      // GET: User can read their own requests, admins can read all in org
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        resource.data.userId == request.auth.uid ||
+        isOrganizationOwner(resource.data.organizationId) ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+
+      // CREATE: Users can create their own leave requests
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        (request.resource.data.userId == request.auth.uid &&
+         isOrganizationMember(request.resource.data.organizationId))
+      );
+
+      // UPDATE: User can update pending requests, admins can approve/reject
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        // User can update their own pending requests (cancel, edit note)
+        (resource.data.userId == request.auth.uid &&
+         resource.data.status == 'pending') ||
+        // Admins can approve/reject requests
+        (isOrganizationOwner(resource.data.organizationId) ||
+         isOrganizationAdministrator(resource.data.organizationId))
+      );
+
+      // DELETE: User can delete their own pending requests, admins can delete any
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        (resource.data.userId == request.auth.uid &&
+         resource.data.status == 'pending') ||
+        isOrganizationOwner(resource.data.organizationId) ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+    }
+
+    // ============================================================================
+    // WORK SCHEDULES COLLECTION - EMPLOYEE SCHEDULES
+    // ============================================================================
+
+    match /workSchedules/{scheduleId} {
+      // LIST: Force backend API for listing to prevent cross-org enumeration
+      // Backend will filter by userId or organizationId with proper authorization
+      allow list: if false;
+
+      // GET: User can read their own schedule, admins can read all in org
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        resource.data.userId == request.auth.uid ||
+        isOrganizationOwner(resource.data.organizationId) ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+
+      // CREATE: Only admins can create work schedules
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationOwner(request.resource.data.organizationId) ||
+        isOrganizationAdministrator(request.resource.data.organizationId)
+      );
+
+      // UPDATE: Only admins can update work schedules
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationOwner(resource.data.organizationId) ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+
+      // DELETE: Only admins can delete work schedules
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationOwner(resource.data.organizationId) ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+    }
+
+    // ============================================================================
+    // TIME BALANCES COLLECTION - LEAVE BALANCE TRACKING
+    // ============================================================================
+
+    match /timeBalances/{balanceId} {
+      // LIST: Force backend API for listing to prevent cross-org enumeration
+      // Backend will filter by userId or organizationId with proper authorization
+      allow list: if false;
+
+      // GET: User can read their own balance, admins can read all in org
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        resource.data.userId == request.auth.uid ||
+        isOrganizationOwner(resource.data.organizationId) ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+
+      // CREATE: Backend/admins only (created by accrual system)
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationOwner(request.resource.data.organizationId) ||
+        isOrganizationAdministrator(request.resource.data.organizationId)
+      );
+
+      // UPDATE: Only admins can update balances (corrections)
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationOwner(resource.data.organizationId) ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+
+      // DELETE: Only system admin (balance records should be retained)
+      allow delete: if isSystemAdmin();
+    }
+
+    // ============================================================================
+    // BALANCE ADJUSTMENTS COLLECTION - AUDIT TRAIL FOR BALANCE CHANGES
+    // ============================================================================
+
+    match /balanceAdjustments/{adjustmentId} {
+      // LIST: Only admins can list adjustments
+      allow list: if isAuthenticated() && (
+        isSystemAdmin()
+      );
+
+      // GET: User can read their own adjustments, admins can read all in org
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        resource.data.userId == request.auth.uid ||
+        isOrganizationOwner(resource.data.organizationId) ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+
+      // CREATE: Only admins can create adjustments (via backend)
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationOwner(request.resource.data.organizationId) ||
+        isOrganizationAdministrator(request.resource.data.organizationId)
+      );
+
+      // UPDATE: Balance adjustments are immutable - no updates allowed
+      allow update: if false;
+
+      // DELETE: Balance adjustments are immutable - no deletions allowed
+      allow delete: if false;
     }
 
     // ============================================================================

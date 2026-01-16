@@ -2,30 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
-import { Timestamp } from "firebase-admin/firestore";
-
-/**
- * Convert Firestore Timestamps to ISO date strings
- */
-function serializeTimestamps(obj: any): any {
-  if (obj === null || obj === undefined) return obj;
-  if (obj instanceof Timestamp || (obj && typeof obj.toDate === "function")) {
-    return obj.toDate().toISOString();
-  }
-  if (Array.isArray(obj)) {
-    return obj.map((item) => serializeTimestamps(item));
-  }
-  if (typeof obj === "object" && obj.constructor === Object) {
-    const serialized: any = {};
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        serialized[key] = serializeTimestamps(obj[key]);
-      }
-    }
-    return serialized;
-  }
-  return obj;
-}
+import { serializeTimestamps } from "../utils/serialization.js";
 
 /**
  * Check if user has admin access to an organization
@@ -148,7 +125,11 @@ export async function auditLogsRoutes(fastify: FastifyInstance) {
       try {
         const user = (request as AuthenticatedRequest).user!;
         const { organizationId } = request.params as { organizationId: string };
-        const { limit = "100", resource, action } = request.query as {
+        const {
+          limit = "100",
+          resource,
+          action,
+        } = request.query as {
           limit?: string;
           resource?: string;
           action?: string;

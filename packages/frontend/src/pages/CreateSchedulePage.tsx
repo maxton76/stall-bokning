@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Calendar, Wand2, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  Wand2,
+  Users,
+  Check,
+  ChevronsUpDown,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,7 +21,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { queryKeys } from "@/lib/queryClient";
 import {
@@ -57,17 +79,14 @@ export default function CreateSchedulePage() {
     queryKey: ["shiftTypes", "stable", stableId],
     queryFn: async () => {
       if (!stableId) return [];
-      const types = await getShiftTypesByStable(stableId);
-      // Auto-select all shift types when loaded
-      setScheduleData((prev) => ({
-        ...prev,
-        selectedShiftTypes: types.map((st) => st.id),
-      }));
-      return types;
+      return await getShiftTypesByStable(stableId);
     },
     enabled: !!stableId,
     staleTime: 5 * 60 * 1000,
   });
+
+  // State for dropdown open
+  const [shiftTypeDropdownOpen, setShiftTypeDropdownOpen] = useState(false);
 
   const handleShiftTypeToggle = (shiftTypeId: string) => {
     setScheduleData({
@@ -258,35 +277,112 @@ export default function CreateSchedulePage() {
               Choose which shift types to include in this schedule
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {shiftTypes.map((shiftType) => (
-                <div key={shiftType.id} className="flex items-start space-x-3">
-                  <Checkbox
-                    id={`shift-${shiftType.id}`}
-                    checked={scheduleData.selectedShiftTypes.includes(
-                      shiftType.id,
-                    )}
-                    onCheckedChange={() => handleShiftTypeToggle(shiftType.id)}
-                  />
-                  <div className="flex-1">
-                    <Label
-                      htmlFor={`shift-${shiftType.id}`}
-                      className="text-base font-medium cursor-pointer"
+          <CardContent className="space-y-4">
+            <Popover
+              open={shiftTypeDropdownOpen}
+              onOpenChange={setShiftTypeDropdownOpen}
+            >
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={shiftTypeDropdownOpen}
+                  className="w-full justify-between h-auto min-h-10"
+                >
+                  {scheduleData.selectedShiftTypes.length === 0 ? (
+                    <span className="text-muted-foreground">
+                      Select shift types...
+                    </span>
+                  ) : (
+                    <span className="text-left">
+                      {scheduleData.selectedShiftTypes.length} shift type
+                      {scheduleData.selectedShiftTypes.length !== 1 ? "s" : ""}{" "}
+                      selected
+                    </span>
+                  )}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[400px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search shift types..." />
+                  <CommandList>
+                    <CommandEmpty>No shift types found.</CommandEmpty>
+                    <CommandGroup>
+                      {shiftTypes.map((shiftType) => {
+                        const isSelected =
+                          scheduleData.selectedShiftTypes.includes(
+                            shiftType.id,
+                          );
+                        return (
+                          <CommandItem
+                            key={shiftType.id}
+                            value={shiftType.name}
+                            onSelect={() => {
+                              handleShiftTypeToggle(shiftType.id);
+                            }}
+                            className="cursor-pointer"
+                            // Prevent closing on select for multi-select behavior
+                            onMouseDown={(e) => e.preventDefault()}
+                          >
+                            <div
+                              className={cn(
+                                "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                isSelected
+                                  ? "bg-primary text-primary-foreground"
+                                  : "opacity-50 [&_svg]:invisible",
+                              )}
+                            >
+                              <Check className="h-3 w-3" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-medium">
+                                {shiftType.name}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {shiftType.time} • {shiftType.points} pts •{" "}
+                                {shiftType.daysOfWeek.join(", ")}
+                              </div>
+                            </div>
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+
+            {/* Selected shift types display */}
+            {scheduleData.selectedShiftTypes.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {scheduleData.selectedShiftTypes.map((stId) => {
+                  const shiftType = shiftTypes.find((st) => st.id === stId);
+                  if (!shiftType) return null;
+                  return (
+                    <Badge
+                      key={stId}
+                      variant="secondary"
+                      className="flex items-center gap-1 pr-1"
                     >
                       {shiftType.name}
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      {shiftType.time} • {shiftType.points} points •{" "}
-                      {shiftType.daysOfWeek.join(", ")}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-4 w-4 p-0 hover:bg-transparent"
+                        onClick={() => handleShiftTypeToggle(stId)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
 
             {scheduleData.selectedShiftTypes.length === 0 && (
-              <div className="rounded-lg bg-destructive/10 p-4 mt-4">
+              <div className="rounded-lg bg-destructive/10 p-4">
                 <p className="text-sm text-destructive">
                   ⚠️ Please select at least one shift type
                 </p>

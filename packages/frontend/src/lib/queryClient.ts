@@ -210,6 +210,39 @@ export const queryKeys = {
     details: () => [...queryKeys.schedules.all, "detail"] as const,
     detail: (id: string) => [...queryKeys.schedules.details(), id] as const,
   },
+
+  // Leave Requests
+  leaveRequests: {
+    all: ["leaveRequests"] as const,
+    lists: () => [...queryKeys.leaveRequests.all, "list"] as const,
+    list: (organizationId: string) =>
+      [...queryKeys.leaveRequests.lists(), organizationId] as const,
+    adminList: (organizationId: string, filters?: Record<string, any>) =>
+      [
+        ...queryKeys.leaveRequests.lists(),
+        "admin",
+        organizationId,
+        filters,
+      ] as const,
+    details: () => [...queryKeys.leaveRequests.all, "detail"] as const,
+    detail: (id: string) => [...queryKeys.leaveRequests.details(), id] as const,
+  },
+
+  // Work Schedules (availability)
+  workSchedules: {
+    all: ["workSchedules"] as const,
+    lists: () => [...queryKeys.workSchedules.all, "list"] as const,
+    byUser: (organizationId: string) =>
+      [...queryKeys.workSchedules.lists(), organizationId] as const,
+  },
+
+  // Time Balances
+  timeBalances: {
+    all: ["timeBalances"] as const,
+    lists: () => [...queryKeys.timeBalances.all, "list"] as const,
+    byUser: (organizationId: string, year?: number) =>
+      [...queryKeys.timeBalances.lists(), organizationId, year] as const,
+  },
 };
 
 /**
@@ -325,6 +358,46 @@ export const cacheInvalidation = {
     detail: (id: string) =>
       queryClient.invalidateQueries({
         queryKey: queryKeys.facilityReservations.detail(id),
+      }),
+  },
+
+  /**
+   * Invalidate all leave request queries
+   */
+  leaveRequests: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.leaveRequests.all }),
+    lists: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leaveRequests.lists(),
+      }),
+    detail: (id: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.leaveRequests.detail(id),
+      }),
+  },
+
+  /**
+   * Invalidate all work schedule queries
+   */
+  workSchedules: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.workSchedules.all }),
+    lists: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.workSchedules.lists(),
+      }),
+  },
+
+  /**
+   * Invalidate all time balance queries
+   */
+  timeBalances: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.timeBalances.all }),
+    lists: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.timeBalances.lists(),
       }),
   },
 };

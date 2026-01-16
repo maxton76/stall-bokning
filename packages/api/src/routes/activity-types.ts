@@ -2,29 +2,165 @@ import type { FastifyInstance } from "fastify";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
-import { Timestamp } from "firebase-admin/firestore";
+import { serializeTimestamps } from "../utils/serialization.js";
 
 /**
- * Convert Firestore Timestamps to ISO date strings
+ * Standard activity types for seeding
+ * Consolidated from @shared/constants/activity
  */
-function serializeTimestamps(obj: any): any {
-  if (obj === null || obj === undefined) return obj;
-  if (obj instanceof Timestamp || (obj && typeof obj.toDate === "function")) {
-    return obj.toDate().toISOString();
+const STANDARD_ACTIVITY_TYPES = [
+  // === Care Category (sortOrder 1-4) ===
+  {
+    name: "Dentist",
+    color: "#22c55e",
+    category: "Care",
+    roles: ["dentist"],
+    icon: "🦷",
+    sortOrder: 1,
+  },
+  {
+    name: "Farrier",
+    color: "#f97316",
+    category: "Care",
+    roles: ["farrier"],
+    icon: "🔨",
+    sortOrder: 2,
+  },
+  {
+    name: "Vaccination",
+    color: "#3b82f6",
+    category: "Care",
+    roles: ["veterinarian"],
+    icon: "💉",
+    sortOrder: 3,
+  },
+  {
+    name: "Veterinarian",
+    color: "#ef4444",
+    category: "Care",
+    roles: ["veterinarian"],
+    icon: "🏥",
+    sortOrder: 4,
+  },
+  // === Sport Category (sortOrder 5-10) ===
+  {
+    name: "Client",
+    color: "#eab308",
+    category: "Sport",
+    roles: ["rider", "instructor"],
+    icon: "👤",
+    sortOrder: 5,
+  },
+  {
+    name: "Lesson",
+    color: "#22c55e",
+    category: "Sport",
+    roles: ["instructor", "rider"],
+    icon: "📚",
+    sortOrder: 6,
+  },
+  {
+    name: "Lunging",
+    color: "#8b5cf6",
+    category: "Sport",
+    roles: ["trainer", "rider"],
+    icon: "🎯",
+    sortOrder: 7,
+  },
+  {
+    name: "Paddock",
+    color: "#84cc16",
+    category: "Sport",
+    roles: ["stable-hand"],
+    icon: "🏞️",
+    sortOrder: 8,
+  },
+  {
+    name: "Riding",
+    color: "#6366f1",
+    category: "Sport",
+    roles: ["rider"],
+    icon: "🏇",
+    sortOrder: 9,
+  },
+  {
+    name: "Show",
+    color: "#ec4899",
+    category: "Sport",
+    roles: ["rider", "trainer"],
+    icon: "🏆",
+    sortOrder: 10,
+  },
+  // === Breeding Category (sortOrder 11-14) ===
+  {
+    name: "Foaling",
+    color: "#f43f5e",
+    category: "Breeding",
+    roles: ["veterinarian", "breeder"],
+    icon: "🐴",
+    sortOrder: 11,
+  },
+  {
+    name: "Insemination",
+    color: "#d946ef",
+    category: "Breeding",
+    roles: ["veterinarian", "breeder"],
+    icon: "🧬",
+    sortOrder: 12,
+  },
+  {
+    name: "Mare Cycle Check",
+    color: "#14b8a6",
+    category: "Breeding",
+    roles: ["veterinarian", "breeder"],
+    icon: "📅",
+    sortOrder: 13,
+  },
+  {
+    name: "Stallion Mount",
+    color: "#0ea5e9",
+    category: "Breeding",
+    roles: ["breeder", "handler"],
+    icon: "🐎",
+    sortOrder: 14,
+  },
+];
+
+/**
+ * Check if user has organization membership with stable access
+ */
+async function hasOrgStableAccess(
+  stableId: string,
+  userId: string,
+): Promise<boolean> {
+  const stableDoc = await db.collection("stables").doc(stableId).get();
+  if (!stableDoc.exists) return false;
+
+  const stable = stableDoc.data()!;
+  const organizationId = stable.organizationId;
+
+  if (!organizationId) return false;
+
+  // Check organizationMembers collection
+  const memberId = `${userId}_${organizationId}`;
+  const memberDoc = await db
+    .collection("organizationMembers")
+    .doc(memberId)
+    .get();
+
+  if (!memberDoc.exists) return false;
+
+  const member = memberDoc.data()!;
+  if (member.status !== "active") return false;
+
+  // Check stable access permissions
+  if (member.stableAccess === "all") return true;
+  if (member.stableAccess === "specific") {
+    const assignedStables = member.assignedStableIds || [];
+    if (assignedStables.includes(stableId)) return true;
   }
-  if (Array.isArray(obj)) {
-    return obj.map((item) => serializeTimestamps(item));
-  }
-  if (typeof obj === "object" && obj.constructor === Object) {
-    const serialized: any = {};
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        serialized[key] = serializeTimestamps(obj[key]);
-      }
-    }
-    return serialized;
-  }
-  return obj;
+
+  return false;
 }
 
 /**
@@ -43,10 +179,8 @@ async function hasStableAccess(
     return true;
   }
 
-  // Check if user is stable member
-  const memberId = `${userId}_${stableId}`;
-  const memberDoc = await db.collection("stableMembers").doc(memberId).get();
-  if (memberDoc.exists && memberDoc.data()?.status === "active") {
+  // Check organization membership with stable access
+  if (await hasOrgStableAccess(stableId, userId)) {
     return true;
   }
 
@@ -362,6 +496,90 @@ export async function activityTypesRoutes(fastify: FastifyInstance) {
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to delete activity type",
+        });
+      }
+    },
+  );
+
+  /**
+   * POST /api/v1/activity-types/seed/:stableId
+   * Seed standard activity types for a stable
+   * Creates all 16 standard types if none exist
+   */
+  fastify.post(
+    "/seed/:stableId",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+        const { stableId } = request.params as { stableId: string };
+
+        // Check stable access
+        const hasAccess = await hasStableAccess(stableId, user.uid, user.role);
+        if (!hasAccess) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message:
+              "You do not have permission to seed activity types for this stable",
+          });
+        }
+
+        // Check if types already exist for this stable
+        const existingSnapshot = await db
+          .collection("activityTypes")
+          .where("stableId", "==", stableId)
+          .limit(1)
+          .get();
+
+        if (!existingSnapshot.empty) {
+          return reply.status(409).send({
+            error: "Conflict",
+            message: "Activity types already exist for this stable",
+            count: 0,
+          });
+        }
+
+        // Create all standard types in a batch
+        const batch = db.batch();
+        const now = Timestamp.now();
+        const createdIds: string[] = [];
+
+        for (const type of STANDARD_ACTIVITY_TYPES) {
+          const docRef = db.collection("activityTypes").doc();
+          createdIds.push(docRef.id);
+
+          batch.set(docRef, {
+            ...type,
+            stableId,
+            isStandard: true,
+            isActive: true,
+            createdBy: user.uid,
+            lastModifiedBy: user.uid,
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+
+        await batch.commit();
+
+        request.log.info(
+          { stableId, count: createdIds.length },
+          "Seeded standard activity types",
+        );
+
+        return reply.status(201).send({
+          success: true,
+          message: `Seeded ${createdIds.length} standard activity types`,
+          count: createdIds.length,
+          ids: createdIds,
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to seed activity types");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to seed activity types",
         });
       }
     },

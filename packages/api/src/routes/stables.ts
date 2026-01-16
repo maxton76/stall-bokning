@@ -3,7 +3,6 @@ import { z } from "zod";
 import { db } from "../utils/firebase.js";
 import {
   authenticate,
-  requireRole,
   requireStableAccess,
   requireStableOwnership,
 } from "../middleware/auth.js";
@@ -41,7 +40,8 @@ export async function stablesRoutes(fastify: FastifyInstance) {
         };
 
         // If ownerId is specified (admin or self), filter by that owner
-        const targetOwnerId = ownerId || (ownedOnly === "true" ? user.uid : null);
+        const targetOwnerId =
+          ownerId || (ownedOnly === "true" ? user.uid : null);
 
         // System admins can see all stables (or filter by ownerId)
         if (user.role === "system_admin") {
@@ -70,13 +70,13 @@ export async function stablesRoutes(fastify: FastifyInstance) {
           return { stables };
         }
 
-        // Regular users: get stables where they are owner or member
-        const [ownedStables, memberStables] = await Promise.all([
+        // Regular users: get stables where they are owner or have org membership access
+        const [ownedStables, orgMemberships] = await Promise.all([
           // Stables owned by user
           db.collection("stables").where("ownerId", "==", user.uid).get(),
-          // Stables where user is a member
+          // Organization memberships for this user
           db
-            .collection("stableMembers")
+            .collection("organizationMembers")
             .where("userId", "==", user.uid)
             .where("status", "==", "active")
             .get(),
@@ -87,19 +87,37 @@ export async function stablesRoutes(fastify: FastifyInstance) {
           ...doc.data(),
         }));
 
-        // Get stable details for memberships
-        const memberStableIds = memberStables.docs.map(
-          (doc) => doc.data().stableId,
-        );
-        const memberStablesList = [];
+        // Get stables from organizations the user is a member of
+        const memberStablesList: any[] = [];
 
-        for (const stableId of memberStableIds) {
-          const stableDoc = await db.collection("stables").doc(stableId).get();
-          if (stableDoc.exists) {
-            memberStablesList.push({
-              id: stableDoc.id,
-              ...stableDoc.data(),
-            });
+        for (const memberDoc of orgMemberships.docs) {
+          const memberData = memberDoc.data();
+          const organizationId = memberData.organizationId;
+
+          // Query stables belonging to this organization
+          const orgStables = await db
+            .collection("stables")
+            .where("organizationId", "==", organizationId)
+            .get();
+
+          for (const stableDoc of orgStables.docs) {
+            const stableId = stableDoc.id;
+
+            // Check if user has access to this specific stable
+            if (memberData.stableAccess === "all") {
+              memberStablesList.push({
+                id: stableId,
+                ...stableDoc.data(),
+              });
+            } else if (memberData.stableAccess === "specific") {
+              const assignedStables = memberData.assignedStableIds || [];
+              if (assignedStables.includes(stableId)) {
+                memberStablesList.push({
+                  id: stableId,
+                  ...stableDoc.data(),
+                });
+              }
+            }
           }
         }
 
@@ -152,11 +170,12 @@ export async function stablesRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // Create stable (requires authentication and stable_owner or system_admin role)
+  // Create stable (any authenticated user can create a stable)
+  // The user becomes the owner of the stable via ownerId field
   fastify.post(
     "/",
     {
-      preHandler: [authenticate, requireRole(["stable_owner", "system_admin"])],
+      preHandler: [authenticate],
     },
     async (request, reply) => {
       try {
@@ -264,7 +283,7 @@ export async function stablesRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // Get members for a stable with optional user details
+  // Get members for a stable (queries organizationMembers with stable access)
   fastify.get(
     "/:id/members",
     {
@@ -277,26 +296,52 @@ export async function stablesRoutes(fastify: FastifyInstance) {
           includeUserDetails?: string;
         };
 
-        // Query active members for this stable
+        // Get the stable to find its organization
+        const stableDoc = await db.collection("stables").doc(stableId).get();
+        if (!stableDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Stable not found",
+          });
+        }
+
+        const stable = stableDoc.data();
+        const organizationId = stable?.organizationId;
+
+        if (!organizationId) {
+          // Stable has no organization - return empty members list
+          return { members: [] };
+        }
+
+        // Query active organization members
         const membersSnapshot = await db
-          .collection("stableMembers")
-          .where("stableId", "==", stableId)
+          .collection("organizationMembers")
+          .where("organizationId", "==", organizationId)
           .where("status", "==", "active")
           .get();
 
+        // Filter members who have access to this stable
+        const membersWithAccess = membersSnapshot.docs.filter((doc) => {
+          const data = doc.data();
+          if (data.stableAccess === "all") return true;
+          if (data.stableAccess === "specific") {
+            const assignedStables = data.assignedStableIds || [];
+            return assignedStables.includes(stableId);
+          }
+          return false;
+        });
+
         if (includeUserDetails === "true") {
-          // Batch fetch user details to avoid N+1 queries
-          const userIds = membersSnapshot.docs.map((doc) => doc.data().userId);
+          const userIds = membersWithAccess.map((doc) => doc.data().userId);
 
           if (userIds.length === 0) {
             return { members: [] };
           }
 
-          // Firestore getAll method for batch fetching
+          // Batch fetch user details
           const userRefs = userIds.map((id) => db.collection("users").doc(id));
           const usersSnapshot = await db.getAll(...userRefs);
 
-          // Create a map of userId -> user data
           const userMap = new Map();
           usersSnapshot.forEach((doc) => {
             if (doc.exists) {
@@ -304,8 +349,7 @@ export async function stablesRoutes(fastify: FastifyInstance) {
             }
           });
 
-          // Combine member + user data
-          const members = membersSnapshot.docs.map((doc) => {
+          const members = membersWithAccess.map((doc) => {
             const memberData = doc.data();
             const userData = userMap.get(memberData.userId) || {};
 
@@ -314,17 +358,16 @@ export async function stablesRoutes(fastify: FastifyInstance) {
               ...memberData,
               displayName:
                 userData.displayName ||
-                `${userData.firstName || ""} ${userData.lastName || ""}`.trim(),
-              email: userData.email,
-              firstName: userData.firstName,
-              lastName: userData.lastName,
+                `${memberData.firstName || ""} ${memberData.lastName || ""}`.trim(),
+              email: userData.email || memberData.userEmail,
+              firstName: userData.firstName || memberData.firstName,
+              lastName: userData.lastName || memberData.lastName,
             };
           });
 
           return { members };
         } else {
-          // Return members without user details
-          const members = membersSnapshot.docs.map((doc) => ({
+          const members = membersWithAccess.map((doc) => ({
             id: doc.id,
             ...doc.data(),
           }));
@@ -341,7 +384,7 @@ export async function stablesRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // Delete a stable member
+  // Remove a member's access to a stable (updates organizationMember's assignedStableIds)
   fastify.delete(
     "/:stableId/members/:memberId",
     {
@@ -354,9 +397,9 @@ export async function stablesRoutes(fastify: FastifyInstance) {
           memberId: string;
         };
 
-        // Verify the member exists and belongs to this stable
+        // Get the organization member document
         const memberDoc = await db
-          .collection("stableMembers")
+          .collection("organizationMembers")
           .doc(memberId)
           .get();
 
@@ -369,22 +412,51 @@ export async function stablesRoutes(fastify: FastifyInstance) {
 
         const memberData = memberDoc.data();
 
-        if (memberData?.stableId !== stableId) {
-          return reply.status(400).send({
-            error: "Bad Request",
-            message: "Member does not belong to this stable",
+        // Verify this stable belongs to the member's organization
+        const stableDoc = await db.collection("stables").doc(stableId).get();
+        if (!stableDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Stable not found",
           });
         }
 
-        // Delete the stable member
-        await db.collection("stableMembers").doc(memberId).delete();
+        const stableData = stableDoc.data();
+        if (stableData?.organizationId !== memberData?.organizationId) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Stable does not belong to member's organization",
+          });
+        }
+
+        // If member has "all" access, we can't remove individual stable access
+        if (memberData?.stableAccess === "all") {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message:
+              "Cannot remove stable access from member with 'all' access. Update their access level first.",
+          });
+        }
+
+        // Remove stableId from assignedStableIds
+        const assignedStables = memberData?.assignedStableIds || [];
+        const updatedStables = assignedStables.filter(
+          (id: string) => id !== stableId,
+        );
+
+        await db.collection("organizationMembers").doc(memberId).update({
+          assignedStableIds: updatedStables,
+        });
 
         return reply.status(204).send();
       } catch (error) {
-        request.log.error({ error }, "Failed to delete stable member");
+        request.log.error(
+          { error },
+          "Failed to remove stable access for member",
+        );
         return reply.status(500).send({
           error: "Internal Server Error",
-          message: "Failed to delete stable member",
+          message: "Failed to remove stable access for member",
         });
       }
     },

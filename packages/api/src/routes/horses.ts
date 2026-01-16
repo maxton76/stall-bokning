@@ -2,40 +2,91 @@ import type { FastifyInstance } from "fastify";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
-import { Timestamp } from "firebase-admin/firestore";
+import { serializeTimestamps } from "../utils/serialization.js";
 
 /**
- * Convert Firestore Timestamps to ISO date strings for JSON serialization
- * Recursively processes nested objects and arrays
+ * Check if user has organization membership with stable access
  */
-function serializeTimestamps(obj: any): any {
-  if (obj === null || obj === undefined) {
-    return obj;
+async function hasOrgStableAccess(
+  stableId: string,
+  userId: string,
+): Promise<boolean> {
+  const stableDoc = await db.collection("stables").doc(stableId).get();
+  if (!stableDoc.exists) return false;
+
+  const stable = stableDoc.data()!;
+  const organizationId = stable.organizationId;
+
+  if (!organizationId) return false;
+
+  // Check organizationMembers collection
+  const memberId = `${userId}_${organizationId}`;
+  const memberDoc = await db
+    .collection("organizationMembers")
+    .doc(memberId)
+    .get();
+
+  if (!memberDoc.exists) return false;
+
+  const member = memberDoc.data()!;
+  if (member.status !== "active") return false;
+
+  // Check stable access permissions
+  if (member.stableAccess === "all") return true;
+  if (member.stableAccess === "specific") {
+    const assignedStables = member.assignedStableIds || [];
+    if (assignedStables.includes(stableId)) return true;
   }
 
-  // Handle Firestore Timestamp
-  if (obj instanceof Timestamp || (obj && typeof obj.toDate === "function")) {
-    return obj.toDate().toISOString();
+  return false;
+}
+
+/**
+ * Get all stable IDs user has access to via organization ownership or memberships
+ */
+async function getUserOrgStableIds(userId: string): Promise<string[]> {
+  const stableIds: string[] = [];
+
+  // 1. Get stables from organizations user owns
+  const ownedOrgs = await db
+    .collection("organizations")
+    .where("ownerId", "==", userId)
+    .get();
+
+  for (const orgDoc of ownedOrgs.docs) {
+    const stablesSnapshot = await db
+      .collection("stables")
+      .where("organizationId", "==", orgDoc.id)
+      .get();
+    stableIds.push(...stablesSnapshot.docs.map((doc) => doc.id));
   }
 
-  // Handle arrays
-  if (Array.isArray(obj)) {
-    return obj.map((item) => serializeTimestamps(item));
-  }
+  // 2. Get stables from organization memberships
+  const orgMemberships = await db
+    .collection("organizationMembers")
+    .where("userId", "==", userId)
+    .where("status", "==", "active")
+    .get();
 
-  // Handle plain objects
-  if (typeof obj === "object" && obj.constructor === Object) {
-    const serialized: any = {};
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        serialized[key] = serializeTimestamps(obj[key]);
-      }
+  for (const memberDoc of orgMemberships.docs) {
+    const member = memberDoc.data();
+    const organizationId = member.organizationId;
+
+    if (member.stableAccess === "all") {
+      // Get all stables in this organization
+      const stablesSnapshot = await db
+        .collection("stables")
+        .where("organizationId", "==", organizationId)
+        .get();
+      stableIds.push(...stablesSnapshot.docs.map((doc) => doc.id));
+    } else if (member.stableAccess === "specific") {
+      // Add specific assigned stables
+      const assignedStables = member.assignedStableIds || [];
+      stableIds.push(...assignedStables);
     }
-    return serialized;
   }
 
-  // Return primitives as-is
-  return obj;
+  return [...new Set(stableIds)]; // Remove duplicates
 }
 
 export async function horsesRoutes(fastify: FastifyInstance) {
@@ -66,7 +117,8 @@ export async function horsesRoutes(fastify: FastifyInstance) {
           isExternal: data.isExternal ?? false,
           status: data.status || "active",
           hasSpecialInstructions: !!(
-            (data.specialInstructions && data.specialInstructions.trim().length > 0) ||
+            (data.specialInstructions &&
+              data.specialInstructions.trim().length > 0) ||
             (data.equipment && data.equipment.length > 0)
           ),
           createdAt: Timestamp.now(),
@@ -87,7 +139,11 @@ export async function horsesRoutes(fastify: FastifyInstance) {
         const horseId = docRef.id;
 
         // Create initial location history entry if horse is assigned to a stable
-        if (data.currentStableId && data.currentStableName && !data.isExternal) {
+        if (
+          data.currentStableId &&
+          data.currentStableName &&
+          !data.isExternal
+        ) {
           await db
             .collection("horses")
             .doc(horseId)
@@ -160,7 +216,8 @@ export async function horsesRoutes(fastify: FastifyInstance) {
         const updateData = {
           ...updates,
           hasSpecialInstructions: !!(
-            (mergedData.specialInstructions && mergedData.specialInstructions.trim().length > 0) ||
+            (mergedData.specialInstructions &&
+              mergedData.specialInstructions.trim().length > 0) ||
             (mergedData.equipment && mergedData.equipment.length > 0)
           ),
           updatedAt: Timestamp.now(),
@@ -323,19 +380,15 @@ export async function horsesRoutes(fastify: FastifyInstance) {
           }
         }
 
-        // Get stables where user is owner or member
-        const [ownedStables, memberStables] = await Promise.all([
+        // Get stables where user is owner or has org membership access
+        const [ownedStables, orgStableIds] = await Promise.all([
           db.collection("stables").where("ownerId", "==", user.uid).get(),
-          db
-            .collection("stableMembers")
-            .where("userId", "==", user.uid)
-            .where("status", "==", "active")
-            .get(),
+          getUserOrgStableIds(user.uid),
         ]);
 
         const userStableIds = [
           ...ownedStables.docs.map((doc) => doc.id),
-          ...memberStables.docs.map((doc) => doc.data().stableId),
+          ...orgStableIds,
         ];
 
         // Get horses in user's stables
@@ -450,14 +503,8 @@ export async function horsesRoutes(fastify: FastifyInstance) {
               return serializeTimestamps({ id: doc.id, ...horse });
             }
 
-            // Check if user is stable member
-            const memberId = `${user.uid}_${horse.currentStableId}`;
-            const memberDoc = await db
-              .collection("stableMembers")
-              .doc(memberId)
-              .get();
-
-            if (memberDoc.exists && memberDoc.data()?.status === "active") {
+            // Check organization membership with stable access
+            if (await hasOrgStableAccess(horse.currentStableId, user.uid)) {
               return serializeTimestamps({ id: doc.id, ...horse });
             }
           }
@@ -520,15 +567,11 @@ export async function horsesRoutes(fastify: FastifyInstance) {
             const stable = stableDoc.data()!;
             if (stable.ownerId === user.uid) {
               hasAccess = true;
-            } else {
-              const memberId = `${user.uid}_${horse.currentStableId}`;
-              const memberDoc = await db
-                .collection("stableMembers")
-                .doc(memberId)
-                .get();
-              if (memberDoc.exists && memberDoc.data()?.status === "active") {
-                hasAccess = true;
-              }
+            } else if (
+              await hasOrgStableAccess(horse.currentStableId, user.uid)
+            ) {
+              // Check organization membership with stable access
+              hasAccess = true;
             }
           }
         }
@@ -546,7 +589,10 @@ export async function horsesRoutes(fastify: FastifyInstance) {
           equipment: horse.equipment || [],
         };
       } catch (error) {
-        request.log.error({ error }, "Failed to fetch horse special instructions");
+        request.log.error(
+          { error },
+          "Failed to fetch horse special instructions",
+        );
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to fetch horse special instructions",
@@ -599,19 +645,15 @@ export async function horsesRoutes(fastify: FastifyInstance) {
             .where("ownerId", "==", user.uid)
             .get();
 
-          // Get user's stables
-          const [ownedStables, memberStables] = await Promise.all([
+          // Get user's stables (owned + org membership access)
+          const [ownedStables, orgStableIds] = await Promise.all([
             db.collection("stables").where("ownerId", "==", user.uid).get(),
-            db
-              .collection("stableMembers")
-              .where("userId", "==", user.uid)
-              .where("status", "==", "active")
-              .get(),
+            getUserOrgStableIds(user.uid),
           ]);
 
           const userStableIds = [
             ...ownedStables.docs.map((doc) => doc.id),
-            ...memberStables.docs.map((doc) => doc.data().stableId),
+            ...orgStableIds,
           ];
 
           // Get horses in user's stables
@@ -1365,7 +1407,10 @@ export async function horsesRoutes(fastify: FastifyInstance) {
 
         return { success: true, horseId: id, ruleId: data.ruleId };
       } catch (error) {
-        request.log.error({ error }, "Failed to assign vaccination rule to horse");
+        request.log.error(
+          { error },
+          "Failed to assign vaccination rule to horse",
+        );
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to assign vaccination rule to horse",
@@ -1416,7 +1461,10 @@ export async function horsesRoutes(fastify: FastifyInstance) {
 
         return { success: true, horseId: id };
       } catch (error) {
-        request.log.error({ error }, "Failed to unassign vaccination rule from horse");
+        request.log.error(
+          { error },
+          "Failed to unassign vaccination rule from horse",
+        );
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to unassign vaccination rule from horse",
@@ -1450,7 +1498,10 @@ export async function horsesRoutes(fastify: FastifyInstance) {
         // Verify user has permission (must be stable owner/admin or the horse owner)
         if (data.userId !== user.uid && user.role !== "system_admin") {
           // Check if user is stable owner
-          const stableDoc = await db.collection("stables").doc(data.stableId).get();
+          const stableDoc = await db
+            .collection("stables")
+            .doc(data.stableId)
+            .get();
           if (!stableDoc.exists || stableDoc.data()?.ownerId !== user.uid) {
             return reply.status(403).send({
               error: "Forbidden",

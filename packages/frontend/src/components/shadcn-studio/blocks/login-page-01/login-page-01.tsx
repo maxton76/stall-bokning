@@ -63,11 +63,11 @@ const Login = () => {
           // User doesn't have a profile yet, redirect to complete it
           navigate("/complete-profile");
         } else {
-          // User has a profile, go to dashboard
-          navigate("/dashboard");
+          // User has a profile, go to horses page
+          navigate("/horses");
         }
       } else {
-        navigate("/dashboard");
+        navigate("/horses");
       }
     } catch (error) {
       console.error("Google sign in error:", error);

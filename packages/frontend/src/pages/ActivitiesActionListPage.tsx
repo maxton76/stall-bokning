@@ -44,6 +44,7 @@ import { cn } from "@/lib/utils";
 import { toDate } from "@/utils/timestampUtils";
 import {
   getActivitiesByPeriod,
+  getActivitiesByPeriodMultiStable,
   createActivity,
   createTask,
   createMessage,
@@ -88,7 +89,7 @@ export default function ActivitiesActionListPage() {
   const { toast } = useToast();
   const [periodType, setPeriodType] = useState<PeriodType>("day");
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [selectedStableId, setSelectedStableId] = useState<string>("");
+  const [selectedStableId, setSelectedStableId] = useState<string>("all");
   const [filters, setFilters] = useState<ActivityFilters>({
     groupBy: "none",
     forMe: false,
@@ -189,17 +190,22 @@ export default function ActivitiesActionListPage() {
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
 
-  // Auto-select first stable
-  useEffect(() => {
-    if (stables.length > 0 && !selectedStableId && stables[0]) {
-      setSelectedStableId(stables[0].id);
-    }
-  }, [stables, selectedStableId]);
-
   // Load activities for selected stable and period
   const activities = useAsyncData<ActivityEntry[]>({
     loadFn: async () => {
-      if (!selectedStableId) return [];
+      if (!selectedStableId || stables.length === 0) return [];
+
+      // If "all" is selected, fetch from all stables
+      if (selectedStableId === "all") {
+        const stableIds = stables.map((s) => s.id);
+        return await getActivitiesByPeriodMultiStable(
+          stableIds,
+          currentDate,
+          periodType,
+        );
+      }
+
+      // Otherwise fetch from specific stable
       return await getActivitiesByPeriod(
         selectedStableId,
         currentDate,
@@ -219,12 +225,12 @@ export default function ActivitiesActionListPage() {
   // Load activity types for selected stable (auto-reloads on stable change)
   const activityTypes = useActivityTypes(selectedStableId, true);
 
-  // Reload activities when stable, period type, or date changes
+  // Reload activities when stable, period type, date, or stables list changes
   useEffect(() => {
-    if (selectedStableId) {
+    if (selectedStableId && stables.length > 0) {
       activities.load();
     }
-  }, [selectedStableId, currentDate, periodType]);
+  }, [selectedStableId, currentDate, periodType, stables]);
 
   // Load horses on mount
   useEffect(() => {
@@ -399,7 +405,10 @@ export default function ActivitiesActionListPage() {
             Manage activities, tasks, and messages
           </p>
         </div>
-        <Button onClick={handleAddEntry} disabled={!selectedStableId}>
+        <Button
+          onClick={handleAddEntry}
+          disabled={!selectedStableId || selectedStableId === "all"}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Add Entry
         </Button>
@@ -420,6 +429,7 @@ export default function ActivitiesActionListPage() {
                   <SelectValue placeholder="Select a stable" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All Stables</SelectItem>
                   {stables.map((stable) => (
                     <SelectItem key={stable.id} value={stable.id}>
                       {stable.name}
@@ -767,7 +777,9 @@ function ActivityCard({
           <div onClick={(e) => e.stopPropagation()}>
             <SpecialInstructionsPopover
               horseId={entry.horseId}
-              horseName={"horseName" in entry ? entry.horseName || "Horse" : "Horse"}
+              horseName={
+                "horseName" in entry ? entry.horseName || "Horse" : "Horse"
+              }
             />
           </div>
         )}

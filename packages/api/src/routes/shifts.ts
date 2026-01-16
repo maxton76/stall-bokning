@@ -1,13 +1,10 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../utils/firebase.js";
-import {
-  authenticate,
-  requireStableAccess,
-  requireStableManagement,
-} from "../middleware/auth.js";
+import { authenticate, requireStableManagement } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
-import { canManageSchedules } from "../utils/authorization.js";
+import { canManageSchedules, canAccessStable } from "../utils/authorization.js";
+import { serializeTimestamps } from "../utils/serialization.js";
 
 const batchCreateShiftsSchema = z.object({
   scheduleId: z.string().min(1),
@@ -122,16 +119,18 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
 
             const snapshots = await Promise.all(queryPromises);
             const shifts = snapshots.flatMap((snapshot) =>
-              snapshot.docs.map((doc: any) => ({
-                id: doc.id,
-                ...doc.data(),
-              })),
+              snapshot.docs.map((doc: any) =>
+                serializeTimestamps({
+                  id: doc.id,
+                  ...doc.data(),
+                }),
+              ),
             );
 
-            // Sort combined results by date
+            // Sort combined results by date (dates are now ISO strings)
             shifts.sort((a, b) => {
-              const dateA = a.date?.toDate?.() || new Date(a.date);
-              const dateB = b.date?.toDate?.() || new Date(b.date);
+              const dateA = new Date(a.date);
+              const dateB = new Date(b.date);
               return dateA.getTime() - dateB.getTime();
             });
 
@@ -143,10 +142,12 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
               .orderBy("date", "asc")
               .get();
 
-            const shifts = shiftsSnapshot.docs.map((doc: any) => ({
-              id: doc.id,
-              ...doc.data(),
-            }));
+            const shifts = shiftsSnapshot.docs.map((doc: any) =>
+              serializeTimestamps({
+                id: doc.id,
+                ...doc.data(),
+              }),
+            );
 
             return { shifts };
           }
@@ -201,10 +202,12 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
         query = query.orderBy("date", "asc") as any;
 
         const snapshot = await query.get();
-        const shifts = snapshot.docs.map((doc: any) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const shifts = snapshot.docs.map((doc: any) =>
+          serializeTimestamps({
+            id: doc.id,
+            ...doc.data(),
+          }),
+        );
 
         return { shifts };
       } catch (error) {
@@ -236,10 +239,12 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
         query = query.orderBy("date", "asc") as any;
 
         const snapshot = await query.get();
-        const shifts = snapshot.docs.map((doc: any) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const shifts = snapshot.docs.map((doc: any) =>
+          serializeTimestamps({
+            id: doc.id,
+            ...doc.data(),
+          }),
+        );
 
         return { shifts };
       } catch (error) {
@@ -253,10 +258,13 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
   );
 
   // Batch create shifts
+  // Note: We don't use requireStableManagement() here because stableId is in
+  // the request body, not URL params. Authorization is done in the handler
+  // by checking canManageSchedules() on the schedule's stableId.
   fastify.post(
     "/batch",
     {
-      preHandler: [authenticate, requireStableManagement()],
+      preHandler: [authenticate],
     },
     async (request, reply) => {
       try {
@@ -335,10 +343,12 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
   );
 
   // Assign shift
+  // Note: We don't use requireStableAccess() because :id is the shift ID, not stable ID.
+  // Authorization is done in the handler by checking stable membership and permissions.
   fastify.patch(
     "/:id/assign",
     {
-      preHandler: [authenticate, requireStableAccess()],
+      preHandler: [authenticate],
     },
     async (request, reply) => {
       try {
@@ -367,8 +377,18 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
         const shift = shiftDoc.data();
         const { userId, userName, userEmail } = validation.data;
 
-        // Middleware already verified stable access
-        // Additional check: members can self-assign, managers can assign anyone
+        // Check stable membership (system admins bypass)
+        if (user.role !== "system_admin") {
+          const hasAccess = await canAccessStable(user.uid, shift?.stableId);
+          if (!hasAccess) {
+            return reply.status(403).send({
+              error: "Forbidden",
+              message: "You are not a member of this stable",
+            });
+          }
+        }
+
+        // Members can self-assign, managers can assign anyone
         const canManage = await canManageSchedules(user.uid, shift?.stableId);
         const isSelfAssigning = userId === user.uid;
 
@@ -390,10 +410,10 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
         // TODO: Log shift assignment to audit log if assignerId provided
 
         const updatedDoc = await shiftRef.get();
-        return {
+        return serializeTimestamps({
           id: updatedDoc.id,
           ...updatedDoc.data(),
-        };
+        });
       } catch (error) {
         request.log.error({ error }, "Failed to assign shift");
         return reply.status(500).send({
@@ -405,10 +425,12 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
   );
 
   // Unassign shift
+  // Note: We don't use requireStableAccess() because :id is the shift ID, not stable ID.
+  // Authorization is done in the handler by checking stable membership and permissions.
   fastify.patch(
     "/:id/unassign",
     {
-      preHandler: [authenticate, requireStableAccess()],
+      preHandler: [authenticate],
     },
     async (request, reply) => {
       try {
@@ -436,6 +458,17 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
 
         const shift = shiftDoc.data();
 
+        // Check stable membership (system admins bypass)
+        if (user.role !== "system_admin") {
+          const hasAccess = await canAccessStable(user.uid, shift?.stableId);
+          if (!hasAccess) {
+            return reply.status(403).send({
+              error: "Forbidden",
+              message: "You are not a member of this stable",
+            });
+          }
+        }
+
         // Check permissions: members can unassign themselves, managers can unassign anyone
         const canManage = await canManageSchedules(user.uid, shift?.stableId);
         const isSelfUnassigning = shift?.assignedTo === user.uid;
@@ -458,10 +491,10 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
         // TODO: Log shift unassignment to audit log if unassignerId provided
 
         const updatedDoc = await shiftRef.get();
-        return {
+        return serializeTimestamps({
           id: updatedDoc.id,
           ...updatedDoc.data(),
-        };
+        });
       } catch (error) {
         request.log.error({ error }, "Failed to unassign shift");
         return reply.status(500).send({
@@ -473,10 +506,12 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
   );
 
   // Complete shift - marks a shift as completed
+  // Note: We don't use requireStableAccess() because :id is the shift ID, not stable ID.
+  // Authorization is done in the handler by checking stable membership and permissions.
   fastify.patch(
     "/:id/complete",
     {
-      preHandler: [authenticate, requireStableAccess()],
+      preHandler: [authenticate],
     },
     async (request, reply) => {
       try {
@@ -503,6 +538,17 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
         }
 
         const shift = shiftDoc.data();
+
+        // Check stable membership (system admins bypass)
+        if (user.role !== "system_admin") {
+          const hasAccess = await canAccessStable(user.uid, shift?.stableId);
+          if (!hasAccess) {
+            return reply.status(403).send({
+              error: "Forbidden",
+              message: "You are not a member of this stable",
+            });
+          }
+        }
 
         // Only assigned shifts can be completed
         if (shift?.status !== "assigned") {
@@ -532,10 +578,10 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
         });
 
         const updatedDoc = await shiftRef.get();
-        return {
+        return serializeTimestamps({
           id: updatedDoc.id,
           ...updatedDoc.data(),
-        };
+        });
       } catch (error) {
         request.log.error({ error }, "Failed to complete shift");
         return reply.status(500).send({
@@ -547,10 +593,12 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
   );
 
   // Cancel shift - cancels a shift with a reason
+  // Note: We don't use requireStableAccess() because :id is the shift ID, not stable ID.
+  // Authorization is done in the handler by checking stable membership and permissions.
   fastify.patch(
     "/:id/cancel",
     {
-      preHandler: [authenticate, requireStableAccess()],
+      preHandler: [authenticate],
     },
     async (request, reply) => {
       try {
@@ -577,6 +625,17 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
         }
 
         const shift = shiftDoc.data();
+
+        // Check stable membership (system admins bypass)
+        if (user.role !== "system_admin") {
+          const hasAccess = await canAccessStable(user.uid, shift?.stableId);
+          if (!hasAccess) {
+            return reply.status(403).send({
+              error: "Forbidden",
+              message: "You are not a member of this stable",
+            });
+          }
+        }
 
         // Cannot cancel completed or already cancelled shifts
         if (shift?.status === "completed" || shift?.status === "cancelled") {
@@ -613,10 +672,10 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
         });
 
         const updatedDoc = await shiftRef.get();
-        return {
+        return serializeTimestamps({
           id: updatedDoc.id,
           ...updatedDoc.data(),
-        };
+        });
       } catch (error) {
         request.log.error({ error }, "Failed to cancel shift");
         return reply.status(500).send({
@@ -684,10 +743,10 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
         });
 
         const updatedDoc = await shiftRef.get();
-        return {
+        return serializeTimestamps({
           id: updatedDoc.id,
           ...updatedDoc.data(),
-        };
+        });
       } catch (error) {
         request.log.error({ error }, "Failed to mark shift as missed");
         return reply.status(500).send({

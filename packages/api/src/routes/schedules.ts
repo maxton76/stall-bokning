@@ -1,11 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../utils/firebase.js";
-import {
-  authenticate,
-  requireStableAccess,
-  requireStableManagement,
-} from "../middleware/auth.js";
+import { authenticate, requireStableAccess } from "../middleware/auth.js";
 import type { AuthenticatedRequest, Schedule } from "../types/index.js";
 import { canManageSchedules } from "../utils/authorization.js";
 import {
@@ -168,10 +164,12 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
   );
 
   // Create new schedule
+  // Note: stableId is in request body, not URL params, so we can't use
+  // requireStableManagement() middleware. Authorization is done in handler.
   fastify.post(
     "/",
     {
-      preHandler: [authenticate, requireStableManagement()],
+      preHandler: [authenticate],
     },
     async (request, reply) => {
       try {
@@ -413,10 +411,11 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
   );
 
   // Publish schedule
+  // Note: scheduleId is in URL, stableId is in schedule doc. Authorization done in handler.
   fastify.put(
     "/:id/publish",
     {
-      preHandler: [authenticate, requireStableManagement()],
+      preHandler: [authenticate],
     },
     async (request, reply) => {
       try {
@@ -476,10 +475,11 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
   );
 
   // Auto-assign shifts for a schedule
+  // Note: scheduleId is in URL, stableId is in schedule doc. Authorization done in handler.
   fastify.post(
     "/:id/auto-assign",
     {
-      preHandler: [authenticate, requireStableManagement()],
+      preHandler: [authenticate],
     },
     async (request, reply) => {
       try {
@@ -623,10 +623,11 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
   );
 
   // Delete schedule with cascade (hard delete)
+  // Note: scheduleId is in URL, stableId is in schedule doc. Authorization done in handler.
   fastify.delete(
     "/:id",
     {
-      preHandler: [authenticate, requireStableManagement()],
+      preHandler: [authenticate],
     },
     async (request, reply) => {
       try {

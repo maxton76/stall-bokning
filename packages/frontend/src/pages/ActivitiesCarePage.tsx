@@ -1,54 +1,64 @@
-import { useState, useEffect } from 'react'
-import { Heart, Grid3x3, Table2, Search } from 'lucide-react'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Input } from '@/components/ui/input'
+import { useState, useEffect } from "react";
+import { Heart, Grid3x3, Table2, Search } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { useAuth } from '@/contexts/AuthContext'
-import { useUserStables } from '@/hooks/useUserStables'
-import { useActivityPageState } from '@/hooks/useActivityPageState'
-import { useHorseFilters } from '@/hooks/useHorseFilters'
-import { ActivityPageLayout } from '@/components/layouts/ActivityPageLayout'
-import { HorseFilterPopover, HorseFilterBadges } from '@/components/HorseFilterPopover'
-import { getCareActivities, createActivity } from '@/services/activityService'
-import { CareMatrixView } from '@/components/CareMatrixView'
-import { CareTableView } from '@/components/CareTableView'
-import { QuickAddDialog } from '@/components/QuickAddDialog'
-import { ActivityFormDialog } from '@/components/ActivityFormDialog'
-import type { Activity } from '@/types/activity'
-import type { FilterConfig } from '@shared/types/filters'
-import { Timestamp } from 'firebase/firestore'
+} from "@/components/ui/select";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserStables } from "@/hooks/useUserStables";
+import { useActivityPageState } from "@/hooks/useActivityPageState";
+import { useHorseFilters } from "@/hooks/useHorseFilters";
+import { ActivityPageLayout } from "@/components/layouts/ActivityPageLayout";
+import {
+  HorseFilterPopover,
+  HorseFilterBadges,
+} from "@/components/HorseFilterPopover";
+import {
+  getCareActivities,
+  createActivity,
+  updateActivity,
+} from "@/services/activityService";
+import { seedStandardActivityTypes } from "@/services/activityTypeService";
+import { CareMatrixView } from "@/components/CareMatrixView";
+import { CareTableView } from "@/components/CareTableView";
+import { QuickAddDialog } from "@/components/QuickAddDialog";
+import { ActivityFormDialog } from "@/components/ActivityFormDialog";
+import type { Activity } from "@/types/activity";
+import type { FilterConfig } from "@shared/types/filters";
+import { Timestamp } from "firebase/firestore";
+import { toDate } from "@/utils/timestampUtils";
 
 export default function ActivitiesCarePage() {
-  const { user } = useAuth()
+  const { user } = useAuth();
 
   // State for view mode
-  type CareViewMode = 'matrix' | 'table'
-  const [viewMode, setViewMode] = useState<CareViewMode>('matrix')
+  type CareViewMode = "matrix" | "table";
+  const [viewMode, setViewMode] = useState<CareViewMode>("matrix");
 
   // State for quick add dialog
   const [quickAddDialog, setQuickAddDialog] = useState<{
-    open: boolean
-    horseId?: string
-    activityTypeId?: string
-  }>({ open: false })
+    open: boolean;
+    horseId?: string;
+    activityTypeId?: string;
+  }>({ open: false });
 
   // State for full activity dialog
   const [activityDialog, setActivityDialog] = useState<{
-    open: boolean
-    initialHorseId?: string
-    initialActivityTypeId?: string
-    initialDate?: Date
-  }>({ open: false })
+    open: boolean;
+    initialHorseId?: string;
+    initialActivityTypeId?: string;
+    initialDate?: Date;
+    editActivity?: Activity; // For editing existing activity
+  }>({ open: false });
 
   // Load user's stables
-  const { stables, loading: stablesLoading } = useUserStables(user?.uid)
+  const { stables, loading: stablesLoading } = useUserStables(user?.uid);
 
   // Use shared activity page state hook
   const {
@@ -63,19 +73,80 @@ export default function ActivitiesCarePage() {
     stables,
     activityLoader: getCareActivities,
     includeGroups: true,
-  })
+  });
 
   // Persist view preference in localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('care-view-mode')
-    if (saved === 'matrix' || saved === 'table') {
-      setViewMode(saved)
+    const saved = localStorage.getItem("care-view-mode");
+    if (saved === "matrix" || saved === "table") {
+      setViewMode(saved);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem('care-view-mode', viewMode)
-  }, [viewMode])
+    localStorage.setItem("care-view-mode", viewMode);
+  }, [viewMode]);
+
+  // Track whether we've attempted seeding to prevent infinite loops
+  const [seedingAttempted, setSeedingAttempted] = useState(false);
+
+  // Reset seeding state when stable changes
+  useEffect(() => {
+    setSeedingAttempted(false);
+  }, [selectedStableId]);
+
+  // Auto-seed activity types if none exist for the selected stable(s)
+  useEffect(() => {
+    async function seedIfNeeded() {
+      if (
+        seedingAttempted ||
+        !selectedStableId ||
+        !user ||
+        stablesLoading ||
+        activityTypes.loading ||
+        !activityTypes.data ||
+        activityTypes.data.length > 0 ||
+        stables.length === 0
+      ) {
+        return;
+      }
+
+      setSeedingAttempted(true);
+
+      try {
+        if (selectedStableId === "all") {
+          // Seed for all stables that don't have activity types
+          for (const stable of stables) {
+            try {
+              await seedStandardActivityTypes(stable.id, user.uid);
+            } catch {
+              // Ignore errors (409 Conflict = already seeded, 400 = other issue)
+            }
+          }
+        } else {
+          // Seed for the selected stable
+          try {
+            await seedStandardActivityTypes(selectedStableId, user.uid);
+          } catch {
+            // Ignore errors
+          }
+        }
+        // Reload activity types after seeding attempts
+        activityTypes.load();
+      } catch (error) {
+        console.error("Failed to seed activity types:", error);
+      }
+    }
+    seedIfNeeded();
+  }, [
+    selectedStableId,
+    activityTypes.data,
+    activityTypes.loading,
+    user,
+    stablesLoading,
+    stables,
+    seedingAttempted,
+  ]);
 
   // Filtering with unified hook
   const {
@@ -85,100 +156,144 @@ export default function ActivitiesCarePage() {
     activeFilterCount,
     hasActiveFilters,
     clearAllFilters,
-    getActiveFilterBadges
+    getActiveFilterBadges,
   } = useHorseFilters({
     horses: horses.data || [],
     initialFilters: {},
-    stableContext: selectedStableId === 'all' ? undefined : selectedStableId
-  })
+    stableContext: selectedStableId === "all" ? undefined : selectedStableId,
+  });
 
   // Filter configuration for ActivitiesCarePage
   const filterConfig: FilterConfig = {
-    showSearch: false,      // Search is external, not in popover
-    showStable: false,      // Using stable selector above, not in filter
+    showSearch: false, // Search is external, not in popover
+    showStable: false, // Using stable selector above, not in filter
     showGender: true,
     showAge: true,
     showUsage: true,
-    showGroups: true,       // Care page needs groups
+    showGroups: true, // Care page needs groups
     showStatus: false,
-    useStableContext: true
-  }
+    useStableContext: true,
+  };
 
   // Helper function to find last activity for horse + activity type
-  const findLastActivity = (horseId?: string, activityTypeId?: string): Activity | undefined => {
-    if (!horseId || !activityTypeId) return undefined
+  const findLastActivity = (
+    horseId?: string,
+    activityTypeId?: string,
+  ): Activity | undefined => {
+    if (!horseId || !activityTypeId) return undefined;
     return (activities.data || [])
-      .filter(a => a.horseId === horseId && a.activityTypeConfigId === activityTypeId)
-      .sort((a, b) => b.date.toMillis() - a.date.toMillis())[0]
-  }
+      .filter(
+        (a) =>
+          a.horseId === horseId && a.activityTypeConfigId === activityTypeId,
+      )
+      .sort((a, b) => b.date.toMillis() - a.date.toMillis())[0];
+  };
 
   // Handlers for matrix interactions
-  const handleCellClick = (horseId: string, activityTypeId: string) => {
-    setQuickAddDialog({ open: true, horseId, activityTypeId })
-  }
+  const handleCellClick = (
+    horseId: string,
+    activityTypeId: string,
+    nextActivity?: Activity,
+  ) => {
+    if (nextActivity) {
+      // If there's a pending activity, open the form dialog directly for editing
+      setActivityDialog({
+        open: true,
+        editActivity: nextActivity,
+        initialHorseId: horseId,
+        initialActivityTypeId: activityTypeId,
+        initialDate: toDate(nextActivity.date) || new Date(),
+      });
+    } else {
+      // No pending activity, show quick add dialog
+      setQuickAddDialog({ open: true, horseId, activityTypeId });
+    }
+  };
 
   const handleQuickAdd = () => {
-    setQuickAddDialog({ open: false })
+    setQuickAddDialog({ open: false });
     setActivityDialog({
       open: true,
       initialHorseId: quickAddDialog.horseId,
       initialActivityTypeId: quickAddDialog.activityTypeId,
       initialDate: new Date(),
-    })
-  }
+    });
+  };
 
   const handleSave = async (data: any) => {
     try {
       if (!user || !selectedStableId) {
-        throw new Error('User or stable not found')
+        throw new Error("User or stable not found");
       }
+
+      const isEditing = !!activityDialog.editActivity;
 
       // When "all" is selected, we need to determine which stable to save to
       // Use the horse's currentStableId from the data
-      let stableIdToUse = selectedStableId === 'all' ? data.horseStableId : selectedStableId
+      let stableIdToUse =
+        selectedStableId === "all" ? data.horseStableId : selectedStableId;
 
       if (!stableIdToUse) {
         // Find the stable from the horse data
-        const horse = horses.data?.find(h => h.id === data.horseId)
-        if (horse && 'currentStableId' in horse) {
-          stableIdToUse = (horse as any).currentStableId
+        const horse = horses.data?.find((h) => h.id === data.horseId);
+        if (horse && "currentStableId" in horse) {
+          stableIdToUse = (horse as any).currentStableId;
         }
       }
 
-      const stable = stables.find(s => s.id === stableIdToUse)
-      if (!stable) throw new Error('Stable not found')
+      const stable = stables.find((s) => s.id === stableIdToUse);
+      if (!stable) throw new Error("Stable not found");
 
-      const horse = horses.data?.find(h => h.id === data.horseId)
+      const horse = horses.data?.find((h) => h.id === data.horseId);
 
       // Get activity type name for legacy field
-      const activityType = activityTypes.data?.find(t => t.id === data.activityTypeConfigId)
-      const legacyActivityType = activityType?.name.toLowerCase() as any || 'other'
+      const activityType = activityTypes.data?.find(
+        (t) => t.id === data.activityTypeConfigId,
+      );
+      const legacyActivityType =
+        (activityType?.name.toLowerCase() as any) || "other";
 
-      await createActivity(
-        user.uid,
-        stableIdToUse,
-        {
-          date: Timestamp.fromDate(data.date),
-          horseId: data.horseId,
-          horseName: horse?.name || 'Unknown',
-          activityType: legacyActivityType, // Legacy field for backward compatibility
+      if (isEditing && activityDialog.editActivity) {
+        // Update existing activity
+        // Note: using type assertion because UpdateActivityEntryData union type is too restrictive
+        await updateActivity(activityDialog.editActivity.id, user.uid, {
+          date: data.date instanceof Date ? data.date.toISOString() : data.date,
+          activityType: legacyActivityType,
           activityTypeConfigId: data.activityTypeConfigId,
           activityTypeColor: data.activityTypeColor,
           note: data.note,
           assignedTo: data.assignedTo,
           assignedToName: data.assignedToName,
-          status: 'pending' as const,
-        },
-        stable.name
-      )
+        } as any);
+      } else {
+        // Create new activity
+        await createActivity(
+          user.uid,
+          stableIdToUse,
+          {
+            date:
+              data.date instanceof Date ? data.date.toISOString() : data.date,
+            horseId: data.horseId,
+            horseName: horse?.name || "Unknown",
+            activityType: legacyActivityType,
+            activityTypeConfigId: data.activityTypeConfigId,
+            activityTypeColor: data.activityTypeColor,
+            note: data.note,
+            assignedTo: data.assignedTo,
+            assignedToName: data.assignedToName,
+            status: "pending" as const,
+          },
+          stable.name,
+        );
+      }
 
-      setActivityDialog({ open: false })
-      await activities.reload()
+      setActivityDialog({ open: false });
+      await activities.reload();
     } catch (error) {
-      console.error('Failed to save activity:', error)
-      throw error // Let dialog handle error display
+      console.error("Failed to save activity:", error);
+      throw error; // Let dialog handle error display
     }
-  }
+  };
 
   return (
     <ActivityPageLayout
@@ -199,7 +314,10 @@ export default function ActivitiesCarePage() {
               {/* Stable Selector */}
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium">Stable:</label>
-                <Select value={selectedStableId} onValueChange={setSelectedStableId}>
+                <Select
+                  value={selectedStableId}
+                  onValueChange={setSelectedStableId}
+                >
                   <SelectTrigger className="w-[200px]">
                     <SelectValue placeholder="Select a stable" />
                   </SelectTrigger>
@@ -215,7 +333,10 @@ export default function ActivitiesCarePage() {
               </div>
 
               {/* View Mode Toggle */}
-              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as CareViewMode)}>
+              <Tabs
+                value={viewMode}
+                onValueChange={(v) => setViewMode(v as CareViewMode)}
+              >
                 <TabsList>
                   <TabsTrigger value="matrix">
                     <Grid3x3 className="h-4 w-4 mr-2" />
@@ -248,7 +369,12 @@ export default function ActivitiesCarePage() {
                   <Input
                     placeholder="Search by Name, UELN, etc..."
                     value={filters.searchQuery}
-                    onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
+                    onChange={(e) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        searchQuery: e.target.value,
+                      }))
+                    }
                     className="pl-9"
                   />
                 </div>
@@ -267,18 +393,20 @@ export default function ActivitiesCarePage() {
         <CardContent>
           {activities.loading || horses.loading ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">Loading care activities...</p>
+              <p className="text-muted-foreground">
+                Loading care activities...
+              </p>
             </div>
-          ) : viewMode === 'matrix' ? (
+          ) : viewMode === "matrix" ? (
             <CareMatrixView
-              horses={filteredHorses.map(h => ({ id: h.id, name: h.name }))}
+              horses={filteredHorses.map((h) => ({ id: h.id, name: h.name }))}
               activityTypes={activityTypes.data || []}
               activities={activities.data || []}
               onCellClick={handleCellClick}
             />
           ) : (
             <CareTableView
-              horses={filteredHorses.map(h => ({ id: h.id, name: h.name }))}
+              horses={filteredHorses.map((h) => ({ id: h.id, name: h.name }))}
               activityTypes={activityTypes.data || []}
               activities={activities.data || []}
               onCellClick={handleCellClick}
@@ -291,9 +419,14 @@ export default function ActivitiesCarePage() {
       <QuickAddDialog
         open={quickAddDialog.open}
         onOpenChange={(open) => setQuickAddDialog({ ...quickAddDialog, open })}
-        horse={filteredHorses.find(h => h.id === quickAddDialog.horseId)}
-        activityType={activityTypes.data?.find(t => t.id === quickAddDialog.activityTypeId)}
-        lastActivity={findLastActivity(quickAddDialog.horseId, quickAddDialog.activityTypeId)}
+        horse={filteredHorses.find((h) => h.id === quickAddDialog.horseId)}
+        activityType={activityTypes.data?.find(
+          (t) => t.id === quickAddDialog.activityTypeId,
+        )}
+        lastActivity={findLastActivity(
+          quickAddDialog.horseId,
+          quickAddDialog.activityTypeId,
+        )}
         onAdd={handleQuickAdd}
       />
 
@@ -301,13 +434,21 @@ export default function ActivitiesCarePage() {
       <ActivityFormDialog
         open={activityDialog.open}
         onOpenChange={(open) => setActivityDialog({ ...activityDialog, open })}
+        entry={
+          activityDialog.editActivity
+            ? {
+                ...activityDialog.editActivity,
+                type: "activity" as const,
+              }
+            : undefined
+        }
         initialDate={activityDialog.initialDate}
         initialHorseId={activityDialog.initialHorseId}
         initialActivityType={activityDialog.initialActivityTypeId}
-        horses={filteredHorses.map(h => ({ id: h.id, name: h.name }))}
+        horses={filteredHorses.map((h) => ({ id: h.id, name: h.name }))}
         activityTypes={activityTypes.data || []}
         onSave={handleSave}
       />
     </ActivityPageLayout>
-  )
+  );
 }

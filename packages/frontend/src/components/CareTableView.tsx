@@ -1,11 +1,15 @@
-import { CareTableCell } from './CareTableCell'
-import type { ActivityTypeConfig, Activity } from '@/types/activity'
+import { CareTableCell } from "./CareTableCell";
+import type { ActivityTypeConfig, Activity } from "@/types/activity";
 
 interface CareTableViewProps {
-  horses: Array<{ id: string; name: string; feiRules?: string }>
-  activityTypes: ActivityTypeConfig[]
-  activities: Activity[]
-  onCellClick: (horseId: string, activityTypeId: string) => void
+  horses: Array<{ id: string; name: string; feiRules?: string }>;
+  activityTypes: ActivityTypeConfig[];
+  activities: Activity[];
+  onCellClick: (
+    horseId: string,
+    activityTypeId: string,
+    nextActivity?: Activity,
+  ) => void;
 }
 
 export function CareTableView({
@@ -15,21 +19,39 @@ export function CareTableView({
   onCellClick,
 }: CareTableViewProps) {
   const careTypes = activityTypes
-    .filter(t => t.category === 'Care')
-    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .filter((t) => t.category === "Care")
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 
+  // Find last COMPLETED activity
   const findLastActivity = (horseId: string, typeId: string) => {
     return activities
-      .filter(a => a.horseId === horseId && a.activityTypeConfigId === typeId)
-      .sort((a, b) => b.date.toMillis() - a.date.toMillis())[0]
-  }
+      .filter(
+        (a) =>
+          a.horseId === horseId &&
+          a.activityTypeConfigId === typeId &&
+          a.status === "completed",
+      )
+      .sort((a, b) => b.date.toMillis() - a.date.toMillis())[0];
+  };
+
+  // Find next PENDING activity
+  const findNextActivity = (horseId: string, typeId: string) => {
+    return activities
+      .filter(
+        (a) =>
+          a.horseId === horseId &&
+          a.activityTypeConfigId === typeId &&
+          a.status !== "completed",
+      )
+      .sort((a, b) => a.date.toMillis() - b.date.toMillis())[0];
+  };
 
   if (horses.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
         No horses found for this stable
       </div>
-    )
+    );
   }
 
   return (
@@ -42,19 +64,22 @@ export function CareTableView({
                 <th className="sticky left-0 z-10 bg-muted/50 px-4 py-3 text-left text-sm font-medium">
                   Horse
                 </th>
-                {careTypes.map(type => (
-                  <th key={type.id} className="px-2 py-3 text-center text-sm font-medium">
+                {careTypes.map((type) => (
+                  <th
+                    key={type.id}
+                    className="px-2 py-3 text-center text-sm font-medium"
+                  >
                     <div className="whitespace-nowrap">{type.name}</div>
-                    <div className="text-xs font-normal text-muted-foreground">
-                      Last done
-                    </div>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-border bg-background">
-              {horses.map(horse => (
-                <tr key={horse.id} className="hover:bg-muted/50 transition-colors">
+              {horses.map((horse) => (
+                <tr
+                  key={horse.id}
+                  className="hover:bg-muted/50 transition-colors"
+                >
                   <td className="sticky left-0 z-10 bg-background px-4 py-2 whitespace-nowrap font-medium">
                     {horse.name}
                     {horse.feiRules && (
@@ -63,18 +88,24 @@ export function CareTableView({
                       </span>
                     )}
                   </td>
-                  {careTypes.map(type => (
-                    <td key={type.id} className="p-0">
-                      <CareTableCell
-                        horseId={horse.id}
-                        horseName={horse.name}
-                        activityTypeId={type.id}
-                        activityType={type}
-                        lastActivity={findLastActivity(horse.id, type.id)}
-                        onClick={onCellClick}
-                      />
-                    </td>
-                  ))}
+                  {careTypes.map((type) => {
+                    const nextActivity = findNextActivity(horse.id, type.id);
+                    return (
+                      <td key={type.id} className="p-0">
+                        <CareTableCell
+                          horseId={horse.id}
+                          horseName={horse.name}
+                          activityTypeId={type.id}
+                          activityType={type}
+                          lastActivity={findLastActivity(horse.id, type.id)}
+                          nextActivity={nextActivity}
+                          onClick={(hId, atId, next) =>
+                            onCellClick(hId, atId, next)
+                          }
+                        />
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
@@ -82,5 +113,5 @@ export function CareTableView({
         </div>
       </div>
     </div>
-  )
+  );
 }

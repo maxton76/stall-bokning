@@ -69,6 +69,7 @@ export interface ShiftType {
   id: string;
   stableId: string;
   name: string;
+  description?: string;
   time: string;
   points: number;
   daysOfWeek: string[];

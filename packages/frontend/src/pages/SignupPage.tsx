@@ -107,7 +107,7 @@ export default function SignupPage() {
         }
       } else {
         alert("Account created successfully!");
-        navigate("/dashboard");
+        navigate("/horses");
       }
     } catch (err: any) {
       console.error("Signup error:", err);

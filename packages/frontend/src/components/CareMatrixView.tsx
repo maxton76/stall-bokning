@@ -6,23 +6,25 @@ interface CareMatrixViewProps {
   horses: Array<{ id: string; name: string; feiRules?: string }>;
   activityTypes: ActivityTypeConfig[];
   activities: Activity[];
-  onCellClick: (horseId: string, activityTypeId: string) => void;
+  onCellClick: (
+    horseId: string,
+    activityTypeId: string,
+    nextActivity?: Activity,
+  ) => void;
 }
 
-// Helper function to find the last (most recent past) activity
+// Helper function to find the last (most recent) COMPLETED activity
 function findLastActivity(
   activities: Activity[],
   horseId: string,
   activityTypeId: string,
 ): Activity | undefined {
-  const now = new Date();
   return activities
     .filter((a) => {
-      const aDate = toDate(a.date);
-      const isPast = aDate && aDate < now;
+      const isCompleted = a.status === "completed";
       const isMatch =
         a.horseId === horseId && a.activityTypeConfigId === activityTypeId;
-      return isPast && isMatch;
+      return isCompleted && isMatch;
     })
     .sort((a, b) => {
       const aDate = toDate(a.date);
@@ -31,26 +33,24 @@ function findLastActivity(
     })[0]; // Sort descending to get most recent
 }
 
-// Helper function to find the next upcoming activity
+// Helper function to find the next PENDING activity (scheduled but not done)
 function findNextActivity(
   activities: Activity[],
   horseId: string,
   activityTypeId: string,
 ): Activity | undefined {
-  const now = new Date();
   return activities
     .filter((a) => {
-      const aDate2 = toDate(a.date);
-      const isFuture = aDate2 && aDate2 >= now;
+      const isPending = a.status !== "completed";
       const isMatch =
         a.horseId === horseId && a.activityTypeConfigId === activityTypeId;
-      return isFuture && isMatch;
+      return isPending && isMatch;
     })
     .sort((a, b) => {
       const aDate = toDate(a.date);
       const bDate = toDate(b.date);
       return (aDate?.getTime() ?? 0) - (bDate?.getTime() ?? 0);
-    })[0]; // Sort ascending to get earliest future date
+    })[0]; // Sort ascending to get earliest pending date
 }
 
 export function CareMatrixView({
@@ -100,7 +100,6 @@ export function CareMatrixView({
         <div className="p-4 font-semibold border-r border-border">Horse</div>
         {sortedActivityTypes.map((type) => (
           <div key={type.id} className="p-4 text-center border-l border-border">
-            <div className="text-xs text-muted-foreground mb-1">Last done</div>
             <div className="text-sm font-medium">{type.name}</div>
           </div>
         ))}
@@ -143,7 +142,7 @@ export function CareMatrixView({
                 activityTypeColor={type.color}
                 lastActivity={lastActivity}
                 nextActivity={nextActivity}
-                onClick={onCellClick}
+                onClick={(hId, atId, next) => onCellClick(hId, atId, next)}
               />
             );
           })}

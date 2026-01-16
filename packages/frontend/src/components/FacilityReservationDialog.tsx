@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, CalendarIcon } from "lucide-react";
+import { AlertCircle, CalendarIcon, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { Timestamp } from "firebase/firestore";
 import { BaseFormDialog } from "@/components/BaseFormDialog";
@@ -65,6 +65,7 @@ interface FacilityReservationDialogProps {
   facilities: Facility[];
   horses?: Array<{ id: string; name: string }>;
   onSave: (data: ReservationFormData) => Promise<void>;
+  onDelete?: (reservationId: string) => Promise<void>;
   initialValues?: {
     facilityId?: string;
     date?: Date;
@@ -80,9 +81,35 @@ export function FacilityReservationDialog({
   facilities,
   horses = [],
   onSave,
+  onDelete,
   initialValues,
 }: FacilityReservationDialogProps) {
   const isEditMode = !!reservation;
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Reset delete state when dialog opens/closes
+  useEffect(() => {
+    if (!open) {
+      setShowDeleteConfirm(false);
+      setIsDeleting(false);
+    }
+  }, [open]);
+
+  const handleDelete = async () => {
+    if (!reservation || !onDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await onDelete(reservation.id);
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Failed to delete reservation:", error);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
 
   const { form, handleSubmit, resetForm } = useFormDialog<ReservationFormData>({
     schema: reservationSchema,
@@ -321,6 +348,48 @@ export function FacilityReservationDialog({
         placeholder="Additional notes or special requirements..."
         rows={3}
       />
+
+      {/* Delete Section - Only shown in edit mode */}
+      {isEditMode && onDelete && (
+        <div className="border-t pt-4 mt-4">
+          {!showDeleteConfirm ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Cancel Reservation
+            </Button>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to cancel this reservation? This action
+                cannot be undone.
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? "Cancelling..." : "Yes, Cancel Reservation"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                >
+                  No, Keep It
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </BaseFormDialog>
   );
 }

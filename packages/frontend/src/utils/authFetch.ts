@@ -1,4 +1,4 @@
-import { getAuth } from 'firebase/auth'
+import { getAuth } from "firebase/auth";
 
 /**
  * Authenticated fetch utility
@@ -26,25 +26,31 @@ import { getAuth } from 'firebase/auth'
  */
 export async function authFetch(
   url: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<Response> {
-  const auth = getAuth()
-  const user = auth.currentUser
+  const auth = getAuth();
+  const user = auth.currentUser;
 
   if (!user) {
-    throw new Error('User not authenticated')
+    throw new Error("User not authenticated");
   }
 
-  const idToken = await user.getIdToken()
+  const idToken = await user.getIdToken();
+
+  // Only set Content-Type: application/json when there's a body
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string>),
+    Authorization: `Bearer ${idToken}`,
+  };
+
+  if (options.body) {
+    headers["Content-Type"] = "application/json";
+  }
 
   return fetch(url, {
     ...options,
-    headers: {
-      ...options.headers,
-      'Authorization': `Bearer ${idToken}`,
-      'Content-Type': 'application/json',
-    },
-  })
+    headers,
+  });
 }
 
 /**
@@ -62,14 +68,16 @@ export async function authFetch(
  */
 export async function authFetchJSON<T = any>(
   url: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
-  const response = await authFetch(url, options)
+  const response = await authFetch(url, options);
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.message || `Request failed with status ${response.status}`)
+    const error = await response.json().catch(() => ({}));
+    throw new Error(
+      error.message || `Request failed with status ${response.status}`,
+    );
   }
 
-  return await response.json()
+  return await response.json();
 }

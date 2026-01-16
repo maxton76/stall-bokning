@@ -30,9 +30,7 @@ const LocationHistoryPage = lazy(() => import("./pages/LocationHistoryPage"));
 const FacilitiesReservationsPage = lazy(
   () => import("./pages/FacilitiesReservationsPage"),
 );
-const ManageFacilitiesPage = lazy(
-  () => import("./pages/ManageFacilitiesPage"),
-);
+const ManageFacilitiesPage = lazy(() => import("./pages/ManageFacilitiesPage"));
 
 // Activity pages
 const ActivitiesActionListPage = lazy(
@@ -44,6 +42,19 @@ const ActivitiesPlanningPage = lazy(
 const ActivitiesCarePage = lazy(() => import("./pages/ActivitiesCarePage"));
 const ActivitiesSettingsPage = lazy(
   () => import("./pages/ActivitiesSettingsPage"),
+);
+
+// Feeding pages
+const FeedingSchedulePage = lazy(() => import("./pages/FeedingSchedulePage"));
+const FeedingSettingsPage = lazy(() => import("./pages/FeedingSettingsPage"));
+
+// Availability pages
+const MyAvailabilityPage = lazy(() => import("./pages/MyAvailabilityPage"));
+
+// My Reservations pages
+const MyReservationsPage = lazy(() => import("./pages/MyReservationsPage"));
+const FacilityAvailabilityPage = lazy(
+  () => import("./pages/FacilityAvailabilityPage"),
 );
 
 // Stable pages
@@ -79,6 +90,10 @@ const OrganizationPermissionsPage = lazy(
 const OrganizationSubscriptionPage = lazy(
   () => import("./pages/OrganizationSubscriptionPage"),
 );
+const LeaveManagementPage = lazy(() => import("./pages/LeaveManagementPage"));
+const ScheduleManagementPage = lazy(
+  () => import("./pages/ScheduleManagementPage"),
+);
 
 // Full-page loading spinner for initial route load
 function PageLoader() {
@@ -110,7 +125,10 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/signup" element={<SignupPage />} />
-              <Route path="/complete-profile" element={<CompleteProfilePage />} />
+              <Route
+                path="/complete-profile"
+                element={<CompleteProfilePage />}
+              />
               <Route path="/invites/accept" element={<InviteAcceptPage />} />
 
               {/* Authenticated routes with layout - lazy loaded */}
@@ -150,6 +168,32 @@ function App() {
                   element={
                     <Suspense fallback={<InlineLoader />}>
                       <SchedulePage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/my-availability"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <MyAvailabilityPage />
+                    </Suspense>
+                  }
+                />
+
+                {/* My Reservations routes */}
+                <Route
+                  path="/my-reservations"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <MyReservationsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/my-reservations/facility/:facilityId"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <FacilityAvailabilityPage />
                     </Suspense>
                   }
                 />
@@ -236,6 +280,24 @@ function App() {
                   element={
                     <Suspense fallback={<InlineLoader />}>
                       <ActivitiesSettingsPage />
+                    </Suspense>
+                  }
+                />
+
+                {/* Feeding routes */}
+                <Route
+                  path="/feeding/schedule"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <FeedingSchedulePage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/feeding/settings"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <FeedingSettingsPage />
                     </Suspense>
                   }
                 />
@@ -376,6 +438,22 @@ function App() {
                   element={
                     <Suspense fallback={<InlineLoader />}>
                       <OrganizationSettingsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/organizations/:organizationId/leave-management"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <LeaveManagementPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/organizations/:organizationId/schedule-management"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <ScheduleManagementPage />
                     </Suspense>
                   }
                 />

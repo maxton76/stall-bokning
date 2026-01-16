@@ -2,35 +2,44 @@ import type { FastifyInstance } from "fastify";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
-import { Timestamp, QueryDocumentSnapshot } from "firebase-admin/firestore";
+import { QueryDocumentSnapshot } from "firebase-admin/firestore";
+import { serializeTimestamps } from "../utils/serialization.js";
 
 /**
- * Convert Firestore Timestamps to ISO date strings for JSON serialization
+ * Check if user has organization membership with stable access
  */
-function serializeTimestamps(obj: any): any {
-  if (obj === null || obj === undefined) {
-    return obj;
+async function hasOrgStableAccess(
+  stableId: string,
+  userId: string,
+): Promise<boolean> {
+  const stableDoc = await db.collection("stables").doc(stableId).get();
+  if (!stableDoc.exists) return false;
+
+  const stable = stableDoc.data()!;
+  const organizationId = stable.organizationId;
+
+  if (!organizationId) return false;
+
+  // Check organizationMembers collection
+  const memberId = `${userId}_${organizationId}`;
+  const memberDoc = await db
+    .collection("organizationMembers")
+    .doc(memberId)
+    .get();
+
+  if (!memberDoc.exists) return false;
+
+  const member = memberDoc.data()!;
+  if (member.status !== "active") return false;
+
+  // Check stable access permissions
+  if (member.stableAccess === "all") return true;
+  if (member.stableAccess === "specific") {
+    const assignedStables = member.assignedStableIds || [];
+    if (assignedStables.includes(stableId)) return true;
   }
 
-  if (obj instanceof Timestamp || (obj && typeof obj.toDate === "function")) {
-    return obj.toDate().toISOString();
-  }
-
-  if (Array.isArray(obj)) {
-    return obj.map((item) => serializeTimestamps(item));
-  }
-
-  if (typeof obj === "object" && obj.constructor === Object) {
-    const serialized: any = {};
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        serialized[key] = serializeTimestamps(obj[key]);
-      }
-    }
-    return serialized;
-  }
-
-  return obj;
+  return false;
 }
 
 /**
@@ -51,10 +60,8 @@ async function hasStableAccess(
   // Check ownership
   if (stable.ownerId === userId) return true;
 
-  // Check stable membership
-  const memberId = `${userId}_${stableId}`;
-  const memberDoc = await db.collection("stableMembers").doc(memberId).get();
-  if (memberDoc.exists && memberDoc.data()?.status === "active") return true;
+  // Check organization membership with stable access
+  if (await hasOrgStableAccess(stableId, userId)) return true;
 
   return false;
 }

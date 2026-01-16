@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -45,6 +46,7 @@ import {
   CheckIcon,
   XCircleIcon,
   AlertTriangleIcon,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useShiftActions } from "@/hooks/useSchedules";
@@ -370,23 +372,46 @@ export default function SchedulePage() {
             )}
           </div>
         </div>
-        {/* Stable Selector - Always visible */}
-        <div className="w-64">
-          <Select value={selectedStable} onValueChange={setSelectedStable}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select stable" />
-            </SelectTrigger>
-            <SelectContent>
-              {stables.length > 1 && (
-                <SelectItem value="all">All Stables</SelectItem>
-              )}
-              {stables.map((stable) => (
-                <SelectItem key={stable.id} value={stable.id}>
-                  {stable.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-4">
+          {/* Create Schedule Button */}
+          {selectedStable !== "all" ? (
+            <Link to={`/stables/${selectedStable}/schedules/create`}>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Schedule
+              </Button>
+            </Link>
+          ) : stables.length === 1 ? (
+            <Link to={`/stables/${stables[0]?.id}/schedules/create`}>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Schedule
+              </Button>
+            </Link>
+          ) : (
+            <Button disabled title="Select a stable first to create a schedule">
+              <Plus className="mr-2 h-4 w-4" />
+              Create Schedule
+            </Button>
+          )}
+          {/* Stable Selector */}
+          <div className="w-64">
+            <Select value={selectedStable} onValueChange={setSelectedStable}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select stable" />
+              </SelectTrigger>
+              <SelectContent>
+                {stables.length > 1 && (
+                  <SelectItem value="all">All Stables</SelectItem>
+                )}
+                {stables.map((stable) => (
+                  <SelectItem key={stable.id} value={stable.id}>
+                    {stable.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -627,6 +652,32 @@ export default function SchedulePage() {
                     ? "No schedules published for this stable yet"
                     : "No schedules published yet"}
               </p>
+              {stables.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm mb-2">
+                    To create shifts, you need to create a schedule first:
+                  </p>
+                  {selectedStable !== "all" ? (
+                    <Link to={`/stables/${selectedStable}/schedules/create`}>
+                      <Button>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create Schedule
+                      </Button>
+                    </Link>
+                  ) : stables.length === 1 ? (
+                    <Link to={`/stables/${stables[0]?.id}/schedules/create`}>
+                      <Button>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create Schedule
+                      </Button>
+                    </Link>
+                  ) : (
+                    <p className="text-xs">
+                      Select a stable above to create a schedule
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-2">

@@ -1,7 +1,7 @@
-import { useEffect } from 'react'
-import { useAsyncData } from '@/hooks/useAsyncData'
-import { getActivityTypesByStable } from '@/services/activityTypeService'
-import type { ActivityTypeConfig } from '@/types/activity'
+import { useEffect } from "react";
+import { useAsyncData } from "@/hooks/useAsyncData";
+import { getActivityTypesByStable } from "@/services/activityTypeService";
+import type { ActivityTypeConfig } from "@/types/activity";
 
 /**
  * Hook for loading activity types for a specific stable
@@ -35,25 +35,28 @@ import type { ActivityTypeConfig } from '@/types/activity'
  */
 export function useActivityTypes(
   stableId: string | null,
-  activeOnly: boolean = true
+  activeOnly: boolean = true,
 ) {
+  // "all" is a special value meaning multiple stables - can't load types for that
+  const isValidStableId = stableId && stableId !== "all";
+
   const activityTypes = useAsyncData<ActivityTypeConfig[]>({
     loadFn: async () => {
-      if (!stableId) return []
-      return await getActivityTypesByStable(stableId, activeOnly)
+      if (!isValidStableId) return [];
+      return await getActivityTypesByStable(stableId, activeOnly);
     },
-    errorMessage: 'Failed to load activity types. Please try again.',
-  })
+    errorMessage: "Failed to load activity types. Please try again.",
+  });
 
   // Auto-reload when stable or filter changes
   useEffect(() => {
-    if (stableId) {
-      activityTypes.load()
+    if (isValidStableId) {
+      activityTypes.load();
     } else {
-      // Clear data when no stable selected
-      activityTypes.reset()
+      // Clear data when no stable selected or "all" selected
+      activityTypes.reset();
     }
-  }, [stableId, activeOnly])
+  }, [stableId, activeOnly]);
 
-  return activityTypes
+  return activityTypes;
 }

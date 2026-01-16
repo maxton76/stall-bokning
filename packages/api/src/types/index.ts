@@ -11,14 +11,28 @@ export interface AuthenticatedRequest extends FastifyRequest {
   user?: AuthUser;
 }
 
-// Stable member role types
-export type StableMemberRole = "manager" | "member";
+// Stable member role types (aligned with organizationMembers roles)
+export type StableMemberRole = "owner" | "administrator" | "manager" | "member";
 export type StableMemberStatus = "active" | "inactive" | "pending";
 
 // Extended request interface with stable context
 export interface StableContextRequest extends AuthenticatedRequest {
   stableId?: string;
-  stableRole?: "owner" | StableMemberRole | null;
+  stableRole?: StableMemberRole | null;
+}
+
+// Organization member role types
+export type OrganizationMemberRole =
+  | "owner"
+  | "admin"
+  | "administrator"
+  | "member";
+
+// Extended request interface with organization context
+export interface OrganizationContextRequest extends AuthenticatedRequest {
+  organizationId?: string;
+  organizationRole?: OrganizationMemberRole | null;
+  isOrganizationAdmin?: boolean;
 }
 
 export interface Stable {

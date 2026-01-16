@@ -210,6 +210,54 @@ export async function getActivitiesByPeriod(
 }
 
 /**
+ * Get activities for a specific period across multiple stables
+ * @param stableIds - Array of stable IDs to query
+ * @param referenceDate - The date to calculate the period from
+ * @param periodType - The type of period ('day' | 'week' | 'month')
+ * @returns Promise with array of activity entries for the period, merged from all stables
+ */
+export async function getActivitiesByPeriodMultiStable(
+  stableIds: string[],
+  referenceDate: Date,
+  periodType: PeriodType,
+): Promise<ActivityEntry[]> {
+  if (stableIds.length === 0) return [];
+
+  // Fetch from all stables in parallel
+  const promises = stableIds.map((stableId) =>
+    getActivitiesByPeriod(stableId, referenceDate, periodType),
+  );
+
+  const results = await Promise.all(promises);
+
+  // Merge and deduplicate by ID
+  const mergedActivities: ActivityEntry[] = [];
+  const seenIds = new Set<string>();
+
+  for (const activities of results) {
+    for (const activity of activities) {
+      if (!seenIds.has(activity.id)) {
+        seenIds.add(activity.id);
+        mergedActivities.push(activity);
+      }
+    }
+  }
+
+  // Sort by date - handle both Timestamp and string formats
+  mergedActivities.sort((a, b) => {
+    const getTime = (date: any): number => {
+      if (typeof date === "string") return new Date(date).getTime();
+      if (date && typeof date.toMillis === "function") return date.toMillis();
+      if (date instanceof Date) return date.getTime();
+      return 0;
+    };
+    return getTime(a.date) - getTime(b.date);
+  });
+
+  return mergedActivities;
+}
+
+/**
  * Get care-focused activities (for Care page)
  * @param stableIds - Array of stable IDs or single stable ID. If empty array, returns empty results.
  */

@@ -1,0 +1,491 @@
+import { useState, useEffect, useMemo } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import {
+  format,
+  startOfWeek,
+  addWeeks,
+  subWeeks,
+  addDays,
+  subDays,
+} from "date-fns";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Calendar as CalendarIcon,
+  Info,
+} from "lucide-react";
+import { Timestamp } from "firebase/firestore";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAsyncData } from "@/hooks/useAsyncData";
+import { useDialog } from "@/hooks/useDialog";
+import { useToast } from "@/hooks/use-toast";
+import { getFacility } from "@/services/facilityService";
+import {
+  getReservationsByFacility,
+  createReservation,
+  updateReservation,
+  cancelReservation,
+} from "@/services/facilityReservationService";
+import { getUserHorsesAtStable } from "@/services/horseService";
+import { FacilityCalendarView } from "@/components/FacilityCalendarView";
+import { FacilityReservationDialog } from "@/components/FacilityReservationDialog";
+import type { Facility } from "@/types/facility";
+import type { FacilityReservation } from "@/types/facilityReservation";
+import type { Horse } from "@stall-bokning/shared/types/domain";
+import { getWeekNumber } from "@/utils/dateHelpers";
+import { FACILITY_TYPE_LABELS } from "@/constants/facilityConstants";
+
+export default function FacilityAvailabilityPage() {
+  const { facilityId } = useParams<{ facilityId: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [viewMode, setViewMode] = useState<"day" | "week">("week");
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [dialogInitialValues, setDialogInitialValues] = useState<{
+    facilityId?: string;
+    date?: Date;
+    startTime?: string;
+    endTime?: string;
+  }>();
+  const reservationDialog = useDialog<FacilityReservation>();
+
+  // Load facility details
+  const facility = useAsyncData<Facility | null>({
+    loadFn: async () => {
+      if (!facilityId) return null;
+      return await getFacility(facilityId);
+    },
+  });
+
+  // Load reservations for this facility
+  const reservations = useAsyncData<FacilityReservation[]>({
+    loadFn: async () => {
+      if (!facilityId) return [];
+      return await getReservationsByFacility(facilityId);
+    },
+  });
+
+  // Load user's horses at the stable
+  const horses = useAsyncData<Horse[]>({
+    loadFn: async () => {
+      if (!facility.data?.stableId || !user?.uid) return [];
+      return await getUserHorsesAtStable(user.uid, facility.data.stableId);
+    },
+  });
+
+  // Load data when facilityId changes
+  useEffect(() => {
+    if (facilityId) {
+      facility.load();
+      reservations.load();
+    }
+  }, [facilityId]);
+
+  // Load horses when facility data is available
+  useEffect(() => {
+    if (facility.data?.stableId && user?.uid) {
+      horses.load();
+    }
+  }, [facility.data?.stableId, user?.uid]);
+
+  // Navigation handlers
+  const handleNavigate = (direction: "prev" | "next" | "today") => {
+    if (direction === "today") {
+      setCurrentDate(new Date());
+    } else if (viewMode === "week") {
+      setCurrentDate(
+        direction === "prev"
+          ? subWeeks(currentDate, 1)
+          : addWeeks(currentDate, 1),
+      );
+    } else {
+      setCurrentDate(
+        direction === "prev"
+          ? subDays(currentDate, 1)
+          : addDays(currentDate, 1),
+      );
+    }
+  };
+
+  const handleNewReservation = () => {
+    setDialogInitialValues({
+      facilityId: facilityId,
+      date: currentDate,
+    });
+    reservationDialog.openDialog();
+  };
+
+  const handleTimelineSelect = (
+    _facilityId: string | undefined,
+    start: Date,
+    end: Date,
+  ) => {
+    const startTime = format(start, "HH:mm");
+    const endTime = format(end, "HH:mm");
+
+    setDialogInitialValues({
+      facilityId: facilityId,
+      date: start,
+      startTime,
+      endTime,
+    });
+    reservationDialog.openDialog();
+  };
+
+  const handleReservationClick = (reservation: FacilityReservation) => {
+    // Only allow editing if the user owns the reservation
+    if (reservation.userId === user?.uid) {
+      setDialogInitialValues(undefined);
+      reservationDialog.openDialog(reservation);
+    } else {
+      toast({
+        title: "View only",
+        description: "You can only edit your own reservations.",
+      });
+    }
+  };
+
+  /**
+   * Shared handler for updating reservation times (used by both drag-drop and resize).
+   * Validates ownership before allowing changes.
+   */
+  const handleReservationTimeUpdate = async (
+    reservationId: string,
+    newStart: Date,
+    newEnd: Date,
+    action: "reschedule" | "resize",
+  ) => {
+    if (!user) return;
+
+    // Check if user owns the reservation
+    const reservation = reservations.data?.find((r) => r.id === reservationId);
+    if (!reservation || reservation.userId !== user.uid) {
+      toast({
+        title: "Permission denied",
+        description: "You can only modify your own reservations.",
+        variant: "destructive",
+      });
+      reservations.reload();
+      return;
+    }
+
+    const successMessages = {
+      reschedule: "Reservation rescheduled successfully",
+      resize: "Reservation duration updated successfully",
+    };
+
+    const errorMessages = {
+      reschedule: "Failed to reschedule reservation. Please try again.",
+      resize: "Failed to update reservation. Please try again.",
+    };
+
+    try {
+      const updates = {
+        startTime: Timestamp.fromDate(newStart),
+        endTime: Timestamp.fromDate(newEnd),
+      };
+
+      await updateReservation(reservationId, updates, user.uid);
+
+      toast({
+        title: "Success",
+        description: successMessages[action],
+      });
+
+      reservations.reload();
+    } catch (error) {
+      console.error(`Failed to ${action} reservation:`, error);
+      toast({
+        title: "Error",
+        description: errorMessages[action],
+        variant: "destructive",
+      });
+      reservations.reload();
+    }
+  };
+
+  const handleEventDrop = (
+    reservationId: string,
+    newStart: Date,
+    newEnd: Date,
+  ) =>
+    handleReservationTimeUpdate(reservationId, newStart, newEnd, "reschedule");
+
+  const handleEventResize = (
+    reservationId: string,
+    newStart: Date,
+    newEnd: Date,
+  ) => handleReservationTimeUpdate(reservationId, newStart, newEnd, "resize");
+
+  const handleSaveReservation = async (data: any) => {
+    try {
+      if (!user || !facility.data) {
+        toast({
+          title: "Error",
+          description: "Missing required information",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Convert date and time to Timestamp
+      const startDateTime = new Date(data.date);
+      const [startHour, startMin] = data.startTime.split(":").map(Number);
+      startDateTime.setHours(startHour, startMin, 0, 0);
+
+      const endDateTime = new Date(data.date);
+      const [endHour, endMin] = data.endTime.split(":").map(Number);
+      endDateTime.setHours(endHour, endMin, 0, 0);
+
+      const reservationData = {
+        facilityId: data.facilityId,
+        userId: user.uid,
+        startTime: Timestamp.fromDate(startDateTime),
+        endTime: Timestamp.fromDate(endDateTime),
+        status: "pending" as const,
+        horseId: data.horseId || undefined,
+        contactInfo: data.contactInfo || undefined,
+        notes: data.notes || undefined,
+      };
+
+      const denormalizedData = {
+        facilityName: facility.data.name,
+        facilityType: facility.data.type,
+        stableId: facility.data.stableId,
+        stableName: facility.data.stableName,
+        userEmail: user.email || "",
+        userFullName: user.displayName || undefined,
+      };
+
+      if (reservationDialog.data) {
+        // Update existing reservation
+        await updateReservation(
+          reservationDialog.data.id,
+          reservationData,
+          user.uid,
+        );
+        toast({
+          title: "Success",
+          description: "Reservation updated successfully",
+        });
+      } else {
+        // Create new reservation
+        await createReservation(reservationData, user.uid, denormalizedData);
+        toast({
+          title: "Success",
+          description: "Reservation created successfully",
+        });
+      }
+
+      reservationDialog.closeDialog();
+      reservations.reload();
+    } catch (error) {
+      console.error("Failed to save reservation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save reservation. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteReservation = async (reservationId: string) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to cancel a reservation",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await cancelReservation(reservationId, user.uid);
+      toast({
+        title: "Success",
+        description: "Reservation cancelled successfully",
+      });
+      reservationDialog.closeDialog();
+      reservations.reload();
+    } catch (error) {
+      console.error("Failed to cancel reservation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to cancel reservation. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  // Get current week start for display
+  const currentWeekStart = useMemo(
+    () => startOfWeek(currentDate, { weekStartsOn: 1 }),
+    [currentDate],
+  );
+
+  if (facility.loading || reservations.loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!facility.data) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex items-center gap-4 mb-6">
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/my-reservations">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              My reservations
+            </Link>
+          </Button>
+        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <CalendarIcon className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground text-center">
+              Facility not found or you don't have access to it.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6 space-y-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* Left side: Back button and navigation */}
+        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/my-reservations">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              My reservations
+            </Link>
+          </Button>
+          <div className="h-6 w-px bg-border hidden sm:block" />
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleNavigate("today")}
+            >
+              Today
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => handleNavigate("prev")}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => handleNavigate("next")}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base sm:text-xl font-semibold">
+              {format(currentWeekStart, "MMMM yyyy")}
+            </h2>
+            <Badge variant="outline" className="text-xs">
+              Week {getWeekNumber(currentWeekStart)}
+            </Badge>
+          </div>
+        </div>
+
+        {/* Right side: View toggle and add button */}
+        <div className="flex items-center gap-2">
+          <Tabs
+            value={viewMode}
+            onValueChange={(value) => setViewMode(value as "day" | "week")}
+          >
+            <TabsList>
+              <TabsTrigger value="day">Day</TabsTrigger>
+              <TabsTrigger value="week">Week</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Button onClick={handleNewReservation}>
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Add</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Facility Info Bar */}
+      <Card className="bg-muted/50">
+        <CardContent className="py-3">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-muted-foreground" />
+              <span className="font-semibold">{facility.data.name}</span>
+            </div>
+            <Badge variant="secondary">
+              {FACILITY_TYPE_LABELS[facility.data.type]}
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              Available: {facility.data.availableFrom} -{" "}
+              {facility.data.availableTo}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              Max {facility.data.maxHorsesPerReservation} horse(s) per
+              reservation
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Calendar View */}
+      <FacilityCalendarView
+        facilities={facility.data ? [facility.data] : []}
+        reservations={reservations.data || []}
+        selectedFacilityId={facilityId}
+        onEventClick={handleReservationClick}
+        onDateSelect={handleTimelineSelect}
+        onEventDrop={handleEventDrop}
+        onEventResize={handleEventResize}
+        calendarConfig={{
+          slotMinTime: facility.data?.availableFrom
+            ? `${facility.data.availableFrom}:00`
+            : "06:00:00",
+          slotMaxTime: facility.data?.availableTo
+            ? `${facility.data.availableTo}:00`
+            : "22:00:00",
+        }}
+        viewOptions={{
+          initialView: viewMode === "day" ? "timeGridDay" : "timeGridWeek",
+          showDayGrid: false,
+          showList: false,
+        }}
+      />
+
+      {/* Reservation Dialog */}
+      <FacilityReservationDialog
+        open={reservationDialog.open}
+        onOpenChange={reservationDialog.closeDialog}
+        reservation={reservationDialog.data || undefined}
+        facilities={facility.data ? [facility.data] : []}
+        horses={horses.data || []}
+        onSave={handleSaveReservation}
+        onDelete={handleDeleteReservation}
+        initialValues={dialogInitialValues}
+      />
+    </div>
+  );
+}

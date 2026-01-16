@@ -141,40 +141,29 @@ export async function getActivityTypeById(
 /**
  * Seed standard activity types for a new stable
  *
- * This function creates all 16 standard activity types via API calls.
- * Should be called when a new stable is created.
- *
- * NOTE: Seeding should be done on the backend for better performance.
- * This function is kept for backward compatibility but should eventually
- * be replaced with a backend seeding endpoint.
+ * Calls the backend seed endpoint which creates all 16 standard activity types
+ * in a single batch operation.
  *
  * @param stableId - Stable ID to seed types for
- * @param userId - User ID for audit trail
- * @returns Promise that resolves when seeding is complete
+ * @param _userId - User ID for audit trail (passed via auth token)
+ * @returns Promise with the number of types created
  */
 export async function seedStandardActivityTypes(
   stableId: string,
-  userId: string,
-): Promise<void> {
-  console.warn(
-    "seedStandardActivityTypes should be called from backend for better performance",
-  );
+  _userId: string,
+): Promise<{ count: number }> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
 
-  // Check if types already exist for this stable
-  const existing = await getActivityTypesByStable(stableId, false);
+  const response = await authFetchJSON<{
+    success: boolean;
+    count: number;
+    message: string;
+  }>(`${import.meta.env.VITE_API_URL}/api/v1/activity-types/seed/${stableId}`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
 
-  if (existing.length > 0) {
-    console.warn(
-      `Activity types already exist for stable ${stableId}. Skipping seed.`,
-    );
-    return;
-  }
-
-  // Note: This will create types one by one, which is not optimal.
-  // Consider implementing a batch endpoint on the backend for seeding.
-  console.log(
-    `Seeding activity types for stable ${stableId} (consider backend implementation)`,
-  );
+  return { count: response.count };
 }
 
 /**

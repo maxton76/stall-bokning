@@ -3,11 +3,14 @@ import { auth } from "../utils/firebase.js";
 import type {
   AuthenticatedRequest,
   StableContextRequest,
+  OrganizationContextRequest,
 } from "../types/index.js";
 import {
   canAccessStable,
   canManageStable,
   getStableMemberRole,
+  hasOrganizationAccess,
+  isOrganizationAdmin,
 } from "../utils/authorization.js";
 
 export async function authenticate(
@@ -129,7 +132,9 @@ export function requireStableAccess() {
       });
     }
 
-    const { stableId } = request.params as { stableId?: string };
+    // Support both :id and :stableId param names
+    const params = request.params as any;
+    const stableId = params.stableId || params.id;
 
     if (!stableId) {
       return reply.status(400).send({
@@ -272,5 +277,136 @@ export function requireStableOwnership() {
         message: "You do not have permission to modify this stable",
       });
     }
+  };
+}
+
+// ============================================
+// ORGANIZATION ACCESS MIDDLEWARE
+// ============================================
+
+/**
+ * Middleware: Require organization membership
+ * Extracts organizationId from query, params, or body and verifies membership
+ *
+ * @param idSource - Where to extract the organizationId from: "query" | "params" | "body"
+ */
+export function requireOrganizationAccess(
+  idSource: "query" | "params" | "body" = "query",
+) {
+  return async (
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> => {
+    const user = (request as AuthenticatedRequest).user;
+
+    if (!user) {
+      return reply.status(401).send({
+        error: "Unauthorized",
+        message: "Authentication required",
+      });
+    }
+
+    // Extract organizationId based on source
+    let organizationId: string | undefined;
+    if (idSource === "query") {
+      organizationId = (request.query as any)?.organizationId;
+    } else if (idSource === "params") {
+      organizationId = (request.params as any)?.organizationId;
+    } else if (idSource === "body") {
+      organizationId = (request.body as any)?.organizationId;
+    }
+
+    if (!organizationId) {
+      return reply.status(400).send({
+        error: "Bad Request",
+        message: "Organization ID required",
+      });
+    }
+
+    // System admins bypass membership checks
+    if (user.role === "system_admin") {
+      (request as OrganizationContextRequest).organizationId = organizationId;
+      (request as OrganizationContextRequest).isOrganizationAdmin = true;
+      return;
+    }
+
+    // Check organization membership
+    const hasAccess = await hasOrganizationAccess(user.uid, organizationId);
+
+    if (!hasAccess) {
+      return reply.status(403).send({
+        error: "Forbidden",
+        message: "You do not have access to this organization",
+      });
+    }
+
+    // Check if user is admin
+    const isAdmin = await isOrganizationAdmin(user.uid, organizationId);
+
+    // Attach organization context to request
+    (request as OrganizationContextRequest).organizationId = organizationId;
+    (request as OrganizationContextRequest).isOrganizationAdmin = isAdmin;
+  };
+}
+
+/**
+ * Middleware: Require organization admin permissions
+ * Must be organization owner, admin role, or system_admin
+ *
+ * @param idSource - Where to extract the organizationId from: "query" | "params" | "body"
+ */
+export function requireOrganizationAdmin(
+  idSource: "query" | "params" | "body" = "query",
+) {
+  return async (
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> => {
+    const user = (request as AuthenticatedRequest).user;
+
+    if (!user) {
+      return reply.status(401).send({
+        error: "Unauthorized",
+        message: "Authentication required",
+      });
+    }
+
+    // Extract organizationId based on source
+    let organizationId: string | undefined;
+    if (idSource === "query") {
+      organizationId = (request.query as any)?.organizationId;
+    } else if (idSource === "params") {
+      organizationId = (request.params as any)?.organizationId;
+    } else if (idSource === "body") {
+      organizationId = (request.body as any)?.organizationId;
+    }
+
+    if (!organizationId) {
+      return reply.status(400).send({
+        error: "Bad Request",
+        message: "Organization ID required",
+      });
+    }
+
+    // System admins bypass checks
+    if (user.role === "system_admin") {
+      (request as OrganizationContextRequest).organizationId = organizationId;
+      (request as OrganizationContextRequest).isOrganizationAdmin = true;
+      return;
+    }
+
+    // Check admin permission
+    const isAdmin = await isOrganizationAdmin(user.uid, organizationId);
+
+    if (!isAdmin) {
+      return reply.status(403).send({
+        error: "Forbidden",
+        message: "Organization admin permissions required",
+      });
+    }
+
+    // Attach organization context to request
+    (request as OrganizationContextRequest).organizationId = organizationId;
+    (request as OrganizationContextRequest).isOrganizationAdmin = true;
   };
 }

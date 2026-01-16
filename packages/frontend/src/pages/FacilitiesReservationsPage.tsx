@@ -26,43 +26,22 @@ import {
   getStableReservations,
   createReservation,
   updateReservation,
+  deleteReservation,
 } from "@/services/facilityReservationService";
 import { getFacilitiesByStable } from "@/services/facilityService";
 import { getUserHorsesAtStable } from "@/services/horseService";
 import type { FacilityReservation } from "@/types/facilityReservation";
-import type { Facility, FacilityType } from "@/types/facility";
+import type { Facility } from "@/types/facility";
 import type { Horse } from "@stall-bokning/shared/types/domain";
 import { FacilityReservationDialog } from "@/components/FacilityReservationDialog";
 import { FacilityCalendarView } from "@/components/FacilityCalendarView";
 import { Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { toDate } from "@/utils/timestampUtils";
-
-const FACILITY_TYPE_LABELS: Record<FacilityType, string> = {
-  transport: "Transport",
-  water_treadmill: "Water treadmill",
-  indoor_arena: "Indoor arena",
-  outdoor_arena: "Outdoor arena",
-  galloping_track: "Galloping track",
-  lunging_ring: "Lunging ring",
-  paddock: "Paddock",
-  solarium: "Solarium",
-  jumping_yard: "Jumping yard",
-  treadmill: "Treadmill",
-  vibration_plate: "Vibration plate",
-  pasture: "Pasture",
-  walker: "Walker",
-  other: "Other",
-};
-
-const STATUS_COLORS = {
-  pending: "bg-yellow-100 text-yellow-800",
-  confirmed: "bg-green-100 text-green-800",
-  rejected: "bg-red-100 text-red-800",
-  cancelled: "bg-gray-100 text-gray-800",
-  completed: "bg-blue-100 text-blue-800",
-  no_show: "bg-red-100 text-red-800",
-};
+import {
+  FACILITY_TYPE_LABELS,
+  STATUS_COLORS,
+} from "@/constants/facilityConstants";
 
 type ViewType = "calendar" | "timeline";
 
@@ -363,6 +342,35 @@ export default function FacilitiesReservationsPage() {
     }
   };
 
+  const handleDeleteReservation = async (reservationId: string) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to cancel a reservation",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await deleteReservation(reservationId);
+      toast({
+        title: "Success",
+        description: "Reservation cancelled successfully",
+      });
+      reservationDialog.closeDialog();
+      reservations.reload();
+    } catch (error) {
+      console.error("Failed to cancel reservation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to cancel reservation. Please try again.",
+        variant: "destructive",
+      });
+      throw error; // Re-throw so the dialog knows there was an error
+    }
+  };
+
   if (facilities.loading || reservations.loading) {
     return (
       <div className="container mx-auto p-6">
@@ -638,6 +646,7 @@ export default function FacilitiesReservationsPage() {
         facilities={facilities.data || []}
         horses={horses.data || []}
         onSave={handleSaveReservation}
+        onDelete={handleDeleteReservation}
         initialValues={dialogInitialValues}
       />
     </div>

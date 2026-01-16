@@ -9,31 +9,7 @@ import {
   sendMemberInviteEmail,
   sendSignupInviteEmail,
 } from "../services/emailService.js";
-
-/**
- * Convert Firestore Timestamps to ISO date strings for JSON serialization
- */
-function serializeTimestamps(obj: any): any {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
-  if (obj instanceof Timestamp || (obj && typeof obj.toDate === "function")) {
-    return obj.toDate().toISOString();
-  }
-  if (Array.isArray(obj)) {
-    return obj.map((item) => serializeTimestamps(item));
-  }
-  if (typeof obj === "object" && obj.constructor === Object) {
-    const serialized: any = {};
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        serialized[key] = serializeTimestamps(obj[key]);
-      }
-    }
-    return serialized;
-  }
-  return obj;
-}
+import { serializeTimestamps } from "../utils/serialization.js";
 
 // Zod schemas for validation
 const organizationRoleSchema = z.enum([
