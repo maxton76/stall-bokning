@@ -24,11 +24,15 @@ export interface StableContextRequest extends AuthenticatedRequest {
 export interface Stable {
   id?: string;
   name: string;
-  address: string;
-  capacity: number;
-  availableStalls: number;
-  pricePerMonth: number;
-  amenities: string[];
+  description?: string;
+  address?: string;
+  organizationId?: string;
+  ownerEmail?: string;
+  // Optional marketplace fields
+  capacity?: number;
+  availableStalls?: number;
+  pricePerMonth?: number;
+  amenities?: string[];
   ownerId: string;
   createdAt?: Date;
   updatedAt?: Date;

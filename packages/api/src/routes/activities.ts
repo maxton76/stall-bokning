@@ -557,6 +557,23 @@ export async function activitiesRoutes(fastify: FastifyInstance) {
           docData.note = data.note || "";
           docData.assignedTo = data.assignedTo || null;
           docData.assignedToName = data.assignedToName || null;
+
+          // Denormalize hasSpecialInstructions from horse
+          try {
+            const horseDoc = await db
+              .collection("horses")
+              .doc(data.horseId)
+              .get();
+            if (horseDoc.exists) {
+              const horseData = horseDoc.data();
+              docData.horseHasSpecialInstructions =
+                horseData?.hasSpecialInstructions || false;
+            } else {
+              docData.horseHasSpecialInstructions = false;
+            }
+          } catch {
+            docData.horseHasSpecialInstructions = false;
+          }
         } else if (data.type === "task") {
           if (!data.title || !data.date) {
             return reply.status(400).send({

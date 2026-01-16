@@ -49,7 +49,7 @@ export interface Facility {
     sunday: boolean
   }
 
-  // Timestamps (managed by firestoreCrud)
+  // Timestamps (managed by API)
   createdAt: Timestamp
   updatedAt: Timestamp
   createdBy: string

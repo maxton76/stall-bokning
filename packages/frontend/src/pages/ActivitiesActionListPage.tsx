@@ -38,6 +38,7 @@ import { useActivityTypeConfig } from "@/hooks/useActivityTypeConfig";
 import { ActivityFormDialog } from "@/components/ActivityFormDialog";
 import { ActivityFilterPopover } from "@/components/activities/ActivityFilterPopover";
 import { AssigneeAvatar } from "@/components/activities/AssigneeAvatar";
+import { SpecialInstructionsPopover } from "@/components/activities/SpecialInstructionsPopover";
 import { Timestamp } from "firebase/firestore";
 import { cn } from "@/lib/utils";
 import { toDate } from "@/utils/timestampUtils";
@@ -757,6 +758,19 @@ function ActivityCard({
           )}
         </div>
       </div>
+
+      {/* Special Instructions Bell - only if entry is an activity with special instructions */}
+      {"horseHasSpecialInstructions" in entry &&
+        entry.horseHasSpecialInstructions &&
+        "horseId" in entry &&
+        entry.horseId && (
+          <div onClick={(e) => e.stopPropagation()}>
+            <SpecialInstructionsPopover
+              horseId={entry.horseId}
+              horseName={"horseName" in entry ? entry.horseName || "Horse" : "Horse"}
+            />
+          </div>
+        )}
 
       {/* Avatar + Context Menu - Right */}
       <div

@@ -19,7 +19,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronDown, Calendar, History, Plus } from "lucide-react";
+import { ChevronDown, Calendar, History, Plus, Bell } from "lucide-react";
+import { EquipmentListEditor } from "@/components/EquipmentListEditor";
+import type { EquipmentItem } from "@stall-bokning/shared";
 import { useVaccinationStatus } from "@/hooks/useVaccinationStatus";
 import type {
   Horse,
@@ -96,6 +98,17 @@ const horseSchema = z
     studbook: z.string().optional(),
     breeder: z.string().optional(),
     notes: z.string().optional(),
+    specialInstructions: z.string().optional(),
+    equipment: z
+      .array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          location: z.string().optional(),
+          notes: z.string().optional(),
+        }),
+      )
+      .optional(),
   })
   .refine((data) => data.isExternal || data.dateOfArrival, {
     message: "Date of arrival is required for non-external horses",
@@ -151,6 +164,8 @@ export function HorseFormDialog({
       studbook: "",
       breeder: "",
       notes: "",
+      specialInstructions: "",
+      equipment: [],
     },
     onSubmit: async (data) => {
       // Find stable name if stable is selected
@@ -171,6 +186,8 @@ export function HorseFormDialog({
         gender: data.gender || undefined,
         isExternal: data.isExternal,
         notes: data.notes?.trim() || undefined,
+        specialInstructions: data.specialInstructions?.trim() || undefined,
+        equipment: data.equipment && data.equipment.length > 0 ? data.equipment : undefined,
         status: "active" as const,
         ueln: data.ueln?.trim() || undefined,
         chipNumber: data.chipNumber?.trim() || undefined,
@@ -268,6 +285,8 @@ export function HorseFormDialog({
         studbook: horse.studbook || "",
         breeder: horse.breeder || "",
         notes: horse.notes || "",
+        specialInstructions: horse.specialInstructions || "",
+        equipment: horse.equipment || [],
       });
     } else {
       resetForm();
@@ -661,6 +680,53 @@ export function HorseFormDialog({
         placeholder="Any additional information about this horse..."
         rows={3}
       />
+
+      {/* Special Instructions Section */}
+      <Collapsible className="space-y-2 border rounded-lg p-4">
+        <CollapsibleTrigger asChild>
+          <Button
+            variant="ghost"
+            type="button"
+            className="flex w-full items-center justify-between p-0 hover:bg-transparent"
+          >
+            <div className="flex items-center gap-2">
+              <Bell className="h-4 w-4 text-amber-500" />
+              <span className="font-medium">Special Instructions</span>
+              {(form.watch("specialInstructions") ||
+                (form.watch("equipment") &&
+                  form.watch("equipment")!.length > 0)) && (
+                <Badge variant="secondary" className="ml-2">
+                  Active
+                </Badge>
+              )}
+            </div>
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-4 pt-4">
+          <p className="text-sm text-muted-foreground">
+            Add special instructions that should be shown when this horse is
+            included in activities (e.g., turnout, grooming).
+          </p>
+
+          <FormTextarea
+            name="specialInstructions"
+            label="Instructions"
+            form={form}
+            placeholder="Special handling instructions, dietary requirements, etc..."
+            rows={3}
+          />
+
+          <EquipmentListEditor
+            value={form.watch("equipment") || []}
+            onChange={(items) =>
+              form.setValue("equipment", items as EquipmentItem[], {
+                shouldDirty: true,
+              })
+            }
+          />
+        </CollapsibleContent>
+      </Collapsible>
     </BaseFormDialog>
   );
 }

@@ -11,10 +11,14 @@ import type { AuthenticatedRequest, Stable } from "../types/index.js";
 
 const createStableSchema = z.object({
   name: z.string().min(1).max(200),
-  address: z.string().min(1),
-  capacity: z.number().int().positive(),
-  availableStalls: z.number().int().min(0),
-  pricePerMonth: z.number().positive(),
+  description: z.string().optional(),
+  address: z.string().optional(),
+  organizationId: z.string().optional(),
+  ownerEmail: z.string().email().optional(),
+  // Optional marketplace fields
+  capacity: z.number().int().positive().optional(),
+  availableStalls: z.number().int().min(0).optional(),
+  pricePerMonth: z.number().positive().optional(),
   amenities: z.array(z.string()).default([]),
 });
 
@@ -31,10 +35,34 @@ export async function stablesRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       try {
         const user = (request as AuthenticatedRequest).user!;
+        const { ownedOnly, ownerId } = request.query as {
+          ownedOnly?: string;
+          ownerId?: string;
+        };
 
-        // System admins can see all stables
+        // If ownerId is specified (admin or self), filter by that owner
+        const targetOwnerId = ownerId || (ownedOnly === "true" ? user.uid : null);
+
+        // System admins can see all stables (or filter by ownerId)
         if (user.role === "system_admin") {
-          const snapshot = await db.collection("stables").get();
+          let query = db.collection("stables");
+          if (targetOwnerId) {
+            query = query.where("ownerId", "==", targetOwnerId) as any;
+          }
+          const snapshot = await query.get();
+          const stables = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          return { stables };
+        }
+
+        // If requesting owned stables only
+        if (ownedOnly === "true") {
+          const snapshot = await db
+            .collection("stables")
+            .where("ownerId", "==", user.uid)
+            .get();
           const stables = snapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),

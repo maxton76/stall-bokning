@@ -158,8 +158,9 @@ service cloud.firestore {
     }
 
     // ============================================================================
-    // STABLES COLLECTION - SECURE
+    // STABLES COLLECTION - API-MANAGED (READ-ONLY FROM FRONTEND)
     // ============================================================================
+    // All writes handled by backend API for consistent authorization
 
     match /stables/{stableId} {
       // LIST: Simple authentication check - let query filter results
@@ -168,32 +169,14 @@ service cloud.firestore {
       // GET: Full access check including membership
       allow get: if canAccessStable(stableId);
 
-      // CREATE: System admin, stable_owner role, or organization owner/administrator can create stables
-      allow create: if isAuthenticated() && (
-        isSystemAdmin() ||
-        hasStableOwnerRole() ||
-        (request.resource.data.ownerId == request.auth.uid &&
-         (!('organizationId' in request.resource.data) ||
-          request.resource.data.organizationId == null ||
-          isOrganizationOwner(request.resource.data.organizationId) ||
-          isOrganizationAdministrator(request.resource.data.organizationId)))
-      );
-
-      // UPDATE: Only owner or system_admin
-      // Prevent ownerId changes
-      allow update: if isAuthenticated() && (
-        isSystemAdmin() ||
-        (isStableOwnerOf(stableId) &&
-         request.resource.data.ownerId == resource.data.ownerId) // ownerId immutable
-      );
-
-      // DELETE: Only owner or system_admin
-      allow delete: if isSystemAdmin() || isStableOwnerOf(stableId);
+      // WRITES: Backend API only (uses service account)
+      allow create, update, delete: if false;
     }
 
     // ============================================================================
-    // SHIFT TYPES COLLECTION - STABLE-SCOPED
+    // SHIFT TYPES COLLECTION - API-MANAGED (READ-ONLY FROM FRONTEND)
     // ============================================================================
+    // All writes handled by backend API for consistent authorization
 
     match /shiftTypes/{shiftTypeId} {
       // LIST: Efficient query - no get() calls needed for list operations
@@ -202,20 +185,8 @@ service cloud.firestore {
       // GET: Full access check - stable members only
       allow get: if canAccessStable(resource.data.stableId);
 
-      // CREATE: Owner or manager
-      allow create: if isAuthenticated() && (
-        isSystemAdmin() ||
-        canManageStable(request.resource.data.stableId)
-      );
-
-      // UPDATE: Owner or manager
-      allow update: if isAuthenticated() && (
-        isSystemAdmin() ||
-        canManageStable(resource.data.stableId)
-      );
-
-      // DELETE: Owner only
-      allow delete: if isSystemAdmin() || isStableOwnerOf(resource.data.stableId);
+      // WRITES: Backend API only (uses service account)
+      allow create, update, delete: if false;
     }
 
     // ============================================================================
@@ -336,38 +307,89 @@ service cloud.firestore {
     }
 
     // ============================================================================
-    // INVITES COLLECTION - OWNER/RECIPIENT ONLY
+    // INVITES COLLECTION - UNIFIED (STABLE + ORGANIZATION INVITES)
     // ============================================================================
+    // Supports both stable invites (stableId field) and organization invites (organizationId field)
 
     match /invites/{inviteId} {
-      // LIST: Simple authentication check - let query filter results
+      // Helper: Check if this is a stable invite
+      function isStableInvite() {
+        return resource.data.keys().hasAny(['stableId']) && resource.data.stableId != null;
+      }
+
+      // Helper: Check if this is an organization invite
+      function isOrgInvite() {
+        return resource.data.keys().hasAny(['organizationId']) && resource.data.organizationId != null;
+      }
+
+      // Helper: Get invitee email (supports both field names)
+      function getInviteeEmail() {
+        return resource.data.keys().hasAny(['inviteeEmail'])
+          ? resource.data.inviteeEmail
+          : resource.data.email;
+      }
+
+      // LIST: Authenticated users (filtering happens via query)
       allow list: if isAuthenticated();
 
-      // GET: Full access check including stable management
+      // GET: Managers/admins of the related entity OR the recipient
       allow get: if isAuthenticated() && (
         isSystemAdmin() ||
-        canManageStable(resource.data.stableId) ||
-        resource.data.inviteeEmail == request.auth.token.email
+        // Stable invite: stable managers or invitee
+        (isStableInvite() && (
+          canManageStable(resource.data.stableId) ||
+          resource.data.inviteeEmail == request.auth.token.email
+        )) ||
+        // Organization invite: org members or invitee
+        (isOrgInvite() && (
+          isOrganizationMember(resource.data.organizationId) ||
+          resource.data.email == request.auth.token.email
+        ))
       );
 
-      // CREATE: Owner or manager
+      // CREATE: Managers/admins of the related entity
       allow create: if isAuthenticated() && (
         isSystemAdmin() ||
-        (canManageStable(request.resource.data.stableId) &&
-         request.resource.data.inviterId == request.auth.uid)
+        // Stable invite
+        (request.resource.data.keys().hasAny(['stableId']) &&
+         request.resource.data.stableId != null &&
+         canManageStable(request.resource.data.stableId) &&
+         request.resource.data.inviterId == request.auth.uid) ||
+        // Organization invite
+        (request.resource.data.keys().hasAny(['organizationId']) &&
+         request.resource.data.organizationId != null &&
+         (isOrganizationOwner(request.resource.data.organizationId) ||
+          isOrganizationAdministrator(request.resource.data.organizationId)))
       );
 
-      // UPDATE: Recipient can accept/decline, sender can cancel
+      // UPDATE: Recipient can accept/decline, managers can cancel
       allow update: if isAuthenticated() && (
         isSystemAdmin() ||
-        (resource.data.inviteeEmail == request.auth.token.email && // Recipient accepts
-         request.resource.data.status in ['accepted', 'declined']) ||
-        (canManageStable(resource.data.stableId) && // Sender cancels
-         request.resource.data.status == 'expired')
+        // Stable invite: recipient accepts/declines OR manager cancels
+        (isStableInvite() && (
+          (resource.data.inviteeEmail == request.auth.token.email &&
+           request.resource.data.status in ['accepted', 'declined']) ||
+          (canManageStable(resource.data.stableId) &&
+           request.resource.data.status == 'expired')
+        )) ||
+        // Organization invite: admin updates OR recipient updates status
+        (isOrgInvite() && (
+          isOrganizationOwner(resource.data.organizationId) ||
+          isOrganizationAdministrator(resource.data.organizationId) ||
+          (resource.data.email == request.auth.token.email &&
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt']))
+        ))
       );
 
-      // DELETE: Owner only
-      allow delete: if isSystemAdmin() || isStableOwnerOf(resource.data.stableId);
+      // DELETE: Owners/admins of the related entity
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        (isStableInvite() && isStableOwnerOf(resource.data.stableId)) ||
+        (isOrgInvite() && (
+          isOrganizationOwner(resource.data.organizationId) ||
+          isOrganizationAdministrator(resource.data.organizationId)
+        ))
+      );
     }
 
     // ============================================================================
@@ -432,8 +454,9 @@ service cloud.firestore {
     }
 
     // ============================================================================
-    // HORSES COLLECTION - OWNER + STABLE MEMBER ACCESS
+    // HORSES COLLECTION - API-MANAGED (READ-ONLY FROM FRONTEND)
     // ============================================================================
+    // All writes handled by backend API for consistent authorization
 
     match /horses/{horseId} {
       // LIST: Force backend API for listing to prevent enumeration
@@ -448,44 +471,19 @@ service cloud.firestore {
          canAccessStable(resource.data.currentStableId))
       );
 
-      // CREATE: Any authenticated user (becomes owner)
-      // Can optionally assign to stable if user has access to that stable
-      allow create: if isAuthenticated() && (
-        isSystemAdmin() ||
-        (request.resource.data.ownerId == request.auth.uid &&
-         (!('currentStableId' in request.resource.data) ||
-          request.resource.data.currentStableId == null ||
-          canAccessStable(request.resource.data.currentStableId)))
-      );
-
-      // UPDATE: Only owner can modify their horse
-      // ownerId must remain unchanged
-      // Can only assign to stables where user is member
-      allow update: if isAuthenticated() && (
-        isSystemAdmin() ||
-        (resource.data.ownerId == request.auth.uid &&
-         request.resource.data.ownerId == resource.data.ownerId && // ownerId immutable
-         (request.resource.data.currentStableId == resource.data.currentStableId ||
-          !('currentStableId' in request.resource.data) ||
-          request.resource.data.currentStableId == null ||
-          canAccessStable(request.resource.data.currentStableId)))
-      );
-
-      // DELETE: Only owner can delete their horse
-      allow delete: if isAuthenticated() && (
-        isSystemAdmin() ||
-        resource.data.ownerId == request.auth.uid
-      );
+      // WRITES: Backend API only (uses service account)
+      allow create, update, delete: if false;
     }
 
     // ============================================================================
-    // LOCATION HISTORY SUBCOLLECTION - HORSE MOVEMENT TRACKING
+    // LOCATION HISTORY SUBCOLLECTION - API-MANAGED (READ-ONLY FROM FRONTEND)
     // ============================================================================
+    // All writes handled by backend API as part of horse operations
     // Note: Using {path=**} to support both direct queries and collectionGroup queries
 
     match /{path=**}/locationHistory/{entryId} {
       // LIST: Disabled to prevent collectionGroup enumeration attacks
-      // Backend API should handle location history queries with proper filtering
+      // Backend API handles location history queries with proper filtering
       allow list: if false;
 
       // GET: Horse owner or stable members can view
@@ -497,30 +495,8 @@ service cloud.firestore {
          canAccessStable(resource.data.stableId))
       );
 
-      // CREATE: Horse owner or stable managers can create entries
-      allow create: if isAuthenticated() && (
-        isSystemAdmin() ||
-        request.resource.data.horseId != null &&
-        get(/databases/$(database)/documents/horses/$(request.resource.data.horseId)).data.ownerId == request.auth.uid ||
-        (request.resource.data.stableId != null &&
-         canManageStable(request.resource.data.stableId))
-      );
-
-      // UPDATE: Horse owner or stable managers can update (for closing entries)
-      allow update: if isAuthenticated() && (
-        isSystemAdmin() ||
-        resource.data.horseId != null &&
-        get(/databases/$(database)/documents/horses/$(resource.data.horseId)).data.ownerId == request.auth.uid ||
-        (resource.data.stableId != null &&
-         canManageStable(resource.data.stableId))
-      );
-
-      // DELETE: Only horse owner can delete
-      allow delete: if isAuthenticated() && (
-        isSystemAdmin() ||
-        resource.data.horseId != null &&
-        get(/databases/$(database)/documents/horses/$(resource.data.horseId)).data.ownerId == request.auth.uid
-      );
+      // WRITES: Backend API only (uses service account)
+      allow create, update, delete: if false;
     }
 
     // ============================================================================
@@ -618,46 +594,6 @@ service cloud.firestore {
         isOrganizationOwner(resource.data.organizationId) ||
         isOrganizationAdministrator(resource.data.organizationId) ||
         isOwner(extractUserId())
-      );
-    }
-
-    // ============================================================================
-    // INVITES COLLECTION - ORGANIZATION INVITATION MANAGEMENT
-    // ============================================================================
-
-    match /invites/{inviteId} {
-      // LIST: Force backend API for listing (resource.data not available in list)
-      // Backend will filter by organization membership
-      allow list: if false;
-
-      // GET: Organization members can view invites, or users with matching email
-      allow get: if isAuthenticated() && (
-        isSystemAdmin() ||
-        isOrganizationMember(resource.data.organizationId) ||
-        resource.data.email == request.auth.token.email
-      );
-
-      // CREATE: Organization owner or administrators can create invites
-      allow create: if isAuthenticated() && (
-        isSystemAdmin() ||
-        isOrganizationOwner(request.resource.data.organizationId) ||
-        isOrganizationAdministrator(request.resource.data.organizationId)
-      );
-
-      // UPDATE: Organization owner/admin can update, or users can update their own invite status
-      allow update: if isAuthenticated() && (
-        isSystemAdmin() ||
-        isOrganizationOwner(resource.data.organizationId) ||
-        isOrganizationAdministrator(resource.data.organizationId) ||
-        (resource.data.email == request.auth.token.email &&
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt']))
-      );
-
-      // DELETE: Organization owner or administrators can delete invites
-      allow delete: if isAuthenticated() && (
-        isSystemAdmin() ||
-        isOrganizationOwner(resource.data.organizationId) ||
-        isOrganizationAdministrator(resource.data.organizationId)
       );
     }
 
@@ -810,8 +746,9 @@ service cloud.firestore {
     }
 
     // ============================================================================
-    // HORSE GROUPS COLLECTION - ORGANIZATION-SCOPED
+    // HORSE GROUPS COLLECTION - API-MANAGED (READ-ONLY FROM FRONTEND)
     // ============================================================================
+    // All writes handled by backend API for consistent authorization
 
     match /horseGroups/{groupId} {
       // LIST: All authenticated users can list (filtering happens client-side)
@@ -823,26 +760,8 @@ service cloud.firestore {
         isOrganizationMember(resource.data.organizationId)
       );
 
-      // CREATE: Organization owners and administrators
-      allow create: if isAuthenticated() && (
-        isSystemAdmin() ||
-        isOrganizationOwner(request.resource.data.organizationId) ||
-        isOrganizationAdministrator(request.resource.data.organizationId)
-      );
-
-      // UPDATE: Organization owners and administrators
-      allow update: if isAuthenticated() && (
-        isSystemAdmin() ||
-        isOrganizationOwner(resource.data.organizationId) ||
-        isOrganizationAdministrator(resource.data.organizationId)
-      );
-
-      // DELETE: Organization owners and administrators
-      allow delete: if isAuthenticated() && (
-        isSystemAdmin() ||
-        isOrganizationOwner(resource.data.organizationId) ||
-        isOrganizationAdministrator(resource.data.organizationId)
-      );
+      // WRITES: Backend API only (uses service account)
+      allow create, update, delete: if false;
     }
 
     // ============================================================================

@@ -151,6 +151,16 @@ export type HorseUsage = "care" | "sport" | "breeding";
 export type HorseStatus = "active" | "inactive";
 
 /**
+ * Equipment item for horse special instructions
+ */
+export interface EquipmentItem {
+  id: string; // UUID for React keys
+  name: string; // Equipment name (e.g., "Boots", "Täcke")
+  location?: string; // Storage location (e.g., "Sadelkammaren", "Hylla 3")
+  notes?: string; // Additional notes (e.g., "Endast vid regn")
+}
+
+/**
  * Horse document structure
  * Horses are user-owned assets that can optionally be assigned to stables
  * Both stable owners AND members can own horses
@@ -222,6 +232,11 @@ export interface Horse {
   // Status
   status: HorseStatus;
   notes?: string;
+
+  // Special Instructions (for turnout, handling, etc.)
+  specialInstructions?: string; // Free text instructions
+  equipment?: EquipmentItem[]; // Structured equipment list
+  hasSpecialInstructions?: boolean; // Computed flag for quick filtering
 
   // Metadata
   createdAt: Timestamp;

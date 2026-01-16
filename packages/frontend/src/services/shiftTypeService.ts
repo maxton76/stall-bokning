@@ -1,82 +1,88 @@
 import type { ShiftType } from '@/types/schedule'
-import { createCrudService } from './firestoreCrud'
+import { authFetchJSON } from '@/utils/authFetch'
 
 // ============================================================================
-// CRUD Service
+// API-First Service - All writes go through the API
 // ============================================================================
 
-/**
- * Shift Type CRUD service using the standardized factory
- */
-const shiftTypeCrud = createCrudService<ShiftType>({
-  collectionName: 'shiftTypes',
-  timestampsEnabled: true,
-  parentField: {
-    field: 'stableId',
-    required: true
-  }
-})
-
-// ============================================================================
-// Exported Operations
-// ============================================================================
+const API_BASE = `${import.meta.env.VITE_API_URL}/api/v1/shift-types`
 
 /**
- * Create a new shift type
+ * Create a new shift type via API
  * @param stableId - ID of the stable this shift type belongs to
  * @param shiftTypeData - Shift type data (excluding auto-generated fields)
- * @param userId - ID of the user creating the shift type
+ * @param _userId - ID of the user creating the shift type (passed to API via auth token)
  * @returns Promise with the created shift type ID
  */
 export async function createShiftType(
   stableId: string,
   shiftTypeData: Omit<ShiftType, 'id' | 'stableId' | 'createdAt' | 'updatedAt' | 'lastModifiedBy' | 'createdBy'>,
-  userId: string
+  _userId: string
 ): Promise<string> {
-  return shiftTypeCrud.create(userId, shiftTypeData as any, stableId)
+  const response = await authFetchJSON<ShiftType & { id: string }>(API_BASE, {
+    method: 'POST',
+    body: JSON.stringify({
+      stableId,
+      ...shiftTypeData,
+    }),
+  })
+  return response.id
 }
 
 /**
- * Get all shift types for a stable
+ * Get all shift types for a stable via API
  * @param stableId - Stable ID
  * @returns Promise with array of shift types
  */
 export async function getShiftTypesByStable(stableId: string): Promise<ShiftType[]> {
-  if (!shiftTypeCrud.getByParent) {
-    throw new Error('getByParent not available')
-  }
-  return shiftTypeCrud.getByParent(stableId)
+  const response = await authFetchJSON<{ shiftTypes: ShiftType[] }>(
+    `${API_BASE}/stable/${stableId}`
+  )
+  return response.shiftTypes
 }
 
 /**
- * Get a single shift type by ID
+ * Get a single shift type by ID via API
  * @param shiftTypeId - Shift type ID
  * @returns Promise with shift type data or null if not found
  */
 export async function getShiftType(shiftTypeId: string): Promise<ShiftType | null> {
-  return shiftTypeCrud.getById(shiftTypeId)
+  try {
+    return await authFetchJSON<ShiftType>(`${API_BASE}/${shiftTypeId}`)
+  } catch (error) {
+    // Return null if not found (404)
+    if (error instanceof Error && error.message.includes('404')) {
+      return null
+    }
+    throw error
+  }
 }
 
 /**
- * Update an existing shift type
+ * Update an existing shift type via API
  * @param shiftTypeId - Shift type ID
  * @param updates - Partial shift type data to update
- * @param userId - ID of user making the update
+ * @param _userId - ID of user making the update (passed to API via auth token)
  * @returns Promise that resolves when update is complete
  */
 export async function updateShiftType(
   shiftTypeId: string,
   updates: Partial<Omit<ShiftType, 'id' | 'stableId' | 'createdAt' | 'lastModifiedBy' | 'createdBy'>>,
-  userId: string
+  _userId: string
 ): Promise<void> {
-  return shiftTypeCrud.update(shiftTypeId, userId, updates)
+  await authFetchJSON(`${API_BASE}/${shiftTypeId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+  })
 }
 
 /**
- * Delete a shift type
+ * Delete a shift type via API
  * @param shiftTypeId - Shift type ID
  * @returns Promise that resolves when deletion is complete
  */
 export async function deleteShiftType(shiftTypeId: string): Promise<void> {
-  return shiftTypeCrud.delete(shiftTypeId)
+  await authFetchJSON(`${API_BASE}/${shiftTypeId}`, {
+    method: 'DELETE',
+  })
 }

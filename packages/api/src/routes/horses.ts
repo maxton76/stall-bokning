@@ -40,6 +40,202 @@ function serializeTimestamps(obj: any): any {
 
 export async function horsesRoutes(fastify: FastifyInstance) {
   /**
+   * POST /api/v1/horses
+   * Create a new horse
+   */
+  fastify.post(
+    "/",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+        const data = request.body as any;
+
+        if (!data.name) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Missing required field: name",
+          });
+        }
+
+        const horseData = {
+          ...data,
+          ownerId: user.uid,
+          isExternal: data.isExternal ?? false,
+          status: data.status || "active",
+          hasSpecialInstructions: !!(
+            (data.specialInstructions && data.specialInstructions.trim().length > 0) ||
+            (data.equipment && data.equipment.length > 0)
+          ),
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+          createdBy: user.uid,
+          lastModifiedBy: user.uid,
+        };
+
+        // For external horses, don't set stable-related fields
+        if (data.isExternal) {
+          delete horseData.currentStableId;
+          delete horseData.currentStableName;
+          delete horseData.assignedAt;
+          delete horseData.usage;
+        }
+
+        const docRef = await db.collection("horses").add(horseData);
+        const horseId = docRef.id;
+
+        // Create initial location history entry if horse is assigned to a stable
+        if (data.currentStableId && data.currentStableName && !data.isExternal) {
+          await db
+            .collection("horses")
+            .doc(horseId)
+            .collection("locationHistory")
+            .add({
+              horseName: data.name,
+              locationType: "stable",
+              stableId: data.currentStableId,
+              stableName: data.currentStableName,
+              arrivalDate: data.assignedAt || Timestamp.now(),
+              departureDate: null,
+              createdAt: Timestamp.now(),
+              createdBy: user.uid,
+              lastModifiedBy: user.uid,
+            });
+        }
+
+        return reply.status(201).send(
+          serializeTimestamps({
+            id: horseId,
+            ...horseData,
+          }),
+        );
+      } catch (error) {
+        request.log.error({ error }, "Failed to create horse");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to create horse",
+        });
+      }
+    },
+  );
+
+  /**
+   * PATCH /api/v1/horses/:id
+   * Update a horse
+   */
+  fastify.patch(
+    "/:id",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const user = (request as AuthenticatedRequest).user!;
+        const updates = request.body as any;
+
+        const horseDoc = await db.collection("horses").doc(id).get();
+
+        if (!horseDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Horse not found",
+          });
+        }
+
+        const horse = horseDoc.data()!;
+
+        // Check if user owns the horse or is system_admin
+        if (horse.ownerId !== user.uid && user.role !== "system_admin") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to update this horse",
+          });
+        }
+
+        // Compute hasSpecialInstructions if relevant fields are updated
+        const mergedData = { ...horse, ...updates };
+        const updateData = {
+          ...updates,
+          hasSpecialInstructions: !!(
+            (mergedData.specialInstructions && mergedData.specialInstructions.trim().length > 0) ||
+            (mergedData.equipment && mergedData.equipment.length > 0)
+          ),
+          updatedAt: Timestamp.now(),
+          lastModifiedBy: user.uid,
+        };
+
+        // Don't allow changing ownerId
+        delete updateData.ownerId;
+        delete updateData.createdAt;
+        delete updateData.createdBy;
+
+        await db.collection("horses").doc(id).update(updateData);
+
+        const updatedDoc = await db.collection("horses").doc(id).get();
+        return serializeTimestamps({
+          id: updatedDoc.id,
+          ...updatedDoc.data(),
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to update horse");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to update horse",
+        });
+      }
+    },
+  );
+
+  /**
+   * DELETE /api/v1/horses/:id
+   * Delete a horse
+   */
+  fastify.delete(
+    "/:id",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const user = (request as AuthenticatedRequest).user!;
+
+        const horseDoc = await db.collection("horses").doc(id).get();
+
+        if (!horseDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Horse not found",
+          });
+        }
+
+        const horse = horseDoc.data()!;
+
+        // Check if user owns the horse or is system_admin
+        if (horse.ownerId !== user.uid && user.role !== "system_admin") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to delete this horse",
+          });
+        }
+
+        await db.collection("horses").doc(id).delete();
+
+        return reply.status(204).send();
+      } catch (error) {
+        request.log.error({ error }, "Failed to delete horse");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to delete horse",
+        });
+      }
+    },
+  );
+
+  /**
    * GET /api/v1/horses
    * Returns horses owned by user OR in user's stables
    * Query params:
@@ -277,6 +473,83 @@ export async function horsesRoutes(fastify: FastifyInstance) {
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to fetch horse",
+        });
+      }
+    },
+  );
+
+  /**
+   * GET /api/v1/horses/:id/special-instructions
+   * Returns only the special instructions for a horse (lightweight endpoint for popover)
+   */
+  fastify.get(
+    "/:id/special-instructions",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const user = (request as AuthenticatedRequest).user!;
+
+        const doc = await db.collection("horses").doc(id).get();
+
+        if (!doc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Horse not found",
+          });
+        }
+
+        const horse = doc.data()!;
+
+        // Check access (same logic as GET /:id)
+        let hasAccess = false;
+
+        if (user.role === "system_admin") {
+          hasAccess = true;
+        } else if (horse.ownerId === user.uid) {
+          hasAccess = true;
+        } else if (horse.currentStableId) {
+          const stableDoc = await db
+            .collection("stables")
+            .doc(horse.currentStableId)
+            .get();
+
+          if (stableDoc.exists) {
+            const stable = stableDoc.data()!;
+            if (stable.ownerId === user.uid) {
+              hasAccess = true;
+            } else {
+              const memberId = `${user.uid}_${horse.currentStableId}`;
+              const memberDoc = await db
+                .collection("stableMembers")
+                .doc(memberId)
+                .get();
+              if (memberDoc.exists && memberDoc.data()?.status === "active") {
+                hasAccess = true;
+              }
+            }
+          }
+        }
+
+        if (!hasAccess) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to access this horse",
+          });
+        }
+
+        // Return only special instructions data
+        return {
+          specialInstructions: horse.specialInstructions || "",
+          equipment: horse.equipment || [],
+        };
+      } catch (error) {
+        request.log.error({ error }, "Failed to fetch horse special instructions");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to fetch horse special instructions",
         });
       }
     },
@@ -1037,6 +1310,186 @@ export async function horsesRoutes(fastify: FastifyInstance) {
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to batch unassign horses from vaccination rule",
+        });
+      }
+    },
+  );
+
+  /**
+   * POST /api/v1/horses/:id/assign-vaccination-rule
+   * Assign a vaccination rule to a horse
+   */
+  fastify.post(
+    "/:id/assign-vaccination-rule",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const user = (request as AuthenticatedRequest).user!;
+        const data = request.body as any;
+
+        if (!data.ruleId || !data.ruleName) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Missing required fields: ruleId, ruleName",
+          });
+        }
+
+        const horseDoc = await db.collection("horses").doc(id).get();
+
+        if (!horseDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Horse not found",
+          });
+        }
+
+        const horse = horseDoc.data()!;
+
+        // Check if user owns the horse
+        if (horse.ownerId !== user.uid && user.role !== "system_admin") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to update this horse",
+          });
+        }
+
+        await db.collection("horses").doc(id).update({
+          vaccinationRuleId: data.ruleId,
+          vaccinationRuleName: data.ruleName,
+          updatedAt: Timestamp.now(),
+          lastModifiedBy: user.uid,
+        });
+
+        return { success: true, horseId: id, ruleId: data.ruleId };
+      } catch (error) {
+        request.log.error({ error }, "Failed to assign vaccination rule to horse");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to assign vaccination rule to horse",
+        });
+      }
+    },
+  );
+
+  /**
+   * POST /api/v1/horses/:id/unassign-vaccination-rule
+   * Unassign vaccination rule from a horse
+   */
+  fastify.post(
+    "/:id/unassign-vaccination-rule",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const user = (request as AuthenticatedRequest).user!;
+
+        const horseDoc = await db.collection("horses").doc(id).get();
+
+        if (!horseDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Horse not found",
+          });
+        }
+
+        const horse = horseDoc.data()!;
+
+        // Check if user owns the horse
+        if (horse.ownerId !== user.uid && user.role !== "system_admin") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to update this horse",
+          });
+        }
+
+        await db.collection("horses").doc(id).update({
+          vaccinationRuleId: null,
+          vaccinationRuleName: null,
+          updatedAt: Timestamp.now(),
+          lastModifiedBy: user.uid,
+        });
+
+        return { success: true, horseId: id };
+      } catch (error) {
+        request.log.error({ error }, "Failed to unassign vaccination rule from horse");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to unassign vaccination rule from horse",
+        });
+      }
+    },
+  );
+
+  /**
+   * POST /api/v1/horses/batch/unassign-member-horses
+   * Unassign all horses owned by a user from a specific stable
+   * Body: { userId: string, stableId: string }
+   */
+  fastify.post(
+    "/batch/unassign-member-horses",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+        const data = request.body as any;
+
+        if (!data.userId || !data.stableId) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Missing required fields: userId, stableId",
+          });
+        }
+
+        // Verify user has permission (must be stable owner/admin or the horse owner)
+        if (data.userId !== user.uid && user.role !== "system_admin") {
+          // Check if user is stable owner
+          const stableDoc = await db.collection("stables").doc(data.stableId).get();
+          if (!stableDoc.exists || stableDoc.data()?.ownerId !== user.uid) {
+            return reply.status(403).send({
+              error: "Forbidden",
+              message: "You do not have permission to unassign these horses",
+            });
+          }
+        }
+
+        // Get all horses owned by the user at the stable
+        const horsesSnapshot = await db
+          .collection("horses")
+          .where("ownerId", "==", data.userId)
+          .where("currentStableId", "==", data.stableId)
+          .get();
+
+        if (horsesSnapshot.empty) {
+          return { success: true, unassignedCount: 0 };
+        }
+
+        // Batch update all horses
+        const batch = db.batch();
+        horsesSnapshot.docs.forEach((horseDoc) => {
+          batch.update(horseDoc.ref, {
+            currentStableId: null,
+            currentStableName: null,
+            assignedAt: null,
+            updatedAt: Timestamp.now(),
+            lastModifiedBy: user.uid,
+          });
+        });
+
+        await batch.commit();
+
+        return { success: true, unassignedCount: horsesSnapshot.size };
+      } catch (error) {
+        request.log.error({ error }, "Failed to batch unassign member horses");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to batch unassign member horses",
         });
       }
     },

@@ -18,6 +18,9 @@ import { facilityReservationsRoutes } from "./routes/facility-reservations.js";
 import inviteRoutes from "./routes/invites.js";
 import organizationMemberRoutes from "./routes/organizationMembers.js";
 import authRoutes from "./routes/auth.js";
+import { shiftTypesRoutes } from "./routes/shift-types.js";
+import { horseGroupsRoutes } from "./routes/horse-groups.js";
+import { auditLogsRoutes } from "./routes/audit-logs.js";
 
 const PORT = Number(process.env.PORT) || 8080;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -107,6 +110,9 @@ await fastify.register(inviteRoutes, { prefix: "/api/v1/invites" });
 await fastify.register(organizationMemberRoutes, {
   prefix: "/api/v1/organization-members",
 });
+await fastify.register(shiftTypesRoutes, { prefix: "/api/v1/shift-types" });
+await fastify.register(horseGroupsRoutes, { prefix: "/api/v1/horse-groups" });
+await fastify.register(auditLogsRoutes, { prefix: "/api/v1/audit-logs" });
 
 // 404 handler
 fastify.setNotFoundHandler((request, reply) => {

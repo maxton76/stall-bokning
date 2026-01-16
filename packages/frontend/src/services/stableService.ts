@@ -1,7 +1,11 @@
-import { Timestamp } from "firebase/firestore";
-import { createCrudService, CrudService, queryHelpers } from "./firestoreCrud";
-import { updateOrganizationStats } from "./organizationService";
 import type { Stable } from "@/types/roles";
+import { authFetchJSON } from "@/utils/authFetch";
+
+// ============================================================================
+// API-First Service - All writes go through the API
+// ============================================================================
+
+const API_BASE = `${import.meta.env.VITE_API_URL}/api/v1/stables`;
 
 // ============================================================================
 // Types
@@ -27,25 +31,13 @@ export type UpdateStableData = Partial<
 >;
 
 // ============================================================================
-// Base CRUD Service
+// CRUD Operations via API
 // ============================================================================
 
 /**
- * Base CRUD operations for stables using the factory pattern
- */
-const stableCrud: CrudService<Stable> = createCrudService<Stable>({
-  collectionName: "stables",
-  timestampsEnabled: true,
-});
-
-// ============================================================================
-// Extended Stable Service
-// ============================================================================
-
-/**
- * Create a new stable
+ * Create a new stable via API
  *
- * @param userId - User ID creating the stable (will be set as ownerId)
+ * @param _userId - User ID creating the stable (passed to API via auth token)
  * @param data - Stable data
  * @returns Promise with created stable ID
  *
@@ -70,60 +62,70 @@ const stableCrud: CrudService<Stable> = createCrudService<Stable>({
  * ```
  */
 export async function createStable(
-  userId: string,
+  _userId: string,
   data: CreateStableData,
 ): Promise<string> {
-  const stableData = {
-    ...data,
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
-  };
+  const response = await authFetchJSON<Stable & { id: string }>(API_BASE, {
+    method: "POST",
+    body: JSON.stringify({
+      name: data.name,
+      description: data.description,
+      address: data.address,
+      organizationId: data.organizationId,
+      ownerEmail: data.ownerEmail,
+    }),
+  });
 
-  const stableId = await stableCrud.create(userId, stableData);
-
-  // Update organization stats if stable belongs to an organization
-  if (data.organizationId) {
-    const count = await getOrganizationStableCount(data.organizationId);
-    await updateOrganizationStats(data.organizationId, { stableCount: count });
-  }
-
-  return stableId;
+  return response.id;
 }
 
 /**
- * Get a stable by ID
+ * Get a stable by ID via API
  *
  * @param stableId - Stable ID
  * @returns Promise with stable data or null if not found
  */
 export async function getStable(stableId: string): Promise<Stable | null> {
-  return stableCrud.getById(stableId);
+  try {
+    return await authFetchJSON<Stable>(`${API_BASE}/${stableId}`);
+  } catch (error) {
+    // Return null if not found (404)
+    if (error instanceof Error && error.message.includes("404")) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 /**
- * Update a stable
+ * Update a stable via API
  *
  * @param stableId - Stable ID
- * @param userId - User ID performing the update
+ * @param _userId - User ID performing the update (passed to API via auth token)
  * @param updates - Partial stable data to update
  * @returns Promise that resolves when update is complete
  */
 export async function updateStable(
   stableId: string,
-  userId: string,
+  _userId: string,
   updates: UpdateStableData,
 ): Promise<void> {
-  return stableCrud.update(stableId, userId, updates);
+  await authFetchJSON(`${API_BASE}/${stableId}`, {
+    method: "PATCH",
+    body: JSON.stringify(updates),
+  });
 }
 
 /**
- * Delete a stable
+ * Delete a stable via API
  *
  * @param stableId - Stable ID
  * @returns Promise that resolves when deletion is complete
  */
 export async function deleteStable(stableId: string): Promise<void> {
-  return stableCrud.delete(stableId);
+  await authFetchJSON(`${API_BASE}/${stableId}`, {
+    method: "DELETE",
+  });
 }
 
 // ============================================================================
@@ -131,14 +133,14 @@ export async function deleteStable(stableId: string): Promise<void> {
 // ============================================================================
 
 /**
- * Link a stable to an organization
+ * Link a stable to an organization via API
  *
- * Updates the stable's organizationId and updates organization stats.
+ * Updates the stable's organizationId.
  * Idempotent - safe to call multiple times.
  *
  * @param stableId - Stable ID to link
  * @param organizationId - Organization ID to link to
- * @param userId - User ID performing the operation
+ * @param _userId - User ID performing the operation (passed to API via auth token)
  * @returns Promise that resolves when linking is complete
  *
  * @example
@@ -149,25 +151,21 @@ export async function deleteStable(stableId: string): Promise<void> {
 export async function linkStableToOrganization(
   stableId: string,
   organizationId: string,
-  userId: string,
+  _userId: string,
 ): Promise<void> {
-  // Update stable with organizationId
-  await stableCrud.update(stableId, userId, {
-    organizationId,
+  await authFetchJSON(`${API_BASE}/${stableId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ organizationId }),
   });
-
-  // Update organization stats
-  const count = await getOrganizationStableCount(organizationId);
-  await updateOrganizationStats(organizationId, { stableCount: count });
 }
 
 /**
- * Unlink a stable from its organization
+ * Unlink a stable from its organization via API
  *
- * Removes the organizationId from the stable and updates organization stats.
+ * Removes the organizationId from the stable.
  *
  * @param stableId - Stable ID to unlink
- * @param userId - User ID performing the operation
+ * @param _userId - User ID performing the operation (passed to API via auth token)
  * @returns Promise that resolves when unlinking is complete
  *
  * @example
@@ -177,24 +175,12 @@ export async function linkStableToOrganization(
  */
 export async function unlinkStableFromOrganization(
   stableId: string,
-  userId: string,
+  _userId: string,
 ): Promise<void> {
-  // Get current stable to find organizationId
-  const stable = await getStable(stableId);
-  if (!stable) throw new Error("Stable not found");
-
-  const previousOrgId = stable.organizationId;
-
-  // Remove organizationId from stable
-  await stableCrud.update(stableId, userId, {
-    organizationId: undefined,
+  await authFetchJSON(`${API_BASE}/${stableId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ organizationId: null }),
   });
-
-  // Update organization stats if stable was linked
-  if (previousOrgId) {
-    const count = await getOrganizationStableCount(previousOrgId);
-    await updateOrganizationStats(previousOrgId, { stableCount: count });
-  }
 }
 
 /**
@@ -220,8 +206,7 @@ export async function getOrganizationStableCount(
 }
 
 /**
- * Get all stables for an organization
- * Now uses backend API instead of direct Firestore queries
+ * Get all stables for an organization via API
  *
  * @param organizationId - Organization ID
  * @returns Promise with array of stables
@@ -235,8 +220,6 @@ export async function getOrganizationStableCount(
 export async function getStablesByOrganization(
   organizationId: string,
 ): Promise<Stable[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ stables: Stable[] }>(
     `${import.meta.env.VITE_API_URL}/api/v1/organizations/${organizationId}/stables`,
     { method: "GET" },
@@ -246,18 +229,23 @@ export async function getStablesByOrganization(
 }
 
 /**
- * Get all stables owned by a user
+ * Get all stables owned by a user via API
  *
- * @param userId - User ID
- * @returns Promise with array of stables
+ * @param _userId - User ID (uses current authenticated user from token)
+ * @returns Promise with array of stables owned by the current user
  *
  * @example
  * ```typescript
  * const stables = await getStablesByOwner(userId)
  * ```
  */
-export async function getStablesByOwner(userId: string): Promise<Stable[]> {
-  return stableCrud.query([queryHelpers.whereUser(userId, "ownerId")]);
+export async function getStablesByOwner(_userId: string): Promise<Stable[]> {
+  const response = await authFetchJSON<{ stables: Stable[] }>(
+    `${API_BASE}?ownedOnly=true`,
+    { method: "GET" },
+  );
+
+  return response.stables;
 }
 
 // ============================================================================
@@ -265,7 +253,7 @@ export async function getStablesByOwner(userId: string): Promise<Stable[]> {
 // ============================================================================
 
 /**
- * Get active members for a stable with user details
+ * Get active members for a stable with user details via API
  * Returns combined member + user data to avoid N+1 queries
  * Used by ScheduleEditorPage and StableDetailPage
  *
@@ -281,10 +269,8 @@ export async function getStablesByOwner(userId: string): Promise<Stable[]> {
 export async function getActiveMembersWithUserDetails(
   stableId: string,
 ): Promise<any[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ members: any[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/stables/${stableId}/members?includeUserDetails=true`,
+    `${API_BASE}/${stableId}/members?includeUserDetails=true`,
     { method: "GET" },
   );
 
@@ -292,7 +278,7 @@ export async function getActiveMembersWithUserDetails(
 }
 
 /**
- * Delete a stable member
+ * Delete a stable member via API
  * Used by StableDetailPage
  *
  * @param stableId - Stable ID
@@ -308,10 +294,7 @@ export async function deleteStableMember(
   stableId: string,
   memberId: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/stables/${stableId}/members/${memberId}`,
-    { method: "DELETE" },
-  );
+  await authFetchJSON(`${API_BASE}/${stableId}/members/${memberId}`, {
+    method: "DELETE",
+  });
 }

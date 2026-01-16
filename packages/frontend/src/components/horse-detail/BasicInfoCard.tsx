@@ -3,12 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Share, Trash2, Edit, Copy, Check } from "lucide-react";
+import { Share, Trash2, Edit, Copy, Check, Bell } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { HORSE_USAGE_OPTIONS } from "@/constants/horseConstants";
 import { toDate } from "@/utils/timestampUtils";
 import type { Horse, HorseUsage } from "@/types/roles";
+import { EquipmentDisplay } from "@/components/EquipmentDisplay";
 import type { Timestamp } from "firebase/firestore";
 
 interface BasicInfoCardProps {
@@ -362,7 +363,25 @@ export function BasicInfoCard({
           </div>
         )}
 
-        {/* 6. Notes */}
+        {/* 6. Special Instructions */}
+        {horse.hasSpecialInstructions && (
+          <div className="border-t pt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Bell className="h-4 w-4 text-amber-500" />
+              <p className="text-sm font-semibold">Special Instructions</p>
+            </div>
+            {horse.specialInstructions && (
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap mb-3">
+                {horse.specialInstructions}
+              </p>
+            )}
+            {horse.equipment && horse.equipment.length > 0 && (
+              <EquipmentDisplay equipment={horse.equipment} />
+            )}
+          </div>
+        )}
+
+        {/* 7. Notes */}
         {horse.notes && (
           <div className="border-t pt-4">
             <p className="text-sm font-semibold mb-2">Notes</p>

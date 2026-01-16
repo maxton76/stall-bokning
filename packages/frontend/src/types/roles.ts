@@ -1,5 +1,6 @@
 import { Timestamp } from 'firebase/firestore'
 import type { VaccinationStatus } from '@shared/types/vaccination'
+import type { EquipmentItem } from '@shared/types/domain'
 
 /**
  * System-level roles (platform-wide)
@@ -157,6 +158,11 @@ export interface Horse {
   // Status
   status: 'active' | 'inactive'
   notes?: string
+
+  // Special Instructions (for turnout, handling, etc.)
+  specialInstructions?: string      // Free text instructions
+  equipment?: EquipmentItem[]       // Structured equipment list
+  hasSpecialInstructions?: boolean  // Computed flag for quick filtering
 
   // Metadata
   createdAt: Timestamp

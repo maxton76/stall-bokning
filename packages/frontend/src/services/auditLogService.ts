@@ -1,14 +1,5 @@
-import {
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  limit as firestoreLimit,
-  Timestamp
-} from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { Timestamp } from 'firebase/firestore'
+import { authFetchJSON } from '@/utils/authFetch'
 import type {
   AuditLog,
   CreateAuditLogData,
@@ -18,43 +9,38 @@ import type {
   ReservationStatusChange,
   AssignmentDetails
 } from '@shared/types/auditLog'
-import { mapDocsToObjects } from '@/utils/firestoreHelpers'
+
+// ============================================================================
+// API-First Service - All writes go through the API
+// ============================================================================
+
+const API_BASE = `${import.meta.env.VITE_API_URL}/api/v1/audit-logs`
 
 // ============================================================================
 // Create Operations
 // ============================================================================
 
 /**
- * Create a new audit log entry
+ * Create a new audit log entry via API
  * @param logData - Audit log data
  * @returns Promise with created log ID
  */
 export async function createAuditLog(logData: CreateAuditLogData): Promise<string> {
-  const auditLogRef = collection(db, 'auditLogs')
-
-  // Generate unique log ID
-  const logId = `${logData.resource}_${logData.action}_${Date.now()}`
-
-  const entryData: Omit<AuditLog, 'id'> = {
-    logId,
-    userId: logData.userId,
-    userEmail: logData.userEmail,
-    userName: logData.userName,
-    action: logData.action,
-    resource: logData.resource,
-    resourceId: logData.resourceId,
-    resourceName: logData.resourceName,
-    organizationId: logData.organizationId,
-    stableId: logData.stableId,
-    details: logData.details,
-    userAgent: logData.userAgent,
-    sessionId: logData.sessionId,
-    timestamp: Timestamp.now(),
-    createdAt: Timestamp.now()
-  }
-
-  const docRef = await addDoc(auditLogRef, entryData)
-  return docRef.id
+  const response = await authFetchJSON<{ id: string; logId: string }>(API_BASE, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: logData.action,
+      resource: logData.resource,
+      resourceId: logData.resourceId,
+      resourceName: logData.resourceName,
+      organizationId: logData.organizationId,
+      stableId: logData.stableId,
+      details: logData.details,
+      userEmail: logData.userEmail,
+      userName: logData.userName,
+    }),
+  })
+  return response.id
 }
 
 /**
@@ -229,53 +215,46 @@ export async function logHorseUpdate(
 // ============================================================================
 
 /**
- * Query audit logs with filters
+ * Query audit logs with filters via API
  * @param filters - Filter criteria
  * @returns Promise with array of audit logs
  */
 export async function queryAuditLogs(filters: AuditLogFilter): Promise<AuditLog[]> {
-  const auditLogRef = collection(db, 'auditLogs')
-  const constraints = []
+  // Build query params
+  const params = new URLSearchParams()
+  if (filters.limit) params.set('limit', filters.limit.toString())
+  if (filters.resource) params.set('resource', filters.resource)
+  if (filters.action) params.set('action', filters.action)
 
-  // Build query constraints
-  if (filters.userId) {
-    constraints.push(where('userId', '==', filters.userId))
-  }
-  if (filters.resource) {
-    constraints.push(where('resource', '==', filters.resource))
-  }
-  if (filters.resourceId) {
-    constraints.push(where('resourceId', '==', filters.resourceId))
-  }
-  if (filters.action) {
-    constraints.push(where('action', '==', filters.action))
-  }
+  // Determine which endpoint to use based on filters
   if (filters.organizationId) {
-    constraints.push(where('organizationId', '==', filters.organizationId))
-  }
-  if (filters.stableId) {
-    constraints.push(where('stableId', '==', filters.stableId))
-  }
-  if (filters.startDate) {
-    constraints.push(where('timestamp', '>=', filters.startDate))
-  }
-  if (filters.endDate) {
-    constraints.push(where('timestamp', '<=', filters.endDate))
+    const response = await authFetchJSON<{ auditLogs: AuditLog[] }>(
+      `${API_BASE}/organization/${filters.organizationId}?${params.toString()}`
+    )
+    return response.auditLogs
   }
 
-  // Add ordering and limit
-  constraints.push(orderBy('timestamp', 'desc'))
-  if (filters.limit) {
-    constraints.push(firestoreLimit(filters.limit))
+  if (filters.userId) {
+    const response = await authFetchJSON<{ auditLogs: AuditLog[] }>(
+      `${API_BASE}/user/${filters.userId}?${params.toString()}`
+    )
+    return response.auditLogs
   }
 
-  const q = query(auditLogRef, ...constraints)
-  const snapshot = await getDocs(q)
-  return mapDocsToObjects<AuditLog>(snapshot)
+  if (filters.resource && filters.resourceId) {
+    const response = await authFetchJSON<{ auditLogs: AuditLog[] }>(
+      `${API_BASE}/resource/${filters.resource}/${filters.resourceId}?${params.toString()}`
+    )
+    return response.auditLogs
+  }
+
+  // Default: return empty array if no valid filter combination
+  console.warn('queryAuditLogs: No valid filter combination provided')
+  return []
 }
 
 /**
- * Get audit logs for a specific resource
+ * Get audit logs for a specific resource via API
  * @param resource - Resource type
  * @param resourceId - Resource ID
  * @param limit - Optional limit (default 50)
@@ -290,7 +269,7 @@ export async function getResourceAuditLogs(
 }
 
 /**
- * Get audit logs for an organization
+ * Get audit logs for an organization via API
  * @param organizationId - Organization ID
  * @param limit - Optional limit (default 100)
  * @returns Promise with array of audit logs
@@ -303,7 +282,7 @@ export async function getOrganizationAuditLogs(
 }
 
 /**
- * Get audit logs for a user
+ * Get audit logs for a user via API
  * @param userId - User ID
  * @param limit - Optional limit (default 50)
  * @returns Promise with array of audit logs

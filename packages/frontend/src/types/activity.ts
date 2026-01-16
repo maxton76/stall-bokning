@@ -90,6 +90,7 @@ export interface Activity extends BaseEntry {
   note?: string;
   assignedTo?: string; // User ID who is responsible
   assignedToName?: string; // Denormalized
+  horseHasSpecialInstructions?: boolean; // Denormalized flag for special instructions indicator
 }
 
 // Task (stable tasks)

@@ -6,19 +6,16 @@ import {
   query,
   where,
   limit,
-  Timestamp,
-  writeBatch,
-  updateDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Horse, UserHorseInventory } from "@/types/roles";
-import { mapDocsToObjects } from "@/utils/firestoreHelpers";
-import {
-  createLocationHistoryEntry,
-  closeLocationHistoryEntry,
-  createExternalLocationHistoryEntry,
-} from "./locationHistoryService";
-import { createCrudService } from "./firestoreCrud";
+import { authFetchJSON } from "@/utils/authFetch";
+
+// ============================================================================
+// API-First Service - All writes go through the API
+// ============================================================================
+
+const API_BASE = `${import.meta.env.VITE_API_URL}/api/v1/horses`;
 
 // ============================================================================
 // Helper Functions
@@ -42,74 +39,53 @@ function sanitizeHorseData(horseData: Partial<Horse>): Partial<Horse> {
   return horseData;
 }
 
-// ============================================================================
-// CRUD Operations
-// ============================================================================
-
 /**
- * Horse CRUD service using the standardized factory
+ * Compute hasSpecialInstructions flag based on horse data
  */
-const horseCrud = createCrudService<Horse>({
-  collectionName: "horses",
-  timestampsEnabled: true,
-  sanitizeFn: sanitizeHorseData,
-});
+function computeHasSpecialInstructions(horseData: Partial<Horse>): boolean {
+  return !!(
+    (horseData.specialInstructions &&
+      horseData.specialInstructions.trim().length > 0) ||
+    (horseData.equipment && horseData.equipment.length > 0)
+  );
+}
+
+// ============================================================================
+// CRUD Operations via API
+// ============================================================================
 
 /**
- * Create a new horse
- * @param userId - ID of the user who owns the horse
+ * Create a new horse via API
+ * @param _userId - ID of the user who owns the horse (passed via auth token)
  * @param horseData - Horse data (excluding auto-generated fields)
  * @returns Promise with the created horse ID
  */
 export async function createHorse(
-  userId: string,
+  _userId: string,
   horseData: Omit<
     Horse,
     "id" | "ownerId" | "createdAt" | "updatedAt" | "lastModifiedBy"
   >,
 ): Promise<string> {
-  const dataWithOwner = {
-    ...horseData,
-    ownerId: userId,
-    isExternal: horseData.isExternal ?? false,
-  } as Omit<
-    Horse,
-    "id" | "createdAt" | "updatedAt" | "createdBy" | "lastModifiedBy"
-  >;
+  const response = await authFetchJSON<Horse & { id: string }>(API_BASE, {
+    method: "POST",
+    body: JSON.stringify({
+      ...horseData,
+      isExternal: horseData.isExternal ?? false,
+    }),
+  });
 
-  const horseId = await horseCrud.create(userId, dataWithOwner);
-
-  // Create initial location history entry if horse is assigned to a stable
-  if (horseData.currentStableId && horseData.currentStableName) {
-    await createLocationHistoryEntry(
-      horseId,
-      horseData.name,
-      horseData.currentStableId,
-      horseData.currentStableName,
-      userId,
-      horseData.assignedAt, // Use assignedAt timestamp if provided
-    );
-  }
-
-  return horseId;
+  return response.id;
 }
 
 /**
- * Get a single horse by ID
- * Now uses backend API instead of direct Firestore queries
+ * Get a single horse by ID via API
  * @param horseId - Horse ID
  * @returns Promise with horse data or null if not found
  */
 export async function getHorse(horseId: string): Promise<Horse | null> {
   try {
-    const { authFetchJSON } = await import("@/utils/authFetch");
-
-    const horse = await authFetchJSON<Horse>(
-      `${import.meta.env.VITE_API_URL}/api/v1/horses/${horseId}`,
-      { method: "GET" },
-    );
-
-    return horse;
+    return await authFetchJSON<Horse>(`${API_BASE}/${horseId}`);
   } catch (error: any) {
     // Return null if horse not found or access denied
     if (error.status === 404 || error.status === 403) {
@@ -120,54 +96,32 @@ export async function getHorse(horseId: string): Promise<Horse | null> {
 }
 
 /**
- * Update an existing horse
+ * Update an existing horse via API
  * @param horseId - Horse ID
- * @param userId - ID of user making the update
+ * @param _userId - ID of user making the update (passed via auth token)
  * @param updates - Partial horse data to update
  * @returns Promise that resolves when update is complete
  */
 export async function updateHorse(
   horseId: string,
-  userId: string,
+  _userId: string,
   updates: Partial<Omit<Horse, "id" | "ownerId" | "createdAt">>,
 ): Promise<void> {
-  // Get existing horse data for audit logging
-  const existingHorse = await getHorse(horseId);
-  if (!existingHorse) {
-    throw new Error("Horse not found");
-  }
-
-  // Perform the update
-  await horseCrud.update(horseId, userId, updates);
-
-  // Log horse data changes (non-blocking)
-  const { logHorseUpdate, calculateChanges } =
-    await import("./auditLogService");
-  const changes = calculateChanges(
-    existingHorse as unknown as Record<string, unknown>,
-    { ...existingHorse, ...updates } as unknown as Record<string, unknown>,
-  );
-
-  if (changes.length > 0) {
-    logHorseUpdate(
-      horseId,
-      existingHorse.name,
-      existingHorse.currentStableId,
-      changes,
-      userId,
-    ).catch((err) => {
-      console.error("Audit log failed:", err);
-    });
-  }
+  await authFetchJSON(`${API_BASE}/${horseId}`, {
+    method: "PATCH",
+    body: JSON.stringify(updates),
+  });
 }
 
 /**
- * Delete a horse
+ * Delete a horse via API
  * @param horseId - Horse ID
  * @returns Promise that resolves when deletion is complete
  */
 export async function deleteHorse(horseId: string): Promise<void> {
-  return horseCrud.delete(horseId);
+  await authFetchJSON(`${API_BASE}/${horseId}`, {
+    method: "DELETE",
+  });
 }
 
 // ============================================================================
@@ -175,35 +129,25 @@ export async function deleteHorse(horseId: string): Promise<void> {
 // ============================================================================
 
 /**
- * Get all horses owned by a user OR in user's stables
- * Now uses backend API instead of direct Firestore queries
- * @param userId - User ID
+ * Get all horses owned by a user OR in user's stables via API
+ * @param _userId - User ID (uses authenticated user from token)
  * @returns Promise with array of horses
  */
-export async function getUserHorses(userId: string): Promise<Horse[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
-  const response = await authFetchJSON<{ horses: Horse[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/horses`,
-    { method: "GET" },
-  );
+export async function getUserHorses(_userId: string): Promise<Horse[]> {
+  const response = await authFetchJSON<{ horses: Horse[] }>(API_BASE);
 
   // Filter to active horses only (API returns all horses user has access to)
   return response.horses.filter((horse) => horse.status === "active");
 }
 
 /**
- * Get all horses assigned to a stable
- * Now uses backend API instead of direct Firestore queries
+ * Get all horses assigned to a stable via API
  * @param stableId - Stable ID
  * @returns Promise with array of horses
  */
 export async function getStableHorses(stableId: string): Promise<Horse[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ horses: Horse[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/horses?stableId=${stableId}`,
-    { method: "GET" },
+    `${API_BASE}?stableId=${stableId}`,
   );
 
   // Filter to active horses only
@@ -211,7 +155,7 @@ export async function getStableHorses(stableId: string): Promise<Horse[]> {
 }
 
 /**
- * Get a user's horses that are assigned to a specific stable
+ * Get a user's horses that are assigned to a specific stable via API
  * @param userId - User ID
  * @param stableId - Stable ID
  * @returns Promise with array of horses
@@ -220,8 +164,6 @@ export async function getUserHorsesAtStable(
   userId: string,
   stableId: string,
 ): Promise<Horse[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const params = new URLSearchParams({
     ownerId: userId,
     stableId: stableId,
@@ -229,8 +171,7 @@ export async function getUserHorsesAtStable(
   });
 
   const response = await authFetchJSON<{ horses: Horse[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/horses?${params.toString()}`,
-    { method: "GET" },
+    `${API_BASE}?${params.toString()}`,
   );
 
   return response.horses;
@@ -279,63 +220,50 @@ export async function getUnassignedHorses(userId: string): Promise<Horse[]> {
 // ============================================================================
 
 /**
- * Assign a horse to a stable
- * Uses batched writes for atomicity with location history
+ * Assign a horse to a stable via API
  * @param horseId - Horse ID
  * @param stableId - Stable ID
  * @param stableName - Stable name (for caching)
- * @param userId - ID of user making the assignment
+ * @param _userId - ID of user making the assignment (passed via auth token)
  * @returns Promise that resolves when assignment is complete
  */
 export async function assignHorseToStable(
   horseId: string,
   stableId: string,
   stableName: string,
-  userId: string,
+  _userId: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/horses/${horseId}/assign-to-stable`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        stableId,
-        stableName,
-      }),
-    },
-  );
+  await authFetchJSON(`${API_BASE}/${horseId}/assign-to-stable`, {
+    method: "POST",
+    body: JSON.stringify({
+      stableId,
+      stableName,
+    }),
+  });
 }
 
 /**
- * Unassign a horse from its current stable
- * Uses batched writes for atomicity with location history
+ * Unassign a horse from its current stable via API
  * @param horseId - Horse ID
- * @param userId - ID of user making the unassignment
+ * @param _userId - ID of user making the unassignment (passed via auth token)
  * @returns Promise that resolves when unassignment is complete
  */
 export async function unassignHorseFromStable(
   horseId: string,
-  userId: string,
+  _userId: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/horses/${horseId}/unassign-from-stable`,
-    {
-      method: "POST",
-    },
-  );
+  await authFetchJSON(`${API_BASE}/${horseId}/unassign-from-stable`, {
+    method: "POST",
+  });
 }
 
 /**
- * Transfer a horse from one stable to another
- * Uses batched writes for atomicity with location history
+ * Transfer a horse from one stable to another via API
  * @param horseId - Horse ID
  * @param fromStableId - Current stable ID (for validation)
  * @param toStableId - New stable ID
  * @param toStableName - New stable name (for caching)
- * @param userId - ID of user making the transfer
+ * @param _userId - ID of user making the transfer (passed via auth token)
  * @returns Promise that resolves when transfer is complete
  */
 export async function transferHorse(
@@ -343,21 +271,16 @@ export async function transferHorse(
   fromStableId: string,
   toStableId: string,
   toStableName: string,
-  userId: string,
+  _userId: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/horses/${horseId}/transfer`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        fromStableId,
-        toStableId,
-        toStableName,
-      }),
-    },
-  );
+  await authFetchJSON(`${API_BASE}/${horseId}/transfer`, {
+    method: "POST",
+    body: JSON.stringify({
+      fromStableId,
+      toStableId,
+      toStableName,
+    }),
+  });
 }
 
 /**
@@ -436,7 +359,7 @@ export async function getHorseOrganizationId(
 // ============================================================================
 
 /**
- * Unassign all horses owned by a user from a specific stable
+ * Unassign all horses owned by a user from a specific stable via API
  * Called when a member leaves a stable
  * @param userId - User ID
  * @param stableId - Stable ID
@@ -446,24 +369,15 @@ export async function unassignMemberHorses(
   userId: string,
   stableId: string,
 ): Promise<number> {
-  const horses = await getUserHorsesAtStable(userId, stableId);
-
-  if (horses.length === 0) return 0;
-
-  const batch = writeBatch(db);
-  horses.forEach((horse) => {
-    const horseRef = doc(db, "horses", horse.id);
-    batch.update(horseRef, {
-      currentStableId: null,
-      currentStableName: null,
-      assignedAt: null,
-      updatedAt: Timestamp.now(),
-      lastModifiedBy: userId,
-    });
+  const response = await authFetchJSON<{
+    success: boolean;
+    unassignedCount: number;
+  }>(`${API_BASE}/batch/unassign-member-horses`, {
+    method: "POST",
+    body: JSON.stringify({ userId, stableId }),
   });
 
-  await batch.commit();
-  return horses.length;
+  return response.unassignedCount;
 }
 
 // ============================================================================
@@ -522,79 +436,61 @@ export async function getUserHorseInventory(
 // ============================================================================
 
 /**
- * Assign a horse to a group
- * Now uses backend API instead of direct Firestore operations
+ * Assign a horse to a group via API
  * @param horseId - Horse ID
  * @param groupId - Group ID
  * @param groupName - Group name (for caching)
- * @param userId - ID of user making the assignment (kept for compatibility, not used)
+ * @param _userId - ID of user making the assignment (passed via auth token)
  * @returns Promise that resolves when assignment is complete
  */
 export async function assignHorseToGroup(
   horseId: string,
   groupId: string,
   groupName: string,
-  userId: string,
+  _userId: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/horses/${horseId}/assign-to-group`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        groupId,
-        groupName,
-      }),
-    },
-  );
+  await authFetchJSON(`${API_BASE}/${horseId}/assign-to-group`, {
+    method: "POST",
+    body: JSON.stringify({
+      groupId,
+      groupName,
+    }),
+  });
 }
 
 /**
- * Unassign a horse from its current group
- * Now uses backend API instead of direct Firestore operations
+ * Unassign a horse from its current group via API
  * @param horseId - Horse ID
- * @param userId - ID of user making the unassignment (kept for compatibility, not used)
+ * @param _userId - ID of user making the unassignment (passed via auth token)
  * @returns Promise that resolves when unassignment is complete
  */
 export async function unassignHorseFromGroup(
   horseId: string,
-  userId: string,
+  _userId: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/horses/${horseId}/unassign-from-group`,
-    {
-      method: "POST",
-    },
-  );
+  await authFetchJSON(`${API_BASE}/${horseId}/unassign-from-group`, {
+    method: "POST",
+  });
 }
 
 /**
- * Unassign all horses from a specific group
+ * Unassign all horses from a specific group via API
  * Called when a group is deleted
- * Now uses backend API instead of direct Firestore operations
  * @param groupId - Group ID
- * @param userId - ID of user making the changes (kept for compatibility, not used)
+ * @param _userId - ID of user making the changes (passed via auth token)
  * @returns Promise with the number of horses unassigned
  */
 export async function unassignHorsesFromGroup(
   groupId: string,
-  userId: string,
+  _userId: string,
 ): Promise<number> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{
     success: boolean;
     unassignedCount: number;
-  }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/horses/batch/unassign-from-group`,
-    {
-      method: "POST",
-      body: JSON.stringify({ groupId }),
-    },
-  );
+  }>(`${API_BASE}/batch/unassign-from-group`, {
+    method: "POST",
+    body: JSON.stringify({ groupId }),
+  });
 
   return response.unassignedCount;
 }
@@ -604,71 +500,61 @@ export async function unassignHorsesFromGroup(
 // ============================================================================
 
 /**
- * Assign a vaccination rule to a horse
+ * Assign a vaccination rule to a horse via API
  * @param horseId - Horse ID
  * @param ruleId - Vaccination rule ID
  * @param ruleName - Vaccination rule name (for caching)
- * @param userId - ID of user making the assignment
+ * @param _userId - ID of user making the assignment (passed via auth token)
  * @returns Promise that resolves when assignment is complete
  */
 export async function assignVaccinationRuleToHorse(
   horseId: string,
   ruleId: string,
   ruleName: string,
-  userId: string,
+  _userId: string,
 ): Promise<void> {
-  const horseRef = doc(db, "horses", horseId);
-  await updateDoc(horseRef, {
-    vaccinationRuleId: ruleId,
-    vaccinationRuleName: ruleName,
-    updatedAt: Timestamp.now(),
-    lastModifiedBy: userId,
+  await authFetchJSON(`${API_BASE}/${horseId}/assign-vaccination-rule`, {
+    method: "POST",
+    body: JSON.stringify({
+      ruleId,
+      ruleName,
+    }),
   });
 }
 
 /**
- * Unassign a vaccination rule from a horse
+ * Unassign a vaccination rule from a horse via API
  * @param horseId - Horse ID
- * @param userId - ID of user making the unassignment
+ * @param _userId - ID of user making the unassignment (passed via auth token)
  * @returns Promise that resolves when unassignment is complete
  */
 export async function unassignVaccinationRuleFromHorse(
   horseId: string,
-  userId: string,
+  _userId: string,
 ): Promise<void> {
-  const horseRef = doc(db, "horses", horseId);
-  await updateDoc(horseRef, {
-    vaccinationRuleId: null,
-    vaccinationRuleName: null,
-    updatedAt: Timestamp.now(),
-    lastModifiedBy: userId,
+  await authFetchJSON(`${API_BASE}/${horseId}/unassign-vaccination-rule`, {
+    method: "POST",
   });
 }
 
 /**
- * Unassign all horses from a specific vaccination rule
+ * Unassign all horses from a specific vaccination rule via API
  * Called when a vaccination rule is deleted
- * Now uses backend API instead of direct Firestore operations
  * @param ruleId - Vaccination rule ID
- * @param userId - ID of user making the changes (kept for compatibility, not used)
+ * @param _userId - ID of user making the changes (passed via auth token)
  * @returns Promise with the number of horses unassigned
  */
 export async function unassignHorsesFromVaccinationRule(
   ruleId: string,
-  userId: string,
+  _userId: string,
 ): Promise<number> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{
     success: boolean;
     unassignedCount: number;
-  }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/horses/batch/unassign-from-vaccination-rule`,
-    {
-      method: "POST",
-      body: JSON.stringify({ ruleId }),
-    },
-  );
+  }>(`${API_BASE}/batch/unassign-from-vaccination-rule`, {
+    method: "POST",
+    body: JSON.stringify({ ruleId }),
+  });
 
   return response.unassignedCount;
 }
@@ -678,15 +564,15 @@ export async function unassignHorsesFromVaccinationRule(
 // ============================================================================
 
 /**
- * Move horse to an external location (temporary or permanent)
+ * Move horse to an external location (temporary or permanent) via API
  * @param horseId - Horse ID
- * @param userId - ID of user making the move
+ * @param _userId - ID of user making the move (passed via auth token)
  * @param data - Move data including contact, location, type, date, reason
  * @returns Promise that resolves when move is complete
  */
 export async function moveHorseToExternalLocation(
   horseId: string,
-  userId: string,
+  _userId: string,
   data: {
     contactId?: string; // Contact reference (optional)
     externalLocation?: string;
@@ -709,20 +595,15 @@ export async function moveHorseToExternalLocation(
     }
   }
 
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/horses/${horseId}/move-external`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        contactId: data.contactId,
-        externalLocation: locationName,
-        moveType: data.moveType,
-        departureDate: data.departureDate.toISOString(),
-        reason: data.reason,
-        removeHorse: data.removeHorse || false,
-      }),
-    },
-  );
+  await authFetchJSON(`${API_BASE}/${horseId}/move-external`, {
+    method: "POST",
+    body: JSON.stringify({
+      contactId: data.contactId,
+      externalLocation: locationName,
+      moveType: data.moveType,
+      departureDate: data.departureDate.toISOString(),
+      reason: data.reason,
+      removeHorse: data.removeHorse || false,
+    }),
+  });
 }

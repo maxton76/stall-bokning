@@ -37,7 +37,7 @@ export interface FacilityReservation {
   // Conflict detection
   conflictsWith?: string[] // Array of overlapping reservation IDs
 
-  // Timestamps (managed by firestoreCrud)
+  // Timestamps (managed by API)
   createdAt: Timestamp
   updatedAt: Timestamp
   createdBy: string
