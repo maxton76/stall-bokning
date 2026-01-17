@@ -1,0 +1,60 @@
+{
+  "title": "Stallbokning Assistant",
+  "openAssistant": "Open AI Assistant",
+  "welcome": "Hi! How can I help you?",
+  "welcomeDescription": "Ask me about your schedule, horses, inventory, and more.",
+  "placeholder": "Ask me anything...",
+  "quickActions": "Quick Actions",
+  "newChat": "New",
+  "error": "Something went wrong. Please try again.",
+  "offline": "You are offline. The assistant is not available.",
+  "loading": "Thinking...",
+  "noResults": "No results found",
+  "suggestions": "Suggestions",
+  "actions": {
+    "todaySchedule": "Today's Schedule",
+    "pendingTasks": "Pending Tasks",
+    "lowStock": "Low Stock",
+    "horseStatus": "Horse Status",
+    "upcomingVet": "Upcoming Vet Visits",
+    "weeklySummary": "Weekly Summary",
+    "feedingSchedule": "Feeding Schedule",
+    "overdueInvoices": "Overdue Invoices"
+  },
+  "responses": {
+    "schedule": "Here's the upcoming schedule:",
+    "horses": "Here's an overview of the horses:",
+    "activities": "Here are the activities:",
+    "inventory": "Here's the inventory status:",
+    "invoices": "Here are the invoices:",
+    "contacts": "Here are the contacts:",
+    "feeding": "Here's the feeding schedule:",
+    "health": "Here's the health information:",
+    "availability": "Here's the availability:",
+    "analytics": "Here's the summary:",
+    "recommendations": "Here are my recommendations:",
+    "general": "How can I help you today?",
+    "unknown": "I don't quite understand. Could you rephrase your question?"
+  },
+  "data": {
+    "noActivities": "No activities",
+    "noHorses": "No horses",
+    "noItems": "No items",
+    "noInvoices": "No invoices",
+    "noRecommendations": "No recommendations",
+    "more": "+{{count}} more",
+    "total": "Total"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "completed": "Completed",
+    "overdue": "Overdue",
+    "paid": "Paid",
+    "lowStock": "Low",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low"
+  }
+}

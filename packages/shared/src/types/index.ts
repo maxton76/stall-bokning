@@ -24,3 +24,15 @@ export * from "./transport.js";
 export * from "./inventory.js";
 export * from "./invoice.js";
 export * from "./communication.js";
+
+// Portal (Client Self-Service)
+export * from "./portal.js";
+
+// Lesson Scheduling
+export * from "./lesson.js";
+
+// Payments (Stripe Integration)
+export * from "./payment.js";
+
+// AI Assistant
+export * from "./assistant.js";

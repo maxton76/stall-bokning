@@ -1,13 +1,57 @@
 <!doctype html>
-<html lang="en">
+<html lang="sv">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Stable Booking System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#16a34a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Stallbokning" />
+    <meta name="application-name" content="Stallbokning" />
+    <meta name="msapplication-TileColor" content="#16a34a" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+
+    <!-- Description and SEO -->
+    <meta name="description" content="Modern SaaS platform for stable owners and guests to manage daily chores through an intelligent booking system" />
+    <meta name="keywords" content="stable, booking, horse, management, scheduling, stall, bokning" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Stallbokning - Stable Management System" />
+    <meta property="og:description" content="Modern SaaS platform for stable owners and guests to manage daily chores" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/icons/icon-512x512.png" />
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    <link rel="mask-icon" href="/icons/safari-pinned-tab.svg" color="#16a34a" />
+
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <title>Stallbokning - Stable Management System</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Register service worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('SW registered:', registration.scope);
+            })
+            .catch(error => {
+              console.log('SW registration failed:', error);
+            });
+        });
+      }
+    </script>
   </body>
 </html>

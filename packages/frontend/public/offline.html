@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - Stallbokning</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .offline-container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      padding: 40px;
+      max-width: 420px;
+      text-align: center;
+    }
+
+    .offline-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 24px;
+      background: #fee2e2;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .offline-icon svg {
+      width: 40px;
+      height: 40px;
+      color: #dc2626;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 12px;
+    }
+
+    p {
+      color: #6b7280;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    .tips {
+      background: #f9fafb;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: left;
+      margin-bottom: 24px;
+    }
+
+    .tips h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 12px;
+    }
+
+    .tips ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .tips li {
+      font-size: 14px;
+      color: #6b7280;
+      padding: 6px 0;
+      padding-left: 24px;
+      position: relative;
+    }
+
+    .tips li::before {
+      content: '>';
+      position: absolute;
+      left: 0;
+      color: #16a34a;
+      font-weight: bold;
+    }
+
+    .retry-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #16a34a;
+      color: white;
+      font-size: 16px;
+      font-weight: 500;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .retry-button:hover {
+      background: #15803d;
+    }
+
+    .retry-button:active {
+      background: #14532d;
+    }
+
+    .retry-button svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .status {
+      margin-top: 16px;
+      font-size: 13px;
+      color: #9ca3af;
+    }
+
+    .status.online {
+      color: #16a34a;
+    }
+
+    @media (max-width: 480px) {
+      .offline-container {
+        padding: 24px;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
+
+      p {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="offline-container">
+    <div class="offline-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
+      </svg>
+    </div>
+
+    <h1>Du ar offline</h1>
+    <p>Det verkar som att du inte har nagon internetanslutning just nu. Kontrollera din anslutning och forsok igen.</p>
+
+    <div class="tips">
+      <h2>Du kan fortfarande:</h2>
+      <ul>
+        <li>Se tidigare laddad data</li>
+        <li>Skapa aktiviteter som synkas nar du ar online</li>
+        <li>Visa cachade sidor</li>
+      </ul>
+    </div>
+
+    <button class="retry-button" onclick="tryReconnect()">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+      Forsok igen
+    </button>
+
+    <p class="status" id="status">Vantar pa anslutning...</p>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+
+    function updateStatus() {
+      if (navigator.onLine) {
+        statusEl.textContent = 'Anslutning hittad! Laddar om...';
+        statusEl.className = 'status online';
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        statusEl.textContent = 'Vantar pa anslutning...';
+        statusEl.className = 'status';
+      }
+    }
+
+    function tryReconnect() {
+      statusEl.textContent = 'Forsoker ansluta...';
+
+      fetch('/', { method: 'HEAD', cache: 'no-store' })
+        .then(() => {
+          statusEl.textContent = 'Anslutning etablerad!';
+          statusEl.className = 'status online';
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        })
+        .catch(() => {
+          statusEl.textContent = 'Kunde inte ansluta. Forsok igen.';
+        });
+    }
+
+    window.addEventListener('online', updateStatus);
+    window.addEventListener('offline', updateStatus);
+    updateStatus();
+  </script>
+</body>
+</html>

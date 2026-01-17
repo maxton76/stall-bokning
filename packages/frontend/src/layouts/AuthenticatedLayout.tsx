@@ -68,6 +68,7 @@ import ProfileDropdown from "@/components/shadcn-studio/blocks/dropdown-profile"
 import NotificationDropdown from "@/components/shadcn-studio/blocks/dropdown-notification";
 import { OrganizationsDropdown } from "@/components/shadcn-studio/blocks/dropdown-organizations";
 import { LanguageSwitcherCompact } from "@/components/LanguageSwitcher";
+import { AssistantButton } from "@/components/assistant";
 
 export default function AuthenticatedLayout() {
   const location = useLocation();
@@ -614,6 +615,9 @@ export default function AuthenticatedLayout() {
         <main className="flex-1 overflow-auto">
           <Outlet />
         </main>
+
+        {/* AI Assistant Floating Button */}
+        <AssistantButton />
       </SidebarInset>
     </SidebarProvider>
   );

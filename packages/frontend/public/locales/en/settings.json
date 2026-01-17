@@ -4,13 +4,80 @@
     "description": "Manage your application preferences and settings"
   },
   "sections": {
+    "general": {
+      "title": "Stable Information",
+      "description": "Basic information about your stable"
+    },
+    "scheduling": {
+      "title": "Scheduling Preferences",
+      "description": "Configure how schedules are created and managed",
+      "scheduleHorizon": {
+        "label": "Schedule Horizon (days)",
+        "description": "How many days in advance to create schedules"
+      },
+      "autoAssignment": {
+        "label": "Automatic Shift Assignment",
+        "description": "Use fairness algorithm to automatically assign shifts"
+      },
+      "allowSwaps": {
+        "label": "Allow Shift Swaps",
+        "description": "Members can request to swap shifts with each other"
+      },
+      "requireApproval": {
+        "label": "Require Owner Approval",
+        "description": "Shift swaps must be approved by stable owner"
+      }
+    },
     "notifications": {
-      "title": "Notifications",
-      "description": "Configure how you receive notifications",
+      "title": "Notification Preferences",
+      "description": "Choose which events trigger email notifications",
       "emailNotifications": "Email Notifications",
-      "emailDescription": "Receive notifications via email",
+      "emailDescription": "Master switch for all email notifications",
       "pushNotifications": "Push Notifications",
-      "pushDescription": "Receive push notifications in browser"
+      "pushDescription": "Receive push notifications in browser",
+      "sendNotificationsFor": "Send notifications for:",
+      "shiftReminders": {
+        "label": "Upcoming Shift Reminders",
+        "description": "Remind members about their shifts 24 hours in advance"
+      },
+      "schedulePublished": {
+        "label": "Schedule Published",
+        "description": "Notify members when a new schedule is published"
+      },
+      "memberJoined": {
+        "label": "New Member Joined",
+        "description": "Notify owners when a new member joins the stable"
+      },
+      "shiftSwapRequests": {
+        "label": "Shift Swap Requests",
+        "description": "Notify when members request shift swaps"
+      }
+    },
+    "weighting": {
+      "title": "Fairness Algorithm",
+      "description": "Configure how the system calculates fairness scores and distributes shifts",
+      "memoryHorizon": {
+        "label": "Memory Horizon (days)",
+        "description": "How far back to consider shift history when calculating fairness"
+      },
+      "resetPeriod": {
+        "label": "Reset Period",
+        "description": "How often to reset shift point counters"
+      },
+      "pointsMultiplier": {
+        "label": "Points Multiplier",
+        "description": "Global multiplier for all shift points"
+      },
+      "preview": {
+        "title": "Fairness Algorithm Preview",
+        "description": "With current settings, the system will consider the last <strong>{{days}} days</strong> of shift history and reset counters <strong>{{period}}</strong>."
+      },
+      "resetPeriods": {
+        "monthly": "Monthly",
+        "quarterly": "Quarterly",
+        "yearly": "Yearly",
+        "never": "Never"
+      }
     },
     "appearance": {
       "title": "Appearance",
@@ -44,6 +111,12 @@
       "name": "Name",
       "phone": "Phone Number"
     }
+  },
+  "layout": {
+    "saving": "Saving..."
+  },
+  "fields": {
+    "range": "Range: {{min}}-{{max}}"
   },
   "languages": {
     "en": "English",

@@ -1,0 +1,27 @@
+{
+  "titles": {
+    "invitations": "Inbjudningar",
+    "pendingInvitations": "Väntande inbjudningar",
+    "acceptInvitation": "Acceptera inbjudan",
+    "declineInvitation": "Avböj inbjudan"
+  },
+  "errors": {
+    "notFound": "Inbjudan hittades inte",
+    "expired": "Inbjudan har gått ut",
+    "declineFailed": "Kunde inte avböja inbjudan",
+    "acceptFailed": "Kunde inte acceptera inbjudan",
+    "stableNotFound": "Stallet hittades inte",
+    "incompleteInvitation": "Inbjudan är ofullständig. Saknar: {{missing}}. Kontakta support eller begär en ny inbjudan.",
+    "profileIncomplete": "Vänligen uppdatera din profil med för- och efternamn."
+  },
+  "messages": {
+    "acceptedRole": "Du är nu {{role}} på {{stableName}}",
+    "declined": "Inbjudan avböjd",
+    "declinedDescription": "Du har avböjt inbjudan",
+    "loadFailed": "Kunde inte ladda inbjudningar"
+  },
+  "buttons": {
+    "accept": "Acceptera",
+    "decline": "Avböj"
+  }
+}

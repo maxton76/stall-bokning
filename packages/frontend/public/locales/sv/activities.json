@@ -250,7 +250,11 @@
       "none": "Ingen",
       "horse": "Häst",
       "staff": "Personal",
-      "type": "Typ"
+      "type": "Typ",
+      "assignee": "Tilldelad",
+      "date": "Datum",
+      "category": "Kategori",
+      "status": "Status"
     },
     "forMe": "För mig",
     "showFinished": "Visa slutförda",
@@ -266,6 +270,15 @@
     "week": "Vecka",
     "day": "Dag",
     "list": "Lista"
+  },
+  "quickAdd": {
+    "title": "Snabblägg {{activity}}",
+    "description": "Snabblägg {{activity}}-aktivitet för {{horse}}",
+    "lastDone": "Senast utfört",
+    "neverUnknown": "Aldrig/Okänt",
+    "interval": "Intervall",
+    "weeks": "veckor",
+    "add": "Lägg till"
   },
   "emptyState": {
     "title": "Inga aktiviteter ännu",

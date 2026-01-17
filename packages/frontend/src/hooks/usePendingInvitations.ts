@@ -1,22 +1,23 @@
-import { useEffect } from 'react'
-import { useToast } from '@/hooks/use-toast'
-import { useAuth } from '@/contexts/AuthContext'
-import { useAsyncData } from '@/hooks/useAsyncData'
-import { doc, getDoc } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAsyncData } from "@/hooks/useAsyncData";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import i18n from "@/i18n";
 import {
   getPendingInvitations,
   acceptInvitation,
   declineInvitation,
-  type Invitation
-} from '@/services/invitationService'
+  type Invitation,
+} from "@/services/invitationService";
 
 interface UsePendingInvitationsResult {
-  invitations: Invitation[]
-  loading: boolean
-  accept: (inviteId: string, stableId: string) => Promise<void>
-  decline: (inviteId: string) => Promise<void>
-  refresh: () => Promise<void>
+  invitations: Invitation[];
+  loading: boolean;
+  accept: (inviteId: string, stableId: string) => Promise<void>;
+  decline: (inviteId: string) => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
 /**
@@ -27,54 +28,55 @@ interface UsePendingInvitationsResult {
  * Uses useAsyncData for consistent loading patterns and error handling
  */
 export function usePendingInvitations(): UsePendingInvitationsResult {
-  const { user } = useAuth()
-  const { toast } = useToast()
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   const invitationsData = useAsyncData<Invitation[]>({
     loadFn: async () => {
-      if (!user?.email) return []
-      return getPendingInvitations(user.email)
+      if (!user?.email) return [];
+      return getPendingInvitations(user.email);
     },
-    errorMessage: 'Failed to load invitations'
-  })
+    errorMessage: i18n.t("invites:messages.loadFailed"),
+  });
 
   const accept = async (inviteId: string, stableId: string) => {
-    if (!user?.uid || !user?.email) return
+    if (!user?.uid || !user?.email) return;
 
     try {
-      const invitations = invitationsData.data || []
-      const invite = invitations.find(i => i.id === inviteId)
+      const invitations = invitationsData.data || [];
+      const invite = invitations.find((i) => i.id === inviteId);
 
-      if (!invite) throw new Error('Invitation not found')
+      if (!invite) throw new Error(i18n.t("invites:errors.notFound"));
 
       // ✅ VALIDATE all required fields
-      const missing: string[] = []
-      if (!invite.role) missing.push('role')
-      if (!invite.stableName) missing.push('stableName')
-      if (!stableId) missing.push('stableId')
+      const missing: string[] = [];
+      if (!invite.role) missing.push("role");
+      if (!invite.stableName) missing.push("stableName");
+      if (!stableId) missing.push("stableId");
 
       if (missing.length > 0) {
         throw new Error(
-          `Invitation incomplete. Missing: ${missing.join(', ')}. ` +
-          `Please contact support or request a new invitation.`
-        )
+          i18n.t("invites:errors.incompleteInvitation", {
+            missing: missing.join(", "),
+          }),
+        );
       }
 
       // ✅ FALLBACK for legacy data (shouldn't happen after migration)
-      let stableName = invite.stableName
+      let stableName = invite.stableName;
       if (!stableName) {
-        console.warn('Fetching missing stableName from stable document')
-        const stableDoc = await getDoc(doc(db, 'stables', stableId))
+        console.warn("Fetching missing stableName from stable document");
+        const stableDoc = await getDoc(doc(db, "stables", stableId));
         if (stableDoc.exists()) {
-          stableName = stableDoc.data().name
+          stableName = stableDoc.data().name;
         } else {
-          throw new Error('Stable not found')
+          throw new Error(i18n.t("invites:errors.stableNotFound"));
         }
       }
 
       // ✅ VALIDATE user has firstName/lastName from AuthContext
       if (!user.firstName || !user.lastName) {
-        throw new Error('Please update your profile with your first and last name.')
+        throw new Error(i18n.t("invites:errors.profileIncomplete"));
       }
 
       await acceptInvitation(
@@ -85,58 +87,64 @@ export function usePendingInvitations(): UsePendingInvitationsResult {
         user.lastName,
         stableId,
         stableName,
-        invite.role
-      )
+        invite.role,
+      );
 
       toast({
-        title: 'Success',
-        description: `You are now a ${invite.role} of ${stableName}`
-      })
+        title: i18n.t("errors:titles.success"),
+        description: i18n.t("invites:messages.acceptedRole", {
+          role: invite.role,
+          stableName: stableName,
+        }),
+      });
 
-      await invitationsData.reload()
+      await invitationsData.reload();
     } catch (error) {
-      console.error('Error accepting invitation:', error)
-      const errorMessage = error instanceof Error
-        ? error.message
-        : 'Failed to accept invitation'
+      console.error("Error accepting invitation:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : i18n.t("invites:errors.acceptFailed");
 
       toast({
-        title: 'Error',
+        title: i18n.t("errors:titles.error"),
         description: errorMessage,
-        variant: 'destructive'
-      })
+        variant: "destructive",
+      });
     }
-  }
+  };
 
   const decline = async (inviteId: string) => {
-    if (!user?.uid) return
+    if (!user?.uid) return;
 
     try {
-      await declineInvitation(inviteId, user.uid)
+      await declineInvitation(inviteId, user.uid);
       toast({
-        title: 'Invitation declined',
-        description: 'You have declined the invitation'
-      })
-      await invitationsData.reload()
+        title: i18n.t("invites:messages.declined"),
+        description: i18n.t("invites:messages.declinedDescription"),
+      });
+      await invitationsData.reload();
     } catch (error) {
-      console.error('Error declining invitation:', error)
+      console.error("Error declining invitation:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to decline invitation',
-        variant: 'destructive'
-      })
+        title: i18n.t("errors:titles.error"),
+        description: i18n.t("invites:errors.declineFailed"),
+        variant: "destructive",
+      });
     }
-  }
+  };
 
   useEffect(() => {
-    invitationsData.load()
-  }, [user?.email])
+    invitationsData.load();
+  }, [user?.email]);
 
   return {
     invitations: invitationsData.data || [],
     loading: invitationsData.loading,
     accept,
     decline,
-    refresh: async () => { await invitationsData.reload() }
-  }
+    refresh: async () => {
+      await invitationsData.reload();
+    },
+  };
 }

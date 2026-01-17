@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -47,6 +48,7 @@ export function HorseCard({
   onAssign,
   onUnassign,
 }: HorseCardProps) {
+  const { t } = useTranslation(["horses", "common"]);
   const canAssign = isOwner && !horse.currentStableId && onAssign;
   const canUnassign = isOwner && horse.currentStableId && onUnassign;
   const canEdit = isOwner && onEdit;
@@ -60,7 +62,7 @@ export function HorseCard({
             <CardTitle className="flex items-center gap-2">
               {horse.name}
               {horse.status === "inactive" && (
-                <Badge variant="secondary">Inactive</Badge>
+                <Badge variant="secondary">{t("common:labels.inactive")}</Badge>
               )}
             </CardTitle>
             <CardDescription>
@@ -68,7 +70,9 @@ export function HorseCard({
               {horse.age && (
                 <>
                   {horse.breed && " • "}
-                  <span>{horse.age} years old</span>
+                  <span>
+                    {horse.age} {t("horses:card.yearsOld")}
+                  </span>
                 </>
               )}
             </CardDescription>
@@ -79,26 +83,26 @@ export function HorseCard({
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
                   <MoreVertical className="h-4 w-4" />
-                  <span className="sr-only">Open menu</span>
+                  <span className="sr-only">{t("horses:card.openMenu")}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {canEdit && (
                   <DropdownMenuItem onClick={() => onEdit(horse)}>
                     <Edit className="mr-2 h-4 w-4" />
-                    Edit
+                    {t("common:buttons.edit")}
                   </DropdownMenuItem>
                 )}
                 {canAssign && (
                   <DropdownMenuItem onClick={() => onAssign(horse)}>
                     <LinkIcon className="mr-2 h-4 w-4" />
-                    Assign to Stable
+                    {t("horses:actions.assignToStable")}
                   </DropdownMenuItem>
                 )}
                 {canUnassign && (
                   <DropdownMenuItem onClick={() => onUnassign(horse)}>
                     <Unlink className="mr-2 h-4 w-4" />
-                    Unassign from Stable
+                    {t("horses:actions.unassignFromStable")}
                   </DropdownMenuItem>
                 )}
                 {canDelete && (
@@ -109,7 +113,7 @@ export function HorseCard({
                       className="text-destructive focus:text-destructive"
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
+                      {t("common:buttons.delete")}
                     </DropdownMenuItem>
                   </>
                 )}
@@ -124,13 +128,17 @@ export function HorseCard({
         <div className="grid grid-cols-2 gap-2 text-sm">
           {horse.gender && (
             <div>
-              <span className="text-muted-foreground">Gender:</span>{" "}
+              <span className="text-muted-foreground">
+                {t("horses:card.gender")}
+              </span>{" "}
               <span className="capitalize">{horse.gender}</span>
             </div>
           )}
           {horse.color && (
             <div>
-              <span className="text-muted-foreground">Color:</span>{" "}
+              <span className="text-muted-foreground">
+                {t("horses:card.color")}
+              </span>{" "}
               <span>{horse.color}</span>
             </div>
           )}
@@ -139,7 +147,9 @@ export function HorseCard({
         {/* Owner Info */}
         {showOwner && horse.ownerName && (
           <div className="flex items-center gap-2 text-sm border-t pt-3">
-            <span className="text-muted-foreground">Owner:</span>
+            <span className="text-muted-foreground">
+              {t("horses:card.owner")}
+            </span>
             <span className="font-medium">{horse.ownerName}</span>
             {horse.ownerEmail && (
               <span className="text-muted-foreground text-xs">
@@ -155,16 +165,18 @@ export function HorseCard({
             {horse.currentStableId ? (
               <div className="flex items-center gap-2 text-sm">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">At:</span>
+                <span className="text-muted-foreground">
+                  {t("horses:card.at")}
+                </span>
                 <span className="font-medium">
-                  {horse.currentStableName || "Unknown Stable"}
+                  {horse.currentStableName || t("horses:card.unknownStable")}
                 </span>
               </div>
             ) : (
               <div className="flex items-center gap-2 text-sm">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">
-                  Not assigned to any stable
+                  {t("horses:card.notAssigned")}
                 </span>
               </div>
             )}
@@ -183,13 +195,13 @@ export function HorseCard({
         {horse.assignedAt && (
           <span>
             {toDate(horse.assignedAt) &&
-              `Assigned ${new Date(toDate(horse.assignedAt)!).toLocaleDateString()}`}
+              `${t("horses:card.assigned")} ${new Date(toDate(horse.assignedAt)!).toLocaleDateString()}`}
           </span>
         )}
         {!horse.assignedAt && horse.createdAt && (
           <span>
             {toDate(horse.createdAt) &&
-              `Added ${new Date(toDate(horse.createdAt)!).toLocaleDateString()}`}
+              `${t("horses:card.added")} ${new Date(toDate(horse.createdAt)!).toLocaleDateString()}`}
           </span>
         )}
       </CardFooter>

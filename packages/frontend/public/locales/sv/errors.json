@@ -1,0 +1,29 @@
+{
+  "titles": {
+    "error": "Fel",
+    "success": "Lyckades",
+    "warning": "Varning"
+  },
+  "crud": {
+    "createFailed": "Kunde inte skapa. Försök igen.",
+    "updateFailed": "Kunde inte uppdatera. Försök igen.",
+    "deleteFailed": "Kunde inte ta bort. Försök igen.",
+    "createSuccess": "Skapad",
+    "updateSuccess": "Uppdaterad",
+    "deleteSuccess": "Borttagen"
+  },
+  "network": {
+    "error": "Nätverksfel",
+    "apiConnectionFailed": "Kunde inte ansluta till API",
+    "unexpected": "Ett oväntat fel uppstod",
+    "unknownError": "Okänt fel",
+    "healthCheckFailed": "Hälsokontroll misslyckades",
+    "unableToReachApi": "Kunde inte nå API"
+  },
+  "validation": {
+    "dateRequired": "Datum krävs",
+    "horseRequired": "Häst krävs",
+    "required": "Detta fält krävs"
+  },
+  "generic": "Ett fel uppstod. Försök igen."
+}

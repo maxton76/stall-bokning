@@ -1,0 +1,191 @@
+{
+  "title": "Lektioner",
+  "description": "Hantera lektioner och bokningar",
+  "tabs": {
+    "calendar": "Kalender",
+    "list": "Lista",
+    "types": "Lektionstyper",
+    "instructors": "Instruktörer",
+    "templates": "Schemamallar"
+  },
+  "calendar": {
+    "title": "Lektionskalender",
+    "today": "Idag",
+    "week": "Vecka",
+    "month": "Månad",
+    "noLessons": "Inga lektioner denna dag"
+  },
+  "list": {
+    "title": "Alla lektioner",
+    "empty": "Inga lektioner hittades",
+    "filters": {
+      "allTypes": "Alla typer",
+      "allInstructors": "Alla instruktörer",
+      "allStatuses": "Alla statusar"
+    }
+  },
+  "lesson": {
+    "create": "Ny lektion",
+    "edit": "Redigera lektion",
+    "details": "Lektionsdetaljer",
+    "cancel": "Avboka lektion",
+    "cancelConfirm": "Är du säker på att du vill avboka denna lektion?",
+    "cancelled": "Lektion avbokad",
+    "participants": "Deltagare",
+    "participantsCount": "{{current}}/{{max}} deltagare",
+    "waitlist": "{{count}} på väntelista",
+    "spotsAvailable": "{{count}} platser tillgängliga",
+    "spotsFull": "Fullbokat"
+  },
+  "fields": {
+    "lessonType": "Lektionstyp",
+    "instructor": "Instruktör",
+    "date": "Datum",
+    "startTime": "Starttid",
+    "endTime": "Sluttid",
+    "duration": "Varaktighet",
+    "location": "Plats",
+    "facility": "Anläggning",
+    "maxParticipants": "Max deltagare",
+    "price": "Pris",
+    "notes": "Anteckningar",
+    "status": "Status"
+  },
+  "status": {
+    "scheduled": "Planerad",
+    "confirmed": "Bekräftad",
+    "in_progress": "Pågående",
+    "completed": "Avslutad",
+    "cancelled": "Avbokad"
+  },
+  "types": {
+    "title": "Lektionstyper",
+    "create": "Ny lektionstyp",
+    "edit": "Redigera lektionstyp",
+    "empty": "Inga lektionstyper skapade",
+    "category": {
+      "private": "Privatlektion",
+      "group": "Grupplektion",
+      "clinic": "Klinik",
+      "camp": "Läger",
+      "assessment": "Bedömning",
+      "other": "Övrigt"
+    },
+    "level": {
+      "beginner": "Nybörjare",
+      "novice": "Lätt",
+      "intermediate": "Medel",
+      "advanced": "Avancerad",
+      "professional": "Professionell"
+    },
+    "fields": {
+      "name": "Namn",
+      "description": "Beskrivning",
+      "category": "Kategori",
+      "level": "Nivå",
+      "defaultDuration": "Standardlängd (min)",
+      "minParticipants": "Min deltagare",
+      "maxParticipants": "Max deltagare",
+      "requiresOwnHorse": "Kräver egen häst",
+      "basePrice": "Grundpris",
+      "memberDiscount": "Medlemsrabatt (%)",
+      "color": "Färg",
+      "isActive": "Aktiv"
+    },
+    "cancellationPolicy": {
+      "title": "Avbokningsregler",
+      "strict": "Strikt",
+      "moderate": "Moderat",
+      "flexible": "Flexibel",
+      "custom": "Anpassad"
+    }
+  },
+  "instructors": {
+    "title": "Instruktörer",
+    "create": "Ny instruktör",
+    "edit": "Redigera instruktör",
+    "empty": "Inga instruktörer registrerade",
+    "availability": "Tillgänglighet",
+    "setAvailability": "Ange tillgänglighet",
+    "fields": {
+      "name": "Namn",
+      "email": "E-post",
+      "phone": "Telefon",
+      "bio": "Biografi",
+      "specializations": "Specialiseringar",
+      "certifications": "Certifieringar",
+      "defaultRate": "Standardarvode",
+      "color": "Färg",
+      "isActive": "Aktiv"
+    }
+  },
+  "templates": {
+    "title": "Schemamallar",
+    "description": "Skapa återkommande lektioner automatiskt",
+    "create": "Ny mall",
+    "edit": "Redigera mall",
+    "empty": "Inga schemamallar skapade",
+    "generate": "Generera lektioner",
+    "generateDescription": "Skapa lektioner från mallar för ett datumintervall",
+    "generated": "{{count}} lektioner skapade",
+    "fields": {
+      "name": "Mallnamn",
+      "dayOfWeek": "Veckodag",
+      "effectiveFrom": "Gäller från",
+      "effectiveUntil": "Gäller till"
+    },
+    "days": {
+      "0": "Söndag",
+      "1": "Måndag",
+      "2": "Tisdag",
+      "3": "Onsdag",
+      "4": "Torsdag",
+      "5": "Fredag",
+      "6": "Lördag"
+    }
+  },
+  "bookings": {
+    "title": "Bokningar",
+    "create": "Ny bokning",
+    "edit": "Redigera bokning",
+    "cancel": "Avboka",
+    "cancelConfirm": "Är du säker på att du vill avboka?",
+    "cancelled": "Bokning avbokad",
+    "waitlisted": "Placerad på väntelista",
+    "confirmed": "Bokning bekräftad",
+    "status": {
+      "pending": "Väntar",
+      "confirmed": "Bekräftad",
+      "waitlisted": "Väntelista",
+      "cancelled": "Avbokad",
+      "no_show": "Utebliven",
+      "completed": "Genomförd"
+    },
+    "paymentStatus": {
+      "pending": "Ej betald",
+      "paid": "Betald",
+      "refunded": "Återbetald",
+      "partial": "Delvis betald"
+    },
+    "fields": {
+      "participant": "Deltagare",
+      "horse": "Häst",
+      "notes": "Anteckningar",
+      "paymentStatus": "Betalningsstatus",
+      "amountDue": "Att betala"
+    }
+  },
+  "messages": {
+    "created": "Lektion skapad",
+    "updated": "Lektion uppdaterad",
+    "deleted": "Lektion borttagen",
+    "typeCreated": "Lektionstyp skapad",
+    "typeUpdated": "Lektionstyp uppdaterad",
+    "typeDeleted": "Lektionstyp borttagen",
+    "instructorCreated": "Instruktör skapad",
+    "instructorUpdated": "Instruktör uppdaterad",
+    "templateCreated": "Mall skapad",
+    "bookingCreated": "Bokning skapad",
+    "bookingCancelled": "Bokning avbokad"
+  }
+}

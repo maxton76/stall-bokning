@@ -22,6 +22,8 @@ export const namespaces = [
   "invoices",
   "availability",
   "inventory",
+  "errors",
+  "invites",
 ] as const;
 
 export type Namespace = (typeof namespaces)[number];

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Loader2Icon } from "lucide-react";
@@ -14,6 +15,8 @@ interface LocationHistoryCardProps {
 }
 
 export function LocationHistoryCard({ horse }: LocationHistoryCardProps) {
+  const { t } = useTranslation(["horses", "common"]);
+
   // Fetch location history with TanStack Query
   const {
     data: history = [],
@@ -38,7 +41,7 @@ export function LocationHistoryCard({ horse }: LocationHistoryCardProps) {
       <CardHeader>
         <div className="flex items-center gap-2">
           <MapPin className="h-5 w-5 text-muted-foreground" />
-          <CardTitle>Location History</CardTitle>
+          <CardTitle>{t("horses:detail.locationHistory.title")}</CardTitle>
         </div>
       </CardHeader>
 
@@ -50,7 +53,7 @@ export function LocationHistoryCard({ horse }: LocationHistoryCardProps) {
         ) : history.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-sm text-muted-foreground">
-              No location history available
+              {t("horses:detail.locationHistory.noLocationHistory")}
             </p>
           </div>
         ) : (
@@ -71,7 +74,7 @@ export function LocationHistoryCard({ horse }: LocationHistoryCardProps) {
                       <span className="font-medium">{entry.stableName}</span>
                       {isCurrent && (
                         <Badge variant="default" className="text-xs">
-                          Current
+                          {t("horses:detail.locationHistory.current")}
                         </Badge>
                       )}
                     </div>
@@ -79,13 +82,17 @@ export function LocationHistoryCard({ horse }: LocationHistoryCardProps) {
 
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div>
-                      <span className="font-medium">Arrived:</span>{" "}
+                      <span className="font-medium">
+                        {t("horses:detail.locationHistory.arrived")}
+                      </span>{" "}
                       {toDate(entry.arrivalDate) &&
                         format(toDate(entry.arrivalDate)!, "MMM d, yyyy")}
                     </div>
                     {entry.departureDate && toDate(entry.departureDate) && (
                       <div>
-                        <span className="font-medium">Departed:</span>{" "}
+                        <span className="font-medium">
+                          {t("horses:detail.locationHistory.departed")}
+                        </span>{" "}
                         {format(toDate(entry.departureDate)!, "MMM d, yyyy")}
                       </div>
                     )}
@@ -103,13 +110,15 @@ export function LocationHistoryCard({ horse }: LocationHistoryCardProps) {
               <div className="flex items-center gap-2">
                 <span className="font-medium">{horse.currentStableName}</span>
                 <Badge variant="default" className="text-xs">
-                  Current
+                  {t("horses:detail.locationHistory.current")}
                 </Badge>
               </div>
             </div>
             {horse.assignedAt && (
               <div className="text-sm text-muted-foreground">
-                <span className="font-medium">Arrived:</span>{" "}
+                <span className="font-medium">
+                  {t("horses:detail.locationHistory.arrived")}
+                </span>{" "}
                 {toDate(horse.assignedAt) &&
                   format(toDate(horse.assignedAt)!, "MMM d, yyyy")}
               </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -31,6 +32,7 @@ interface VaccinationCardProps {
 }
 
 export function VaccinationCard({ horse }: VaccinationCardProps) {
+  const { t } = useTranslation(["horses", "common"]);
   const queryClient = useQueryClient();
   const { currentOrganizationId } = useOrganizationContext();
 
@@ -111,7 +113,7 @@ export function VaccinationCard({ horse }: VaccinationCardProps) {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Syringe className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Vaccination</CardTitle>
+            <CardTitle>{t("horses:detail.vaccination.title")}</CardTitle>
           </div>
         </CardHeader>
 
@@ -122,7 +124,7 @@ export function VaccinationCard({ horse }: VaccinationCardProps) {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-semibold">
-                    Current Vaccination Rule
+                    {t("horses:detail.vaccination.currentVaccinationRule")}
                   </h3>
                   <p className="font-medium mt-1">
                     {horse.vaccinationRuleName}
@@ -138,10 +140,14 @@ export function VaccinationCard({ horse }: VaccinationCardProps) {
                           : "destructive"
                     }
                   >
-                    {horse.vaccinationStatus === "current" && "Up to date"}
-                    {horse.vaccinationStatus === "expiring_soon" && "Due soon"}
-                    {horse.vaccinationStatus === "expired" && "Overdue"}
-                    {horse.vaccinationStatus === "no_records" && "No records"}
+                    {horse.vaccinationStatus === "current" &&
+                      t("horses:detail.vaccination.status.upToDate")}
+                    {horse.vaccinationStatus === "expiring_soon" &&
+                      t("horses:detail.vaccination.status.dueSoon")}
+                    {horse.vaccinationStatus === "expired" &&
+                      t("horses:detail.vaccination.status.overdue")}
+                    {horse.vaccinationStatus === "no_records" &&
+                      t("horses:detail.vaccination.status.noRecords")}
                   </Badge>
                 )}
               </div>
@@ -150,7 +156,7 @@ export function VaccinationCard({ horse }: VaccinationCardProps) {
               {horse.nextVaccinationDue && (
                 <div className="flex items-baseline gap-2 pt-2 border-t">
                   <span className="text-sm text-muted-foreground">
-                    Next due:
+                    {t("horses:detail.vaccination.nextDue")}
                   </span>
                   <span
                     className={`font-medium ${
@@ -172,7 +178,7 @@ export function VaccinationCard({ horse }: VaccinationCardProps) {
                 toDate(horse.lastVaccinationDate) && (
                   <div className="flex items-baseline gap-2">
                     <span className="text-sm text-muted-foreground">
-                      Last vaccination:
+                      {t("horses:detail.vaccination.lastVaccination")}
                     </span>
                     <span className="text-sm">
                       {format(
@@ -186,7 +192,7 @@ export function VaccinationCard({ horse }: VaccinationCardProps) {
           ) : (
             <div className="rounded-lg border border-dashed p-6 text-center">
               <p className="text-sm text-muted-foreground">
-                No vaccination rule assigned to this horse
+                {t("horses:detail.vaccination.noVaccinationRuleAssigned")}
               </p>
             </div>
           )}
@@ -226,28 +232,30 @@ export function VaccinationCard({ horse }: VaccinationCardProps) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Vaccination Record</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("horses:detail.vaccination.deleteRecordTitle")}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {deleteDialog.data &&
                 toDate(deleteDialog.data.vaccinationDate) && (
                   <>
-                    Are you sure you want to delete the vaccination record from{" "}
-                    {format(
-                      toDate(deleteDialog.data.vaccinationDate)!,
-                      "MMM d, yyyy",
-                    )}
-                    ? This action cannot be undone.
+                    {t("horses:detail.vaccination.deleteRecordConfirm", {
+                      date: format(
+                        toDate(deleteDialog.data.vaccinationDate)!,
+                        "MMM d, yyyy",
+                      ),
+                    })}
                   </>
                 )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common:buttons.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {t("common:buttons.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

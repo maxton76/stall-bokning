@@ -325,19 +325,19 @@ export function GroupedActivityList({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="assignee">
-                {t("activities:groupBy.assignee")}
+                {t("activities:filters.groupBy.assignee")}
               </SelectItem>
               <SelectItem value="date">
-                {t("activities:groupBy.date")}
+                {t("activities:filters.groupBy.date")}
               </SelectItem>
               <SelectItem value="horse">
-                {t("activities:groupBy.horse")}
+                {t("activities:filters.groupBy.horse")}
               </SelectItem>
               <SelectItem value="category">
-                {t("activities:groupBy.category")}
+                {t("activities:filters.groupBy.category")}
               </SelectItem>
               <SelectItem value="status">
-                {t("activities:groupBy.status")}
+                {t("activities:filters.groupBy.status")}
               </SelectItem>
             </SelectContent>
           </Select>
@@ -502,18 +502,24 @@ export function GroupSelector({
   return (
     <Select value={value} onValueChange={(v) => onChange(v as GroupByOption)}>
       <SelectTrigger className={cn("w-[180px]", className)}>
-        <SelectValue placeholder={t("activities:groupBy.label")} />
+        <SelectValue placeholder={t("activities:filters.groupBy.label")} />
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="assignee">
-          {t("activities:groupBy.assignee")}
+          {t("activities:filters.groupBy.assignee")}
         </SelectItem>
-        <SelectItem value="date">{t("activities:groupBy.date")}</SelectItem>
-        <SelectItem value="horse">{t("activities:groupBy.horse")}</SelectItem>
+        <SelectItem value="date">
+          {t("activities:filters.groupBy.date")}
+        </SelectItem>
+        <SelectItem value="horse">
+          {t("activities:filters.groupBy.horse")}
+        </SelectItem>
         <SelectItem value="category">
-          {t("activities:groupBy.category")}
+          {t("activities:filters.groupBy.category")}
         </SelectItem>
-        <SelectItem value="status">{t("activities:groupBy.status")}</SelectItem>
+        <SelectItem value="status">
+          {t("activities:filters.groupBy.status")}
+        </SelectItem>
       </SelectContent>
     </Select>
   );

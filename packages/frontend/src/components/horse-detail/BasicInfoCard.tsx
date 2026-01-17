@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -25,6 +26,7 @@ export function BasicInfoCard({
   onShare,
   onRemove,
 }: BasicInfoCardProps) {
+  const { t } = useTranslation(["horses", "common"]);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Copy to clipboard handler
@@ -68,7 +70,7 @@ export function BasicInfoCard({
     if (daysUntilExpiry < 0) {
       return (
         <Badge variant="destructive" className="text-xs">
-          Expired
+          {t("horses:detail.basicInfo.expired")}
         </Badge>
       );
     }
@@ -78,7 +80,7 @@ export function BasicInfoCard({
           variant="outline"
           className="text-xs border-amber-300 text-amber-700"
         >
-          Expires soon
+          {t("horses:detail.basicInfo.expiresSoon")}
         </Badge>
       );
     }
@@ -136,7 +138,7 @@ export function BasicInfoCard({
               variant="ghost"
               size="icon"
               disabled
-              title="Share (coming soon)"
+              title={t("horses:detail.basicInfo.shareComingSoon")}
             >
               <Share className="h-4 w-4" />
             </Button>
@@ -144,7 +146,7 @@ export function BasicInfoCard({
               variant="ghost"
               size="icon"
               disabled
-              title="Remove (coming soon)"
+              title={t("horses:detail.basicInfo.removeComingSoon")}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -153,7 +155,7 @@ export function BasicInfoCard({
                 variant="ghost"
                 size="icon"
                 onClick={onEdit}
-                title="Edit horse"
+                title={t("horses:detail.basicInfo.editHorse")}
               >
                 <Edit className="h-4 w-4" />
               </Button>
@@ -167,19 +169,25 @@ export function BasicInfoCard({
         <div className="grid grid-cols-3 gap-4">
           {horse.gender && (
             <div>
-              <p className="text-sm text-muted-foreground">Gender</p>
+              <p className="text-sm text-muted-foreground">
+                {t("horses:detail.basicInfo.gender")}
+              </p>
               <p className="font-medium capitalize">{horse.gender}</p>
             </div>
           )}
           {horse.color && (
             <div>
-              <p className="text-sm text-muted-foreground">Color</p>
+              <p className="text-sm text-muted-foreground">
+                {t("horses:detail.basicInfo.color")}
+              </p>
               <p className="font-medium">{horse.color}</p>
             </div>
           )}
           {horse.studbook && (
             <div>
-              <p className="text-sm text-muted-foreground">Studbook</p>
+              <p className="text-sm text-muted-foreground">
+                {t("horses:detail.basicInfo.studbook")}
+              </p>
               <p className="font-medium">{horse.studbook}</p>
             </div>
           )}
@@ -194,18 +202,21 @@ export function BasicInfoCard({
                 return birthDate ? (
                   <div>
                     <p className="text-sm text-muted-foreground">
-                      Date of birth
+                      {t("horses:detail.basicInfo.dateOfBirth")}
                     </p>
                     <p className="font-medium">
                       {format(birthDate, "M/d/yy")}
-                      {horse.age && ` (${horse.age} years)`}
+                      {horse.age &&
+                        ` (${horse.age} ${t("horses:detail.basicInfo.years")})`}
                     </p>
                   </div>
                 ) : null;
               })()}
             {horse.horseGroupName && (
               <div>
-                <p className="text-sm text-muted-foreground">Group</p>
+                <p className="text-sm text-muted-foreground">
+                  {t("horses:detail.basicInfo.group")}
+                </p>
                 <p className="font-medium">{horse.horseGroupName}</p>
               </div>
             )}
@@ -215,17 +226,21 @@ export function BasicInfoCard({
         {/* 3. Expanded Identification (5 fields with FEI expiry warning) */}
         {hasIdentification && (
           <div className="border-t pt-4">
-            <h3 className="text-sm font-semibold mb-3">Identification</h3>
+            <h3 className="text-sm font-semibold mb-3">
+              {t("horses:detail.basicInfo.identification")}
+            </h3>
             <div className="grid grid-cols-3 gap-4">
               {horse.ueln && (
                 <div>
-                  <p className="text-sm text-muted-foreground">UELN</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("horses:detail.basicInfo.ueln")}
+                  </p>
                   <div className="flex items-center gap-2">
                     <p className="font-mono text-sm">{horse.ueln}</p>
                     <button
                       onClick={() => handleCopy(horse.ueln!, "ueln")}
                       className="text-muted-foreground hover:text-foreground transition-colors"
-                      title="Copy to clipboard"
+                      title={t("horses:detail.basicInfo.copyToClipboard")}
                     >
                       {copiedField === "ueln" ? (
                         <Check className="h-3 w-3 text-green-600" />
@@ -238,7 +253,9 @@ export function BasicInfoCard({
               )}
               {horse.chipNumber && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Chip number</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("horses:detail.basicInfo.chipNumber")}
+                  </p>
                   <div className="flex items-center gap-2">
                     <p className="font-mono text-sm">{horse.chipNumber}</p>
                     <button
@@ -246,7 +263,7 @@ export function BasicInfoCard({
                         handleCopy(horse.chipNumber!, "chipNumber")
                       }
                       className="text-muted-foreground hover:text-foreground transition-colors"
-                      title="Copy to clipboard"
+                      title={t("horses:detail.basicInfo.copyToClipboard")}
                     >
                       {copiedField === "chipNumber" ? (
                         <Check className="h-3 w-3 text-green-600" />
@@ -259,7 +276,9 @@ export function BasicInfoCard({
               )}
               {horse.federationNumber && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Federation</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("horses:detail.basicInfo.federation")}
+                  </p>
                   <div className="flex items-center gap-2">
                     <p className="font-mono text-sm">
                       {horse.federationNumber}
@@ -269,7 +288,7 @@ export function BasicInfoCard({
                         handleCopy(horse.federationNumber!, "federationNumber")
                       }
                       className="text-muted-foreground hover:text-foreground transition-colors"
-                      title="Copy to clipboard"
+                      title={t("horses:detail.basicInfo.copyToClipboard")}
                     >
                       {copiedField === "federationNumber" ? (
                         <Check className="h-3 w-3 text-green-600" />
@@ -282,7 +301,9 @@ export function BasicInfoCard({
               )}
               {horse.feiPassNumber && (
                 <div>
-                  <p className="text-sm text-muted-foreground">FEI Pass</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("horses:detail.basicInfo.feiPass")}
+                  </p>
                   <div className="flex items-center gap-2">
                     <p className="font-mono text-sm">{horse.feiPassNumber}</p>
                     <button
@@ -290,7 +311,7 @@ export function BasicInfoCard({
                         handleCopy(horse.feiPassNumber!, "feiPassNumber")
                       }
                       className="text-muted-foreground hover:text-foreground transition-colors"
-                      title="Copy to clipboard"
+                      title={t("horses:detail.basicInfo.copyToClipboard")}
                     >
                       {copiedField === "feiPassNumber" ? (
                         <Check className="h-3 w-3 text-green-600" />
@@ -307,7 +328,7 @@ export function BasicInfoCard({
                   return expiryDate ? (
                     <div>
                       <p className="text-sm text-muted-foreground">
-                        FEI Expiry
+                        {t("horses:detail.basicInfo.feiExpiry")}
                       </p>
                       <div className="flex items-center gap-2">
                         <p className="font-mono text-sm">
@@ -325,29 +346,39 @@ export function BasicInfoCard({
         {/* 4. Pedigree (with Breeder) */}
         {hasPedigree && (
           <div className="border-t pt-4">
-            <p className="text-sm font-semibold mb-2">Pedigree</p>
+            <p className="text-sm font-semibold mb-2">
+              {t("horses:detail.basicInfo.pedigree")}
+            </p>
             <div className="space-y-1 text-sm">
               {horse.sire && (
                 <div>
-                  <span className="text-muted-foreground">Sire: </span>
+                  <span className="text-muted-foreground">
+                    {t("horses:detail.basicInfo.sire")}{" "}
+                  </span>
                   <span>{horse.sire}</span>
                 </div>
               )}
               {horse.dam && (
                 <div>
-                  <span className="text-muted-foreground">Dam: </span>
+                  <span className="text-muted-foreground">
+                    {t("horses:detail.basicInfo.dam")}{" "}
+                  </span>
                   <span>{horse.dam}</span>
                 </div>
               )}
               {horse.damsire && (
                 <div>
-                  <span className="text-muted-foreground">Damsire: </span>
+                  <span className="text-muted-foreground">
+                    {t("horses:detail.basicInfo.damsire")}{" "}
+                  </span>
                   <span>{horse.damsire}</span>
                 </div>
               )}
               {horse.breeder && (
                 <div>
-                  <span className="text-muted-foreground">Breeder: </span>
+                  <span className="text-muted-foreground">
+                    {t("horses:detail.basicInfo.breeder")}{" "}
+                  </span>
                   <span>{horse.breeder}</span>
                 </div>
               )}
@@ -358,8 +389,12 @@ export function BasicInfoCard({
         {/* 5. Physical Characteristics */}
         {horse.withersHeight && (
           <div className="border-t pt-4">
-            <p className="text-sm text-muted-foreground">Withers Height</p>
-            <p className="font-medium">{horse.withersHeight} cm</p>
+            <p className="text-sm text-muted-foreground">
+              {t("horses:detail.basicInfo.withersHeight")}
+            </p>
+            <p className="font-medium">
+              {horse.withersHeight} {t("horses:detail.basicInfo.cm")}
+            </p>
           </div>
         )}
 
@@ -368,7 +403,9 @@ export function BasicInfoCard({
           <div className="border-t pt-4">
             <div className="flex items-center gap-2 mb-3">
               <Bell className="h-4 w-4 text-amber-500" />
-              <p className="text-sm font-semibold">Special Instructions</p>
+              <p className="text-sm font-semibold">
+                {t("horses:detail.basicInfo.specialInstructions")}
+              </p>
             </div>
             {horse.specialInstructions && (
               <p className="text-sm text-muted-foreground whitespace-pre-wrap mb-3">
@@ -384,7 +421,9 @@ export function BasicInfoCard({
         {/* 7. Notes */}
         {horse.notes && (
           <div className="border-t pt-4">
-            <p className="text-sm font-semibold mb-2">Notes</p>
+            <p className="text-sm font-semibold mb-2">
+              {t("horses:detail.basicInfo.notes")}
+            </p>
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">
               {horse.notes}
             </p>

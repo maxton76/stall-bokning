@@ -37,6 +37,10 @@ import { transportRoutes } from "./routes/transport.js";
 import { inventoryRoutes } from "./routes/inventory.js";
 import { invoicesRoutes } from "./routes/invoices.js";
 import { communicationsRoutes } from "./routes/communications.js";
+import { portalRoutes } from "./routes/portal.js";
+import { lessonRoutes } from "./routes/lessons.js";
+import { paymentsRoutes } from "./routes/payments.js";
+import { assistantRoutes } from "./routes/assistant.js";
 
 const PORT = Number(process.env.PORT) || 8080;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -157,6 +161,10 @@ await fastify.register(transportRoutes, { prefix: "/api/v1" });
 await fastify.register(inventoryRoutes, { prefix: "/api/v1/inventory" });
 await fastify.register(invoicesRoutes, { prefix: "/api/v1/invoices" });
 await fastify.register(communicationsRoutes, { prefix: "/api/v1" });
+await fastify.register(portalRoutes, { prefix: "/api/v1/portal" });
+await fastify.register(lessonRoutes, { prefix: "/api/v1" });
+await fastify.register(paymentsRoutes, { prefix: "/api/v1" });
+await fastify.register(assistantRoutes, { prefix: "/api/v1" });
 
 // 404 handler
 fastify.setNotFoundHandler((request, reply) => {

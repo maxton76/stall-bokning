@@ -4,13 +4,80 @@
     "description": "Hantera dina applikationsinställningar och preferenser"
   },
   "sections": {
+    "general": {
+      "title": "Stallinformation",
+      "description": "Grundläggande information om ditt stall"
+    },
+    "scheduling": {
+      "title": "Schemapreferenser",
+      "description": "Konfigurera hur scheman skapas och hanteras",
+      "scheduleHorizon": {
+        "label": "Schemahorisont (dagar)",
+        "description": "Hur många dagar i förväg scheman ska skapas"
+      },
+      "autoAssignment": {
+        "label": "Automatisk skifttilldelning",
+        "description": "Använd rättvisealgoritmen för att automatiskt tilldela skift"
+      },
+      "allowSwaps": {
+        "label": "Tillåt skiftbyten",
+        "description": "Medlemmar kan begära att byta skift med varandra"
+      },
+      "requireApproval": {
+        "label": "Kräv ägarens godkännande",
+        "description": "Skiftbyten måste godkännas av stallägaren"
+      }
+    },
     "notifications": {
-      "title": "Notifieringar",
-      "description": "Konfigurera hur du tar emot notifieringar",
+      "title": "Notifieringspreferenser",
+      "description": "Välj vilka händelser som ska utlösa e-postnotifieringar",
       "emailNotifications": "E-postnotifieringar",
-      "emailDescription": "Ta emot notifieringar via e-post",
+      "emailDescription": "Huvudbrytare för alla e-postnotifieringar",
       "pushNotifications": "Push-notifieringar",
-      "pushDescription": "Ta emot push-notifieringar i webbläsaren"
+      "pushDescription": "Ta emot push-notifieringar i webbläsaren",
+      "sendNotificationsFor": "Skicka notifieringar för:",
+      "shiftReminders": {
+        "label": "Kommande skiftpåminnelser",
+        "description": "Påminn medlemmar om deras skift 24 timmar i förväg"
+      },
+      "schedulePublished": {
+        "label": "Schema publicerat",
+        "description": "Notifiera medlemmar när ett nytt schema publiceras"
+      },
+      "memberJoined": {
+        "label": "Ny medlem har gått med",
+        "description": "Notifiera ägare när en ny medlem går med i stallet"
+      },
+      "shiftSwapRequests": {
+        "label": "Skiftbytesförfrågningar",
+        "description": "Notifiera när medlemmar begär skiftbyten"
+      }
+    },
+    "weighting": {
+      "title": "Rättvisealgoritm",
+      "description": "Konfigurera hur systemet beräknar rättvisepoäng och fördelar skift",
+      "memoryHorizon": {
+        "label": "Minneshorisont (dagar)",
+        "description": "Hur långt tillbaka skifthistoriken ska beaktas vid rättviseberäkning"
+      },
+      "resetPeriod": {
+        "label": "Återställningsperiod",
+        "description": "Hur ofta skiftpoängräknare ska återställas"
+      },
+      "pointsMultiplier": {
+        "label": "Poängmultiplikator",
+        "description": "Global multiplikator för alla skiftpoäng"
+      },
+      "preview": {
+        "title": "Förhandsgranskning av rättvisealgoritm",
+        "description": "Med nuvarande inställningar kommer systemet att beakta de senaste <strong>{{days}} dagarna</strong> av skifthistorik och återställa räknare <strong>{{period}}</strong>."
+      },
+      "resetPeriods": {
+        "monthly": "Månadsvis",
+        "quarterly": "Kvartalsvis",
+        "yearly": "Årsvis",
+        "never": "Aldrig"
+      }
     },
     "appearance": {
       "title": "Utseende",
@@ -44,6 +111,12 @@
       "name": "Namn",
       "phone": "Telefonnummer"
     }
+  },
+  "layout": {
+    "saving": "Sparar..."
+  },
+  "fields": {
+    "range": "Intervall: {{min}}-{{max}}"
   },
   "languages": {
     "en": "English",

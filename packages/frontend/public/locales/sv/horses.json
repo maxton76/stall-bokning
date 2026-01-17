@@ -136,6 +136,18 @@
       "deleteSuccess": "Hästgrupp har tagits bort"
     }
   },
+  "card": {
+    "yearsOld": "år gammal",
+    "gender": "Kön:",
+    "color": "Färg:",
+    "owner": "Ägare:",
+    "at": "På:",
+    "unknownStable": "Okänt stall",
+    "notAssigned": "Inte tilldelad något stall",
+    "assigned": "Tilldelad",
+    "added": "Tillagd",
+    "openMenu": "Öppna meny"
+  },
   "emptyState": {
     "title": "Inga hästar ännu",
     "description": "Kom igång genom att lägga till din första häst"
@@ -384,6 +396,103 @@
     "damDam": "Mormor",
     "integrationPending": "Integration väntar",
     "integrationPendingDescription": "HorseTelex-integration kräver API-partnerskap. Denna funktion kommer snart."
+  },
+  "detail": {
+    "vaccination": {
+      "title": "Vaccination",
+      "currentVaccinationRule": "Aktuell vaccinationsregel",
+      "nextDue": "Nästa förfallodag:",
+      "lastVaccination": "Senaste vaccination:",
+      "noVaccinationRuleAssigned": "Ingen vaccinationsregel tilldelad denna häst",
+      "deleteRecordTitle": "Ta bort vaccinationspost",
+      "deleteRecordConfirm": "Är du säker på att du vill ta bort vaccinationsposten från {{date}}? Denna åtgärd kan inte ångras.",
+      "status": {
+        "upToDate": "Aktuell",
+        "dueSoon": "Snart förfallen",
+        "overdue": "Förfallen",
+        "noRecords": "Inga poster"
+      }
+    },
+    "locationHistory": {
+      "title": "Platshistorik",
+      "noLocationHistory": "Ingen platshistorik tillgänglig",
+      "current": "Nuvarande",
+      "arrived": "Ankom:",
+      "departed": "Avresa:"
+    },
+    "care": {
+      "title": "Vård",
+      "vaccinationSection": "Vaccination",
+      "nextDue": "Nästa förfallodag:",
+      "noVaccinationRule": "Ingen vaccinationsregel tilldelad",
+      "careSchedules": "Vårdscheman",
+      "farrier": "Hovslagare",
+      "dentist": "Tandläkare",
+      "deworming": "Avmaskning",
+      "viewScheduleInActivities": "Visa schema i Aktiviteter",
+      "vitalStats": "Grunddata",
+      "height": "Höjd",
+      "dateOfBirth": "Födelsedatum",
+      "studbook": "Stambok",
+      "breeder": "Uppfödare"
+    },
+    "activities": {
+      "title": "Senaste aktiviteter",
+      "viewAll": "Visa alla",
+      "noActivities": "Inga aktiviteter registrerade för denna häst",
+      "date": "Datum",
+      "activityType": "Aktivitetstyp",
+      "statusColumn": "Status",
+      "showingCount": "Visar {{count}} senaste aktivitet",
+      "showingCount_other": "Visar {{count}} senaste aktiviteter",
+      "status": {
+        "completed": "Slutförd",
+        "pending": "Väntande",
+        "overdue": "Försenad",
+        "cancelled": "Avbruten"
+      }
+    },
+    "location": {
+      "title": "Plats",
+      "temporaryAway": "Tillfälligt borta",
+      "permanent": "Permanent",
+      "atStable": "På stall",
+      "ownStable": "Eget stall",
+      "unknown": "Okänd",
+      "departed": "Avrest",
+      "since": "Sedan",
+      "reason": "Anledning:",
+      "moveHorse": "Flytta häst"
+    },
+    "basicInfo": {
+      "gender": "Kön",
+      "color": "Färg",
+      "studbook": "Stambok",
+      "dateOfBirth": "Födelsedatum",
+      "years": "år",
+      "group": "Grupp",
+      "identification": "Identifikation",
+      "ueln": "UELN",
+      "chipNumber": "Chipnummer",
+      "federation": "Förbund",
+      "feiPass": "FEI-pass",
+      "feiExpiry": "FEI-utgång",
+      "expired": "Utgången",
+      "expiresSoon": "Går snart ut",
+      "pedigree": "Härstamning",
+      "sire": "Far:",
+      "dam": "Mor:",
+      "damsire": "Morfar:",
+      "breeder": "Uppfödare:",
+      "withersHeight": "Mankhöjd",
+      "cm": "cm",
+      "specialInstructions": "Särskilda instruktioner",
+      "notes": "Anteckningar",
+      "shareComingSoon": "Dela (kommer snart)",
+      "removeComingSoon": "Ta bort (kommer snart)",
+      "editHorse": "Redigera häst",
+      "copyToClipboard": "Kopiera till urklipp"
+    }
   },
   "transport": {
     "title": "Transportinstruktioner",

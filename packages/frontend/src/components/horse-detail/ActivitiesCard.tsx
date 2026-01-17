@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +25,8 @@ interface ActivitiesCardProps {
 }
 
 export function ActivitiesCard({ horse }: ActivitiesCardProps) {
+  const { t } = useTranslation(["horses", "common"]);
+
   // Fetch activities with TanStack Query
   const {
     data: activities = [],
@@ -49,12 +52,12 @@ export function ActivitiesCard({ horse }: ActivitiesCardProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Recent Activities</CardTitle>
+            <CardTitle>{t("horses:detail.activities.title")}</CardTitle>
           </div>
           <Button variant="outline" size="sm" asChild>
             <Link to={`/activities/care?horseId=${horse.id}`}>
               <ExternalLink className="mr-2 h-4 w-4" />
-              View All
+              {t("horses:detail.activities.viewAll")}
             </Link>
           </Button>
         </div>
@@ -68,7 +71,7 @@ export function ActivitiesCard({ horse }: ActivitiesCardProps) {
         ) : activities.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-sm text-muted-foreground">
-              No activities recorded for this horse
+              {t("horses:detail.activities.noActivities")}
             </p>
           </div>
         ) : (
@@ -78,9 +81,13 @@ export function ActivitiesCard({ horse }: ActivitiesCardProps) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Activity Type</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>{t("horses:detail.activities.date")}</TableHead>
+                    <TableHead>
+                      {t("horses:detail.activities.activityType")}
+                    </TableHead>
+                    <TableHead>
+                      {t("horses:detail.activities.statusColumn")}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -122,10 +129,14 @@ export function ActivitiesCard({ horse }: ActivitiesCardProps) {
                                   : "secondary"
                             }
                           >
-                            {activity.status === "completed" && "Completed"}
+                            {activity.status === "completed" &&
+                              t("horses:detail.activities.status.completed")}
                             {activity.status === "pending" &&
-                              (isOverdue ? "Overdue" : "Pending")}
-                            {activity.status === "cancelled" && "Cancelled"}
+                              (isOverdue
+                                ? t("horses:detail.activities.status.overdue")
+                                : t("horses:detail.activities.status.pending"))}
+                            {activity.status === "cancelled" &&
+                              t("horses:detail.activities.status.cancelled")}
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -172,10 +183,14 @@ export function ActivitiesCard({ horse }: ActivitiesCardProps) {
                                 : "secondary"
                           }
                         >
-                          {activity.status === "completed" && "Completed"}
+                          {activity.status === "completed" &&
+                            t("horses:detail.activities.status.completed")}
                           {activity.status === "pending" &&
-                            (isOverdue ? "Overdue" : "Pending")}
-                          {activity.status === "cancelled" && "Cancelled"}
+                            (isOverdue
+                              ? t("horses:detail.activities.status.overdue")
+                              : t("horses:detail.activities.status.pending"))}
+                          {activity.status === "cancelled" &&
+                            t("horses:detail.activities.status.cancelled")}
                         </Badge>
                       </div>
                     </CardContent>
@@ -189,8 +204,9 @@ export function ActivitiesCard({ horse }: ActivitiesCardProps) {
         {activities.length > 0 && (
           <div className="mt-4 text-center">
             <p className="text-sm text-muted-foreground">
-              Showing {activities.length} most recent{" "}
-              {activities.length === 1 ? "activity" : "activities"}
+              {t("horses:detail.activities.showingCount", {
+                count: activities.length,
+              })}
             </p>
           </div>
         )}

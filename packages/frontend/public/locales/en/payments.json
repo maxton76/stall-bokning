@@ -1,0 +1,123 @@
+{
+  "title": "Payments",
+  "description": "Manage payments and Stripe integration",
+  "settings": {
+    "title": "Payment Settings",
+    "stripeConnect": "Stripe Connect",
+    "connectAccount": "Connect Stripe Account",
+    "connectDescription": "Connect your Stripe account to receive online payments",
+    "accountStatus": "Account Status",
+    "chargesEnabled": "Charges Enabled",
+    "payoutsEnabled": "Payouts Enabled",
+    "onboardingComplete": "Onboarding Complete",
+    "acceptedMethods": "Accepted Payment Methods",
+    "defaultCurrency": "Default Currency",
+    "payoutSchedule": "Payout Schedule",
+    "statementDescriptor": "Statement Descriptor",
+    "passFeesToCustomer": "Pass Fees to Customer"
+  },
+  "status": {
+    "not_connected": "Not Connected",
+    "pending": "Pending",
+    "restricted": "Restricted",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "processing": "Processing",
+    "requires_payment_method": "Requires Payment Method",
+    "requires_confirmation": "Requires Confirmation",
+    "requires_action": "Requires Action",
+    "succeeded": "Succeeded",
+    "failed": "Failed",
+    "cancelled": "Cancelled",
+    "refunded": "Refunded",
+    "partially_refunded": "Partially Refunded"
+  },
+  "paymentMethods": {
+    "title": "Payment Methods",
+    "card": "Card",
+    "klarna": "Klarna",
+    "swish": "Swish",
+    "bank_transfer": "Bank Transfer",
+    "sepa_debit": "SEPA Direct Debit",
+    "saved": "Saved Payment Methods",
+    "addNew": "Add Payment Method",
+    "setDefault": "Set as Default",
+    "remove": "Remove",
+    "default": "Default",
+    "expires": "Expires"
+  },
+  "checkout": {
+    "title": "Pay",
+    "payNow": "Pay Now",
+    "processing": "Processing payment...",
+    "success": "Payment successful!",
+    "failed": "Payment failed",
+    "cancelled": "Payment cancelled",
+    "tryAgain": "Try Again",
+    "redirecting": "Redirecting to payment...",
+    "securePayment": "Secure payment via Stripe"
+  },
+  "invoice": {
+    "payInvoice": "Pay Invoice",
+    "amount": "Amount",
+    "dueDate": "Due Date",
+    "invoiceNumber": "Invoice Number"
+  },
+  "refund": {
+    "title": "Refund",
+    "create": "Create Refund",
+    "amount": "Amount to Refund",
+    "fullRefund": "Full Refund",
+    "partialRefund": "Partial Refund",
+    "reason": "Reason",
+    "reasons": {
+      "duplicate": "Duplicate Payment",
+      "fraudulent": "Fraudulent",
+      "requested_by_customer": "Customer Request",
+      "other": "Other"
+    },
+    "success": "Refund created",
+    "failed": "Could not create refund"
+  },
+  "prepaid": {
+    "title": "Prepaid Balance",
+    "balance": "Balance",
+    "deposit": "Deposit",
+    "depositAmount": "Amount to Deposit",
+    "transactions": "Transactions",
+    "type": {
+      "deposit": "Deposit",
+      "charge": "Charge",
+      "refund": "Refund",
+      "adjustment": "Adjustment",
+      "transfer": "Transfer"
+    },
+    "lowBalance": "Low Balance",
+    "autoRecharge": "Auto Recharge"
+  },
+  "history": {
+    "title": "Payment History",
+    "noPayments": "No payments found",
+    "viewDetails": "View Details",
+    "receipt": "Receipt"
+  },
+  "payoutSchedule": {
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "manual": "Manual"
+  },
+  "messages": {
+    "settingsUpdated": "Payment settings updated",
+    "methodSaved": "Payment method saved",
+    "methodRemoved": "Payment method removed",
+    "depositSuccess": "Deposit successful",
+    "connectSuccess": "Stripe account connected"
+  },
+  "errors": {
+    "notEnabled": "Online payments not enabled",
+    "paymentFailed": "Payment failed",
+    "insufficientBalance": "Insufficient balance",
+    "invalidAmount": "Invalid amount"
+  }
+}

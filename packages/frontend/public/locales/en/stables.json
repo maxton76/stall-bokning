@@ -54,7 +54,19 @@
     "owner": "Owner",
     "manager": "Manager",
     "member": "Member",
-    "pending": "Pending"
+    "pending": "Pending",
+    "unknownUser": "Unknown User",
+    "removeMember": {
+      "title": "Remove Member from Stable",
+      "confirmText": "Are you sure you want to remove <strong>{{name}}</strong> ({{role}})? This action cannot be undone.",
+      "warning": "Warning:",
+      "horseWarning_one": "This member has {{count}} horse assigned.",
+      "horseWarning_other": "This member has {{count}} horses assigned.",
+      "horseUnassignNote": "All horses will be automatically unassigned from the stable.",
+      "cancel": "Cancel",
+      "confirm": "Remove Member",
+      "removing": "Removing..."
+    }
   },
   "schedule": {
     "title": "Stable Schedule",

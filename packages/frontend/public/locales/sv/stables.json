@@ -54,7 +54,19 @@
     "owner": "Ägare",
     "manager": "Förvaltare",
     "member": "Medlem",
-    "pending": "Väntande"
+    "pending": "Väntande",
+    "unknownUser": "Okänd användare",
+    "removeMember": {
+      "title": "Ta bort medlem från stall",
+      "confirmText": "Är du säker på att du vill ta bort <strong>{{name}}</strong> ({{role}})? Denna åtgärd kan inte ångras.",
+      "warning": "Varning:",
+      "horseWarning_one": "Denna medlem har {{count}} häst tilldelad.",
+      "horseWarning_other": "Denna medlem har {{count}} hästar tilldelade.",
+      "horseUnassignNote": "Alla hästar kommer automatiskt att tas bort från stallet.",
+      "cancel": "Avbryt",
+      "confirm": "Ta bort medlem",
+      "removing": "Tar bort..."
+    }
   },
   "schedule": {
     "title": "Stallschema",

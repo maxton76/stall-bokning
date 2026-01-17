@@ -73,7 +73,8 @@
     "currency": "Valuta",
     "activeAlerts": "aktiva varningar",
     "select": "Välj...",
-    "weekend": "Helg"
+    "weekend": "Helg",
+    "unknown": "Okänd"
   },
   "status": {
     "active": "Aktiv",
@@ -190,5 +191,43 @@
     "veterinarian": "Veterinär",
     "farrier": "Hovslagare",
     "dentist": "Hästtandläkare"
+  },
+  "dashboard": {
+    "title": "Översikt",
+    "subtitle": "Översikt över stallbokningssystemet",
+    "stats": {
+      "totalBookings": "Totala bokningar",
+      "activeStables": "Aktiva stall",
+      "revenue": "Intäkter",
+      "occupancyRate": "Beläggningsgrad"
+    },
+    "trends": {
+      "percentFromLastMonth": "+{{percent}}% från förra månaden",
+      "newThisMonth": "+{{count}} nya denna månad"
+    },
+    "recentActivity": {
+      "title": "Senaste aktivitet",
+      "placeholder": "Instrumentpanelswidgetar integreras här"
+    }
+  },
+  "pwa": {
+    "installTitle": "Installera Stallbokning",
+    "installDescription": "Snabbare och fungerar offline",
+    "install": "Installera",
+    "updateTitle": "Ny version tillgänglig",
+    "updateDescription": "En ny version av appen är tillgänglig. Uppdatera för att få de senaste förbättringarna och buggfixarna.",
+    "updateNow": "Uppdatera nu",
+    "updateLater": "Senare",
+    "updateAvailable": "En ny version är tillgänglig",
+    "refresh": "Uppdatera",
+    "online": "Online",
+    "offline": "Offline",
+    "offlineMode": "Du är offline. Vissa funktioner är begränsade.",
+    "reconnected": "Återkopplad till internet",
+    "pushEnabled": "Push-notiser aktiverade",
+    "pushDisabled": "Push-notiser avaktiverade",
+    "enableNotifications": "Aktivera notiser",
+    "disableNotifications": "Avaktivera notiser",
+    "notificationPermissionDenied": "Notisbehörighet nekad"
   }
 }

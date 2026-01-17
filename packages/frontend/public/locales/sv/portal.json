@@ -1,0 +1,127 @@
+{
+  "title": "Kundportal",
+  "nav": {
+    "dashboard": "Översikt",
+    "myHorses": "Mina hästar",
+    "invoices": "Fakturor",
+    "messages": "Meddelanden",
+    "profile": "Min profil"
+  },
+  "footer": {
+    "copyright": "{{year}} Stallbokning. Alla rättigheter förbehållna.",
+    "help": "Hjälp",
+    "privacy": "Integritetspolicy"
+  },
+  "dashboard": {
+    "title": "Översikt",
+    "welcome": "Välkommen, {{name}}!",
+    "welcomeDescription": "Här kan du se en översikt över dina hästar, fakturor och kommande aktiviteter.",
+    "horsesCount_one": "{{count}} häst",
+    "horsesCount_other": "{{count}} hästar",
+    "openInvoices": "Öppna fakturor",
+    "upcomingActivities": "Kommande aktiviteter",
+    "unreadMessages": "Olästa meddelanden",
+    "alerts": "Viktigt",
+    "noAlerts": "Inga aktuella meddelanden",
+    "myHorses": "Mina hästar",
+    "viewAllHorses": "Visa alla hästar",
+    "noHorses": "Du har inga hästar registrerade",
+    "recentInvoices": "Senaste fakturor",
+    "viewAllInvoices": "Visa alla fakturor",
+    "noInvoices": "Inga fakturor att visa",
+    "upcomingActivitiesTitle": "Kommande aktiviteter",
+    "viewAllActivities": "Visa alla aktiviteter",
+    "noUpcomingActivities": "Inga kommande aktiviteter"
+  },
+  "horses": {
+    "title": "Mina hästar",
+    "pageDescription": "Här kan du se information om dina hästar",
+    "noHorses": "Du har inga hästar registrerade",
+    "notFound": "Hästen hittades inte",
+    "ownership": {
+      "owner": "Ägare",
+      "co_owner": "Delägare",
+      "rider": "Ryttare",
+      "caretaker": "Skötare",
+      "other": "Annan"
+    },
+    "upcomingActivities_one": "{{count}} kommande aktivitet",
+    "upcomingActivities_other": "{{count}} kommande aktiviteter",
+    "age": "{{age}} år",
+    "healthSummary": "Hälsosammanfattning",
+    "lastVetVisit": "Senaste veterinärbesök",
+    "lastFarrierVisit": "Senaste hovslagar",
+    "nextVaccination": "Nästa vaccination",
+    "nextDeworming": "Nästa avmaskning",
+    "upcomingActivitiesTitle": "Kommande aktiviteter",
+    "upcomingActivitiesDescription": "Planerade aktiviteter för denna häst",
+    "noUpcomingActivities": "Inga kommande aktiviteter"
+  },
+  "invoices": {
+    "title": "Fakturor",
+    "pageDescription": "Här kan du se och betala dina fakturor",
+    "noInvoices": "Du har inga fakturor",
+    "notFound": "Fakturan hittades inte",
+    "totalDue": "Totalt att betala",
+    "overdue": "Förfallna",
+    "daysOverdue_one": "{{days}} dag förfallen",
+    "daysOverdue_other": "{{days}} dagar förfallen",
+    "invoice": "Faktura",
+    "issuedOn": "Utfärdad {{date}}",
+    "details": "Fakturadetaljer",
+    "summary": "Sammanfattning",
+    "paymentHistory": "Betalningshistorik",
+    "downloadPdf": "Ladda ner PDF",
+    "payNow": "Betala nu"
+  },
+  "messages": {
+    "title": "Meddelanden",
+    "description": "Kommunicera med stallpersonalen",
+    "conversations": "Konversationer",
+    "noMessages": "Inga meddelanden",
+    "newMessage": "Nytt meddelande",
+    "newMessageDescription": "Starta en ny konversation med stallpersonalen",
+    "subject": "Ämne",
+    "subjectPlaceholder": "Ange ämne för meddelandet",
+    "message": "Meddelande",
+    "messagePlaceholder": "Skriv ditt meddelande här...",
+    "threadCreated": "Meddelande skickat",
+    "with": "Med {{organization}}",
+    "selectConversation": "Välj en konversation för att se meddelanden",
+    "replyPlaceholder": "Skriv ett svar...",
+    "threadClosed": "Denna konversation är stängd"
+  },
+  "profile": {
+    "title": "Min profil",
+    "description": "Visa och hantera dina kontaktuppgifter och aviseringsinställningar",
+    "personalInfo": "Personuppgifter",
+    "personalInfoDescription": "Kontakta stallpersonalen om du behöver uppdatera dina uppgifter",
+    "organization": "Stall",
+    "notificationPreferences": "Aviseringsinställningar",
+    "notificationDescription": "Välj vilka aviseringar du vill få",
+    "emailNotifications": "E-postaviseringar",
+    "emailNotificationsDescription": "Få aviseringar via e-post",
+    "emailOnInvoice": "Nya fakturor",
+    "emailOnPayment": "Betalningsbekräftelser",
+    "emailOnActivity": "Aktivitetspåminnelser",
+    "emailOnHealth": "Hälsouppdateringar",
+    "emailOnMessage": "Nya meddelanden",
+    "preferencesSaved": "Inställningar sparade"
+  },
+  "activities": {
+    "status": {
+      "scheduled": "Planerad",
+      "confirmed": "Bekräftad",
+      "in_progress": "Pågående",
+      "completed": "Slutförd",
+      "cancelled": "Avbokad"
+    }
+  },
+  "alerts": {
+    "overdueInvoice": "Du har {{count}} förfallen faktura",
+    "overdueInvoice_other": "Du har {{count}} förfallna fakturor",
+    "upcomingVaccination": "{{horseName}} har vaccination inom 7 dagar",
+    "unreadMessages": "Du har {{count}} oläst meddelande",
+    "unreadMessages_other": "Du har {{count}} olästa meddelanden"
+  }
+}

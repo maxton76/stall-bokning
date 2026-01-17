@@ -1,0 +1,123 @@
+{
+  "title": "Betalningar",
+  "description": "Hantera betalningar och Stripe-integration",
+  "settings": {
+    "title": "Betalningsinställningar",
+    "stripeConnect": "Stripe Connect",
+    "connectAccount": "Anslut Stripe-konto",
+    "connectDescription": "Anslut ditt Stripe-konto för att ta emot betalningar online",
+    "accountStatus": "Kontostatus",
+    "chargesEnabled": "Betalningar aktiverade",
+    "payoutsEnabled": "Utbetalningar aktiverade",
+    "onboardingComplete": "Registrering slutförd",
+    "acceptedMethods": "Accepterade betalmetoder",
+    "defaultCurrency": "Standardvaluta",
+    "payoutSchedule": "Utbetalningsschema",
+    "statementDescriptor": "Kontoutdragsbeskrivning",
+    "passFeesToCustomer": "Överför avgifter till kund"
+  },
+  "status": {
+    "not_connected": "Ej ansluten",
+    "pending": "Väntar",
+    "restricted": "Begränsad",
+    "enabled": "Aktiverad",
+    "disabled": "Inaktiverad",
+    "processing": "Behandlas",
+    "requires_payment_method": "Kräver betalmetod",
+    "requires_confirmation": "Kräver bekräftelse",
+    "requires_action": "Kräver åtgärd",
+    "succeeded": "Slutförd",
+    "failed": "Misslyckad",
+    "cancelled": "Avbruten",
+    "refunded": "Återbetald",
+    "partially_refunded": "Delvis återbetald"
+  },
+  "paymentMethods": {
+    "title": "Betalmetoder",
+    "card": "Kort",
+    "klarna": "Klarna",
+    "swish": "Swish",
+    "bank_transfer": "Banköverföring",
+    "sepa_debit": "SEPA-autogiro",
+    "saved": "Sparade betalmetoder",
+    "addNew": "Lägg till betalmetod",
+    "setDefault": "Ange som standard",
+    "remove": "Ta bort",
+    "default": "Standard",
+    "expires": "Utgår"
+  },
+  "checkout": {
+    "title": "Betala",
+    "payNow": "Betala nu",
+    "processing": "Behandlar betalning...",
+    "success": "Betalning lyckades!",
+    "failed": "Betalningen misslyckades",
+    "cancelled": "Betalningen avbröts",
+    "tryAgain": "Försök igen",
+    "redirecting": "Omdirigerar till betalning...",
+    "securePayment": "Säker betalning via Stripe"
+  },
+  "invoice": {
+    "payInvoice": "Betala faktura",
+    "amount": "Belopp",
+    "dueDate": "Förfallodatum",
+    "invoiceNumber": "Fakturanummer"
+  },
+  "refund": {
+    "title": "Återbetalning",
+    "create": "Skapa återbetalning",
+    "amount": "Belopp att återbetala",
+    "fullRefund": "Full återbetalning",
+    "partialRefund": "Delvis återbetalning",
+    "reason": "Anledning",
+    "reasons": {
+      "duplicate": "Dubblettbetalning",
+      "fraudulent": "Bedräglig",
+      "requested_by_customer": "Kundens begäran",
+      "other": "Annat"
+    },
+    "success": "Återbetalning skapad",
+    "failed": "Kunde inte skapa återbetalning"
+  },
+  "prepaid": {
+    "title": "Förbetalat saldo",
+    "balance": "Saldo",
+    "deposit": "Fyll på",
+    "depositAmount": "Belopp att fylla på",
+    "transactions": "Transaktioner",
+    "type": {
+      "deposit": "Insättning",
+      "charge": "Debitering",
+      "refund": "Återbetalning",
+      "adjustment": "Justering",
+      "transfer": "Överföring"
+    },
+    "lowBalance": "Lågt saldo",
+    "autoRecharge": "Automatisk påfyllning"
+  },
+  "history": {
+    "title": "Betalningshistorik",
+    "noPayments": "Inga betalningar hittades",
+    "viewDetails": "Visa detaljer",
+    "receipt": "Kvitto"
+  },
+  "payoutSchedule": {
+    "daily": "Dagligen",
+    "weekly": "Veckovis",
+    "monthly": "Månadsvis",
+    "manual": "Manuell"
+  },
+  "messages": {
+    "settingsUpdated": "Betalningsinställningar uppdaterade",
+    "methodSaved": "Betalmetod sparad",
+    "methodRemoved": "Betalmetod borttagen",
+    "depositSuccess": "Insättning lyckades",
+    "connectSuccess": "Stripe-konto anslutet"
+  },
+  "errors": {
+    "notEnabled": "Online-betalningar är inte aktiverade",
+    "paymentFailed": "Betalningen misslyckades",
+    "insufficientBalance": "Otillräckligt saldo",
+    "invalidAmount": "Ogiltigt belopp"
+  }
+}

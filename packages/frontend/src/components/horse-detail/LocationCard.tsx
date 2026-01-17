@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ interface LocationCardProps {
 }
 
 export function LocationCard({ horse, onUpdate }: LocationCardProps) {
+  const { t } = useTranslation(["horses", "common"]);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Determine current location status
@@ -31,7 +33,8 @@ export function LocationCard({ horse, onUpdate }: LocationCardProps) {
     // Then check stable assignment
     if (horse.currentStableId) {
       return {
-        location: horse.currentStableName || "Own stable",
+        location:
+          horse.currentStableName || t("horses:detail.location.ownStable"),
         type: "stable",
         since: horse.assignedAt,
       };
@@ -39,7 +42,7 @@ export function LocationCard({ horse, onUpdate }: LocationCardProps) {
 
     // No location info
     return {
-      location: "Unknown",
+      location: t("horses:detail.location.unknown"),
       type: "unknown",
     };
   };
@@ -53,7 +56,7 @@ export function LocationCard({ horse, onUpdate }: LocationCardProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <MapPin className="h-5 w-5 text-muted-foreground" />
-              <CardTitle>Location</CardTitle>
+              <CardTitle>{t("horses:detail.location.title")}</CardTitle>
             </div>
           </div>
         </CardHeader>
@@ -80,15 +83,15 @@ export function LocationCard({ horse, onUpdate }: LocationCardProps) {
                         className="text-xs"
                       >
                         {currentLocation.moveType === "temporary"
-                          ? "Temporary away"
-                          : "Permanent"}
+                          ? t("horses:detail.location.temporaryAway")
+                          : t("horses:detail.location.permanent")}
                       </Badge>
                     )}
 
                   {/* Badge for stable */}
                   {currentLocation.type === "stable" && (
                     <Badge variant="outline" className="text-xs">
-                      At stable
+                      {t("horses:detail.location.atStable")}
                     </Badge>
                   )}
                 </div>
@@ -98,7 +101,9 @@ export function LocationCard({ horse, onUpdate }: LocationCardProps) {
               {currentLocation.since && (
                 <div className="text-sm text-muted-foreground">
                   <span className="font-medium">
-                    {currentLocation.type === "external" ? "Departed" : "Since"}
+                    {currentLocation.type === "external"
+                      ? t("horses:detail.location.departed")
+                      : t("horses:detail.location.since")}
                     :
                   </span>{" "}
                   {format(
@@ -113,7 +118,9 @@ export function LocationCard({ horse, onUpdate }: LocationCardProps) {
                 currentLocation.moveType === "permanent" &&
                 horse.externalMoveReason && (
                   <div className="text-sm text-muted-foreground">
-                    <span className="font-medium">Reason:</span>{" "}
+                    <span className="font-medium">
+                      {t("horses:detail.location.reason")}
+                    </span>{" "}
                     {horse.externalMoveReason.charAt(0).toUpperCase() +
                       horse.externalMoveReason.slice(1)}
                   </div>
@@ -126,7 +133,7 @@ export function LocationCard({ horse, onUpdate }: LocationCardProps) {
               variant="outline"
               className="w-full"
             >
-              Move horse
+              {t("horses:detail.location.moveHorse")}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>

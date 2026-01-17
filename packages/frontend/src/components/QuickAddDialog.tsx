@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +28,8 @@ export function QuickAddDialog({
   lastActivity,
   onAdd,
 }: QuickAddDialogProps) {
+  const { t } = useTranslation("activities");
+
   // Don't render if missing data
   if (!horse || !activityType) {
     return null;
@@ -38,8 +41,10 @@ export function QuickAddDialog({
         <DialogHeader>
           <DialogTitle>{activityType.name}</DialogTitle>
           <DialogDescription>
-            Quick add {activityType.name.toLowerCase()} activity for{" "}
-            {horse.name}
+            {t("quickAdd.description", {
+              activity: activityType.name.toLowerCase(),
+              horse: horse.name,
+            })}
           </DialogDescription>
         </DialogHeader>
 
@@ -56,24 +61,26 @@ export function QuickAddDialog({
         {/* Last Done Status */}
         <div className="mb-2">
           <div className="text-sm font-medium">
-            Last done {activityType.name.toLowerCase()}
+            {t("quickAdd.lastDone")} {activityType.name.toLowerCase()}
           </div>
           <div className="text-sm text-muted-foreground">
             {lastActivity && toDate(lastActivity.date)
               ? format(toDate(lastActivity.date)!, "PPP")
-              : "Never/Unknown"}
+              : t("quickAdd.neverUnknown")}
           </div>
         </div>
 
         {/* Interval */}
         <div className="mb-4">
-          <div className="text-sm font-medium">Interval</div>
-          <div className="text-sm text-muted-foreground">26 weeks</div>
+          <div className="text-sm font-medium">{t("quickAdd.interval")}</div>
+          <div className="text-sm text-muted-foreground">
+            26 {t("quickAdd.weeks")}
+          </div>
         </div>
 
         {/* Add Button */}
         <Button onClick={onAdd} className="w-full">
-          Add
+          {t("quickAdd.add")}
         </Button>
       </DialogContent>
     </Dialog>

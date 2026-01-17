@@ -1,9 +1,11 @@
 import { useRef } from "react";
+import { useTranslation } from "react-i18next";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import listPlugin from "@fullcalendar/list";
+import svLocale from "@fullcalendar/core/locales/sv";
 import type {
   EventClickArg,
   DateSelectArg,
@@ -121,6 +123,8 @@ export function GenericCalendarView<T>({
   className = "",
 }: GenericCalendarViewProps<T>) {
   const calendarRef = useRef<FullCalendar>(null);
+  const { i18n } = useTranslation();
+  const isSwedish = i18n.language === "sv";
 
   // Merge with defaults
   const config: Required<CalendarConfig> = {
@@ -347,6 +351,7 @@ export function GenericCalendarView<T>({
         slotLabelInterval={config.slotLabelInterval}
         scrollTime={config.scrollTime}
         nowIndicator={config.nowIndicator}
+        locale={isSwedish ? svLocale : undefined}
       />
     </div>
   );
@@ -368,6 +373,7 @@ export function FacilityCalendarView({
   editable,
   className,
 }: FacilityCalendarViewProps) {
+  const { t } = useTranslation(["facilities", "common"]);
   // Create facility color map
   const facilityColorMap = new Map<string, string>();
   facilities.forEach((facility, index) => {
@@ -399,7 +405,7 @@ export function FacilityCalendarView({
       id: reservation.id,
       title:
         selectedFacilityId === "all"
-          ? `${facility?.name || "Unknown"} - ${reservation.userFullName || reservation.userEmail}`
+          ? `${facility?.name || t("common:labels.unknown")} - ${reservation.userFullName || reservation.userEmail}`
           : reservation.userFullName || reservation.userEmail,
       start: toDate(reservation.startTime) || new Date(),
       end: toDate(reservation.endTime) || new Date(),
@@ -410,7 +416,7 @@ export function FacilityCalendarView({
         item: reservation,
         status: reservation.status,
         facilityId: reservation.facilityId,
-        facilityName: facility?.name || "Unknown",
+        facilityName: facility?.name || t("common:labels.unknown"),
       },
     };
   };

@@ -1,84 +1,117 @@
-import { NumberField } from '../fields/NumberField'
-import { SelectField } from '../fields/SelectField'
-import { SettingSection } from '../sections/SettingSection'
+import { useTranslation, Trans } from "react-i18next";
+import { NumberField } from "../fields/NumberField";
+import { SelectField } from "../fields/SelectField";
+import { SettingSection } from "../sections/SettingSection";
 
 export interface WeightingSettings {
-  memoryHorizonDays: number
-  resetPeriod: 'monthly' | 'quarterly' | 'yearly' | 'never'
-  pointsMultiplier: number
+  memoryHorizonDays: number;
+  resetPeriod: "monthly" | "quarterly" | "yearly" | "never";
+  pointsMultiplier: number;
 }
 
 interface WeightingSettingsTabProps {
-  settings: WeightingSettings
-  onChange: (settings: WeightingSettings) => void
-  disabled?: boolean
+  settings: WeightingSettings;
+  onChange: (settings: WeightingSettings) => void;
+  disabled?: boolean;
 }
-
-const RESET_PERIOD_OPTIONS = [
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'quarterly', label: 'Quarterly' },
-  { value: 'yearly', label: 'Yearly' },
-  { value: 'never', label: 'Never' }
-]
 
 export function WeightingSettingsTab({
   settings,
   onChange,
-  disabled = false
+  disabled = false,
 }: WeightingSettingsTabProps) {
+  const { t } = useTranslation(["settings", "common"]);
+
+  const RESET_PERIOD_OPTIONS = [
+    {
+      value: "monthly",
+      label: t("settings:sections.weighting.resetPeriods.monthly"),
+    },
+    {
+      value: "quarterly",
+      label: t("settings:sections.weighting.resetPeriods.quarterly"),
+    },
+    {
+      value: "yearly",
+      label: t("settings:sections.weighting.resetPeriods.yearly"),
+    },
+    {
+      value: "never",
+      label: t("settings:sections.weighting.resetPeriods.never"),
+    },
+  ];
+
   const handleFieldChange = <K extends keyof WeightingSettings>(
     field: K,
-    value: WeightingSettings[K]
+    value: WeightingSettings[K],
   ) => {
-    onChange({ ...settings, [field]: value })
-  }
+    onChange({ ...settings, [field]: value });
+  };
+
+  const getResetPeriodLabel = (period: string) => {
+    return t(`settings:sections.weighting.resetPeriods.${period}`);
+  };
 
   return (
     <SettingSection
-      title='Fairness Algorithm'
-      description='Configure how the system calculates fairness scores and distributes shifts'
+      title={t("settings:sections.weighting.title")}
+      description={t("settings:sections.weighting.description")}
     >
       <NumberField
-        id='memoryHorizon'
-        label='Memory Horizon (days)'
+        id="memoryHorizon"
+        label={t("settings:sections.weighting.memoryHorizon.label")}
         value={settings.memoryHorizonDays}
-        onChange={(value) => handleFieldChange('memoryHorizonDays', value)}
+        onChange={(value) => handleFieldChange("memoryHorizonDays", value)}
         min={30}
         max={365}
-        description='How far back to consider shift history when calculating fairness'
+        description={t("settings:sections.weighting.memoryHorizon.description")}
         disabled={disabled}
       />
 
       <SelectField
-        id='resetPeriod'
-        label='Reset Period'
+        id="resetPeriod"
+        label={t("settings:sections.weighting.resetPeriod.label")}
         value={settings.resetPeriod}
-        onChange={(value) => handleFieldChange('resetPeriod', value as WeightingSettings['resetPeriod'])}
+        onChange={(value) =>
+          handleFieldChange(
+            "resetPeriod",
+            value as WeightingSettings["resetPeriod"],
+          )
+        }
         options={RESET_PERIOD_OPTIONS}
-        description='How often to reset shift point counters'
+        description={t("settings:sections.weighting.resetPeriod.description")}
         disabled={disabled}
       />
 
       <NumberField
-        id='pointsMultiplier'
-        label='Points Multiplier'
+        id="pointsMultiplier"
+        label={t("settings:sections.weighting.pointsMultiplier.label")}
         value={settings.pointsMultiplier}
-        onChange={(value) => handleFieldChange('pointsMultiplier', value)}
+        onChange={(value) => handleFieldChange("pointsMultiplier", value)}
         min={0.1}
         max={5.0}
         step={0.1}
-        description='Global multiplier for all shift points'
+        description={t(
+          "settings:sections.weighting.pointsMultiplier.description",
+        )}
         disabled={disabled}
       />
 
-      <div className='rounded-lg bg-muted p-4'>
-        <h4 className='font-medium mb-2'>Fairness Algorithm Preview</h4>
-        <p className='text-sm text-muted-foreground'>
-          With current settings, the system will consider the last{' '}
-          <strong>{settings.memoryHorizonDays} days</strong> of shift history and reset
-          counters <strong>{settings.resetPeriod}</strong>.
+      <div className="rounded-lg bg-muted p-4">
+        <h4 className="font-medium mb-2">
+          {t("settings:sections.weighting.preview.title")}
+        </h4>
+        <p className="text-sm text-muted-foreground">
+          <Trans
+            i18nKey="settings:sections.weighting.preview.description"
+            values={{
+              days: settings.memoryHorizonDays,
+              period: getResetPeriodLabel(settings.resetPeriod).toLowerCase(),
+            }}
+            components={{ strong: <strong /> }}
+          />
         </p>
       </div>
     </SettingSection>
-  )
+  );
 }

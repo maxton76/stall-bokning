@@ -250,7 +250,11 @@
       "none": "None",
       "horse": "Horse",
       "staff": "Staff",
-      "type": "Type"
+      "type": "Type",
+      "assignee": "Assignee",
+      "date": "Date",
+      "category": "Category",
+      "status": "Status"
     },
     "forMe": "For me",
     "showFinished": "Show finished",
@@ -266,6 +270,15 @@
     "week": "Week",
     "day": "Day",
     "list": "List"
+  },
+  "quickAdd": {
+    "title": "Quick add {{activity}}",
+    "description": "Quick add {{activity}} activity for {{horse}}",
+    "lastDone": "Last done",
+    "neverUnknown": "Never/Unknown",
+    "interval": "Interval",
+    "weeks": "weeks",
+    "add": "Add"
   },
   "emptyState": {
     "title": "No activities yet",

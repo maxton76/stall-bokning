@@ -1,0 +1,29 @@
+{
+  "titles": {
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning"
+  },
+  "crud": {
+    "createFailed": "Failed to create. Please try again.",
+    "updateFailed": "Failed to update. Please try again.",
+    "deleteFailed": "Failed to delete. Please try again.",
+    "createSuccess": "Created successfully",
+    "updateSuccess": "Updated successfully",
+    "deleteSuccess": "Deleted successfully"
+  },
+  "network": {
+    "error": "Network Error",
+    "apiConnectionFailed": "Failed to connect to API",
+    "unexpected": "An unexpected error occurred",
+    "unknownError": "Unknown Error",
+    "healthCheckFailed": "Health Check Failed",
+    "unableToReachApi": "Unable to reach API"
+  },
+  "validation": {
+    "dateRequired": "Date is required",
+    "horseRequired": "Horse is required",
+    "required": "This field is required"
+  },
+  "generic": "An error occurred. Please try again."
+}

@@ -1,4 +1,6 @@
 import { format } from "date-fns";
+import { sv, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight, Filter, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,12 +26,15 @@ export function CalendarHeader({
   onFilterClick,
   disableAdd = false,
 }: CalendarHeaderProps) {
+  const { t, i18n } = useTranslation(["common", "activities"]);
+  const locale = i18n.language === "sv" ? sv : enUS;
+
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 sm:p-4 border-b gap-2">
       {/* Left: Navigation */}
       <div className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto">
         <Button variant="outline" size="sm" onClick={() => onNavigate("today")}>
-          Today
+          {t("common:time.today")}
         </Button>
         <Button
           variant="outline"
@@ -49,10 +54,10 @@ export function CalendarHeader({
         </Button>
         <div className="ml-2 sm:ml-4 flex items-center gap-2">
           <h2 className="text-base sm:text-xl font-semibold">
-            {format(currentWeekStart, "MMMM yyyy")}
+            {format(currentWeekStart, "MMMM yyyy", { locale })}
           </h2>
           <Badge variant="outline" className="text-xs">
-            Week {getWeekNumber(currentWeekStart)}
+            {t("common:time.week")} {getWeekNumber(currentWeekStart)}
           </Badge>
         </div>
       </div>
@@ -66,7 +71,7 @@ export function CalendarHeader({
           className="flex-1 sm:flex-none"
         >
           <Filter className="h-4 w-4 sm:mr-2" />
-          <span className="hidden sm:inline">Filter</span>
+          <span className="hidden sm:inline">{t("common:buttons.filter")}</span>
         </Button>
         <Tabs
           value={viewMode}
@@ -74,8 +79,12 @@ export function CalendarHeader({
           className="hidden sm:block"
         >
           <TabsList>
-            <TabsTrigger value="day">Day</TabsTrigger>
-            <TabsTrigger value="week">Week</TabsTrigger>
+            <TabsTrigger value="day">
+              {t("activities:calendar.day")}
+            </TabsTrigger>
+            <TabsTrigger value="week">
+              {t("activities:calendar.week")}
+            </TabsTrigger>
           </TabsList>
         </Tabs>
         <Button
@@ -84,7 +93,7 @@ export function CalendarHeader({
           className="flex-1 sm:flex-none"
         >
           <Plus className="h-4 w-4 sm:mr-2" />
-          <span className="sm:inline">Add</span>
+          <span className="sm:inline">{t("common:buttons.add")}</span>
         </Button>
       </div>
     </div>

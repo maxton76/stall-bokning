@@ -1,19 +1,20 @@
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { cn } from '@/lib/utils'
+import { useTranslation } from "react-i18next";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 interface NumberFieldProps {
-  id: string
-  label: string
-  description?: string
-  value: number
-  onChange: (value: number) => void
-  min?: number
-  max?: number
-  step?: number | 'any'
-  disabled?: boolean
-  error?: string
-  className?: string
+  id: string;
+  label: string;
+  description?: string;
+  value: number;
+  onChange: (value: number) => void;
+  min?: number;
+  max?: number;
+  step?: number | "any";
+  disabled?: boolean;
+  error?: string;
+  className?: string;
 }
 
 export function NumberField({
@@ -27,14 +28,16 @@ export function NumberField({
   step = 1,
   disabled = false,
   error,
-  className
+  className,
 }: NumberFieldProps) {
+  const { t } = useTranslation(["settings", "common"]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = parseFloat(e.target.value)
+    const newValue = parseFloat(e.target.value);
     if (!isNaN(newValue)) {
-      onChange(newValue)
+      onChange(newValue);
     }
-  }
+  };
 
   // Build enhanced description with range info
   const enhancedDescription = description
@@ -42,15 +45,15 @@ export function NumberField({
       ? `${description} (${min}-${max})`
       : description
     : min !== undefined && max !== undefined
-    ? `Range: ${min}-${max}`
-    : undefined
+      ? t("settings:fields.range", { min, max })
+      : undefined;
 
   return (
-    <div className={cn('space-y-2', className)}>
+    <div className={cn("space-y-2", className)}>
       <Label htmlFor={id}>{label}</Label>
       <Input
         id={id}
-        type='number'
+        type="number"
         value={value}
         onChange={handleChange}
         min={min}
@@ -61,15 +64,15 @@ export function NumberField({
         aria-describedby={enhancedDescription ? `${id}-description` : undefined}
       />
       {enhancedDescription && !error && (
-        <p id={`${id}-description`} className='text-sm text-muted-foreground'>
+        <p id={`${id}-description`} className="text-sm text-muted-foreground">
           {enhancedDescription}
         </p>
       )}
       {error && (
-        <p id={`${id}-description`} className='text-sm text-destructive'>
+        <p id={`${id}-description`} className="text-sm text-destructive">
           {error}
         </p>
       )}
     </div>
-  )
+  );
 }

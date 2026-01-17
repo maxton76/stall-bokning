@@ -1,5 +1,7 @@
 import { useMemo } from "react";
 import { format, isSameDay } from "date-fns";
+import { sv, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 import type { ActivityEntry, ActivityTypeConfig } from "@/types/activity";
 import { toDate } from "@/utils/timestampUtils";
 
@@ -24,6 +26,9 @@ export function HorseRow({
   onCellClick,
   activityTypes,
 }: HorseRowProps) {
+  const { t, i18n } = useTranslation(["activities", "common"]);
+  const locale = i18n.language === "sv" ? sv : enUS;
+
   // Group activities by day
   const activitiesByDay = useMemo(() => {
     const grouped: Record<string, ActivityEntry[]> = {};
@@ -116,7 +121,7 @@ export function HorseRow({
                     ))}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {format(indicators.time!, "h:mm a")}
+                    {format(indicators.time!, "HH:mm", { locale })}
                   </div>
                 </div>
               )
@@ -157,7 +162,8 @@ export function HorseRow({
                       onActivityClick(activity);
                     }}
                   >
-                    {activityType?.name || "Activity"}
+                    {activityType?.name ||
+                      t("activities:form.entryTypes.activity")}
                   </div>
                 );
               })}
@@ -188,7 +194,7 @@ export function HorseRow({
         <div key={hour} className="flex border-b min-w-max">
           {/* Time label - fixed width */}
           <div className="w-32 md:w-48 flex-shrink-0 p-2 text-xs text-muted-foreground border-r">
-            {format(new Date().setHours(hour, 0), "h:mm a")}
+            {format(new Date().setHours(hour, 0), "HH:mm", { locale })}
           </div>
 
           {/* Day cells for this hour */}
@@ -231,10 +237,13 @@ export function HorseRow({
                         e.stopPropagation();
                         onActivityClick(activity);
                       }}
-                      title={`${activityType?.name || "Activity"} ${activityTime ? format(activityTime, "h:mm a") : ""}`}
+                      title={`${activityType?.name || t("activities:form.entryTypes.activity")} ${activityTime ? format(activityTime, "HH:mm", { locale }) : ""}`}
                     >
-                      {activityType?.name || "Activity"}{" "}
-                      {activityTime ? format(activityTime, "h:mm a") : ""}
+                      {activityType?.name ||
+                        t("activities:form.entryTypes.activity")}{" "}
+                      {activityTime
+                        ? format(activityTime, "HH:mm", { locale })
+                        : ""}
                     </div>
                   );
                 })}

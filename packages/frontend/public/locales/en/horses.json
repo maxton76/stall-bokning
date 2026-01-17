@@ -136,6 +136,18 @@
       "deleteSuccess": "Horse group deleted successfully"
     }
   },
+  "card": {
+    "yearsOld": "years old",
+    "gender": "Gender:",
+    "color": "Color:",
+    "owner": "Owner:",
+    "at": "At:",
+    "unknownStable": "Unknown Stable",
+    "notAssigned": "Not assigned to any stable",
+    "assigned": "Assigned",
+    "added": "Added",
+    "openMenu": "Open menu"
+  },
   "emptyState": {
     "title": "No horses yet",
     "description": "Get started by adding your first horse"
@@ -384,6 +396,103 @@
     "damDam": "Maternal Grandmother",
     "integrationPending": "Integration Pending",
     "integrationPendingDescription": "HorseTelex integration requires API partnership. This feature will be available soon."
+  },
+  "detail": {
+    "vaccination": {
+      "title": "Vaccination",
+      "currentVaccinationRule": "Current Vaccination Rule",
+      "nextDue": "Next due:",
+      "lastVaccination": "Last vaccination:",
+      "noVaccinationRuleAssigned": "No vaccination rule assigned to this horse",
+      "deleteRecordTitle": "Delete Vaccination Record",
+      "deleteRecordConfirm": "Are you sure you want to delete the vaccination record from {{date}}? This action cannot be undone.",
+      "status": {
+        "upToDate": "Up to date",
+        "dueSoon": "Due soon",
+        "overdue": "Overdue",
+        "noRecords": "No records"
+      }
+    },
+    "locationHistory": {
+      "title": "Location History",
+      "noLocationHistory": "No location history available",
+      "current": "Current",
+      "arrived": "Arrived:",
+      "departed": "Departed:"
+    },
+    "care": {
+      "title": "Care",
+      "vaccinationSection": "Vaccination",
+      "nextDue": "Next due:",
+      "noVaccinationRule": "No vaccination rule assigned",
+      "careSchedules": "Care Schedules",
+      "farrier": "Farrier",
+      "dentist": "Dentist",
+      "deworming": "Deworming",
+      "viewScheduleInActivities": "View schedule in Activities",
+      "vitalStats": "Vital Stats",
+      "height": "Height",
+      "dateOfBirth": "Date of Birth",
+      "studbook": "Studbook",
+      "breeder": "Breeder"
+    },
+    "activities": {
+      "title": "Recent Activities",
+      "viewAll": "View All",
+      "noActivities": "No activities recorded for this horse",
+      "date": "Date",
+      "activityType": "Activity Type",
+      "statusColumn": "Status",
+      "showingCount": "Showing {{count}} most recent activity",
+      "showingCount_other": "Showing {{count}} most recent activities",
+      "status": {
+        "completed": "Completed",
+        "pending": "Pending",
+        "overdue": "Overdue",
+        "cancelled": "Cancelled"
+      }
+    },
+    "location": {
+      "title": "Location",
+      "temporaryAway": "Temporary away",
+      "permanent": "Permanent",
+      "atStable": "At stable",
+      "ownStable": "Own stable",
+      "unknown": "Unknown",
+      "departed": "Departed",
+      "since": "Since",
+      "reason": "Reason:",
+      "moveHorse": "Move horse"
+    },
+    "basicInfo": {
+      "gender": "Gender",
+      "color": "Color",
+      "studbook": "Studbook",
+      "dateOfBirth": "Date of birth",
+      "years": "years",
+      "group": "Group",
+      "identification": "Identification",
+      "ueln": "UELN",
+      "chipNumber": "Chip number",
+      "federation": "Federation",
+      "feiPass": "FEI Pass",
+      "feiExpiry": "FEI Expiry",
+      "expired": "Expired",
+      "expiresSoon": "Expires soon",
+      "pedigree": "Pedigree",
+      "sire": "Sire:",
+      "dam": "Dam:",
+      "damsire": "Damsire:",
+      "breeder": "Breeder:",
+      "withersHeight": "Withers Height",
+      "cm": "cm",
+      "specialInstructions": "Special Instructions",
+      "notes": "Notes",
+      "shareComingSoon": "Share (coming soon)",
+      "removeComingSoon": "Remove (coming soon)",
+      "editHorse": "Edit horse",
+      "copyToClipboard": "Copy to clipboard"
+    }
   },
   "transport": {
     "title": "Transport Instructions",

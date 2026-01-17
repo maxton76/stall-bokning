@@ -73,7 +73,8 @@
     "currency": "Currency",
     "activeAlerts": "active alerts",
     "select": "Select...",
-    "weekend": "Weekend"
+    "weekend": "Weekend",
+    "unknown": "Unknown"
   },
   "status": {
     "active": "Active",
@@ -190,5 +191,43 @@
   },
   "errors": {
     "generic": "An error occurred. Please try again."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Stable booking management overview",
+    "stats": {
+      "totalBookings": "Total Bookings",
+      "activeStables": "Active Stables",
+      "revenue": "Revenue",
+      "occupancyRate": "Occupancy Rate"
+    },
+    "trends": {
+      "percentFromLastMonth": "+{{percent}}% from last month",
+      "newThisMonth": "+{{count}} new this month"
+    },
+    "recentActivity": {
+      "title": "Recent Activity",
+      "placeholder": "Dashboard widgets will be integrated here"
+    }
+  },
+  "pwa": {
+    "installTitle": "Install Stallbokning",
+    "installDescription": "Faster and works offline",
+    "install": "Install",
+    "updateTitle": "New version available",
+    "updateDescription": "A new version of the app is available. Update to get the latest improvements and bug fixes.",
+    "updateNow": "Update now",
+    "updateLater": "Later",
+    "updateAvailable": "A new version is available",
+    "refresh": "Refresh",
+    "online": "Online",
+    "offline": "Offline",
+    "offlineMode": "You are offline. Some features are limited.",
+    "reconnected": "Reconnected to internet",
+    "pushEnabled": "Push notifications enabled",
+    "pushDisabled": "Push notifications disabled",
+    "enableNotifications": "Enable notifications",
+    "disableNotifications": "Disable notifications",
+    "notificationPermissionDenied": "Notification permission denied"
   }
 }

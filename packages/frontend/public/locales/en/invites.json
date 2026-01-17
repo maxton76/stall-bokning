@@ -1,0 +1,27 @@
+{
+  "titles": {
+    "invitations": "Invitations",
+    "pendingInvitations": "Pending Invitations",
+    "acceptInvitation": "Accept Invitation",
+    "declineInvitation": "Decline Invitation"
+  },
+  "errors": {
+    "notFound": "Invitation not found",
+    "expired": "Invitation has expired",
+    "declineFailed": "Failed to decline invitation",
+    "acceptFailed": "Failed to accept invitation",
+    "stableNotFound": "Stable not found",
+    "incompleteInvitation": "Invitation incomplete. Missing: {{missing}}. Please contact support or request a new invitation.",
+    "profileIncomplete": "Please update your profile with your first and last name."
+  },
+  "messages": {
+    "acceptedRole": "You are now a {{role}} of {{stableName}}",
+    "declined": "Invitation declined",
+    "declinedDescription": "You have declined the invitation",
+    "loadFailed": "Failed to load invitations"
+  },
+  "buttons": {
+    "accept": "Accept",
+    "decline": "Decline"
+  }
+}

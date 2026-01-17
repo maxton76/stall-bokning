@@ -1,0 +1,60 @@
+{
+  "title": "Stallbokning Assistent",
+  "openAssistant": "Öppna AI-assistenten",
+  "welcome": "Hej! Hur kan jag hjälpa dig?",
+  "welcomeDescription": "Fråga mig om ditt schema, hästar, lager och mer.",
+  "placeholder": "Fråga mig vad som helst...",
+  "quickActions": "Snabbåtgärder",
+  "newChat": "Ny",
+  "error": "Något gick fel. Försök igen.",
+  "offline": "Du är offline. Assistenten är inte tillgänglig.",
+  "loading": "Tänker...",
+  "noResults": "Inga resultat hittades",
+  "suggestions": "Förslag",
+  "actions": {
+    "todaySchedule": "Dagens schema",
+    "pendingTasks": "Väntande uppgifter",
+    "lowStock": "Lågt lager",
+    "horseStatus": "Häststatus",
+    "upcomingVet": "Kommande veterinärbesök",
+    "weeklySummary": "Veckosammanfattning",
+    "feedingSchedule": "Utfodringsschema",
+    "overdueInvoices": "Förfallna fakturor"
+  },
+  "responses": {
+    "schedule": "Här är det kommande schemat:",
+    "horses": "Här är en översikt över hästarna:",
+    "activities": "Här är aktiviteterna:",
+    "inventory": "Här är lagerstatus:",
+    "invoices": "Här är fakturorna:",
+    "contacts": "Här är kontakterna:",
+    "feeding": "Här är utfodringsschemat:",
+    "health": "Här är hälsoinformationen:",
+    "availability": "Här är tillgängligheten:",
+    "analytics": "Här är sammanfattningen:",
+    "recommendations": "Här är mina rekommendationer:",
+    "general": "Hur kan jag hjälpa dig idag?",
+    "unknown": "Jag förstår inte riktigt. Kan du omformulera din fråga?"
+  },
+  "data": {
+    "noActivities": "Inga aktiviteter",
+    "noHorses": "Inga hästar",
+    "noItems": "Inga artiklar",
+    "noInvoices": "Inga fakturor",
+    "noRecommendations": "Inga rekommendationer",
+    "more": "+{{count}} till",
+    "total": "Totalt"
+  },
+  "status": {
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "pending": "Väntande",
+    "completed": "Slutförd",
+    "overdue": "Förfallen",
+    "paid": "Betald",
+    "lowStock": "Lågt",
+    "high": "Hög",
+    "medium": "Medel",
+    "low": "Låg"
+  }
+}

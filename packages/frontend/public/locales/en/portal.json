@@ -1,0 +1,127 @@
+{
+  "title": "Client Portal",
+  "nav": {
+    "dashboard": "Dashboard",
+    "myHorses": "My Horses",
+    "invoices": "Invoices",
+    "messages": "Messages",
+    "profile": "My Profile"
+  },
+  "footer": {
+    "copyright": "{{year}} Stable Booking. All rights reserved.",
+    "help": "Help",
+    "privacy": "Privacy Policy"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome, {{name}}!",
+    "welcomeDescription": "Here you can see an overview of your horses, invoices, and upcoming activities.",
+    "horsesCount_one": "{{count}} horse",
+    "horsesCount_other": "{{count}} horses",
+    "openInvoices": "Open invoices",
+    "upcomingActivities": "Upcoming activities",
+    "unreadMessages": "Unread messages",
+    "alerts": "Important",
+    "noAlerts": "No current alerts",
+    "myHorses": "My Horses",
+    "viewAllHorses": "View all horses",
+    "noHorses": "You have no horses registered",
+    "recentInvoices": "Recent Invoices",
+    "viewAllInvoices": "View all invoices",
+    "noInvoices": "No invoices to show",
+    "upcomingActivitiesTitle": "Upcoming Activities",
+    "viewAllActivities": "View all activities",
+    "noUpcomingActivities": "No upcoming activities"
+  },
+  "horses": {
+    "title": "My Horses",
+    "pageDescription": "Here you can see information about your horses",
+    "noHorses": "You have no horses registered",
+    "notFound": "Horse not found",
+    "ownership": {
+      "owner": "Owner",
+      "co_owner": "Co-owner",
+      "rider": "Rider",
+      "caretaker": "Caretaker",
+      "other": "Other"
+    },
+    "upcomingActivities_one": "{{count}} upcoming activity",
+    "upcomingActivities_other": "{{count}} upcoming activities",
+    "age": "{{age}} years",
+    "healthSummary": "Health Summary",
+    "lastVetVisit": "Last vet visit",
+    "lastFarrierVisit": "Last farrier visit",
+    "nextVaccination": "Next vaccination",
+    "nextDeworming": "Next deworming",
+    "upcomingActivitiesTitle": "Upcoming Activities",
+    "upcomingActivitiesDescription": "Scheduled activities for this horse",
+    "noUpcomingActivities": "No upcoming activities"
+  },
+  "invoices": {
+    "title": "Invoices",
+    "pageDescription": "Here you can view and pay your invoices",
+    "noInvoices": "You have no invoices",
+    "notFound": "Invoice not found",
+    "totalDue": "Total due",
+    "overdue": "Overdue",
+    "daysOverdue_one": "{{days}} day overdue",
+    "daysOverdue_other": "{{days}} days overdue",
+    "invoice": "Invoice",
+    "issuedOn": "Issued {{date}}",
+    "details": "Invoice Details",
+    "summary": "Summary",
+    "paymentHistory": "Payment History",
+    "downloadPdf": "Download PDF",
+    "payNow": "Pay Now"
+  },
+  "messages": {
+    "title": "Messages",
+    "description": "Communicate with the stable staff",
+    "conversations": "Conversations",
+    "noMessages": "No messages",
+    "newMessage": "New Message",
+    "newMessageDescription": "Start a new conversation with the stable staff",
+    "subject": "Subject",
+    "subjectPlaceholder": "Enter the subject of your message",
+    "message": "Message",
+    "messagePlaceholder": "Write your message here...",
+    "threadCreated": "Message sent",
+    "with": "With {{organization}}",
+    "selectConversation": "Select a conversation to view messages",
+    "replyPlaceholder": "Write a reply...",
+    "threadClosed": "This conversation is closed"
+  },
+  "profile": {
+    "title": "My Profile",
+    "description": "View and manage your contact information and notification settings",
+    "personalInfo": "Personal Information",
+    "personalInfoDescription": "Contact the stable staff if you need to update your information",
+    "organization": "Stable",
+    "notificationPreferences": "Notification Preferences",
+    "notificationDescription": "Choose which notifications you want to receive",
+    "emailNotifications": "Email Notifications",
+    "emailNotificationsDescription": "Receive notifications via email",
+    "emailOnInvoice": "New invoices",
+    "emailOnPayment": "Payment confirmations",
+    "emailOnActivity": "Activity reminders",
+    "emailOnHealth": "Health updates",
+    "emailOnMessage": "New messages",
+    "preferencesSaved": "Preferences saved"
+  },
+  "activities": {
+    "status": {
+      "scheduled": "Scheduled",
+      "confirmed": "Confirmed",
+      "in_progress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "alerts": {
+    "overdueInvoice": "You have {{count}} overdue invoice",
+    "overdueInvoice_other": "You have {{count}} overdue invoices",
+    "upcomingVaccination": "{{horseName}} has vaccination within 7 days",
+    "unreadMessages": "You have {{count}} unread message",
+    "unreadMessages_other": "You have {{count}} unread messages"
+  }
+}

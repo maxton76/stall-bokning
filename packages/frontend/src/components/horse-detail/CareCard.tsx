@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,8 @@ interface CareCardProps {
 }
 
 export function CareCard({ horse }: CareCardProps) {
+  const { t } = useTranslation(["horses", "common"]);
+
   const birthDate =
     horse.dateOfBirth && toDate(horse.dateOfBirth)
       ? format(toDate(horse.dateOfBirth)!, "MMM d, yyyy")
@@ -22,14 +25,16 @@ export function CareCard({ horse }: CareCardProps) {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Heart className="h-5 w-5 text-muted-foreground" />
-          <CardTitle>Care</CardTitle>
+          <CardTitle>{t("horses:detail.care.title")}</CardTitle>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-6">
         {/* Vaccination Rules */}
         <div>
-          <h3 className="text-sm font-semibold mb-3">Vaccination</h3>
+          <h3 className="text-sm font-semibold mb-3">
+            {t("horses:detail.care.vaccinationSection")}
+          </h3>
           {horse.vaccinationRuleId && horse.vaccinationRuleName ? (
             <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
               <div>
@@ -37,7 +42,7 @@ export function CareCard({ horse }: CareCardProps) {
                 {horse.nextVaccinationDue &&
                   toDate(horse.nextVaccinationDue) && (
                     <p className="text-sm text-muted-foreground">
-                      Next due:{" "}
+                      {t("horses:detail.care.nextDue")}{" "}
                       {format(toDate(horse.nextVaccinationDue)!, "MMM d, yyyy")}
                     </p>
                   )}
@@ -52,32 +57,38 @@ export function CareCard({ horse }: CareCardProps) {
                         : "destructive"
                   }
                 >
-                  {horse.vaccinationStatus === "current" && "Up to date"}
-                  {horse.vaccinationStatus === "expiring_soon" && "Due soon"}
-                  {horse.vaccinationStatus === "expired" && "Overdue"}
-                  {horse.vaccinationStatus === "no_records" && "No records"}
+                  {horse.vaccinationStatus === "current" &&
+                    t("horses:detail.vaccination.status.upToDate")}
+                  {horse.vaccinationStatus === "expiring_soon" &&
+                    t("horses:detail.vaccination.status.dueSoon")}
+                  {horse.vaccinationStatus === "expired" &&
+                    t("horses:detail.vaccination.status.overdue")}
+                  {horse.vaccinationStatus === "no_records" &&
+                    t("horses:detail.vaccination.status.noRecords")}
                 </Badge>
               )}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              No vaccination rule assigned
+              {t("horses:detail.care.noVaccinationRule")}
             </p>
           )}
         </div>
 
         {/* Care Schedules */}
         <div>
-          <h3 className="text-sm font-semibold mb-3">Care Schedules</h3>
+          <h3 className="text-sm font-semibold mb-3">
+            {t("horses:detail.care.careSchedules")}
+          </h3>
           <div className="space-y-2">
             <Link
               to={`/activities/care?horseId=${horse.id}&type=farrier`}
               className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
             >
               <div>
-                <p className="font-medium">Farrier</p>
+                <p className="font-medium">{t("horses:detail.care.farrier")}</p>
                 <p className="text-sm text-muted-foreground">
-                  View schedule in Activities
+                  {t("horses:detail.care.viewScheduleInActivities")}
                 </p>
               </div>
               <ExternalLink className="h-4 w-4 text-muted-foreground" />
@@ -88,9 +99,9 @@ export function CareCard({ horse }: CareCardProps) {
               className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
             >
               <div>
-                <p className="font-medium">Dentist</p>
+                <p className="font-medium">{t("horses:detail.care.dentist")}</p>
                 <p className="text-sm text-muted-foreground">
-                  View schedule in Activities
+                  {t("horses:detail.care.viewScheduleInActivities")}
                 </p>
               </div>
               <ExternalLink className="h-4 w-4 text-muted-foreground" />
@@ -101,9 +112,11 @@ export function CareCard({ horse }: CareCardProps) {
               className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
             >
               <div>
-                <p className="font-medium">Deworming</p>
+                <p className="font-medium">
+                  {t("horses:detail.care.deworming")}
+                </p>
                 <p className="text-sm text-muted-foreground">
-                  View schedule in Activities
+                  {t("horses:detail.care.viewScheduleInActivities")}
                 </p>
               </div>
               <ExternalLink className="h-4 w-4 text-muted-foreground" />
@@ -114,29 +127,41 @@ export function CareCard({ horse }: CareCardProps) {
         {/* Vital Stats */}
         {(horse.withersHeight || birthDate || horse.studbook) && (
           <div className="border-t pt-4">
-            <h3 className="text-sm font-semibold mb-3">Vital Stats</h3>
+            <h3 className="text-sm font-semibold mb-3">
+              {t("horses:detail.care.vitalStats")}
+            </h3>
             <div className="grid grid-cols-2 gap-3">
               {horse.withersHeight && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Height</p>
-                  <p className="font-medium">{horse.withersHeight} cm</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("horses:detail.care.height")}
+                  </p>
+                  <p className="font-medium">
+                    {horse.withersHeight} {t("horses:detail.basicInfo.cm")}
+                  </p>
                 </div>
               )}
               {birthDate && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Date of Birth</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("horses:detail.care.dateOfBirth")}
+                  </p>
                   <p className="font-medium">{birthDate}</p>
                 </div>
               )}
               {horse.studbook && (
                 <div className="col-span-2">
-                  <p className="text-sm text-muted-foreground">Studbook</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("horses:detail.care.studbook")}
+                  </p>
                   <p className="font-medium">{horse.studbook}</p>
                 </div>
               )}
               {horse.breeder && (
                 <div className="col-span-2">
-                  <p className="text-sm text-muted-foreground">Breeder</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("horses:detail.care.breeder")}
+                  </p>
                   <p className="font-medium">{horse.breeder}</p>
                 </div>
               )}

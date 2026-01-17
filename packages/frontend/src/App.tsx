@@ -55,6 +55,12 @@ const InventoryPage = lazy(() => import("./pages/InventoryPage"));
 // Invoice pages
 const InvoicesPage = lazy(() => import("./pages/InvoicesPage"));
 
+// Lessons pages
+const LessonsPage = lazy(() => import("./pages/LessonsPage"));
+
+// Payment pages
+const PaymentSettingsPage = lazy(() => import("./pages/PaymentSettingsPage"));
+
 // Availability pages
 const MyAvailabilityPage = lazy(() => import("./pages/MyAvailabilityPage"));
 const StaffMatrixPage = lazy(() => import("./pages/StaffMatrixPage"));
@@ -106,6 +112,29 @@ const ScheduleManagementPage = lazy(
 // Contact pages
 const ContactsPage = lazy(() => import("./pages/ContactsPage"));
 const ContactDetailPage = lazy(() => import("./pages/ContactDetailPage"));
+
+// Portal pages (Client Self-Service)
+const PortalLayout = lazy(() => import("./layouts/PortalLayout"));
+const PortalDashboard = lazy(() => import("./pages/portal/PortalDashboard"));
+const PortalHorsesPage = lazy(() => import("./pages/portal/PortalHorsesPage"));
+const PortalHorseDetailPage = lazy(
+  () => import("./pages/portal/PortalHorseDetailPage"),
+);
+const PortalInvoicesPage = lazy(
+  () => import("./pages/portal/PortalInvoicesPage"),
+);
+const PortalInvoiceDetailPage = lazy(
+  () => import("./pages/portal/PortalInvoiceDetailPage"),
+);
+const PortalMessagesPage = lazy(
+  () => import("./pages/portal/PortalMessagesPage"),
+);
+const PortalProfilePage = lazy(
+  () => import("./pages/portal/PortalProfilePage"),
+);
+const PortalPaymentPage = lazy(
+  () => import("./pages/portal/PortalPaymentPage"),
+);
 
 // Full-page loading spinner for initial route load
 function PageLoader() {
@@ -342,6 +371,16 @@ function App() {
                   }
                 />
 
+                {/* Lesson routes */}
+                <Route
+                  path="/lessons"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <LessonsPage />
+                    </Suspense>
+                  }
+                />
+
                 {/* Stable routes */}
                 <Route
                   path="/stables"
@@ -482,6 +521,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="/organizations/:organizationId/settings/payments"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <PaymentSettingsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
                   path="/organizations/:organizationId/leave-management"
                   element={
                     <Suspense fallback={<InlineLoader />}>
@@ -520,6 +567,82 @@ function App() {
                   element={
                     <Suspense fallback={<InlineLoader />}>
                       <ContactDetailPage />
+                    </Suspense>
+                  }
+                />
+              </Route>
+
+              {/* Portal routes (Client Self-Service) - separate layout */}
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <PortalLayout />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              >
+                <Route
+                  path="/portal"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <PortalDashboard />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/portal/horses"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <PortalHorsesPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/portal/horses/:horseId"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <PortalHorseDetailPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/portal/invoices"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <PortalInvoicesPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/portal/invoices/:invoiceId"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <PortalInvoiceDetailPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/portal/pay/:invoiceId"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <PortalPaymentPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/portal/messages"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <PortalMessagesPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/portal/profile"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <PortalProfilePage />
                     </Suspense>
                   }
                 />
