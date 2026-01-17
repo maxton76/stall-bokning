@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 
@@ -12,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useOrganizationContext } from "@/contexts/OrganizationContext";
 
 const RegisterForm = () => {
+  const { t } = useTranslation("auth");
   const navigate = useNavigate();
   const { toast } = useToast();
   const { setCurrentOrganizationId } = useOrganizationContext();
@@ -36,8 +38,8 @@ const RegisterForm = () => {
     // Validation
     if (!formData.firstName.trim()) {
       toast({
-        title: "Error",
-        description: "First name is required",
+        title: t("errors.registrationFailed"),
+        description: t("errors.firstNameRequired"),
         variant: "destructive",
       });
       return;
@@ -45,8 +47,8 @@ const RegisterForm = () => {
 
     if (!formData.lastName.trim()) {
       toast({
-        title: "Error",
-        description: "Last name is required",
+        title: t("errors.registrationFailed"),
+        description: t("errors.lastNameRequired"),
         variant: "destructive",
       });
       return;
@@ -54,8 +56,8 @@ const RegisterForm = () => {
 
     if (!formData.email.trim()) {
       toast({
-        title: "Error",
-        description: "Email is required",
+        title: t("errors.registrationFailed"),
+        description: t("errors.emailRequired"),
         variant: "destructive",
       });
       return;
@@ -63,8 +65,8 @@ const RegisterForm = () => {
 
     if (formData.password.length < 6) {
       toast({
-        title: "Error",
-        description: "Password must be at least 6 characters",
+        title: t("errors.registrationFailed"),
+        description: t("errors.passwordTooShort"),
         variant: "destructive",
       });
       return;
@@ -72,8 +74,8 @@ const RegisterForm = () => {
 
     if (formData.password !== formData.confirmPassword) {
       toast({
-        title: "Error",
-        description: "Passwords do not match",
+        title: t("errors.registrationFailed"),
+        description: t("errors.passwordsDontMatch"),
         variant: "destructive",
       });
       return;
@@ -81,8 +83,8 @@ const RegisterForm = () => {
 
     if (!formData.agreedToTerms) {
       toast({
-        title: "Error",
-        description: "You must agree to the privacy policy and terms",
+        title: t("errors.registrationFailed"),
+        description: t("errors.mustAgreeToTerms"),
         variant: "destructive",
       });
       return;
@@ -102,9 +104,8 @@ const RegisterForm = () => {
       setCurrentOrganizationId(organizationId);
 
       toast({
-        title: "Success",
-        description:
-          "Welcome to StableBook! Your organization has been created.",
+        title: t("success.accountCreated"),
+        description: t("success.accountCreated"),
       });
 
       // Navigate to horses page (user is already logged in after registration)
@@ -112,11 +113,11 @@ const RegisterForm = () => {
     } catch (error) {
       console.error("Registration error:", error);
       toast({
-        title: "Registration Failed",
+        title: t("errors.registrationFailed"),
         description:
           error instanceof Error
             ? error.message
-            : "Failed to create account. Please try again.",
+            : t("errors.registrationFailed"),
         variant: "destructive",
       });
     } finally {
@@ -129,12 +130,12 @@ const RegisterForm = () => {
       {/* First Name */}
       <div className="space-y-1">
         <Label className="leading-5" htmlFor="firstName">
-          First Name*
+          {t("register.firstNameLabel")}
         </Label>
         <Input
           type="text"
           id="firstName"
-          placeholder="John"
+          placeholder={t("register.firstNamePlaceholder")}
           value={formData.firstName}
           onChange={(e) =>
             setFormData({ ...formData, firstName: e.target.value })
@@ -146,12 +147,12 @@ const RegisterForm = () => {
       {/* Last Name */}
       <div className="space-y-1">
         <Label className="leading-5" htmlFor="lastName">
-          Last Name*
+          {t("register.lastNameLabel")}
         </Label>
         <Input
           type="text"
           id="lastName"
-          placeholder="Doe"
+          placeholder={t("register.lastNamePlaceholder")}
           value={formData.lastName}
           onChange={(e) =>
             setFormData({ ...formData, lastName: e.target.value })
@@ -163,12 +164,12 @@ const RegisterForm = () => {
       {/* Email */}
       <div className="space-y-1">
         <Label className="leading-5" htmlFor="userEmail">
-          Email address*
+          {t("register.emailLabel")}
         </Label>
         <Input
           type="email"
           id="userEmail"
-          placeholder="Enter your email address"
+          placeholder={t("register.emailPlaceholder")}
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           disabled={isLoading}
@@ -178,13 +179,13 @@ const RegisterForm = () => {
       {/* Password */}
       <div className="w-full space-y-1">
         <Label className="leading-5" htmlFor="password">
-          Password*
+          {t("register.passwordLabel")}
         </Label>
         <div className="relative">
           <Input
             id="password"
             type={isPasswordVisible ? "text" : "password"}
-            placeholder="••••••••••••••••"
+            placeholder={t("register.passwordPlaceholder")}
             className="pr-9"
             value={formData.password}
             onChange={(e) =>
@@ -202,7 +203,9 @@ const RegisterForm = () => {
           >
             {isPasswordVisible ? <EyeOffIcon /> : <EyeIcon />}
             <span className="sr-only">
-              {isPasswordVisible ? "Hide password" : "Show password"}
+              {isPasswordVisible
+                ? t("login.hidePassword")
+                : t("login.showPassword")}
             </span>
           </Button>
         </div>
@@ -211,13 +214,13 @@ const RegisterForm = () => {
       {/* Confirm Password */}
       <div className="w-full space-y-1">
         <Label className="leading-5" htmlFor="confirmPassword">
-          Confirm Password*
+          {t("register.confirmPasswordLabel")}
         </Label>
         <div className="relative">
           <Input
             id="confirmPassword"
             type={isConfirmPasswordVisible ? "text" : "password"}
-            placeholder="••••••••••••••••"
+            placeholder={t("register.confirmPasswordPlaceholder")}
             className="pr-9"
             value={formData.confirmPassword}
             onChange={(e) =>
@@ -237,7 +240,9 @@ const RegisterForm = () => {
           >
             {isConfirmPasswordVisible ? <EyeOffIcon /> : <EyeIcon />}
             <span className="sr-only">
-              {isConfirmPasswordVisible ? "Hide password" : "Show password"}
+              {isConfirmPasswordVisible
+                ? t("login.hidePassword")
+                : t("login.showPassword")}
             </span>
           </Button>
         </div>
@@ -255,13 +260,17 @@ const RegisterForm = () => {
           disabled={isLoading}
         />
         <Label htmlFor="agreedToTerms">
-          <span className="text-muted-foreground">I agree to</span>{" "}
-          <a href="#">privacy policy & terms</a>
+          <span className="text-muted-foreground">
+            {t("register.agreeToTerms")}
+          </span>{" "}
+          <a href="#">{t("register.termsOfService")}</a>
         </Label>
       </div>
 
       <Button className="w-full" type="submit" disabled={isLoading}>
-        {isLoading ? "Creating Account..." : "Create StableBook Account"}
+        {isLoading
+          ? t("register.creatingAccount")
+          : t("register.createAccount")}
       </Button>
     </form>
   );

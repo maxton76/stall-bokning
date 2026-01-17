@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Plus, Users, Settings, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +16,7 @@ import { getUserOrganizations } from "@/services/organizationService";
 import type { Organization } from "@shared/types/organization";
 
 export default function OrganizationsPage() {
+  const { t } = useTranslation(["organizations", "common"]);
   const { user } = useAuth();
 
   const { data: organizations, loading } = useAsyncData<Organization[]>({
@@ -26,35 +28,40 @@ export default function OrganizationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Organizations</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {t("organizations:page.title")}
+          </h1>
           <p className="text-muted-foreground mt-1">
-            Manage your organizations and their members
+            {t("organizations:page.description")}
           </p>
         </div>
         <Button asChild>
           <Link to="/organizations/create">
             <Plus className="h-4 w-4 mr-2" />
-            Create Organization
+            {t("organizations:form.title.create")}
           </Link>
         </Button>
       </div>
 
       {/* Organizations Grid */}
       {loading ? (
-        <p className="text-muted-foreground">Loading organizations...</p>
+        <p className="text-muted-foreground">
+          {t("organizations:dropdown.loading")}
+        </p>
       ) : organizations && organizations.length === 0 ? (
         <Card>
           <CardContent className="pt-6 text-center py-12">
             <Building2 className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No organizations yet</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {t("organizations:emptyState.title")}
+            </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Create your first organization to start managing multiple stables
-              and team members
+              {t("organizations:emptyState.description")}
             </p>
             <Button asChild>
               <Link to="/organizations/create">
                 <Plus className="h-4 w-4 mr-2" />
-                Create Organization
+                {t("organizations:form.title.create")}
               </Link>
             </Button>
           </CardContent>
@@ -68,7 +75,7 @@ export default function OrganizationsPage() {
                   <div className="flex-1">
                     <CardTitle className="text-xl">{org.name}</CardTitle>
                     <CardDescription className="mt-1">
-                      {org.description || "No description"}
+                      {org.description || t("common:labels.noData")}
                     </CardDescription>
                   </div>
                   <Badge variant="secondary" className="capitalize">
@@ -81,13 +88,17 @@ export default function OrganizationsPage() {
                   {/* Stats */}
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-muted-foreground">Stables</p>
+                      <p className="text-muted-foreground">
+                        {t("common:navigation.stables")}
+                      </p>
                       <p className="text-2xl font-bold">
                         {org.stats.stableCount}
                       </p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Members</p>
+                      <p className="text-muted-foreground">
+                        {t("organizations:menu.members")}
+                      </p>
                       <p className="text-2xl font-bold">
                         {org.stats.totalMemberCount}
                       </p>
@@ -96,7 +107,9 @@ export default function OrganizationsPage() {
 
                   {/* Contact Info */}
                   <div className="space-y-1 text-sm">
-                    <p className="text-muted-foreground">Contact</p>
+                    <p className="text-muted-foreground">
+                      {t("organizations:form.labels.email")}
+                    </p>
                     <p className="font-medium">{org.primaryEmail}</p>
                     {org.phoneNumber && (
                       <p className="text-muted-foreground">{org.phoneNumber}</p>
@@ -113,7 +126,7 @@ export default function OrganizationsPage() {
                     >
                       <Link to={`/organizations/${org.id}/users`}>
                         <Users className="h-4 w-4 mr-2" />
-                        Users
+                        {t("organizations:members.title")}
                       </Link>
                     </Button>
                     <Button
@@ -124,7 +137,7 @@ export default function OrganizationsPage() {
                     >
                       <Link to={`/organizations/${org.id}/settings`}>
                         <Settings className="h-4 w-4 mr-2" />
-                        Settings
+                        {t("organizations:menu.settings")}
                       </Link>
                     </Button>
                   </div>

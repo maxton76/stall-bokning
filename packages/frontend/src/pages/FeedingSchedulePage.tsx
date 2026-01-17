@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, Search, Wheat, Filter } from "lucide-react";
 import {
@@ -16,6 +17,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -68,8 +76,9 @@ interface FeedingDialogState {
 }
 
 export default function FeedingSchedulePage() {
+  const { t } = useTranslation(["feeding", "common"]);
   const { user } = useAuth();
-  const [selectedStableId, setSelectedStableId] = useState<string>("");
+  const [selectedStableId, setSelectedStableId] = useState<string>("all");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -83,41 +92,96 @@ export default function FeedingSchedulePage() {
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
 
-  // Auto-select first stable
-  useEffect(() => {
-    if (stables.length > 0 && !selectedStableId && stables[0]) {
-      setSelectedStableId(stables[0].id);
-    }
-  }, [stables, selectedStableId]);
-
-  // Load horses for selected stable
+  // Load horses for selected stable(s)
   const horses = useAsyncData<Horse[]>({
     loadFn: async () => {
-      if (!selectedStableId) return [];
+      if (!selectedStableId || stables.length === 0) return [];
+
+      // If "all" is selected, get horses from all stables
+      if (selectedStableId === "all") {
+        const allHorses: Horse[] = [];
+        for (const stable of stables) {
+          const stableHorses = await getStableHorses(stable.id);
+          allHorses.push(...stableHorses);
+        }
+        // Remove duplicates by horse ID
+        return Array.from(new Map(allHorses.map((h) => [h.id, h])).values());
+      }
+
       return await getStableHorses(selectedStableId);
     },
   });
 
-  // Load feed types for selected stable
+  // Load feed types for selected stable(s)
   const feedTypes = useAsyncData<FeedType[]>({
     loadFn: async () => {
-      if (!selectedStableId) return [];
-      return await getFeedTypesByStable(selectedStableId, true); // Active only
+      if (!selectedStableId || stables.length === 0) return [];
+
+      // If "all" is selected, get feed types from all stables and merge unique ones
+      if (selectedStableId === "all") {
+        const allTypes: FeedType[] = [];
+        const seenNames = new Set<string>();
+
+        for (const stable of stables) {
+          const types = await getFeedTypesByStable(stable.id, true);
+          types.forEach((type) => {
+            if (!seenNames.has(type.name)) {
+              seenNames.add(type.name);
+              allTypes.push(type);
+            }
+          });
+        }
+        return allTypes;
+      }
+
+      return await getFeedTypesByStable(selectedStableId, true);
     },
   });
 
-  // Load feeding times for selected stable
+  // Load feeding times for selected stable(s)
   const feedingTimes = useAsyncData<FeedingTime[]>({
     loadFn: async () => {
-      if (!selectedStableId) return [];
-      return await getFeedingTimesByStable(selectedStableId, true); // Active only
+      if (!selectedStableId || stables.length === 0) return [];
+
+      // If "all" is selected, get feeding times from all stables and merge unique ones
+      if (selectedStableId === "all") {
+        const allTimes: FeedingTime[] = [];
+        const seenNames = new Set<string>();
+
+        for (const stable of stables) {
+          const times = await getFeedingTimesByStable(stable.id, true);
+          times.forEach((time) => {
+            if (!seenNames.has(time.name)) {
+              seenNames.add(time.name);
+              allTimes.push(time);
+            }
+          });
+        }
+        return allTimes;
+      }
+
+      return await getFeedingTimesByStable(selectedStableId, true);
     },
   });
 
-  // Load horse feedings for selected stable and date
+  // Load horse feedings for selected stable(s) and date
   const horseFeedings = useAsyncData<HorseFeeding[]>({
     loadFn: async () => {
-      if (!selectedStableId) return [];
+      if (!selectedStableId || stables.length === 0) return [];
+
+      // If "all" is selected, get feedings from all stables
+      if (selectedStableId === "all") {
+        const allFeedings: HorseFeeding[] = [];
+        for (const stable of stables) {
+          const stableFeedings = await getHorseFeedingsByStable(stable.id, {
+            date: selectedDate,
+            activeOnly: true,
+          });
+          allFeedings.push(...stableFeedings);
+        }
+        return allFeedings;
+      }
+
       return await getHorseFeedingsByStable(selectedStableId, {
         date: selectedDate,
         activeOnly: true,
@@ -125,19 +189,19 @@ export default function FeedingSchedulePage() {
     },
   });
 
-  // Reload data when stable or date changes
+  // Reload data when stable changes or stables list loads
   useEffect(() => {
-    if (selectedStableId) {
+    if (selectedStableId && stables.length > 0) {
       horses.load();
       feedTypes.load();
       feedingTimes.load();
       horseFeedings.load();
     }
-  }, [selectedStableId]);
+  }, [selectedStableId, stables]);
 
   // Reload feedings when date changes
   useEffect(() => {
-    if (selectedStableId) {
+    if (selectedStableId && stables.length > 0) {
       horseFeedings.load();
     }
   }, [selectedDate]);
@@ -162,12 +226,13 @@ export default function FeedingSchedulePage() {
     );
   }, [horses.data, searchQuery]);
 
-  // Group feedings by horse and feeding time
-  const feedingsByHorseAndTime = useMemo(() => {
+  // Group feedings by horse and feeding time name (for cross-stable compatibility)
+  const feedingsByHorseAndTimeName = useMemo(() => {
     const map = new Map<string, HorseFeeding[]>();
 
     (horseFeedings.data || []).forEach((feeding) => {
-      const key = `${feeding.horseId}_${feeding.feedingTimeId}`;
+      // Use feeding time name for matching (works across stables with same-named time slots)
+      const key = `${feeding.horseId}_${feeding.feedingTimeName}`;
       const existing = map.get(key) || [];
       map.set(key, [...existing, feeding]);
     });
@@ -178,17 +243,34 @@ export default function FeedingSchedulePage() {
   // Get feedings for a specific horse and feeding time
   const getFeedingsForCell = (
     horseId: string,
-    feedingTimeId: string,
+    feedingTimeName: string,
   ): HorseFeeding[] => {
-    return feedingsByHorseAndTime.get(`${horseId}_${feedingTimeId}`) || [];
+    return (
+      feedingsByHorseAndTimeName.get(`${horseId}_${feedingTimeName}`) || []
+    );
   };
 
   // CRUD operations
   const feedingCRUD = useCRUD<HorseFeeding>({
     createFn: async (data) => {
       if (!selectedStableId) throw new Error("No stable selected");
+
+      // When "all" is selected, determine the stable from the horse's data
+      let stableIdToUse = selectedStableId;
+      if (selectedStableId === "all") {
+        const feedingData = data as CreateHorseFeedingData;
+        const horse = horses.data?.find((h) => h.id === feedingData.horseId);
+        if (horse && "currentStableId" in horse) {
+          stableIdToUse = (horse as any).currentStableId;
+        } else if (horse && "stableId" in horse) {
+          stableIdToUse = (horse as any).stableId;
+        } else {
+          throw new Error("Could not determine stable for this horse");
+        }
+      }
+
       return await createHorseFeeding(
-        selectedStableId,
+        stableIdToUse,
         data as CreateHorseFeedingData,
       );
     },
@@ -202,9 +284,9 @@ export default function FeedingSchedulePage() {
       await horseFeedings.reload();
     },
     successMessages: {
-      create: "Feeding added successfully",
-      update: "Feeding updated successfully",
-      delete: "Feeding deleted successfully",
+      create: t("feeding:horseFeeding.messages.createSuccess"),
+      update: t("feeding:horseFeeding.messages.updateSuccess"),
+      delete: t("feeding:horseFeeding.messages.deleteSuccess"),
     },
   });
 
@@ -258,7 +340,9 @@ export default function FeedingSchedulePage() {
   if (stablesLoading) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">Loading stables...</p>
+        <p className="text-muted-foreground">
+          {t("feeding:loadingStates.stables")}
+        </p>
       </div>
     );
   }
@@ -268,9 +352,11 @@ export default function FeedingSchedulePage() {
       <div className="container mx-auto p-6">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <h3 className="text-lg font-semibold mb-2">No stables found</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {t("feeding:loadingStates.noStablesTitle")}
+            </h3>
             <p className="text-muted-foreground">
-              You need to be a member of a stable to view the feeding schedule.
+              {t("feeding:loadingStates.noStablesForSchedule")}
             </p>
           </CardContent>
         </Card>
@@ -291,10 +377,10 @@ export default function FeedingSchedulePage() {
         <Wheat className="h-8 w-8 text-primary" />
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Feeding Schedule
+            {t("feeding:page.scheduleTitle")}
           </h1>
           <p className="text-muted-foreground mt-1">
-            View and manage horse feeding schedules
+            {t("feeding:page.scheduleDescription")}
           </p>
         </div>
       </div>
@@ -303,6 +389,33 @@ export default function FeedingSchedulePage() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4">
+            {/* Stable Selector */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium whitespace-nowrap">
+                {t("feeding:schedule.stable")}
+              </label>
+              <Select
+                value={selectedStableId}
+                onValueChange={setSelectedStableId}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue
+                    placeholder={t("feeding:schedule.selectStable")}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">
+                    {t("feeding:schedule.allStables")}
+                  </SelectItem>
+                  {stables.map((stable) => (
+                    <SelectItem key={stable.id} value={stable.id}>
+                      {stable.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Date Picker */}
             <Popover>
               <PopoverTrigger asChild>
@@ -317,7 +430,7 @@ export default function FeedingSchedulePage() {
                   {selectedDate ? (
                     format(selectedDate, "PPP")
                   ) : (
-                    <span>Pick a date</span>
+                    <span>{t("feeding:schedule.pickDate")}</span>
                   )}
                 </Button>
               </PopoverTrigger>
@@ -335,7 +448,7 @@ export default function FeedingSchedulePage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by horse name, UELN, or chip number..."
+                placeholder={t("feeding:schedule.searchPlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -349,7 +462,7 @@ export default function FeedingSchedulePage() {
                 size="sm"
                 onClick={() => setSelectedDate(new Date())}
               >
-                Today
+                {t("feeding:schedule.today")}
               </Button>
             </div>
           </div>
@@ -360,37 +473,38 @@ export default function FeedingSchedulePage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            Schedule for {format(selectedDate, "EEEE, MMMM d, yyyy")}
+            {t("feeding:schedule.title", {
+              date: format(selectedDate, "EEEE, MMMM d, yyyy"),
+            })}
           </CardTitle>
-          <CardDescription>
-            Click on a cell to view or add feedings for that horse and time slot
-          </CardDescription>
+          <CardDescription>{t("feeding:schedule.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">Loading schedule...</p>
+              <p className="text-muted-foreground">
+                {t("feeding:schedule.loading")}
+              </p>
             </div>
           ) : sortedFeedingTimes.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
-                No feeding times configured. Please set up feeding times in
-                Settings first.
+                {t("feeding:schedule.noFeedingTimesConfigured")}
               </p>
               <Button
                 variant="link"
                 className="mt-2"
                 onClick={() => (window.location.href = "/feeding/settings")}
               >
-                Go to Settings
+                {t("feeding:schedule.goToSettings")}
               </Button>
             </div>
           ) : filteredHorses.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
                 {searchQuery
-                  ? "No horses found matching your search."
-                  : "No horses found in this stable."}
+                  ? t("feeding:schedule.noHorsesMatchingSearch")
+                  : t("feeding:schedule.noHorsesFound")}
               </p>
             </div>
           ) : (
@@ -399,7 +513,7 @@ export default function FeedingSchedulePage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[200px] sticky left-0 bg-background z-10">
-                      Horse
+                      {t("feeding:schedule.horse")}
                     </TableHead>
                     {sortedFeedingTimes.map((time) => (
                       <TableHead
@@ -425,7 +539,7 @@ export default function FeedingSchedulePage() {
                       {sortedFeedingTimes.map((time) => {
                         const cellFeedings = getFeedingsForCell(
                           horse.id,
-                          time.id,
+                          time.name,
                         );
                         return (
                           <TableCell
@@ -475,13 +589,15 @@ export default function FeedingSchedulePage() {
                                     ))}
                                     {cellFeedings.length > 2 && (
                                       <div className="text-xs text-muted-foreground">
-                                        +{cellFeedings.length - 2} more
+                                        {t("feeding:schedule.moreFeedings", {
+                                          count: cellFeedings.length - 2,
+                                        })}
                                       </div>
                                     )}
                                   </div>
                                 ) : (
                                   <span className="text-xs text-muted-foreground">
-                                    No feedings
+                                    {t("feeding:schedule.noFeedings")}
                                   </span>
                                 )}
                               </button>
@@ -506,12 +622,11 @@ export default function FeedingSchedulePage() {
               <Filter className="h-5 w-5" />
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-medium">About the Feeding Schedule</p>
+              <p className="text-sm font-medium">
+                {t("feeding:infoCard.scheduleTitle")}
+              </p>
               <p className="text-sm text-muted-foreground">
-                This schedule shows all active feeding entries for the selected
-                date. Feedings are shown based on their start and end dates. To
-                add or modify feed types and feeding time slots, go to the
-                Settings page.
+                {t("feeding:infoCard.scheduleDescription")}
               </p>
             </div>
           </div>
@@ -537,20 +652,23 @@ export default function FeedingSchedulePage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Feeding</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("feeding:deleteDialog.feedingTitle")}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{deletingFeeding?.feedTypeName}"
-              feeding for {deletingFeeding?.horseName}? This action cannot be
-              undone.
+              {t("feeding:deleteDialog.feedingDescription", {
+                feedTypeName: deletingFeeding?.feedTypeName,
+                horseName: deletingFeeding?.horseName,
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common:buttons.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-red-500 hover:bg-red-600"
             >
-              Delete
+              {t("common:buttons.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

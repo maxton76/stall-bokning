@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Plus,
   Pencil,
@@ -78,14 +79,15 @@ import {
   endOfWeek,
 } from "date-fns";
 
-const PERIOD_TYPES: Array<{ value: PeriodType; label: string }> = [
-  { value: "day", label: "Day" },
-  { value: "week", label: "Week" },
-  { value: "month", label: "Month" },
-];
-
 export default function ActivitiesActionListPage() {
+  const { t } = useTranslation(["activities", "common"]);
   const { user } = useAuth();
+
+  const PERIOD_TYPES: Array<{ value: PeriodType; label: string }> = [
+    { value: "day", label: t("activities:actionList.period.day") },
+    { value: "week", label: t("activities:actionList.period.week") },
+    { value: "month", label: t("activities:actionList.period.month") },
+  ];
   const { toast } = useToast();
   const [periodType, setPeriodType] = useState<PeriodType>("day");
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -158,23 +160,28 @@ export default function ActivitiesActionListPage() {
 
     switch (type) {
       case "day":
-        if (isSameDay(date, now)) return "Today";
-        if (isSameDay(date, addDays(now, 1))) return "Tomorrow";
+        if (isSameDay(date, now))
+          return t("activities:actionList.dateLabels.today");
+        if (isSameDay(date, addDays(now, 1)))
+          return t("activities:actionList.dateLabels.tomorrow");
         return format(date, "MMMM d, yyyy");
 
       case "week":
         const weekStart = startOfWeek(date, { weekStartsOn: 1 });
         const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
 
-        if (isSameWeek(date, now, { weekStartsOn: 1 })) return "This Week";
+        if (isSameWeek(date, now, { weekStartsOn: 1 }))
+          return t("activities:actionList.dateLabels.thisWeek");
         if (isSameWeek(date, addWeeks(now, 1), { weekStartsOn: 1 }))
-          return "Next Week";
+          return t("activities:actionList.dateLabels.nextWeek");
 
-        return `Week of ${format(weekStart, "MMM d")} - ${format(weekEnd, "MMM d, yyyy")}`;
+        return `${t("activities:actionList.dateLabels.weekOf")} ${format(weekStart, "MMM d")} - ${format(weekEnd, "MMM d, yyyy")}`;
 
       case "month":
-        if (isSameMonth(date, now)) return "This Month";
-        if (isSameMonth(date, addMonths(now, 1))) return "Next Month";
+        if (isSameMonth(date, now))
+          return t("activities:actionList.dateLabels.thisMonth");
+        if (isSameMonth(date, addMonths(now, 1)))
+          return t("activities:actionList.dateLabels.nextMonth");
 
         return format(date, "MMMM yyyy");
     }
@@ -282,9 +289,9 @@ export default function ActivitiesActionListPage() {
       await activities.reload();
     },
     successMessages: {
-      create: "Entry created successfully",
-      update: "Entry updated successfully",
-      delete: "Entry deleted successfully",
+      create: t("activities:messages.createSuccess"),
+      update: t("activities:messages.updateSuccess"),
+      delete: t("activities:messages.deleteSuccess"),
     },
   });
 
@@ -303,7 +310,9 @@ export default function ActivitiesActionListPage() {
         ? `${entry.horseName} - ${ACTIVITY_TYPE_CONFIG.find((t) => t.value === entry.activityType)?.label}`
         : entry.title;
 
-    if (confirm(`Are you sure you want to delete "${entryTitle}"?`)) {
+    if (
+      confirm(t("activities:messages.confirmDelete", { title: entryTitle }))
+    ) {
       await remove(entry.id);
     }
   };
@@ -323,8 +332,8 @@ export default function ActivitiesActionListPage() {
       await completeActivity(entry.id, user.uid);
 
       toast({
-        title: "Completed",
-        description: "Entry marked as completed",
+        title: t("activities:actionList.completed"),
+        description: t("activities:actionList.entryCompleted"),
       });
 
       await activities.reload();
@@ -332,8 +341,8 @@ export default function ActivitiesActionListPage() {
       console.error("Failed to complete:", error);
       await activities.reload();
       toast({
-        title: "Error",
-        description: "Failed to mark as completed",
+        title: t("common:messages.error"),
+        description: t("activities:messages.completeError"),
         variant: "destructive",
       });
     } finally {
@@ -358,8 +367,8 @@ export default function ActivitiesActionListPage() {
     } catch (error) {
       console.error("Failed to save entry:", error);
       toast({
-        title: "Error",
-        description: "Failed to save entry. Please try again.",
+        title: t("common:messages.error"),
+        description: t("activities:messages.saveError"),
         variant: "destructive",
       });
     }
@@ -375,7 +384,9 @@ export default function ActivitiesActionListPage() {
   if (stablesLoading) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">Loading stables...</p>
+        <p className="text-muted-foreground">
+          {t("activities:stable.loading")}
+        </p>
       </div>
     );
   }
@@ -385,9 +396,11 @@ export default function ActivitiesActionListPage() {
       <div className="container mx-auto p-6">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <h3 className="text-lg font-semibold mb-2">No stables found</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {t("activities:emptyState.noStables.title")}
+            </h3>
             <p className="text-muted-foreground">
-              You need to be a member of a stable to manage activities.
+              {t("activities:emptyState.noStables.description")}
             </p>
           </CardContent>
         </Card>
@@ -400,9 +413,11 @@ export default function ActivitiesActionListPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Activities</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {t("activities:actionList.title")}
+          </h1>
           <p className="text-muted-foreground mt-1">
-            Manage activities, tasks, and messages
+            {t("activities:actionList.description")}
           </p>
         </div>
         <Button
@@ -410,7 +425,7 @@ export default function ActivitiesActionListPage() {
           disabled={!selectedStableId || selectedStableId === "all"}
         >
           <Plus className="mr-2 h-4 w-4" />
-          Add Entry
+          {t("activities:actionList.addEntry")}
         </Button>
       </div>
 
@@ -426,10 +441,12 @@ export default function ActivitiesActionListPage() {
                 onValueChange={setSelectedStableId}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a stable" />
+                  <SelectValue placeholder={t("activities:stable.select")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Stables</SelectItem>
+                  <SelectItem value="all">
+                    {t("activities:stable.all")}
+                  </SelectItem>
                   {stables.map((stable) => (
                     <SelectItem key={stable.id} value={stable.id}>
                       {stable.name}
@@ -465,7 +482,8 @@ export default function ActivitiesActionListPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             {/* Date Range Display */}
             <div className="text-sm text-muted-foreground order-2 sm:order-1">
-              Showing: {getDateRangeLabel(currentDate, periodType)}
+              {t("activities:actionList.navigation.showing")}:{" "}
+              {getDateRangeLabel(currentDate, periodType)}
             </div>
 
             {/* Navigation Controls */}
@@ -479,7 +497,7 @@ export default function ActivitiesActionListPage() {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button variant="outline" size="sm" onClick={handleToday}>
-                Today
+                {t("activities:actionList.navigation.today")}
               </Button>
               <Button
                 variant="outline"
@@ -498,12 +516,14 @@ export default function ActivitiesActionListPage() {
           {/* Activities List */}
           {activities.loading ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">Loading activities...</p>
+              <p className="text-muted-foreground">
+                {t("activities:actionList.loading")}
+              </p>
             </div>
           ) : filteredActivities.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
-                No activities for this period.
+                {t("activities:actionList.noActivities")}
               </p>
             </div>
           ) : temporalSections ? (
@@ -513,7 +533,7 @@ export default function ActivitiesActionListPage() {
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <h3 className="text-sm font-semibold text-red-600">
-                      Overdue
+                      {t("activities:actionList.sections.overdue")}
                     </h3>
                     <Badge variant="destructive" className="text-xs">
                       {temporalSections.overdue.length}
@@ -530,6 +550,7 @@ export default function ActivitiesActionListPage() {
                         isCompleting={completingIds.has(entry.id)}
                         activityTypes={activityTypes.data || []}
                         horses={horses.data || []}
+                        t={t}
                       />
                     ))}
                   </div>
@@ -539,7 +560,9 @@ export default function ActivitiesActionListPage() {
               {temporalSections.today.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <h3 className="text-sm font-semibold">Today</h3>
+                    <h3 className="text-sm font-semibold">
+                      {t("activities:actionList.sections.today")}
+                    </h3>
                     <Badge variant="secondary" className="text-xs">
                       {temporalSections.today.length}
                     </Badge>
@@ -555,6 +578,7 @@ export default function ActivitiesActionListPage() {
                         isCompleting={completingIds.has(entry.id)}
                         activityTypes={activityTypes.data || []}
                         horses={horses.data || []}
+                        t={t}
                       />
                     ))}
                   </div>
@@ -565,7 +589,7 @@ export default function ActivitiesActionListPage() {
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <h3 className="text-sm font-semibold text-muted-foreground">
-                      Upcoming
+                      {t("activities:actionList.sections.upcoming")}
                     </h3>
                     <Badge variant="outline" className="text-xs">
                       {temporalSections.upcoming.length}
@@ -582,6 +606,7 @@ export default function ActivitiesActionListPage() {
                         isCompleting={completingIds.has(entry.id)}
                         activityTypes={activityTypes.data || []}
                         horses={horses.data || []}
+                        t={t}
                       />
                     ))}
                   </div>
@@ -601,6 +626,7 @@ export default function ActivitiesActionListPage() {
                   isCompleting={completingIds.has(entry.id)}
                   activityTypes={activityTypes.data || []}
                   horses={horses.data || []}
+                  t={t}
                 />
               ))}
             </div>
@@ -621,6 +647,7 @@ export default function ActivitiesActionListPage() {
                         isCompleting={completingIds.has(entry.id)}
                         activityTypes={activityTypes.data || []}
                         horses={horses.data || []}
+                        t={t}
                       />
                     ))}
                   </div>
@@ -654,6 +681,7 @@ interface ActivityCardProps {
   isCompleting: boolean;
   activityTypes: Array<any>; // Activity type configs
   horses: Array<{ id: string; name: string }>; // Horse lookup data
+  t: (key: string) => string; // Translation function
 }
 
 // Helper functions for ActivityCard
@@ -688,13 +716,18 @@ function isOverdue(entry: ActivityEntry): boolean {
   return entryDate ? entryDate < new Date() : false;
 }
 
-function formatActivityDate(timestamp: Timestamp): string {
+function formatActivityDate(
+  timestamp: Timestamp,
+  t: (key: string) => string,
+): string {
   const date = toDate(timestamp);
-  if (!date) return "Unknown";
+  if (!date) return t("common:labels.noData");
   const today = new Date();
 
-  if (isSameDay(date, today)) return "Today";
-  if (isSameDay(date, addDays(today, 1))) return "Tomorrow";
+  if (isSameDay(date, today))
+    return t("activities:actionList.dateLabels.today");
+  if (isSameDay(date, addDays(today, 1)))
+    return t("activities:actionList.dateLabels.tomorrow");
   return format(date, "MMM d, yyyy");
 }
 
@@ -722,6 +755,7 @@ function ActivityCard({
   activityTypes,
   horses,
   isCompleting,
+  t,
 }: ActivityCardProps) {
   const badge = getBadge(entry, activityTypes);
   const assigneeName = getAssigneeName(entry);
@@ -756,7 +790,7 @@ function ActivityCard({
                 : "text-muted-foreground",
             )}
           >
-            {formatActivityDate(entry.date)}
+            {formatActivityDate(entry.date, t)}
           </span>
           {badge && (
             <>
@@ -804,12 +838,12 @@ function ActivityCard({
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={onEdit}>
               <Pencil className="mr-2 h-4 w-4" />
-              Edit
+              {t("common:buttons.edit")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onDelete} className="text-destructive">
               <Trash2 className="mr-2 h-4 w-4" />
-              Delete
+              {t("common:buttons.delete")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -1,0 +1,19 @@
+{
+  "shiftTypes": {
+    "title": "Shift Types",
+    "create": "Create Shift Type",
+    "edit": "Edit Shift Type",
+    "emptyState": {
+      "title": "No shift types yet",
+      "description": "Create your first shift type to start scheduling"
+    },
+    "form": {
+      "points": "Points",
+      "daysOfWeek": "Days of Week"
+    }
+  },
+  "statistics": {
+    "title": "Statistics",
+    "comingSoon": "Coming soon..."
+  }
+}

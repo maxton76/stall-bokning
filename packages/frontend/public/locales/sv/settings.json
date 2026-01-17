@@ -1,0 +1,56 @@
+{
+  "page": {
+    "title": "Inställningar",
+    "description": "Hantera dina applikationsinställningar och preferenser"
+  },
+  "sections": {
+    "notifications": {
+      "title": "Notifieringar",
+      "description": "Konfigurera hur du tar emot notifieringar",
+      "emailNotifications": "E-postnotifieringar",
+      "emailDescription": "Ta emot notifieringar via e-post",
+      "pushNotifications": "Push-notifieringar",
+      "pushDescription": "Ta emot push-notifieringar i webbläsaren"
+    },
+    "appearance": {
+      "title": "Utseende",
+      "description": "Anpassa hur applikationen ser ut",
+      "darkMode": "Mörkt läge",
+      "darkModeDescription": "Aktivera mörkt tema",
+      "comingSoon": "Mörkt läge kommer snart"
+    },
+    "language": {
+      "title": "Språk och region",
+      "description": "Ställ in dina språk- och regionpreferenser",
+      "language": "Språk",
+      "selectLanguage": "Välj språk",
+      "timezone": "Tidszon",
+      "selectTimezone": "Välj tidszon",
+      "dateFormat": "Datumformat",
+      "timeFormat": "Tidsformat"
+    },
+    "privacy": {
+      "title": "Sekretess och säkerhet",
+      "description": "Hantera dina sekretess- och säkerhetsinställningar",
+      "changePassword": "Byt lösenord",
+      "changePasswordDescription": "Lösenordshantering kommer snart",
+      "twoFactor": "Tvåfaktorsautentisering",
+      "twoFactorDescription": "Förbättrade säkerhetsfunktioner kommer snart"
+    },
+    "account": {
+      "title": "Kontoinställningar",
+      "description": "Hantera dina kontouppgifter",
+      "email": "E-postadress",
+      "name": "Namn",
+      "phone": "Telefonnummer"
+    }
+  },
+  "languages": {
+    "en": "English",
+    "sv": "Svenska"
+  },
+  "timezones": {
+    "europe_stockholm": "Europa/Stockholm",
+    "utc": "UTC"
+  }
+}

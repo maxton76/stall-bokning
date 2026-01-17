@@ -1,0 +1,282 @@
+{
+  "page": {
+    "title": "Activities",
+    "description": "Manage activities and schedule events for your horses"
+  },
+  "tabs": {
+    "actionList": "Action List",
+    "planning": "Planning",
+    "care": "Care",
+    "settings": "Settings"
+  },
+  "actionList": {
+    "title": "Activities",
+    "description": "Manage activities, tasks, and messages",
+    "addEntry": "Add Entry",
+    "period": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month"
+    },
+    "navigation": {
+      "today": "Today",
+      "showing": "Showing"
+    },
+    "dateLabels": {
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "thisWeek": "This Week",
+      "nextWeek": "Next Week",
+      "thisMonth": "This Month",
+      "nextMonth": "Next Month",
+      "weekOf": "Week of"
+    },
+    "sections": {
+      "overdue": "Overdue",
+      "today": "Today",
+      "upcoming": "Upcoming"
+    },
+    "loading": "Loading activities...",
+    "noActivities": "No activities for this period.",
+    "completed": "Completed",
+    "entryCompleted": "Entry marked as completed"
+  },
+  "care": {
+    "title": "Care Activities",
+    "description": "Veterinary, farrier, dentist, and other care-related activities",
+    "loading": "Loading care activities...",
+    "stableLabel": "Stable",
+    "viewMode": {
+      "matrix": "Matrix",
+      "table": "Table"
+    },
+    "search": {
+      "placeholder": "Search by Name, UELN, etc..."
+    }
+  },
+  "planning": {
+    "title": "Planning",
+    "description": "Plan and schedule activities for your horses",
+    "loading": "Loading planning...",
+    "loadingHorses": "Loading horses...",
+    "noHorses": "No horses found for this stable."
+  },
+  "settings": {
+    "title": "Activities Settings",
+    "description": "Configure activity types, notifications, and preferences",
+    "about": {
+      "title": "About Activity Settings",
+      "description": "These settings are saved automatically and apply to all activities across your stables. Standard activity types are provided by the system but can have their colors and icons customized. You can create custom activity types specific to your stable's needs."
+    },
+    "types": {
+      "title": "Activity Types",
+      "description": "Manage activity types for horse-related activities",
+      "addCustom": "Add Custom Type",
+      "loading": "Loading activity types...",
+      "noTypes": "No activity types found. Standard types will be seeded automatically.",
+      "categories": {
+        "care": "Care Activities",
+        "sport": "Sport Activities",
+        "breeding": "Breeding Activities"
+      },
+      "table": {
+        "name": "Name",
+        "roles": "Roles",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "delete": {
+        "title": "Delete Activity Type",
+        "description": "Are you sure you want to delete \"{{name}}\"?",
+        "standardNote": "Standard types will be soft-deleted (marked inactive) and can be restored later.",
+        "customNote": "This action cannot be undone."
+      }
+    },
+    "notifications": {
+      "title": "Notification Preferences",
+      "description": "Configure how you receive activity notifications",
+      "emailReminders": {
+        "label": "Email Reminders",
+        "description": "Receive email reminders for upcoming activities"
+      },
+      "activityAssigned": {
+        "label": "Activity Assigned",
+        "description": "Notify when an activity is assigned to you"
+      },
+      "taskCompleted": {
+        "label": "Task Completed",
+        "description": "Notify when tasks you created are completed"
+      },
+      "careActivityDue": {
+        "label": "Care Activity Due",
+        "description": "Remind when care activities are approaching"
+      },
+      "dailyDigest": {
+        "label": "Daily Digest",
+        "description": "Receive a daily summary of activities"
+      }
+    },
+    "assignees": {
+      "title": "Default Assignees",
+      "description": "Configure default assignment preferences",
+      "autoAssignSelf": {
+        "label": "Auto-assign to self",
+        "description": "Automatically assign created activities to yourself"
+      },
+      "note": "You can always change the assignee when creating activities."
+    }
+  },
+  "form": {
+    "title": {
+      "create": "New Entry",
+      "edit": "Edit Entry"
+    },
+    "description": {
+      "create": "Create a new activity, task, or message",
+      "edit": "Update entry details"
+    },
+    "labels": {
+      "entryType": "Entry Type",
+      "date": "Date",
+      "horse": "Horse",
+      "activityType": "Activity",
+      "title": "Title",
+      "description": "Description",
+      "message": "Message",
+      "notes": "Notes",
+      "note": "Note",
+      "color": "Color",
+      "time": "Time",
+      "duration": "Duration",
+      "assignedTo": "Assigned To",
+      "priority": "Priority",
+      "status": "Status",
+      "reminder": "Reminder"
+    },
+    "placeholders": {
+      "title": "e.g., Vet checkup",
+      "taskTitle": "Task title",
+      "messageTitle": "Message title",
+      "description": "Add a description...",
+      "taskDescription": "Task description...",
+      "message": "Message content...",
+      "notes": "Additional notes...",
+      "selectHorse": "Select horse",
+      "selectActivityType": "Select activity type",
+      "pickDate": "Pick a date",
+      "unassigned": "Unassigned"
+    },
+    "entryTypes": {
+      "activity": "Activity",
+      "task": "Task",
+      "message": "Message"
+    },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "validation": {
+      "dateRequired": "Date is required",
+      "horseRequired": "Horse is required",
+      "activityTypeRequired": "Activity type is required",
+      "titleRequired": "Title is required",
+      "descriptionRequired": "Description is required",
+      "messageRequired": "Message is required"
+    }
+  },
+  "types": {
+    "title": "Activity Types",
+    "description": "Configure activity types for your stable",
+    "form": {
+      "title": {
+        "create": "Add Activity Type",
+        "edit": "Edit Activity Type"
+      },
+      "description": {
+        "create": "Create a custom activity type for your stable.",
+        "edit": "Modify the activity type configuration."
+      },
+      "labels": {
+        "name": "Name",
+        "color": "Color",
+        "category": "Category",
+        "roles": "Roles",
+        "icon": "Icon"
+      },
+      "placeholders": {
+        "name": "e.g., Dentist, Riding, Foaling",
+        "selectCategory": "Select category"
+      },
+      "categories": {
+        "sport": "Sport",
+        "care": "Care",
+        "breeding": "Breeding"
+      },
+      "help": {
+        "roles": "Select one or more roles that can perform this activity type.",
+        "standard": "Standard types: Only color, icon, and status can be modified."
+      }
+    },
+    "messages": {
+      "createSuccess": "Activity type created successfully",
+      "updateSuccess": "Activity type updated successfully",
+      "deleteSuccess": "Activity type deleted successfully"
+    },
+    "standard": "Standard"
+  },
+  "messages": {
+    "createSuccess": "Entry created successfully",
+    "updateSuccess": "Entry updated successfully",
+    "deleteSuccess": "Entry deleted successfully",
+    "loadError": "Failed to load activities",
+    "saveError": "Failed to save entry. Please try again.",
+    "completeError": "Failed to mark as completed",
+    "confirmDelete": "Are you sure you want to delete \"{{title}}\"?"
+  },
+  "actions": {
+    "addActivity": "Add Activity",
+    "viewCalendar": "View Calendar",
+    "viewList": "View List"
+  },
+  "filters": {
+    "title": "Filter Activities",
+    "clear": "Clear",
+    "groupBy": {
+      "label": "Group by",
+      "none": "None",
+      "horse": "Horse",
+      "staff": "Staff",
+      "type": "Type"
+    },
+    "forMe": "For me",
+    "showFinished": "Show finished",
+    "entryTypes": "Entry types",
+    "allTypes": "All Types",
+    "allHorses": "All Horses",
+    "allStatuses": "All Statuses",
+    "dateRange": "Date Range"
+  },
+  "calendar": {
+    "today": "Today",
+    "month": "Month",
+    "week": "Week",
+    "day": "Day",
+    "list": "List"
+  },
+  "emptyState": {
+    "title": "No activities yet",
+    "description": "Get started by scheduling your first activity",
+    "noStables": {
+      "title": "No stables found",
+      "description": "You need to be a member of a stable to manage activities.",
+      "planning": "You need to be a member of a stable to view planning.",
+      "settings": "You need to be a member of a stable to configure activity types."
+    }
+  },
+  "stable": {
+    "select": "Select a stable",
+    "all": "All Stables",
+    "loading": "Loading stables..."
+  }
+}

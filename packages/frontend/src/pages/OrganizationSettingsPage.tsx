@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Save } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,6 +38,7 @@ const organizationSettingsSchema = z.object({
 type OrganizationSettingsFormData = z.infer<typeof organizationSettingsSchema>;
 
 export default function OrganizationSettingsPage() {
+  const { t } = useTranslation(["organizations", "common", "settings"]);
   const { organizationId } = useParams<{ organizationId: string }>();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -94,14 +96,14 @@ export default function OrganizationSettingsPage() {
       await updateOrganization(organizationId, user.uid, data);
       await organization.reload();
       toast({
-        title: "Settings updated",
-        description: "Organization settings have been saved successfully.",
+        title: t("organizations:messages.updateSuccess"),
+        description: t("organizations:messages.updateSuccess"),
       });
     } catch (error) {
       console.error("Failed to update organization:", error);
       toast({
-        title: "Error",
-        description: "Failed to update organization settings.",
+        title: t("common:messages.error"),
+        description: t("common:messages.saveFailed"),
         variant: "destructive",
       });
     } finally {
@@ -112,7 +114,7 @@ export default function OrganizationSettingsPage() {
   if (organization.loading || !organization.data) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted-foreground">{t("common:labels.loading")}</p>
       </div>
     );
   }
@@ -125,16 +127,16 @@ export default function OrganizationSettingsPage() {
           <Link to={`/organizations/${organizationId}`}>
             <Button variant="ghost" className="mb-4">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Organization
+              {t("common:navigation.organizations")}
             </Button>
           </Link>
         )}
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Organization Settings
+            {t("organizations:menu.settings")}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Manage your organization configuration
+            {t("organizations:page.description")}
           </p>
         </div>
       </div>
@@ -142,9 +144,15 @@ export default function OrganizationSettingsPage() {
       {/* Settings Tabs */}
       <Tabs defaultValue="general" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="stables">Stables</TabsTrigger>
-          <TabsTrigger value="subscription">Subscription</TabsTrigger>
+          <TabsTrigger value="general">
+            {t("settings:tabs.general")}
+          </TabsTrigger>
+          <TabsTrigger value="stables">
+            {t("common:navigation.stables")}
+          </TabsTrigger>
+          <TabsTrigger value="subscription">
+            {t("organizations:menu.subscription")}
+          </TabsTrigger>
         </TabsList>
 
         {/* General Settings */}
@@ -152,21 +160,21 @@ export default function OrganizationSettingsPage() {
           <form onSubmit={handleSubmit(onSubmit as any)}>
             <Card>
               <CardHeader>
-                <CardTitle>General Information</CardTitle>
+                <CardTitle>{t("settings:tabs.general")}</CardTitle>
                 <CardDescription>
-                  Basic information about your organization
+                  {t("organizations:form.description.edit")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Organization Name */}
                 <div className="space-y-2">
                   <Label htmlFor="name">
-                    Organization Name{" "}
+                    {t("organizations:form.labels.name")}{" "}
                     <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="name"
-                    placeholder="My Stable Organization"
+                    placeholder={t("organizations:form.placeholders.name")}
                     {...register("name")}
                   />
                   {errors.name && (
@@ -178,10 +186,14 @@ export default function OrganizationSettingsPage() {
 
                 {/* Description */}
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">
+                    {t("organizations:form.labels.description")}
+                  </Label>
                   <Textarea
                     id="description"
-                    placeholder="Brief description of your organization"
+                    placeholder={t(
+                      "organizations:form.placeholders.description",
+                    )}
                     rows={3}
                     {...register("description")}
                   />
@@ -189,7 +201,7 @@ export default function OrganizationSettingsPage() {
 
                 {/* Contact Type */}
                 <div className="space-y-2">
-                  <Label>Contact Type</Label>
+                  <Label>{t("organizations:invite.contactType")}</Label>
                   <RadioGroup
                     value={contactType}
                     onValueChange={(value) =>
@@ -215,12 +227,13 @@ export default function OrganizationSettingsPage() {
                 {/* Primary Email */}
                 <div className="space-y-2">
                   <Label htmlFor="primaryEmail">
-                    Primary Email <span className="text-destructive">*</span>
+                    {t("organizations:form.labels.email")}{" "}
+                    <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="primaryEmail"
                     type="email"
-                    placeholder="contact@organization.com"
+                    placeholder={t("organizations:invite.emailPlaceholder")}
                     {...register("primaryEmail")}
                   />
                   {errors.primaryEmail && (
@@ -232,11 +245,13 @@ export default function OrganizationSettingsPage() {
 
                 {/* Phone Number */}
                 <div className="space-y-2">
-                  <Label htmlFor="phoneNumber">Phone Number</Label>
+                  <Label htmlFor="phoneNumber">
+                    {t("organizations:form.labels.phone")}
+                  </Label>
                   <Input
                     id="phoneNumber"
                     type="tel"
-                    placeholder="+46 70 123 45 67"
+                    placeholder={t("organizations:invite.phonePlaceholder")}
                     {...register("phoneNumber")}
                   />
                 </div>
@@ -262,11 +277,13 @@ export default function OrganizationSettingsPage() {
                     onClick={() => reset()}
                     disabled={loading}
                   >
-                    Reset
+                    {t("common:buttons.resetToDefaults")}
                   </Button>
                   <Button type="submit" disabled={loading}>
                     <Save className="mr-2 h-4 w-4" />
-                    {loading ? "Saving..." : "Save Changes"}
+                    {loading
+                      ? t("common:labels.loading")
+                      : t("common:buttons.saveChanges")}
                   </Button>
                 </div>
               </CardContent>
@@ -278,17 +295,16 @@ export default function OrganizationSettingsPage() {
         <TabsContent value="stables">
           <Card>
             <CardHeader>
-              <CardTitle>Stables Management</CardTitle>
-              <CardDescription>
-                View and manage stables within your organization
-              </CardDescription>
+              <CardTitle>{t("common:navigation.stables")}</CardTitle>
+              <CardDescription>{t("stables:page.description")}</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                Stables: {organization.data.stats.stableCount}
+                {t("common:navigation.stables")}:{" "}
+                {organization.data.stats.stableCount}
               </p>
               <p className="text-xs text-muted-foreground mt-2">
-                Stable management features coming soon...
+                Coming soon...
               </p>
             </CardContent>
           </Card>
@@ -298,28 +314,32 @@ export default function OrganizationSettingsPage() {
         <TabsContent value="subscription">
           <Card>
             <CardHeader>
-              <CardTitle>Subscription</CardTitle>
+              <CardTitle>{t("organizations:subscription.title")}</CardTitle>
               <CardDescription>
-                Current plan and billing information
+                {t("organizations:subscription.description")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Current Plan</span>
+                  <span className="text-sm font-medium">
+                    {t("organizations:subscription.currentPlan")}
+                  </span>
                   <span className="text-sm text-muted-foreground capitalize">
                     {organization.data.subscriptionTier}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Members</span>
+                  <span className="text-sm font-medium">
+                    {t("organizations:menu.members")}
+                  </span>
                   <span className="text-sm text-muted-foreground">
                     {organization.data.stats.totalMemberCount}
                   </span>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-4">
-                Subscription management features coming soon...
+                Coming soon...
               </p>
             </CardContent>
           </Card>

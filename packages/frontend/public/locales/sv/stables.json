@@ -1,0 +1,90 @@
+{
+  "page": {
+    "title": "Mina stall",
+    "description": "Hantera dina stall och se dina medlemskap"
+  },
+  "form": {
+    "title": {
+      "create": "Skapa nytt stall",
+      "edit": "Redigera stall"
+    },
+    "description": {
+      "create": "Konfigurera ditt stall och börja hantera skift",
+      "edit": "Uppdatera stallets information"
+    },
+    "labels": {
+      "name": "Stallnamn",
+      "description": "Beskrivning",
+      "address": "Gatuadress",
+      "city": "Stad",
+      "postalCode": "Postnummer",
+      "country": "Land"
+    },
+    "placeholders": {
+      "name": "t.ex. Gröna dalens stall",
+      "description": "Kort beskrivning av ditt stall...",
+      "address": "t.ex. Vallvägen 12",
+      "city": "t.ex. Stockholm",
+      "postalCode": "t.ex. 123 45"
+    },
+    "sections": {
+      "basicInfo": "Stallinformation",
+      "location": "Plats",
+      "settings": "Inställningar"
+    }
+  },
+  "messages": {
+    "createSuccess": "Stall har skapats",
+    "updateSuccess": "Stall har uppdaterats",
+    "deleteSuccess": "Stall har tagits bort",
+    "noOrganization": "Kan inte skapa stall: Ingen organisation vald. Välj en organisation först.",
+    "createFailed": "Kunde inte skapa stall. Försök igen."
+  },
+  "actions": {
+    "createStable": "Skapa stall",
+    "editStable": "Redigera stall",
+    "deleteStable": "Ta bort stall",
+    "viewDetails": "Visa detaljer",
+    "manageMembers": "Hantera medlemmar",
+    "inviteUser": "Bjud in användare"
+  },
+  "members": {
+    "title": "Stallmedlemmar",
+    "description": "Hantera medlemmar och deras roller",
+    "owner": "Ägare",
+    "manager": "Förvaltare",
+    "member": "Medlem",
+    "pending": "Väntande"
+  },
+  "schedule": {
+    "title": "Stallschema",
+    "description": "Hantera skift och scheman"
+  },
+  "invite": {
+    "title": "Bjud in till stall",
+    "description": "Bjud in medlemmar till {{name}}",
+    "emailInvite": "Skicka e-postinbjudan",
+    "emailDescription": "Skicka en inbjudan direkt till någons e-postadress",
+    "emailLabel": "E-postadress",
+    "emailPlaceholder": "anvandare@exempel.se",
+    "roleLabel": "Välj roll",
+    "memberDescription": "Kan se och boka skift",
+    "managerDescription": "Kan hantera stallinställningar och medlemmar",
+    "sendButton": "Skicka inbjudan",
+    "linkTitle": "Dela inbjudningslänk",
+    "linkDescription": "Dela denna länk med alla du vill bjuda in",
+    "linkNote": "Vem som helst med denna länk kan begära att gå med i ditt stall",
+    "pendingTitle": "Väntande inbjudningar",
+    "pendingDescription": "Följ status för skickade inbjudningar",
+    "noInvites": "Inga väntande inbjudningar",
+    "noInvitesHelp": "Inbjudningar du skickar visas här",
+    "sent": "Skickad"
+  },
+  "detail": {
+    "clickToView": "Klicka för att visa detaljer och hantera detta stall"
+  },
+  "emptyState": {
+    "title": "Inga stall ännu",
+    "description": "Skapa ditt första stall för att komma igång"
+  }
+}

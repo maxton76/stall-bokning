@@ -1,0 +1,188 @@
+{
+  "page": {
+    "scheduleTitle": "Utfodringsschema",
+    "scheduleDescription": "Visa och hantera utfodringsscheman för hästar",
+    "settingsTitle": "Utfodringsinställningar",
+    "settingsDescription": "Konfigurera fodertyper och utfodringstider för ditt stall"
+  },
+  "feedTypes": {
+    "title": "Fodertyper",
+    "description": "Hantera tillgängliga fodertyper i ditt stall",
+    "tableHeaders": {
+      "name": "Namn",
+      "category": "Kategori",
+      "brand": "Märke",
+      "defaultAmount": "Standardmängd",
+      "warning": "Varning",
+      "actions": "Åtgärder"
+    },
+    "loading": "Laddar fodertyper...",
+    "noFeedTypes": "Inga fodertyper hittades. Lägg till din första fodertyp för att komma igång.",
+    "form": {
+      "title": {
+        "create": "Lägg till fodertyp",
+        "edit": "Redigera fodertyp"
+      },
+      "description": {
+        "create": "Skapa en ny fodertyp för ditt stall.",
+        "edit": "Ändra fodertypens konfiguration."
+      },
+      "labels": {
+        "name": "Namn",
+        "brand": "Märke",
+        "category": "Kategori",
+        "quantityMeasure": "Mätning",
+        "defaultQuantity": "Standardmängd",
+        "warning": "Varning"
+      },
+      "placeholders": {
+        "name": "t.ex. Müsli Plus, Hö",
+        "brand": "t.ex. Krafft, Lokal gård",
+        "category": "Välj kategori",
+        "quantityMeasure": "Välj mått",
+        "defaultQuantity": "t.ex. 2",
+        "warning": "t.ex. Ge inte mer än 3 kg per utfodring"
+      },
+      "help": {
+        "defaultQuantity": "Standardmängd vid tillägg av detta foder till en häst",
+        "warning": "Valfritt varningsmeddelande som visas vid användning av detta foder"
+      }
+    },
+    "messages": {
+      "createSuccess": "Fodertyp har skapats",
+      "updateSuccess": "Fodertyp har uppdaterats",
+      "deleteSuccess": "Fodertyp har tagits bort",
+      "createError": "Kunde inte skapa fodertyp",
+      "updateError": "Kunde inte uppdatera fodertyp"
+    }
+  },
+  "feedingTimes": {
+    "title": "Utfodringstider",
+    "description": "Konfigurera dagliga utfodringstider",
+    "tableHeaders": {
+      "name": "Namn",
+      "time": "Tid",
+      "actions": "Åtgärder"
+    },
+    "loading": "Laddar utfodringstider...",
+    "noFeedingTimes": "Inga utfodringstider hittades. Standardtider skapas automatiskt när du först öppnar schemat.",
+    "form": {
+      "title": {
+        "create": "Lägg till utfodringstid",
+        "edit": "Redigera utfodringstid"
+      },
+      "description": {
+        "create": "Skapa en ny utfodringstid för ditt stall.",
+        "edit": "Ändra utfodringstidens konfiguration."
+      },
+      "labels": {
+        "name": "Namn",
+        "time": "Tid",
+        "hour": "Timme",
+        "minute": "Minut"
+      },
+      "placeholders": {
+        "name": "t.ex. Morgon, Eftermiddag, Kväll"
+      },
+      "selectedTime": "Vald tid:"
+    },
+    "messages": {
+      "createSuccess": "Utfodringstid har skapats",
+      "updateSuccess": "Utfodringstid har uppdaterats",
+      "deleteSuccess": "Utfodringstid har tagits bort",
+      "createError": "Kunde inte skapa utfodringstid",
+      "updateError": "Kunde inte uppdatera utfodringstid"
+    }
+  },
+  "horseFeeding": {
+    "title": "Hästutfodring",
+    "form": {
+      "title": {
+        "create": "Lägg till utfodring för {{horseName}}",
+        "edit": "Redigera utfodring för {{horseName}}"
+      },
+      "description": {
+        "create": "Lägg till en ny utfodring för denna häst.",
+        "edit": "Ändra utfodringskonfigurationen."
+      },
+      "labels": {
+        "feedType": "Fodertyp",
+        "feedingTime": "Utfodringstid",
+        "quantity": "Mängd",
+        "quantityWithUnit": "Mängd ({{unit}})",
+        "startDate": "Startdatum",
+        "endDate": "Slutdatum",
+        "notes": "Anteckningar",
+        "active": "Aktiv"
+      },
+      "placeholders": {
+        "feedType": "Välj fodertyp",
+        "feedingTime": "Välj utfodringstid",
+        "quantity": "t.ex. 2",
+        "notes": "t.ex. Speciella instruktioner..."
+      },
+      "help": {
+        "endDate": "Lämna tomt för pågående utfodring"
+      }
+    },
+    "messages": {
+      "createSuccess": "Utfodring har lagts till",
+      "updateSuccess": "Utfodring har uppdaterats",
+      "deleteSuccess": "Utfodring har tagits bort",
+      "createError": "Kunde inte lägga till utfodring",
+      "updateError": "Kunde inte uppdatera utfodring"
+    }
+  },
+  "schedule": {
+    "title": "Schema för {{date}}",
+    "description": "Klicka på en cell för att visa eller lägga till utfodring för häst och tidpunkt",
+    "stable": "Stall:",
+    "selectStable": "Välj ett stall",
+    "allStables": "Alla stall",
+    "pickDate": "Välj datum",
+    "searchPlaceholder": "Sök på hästnamn, UELN eller chipnummer...",
+    "today": "Idag",
+    "loading": "Laddar schema...",
+    "noFeedingTimesConfigured": "Inga utfodringstider konfigurerade. Konfigurera utfodringstider i Inställningar först.",
+    "goToSettings": "Gå till Inställningar",
+    "noHorsesFound": "Inga hästar hittades i detta stall.",
+    "noHorsesMatchingSearch": "Inga hästar hittades som matchar din sökning.",
+    "horse": "Häst",
+    "noFeedings": "Inga utfodringar",
+    "moreFeedings": "+{{count}} till"
+  },
+  "popover": {
+    "add": "Lägg till",
+    "noFeedingsConfigured": "Inga utfodringar konfigurerade för denna tidpunkt",
+    "notes": "Anteckningar:"
+  },
+  "actions": {
+    "addFeedType": "Lägg till fodertyp",
+    "addFeedingTime": "Lägg till utfodringstid",
+    "viewSchedule": "Visa schema"
+  },
+  "infoCard": {
+    "scheduleTitle": "Om utfodringsschemat",
+    "scheduleDescription": "Schemat visar alla aktiva utfodringsposter för valt datum. Utfodringar visas baserat på start- och slutdatum. För att lägga till eller ändra fodertyper och utfodringstider, gå till Inställningar.",
+    "settingsTitle": "Om utfodringsinställningar",
+    "settingsDescription": "Fodertyper definierar vilka foder som finns tillgängliga i ditt stall (grovfoder, kraftfoder, tillskott, medicin). Utfodringstider definierar dagliga tidpunkter för utfodring. Om inga utfodringstider är konfigurerade skapas standardtider automatiskt (morgon 07:00, eftermiddag 13:00, kväll 20:00)."
+  },
+  "deleteDialog": {
+    "feedTypeTitle": "Ta bort fodertyp",
+    "feedingTimeTitle": "Ta bort utfodringstid",
+    "feedingTitle": "Ta bort utfodring",
+    "feedTypeDescription": "Är du säker på att du vill ta bort \"{{name}}\"? Om fodertypen används kommer den att markeras som inaktiv istället för att tas bort.",
+    "feedingTimeDescription": "Är du säker på att du vill ta bort \"{{name}}\"? Om utfodringstiden används kommer den att markeras som inaktiv istället för att tas bort.",
+    "feedingDescription": "Är du säker på att du vill ta bort \"{{feedTypeName}}\" utfodring för {{horseName}}? Denna åtgärd kan inte ångras."
+  },
+  "loadingStates": {
+    "stables": "Laddar stall...",
+    "noStablesTitle": "Inga stall hittades",
+    "noStablesForSchedule": "Du måste vara medlem i ett stall för att visa utfodringsschemat.",
+    "noStablesForSettings": "Du måste vara medlem i ett stall för att konfigurera utfodringsinställningar."
+  },
+  "emptyState": {
+    "title": "Inget utfodringsschema ännu",
+    "description": "Kom igång genom att konfigurera fodertyper och utfodringstider"
+  }
+}

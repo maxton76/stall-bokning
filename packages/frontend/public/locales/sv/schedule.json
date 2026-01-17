@@ -1,0 +1,19 @@
+{
+  "shiftTypes": {
+    "title": "Skifttyper",
+    "create": "Skapa skifttyp",
+    "edit": "Redigera skifttyp",
+    "emptyState": {
+      "title": "Inga skifttyper ännu",
+      "description": "Skapa din första skifttyp för att börja schemalägga"
+    },
+    "form": {
+      "points": "Poäng",
+      "daysOfWeek": "Veckodagar"
+    }
+  },
+  "statistics": {
+    "title": "Statistik",
+    "comingSoon": "Kommer snart..."
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "page": {
+    "title": "Anläggningar",
+    "description": "Hantera anläggningar och bokningar",
+    "reservationsTitle": "Anläggningsbokningar",
+    "reservationsDescription": "Visa och hantera bokningar för dina anläggningar",
+    "manageTitle": "Hantera anläggningar",
+    "manageDescription": "Konfigurera anläggningar och bokningsregler"
+  },
+  "form": {
+    "title": {
+      "create": "Lägg till anläggning",
+      "edit": "Redigera anläggning"
+    },
+    "description": {
+      "create": "Skapa en ny anläggning med bokningsregler och tillgänglighet",
+      "edit": "Uppdatera anläggningskonfiguration och bokningsregler"
+    },
+    "labels": {
+      "name": "Anläggningsnamn",
+      "type": "Anläggningstyp",
+      "description": "Beskrivning",
+      "status": "Status"
+    },
+    "placeholders": {
+      "name": "t.ex. Stora ridhuset",
+      "description": "Kort beskrivning av anläggningen"
+    },
+    "sections": {
+      "basicInfo": "Grundläggande information",
+      "bookingRules": "Bokningsregler",
+      "availability": "Tillgänglighet"
+    }
+  },
+  "bookingRules": {
+    "planningWindowOpens": "Planeringsfönster öppnar (dagar framåt)",
+    "planningWindowCloses": "Planeringsfönster stänger (timmar före)",
+    "maxHorsesPerReservation": "Max antal hästar per bokning",
+    "minSlotDuration": "Minsta bokningslängd",
+    "maxHoursPerReservation": "Max timmar per bokning"
+  },
+  "availability": {
+    "availableFrom": "Tillgänglig från",
+    "availableTo": "Tillgänglig till",
+    "daysAvailable": "Tillgängliga dagar"
+  },
+  "reservation": {
+    "title": {
+      "create": "Boka anläggning",
+      "edit": "Redigera bokning"
+    },
+    "labels": {
+      "facility": "Anläggning",
+      "date": "Datum",
+      "startTime": "Starttid",
+      "endTime": "Sluttid",
+      "horse": "Häst",
+      "notes": "Anteckningar",
+      "status": "Status"
+    },
+    "messages": {
+      "createSuccess": "Bokning har skapats",
+      "updateSuccess": "Bokning har uppdaterats",
+      "deleteSuccess": "Bokning har tagits bort",
+      "cancelSuccess": "Bokning har avbokats"
+    },
+    "actions": {
+      "book": "Boka",
+      "cancel": "Avboka",
+      "confirm": "Bekräfta",
+      "reject": "Avvisa"
+    }
+  },
+  "messages": {
+    "createSuccess": "Anläggning har skapats",
+    "updateSuccess": "Anläggning har uppdaterats",
+    "deleteSuccess": "Anläggning har tagits bort"
+  },
+  "actions": {
+    "addFacility": "Lägg till anläggning",
+    "viewReservations": "Visa bokningar",
+    "manageFacilities": "Hantera anläggningar"
+  },
+  "calendar": {
+    "title": "Anläggningskalender",
+    "noReservations": "Inga bokningar denna dag"
+  },
+  "reservations": {
+    "noReservationsForDate": "Inga bokningar för detta datum",
+    "reservationsFound": "{{count}} bokning(ar) hittades"
+  },
+  "filters": {
+    "allTypes": "Alla typer",
+    "allFacilities": "Alla anläggningar"
+  },
+  "emptyState": {
+    "title": "Inga anläggningar ännu",
+    "description": "Kom igång genom att lägga till din första anläggning"
+  }
+}

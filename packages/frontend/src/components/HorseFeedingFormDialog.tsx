@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { BaseFormDialog } from "@/components/BaseFormDialog";
 import { useFormDialog } from "@/hooks/useFormDialog";
@@ -18,9 +19,15 @@ import type {
 const horseFeedingSchema = z.object({
   feedTypeId: z.string().min(1, "Feed type is required"),
   feedingTimeId: z.string().min(1, "Feeding time is required"),
-  quantity: z.number().min(0, "Quantity must be 0 or greater"),
-  startDate: z.date({ message: "Start date is required" }),
-  endDate: z.date().optional().nullable(),
+  quantity: z.coerce.number().min(0, "Quantity must be 0 or greater"),
+  startDate: z.coerce.date({ message: "Start date is required" }),
+  endDate: z
+    .preprocess(
+      (val) =>
+        val === "" || val === null || val === undefined ? undefined : val,
+      z.coerce.date().optional(),
+    )
+    .nullable(),
   notes: z.string().max(500, "Notes must be 500 characters or less").optional(),
 });
 
@@ -49,6 +56,7 @@ export function HorseFeedingFormDialog({
   onSave,
   defaultFeedingTimeId,
 }: HorseFeedingFormDialogProps) {
+  const { t } = useTranslation(["feeding", "common"]);
   const isEditMode = !!horseFeeding;
 
   // Build options for selects
@@ -93,11 +101,11 @@ export function HorseFeedingFormDialog({
         onOpenChange(false);
       },
       successMessage: isEditMode
-        ? "Horse feeding updated successfully"
-        : "Horse feeding added successfully",
+        ? t("feeding:horseFeeding.messages.updateSuccess")
+        : t("feeding:horseFeeding.messages.createSuccess"),
       errorMessage: isEditMode
-        ? "Failed to update horse feeding"
-        : "Failed to add horse feeding",
+        ? t("feeding:horseFeeding.messages.updateError")
+        : t("feeding:horseFeeding.messages.createError"),
     },
   );
 
@@ -139,11 +147,11 @@ export function HorseFeedingFormDialog({
   const selectedFeedType = feedTypes.find((ft) => ft.id === selectedFeedTypeId);
 
   const dialogTitle = isEditMode
-    ? `Edit Feeding for ${horseName}`
-    : `Add Feeding for ${horseName}`;
+    ? t("feeding:horseFeeding.form.title.edit", { horseName })
+    : t("feeding:horseFeeding.form.title.create", { horseName });
   const dialogDescription = isEditMode
-    ? "Modify the feeding configuration."
-    : "Add a new feeding entry for this horse.";
+    ? t("feeding:horseFeeding.form.description.edit")
+    : t("feeding:horseFeeding.form.description.create");
 
   return (
     <BaseFormDialog
@@ -153,62 +161,71 @@ export function HorseFeedingFormDialog({
       description={dialogDescription}
       form={form}
       onSubmit={handleSubmit}
-      submitLabel={isEditMode ? "Update" : "Add"}
+      submitLabel={
+        isEditMode ? t("common:buttons.update") : t("common:buttons.add")
+      }
       maxWidth="sm:max-w-[500px]"
     >
       <FormSelect
         name="feedTypeId"
-        label="Feed Type"
+        label={t("feeding:horseFeeding.form.labels.feedType")}
         form={form}
         options={feedTypeOptions}
-        placeholder="Select feed type"
+        placeholder={t("feeding:horseFeeding.form.placeholders.feedType")}
         required
       />
 
       <FormSelect
         name="feedingTimeId"
-        label="Feeding Time"
+        label={t("feeding:horseFeeding.form.labels.feedingTime")}
         form={form}
         options={feedingTimeOptions}
-        placeholder="Select feeding time"
+        placeholder={t("feeding:horseFeeding.form.placeholders.feedingTime")}
         required
       />
 
       <FormInput
         name="quantity"
-        label={`Quantity${selectedFeedType ? ` (${selectedFeedType.quantityMeasure})` : ""}`}
+        label={
+          selectedFeedType
+            ? t("feeding:horseFeeding.form.labels.quantityWithUnit", {
+                unit: selectedFeedType.quantityMeasure,
+              })
+            : t("feeding:horseFeeding.form.labels.quantity")
+        }
         form={form}
         type="number"
-        placeholder="e.g., 2"
+        placeholder={t("feeding:horseFeeding.form.placeholders.quantity")}
         required
       />
 
       <FormDatePicker
         name="startDate"
-        label="Start Date"
+        label={t("feeding:horseFeeding.form.labels.startDate")}
         form={form}
         required
       />
 
       <FormDatePicker
         name="endDate"
-        label="End Date"
+        label={t("feeding:horseFeeding.form.labels.endDate")}
         form={form}
-        helperText="Leave empty for ongoing feeding"
+        helperText={t("feeding:horseFeeding.form.help.endDate")}
       />
 
       <FormTextarea
         name="notes"
-        label="Notes"
+        label={t("feeding:horseFeeding.form.labels.notes")}
         form={form}
-        placeholder="e.g., Special instructions..."
+        placeholder={t("feeding:horseFeeding.form.placeholders.notes")}
         rows={2}
       />
 
       {selectedFeedType?.warning && (
         <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
           <p className="text-sm text-amber-700">
-            <strong>Warning:</strong> {selectedFeedType.warning}
+            <strong>{t("feeding:feedTypes.form.labels.warning")}:</strong>{" "}
+            {selectedFeedType.warning}
           </p>
         </div>
       )}

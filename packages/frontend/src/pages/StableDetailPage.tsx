@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   Settings,
@@ -50,6 +51,7 @@ interface Stable {
 }
 
 export default function StableDetailPage() {
+  const { t } = useTranslation(["stables", "common", "horses", "schedule"]);
   const { stableId } = useParams();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -163,7 +165,7 @@ export default function StableDetailPage() {
         <Link to="/stables">
           <Button variant="ghost" className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Stables
+            {t("common:navigation.stables")}
           </Button>
         </Link>
         <div className="flex items-start justify-between">
@@ -186,13 +188,13 @@ export default function StableDetailPage() {
             <Link to={`/stables/${stableId}/schedule`}>
               <Button variant="outline">
                 <Calendar className="mr-2 h-4 w-4" />
-                View Schedule
+                {t("stables:schedule.title")}
               </Button>
             </Link>
             <Link to={`/stables/${stableId}/settings`}>
               <Button variant="outline">
                 <Settings className="mr-2 h-4 w-4" />
-                Settings
+                {t("common:navigation.settings")}
               </Button>
             </Link>
           </div>
@@ -204,7 +206,7 @@ export default function StableDetailPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Shift Types
+              {t("schedule:shiftTypes.title")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -216,23 +218,25 @@ export default function StableDetailPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Owner
+              {t("stables:members.owner")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-sm font-medium">
-              {stable.data.ownerEmail || "Unknown"}
+              {stable.data.ownerEmail || t("common:labels.noData")}
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Status
+              {t("common:labels.status")}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-sm font-medium text-green-600">Active</div>
+            <div className="text-sm font-medium text-green-600">
+              {t("common:status.active")}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -242,37 +246,38 @@ export default function StableDetailPage() {
         <TabsList>
           <TabsTrigger value="horses">
             <HorseIcon className="mr-2 h-4 w-4" />
-            Horses
+            {t("common:navigation.horses")}
             <Badge variant="secondary" className="ml-2">
               {horses.data?.length || 0}
             </Badge>
           </TabsTrigger>
           <TabsTrigger value="shifts">
             <Calendar className="mr-2 h-4 w-4" />
-            Shift Types
+            {t("schedule:shiftTypes.title")}
           </TabsTrigger>
           <TabsTrigger value="stats">
             <BarChart3 className="mr-2 h-4 w-4" />
-            Statistics
+            {t("schedule:statistics.title")}
           </TabsTrigger>
         </TabsList>
 
         {/* Horses Tab */}
         <TabsContent value="horses" className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold">Stable Horses</h2>
+            <h2 className="text-2xl font-semibold">
+              {t("stables:members.title")}
+            </h2>
             <p className="text-sm text-muted-foreground">
               {horses.data?.length || 0}{" "}
-              {horses.data?.length === 1 ? "horse" : "horses"} assigned to this
-              stable
+              {t("common:navigation.horses").toLowerCase()}
             </p>
           </div>
 
           {!horses.data || horses.data.length === 0 ? (
             <EmptyState
               icon={HorseIcon}
-              title="No horses yet"
-              description="Members can assign their horses to this stable from their 'My Horses' page."
+              title={t("horses:emptyState.title")}
+              description={t("horses:emptyState.description")}
             />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -292,10 +297,12 @@ export default function StableDetailPage() {
         {/* Shift Types Tab */}
         <TabsContent value="shifts" className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold">Shift Types</h2>
+            <h2 className="text-2xl font-semibold">
+              {t("schedule:shiftTypes.title")}
+            </h2>
             <Button onClick={handleCreateShiftType}>
               <Plus className="mr-2 h-4 w-4" />
-              Create Shift Type
+              {t("schedule:shiftTypes.create")}
             </Button>
           </div>
 
@@ -303,17 +310,17 @@ export default function StableDetailPage() {
             <Card>
               <CardContent className="p-6">
                 <p className="text-muted-foreground text-center">
-                  Loading shift types...
+                  {t("common:labels.loading")}
                 </p>
               </CardContent>
             </Card>
           ) : !shiftTypes.data || shiftTypes.data.length === 0 ? (
             <EmptyState
               icon={Calendar}
-              title="No shift types yet"
-              description="Create your first shift type to start scheduling"
+              title={t("schedule:shiftTypes.emptyState.title")}
+              description={t("schedule:shiftTypes.emptyState.description")}
               action={{
-                label: "Create Shift Type",
+                label: t("schedule:shiftTypes.create"),
                 onClick: handleCreateShiftType,
               }}
             />
@@ -348,11 +355,15 @@ export default function StableDetailPage() {
                   <CardContent>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Points</span>
+                        <span className="text-muted-foreground">
+                          {t("schedule:shiftTypes.form.points")}
+                        </span>
                         <span className="font-medium">{shiftType.points}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Days</span>
+                        <span className="text-muted-foreground">
+                          {t("schedule:shiftTypes.form.daysOfWeek")}
+                        </span>
                         <span className="font-medium">
                           {shiftType.daysOfWeek.join(", ")}
                         </span>
@@ -367,11 +378,13 @@ export default function StableDetailPage() {
 
         {/* Statistics Tab */}
         <TabsContent value="stats" className="space-y-4">
-          <h2 className="text-2xl font-semibold">Statistics</h2>
+          <h2 className="text-2xl font-semibold">
+            {t("schedule:statistics.title")}
+          </h2>
           <Card>
             <CardContent className="p-6">
               <p className="text-muted-foreground text-center py-12">
-                Statistics dashboard coming soon...
+                {t("schedule:statistics.comingSoon")}
               </p>
             </CardContent>
           </Card>
@@ -384,7 +397,11 @@ export default function StableDetailPage() {
         onOpenChange={(open) => !open && shiftTypeDialog.closeDialog()}
         onSave={handleSaveShiftType}
         shiftType={shiftTypeDialog.data}
-        title={shiftTypeDialog.data ? "Edit Shift Type" : "Create Shift Type"}
+        title={
+          shiftTypeDialog.data
+            ? t("schedule:shiftTypes.edit")
+            : t("schedule:shiftTypes.create")
+        }
       />
     </div>
   );

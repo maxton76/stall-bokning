@@ -1,5 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganizationContext } from "@/contexts/OrganizationContext";
 import {
@@ -65,19 +66,21 @@ import Logo from "@/assets/svg/logo";
 import ProfileDropdown from "@/components/shadcn-studio/blocks/dropdown-profile";
 import NotificationDropdown from "@/components/shadcn-studio/blocks/dropdown-notification";
 import { OrganizationsDropdown } from "@/components/shadcn-studio/blocks/dropdown-organizations";
+import { LanguageSwitcherCompact } from "@/components/LanguageSwitcher";
 
 export default function AuthenticatedLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { currentOrganizationId } = useOrganizationContext();
+  const { t } = useTranslation(["common", "organizations"]);
 
   // State for accordion menu - track which menu item is expanded
   const [expandedItem, setExpandedItem] = useState<string | null>(() => {
     // Initialize with currently active menu item expanded
     const navigation = [
       {
-        name: "My Horses",
+        name: "horses",
         href: "/horses",
         subItems: [
           { href: "/horses" },
@@ -86,7 +89,7 @@ export default function AuthenticatedLayout() {
         ],
       },
       {
-        name: "Activities",
+        name: "activities",
         href: "/activities",
         subItems: [
           { href: "/activities" },
@@ -96,7 +99,7 @@ export default function AuthenticatedLayout() {
         ],
       },
       {
-        name: "Feeding",
+        name: "feeding",
         href: "/feeding",
         subItems: [
           { href: "/feeding/schedule" },
@@ -104,7 +107,7 @@ export default function AuthenticatedLayout() {
         ],
       },
       {
-        name: "Facilities",
+        name: "facilities",
         href: "/facilities",
         subItems: [
           { href: "/facilities/reservations" },
@@ -112,9 +115,9 @@ export default function AuthenticatedLayout() {
           { href: "/stables" },
         ],
       },
-      { name: "Schedule", href: "/schedule" },
-      { name: "My availability", href: "/my-availability" },
-      { name: "Settings", href: "/settings" },
+      { name: "schedule", href: "/schedule" },
+      { name: "myAvailability", href: "/my-availability" },
+      { name: "settings", href: "/settings" },
     ];
 
     // Find which menu item's submenu contains current path
@@ -129,104 +132,184 @@ export default function AuthenticatedLayout() {
     setExpandedItem(expandedItem === itemName ? null : itemName);
   };
 
-  // Main navigation items
+  // Main navigation items with translation keys
   const navigation = [
     {
-      name: "My Horses",
+      name: "horses",
+      label: t("common:navigation.myHorses"),
       href: "/horses",
       icon: HorseIcon,
       subItems: [
-        { name: "Horse list", href: "/horses", icon: HorseIcon },
-        { name: "Location History", href: "/location-history", icon: History },
-        { name: "Settings", href: "/horses/settings", icon: Settings2Icon },
+        {
+          name: "horseList",
+          label: t("common:navigation.horses"),
+          href: "/horses",
+          icon: HorseIcon,
+        },
+        {
+          name: "locationHistory",
+          label: t("common:navigation.locationHistory"),
+          href: "/location-history",
+          icon: History,
+        },
+        {
+          name: "settings",
+          label: t("common:navigation.settings"),
+          href: "/horses/settings",
+          icon: Settings2Icon,
+        },
       ],
     },
     {
-      name: "Activities",
+      name: "activities",
+      label: t("common:navigation.activities"),
       href: "/activities",
       icon: ClipboardList,
       subItems: [
-        { name: "Action list", href: "/activities", icon: ClipboardList },
-        { name: "Planning", href: "/activities/planning", icon: CalendarIcon },
-        { name: "Care", href: "/activities/care", icon: Heart },
-        { name: "Settings", href: "/activities/settings", icon: SettingsIcon },
+        {
+          name: "actionList",
+          label: t("common:navigation.activities"),
+          href: "/activities",
+          icon: ClipboardList,
+        },
+        {
+          name: "planning",
+          label: t("common:navigation.schedule"),
+          href: "/activities/planning",
+          icon: CalendarIcon,
+        },
+        {
+          name: "care",
+          label: t("common:roles.groom"),
+          href: "/activities/care",
+          icon: Heart,
+        },
+        {
+          name: "settings",
+          label: t("common:navigation.settings"),
+          href: "/activities/settings",
+          icon: SettingsIcon,
+        },
       ],
     },
     {
-      name: "Feeding",
+      name: "feeding",
+      label: t("common:navigation.feeding"),
       href: "/feeding",
       icon: Wheat,
       subItems: [
-        { name: "Schedule", href: "/feeding/schedule", icon: CalendarIcon },
-        { name: "Settings", href: "/feeding/settings", icon: Settings2Icon },
+        {
+          name: "schedule",
+          label: t("common:navigation.schedule"),
+          href: "/feeding/schedule",
+          icon: CalendarIcon,
+        },
+        {
+          name: "settings",
+          label: t("common:navigation.settings"),
+          href: "/feeding/settings",
+          icon: Settings2Icon,
+        },
       ],
     },
     {
-      name: "Facilities",
+      name: "facilities",
+      label: t("common:navigation.facilities"),
       href: "/facilities",
       icon: Warehouse,
       subItems: [
         {
-          name: "Reservations",
+          name: "reservations",
+          label: t("common:navigation.myReservations"),
           href: "/facilities/reservations",
           icon: CalendarIcon,
         },
         {
-          name: "Manage facilities",
+          name: "manageFacilities",
+          label: t("common:navigation.facilities"),
           href: "/facilities/manage",
           icon: SettingsIcon,
         },
-        { name: "Stables", href: "/stables", icon: Building2 },
+        {
+          name: "stables",
+          label: t("common:navigation.stables"),
+          href: "/stables",
+          icon: Building2,
+        },
       ],
     },
-    { name: "Schedule", href: "/schedule", icon: CalendarIcon },
-    { name: "My availability", href: "/my-availability", icon: UserCircle },
-    { name: "Settings", href: "/settings", icon: SettingsIcon },
+    {
+      name: "schedule",
+      label: t("common:navigation.schedule"),
+      href: "/schedule",
+      icon: CalendarIcon,
+    },
+    {
+      name: "myAvailability",
+      label: t("common:navigation.myAvailability"),
+      href: "/my-availability",
+      icon: UserCircle,
+    },
+    {
+      name: "settings",
+      label: t("common:navigation.settings"),
+      href: "/settings",
+      icon: SettingsIcon,
+    },
   ];
 
   // Organization navigation (only show sub-items if an organization is selected)
   const organizationNavigation = currentOrganizationId
     ? {
-        name: "Organization Admin",
+        name: "organizationAdmin",
+        label: t("organizations:menu.settings"),
         icon: Building2,
         subItems: [
           {
-            name: "Members",
+            name: "members",
+            label: t("organizations:menu.members"),
             href: `/organizations/${currentOrganizationId}/users`,
             icon: UsersIcon,
           },
           {
-            name: "Leave Management",
+            name: "leaveManagement",
+            label: t("organizations:menu.leaveManagement"),
             href: `/organizations/${currentOrganizationId}/leave-management`,
             icon: CalendarIcon,
           },
           {
-            name: "Schedule Management",
+            name: "scheduleManagement",
+            label: t("organizations:menu.scheduleManagement"),
             href: `/organizations/${currentOrganizationId}/schedule-management`,
             icon: ClipboardList,
           },
           {
-            name: "Integrations",
+            name: "integrations",
+            label: t("organizations:menu.integrations"),
             href: `/organizations/${currentOrganizationId}/integrations`,
             icon: Plug,
           },
           {
-            name: "Manure",
+            name: "manure",
+            label: t("organizations:menu.manure"),
             href: `/organizations/${currentOrganizationId}/manure`,
             icon: Tractor,
           },
           {
-            name: "Permissions",
+            name: "permissions",
+            label: t("organizations:menu.permissions"),
             href: `/organizations/${currentOrganizationId}/permissions`,
             icon: Shield,
           },
           {
-            name: "Subscription",
+            name: "subscription",
+            label: t("organizations:menu.subscription"),
             href: `/organizations/${currentOrganizationId}/subscription`,
             icon: CreditCard,
           },
           {
-            name: "Settings",
+            name: "settings",
+            label: t("organizations:menu.settings"),
             href: `/organizations/${currentOrganizationId}/settings`,
             icon: Settings2Icon,
           },
@@ -251,7 +334,9 @@ export default function AuthenticatedLayout() {
 
           {/* Main Navigation */}
           <SidebarGroup>
-            <SidebarGroupLabel>Main Menu</SidebarGroupLabel>
+            <SidebarGroupLabel>
+              {t("common:navigation.dashboard")}
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {navigation.map((item) => {
@@ -267,7 +352,7 @@ export default function AuthenticatedLayout() {
                           <CollapsibleTrigger asChild>
                             <SidebarMenuButton>
                               <item.icon className="size-5" />
-                              <span>{item.name}</span>
+                              <span>{item.label}</span>
                               <ChevronDown
                                 className={cn(
                                   "ml-auto size-4 transition-transform duration-200",
@@ -289,7 +374,7 @@ export default function AuthenticatedLayout() {
                                   >
                                     <Link to={subItem.href}>
                                       <subItem.icon className="size-4" />
-                                      <span>{subItem.name}</span>
+                                      <span>{subItem.label}</span>
                                     </Link>
                                   </SidebarMenuSubButton>
                                 </SidebarMenuSubItem>
@@ -310,7 +395,7 @@ export default function AuthenticatedLayout() {
                       >
                         <Link to={item.href}>
                           <item.icon className="size-5" />
-                          <span>{item.name}</span>
+                          <span>{item.label}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -322,7 +407,9 @@ export default function AuthenticatedLayout() {
 
           {/* My Reservations - Personal Section */}
           <SidebarGroup>
-            <SidebarGroupLabel>Personal</SidebarGroupLabel>
+            <SidebarGroupLabel>
+              {t("common:userMenu.profile")}
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
@@ -335,7 +422,7 @@ export default function AuthenticatedLayout() {
                   >
                     <Link to="/my-reservations">
                       <CalendarCheck2 className="size-5" />
-                      <span>My reservations</span>
+                      <span>{t("common:navigation.myReservations")}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -346,7 +433,9 @@ export default function AuthenticatedLayout() {
           {/* Organization Admin Section */}
           {organizationNavigation && (
             <SidebarGroup className="mt-auto">
-              <SidebarGroupLabel>Organization</SidebarGroupLabel>
+              <SidebarGroupLabel>
+                {t("common:navigation.organizations")}
+              </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   <Collapsible
@@ -359,7 +448,7 @@ export default function AuthenticatedLayout() {
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton>
                           <organizationNavigation.icon className="size-5" />
-                          <span>{organizationNavigation.name}</span>
+                          <span>{organizationNavigation.label}</span>
                           <ChevronDown
                             className={cn(
                               "ml-auto size-4 transition-transform duration-200",
@@ -380,7 +469,7 @@ export default function AuthenticatedLayout() {
                               >
                                 <Link to={subItem.href}>
                                   <subItem.icon className="size-4" />
-                                  <span>{subItem.name}</span>
+                                  <span>{subItem.label}</span>
                                 </Link>
                               </SidebarMenuSubButton>
                             </SidebarMenuSubItem>
@@ -424,24 +513,26 @@ export default function AuthenticatedLayout() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuLabel>
+                  {t("common:userMenu.myAccount")}
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link to="/account">
                     <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
+                    <span>{t("common:userMenu.profile")}</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/settings">
                     <SettingsIcon className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
+                    <span>{t("common:userMenu.settings")}</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Logout</span>
+                  <span>{t("common:userMenu.logout")}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -459,7 +550,7 @@ export default function AuthenticatedLayout() {
             <div className="relative">
               <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search..."
+                placeholder={`${t("common:buttons.search")}...`}
                 className="pl-9"
                 onClick={() => {
                   /* TODO: Open search dialog */
@@ -470,6 +561,9 @@ export default function AuthenticatedLayout() {
 
           {/* Header Actions */}
           <div className="ml-auto flex items-center gap-2">
+            {/* Language Switcher */}
+            <LanguageSwitcherCompact />
+
             {/* Notifications */}
             <NotificationDropdown
               trigger={

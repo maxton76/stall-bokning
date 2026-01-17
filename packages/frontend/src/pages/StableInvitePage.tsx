@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
@@ -27,6 +28,7 @@ import { getInvitesByStable, createInvite } from "@/services/invitationService";
 import { toDate } from "@/utils/timestampUtils";
 
 export default function StableInvitePage() {
+  const { t } = useTranslation(["stables", "common"]);
   const { stableId } = useParams<{ stableId: string }>();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -132,12 +134,14 @@ export default function StableInvitePage() {
         <Link to={`/stables/${stableId}`}>
           <Button variant="ghost" className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Stable
+            {t("common:navigation.stables")}
           </Button>
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight">Invite Members</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {t("stables:invite.title")}
+        </h1>
         <p className="text-muted-foreground mt-1">
-          Invite people to join {stableName}
+          {t("stables:invite.description", { name: stableName })}
         </p>
       </div>
 
@@ -145,19 +149,19 @@ export default function StableInvitePage() {
         {/* Invite Form */}
         <Card>
           <CardHeader>
-            <CardTitle>Send Email Invite</CardTitle>
+            <CardTitle>{t("stables:invite.emailInvite")}</CardTitle>
             <CardDescription>
-              Enter an email address to send an invitation
+              {t("stables:invite.emailDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSendInvite} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="email">{t("stables:invite.emailLabel")}</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="member@example.com"
+                  placeholder={t("stables:invite.emailPlaceholder")}
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   required
@@ -165,7 +169,7 @@ export default function StableInvitePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
+                <Label htmlFor="role">{t("stables:invite.roleLabel")}</Label>
                 <div className="flex flex-col gap-2">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -176,9 +180,11 @@ export default function StableInvitePage() {
                       onChange={() => setSelectedRole("member")}
                       className="cursor-pointer"
                     />
-                    <span className="font-medium">Member</span>
+                    <span className="font-medium">
+                      {t("stables:members.member")}
+                    </span>
                     <span className="text-xs text-muted-foreground">
-                      Can view and book shifts
+                      {t("stables:invite.memberDescription")}
                     </span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -190,9 +196,11 @@ export default function StableInvitePage() {
                       onChange={() => setSelectedRole("manager")}
                       className="cursor-pointer"
                     />
-                    <span className="font-medium">Manager</span>
+                    <span className="font-medium">
+                      {t("stables:members.manager")}
+                    </span>
                     <span className="text-xs text-muted-foreground">
-                      Can create schedules and invite members
+                      {t("stables:invite.managerDescription")}
                     </span>
                   </label>
                 </div>
@@ -202,12 +210,12 @@ export default function StableInvitePage() {
                 {inviting ? (
                   <>
                     <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
+                    {t("common:labels.loading")}
                   </>
                 ) : (
                   <>
                     <Mail className="mr-2 h-4 w-4" />
-                    Send Invite
+                    {t("stables:invite.sendButton")}
                   </>
                 )}
               </Button>
@@ -218,9 +226,9 @@ export default function StableInvitePage() {
         {/* Invite Link */}
         <Card>
           <CardHeader>
-            <CardTitle>Invite Link</CardTitle>
+            <CardTitle>{t("stables:invite.linkTitle")}</CardTitle>
             <CardDescription>
-              Share this link with people you want to invite
+              {t("stables:invite.linkDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -243,7 +251,7 @@ export default function StableInvitePage() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Anyone with this link can request to join this stable
+              {t("stables:invite.linkNote")}
             </p>
           </CardContent>
         </Card>
@@ -252,17 +260,17 @@ export default function StableInvitePage() {
       {/* Pending Invites */}
       <Card>
         <CardHeader>
-          <CardTitle>Pending Invites</CardTitle>
+          <CardTitle>{t("stables:invite.pendingTitle")}</CardTitle>
           <CardDescription>
-            Invitations sent to join this stable
+            {t("stables:invite.pendingDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {invites.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <UserPlus className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>No invites sent yet</p>
-              <p className="text-sm">Send your first invitation above</p>
+              <p>{t("stables:invite.noInvites")}</p>
+              <p className="text-sm">{t("stables:invite.noInvitesHelp")}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -275,7 +283,7 @@ export default function StableInvitePage() {
                     <p className="font-medium">{invite.email}</p>
                     <p className="text-xs text-muted-foreground">
                       {toDate(invite.createdAt) &&
-                        `Sent ${toDate(invite.createdAt)!.toLocaleDateString()}`}
+                        `${t("stables:invite.sent")} ${toDate(invite.createdAt)!.toLocaleDateString()}`}
                     </p>
                   </div>
                   <Badge className={getStatusColor(invite.status)}>

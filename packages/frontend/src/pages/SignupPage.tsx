@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { Loader2 } from "lucide-react";
 import { acceptOrganizationInvite } from "@/services/inviteService";
 
 export default function SignupPage() {
+  const { t } = useTranslation("auth");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get("invite");
@@ -44,17 +46,17 @@ export default function SignupPage() {
 
     // Validation
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+      setError(t("errors.passwordsDontMatch"));
       return;
     }
 
     if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters");
+      setError(t("errors.passwordTooShort"));
       return;
     }
 
     if (!formData.email || !formData.firstName || !formData.lastName) {
-      setError("Please fill in all required fields");
+      setError(t("errors.emailAndPasswordRequired"));
       return;
     }
 
@@ -88,38 +90,36 @@ export default function SignupPage() {
       );
 
       if (!response.ok) {
-        throw new Error("Failed to complete signup");
+        throw new Error(t("errors.registrationFailed"));
       }
 
       // Step 3: If there's an invite token, accept it
       if (inviteToken) {
         try {
           await acceptOrganizationInvite(inviteToken);
-          alert("Account created and invitation accepted!");
+          alert(t("success.accountCreated"));
           navigate("/organizations");
         } catch (inviteError: any) {
           // Signup succeeded but invite acceptance failed
           console.error("Failed to accept invite:", inviteError);
-          alert(
-            "Account created successfully, but failed to accept invitation. You can try accepting it again from your email.",
-          );
+          alert(t("success.accountCreated"));
           navigate("/organizations");
         }
       } else {
-        alert("Account created successfully!");
+        alert(t("success.accountCreated"));
         navigate("/horses");
       }
     } catch (err: any) {
       console.error("Signup error:", err);
 
       if (err.code === "auth/email-already-in-use") {
-        setError("This email is already in use");
+        setError(t("errors.emailInUse"));
       } else if (err.code === "auth/invalid-email") {
-        setError("Invalid email address");
+        setError(t("errors.invalidCredentials"));
       } else if (err.code === "auth/weak-password") {
-        setError("Password is too weak");
+        setError(t("errors.weakPassword"));
       } else {
-        setError(err.message || "Failed to create account");
+        setError(err.message || t("errors.registrationFailed"));
       }
     } finally {
       setLoading(false);
@@ -130,11 +130,11 @@ export default function SignupPage() {
     <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Create Account</CardTitle>
+          <CardTitle>{t("register.title")}</CardTitle>
           <CardDescription>
             {inviteToken
-              ? "Complete your account to accept the organization invitation"
-              : "Sign up to get started with StallBokning"}
+              ? t("completeProfile.subtitle")
+              : t("register.subtitle")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -142,7 +142,7 @@ export default function SignupPage() {
             {/* Email */}
             <div>
               <label htmlFor="email" className="text-sm font-medium">
-                Email <span className="text-destructive">*</span>
+                {t("register.emailLabel")}
               </label>
               <Input
                 id="email"
@@ -151,14 +151,14 @@ export default function SignupPage() {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                placeholder="you@example.com"
+                placeholder={t("register.emailPlaceholder")}
               />
             </div>
 
             {/* First Name */}
             <div>
               <label htmlFor="firstName" className="text-sm font-medium">
-                First Name <span className="text-destructive">*</span>
+                {t("register.firstNameLabel")}
               </label>
               <Input
                 id="firstName"
@@ -167,13 +167,14 @@ export default function SignupPage() {
                 value={formData.firstName}
                 onChange={handleChange}
                 required
+                placeholder={t("register.firstNamePlaceholder")}
               />
             </div>
 
             {/* Last Name */}
             <div>
               <label htmlFor="lastName" className="text-sm font-medium">
-                Last Name <span className="text-destructive">*</span>
+                {t("register.lastNameLabel")}
               </label>
               <Input
                 id="lastName"
@@ -182,13 +183,14 @@ export default function SignupPage() {
                 value={formData.lastName}
                 onChange={handleChange}
                 required
+                placeholder={t("register.lastNamePlaceholder")}
               />
             </div>
 
             {/* Password */}
             <div>
               <label htmlFor="password" className="text-sm font-medium">
-                Password <span className="text-destructive">*</span>
+                {t("register.passwordLabel")}
               </label>
               <Input
                 id="password"
@@ -197,14 +199,14 @@ export default function SignupPage() {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                placeholder="At least 6 characters"
+                placeholder={t("register.passwordPlaceholder")}
               />
             </div>
 
             {/* Confirm Password */}
             <div>
               <label htmlFor="confirmPassword" className="text-sm font-medium">
-                Confirm Password <span className="text-destructive">*</span>
+                {t("register.confirmPasswordLabel")}
               </label>
               <Input
                 id="confirmPassword"
@@ -213,6 +215,7 @@ export default function SignupPage() {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
+                placeholder={t("register.confirmPasswordPlaceholder")}
               />
             </div>
 
@@ -228,18 +231,18 @@ export default function SignupPage() {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating Account...
+                  {t("register.creatingAccount")}
                 </>
               ) : (
-                "Create Account"
+                t("register.createAccount")
               )}
             </Button>
 
             {/* Login Link */}
             <p className="text-center text-sm text-muted-foreground">
-              Already have an account?{" "}
+              {t("register.alreadyHaveAccount")}{" "}
               <Link to="/login" className="text-primary hover:underline">
-                Log in
+                {t("register.signIn")}
               </Link>
             </p>
           </form>

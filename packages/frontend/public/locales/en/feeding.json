@@ -1,0 +1,188 @@
+{
+  "page": {
+    "scheduleTitle": "Feeding Schedule",
+    "scheduleDescription": "View and manage horse feeding schedules",
+    "settingsTitle": "Feeding Settings",
+    "settingsDescription": "Configure feed types and feeding times for your stable"
+  },
+  "feedTypes": {
+    "title": "Feed Types",
+    "description": "Manage the types of feed available at your stable",
+    "tableHeaders": {
+      "name": "Name",
+      "category": "Category",
+      "brand": "Brand",
+      "defaultAmount": "Default Amount",
+      "warning": "Warning",
+      "actions": "Actions"
+    },
+    "loading": "Loading feed types...",
+    "noFeedTypes": "No feed types found. Add your first feed type to get started.",
+    "form": {
+      "title": {
+        "create": "Add Feed Type",
+        "edit": "Edit Feed Type"
+      },
+      "description": {
+        "create": "Create a new feed type for your stable.",
+        "edit": "Modify the feed type configuration."
+      },
+      "labels": {
+        "name": "Name",
+        "brand": "Brand",
+        "category": "Category",
+        "quantityMeasure": "Quantity Measure",
+        "defaultQuantity": "Default Quantity",
+        "warning": "Warning"
+      },
+      "placeholders": {
+        "name": "e.g., Müsli Plus, Hay",
+        "brand": "e.g., Krafft, Local Farm",
+        "category": "Select category",
+        "quantityMeasure": "Select measure",
+        "defaultQuantity": "e.g., 2",
+        "warning": "e.g., Do not give more than 3kg per feeding"
+      },
+      "help": {
+        "defaultQuantity": "Default amount when adding this feed to a horse",
+        "warning": "Optional warning message shown when using this feed"
+      }
+    },
+    "messages": {
+      "createSuccess": "Feed type created successfully",
+      "updateSuccess": "Feed type updated successfully",
+      "deleteSuccess": "Feed type deleted successfully",
+      "createError": "Failed to create feed type",
+      "updateError": "Failed to update feed type"
+    }
+  },
+  "feedingTimes": {
+    "title": "Feeding Times",
+    "description": "Configure the daily feeding schedule time slots",
+    "tableHeaders": {
+      "name": "Name",
+      "time": "Time",
+      "actions": "Actions"
+    },
+    "loading": "Loading feeding times...",
+    "noFeedingTimes": "No feeding times found. Default times will be created when you first access the schedule.",
+    "form": {
+      "title": {
+        "create": "Add Feeding Time",
+        "edit": "Edit Feeding Time"
+      },
+      "description": {
+        "create": "Create a new feeding time slot for your stable.",
+        "edit": "Modify the feeding time configuration."
+      },
+      "labels": {
+        "name": "Name",
+        "time": "Time",
+        "hour": "Hour",
+        "minute": "Min"
+      },
+      "placeholders": {
+        "name": "e.g., Morning, Afternoon, Evening"
+      },
+      "selectedTime": "Selected time:"
+    },
+    "messages": {
+      "createSuccess": "Feeding time created successfully",
+      "updateSuccess": "Feeding time updated successfully",
+      "deleteSuccess": "Feeding time deleted successfully",
+      "createError": "Failed to create feeding time",
+      "updateError": "Failed to update feeding time"
+    }
+  },
+  "horseFeeding": {
+    "title": "Horse Feeding",
+    "form": {
+      "title": {
+        "create": "Add Feeding for {{horseName}}",
+        "edit": "Edit Feeding for {{horseName}}"
+      },
+      "description": {
+        "create": "Add a new feeding entry for this horse.",
+        "edit": "Modify the feeding configuration."
+      },
+      "labels": {
+        "feedType": "Feed Type",
+        "feedingTime": "Feeding Time",
+        "quantity": "Quantity",
+        "quantityWithUnit": "Quantity ({{unit}})",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "notes": "Notes",
+        "active": "Active"
+      },
+      "placeholders": {
+        "feedType": "Select feed type",
+        "feedingTime": "Select feeding time",
+        "quantity": "e.g., 2",
+        "notes": "e.g., Special instructions..."
+      },
+      "help": {
+        "endDate": "Leave empty for ongoing feeding"
+      }
+    },
+    "messages": {
+      "createSuccess": "Feeding added successfully",
+      "updateSuccess": "Feeding updated successfully",
+      "deleteSuccess": "Feeding deleted successfully",
+      "createError": "Failed to add feeding",
+      "updateError": "Failed to update feeding"
+    }
+  },
+  "schedule": {
+    "title": "Schedule for {{date}}",
+    "description": "Click on a cell to view or add feedings for that horse and time slot",
+    "stable": "Stable:",
+    "selectStable": "Select a stable",
+    "allStables": "All Stables",
+    "pickDate": "Pick a date",
+    "searchPlaceholder": "Search by horse name, UELN, or chip number...",
+    "today": "Today",
+    "loading": "Loading schedule...",
+    "noFeedingTimesConfigured": "No feeding times configured. Please set up feeding times in Settings first.",
+    "goToSettings": "Go to Settings",
+    "noHorsesFound": "No horses found in this stable.",
+    "noHorsesMatchingSearch": "No horses found matching your search.",
+    "horse": "Horse",
+    "noFeedings": "No feedings",
+    "moreFeedings": "+{{count}} more"
+  },
+  "popover": {
+    "add": "Add",
+    "noFeedingsConfigured": "No feedings configured for this time slot",
+    "notes": "Notes:"
+  },
+  "actions": {
+    "addFeedType": "Add Feed Type",
+    "addFeedingTime": "Add Feeding Time",
+    "viewSchedule": "View Schedule"
+  },
+  "infoCard": {
+    "scheduleTitle": "About the Feeding Schedule",
+    "scheduleDescription": "This schedule shows all active feeding entries for the selected date. Feedings are shown based on their start and end dates. To add or modify feed types and feeding time slots, go to the Settings page.",
+    "settingsTitle": "About Feeding Settings",
+    "settingsDescription": "Feed types define the different feeds available at your stable (roughage, concentrate, supplements, medicine). Feeding times define the daily schedule slots when horses are fed. If no feeding times are configured, default times (morning 07:00, afternoon 13:00, evening 20:00) will be created automatically."
+  },
+  "deleteDialog": {
+    "feedTypeTitle": "Delete Feed Type",
+    "feedingTimeTitle": "Delete Feeding Time",
+    "feedingTitle": "Delete Feeding",
+    "feedTypeDescription": "Are you sure you want to delete \"{{name}}\"? If this feed type is in use, it will be marked as inactive instead of deleted.",
+    "feedingTimeDescription": "Are you sure you want to delete \"{{name}}\"? If this feeding time is in use, it will be marked as inactive instead of deleted.",
+    "feedingDescription": "Are you sure you want to delete \"{{feedTypeName}}\" feeding for {{horseName}}? This action cannot be undone."
+  },
+  "loadingStates": {
+    "stables": "Loading stables...",
+    "noStablesTitle": "No stables found",
+    "noStablesForSchedule": "You need to be a member of a stable to view the feeding schedule.",
+    "noStablesForSettings": "You need to be a member of a stable to configure feeding settings."
+  },
+  "emptyState": {
+    "title": "No feeding schedule yet",
+    "description": "Get started by configuring feed types and feeding times"
+  }
+}

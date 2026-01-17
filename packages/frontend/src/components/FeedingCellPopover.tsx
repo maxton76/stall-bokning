@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Plus, Pencil, Trash2, Wheat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +28,8 @@ export function FeedingCellPopover({
   onDeleteClick,
   children,
 }: FeedingCellPopoverProps) {
+  const { t } = useTranslation(["feeding", "common"]);
+
   return (
     <Popover>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
@@ -39,13 +42,13 @@ export function FeedingCellPopover({
             </div>
             <Button size="sm" variant="outline" onClick={onAddClick}>
               <Plus className="h-4 w-4 mr-1" />
-              Add
+              {t("feeding:popover.add")}
             </Button>
           </div>
 
           {feedings.length === 0 ? (
             <div className="text-center py-4 text-muted-foreground text-sm">
-              No feedings configured for this time slot
+              {t("feeding:popover.noFeedingsConfigured")}
             </div>
           ) : (
             <div className="space-y-2">
@@ -96,13 +99,13 @@ export function FeedingCellPopover({
           {feedings.some((f) => f.notes) && (
             <div className="pt-2 border-t">
               <p className="text-xs text-muted-foreground font-medium mb-1">
-                Notes:
+                {t("feeding:popover.notes")}
               </p>
               {feedings
                 .filter((f) => f.notes)
                 .map((f) => (
                   <p key={f.id} className="text-xs text-muted-foreground">
-                    • {f.feedTypeName}: {f.notes}
+                    - {f.feedTypeName}: {f.notes}
                   </p>
                 ))}
             </div>

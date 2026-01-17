@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +19,7 @@ import { createOrganization } from "@/services/organizationService";
 import type { ContactType } from "@stall-bokning/shared/types/organization";
 
 export default function CreateOrganizationPage() {
+  const { t } = useTranslation(["organizations", "common"]);
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -52,7 +54,7 @@ export default function CreateOrganizationPage() {
       navigate(`/organizations/${organizationId}/users`);
     } catch (error) {
       console.error("Error creating organization:", error);
-      alert("Failed to create organization. Please try again.");
+      alert(t("common:messages.error"));
     } finally {
       setIsLoading(false);
     }
@@ -84,29 +86,29 @@ export default function CreateOrganizationPage() {
           className="mb-4"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Organizations
+          {t("common:navigation.organizations")}
         </Button>
         <h1 className="text-3xl font-bold tracking-tight">
-          Create New Organization
+          {t("organizations:form.title.create")}
         </h1>
         <p className="text-muted-foreground mt-1">
-          Set up your organization to manage multiple stables and team members
+          {t("organizations:form.description.create")}
         </p>
       </div>
 
       {/* Form */}
       <Card>
         <CardHeader>
-          <CardTitle>Organization Information</CardTitle>
+          <CardTitle>{t("organizations:form.labels.name")}</CardTitle>
           <CardDescription>
-            Provide basic information about your organization
+            {t("organizations:form.description.create")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Contact Type */}
             <div className="space-y-3">
-              <Label>Contact Type *</Label>
+              <Label>{t("organizations:invite.contactType")} *</Label>
               <RadioGroup
                 value={formData.contactType}
                 onValueChange={handleContactTypeChange}
@@ -136,18 +138,14 @@ export default function CreateOrganizationPage() {
             <div className="space-y-2">
               <Label htmlFor="name">
                 {formData.contactType === "Business"
-                  ? "Organization Name"
-                  : "Name"}{" "}
+                  ? t("organizations:form.labels.name")
+                  : t("common:labels.name")}{" "}
                 *
               </Label>
               <Input
                 id="name"
                 name="name"
-                placeholder={
-                  formData.contactType === "Business"
-                    ? "e.g. Green Valley Stables Ltd"
-                    : "e.g. John Doe"
-                }
+                placeholder={t("organizations:form.placeholders.name")}
                 value={formData.name}
                 onChange={handleChange}
                 required
@@ -156,11 +154,13 @@ export default function CreateOrganizationPage() {
 
             {/* Description */}
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">
+                {t("organizations:form.labels.description")}
+              </Label>
               <Textarea
                 id="description"
                 name="description"
-                placeholder="Brief description of your organization..."
+                placeholder={t("organizations:form.placeholders.description")}
                 value={formData.description}
                 onChange={handleChange}
                 rows={4}
@@ -169,12 +169,14 @@ export default function CreateOrganizationPage() {
 
             {/* Primary Email */}
             <div className="space-y-2">
-              <Label htmlFor="primaryEmail">Primary Email *</Label>
+              <Label htmlFor="primaryEmail">
+                {t("organizations:form.labels.email")} *
+              </Label>
               <Input
                 id="primaryEmail"
                 name="primaryEmail"
                 type="email"
-                placeholder="contact@example.com"
+                placeholder={t("organizations:invite.emailPlaceholder")}
                 value={formData.primaryEmail}
                 onChange={handleChange}
                 required
@@ -183,12 +185,14 @@ export default function CreateOrganizationPage() {
 
             {/* Phone Number */}
             <div className="space-y-2">
-              <Label htmlFor="phoneNumber">Phone Number</Label>
+              <Label htmlFor="phoneNumber">
+                {t("organizations:form.labels.phone")}
+              </Label>
               <Input
                 id="phoneNumber"
                 name="phoneNumber"
                 type="tel"
-                placeholder="+46 70 123 45 67"
+                placeholder={t("organizations:invite.phonePlaceholder")}
                 value={formData.phoneNumber}
                 onChange={handleChange}
               />
@@ -216,10 +220,10 @@ export default function CreateOrganizationPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
+                    {t("common:labels.loading")}
                   </>
                 ) : (
-                  "Create Organization"
+                  t("organizations:form.title.create")
                 )}
               </Button>
               <Button
@@ -228,7 +232,7 @@ export default function CreateOrganizationPage() {
                 onClick={() => navigate("/organizations")}
                 disabled={isLoading}
               >
-                Cancel
+                {t("common:buttons.cancel")}
               </Button>
             </div>
           </form>

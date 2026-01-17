@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Plus, Calendar as CalendarIcon, Filter } from "lucide-react";
 import { format, isSameDay } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -31,24 +32,27 @@ import {
 import { getFacilitiesByStable } from "@/services/facilityService";
 import { getUserHorsesAtStable } from "@/services/horseService";
 import type { FacilityReservation } from "@/types/facilityReservation";
-import type { Facility } from "@/types/facility";
+import type { Facility, FacilityType } from "@/types/facility";
 import type { Horse } from "@stall-bokning/shared/types/domain";
 import { FacilityReservationDialog } from "@/components/FacilityReservationDialog";
 import { FacilityCalendarView } from "@/components/FacilityCalendarView";
 import { Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { toDate } from "@/utils/timestampUtils";
-import {
-  FACILITY_TYPE_LABELS,
-  STATUS_COLORS,
-} from "@/constants/facilityConstants";
+import { STATUS_COLORS } from "@/constants/facilityConstants";
 
 type ViewType = "calendar" | "timeline";
 
 export default function FacilitiesReservationsPage() {
+  const { t } = useTranslation(["facilities", "common", "constants"]);
   const { user } = useAuth();
   const { toast } = useToast();
   const [viewType, setViewType] = useState<ViewType>("timeline");
+
+  // Helper function to get translated facility type
+  const getFacilityTypeLabel = (type: FacilityType) =>
+    t(`constants:facilityTypes.${type}`);
+
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedFacilityType, setSelectedFacilityType] =
     useState<string>("all");
@@ -211,16 +215,16 @@ export default function FacilitiesReservationsPage() {
       await updateReservation(reservationId, updates, user.uid);
 
       toast({
-        title: "Success",
-        description: "Reservation rescheduled successfully",
+        title: t("common:messages.success"),
+        description: t("facilities:reservation.messages.updateSuccess"),
       });
 
       reservations.reload();
     } catch (error) {
       console.error("Failed to reschedule reservation:", error);
       toast({
-        title: "Error",
-        description: "Failed to reschedule reservation. Please try again.",
+        title: t("common:messages.error"),
+        description: t("common:messages.saveFailed"),
         variant: "destructive",
       });
       reservations.reload(); // Reload to revert the optimistic update
@@ -243,16 +247,16 @@ export default function FacilitiesReservationsPage() {
       await updateReservation(reservationId, updates, user.uid);
 
       toast({
-        title: "Success",
-        description: "Reservation duration updated successfully",
+        title: t("common:messages.success"),
+        description: t("facilities:reservation.messages.updateSuccess"),
       });
 
       reservations.reload();
     } catch (error) {
       console.error("Failed to update reservation duration:", error);
       toast({
-        title: "Error",
-        description: "Failed to update reservation. Please try again.",
+        title: t("common:messages.error"),
+        description: t("common:messages.saveFailed"),
         variant: "destructive",
       });
       reservations.reload(); // Reload to revert the optimistic update
@@ -263,8 +267,8 @@ export default function FacilitiesReservationsPage() {
     try {
       if (!user || !selectedStableId) {
         toast({
-          title: "Error",
-          description: "Missing required information",
+          title: t("common:messages.error"),
+          description: t("common:messages.loadingFailed"),
           variant: "destructive",
         });
         return;
@@ -274,8 +278,8 @@ export default function FacilitiesReservationsPage() {
       const facility = facilities.data?.find((f) => f.id === data.facilityId);
       if (!facility) {
         toast({
-          title: "Error",
-          description: "Selected facility not found",
+          title: t("common:messages.error"),
+          description: t("common:messages.loadingFailed"),
           variant: "destructive",
         });
         return;
@@ -318,15 +322,15 @@ export default function FacilitiesReservationsPage() {
           user.uid,
         );
         toast({
-          title: "Success",
-          description: "Reservation updated successfully",
+          title: t("common:messages.success"),
+          description: t("facilities:reservation.messages.updateSuccess"),
         });
       } else {
         // Create new reservation
         await createReservation(reservationData, user.uid, denormalizedData);
         toast({
-          title: "Success",
-          description: "Reservation created successfully",
+          title: t("common:messages.success"),
+          description: t("facilities:reservation.messages.createSuccess"),
         });
       }
 
@@ -335,8 +339,8 @@ export default function FacilitiesReservationsPage() {
     } catch (error) {
       console.error("Failed to save reservation:", error);
       toast({
-        title: "Error",
-        description: "Failed to save reservation. Please try again.",
+        title: t("common:messages.error"),
+        description: t("common:messages.saveFailed"),
         variant: "destructive",
       });
     }
@@ -345,8 +349,8 @@ export default function FacilitiesReservationsPage() {
   const handleDeleteReservation = async (reservationId: string) => {
     if (!user) {
       toast({
-        title: "Error",
-        description: "You must be logged in to cancel a reservation",
+        title: t("common:messages.error"),
+        description: t("common:messages.error"),
         variant: "destructive",
       });
       return;
@@ -355,16 +359,16 @@ export default function FacilitiesReservationsPage() {
     try {
       await deleteReservation(reservationId);
       toast({
-        title: "Success",
-        description: "Reservation cancelled successfully",
+        title: t("common:messages.success"),
+        description: t("facilities:reservation.messages.cancelSuccess"),
       });
       reservationDialog.closeDialog();
       reservations.reload();
     } catch (error) {
       console.error("Failed to cancel reservation:", error);
       toast({
-        title: "Error",
-        description: "Failed to cancel reservation. Please try again.",
+        title: t("common:messages.error"),
+        description: t("common:messages.deleteFailed"),
         variant: "destructive",
       });
       throw error; // Re-throw so the dialog knows there was an error
@@ -374,7 +378,7 @@ export default function FacilitiesReservationsPage() {
   if (facilities.loading || reservations.loading) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted-foreground">{t("common:labels.loading")}</p>
       </div>
     );
   }
@@ -385,10 +389,10 @@ export default function FacilitiesReservationsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Facility Reservations
+            {t("facilities:page.reservationsTitle")}
           </h1>
           <p className="text-muted-foreground mt-1">
-            View and manage facility bookings
+            {t("facilities:page.reservationsDescription")}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -400,7 +404,7 @@ export default function FacilitiesReservationsPage() {
               onClick={() => setViewType("calendar")}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              List View
+              {t("facilities:calendar.title")}
             </Button>
             <Button
               variant={viewType === "timeline" ? "default" : "ghost"}
@@ -408,12 +412,12 @@ export default function FacilitiesReservationsPage() {
               onClick={() => setViewType("timeline")}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              Schedule View
+              {t("common:navigation.schedule")}
             </Button>
           </div>
           <Button onClick={handleNewReservation}>
             <Plus className="mr-2 h-4 w-4" />
-            New Reservation
+            {t("facilities:reservation.title.create")}
           </Button>
         </div>
       </div>
@@ -423,7 +427,7 @@ export default function FacilitiesReservationsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Reservations
+              {t("facilities:page.reservationsTitle")}
             </CardTitle>
             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -433,7 +437,9 @@ export default function FacilitiesReservationsPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Upcoming</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {t("common:status.pending")}
+            </CardTitle>
             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -442,7 +448,9 @@ export default function FacilitiesReservationsPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {t("common:status.completed")}
+            </CardTitle>
             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -456,19 +464,21 @@ export default function FacilitiesReservationsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Filter className="h-5 w-5" />
-            Filters
+            {t("common:buttons.filter")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">Stable</label>
+              <label className="text-sm font-medium mb-2 block">
+                {t("common:navigation.stables")}
+              </label>
               <Select
                 value={selectedStableId}
                 onValueChange={setSelectedStableId}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select stable" />
+                  <SelectValue placeholder={t("common:navigation.stables")} />
                 </SelectTrigger>
                 <SelectContent>
                   {stables.map((stable) => (
@@ -480,16 +490,20 @@ export default function FacilitiesReservationsPage() {
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Facility</label>
+              <label className="text-sm font-medium mb-2 block">
+                {t("facilities:reservation.labels.facility")}
+              </label>
               <Select
                 value={selectedFacility}
                 onValueChange={setSelectedFacility}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="All facilities" />
+                  <SelectValue placeholder={t("facilities:page.title")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All facilities</SelectItem>
+                  <SelectItem value="all">
+                    {t("facilities:page.title")}
+                  </SelectItem>
                   {facilities.data?.map((facility) => (
                     <SelectItem key={facility.id} value={facility.id}>
                       {facility.name}
@@ -500,40 +514,69 @@ export default function FacilitiesReservationsPage() {
             </div>
             <div>
               <label className="text-sm font-medium mb-2 block">
-                Facility Type
+                {t("facilities:form.labels.type")}
               </label>
               <Select
                 value={selectedFacilityType}
                 onValueChange={setSelectedFacilityType}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="All types" />
+                  <SelectValue placeholder={t("common:labels.type")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All types</SelectItem>
-                  {Object.entries(FACILITY_TYPE_LABELS).map(
-                    ([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ),
-                  )}
+                  <SelectItem value="all">{t("common:labels.type")}</SelectItem>
+                  {(
+                    [
+                      "transport",
+                      "water_treadmill",
+                      "indoor_arena",
+                      "outdoor_arena",
+                      "galloping_track",
+                      "lunging_ring",
+                      "paddock",
+                      "solarium",
+                      "jumping_yard",
+                      "treadmill",
+                      "vibration_plate",
+                      "pasture",
+                      "walker",
+                      "other",
+                    ] as FacilityType[]
+                  ).map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {getFacilityTypeLabel(type)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Status</label>
+              <label className="text-sm font-medium mb-2 block">
+                {t("common:labels.status")}
+              </label>
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All statuses" />
+                  <SelectValue placeholder={t("common:labels.status")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All statuses</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="no_show">No Show</SelectItem>
+                  <SelectItem value="all">
+                    {t("common:labels.status")}
+                  </SelectItem>
+                  <SelectItem value="pending">
+                    {t("constants:reservationStatus.pending")}
+                  </SelectItem>
+                  <SelectItem value="confirmed">
+                    {t("constants:reservationStatus.confirmed")}
+                  </SelectItem>
+                  <SelectItem value="cancelled">
+                    {t("constants:reservationStatus.cancelled")}
+                  </SelectItem>
+                  <SelectItem value="completed">
+                    {t("constants:reservationStatus.completed")}
+                  </SelectItem>
+                  <SelectItem value="no_show">
+                    {t("constants:reservationStatus.no_show")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -546,9 +589,9 @@ export default function FacilitiesReservationsPage() {
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Calendar View</CardTitle>
+              <CardTitle>{t("facilities:calendar.title")}</CardTitle>
               <CardDescription>
-                Click a date to view reservations
+                {t("facilities:page.reservationsDescription")}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex justify-center">
@@ -574,17 +617,16 @@ export default function FacilitiesReservationsPage() {
           {selectedDate && (
             <Card>
               <CardHeader>
-                <CardTitle>
-                  Reservations for {format(selectedDate, "PPP")}
-                </CardTitle>
+                <CardTitle>{format(selectedDate, "PPP")}</CardTitle>
                 <CardDescription>
-                  {reservationsForSelectedDate.length} reservation(s) found
+                  {reservationsForSelectedDate.length}{" "}
+                  {t("facilities:page.reservationsTitle").toLowerCase()}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {reservationsForSelectedDate.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">
-                    No reservations for this date
+                    {t("facilities:calendar.noReservations")}
                   </p>
                 ) : (
                   <div className="space-y-4">
@@ -600,7 +642,7 @@ export default function FacilitiesReservationsPage() {
                               {reservation.facilityName}
                             </h4>
                             <Badge variant="outline">
-                              {FACILITY_TYPE_LABELS[reservation.facilityType]}
+                              {getFacilityTypeLabel(reservation.facilityType)}
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground mt-1">
@@ -613,7 +655,9 @@ export default function FacilitiesReservationsPage() {
                           </p>
                         </div>
                         <Badge className={STATUS_COLORS[reservation.status]}>
-                          {reservation.status}
+                          {t(
+                            `constants:reservationStatus.${reservation.status}`,
+                          )}
                         </Badge>
                       </div>
                     ))}

@@ -1,0 +1,99 @@
+{
+  "required": "{{field}} krävs",
+  "requiredGeneric": "Detta fält krävs",
+  "minLength": "{{field}} måste vara minst {{min}} tecken",
+  "maxLength": "{{field}} får vara högst {{max}} tecken",
+  "email": "Ange en giltig e-postadress",
+  "phone": "Ange ett giltigt telefonnummer",
+  "number": "Ange ett giltigt nummer",
+  "positiveNumber": "Måste vara ett positivt nummer",
+  "integer": "Måste vara ett heltal",
+  "date": "Ange ett giltigt datum",
+  "dateInFuture": "Datumet måste vara i framtiden",
+  "dateInPast": "Datumet måste vara i det förflutna",
+  "min": "{{field}} måste vara minst {{min}}",
+  "max": "{{field}} får vara högst {{max}}",
+  "pattern": "{{field}} har ogiltigt format",
+  "url": "Ange en giltig URL",
+  "color": "Måste vara en giltig hexfärg (t.ex. #ef4444)",
+  "passwordMatch": "Lösenorden matchar inte",
+  "selectAtLeastOne": "Välj minst ett alternativ",
+  "selectRequired": "Välj ett alternativ",
+
+  "horse": {
+    "nameRequired": "Hästnamn krävs",
+    "colorRequired": "Färg krävs",
+    "dateOfArrivalRequired": "Ankomstdatum krävs för icke-externa hästar"
+  },
+
+  "stable": {
+    "nameRequired": "Stallnamn krävs",
+    "addressRequired": "Adress krävs",
+    "cityRequired": "Stad krävs",
+    "postalCodeRequired": "Postnummer krävs"
+  },
+
+  "organization": {
+    "nameRequired": "Organisationsnamn krävs"
+  },
+
+  "activity": {
+    "dateRequired": "Datum krävs",
+    "horseRequired": "Häst krävs",
+    "typeRequired": "Aktivitetstyp krävs",
+    "titleRequired": "Titel krävs"
+  },
+
+  "activityType": {
+    "nameRequired": "Namn krävs",
+    "colorRequired": "Färg krävs",
+    "roleRequired": "Välj minst en roll"
+  },
+
+  "facility": {
+    "nameRequired": "Namn krävs",
+    "typeRequired": "Typ krävs"
+  },
+
+  "feedType": {
+    "nameRequired": "Namn krävs",
+    "brandRequired": "Märke krävs"
+  },
+
+  "feedingTime": {
+    "nameRequired": "Namn krävs",
+    "timeRequired": "Tid krävs"
+  },
+
+  "horseFeeding": {
+    "feedTypeRequired": "Fodertyp krävs",
+    "feedingTimeRequired": "Utfodringstid krävs",
+    "quantityMin": "Mängd måste vara 0 eller större",
+    "startDateRequired": "Startdatum krävs"
+  },
+
+  "vaccinationRule": {
+    "nameRequired": "Regelnamn krävs",
+    "periodRequired": "Perioden mellan vaccinationer måste vara minst 1 dag eller 1 månad"
+  },
+
+  "horseGroup": {
+    "nameRequired": "Gruppnamn krävs",
+    "colorRequired": "Välj en färg"
+  },
+
+  "invitation": {
+    "emailRequired": "E-postadress krävs",
+    "emailInvalid": "Ogiltig e-postadress",
+    "roleRequired": "Minst en roll måste väljas",
+    "primaryRoleRequired": "Primär roll krävs"
+  },
+
+  "user": {
+    "firstNameRequired": "Förnamn krävs",
+    "lastNameRequired": "Efternamn krävs",
+    "emailRequired": "E-postadress krävs",
+    "passwordRequired": "Lösenord krävs",
+    "passwordMinLength": "Lösenordet måste vara minst 6 tecken"
+  }
+}

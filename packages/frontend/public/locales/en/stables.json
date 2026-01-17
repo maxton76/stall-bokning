@@ -1,0 +1,90 @@
+{
+  "page": {
+    "title": "My Stables",
+    "description": "Manage your stables and view your memberships"
+  },
+  "form": {
+    "title": {
+      "create": "Create New Stable",
+      "edit": "Edit Stable"
+    },
+    "description": {
+      "create": "Set up your stable and start managing shifts",
+      "edit": "Update stable information"
+    },
+    "labels": {
+      "name": "Stable Name",
+      "description": "Description",
+      "address": "Street Address",
+      "city": "City",
+      "postalCode": "Postal Code",
+      "country": "Country"
+    },
+    "placeholders": {
+      "name": "e.g., Green Valley Stables",
+      "description": "Brief description of your stable...",
+      "address": "e.g., 123 Stable Road",
+      "city": "e.g., Stockholm",
+      "postalCode": "e.g., 123 45"
+    },
+    "sections": {
+      "basicInfo": "Stable Information",
+      "location": "Location",
+      "settings": "Settings"
+    }
+  },
+  "messages": {
+    "createSuccess": "Stable created successfully",
+    "updateSuccess": "Stable updated successfully",
+    "deleteSuccess": "Stable deleted successfully",
+    "noOrganization": "Cannot create stable: No organization selected. Please select an organization first.",
+    "createFailed": "Failed to create stable. Please try again."
+  },
+  "actions": {
+    "createStable": "Create Stable",
+    "editStable": "Edit Stable",
+    "deleteStable": "Delete Stable",
+    "viewDetails": "View Details",
+    "manageMembers": "Manage Members",
+    "inviteUser": "Invite User"
+  },
+  "members": {
+    "title": "Stable Members",
+    "description": "Manage members and their roles",
+    "owner": "Owner",
+    "manager": "Manager",
+    "member": "Member",
+    "pending": "Pending"
+  },
+  "schedule": {
+    "title": "Stable Schedule",
+    "description": "Manage shifts and schedules"
+  },
+  "invite": {
+    "title": "Invite to Stable",
+    "description": "Invite members to {{name}}",
+    "emailInvite": "Send Email Invitation",
+    "emailDescription": "Send an invitation directly to someone's email address",
+    "emailLabel": "Email Address",
+    "emailPlaceholder": "user@example.com",
+    "roleLabel": "Select Role",
+    "memberDescription": "Can view and book shifts",
+    "managerDescription": "Can manage stable settings and members",
+    "sendButton": "Send Invitation",
+    "linkTitle": "Share Invite Link",
+    "linkDescription": "Share this link with anyone you want to invite",
+    "linkNote": "Anyone with this link can request to join your stable",
+    "pendingTitle": "Pending Invitations",
+    "pendingDescription": "Track the status of sent invitations",
+    "noInvites": "No pending invitations",
+    "noInvitesHelp": "Invitations you send will appear here",
+    "sent": "Sent"
+  },
+  "detail": {
+    "clickToView": "Click to view details and manage this stable"
+  },
+  "emptyState": {
+    "title": "No stables yet",
+    "description": "Create your first stable to get started"
+  }
+}

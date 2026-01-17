@@ -1,0 +1,164 @@
+{
+  "page": {
+    "title": "My Horses",
+    "description": "Manage your horses and their stable assignments"
+  },
+  "form": {
+    "title": {
+      "create": "Add New Horse",
+      "edit": "Edit Horse"
+    },
+    "description": {
+      "create": "Add a new horse to your account. You can optionally assign it to a stable.",
+      "edit": "Update the horse details below."
+    },
+    "labels": {
+      "name": "Horse Name",
+      "breed": "Breed",
+      "color": "Color",
+      "gender": "Gender",
+      "dateOfBirth": "Date of Birth",
+      "dateOfArrival": "Date of Arrival",
+      "location": "Location (Stable)",
+      "usage": "Usage",
+      "group": "Horse Group",
+      "vaccinationRule": "Vaccination Rule",
+      "ueln": "UELN",
+      "chipNumber": "Chip Number",
+      "federationNumber": "Federation Number",
+      "feiPassNumber": "FEI Pass Number",
+      "feiExpiryDate": "FEI Passport Expiry",
+      "sire": "Sire",
+      "dam": "Dam",
+      "damsire": "Damsire",
+      "withersHeight": "Withers Height (cm)",
+      "studbook": "Studbook",
+      "breeder": "Breeder",
+      "notes": "Notes",
+      "specialInstructions": "Special Instructions",
+      "equipment": "Equipment",
+      "isExternal": "This horse is external (not part of the stable)"
+    },
+    "placeholders": {
+      "name": "e.g., Thunder",
+      "breed": "e.g., Arabian, Thoroughbred",
+      "ueln": "Universal Equine Life Number",
+      "chipNumber": "Microchip number",
+      "federationNumber": "Federation registration number",
+      "feiPassNumber": "FEI passport number",
+      "sire": "Father's name",
+      "dam": "Mother's name",
+      "damsire": "Mother's father",
+      "withersHeight": "e.g., 165",
+      "studbook": "Studbook registration",
+      "breeder": "Breeder name",
+      "notes": "Any additional information about this horse...",
+      "specialInstructions": "Special handling instructions, dietary requirements, etc..."
+    },
+    "sections": {
+      "basicInfo": "Basic Information",
+      "identification": "Identification",
+      "additionalDetails": "Additional horse details",
+      "specialInstructions": "Special Instructions",
+      "vaccinationRecords": "Vaccination Records"
+    },
+    "help": {
+      "specialInstructions": "Add special instructions that should be shown when this horse is included in activities (e.g., turnout, grooming)."
+    }
+  },
+  "vaccination": {
+    "currentStatus": "Current Status",
+    "lastVaccination": "Last Vaccination",
+    "nextDueDate": "Next Due Date",
+    "vaccinationRule": "Vaccination Rule",
+    "viewFullHistory": "View Full History",
+    "addRecord": "Add Record",
+    "daysOverdue": "{{count}} days overdue",
+    "daysRemaining": "{{count}} days",
+    "upToDate": "Up to date",
+    "neverVaccinated": "Never vaccinated"
+  },
+  "messages": {
+    "addSuccess": "Horse added successfully",
+    "updateSuccess": "Horse updated successfully",
+    "deleteSuccess": "Horse deleted successfully",
+    "loadError": "Failed to load horses. Please try again.",
+    "confirmDelete": "Are you sure you want to delete {{name}}? This action cannot be undone."
+  },
+  "actions": {
+    "addHorse": "Add Horse",
+    "editHorse": "Edit Horse",
+    "deleteHorse": "Delete Horse",
+    "assignToStable": "Assign to Stable",
+    "unassignFromStable": "Unassign from Stable"
+  },
+  "filters": {
+    "searchPlaceholder": "Search by Name, UELN, etc...",
+    "allStatuses": "All Statuses",
+    "allGenders": "All Genders",
+    "allStables": "All Stables",
+    "allGroups": "All Groups"
+  },
+  "table": {
+    "name": "Name",
+    "breed": "Breed",
+    "color": "Color",
+    "gender": "Gender",
+    "stable": "Stable",
+    "group": "Group",
+    "status": "Status"
+  },
+  "groups": {
+    "title": "Horse Groups",
+    "description": "Organize your horses into groups",
+    "form": {
+      "title": {
+        "create": "Create Horse Group",
+        "edit": "Edit Horse Group"
+      },
+      "description": {
+        "create": "Create a new group to organize your horses.",
+        "edit": "Update the horse group details below."
+      },
+      "labels": {
+        "name": "Group Name",
+        "description": "Description",
+        "color": "Color"
+      },
+      "placeholders": {
+        "name": "e.g., Competition Horses",
+        "description": "Optional description for this group"
+      }
+    },
+    "messages": {
+      "createSuccess": "Horse group created successfully",
+      "updateSuccess": "Horse group updated successfully",
+      "deleteSuccess": "Horse group deleted successfully"
+    }
+  },
+  "emptyState": {
+    "title": "No horses yet",
+    "description": "Get started by adding your first horse"
+  },
+  "options": {
+    "noStable": "No stable (unassigned)",
+    "noGroup": "No group",
+    "noVaccinationRule": "No vaccination rule",
+    "selectColor": "Select color",
+    "selectGender": "Select gender"
+  },
+  "validation": {
+    "nameRequired": "Horse name is required",
+    "colorRequired": "Color is required",
+    "arrivalRequired": "Date of arrival is required for non-external horses"
+  },
+  "status": {
+    "loading": "Loading vaccination status...",
+    "active": "Active",
+    "instructions": "Instructions"
+  },
+  "buttons": {
+    "update": "Update",
+    "addHorse": "Add Horse"
+  }
+}

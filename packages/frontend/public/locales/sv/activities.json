@@ -1,0 +1,282 @@
+{
+  "page": {
+    "title": "Aktiviteter",
+    "description": "Hantera aktiviteter och schemalägg händelser för dina hästar"
+  },
+  "tabs": {
+    "actionList": "Åtgärdslista",
+    "planning": "Planering",
+    "care": "Vård",
+    "settings": "Inställningar"
+  },
+  "actionList": {
+    "title": "Aktiviteter",
+    "description": "Hantera aktiviteter, uppgifter och meddelanden",
+    "addEntry": "Lägg till post",
+    "period": {
+      "day": "Dag",
+      "week": "Vecka",
+      "month": "Månad"
+    },
+    "navigation": {
+      "today": "Idag",
+      "showing": "Visar"
+    },
+    "dateLabels": {
+      "today": "Idag",
+      "tomorrow": "Imorgon",
+      "thisWeek": "Denna vecka",
+      "nextWeek": "Nästa vecka",
+      "thisMonth": "Denna månad",
+      "nextMonth": "Nästa månad",
+      "weekOf": "Vecka"
+    },
+    "sections": {
+      "overdue": "Försenade",
+      "today": "Idag",
+      "upcoming": "Kommande"
+    },
+    "loading": "Laddar aktiviteter...",
+    "noActivities": "Inga aktiviteter för denna period.",
+    "completed": "Slutförd",
+    "entryCompleted": "Post markerad som slutförd"
+  },
+  "care": {
+    "title": "Vårdaktiviteter",
+    "description": "Veterinär-, hovslagare-, tandläkare- och andra vårdrelaterade aktiviteter",
+    "loading": "Laddar vårdaktiviteter...",
+    "stableLabel": "Stall",
+    "viewMode": {
+      "matrix": "Matris",
+      "table": "Tabell"
+    },
+    "search": {
+      "placeholder": "Sök efter namn, UELN, etc..."
+    }
+  },
+  "planning": {
+    "title": "Planering",
+    "description": "Planera och schemalägg aktiviteter för dina hästar",
+    "loading": "Laddar planering...",
+    "loadingHorses": "Laddar hästar...",
+    "noHorses": "Inga hästar hittades för detta stall."
+  },
+  "settings": {
+    "title": "Aktivitetsinställningar",
+    "description": "Konfigurera aktivitetstyper, notifikationer och preferenser",
+    "about": {
+      "title": "Om aktivitetsinställningar",
+      "description": "Dessa inställningar sparas automatiskt och gäller för alla aktiviteter i dina stall. Standardaktivitetstyper tillhandahålls av systemet men kan anpassas med egna färger och ikoner. Du kan skapa anpassade aktivitetstyper specifika för ditt stalls behov."
+    },
+    "types": {
+      "title": "Aktivitetstyper",
+      "description": "Hantera aktivitetstyper för hästrelaterade aktiviteter",
+      "addCustom": "Lägg till anpassad typ",
+      "loading": "Laddar aktivitetstyper...",
+      "noTypes": "Inga aktivitetstyper hittades. Standardtyper kommer att skapas automatiskt.",
+      "categories": {
+        "care": "Vårdaktiviteter",
+        "sport": "Sportaktiviteter",
+        "breeding": "Avelaktiviteter"
+      },
+      "table": {
+        "name": "Namn",
+        "roles": "Roller",
+        "status": "Status",
+        "actions": "Åtgärder"
+      },
+      "delete": {
+        "title": "Ta bort aktivitetstyp",
+        "description": "Är du säker på att du vill ta bort \"{{name}}\"?",
+        "standardNote": "Standardtyper kommer att inaktiveras (mjuk borttagning) och kan återställas senare.",
+        "customNote": "Denna åtgärd kan inte ångras."
+      }
+    },
+    "notifications": {
+      "title": "Notifikationspreferenser",
+      "description": "Konfigurera hur du tar emot aktivitetsnotifikationer",
+      "emailReminders": {
+        "label": "E-postpåminnelser",
+        "description": "Ta emot e-postpåminnelser för kommande aktiviteter"
+      },
+      "activityAssigned": {
+        "label": "Aktivitet tilldelad",
+        "description": "Meddela när en aktivitet tilldelas dig"
+      },
+      "taskCompleted": {
+        "label": "Uppgift slutförd",
+        "description": "Meddela när uppgifter du skapade slutförs"
+      },
+      "careActivityDue": {
+        "label": "Vårdaktivitet förfaller",
+        "description": "Påminn när vårdaktiviteter närmar sig"
+      },
+      "dailyDigest": {
+        "label": "Daglig sammanfattning",
+        "description": "Ta emot en daglig sammanfattning av aktiviteter"
+      }
+    },
+    "assignees": {
+      "title": "Standardtilldelningar",
+      "description": "Konfigurera standardtilldelningspreferenser",
+      "autoAssignSelf": {
+        "label": "Tilldela automatiskt till mig själv",
+        "description": "Tilldela automatiskt skapade aktiviteter till dig själv"
+      },
+      "note": "Du kan alltid ändra tilldelningen när du skapar aktiviteter."
+    }
+  },
+  "form": {
+    "title": {
+      "create": "Ny post",
+      "edit": "Redigera post"
+    },
+    "description": {
+      "create": "Skapa en ny aktivitet, uppgift eller meddelande",
+      "edit": "Uppdatera postdetaljer"
+    },
+    "labels": {
+      "entryType": "Posttyp",
+      "date": "Datum",
+      "horse": "Häst",
+      "activityType": "Aktivitet",
+      "title": "Titel",
+      "description": "Beskrivning",
+      "message": "Meddelande",
+      "notes": "Anteckningar",
+      "note": "Anteckning",
+      "color": "Färg",
+      "time": "Tid",
+      "duration": "Varaktighet",
+      "assignedTo": "Tilldelad till",
+      "priority": "Prioritet",
+      "status": "Status",
+      "reminder": "Påminnelse"
+    },
+    "placeholders": {
+      "title": "t.ex. Veterinärbesök",
+      "taskTitle": "Uppgiftens titel",
+      "messageTitle": "Meddelandets titel",
+      "description": "Lägg till en beskrivning...",
+      "taskDescription": "Uppgiftsbeskrivning...",
+      "message": "Meddelandeinnehåll...",
+      "notes": "Ytterligare anteckningar...",
+      "selectHorse": "Välj häst",
+      "selectActivityType": "Välj aktivitetstyp",
+      "pickDate": "Välj ett datum",
+      "unassigned": "Otilldelad"
+    },
+    "entryTypes": {
+      "activity": "Aktivitet",
+      "task": "Uppgift",
+      "message": "Meddelande"
+    },
+    "priority": {
+      "low": "Låg",
+      "medium": "Medium",
+      "high": "Hög"
+    },
+    "validation": {
+      "dateRequired": "Datum krävs",
+      "horseRequired": "Häst krävs",
+      "activityTypeRequired": "Aktivitetstyp krävs",
+      "titleRequired": "Titel krävs",
+      "descriptionRequired": "Beskrivning krävs",
+      "messageRequired": "Meddelande krävs"
+    }
+  },
+  "types": {
+    "title": "Aktivitetstyper",
+    "description": "Konfigurera aktivitetstyper för ditt stall",
+    "form": {
+      "title": {
+        "create": "Lägg till aktivitetstyp",
+        "edit": "Redigera aktivitetstyp"
+      },
+      "description": {
+        "create": "Skapa en anpassad aktivitetstyp för ditt stall.",
+        "edit": "Ändra aktivitetstypens konfiguration."
+      },
+      "labels": {
+        "name": "Namn",
+        "color": "Färg",
+        "category": "Kategori",
+        "roles": "Roller",
+        "icon": "Ikon"
+      },
+      "placeholders": {
+        "name": "t.ex. Tandvård, Ridning, Fölning",
+        "selectCategory": "Välj kategori"
+      },
+      "categories": {
+        "sport": "Sport",
+        "care": "Vård",
+        "breeding": "Avel"
+      },
+      "help": {
+        "roles": "Välj en eller flera roller som kan utföra denna aktivitetstyp.",
+        "standard": "Standardtyper: Endast färg, ikon och status kan ändras."
+      }
+    },
+    "messages": {
+      "createSuccess": "Aktivitetstyp har skapats",
+      "updateSuccess": "Aktivitetstyp har uppdaterats",
+      "deleteSuccess": "Aktivitetstyp har tagits bort"
+    },
+    "standard": "Standard"
+  },
+  "messages": {
+    "createSuccess": "Post har skapats",
+    "updateSuccess": "Post har uppdaterats",
+    "deleteSuccess": "Post har tagits bort",
+    "loadError": "Kunde inte ladda aktiviteter",
+    "saveError": "Kunde inte spara post. Försök igen.",
+    "completeError": "Kunde inte markera som slutförd",
+    "confirmDelete": "Är du säker på att du vill ta bort \"{{title}}\"?"
+  },
+  "actions": {
+    "addActivity": "Lägg till aktivitet",
+    "viewCalendar": "Visa kalender",
+    "viewList": "Visa lista"
+  },
+  "filters": {
+    "title": "Filtrera aktiviteter",
+    "clear": "Rensa",
+    "groupBy": {
+      "label": "Gruppera efter",
+      "none": "Ingen",
+      "horse": "Häst",
+      "staff": "Personal",
+      "type": "Typ"
+    },
+    "forMe": "För mig",
+    "showFinished": "Visa slutförda",
+    "entryTypes": "Posttyper",
+    "allTypes": "Alla typer",
+    "allHorses": "Alla hästar",
+    "allStatuses": "Alla statusar",
+    "dateRange": "Datumintervall"
+  },
+  "calendar": {
+    "today": "Idag",
+    "month": "Månad",
+    "week": "Vecka",
+    "day": "Dag",
+    "list": "Lista"
+  },
+  "emptyState": {
+    "title": "Inga aktiviteter ännu",
+    "description": "Kom igång genom att schemalägg din första aktivitet",
+    "noStables": {
+      "title": "Inga stall hittades",
+      "description": "Du måste vara medlem i ett stall för att hantera aktiviteter.",
+      "planning": "Du måste vara medlem i ett stall för att visa planering.",
+      "settings": "Du måste vara medlem i ett stall för att konfigurera aktivitetstyper."
+    }
+  },
+  "stable": {
+    "select": "Välj ett stall",
+    "all": "Alla stall",
+    "loading": "Laddar stall..."
+  }
+}

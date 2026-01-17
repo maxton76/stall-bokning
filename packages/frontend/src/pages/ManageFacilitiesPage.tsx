@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Plus, Search, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,23 +40,6 @@ import type {
 import { useToast } from "@/hooks/use-toast";
 import { FacilityFormDialog } from "@/components/FacilityFormDialog";
 
-const FACILITY_TYPE_LABELS: Record<FacilityType, string> = {
-  transport: "Transport",
-  water_treadmill: "Water treadmill",
-  indoor_arena: "Indoor arena",
-  outdoor_arena: "Outdoor arena",
-  galloping_track: "Galloping track",
-  lunging_ring: "Lunging ring",
-  paddock: "Paddock",
-  solarium: "Solarium",
-  jumping_yard: "Jumping yard",
-  treadmill: "Treadmill",
-  vibration_plate: "Vibration plate",
-  pasture: "Pasture",
-  walker: "Walker",
-  other: "Other",
-};
-
 const STATUS_COLORS = {
   active: "bg-green-100 text-green-800",
   inactive: "bg-gray-100 text-gray-800",
@@ -63,11 +47,16 @@ const STATUS_COLORS = {
 };
 
 export default function ManageFacilitiesPage() {
+  const { t } = useTranslation(["facilities", "common", "constants"]);
   const { user } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStableId, setSelectedStableId] = useState<string>("");
   const facilityDialog = useDialog<Facility>();
+
+  // Helper function to get translated facility type
+  const getFacilityTypeLabel = (type: FacilityType) =>
+    t(`constants:facilityTypes.${type}`);
 
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
@@ -116,9 +105,9 @@ export default function ManageFacilitiesPage() {
       await facilities.reload();
     },
     successMessages: {
-      create: "Facility created successfully",
-      update: "Facility updated successfully",
-      delete: "Facility deleted successfully",
+      create: t("facilities:messages.createSuccess"),
+      update: t("facilities:messages.updateSuccess"),
+      delete: t("facilities:messages.deleteSuccess"),
     },
   });
 
@@ -133,7 +122,7 @@ export default function ManageFacilitiesPage() {
     return facilities.data.filter(
       (facility) =>
         facility.name.toLowerCase().includes(query) ||
-        FACILITY_TYPE_LABELS[facility.type].toLowerCase().includes(query),
+        getFacilityTypeLabel(facility.type).toLowerCase().includes(query),
     );
   }, [facilities.data, searchQuery]);
 
@@ -146,7 +135,7 @@ export default function ManageFacilitiesPage() {
   };
 
   const handleDeleteFacility = async (facility: Facility) => {
-    if (confirm(`Are you sure you want to delete "${facility.name}"?`)) {
+    if (confirm(t("common:messages.confirmDelete"))) {
       await remove(facility.id);
     }
   };
@@ -166,8 +155,8 @@ export default function ManageFacilitiesPage() {
     } catch (error) {
       console.error("Failed to save facility:", error);
       toast({
-        title: "Error",
-        description: "Failed to save facility. Please try again.",
+        title: t("common:messages.error"),
+        description: t("common:messages.saveFailed"),
         variant: "destructive",
       });
     }
@@ -176,7 +165,7 @@ export default function ManageFacilitiesPage() {
   if (stablesLoading) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">Loading stables...</p>
+        <p className="text-muted-foreground">{t("common:labels.loading")}</p>
       </div>
     );
   }
@@ -186,9 +175,11 @@ export default function ManageFacilitiesPage() {
       <div className="container mx-auto p-6">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <h3 className="text-lg font-semibold mb-2">No stables found</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {t("facilities:emptyState.title")}
+            </h3>
             <p className="text-muted-foreground">
-              You need to be a stable owner or manager to manage facilities.
+              {t("facilities:emptyState.description")}
             </p>
           </CardContent>
         </Card>
@@ -202,15 +193,15 @@ export default function ManageFacilitiesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Manage Facilities
+            {t("facilities:page.manageTitle")}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Configure facilities available for booking
+            {t("facilities:page.manageDescription")}
           </p>
         </div>
         <Button onClick={handleAddFacility} disabled={!selectedStableId}>
           <Plus className="mr-2 h-4 w-4" />
-          Add Facility
+          {t("facilities:actions.addFacility")}
         </Button>
       </div>
 
@@ -220,14 +211,14 @@ export default function ManageFacilitiesPage() {
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium mb-2 block">
-                Select Stable
+                {t("common:navigation.stables")}
               </label>
               <Select
                 value={selectedStableId}
                 onValueChange={setSelectedStableId}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Choose a stable" />
+                  <SelectValue placeholder={t("common:navigation.stables")} />
                 </SelectTrigger>
                 <SelectContent>
                   {stables.map((stable) => (
@@ -248,7 +239,7 @@ export default function ManageFacilitiesPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search facilities..."
+              placeholder={t("common:buttons.search")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -260,15 +251,17 @@ export default function ManageFacilitiesPage() {
       {/* Facilities Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Facilities ({filteredFacilities.length})</CardTitle>
+          <CardTitle>
+            {t("facilities:page.title")} ({filteredFacilities.length})
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {filteredFacilities.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
                 {searchQuery
-                  ? "No facilities found matching your search"
-                  : "No facilities yet"}
+                  ? t("common:messages.noResults")
+                  : t("facilities:emptyState.title")}
               </p>
               {!searchQuery && (
                 <Button
@@ -277,7 +270,7 @@ export default function ManageFacilitiesPage() {
                   className="mt-4"
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Add Your First Facility
+                  {t("facilities:actions.addFacility")}
                 </Button>
               )}
             </div>
@@ -286,13 +279,21 @@ export default function ManageFacilitiesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Availability</TableHead>
-                    <TableHead>Max Horses</TableHead>
-                    <TableHead>Time Slot</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t("common:labels.name")}</TableHead>
+                    <TableHead>{t("common:labels.type")}</TableHead>
+                    <TableHead>{t("common:labels.status")}</TableHead>
+                    <TableHead>
+                      {t("facilities:form.sections.availability")}
+                    </TableHead>
+                    <TableHead>
+                      {t("facilities:bookingRules.maxHorsesPerReservation")}
+                    </TableHead>
+                    <TableHead>
+                      {t("facilities:bookingRules.minSlotDuration")}
+                    </TableHead>
+                    <TableHead className="text-right">
+                      {t("common:labels.actions")}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -303,12 +304,12 @@ export default function ManageFacilitiesPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {FACILITY_TYPE_LABELS[facility.type]}
+                          {getFacilityTypeLabel(facility.type)}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge className={STATUS_COLORS[facility.status]}>
-                          {facility.status}
+                          {t(`constants:facilityStatus.${facility.status}`)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm">

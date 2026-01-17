@@ -1,0 +1,56 @@
+{
+  "page": {
+    "title": "Settings",
+    "description": "Manage your application preferences and settings"
+  },
+  "sections": {
+    "notifications": {
+      "title": "Notifications",
+      "description": "Configure how you receive notifications",
+      "emailNotifications": "Email Notifications",
+      "emailDescription": "Receive notifications via email",
+      "pushNotifications": "Push Notifications",
+      "pushDescription": "Receive push notifications in browser"
+    },
+    "appearance": {
+      "title": "Appearance",
+      "description": "Customize how the application looks",
+      "darkMode": "Dark Mode",
+      "darkModeDescription": "Enable dark mode theme",
+      "comingSoon": "Dark mode functionality coming soon"
+    },
+    "language": {
+      "title": "Language & Region",
+      "description": "Set your language and regional preferences",
+      "language": "Language",
+      "selectLanguage": "Select language",
+      "timezone": "Timezone",
+      "selectTimezone": "Select timezone",
+      "dateFormat": "Date Format",
+      "timeFormat": "Time Format"
+    },
+    "privacy": {
+      "title": "Privacy & Security",
+      "description": "Manage your privacy and security settings",
+      "changePassword": "Change Password",
+      "changePasswordDescription": "Password management coming soon",
+      "twoFactor": "Two-Factor Authentication",
+      "twoFactorDescription": "Enhanced security features coming soon"
+    },
+    "account": {
+      "title": "Account Settings",
+      "description": "Manage your account details",
+      "email": "Email Address",
+      "name": "Name",
+      "phone": "Phone Number"
+    }
+  },
+  "languages": {
+    "en": "English",
+    "sv": "Svenska"
+  },
+  "timezones": {
+    "europe_stockholm": "Europe/Stockholm",
+    "utc": "UTC"
+  }
+}

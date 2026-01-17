@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Settings, Bell, Users, Plus, Pencil, Trash2 } from "lucide-react";
 import {
   Card,
@@ -45,6 +46,7 @@ import {
 } from "@/services/activityTypeService";
 
 export default function ActivitiesSettingsPage() {
+  const { t } = useTranslation(["activities", "common"]);
   const { user } = useAuth();
   const [selectedStableId, setSelectedStableId] = useState<string>("");
 
@@ -153,9 +155,9 @@ export default function ActivitiesSettingsPage() {
       await activityTypes.reload();
     },
     successMessages: {
-      create: "Activity type created successfully",
-      update: "Activity type updated successfully",
-      delete: "Activity type deleted successfully",
+      create: t("activities:types.messages.createSuccess"),
+      update: t("activities:types.messages.updateSuccess"),
+      delete: t("activities:types.messages.deleteSuccess"),
     },
   });
 
@@ -210,7 +212,9 @@ export default function ActivitiesSettingsPage() {
   if (stablesLoading) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">Loading stables...</p>
+        <p className="text-muted-foreground">
+          {t("activities:stable.loading")}
+        </p>
       </div>
     );
   }
@@ -220,9 +224,11 @@ export default function ActivitiesSettingsPage() {
       <div className="container mx-auto p-6">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <h3 className="text-lg font-semibold mb-2">No stables found</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {t("activities:emptyState.noStables.title")}
+            </h3>
             <p className="text-muted-foreground">
-              You need to be a member of a stable to configure activity types.
+              {t("activities:emptyState.noStables.settings")}
             </p>
           </CardContent>
         </Card>
@@ -237,10 +243,10 @@ export default function ActivitiesSettingsPage() {
         <Settings className="h-8 w-8 text-primary" />
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Activities Settings
+            {t("activities:settings.title")}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Configure activity types, notifications, and preferences
+            {t("activities:settings.description")}
           </p>
         </div>
       </div>
@@ -251,14 +257,14 @@ export default function ActivitiesSettingsPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Activity Types</CardTitle>
+                <CardTitle>{t("activities:settings.types.title")}</CardTitle>
                 <CardDescription>
-                  Manage activity types for horse-related activities
+                  {t("activities:settings.types.description")}
                 </CardDescription>
               </div>
               <Button onClick={handleAdd} size="sm">
                 <Plus className="h-4 w-4 mr-2" />
-                Add Custom Type
+                {t("activities:settings.types.addCustom")}
               </Button>
             </div>
           </CardHeader>
@@ -266,14 +272,13 @@ export default function ActivitiesSettingsPage() {
             {activityTypes.loading ? (
               <div className="text-center py-8">
                 <p className="text-muted-foreground">
-                  Loading activity types...
+                  {t("activities:settings.types.loading")}
                 </p>
               </div>
             ) : (activityTypes.data || []).length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-muted-foreground">
-                  No activity types found. Standard types will be seeded
-                  automatically.
+                  {t("activities:settings.types.noTypes")}
                 </p>
               </div>
             ) : (
@@ -283,19 +288,32 @@ export default function ActivitiesSettingsPage() {
                   const types = groupedTypes[category] || [];
                   if (types.length === 0) return null;
 
+                  const categoryKey = category.toLowerCase() as
+                    | "care"
+                    | "sport"
+                    | "breeding";
+
                   return (
                     <div key={category} className="space-y-2">
                       <h3 className="text-sm font-medium text-muted-foreground">
-                        {category} Activities
+                        {t(
+                          `activities:settings.types.categories.${categoryKey}`,
+                        )}
                       </h3>
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Roles</TableHead>
-                            <TableHead>Status</TableHead>
+                            <TableHead>
+                              {t("activities:settings.types.table.name")}
+                            </TableHead>
+                            <TableHead>
+                              {t("activities:settings.types.table.roles")}
+                            </TableHead>
+                            <TableHead>
+                              {t("activities:settings.types.table.status")}
+                            </TableHead>
                             <TableHead className="w-24 text-right">
-                              Actions
+                              {t("activities:settings.types.table.actions")}
                             </TableHead>
                           </TableRow>
                         </TableHeader>
@@ -319,7 +337,7 @@ export default function ActivitiesSettingsPage() {
                                       variant="outline"
                                       className="text-xs"
                                     >
-                                      Standard
+                                      {t("activities:types.standard")}
                                     </Badge>
                                   )}
                                 </div>
@@ -335,14 +353,14 @@ export default function ActivitiesSettingsPage() {
                                     variant="outline"
                                     className="bg-green-50 text-green-700"
                                   >
-                                    Active
+                                    {t("common:labels.active")}
                                   </Badge>
                                 ) : (
                                   <Badge
                                     variant="outline"
                                     className="bg-gray-50 text-gray-700"
                                   >
-                                    Inactive
+                                    {t("common:labels.inactive")}
                                   </Badge>
                                 )}
                               </TableCell>
@@ -384,17 +402,23 @@ export default function ActivitiesSettingsPage() {
             <div className="flex items-center gap-2">
               <Bell className="h-5 w-5 text-primary" />
             </div>
-            <CardTitle>Notification Preferences</CardTitle>
+            <CardTitle>
+              {t("activities:settings.notifications.title")}
+            </CardTitle>
             <CardDescription>
-              Configure how you receive activity notifications
+              {t("activities:settings.notifications.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="email-reminders">Email Reminders</Label>
+                <Label htmlFor="email-reminders">
+                  {t("activities:settings.notifications.emailReminders.label")}
+                </Label>
                 <p className="text-sm text-muted-foreground">
-                  Receive email reminders for upcoming activities
+                  {t(
+                    "activities:settings.notifications.emailReminders.description",
+                  )}
                 </p>
               </div>
               <Switch
@@ -408,9 +432,15 @@ export default function ActivitiesSettingsPage() {
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="activity-assigned">Activity Assigned</Label>
+                <Label htmlFor="activity-assigned">
+                  {t(
+                    "activities:settings.notifications.activityAssigned.label",
+                  )}
+                </Label>
                 <p className="text-sm text-muted-foreground">
-                  Notify when an activity is assigned to you
+                  {t(
+                    "activities:settings.notifications.activityAssigned.description",
+                  )}
                 </p>
               </div>
               <Switch
@@ -424,9 +454,13 @@ export default function ActivitiesSettingsPage() {
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="task-completed">Task Completed</Label>
+                <Label htmlFor="task-completed">
+                  {t("activities:settings.notifications.taskCompleted.label")}
+                </Label>
                 <p className="text-sm text-muted-foreground">
-                  Notify when tasks you created are completed
+                  {t(
+                    "activities:settings.notifications.taskCompleted.description",
+                  )}
                 </p>
               </div>
               <Switch
@@ -440,9 +474,13 @@ export default function ActivitiesSettingsPage() {
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="care-activity-due">Care Activity Due</Label>
+                <Label htmlFor="care-activity-due">
+                  {t("activities:settings.notifications.careActivityDue.label")}
+                </Label>
                 <p className="text-sm text-muted-foreground">
-                  Remind when care activities are approaching
+                  {t(
+                    "activities:settings.notifications.careActivityDue.description",
+                  )}
                 </p>
               </div>
               <Switch
@@ -456,9 +494,13 @@ export default function ActivitiesSettingsPage() {
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="daily-digest">Daily Digest</Label>
+                <Label htmlFor="daily-digest">
+                  {t("activities:settings.notifications.dailyDigest.label")}
+                </Label>
                 <p className="text-sm text-muted-foreground">
-                  Receive a daily summary of activities
+                  {t(
+                    "activities:settings.notifications.dailyDigest.description",
+                  )}
                 </p>
               </div>
               <Switch
@@ -476,18 +518,22 @@ export default function ActivitiesSettingsPage() {
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
             </div>
-            <CardTitle>Default Assignees</CardTitle>
+            <CardTitle>{t("activities:settings.assignees.title")}</CardTitle>
             <CardDescription>
-              Configure default assignment preferences
+              {t("activities:settings.assignees.description")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label htmlFor="auto-assign-self">Auto-assign to self</Label>
+                  <Label htmlFor="auto-assign-self">
+                    {t("activities:settings.assignees.autoAssignSelf.label")}
+                  </Label>
                   <p className="text-sm text-muted-foreground">
-                    Automatically assign created activities to yourself
+                    {t(
+                      "activities:settings.assignees.autoAssignSelf.description",
+                    )}
                   </p>
                 </div>
                 <Switch id="auto-assign-self" />
@@ -495,7 +541,7 @@ export default function ActivitiesSettingsPage() {
 
               <div className="pt-4 border-t">
                 <p className="text-sm text-muted-foreground">
-                  You can always change the assignee when creating activities.
+                  {t("activities:settings.assignees.note")}
                 </p>
               </div>
             </div>
@@ -511,13 +557,11 @@ export default function ActivitiesSettingsPage() {
               <Settings className="h-5 w-5" />
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-medium">About Activity Settings</p>
+              <p className="text-sm font-medium">
+                {t("activities:settings.about.title")}
+              </p>
               <p className="text-sm text-muted-foreground">
-                These settings are saved automatically and apply to all
-                activities across your stables. Standard activity types are
-                provided by the system but can have their colors and icons
-                customized. You can create custom activity types specific to
-                your stable's needs.
+                {t("activities:settings.about.description")}
               </p>
             </div>
           </div>

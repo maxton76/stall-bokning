@@ -1,5 +1,6 @@
 import { useState, FormEvent, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { EyeIcon, EyeOffIcon, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ const LoginForm = ({
   email: initialEmail,
   password: initialPassword,
 }: LoginFormProps) => {
+  const { t } = useTranslation("auth");
   const [isVisible, setIsVisible] = useState(false);
   const [email, setEmail] = useState(initialEmail || "");
   const [password, setPassword] = useState(initialPassword || "");
@@ -38,7 +40,7 @@ const LoginForm = ({
 
     // Validation
     if (!email || !password) {
-      setError("Please enter both email and password");
+      setError(t("errors.emailAndPasswordRequired"));
       return;
     }
 
@@ -48,7 +50,7 @@ const LoginForm = ({
       // Redirect to horses page on successful login
       navigate("/horses");
     } catch (err: any) {
-      setError(err.message || "Failed to sign in");
+      setError(err.message || t("errors.loginFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -66,12 +68,12 @@ const LoginForm = ({
       {/* Email */}
       <div className="space-y-1">
         <Label htmlFor="userEmail" className="leading-5">
-          Email address*
+          {t("login.emailLabel")}
         </Label>
         <Input
           type="email"
           id="userEmail"
-          placeholder="Enter your email address"
+          placeholder={t("login.emailPlaceholder")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={isLoading}
@@ -82,7 +84,7 @@ const LoginForm = ({
       {/* Password */}
       <div className="w-full space-y-1">
         <Label htmlFor="password" className="leading-5">
-          Password*
+          {t("login.passwordLabel")}
         </Label>
         <div className="relative">
           <Input
@@ -105,7 +107,7 @@ const LoginForm = ({
           >
             {isVisible ? <EyeOffIcon /> : <EyeIcon />}
             <span className="sr-only">
-              {isVisible ? "Hide password" : "Show password"}
+              {isVisible ? t("login.hidePassword") : t("login.showPassword")}
             </span>
           </Button>
         </div>
@@ -116,12 +118,12 @@ const LoginForm = ({
         <div className="flex items-center gap-3">
           <Checkbox id="rememberMe" className="size-6" disabled={isLoading} />
           <Label htmlFor="rememberMe" className="text-muted-foreground">
-            Remember Me
+            {t("login.rememberMe")}
           </Label>
         </div>
 
         <a href="#" className="hover:underline">
-          Forgot Password?
+          {t("login.forgotPassword")}
         </a>
       </div>
 
@@ -129,10 +131,10 @@ const LoginForm = ({
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Signing in...
+            {t("login.signingIn")}
           </>
         ) : (
-          "Sign in to StableBook"
+          t("login.signIn")
         )}
       </Button>
     </form>

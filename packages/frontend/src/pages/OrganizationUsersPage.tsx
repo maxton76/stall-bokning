@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +38,7 @@ import type {
 } from "../../../shared/src/types/organization";
 
 export default function OrganizationUsersPage() {
+  const { t } = useTranslation(["organizations", "common"]);
   const { organizationId } = useParams<{ organizationId: string }>();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
@@ -104,22 +106,18 @@ export default function OrganizationUsersPage() {
       // Show appropriate success message based on response type
       if (response.type === "new_user") {
         // Non-existing user - invite sent
-        alert(
-          `Invitation sent to ${data.email}. They will receive an email to sign up.`,
-        );
+        alert(t("organizations:invite.inviteSent", { email: data.email }));
       } else {
         // Existing user - pending membership created
-        alert(
-          `Invitation sent to ${data.email}. They will receive an email to accept.`,
-        );
+        alert(t("organizations:invite.inviteSent", { email: data.email }));
       }
 
       members.reload();
     } catch (error: any) {
       if (error.response?.status === 409) {
-        alert("User is already a member of this organization");
+        alert(t("organizations:invite.alreadyMember"));
       } else {
-        alert("Failed to send invitation. Please try again.");
+        alert(t("organizations:invite.inviteFailed"));
       }
       throw error;
     }
@@ -140,7 +138,7 @@ export default function OrganizationUsersPage() {
   if (organization.loading || !organization.data) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted-foreground">{t("common:labels.loading")}</p>
       </div>
     );
   }
@@ -149,18 +147,18 @@ export default function OrganizationUsersPage() {
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <PageHeader
-        title={`${organization.data.name} - Users`}
-        description="Manage organization members and their roles"
+        title={`${organization.data.name} - ${t("organizations:members.title")}`}
+        description={t("organizations:members.description")}
         backLink={
           organizationId
             ? {
                 href: `/organizations/${organizationId}`,
-                label: "Back to Organization",
+                label: t("common:navigation.organizations"),
               }
             : undefined
         }
         action={{
-          label: "Invite User",
+          label: t("organizations:invite.button"),
           icon: <Plus className="h-4 w-4 mr-2" />,
           onClick: () => inviteDialog.openDialog(),
         }}
@@ -173,7 +171,7 @@ export default function OrganizationUsersPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search by name, email, or role..."
+                placeholder={t("organizations:members.searchPlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -186,25 +184,29 @@ export default function OrganizationUsersPage() {
       {/* Members Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Organization Members ({filteredMembers.length})</CardTitle>
+          <CardTitle>
+            {t("organizations:members.title")} ({filteredMembers.length})
+          </CardTitle>
           <CardDescription>
-            View and manage all members of your organization
+            {t("organizations:members.description")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {members.loading ? (
-            <p className="text-sm text-muted-foreground">Loading members...</p>
+            <p className="text-sm text-muted-foreground">
+              {t("common:labels.loading")}
+            </p>
           ) : filteredMembers.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground mb-4">
                 {searchQuery
-                  ? "No members match your search"
-                  : "No members yet. Invite users to get started."}
+                  ? t("organizations:members.noSearchResults")
+                  : t("organizations:members.emptyState")}
               </p>
               {!searchQuery && (
                 <Button onClick={() => inviteDialog.openDialog()}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Invite First User
+                  {t("organizations:invite.button")}
                 </Button>
               )}
             </div>
@@ -213,13 +215,19 @@ export default function OrganizationUsersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Roles</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Stables</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t("common:labels.name")}</TableHead>
+                    <TableHead>
+                      {t("organizations:form.labels.email")}
+                    </TableHead>
+                    <TableHead>
+                      {t("organizations:form.labels.phone")}
+                    </TableHead>
+                    <TableHead>{t("organizations:members.roles")}</TableHead>
+                    <TableHead>{t("common:labels.status")}</TableHead>
+                    <TableHead>{t("common:navigation.stables")}</TableHead>
+                    <TableHead className="text-right">
+                      {t("common:buttons.actions")}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -249,11 +257,12 @@ export default function OrganizationUsersPage() {
                       <TableCell>
                         {member.stableAccess === "all" ? (
                           <span className="text-sm text-muted-foreground">
-                            All Stables
+                            {t("organizations:members.allStables")}
                           </span>
                         ) : (
                           <span className="text-sm text-muted-foreground">
-                            {member.assignedStableIds?.length || 0} Assigned
+                            {member.assignedStableIds?.length || 0}{" "}
+                            {t("organizations:members.assigned")}
                           </span>
                         )}
                       </TableCell>
@@ -274,7 +283,9 @@ export default function OrganizationUsersPage() {
                             onClick={() => {
                               if (
                                 confirm(
-                                  `Are you sure you want to remove ${member.userEmail} from this organization?`,
+                                  t("organizations:members.confirmRemove", {
+                                    email: member.userEmail,
+                                  }),
                                 )
                               ) {
                                 handleRemoveMember(member.userId);

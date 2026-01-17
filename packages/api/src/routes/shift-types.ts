@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";

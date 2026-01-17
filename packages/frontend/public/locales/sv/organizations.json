@@ -1,0 +1,119 @@
+{
+  "page": {
+    "title": "Organisationer",
+    "description": "Hantera dina organisationer och inställningar"
+  },
+  "dropdown": {
+    "title": "Organisationer",
+    "create": "Skapa",
+    "loading": "Laddar organisationer...",
+    "selectOrganization": "Välj organisation",
+    "active": "Aktiv",
+    "menu": "Organisationsmeny",
+    "noOrganizations": "Inga organisationer ännu",
+    "createFirst": "Skapa din första organisation",
+    "viewAll": "Visa alla organisationer"
+  },
+  "menu": {
+    "members": "Medlemmar",
+    "integrations": "Integrationer",
+    "manure": "Gödsel",
+    "permissions": "Behörigheter",
+    "subscription": "Prenumeration",
+    "settings": "Inställningar",
+    "leaveManagement": "Ledighetshantering",
+    "scheduleManagement": "Schemahantering"
+  },
+  "form": {
+    "title": {
+      "create": "Skapa organisation",
+      "edit": "Redigera organisation"
+    },
+    "description": {
+      "create": "Skapa en ny organisation för att hantera dina stall",
+      "edit": "Uppdatera organisationens information"
+    },
+    "labels": {
+      "name": "Organisationsnamn",
+      "description": "Beskrivning",
+      "email": "Kontakt-e-post",
+      "phone": "Kontakttelefon",
+      "address": "Adress"
+    },
+    "placeholders": {
+      "name": "t.ex. Mitt ridcenter",
+      "description": "Kort beskrivning av din organisation..."
+    }
+  },
+  "members": {
+    "title": "Organisationsmedlemmar",
+    "description": "Hantera medlemmar och deras roller",
+    "invite": "Bjud in medlem",
+    "role": "Roll",
+    "roles": "Roller",
+    "status": "Status",
+    "actions": "Åtgärder",
+    "searchPlaceholder": "Sök på namn, e-post eller roll...",
+    "noSearchResults": "Inga medlemmar matchar din sökning",
+    "emptyState": "Inga medlemmar ännu. Bjud in användare för att komma igång.",
+    "allStables": "Alla stall",
+    "assigned": "Tilldelade",
+    "confirmRemove": "Är du säker på att du vill ta bort {{email}} från denna organisation?"
+  },
+  "invite": {
+    "title": "Bjud in användare till organisation",
+    "description": "Bjud in en ny medlem till din organisation och tilldela deras roller",
+    "button": "Bjud in användare",
+    "emailLabel": "E-post",
+    "emailPlaceholder": "användare@exempel.se",
+    "firstNameLabel": "Förnamn",
+    "lastNameLabel": "Efternamn",
+    "phoneLabel": "Telefonnummer",
+    "phonePlaceholder": "+46 70 123 45 67",
+    "contactType": "Kontakttyp",
+    "rolesLabel": "Roller",
+    "primaryRoleLabel": "Primär roll",
+    "showInStaffPlanning": "Visa i personalplanering",
+    "sendInvitation": "Skicka inbjudan",
+    "success": "Inbjudan har skickats",
+    "error": "Kunde inte skicka inbjudan",
+    "inviteSent": "Inbjudan skickad till {{email}}. De kommer att få ett e-postmeddelande för att gå med.",
+    "alreadyMember": "Användaren är redan medlem i denna organisation",
+    "inviteFailed": "Kunde inte skicka inbjudan. Försök igen."
+  },
+  "permissions": {
+    "title": "Behörigheter",
+    "description": "Rollbaserad åtkomstkontroll för organisationsmedlemmar",
+    "matrix": {
+      "title": "Behörighetsmatris",
+      "description": "Detaljerad översikt av vad varje roll kan göra",
+      "action": "Åtgärd"
+    },
+    "customRoles": {
+      "title": "Anpassade roller och avancerade behörigheter",
+      "description": "Tillgängligt i Professional och Enterprise-planer",
+      "explanation": "Skapa anpassade roller med detaljerade behörigheter anpassade för din organisations behov. Kontrollera åtkomst till specifika stall, funktioner och data på rollbasis.",
+      "specializedRoles": "Specialiserade roller tillgängliga: Veterinär, Tandläkare, Hovslagare, Skötare, Hästägare, Ryttare och fler."
+    }
+  },
+  "subscription": {
+    "title": "Prenumeration",
+    "description": "Hantera din prenumerationsplan",
+    "currentPlan": "Nuvarande plan",
+    "upgrade": "Uppgradera",
+    "downgrade": "Nedgradera"
+  },
+  "integrations": {
+    "title": "Integrationer",
+    "description": "Anslut till tredjepartstjänster"
+  },
+  "messages": {
+    "createSuccess": "Organisation har skapats",
+    "updateSuccess": "Organisation har uppdaterats",
+    "deleteSuccess": "Organisation har tagits bort"
+  },
+  "emptyState": {
+    "title": "Inga organisationer ännu",
+    "description": "Skapa din första organisation för att komma igång"
+  }
+}

@@ -1,24 +1,25 @@
-import { ReactNode } from 'react'
-import { LucideIcon } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
+import { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import { LucideIcon } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from "@/components/ui/select";
 
 interface ActivityPageLayoutProps {
-  icon: LucideIcon
-  title: string
-  description: string
-  selectedStableId: string
-  onStableChange: (stableId: string) => void
-  stables: Array<{ id: string; name: string }>
-  stablesLoading?: boolean
-  showStableSelector?: boolean
-  children: ReactNode
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  selectedStableId: string;
+  onStableChange: (stableId: string) => void;
+  stables: Array<{ id: string; name: string }>;
+  stablesLoading?: boolean;
+  showStableSelector?: boolean;
+  children: ReactNode;
 }
 
 export function ActivityPageLayout({
@@ -32,13 +33,17 @@ export function ActivityPageLayout({
   showStableSelector = true,
   children,
 }: ActivityPageLayoutProps) {
+  const { t } = useTranslation(["activities", "common"]);
+
   // Loading state
   if (stablesLoading) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">Loading stables...</p>
+        <p className="text-muted-foreground">
+          {t("activities:stable.loading")}
+        </p>
       </div>
-    )
+    );
   }
 
   // No stables state
@@ -47,14 +52,16 @@ export function ActivityPageLayout({
       <div className="container mx-auto p-6">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <h3 className="text-lg font-semibold mb-2">No stables found</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {t("activities:emptyState.noStables.title")}
+            </h3>
             <p className="text-muted-foreground">
-              You need to be a member of a stable to view activities.
+              {t("activities:emptyState.noStables.description")}
             </p>
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -71,13 +78,15 @@ export function ActivityPageLayout({
       {/* Stable Selector Bar */}
       {showStableSelector && (
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium">Stable:</label>
+          <label className="text-sm font-medium">
+            {t("activities:care.stableLabel")}:
+          </label>
           <Select value={selectedStableId} onValueChange={onStableChange}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select a stable" />
+              <SelectValue placeholder={t("activities:stable.select")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Stables</SelectItem>
+              <SelectItem value="all">{t("activities:stable.all")}</SelectItem>
               {stables.map((stable) => (
                 <SelectItem key={stable.id} value={stable.id}>
                   {stable.name}
@@ -91,5 +100,5 @@ export function ActivityPageLayout({
       {/* Page Content */}
       {children}
     </div>
-  )
+  );
 }

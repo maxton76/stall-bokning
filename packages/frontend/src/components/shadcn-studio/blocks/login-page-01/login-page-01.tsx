@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,6 +19,7 @@ import AuthBackgroundShape from "@/assets/svg/auth-background-shape";
 import LoginForm from "@/components/shadcn-studio/blocks/login-page-01/login-form";
 
 const Login = () => {
+  const { t } = useTranslation("auth");
   const { signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -72,11 +74,9 @@ const Login = () => {
     } catch (error) {
       console.error("Google sign in error:", error);
       toast({
-        title: "Error",
+        title: t("errors.loginFailed"),
         description:
-          error instanceof Error
-            ? error.message
-            : "Failed to sign in with Google",
+          error instanceof Error ? error.message : t("errors.loginFailed"),
         variant: "destructive",
       });
     } finally {
@@ -96,18 +96,20 @@ const Login = () => {
 
           <div>
             <CardTitle className="mb-1.5 text-2xl">
-              Sign in to StableBook
+              {t("login.title")}
             </CardTitle>
             <CardDescription className="text-base">
-              Manage your stable bookings with ease
+              {t("login.subtitle")}
             </CardDescription>
           </div>
         </CardHeader>
 
         <CardContent>
           <p className="text-muted-foreground mb-6">
-            Quick login for testing{" "}
-            <span className="text-card-foreground text-xs">(Demo only)</span>
+            {t("login.quickLogin")}{" "}
+            <span className="text-card-foreground text-xs">
+              {t("login.demoOnly")}
+            </span>
           </p>
 
           {/* Quick Login Buttons */}
@@ -117,14 +119,14 @@ const Login = () => {
               className="grow"
               onClick={() => handleQuickLogin("user")}
             >
-              Login as User
+              {t("login.loginAsUser")}
             </Button>
             <Button
               variant="outline"
               className="grow"
               onClick={() => handleQuickLogin("admin")}
             >
-              Login as Admin
+              {t("login.loginAsAdmin")}
             </Button>
           </div>
 
@@ -136,18 +138,18 @@ const Login = () => {
             />
 
             <p className="text-muted-foreground text-center">
-              New to StableBook?{" "}
+              {t("login.noAccount")}{" "}
               <a
                 href="/register"
                 className="text-card-foreground hover:underline"
               >
-                Create an account
+                {t("login.signUp")}
               </a>
             </p>
 
             <div className="flex items-center gap-4">
               <Separator className="flex-1" />
-              <p>or</p>
+              <p>{t("login.or")}</p>
               <Separator className="flex-1" />
             </div>
 
@@ -157,7 +159,9 @@ const Login = () => {
               onClick={handleGoogleSignIn}
               disabled={googleLoading}
             >
-              {googleLoading ? "Signing in..." : "Sign in with Google"}
+              {googleLoading
+                ? t("login.signingIn")
+                : t("login.continueWithGoogle")}
             </Button>
           </div>
         </CardContent>

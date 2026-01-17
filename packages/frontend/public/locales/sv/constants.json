@@ -1,0 +1,146 @@
+{
+  "horseColors": {
+    "black": "Svart",
+    "brown": "Brun",
+    "bay_brown": "Brun med svart man och svans",
+    "dark_brown": "Mörkbrun",
+    "chestnut": "Fux",
+    "grey": "Grå/skimmel",
+    "strawberry": "Jordgubbsskimmel",
+    "piebald": "Svartbrokig",
+    "skewbald": "Brunbrokig",
+    "dun": "Gulbrun",
+    "cream": "Cremello",
+    "palomino": "Palomino",
+    "appaloosa": "Appaloosa"
+  },
+  "horseGenders": {
+    "stallion": "Hingst",
+    "mare": "Sto",
+    "gelding": "Valack"
+  },
+  "horseUsage": {
+    "care": "Skötsel",
+    "sport": "Sport",
+    "breeding": "Avel"
+  },
+  "feedCategories": {
+    "roughage": "Grovfoder",
+    "concentrate": "Kraftfoder",
+    "supplement": "Tillskott",
+    "medicine": "Medicin"
+  },
+  "quantityMeasures": {
+    "scoop": "Skopa",
+    "teaspoon": "Tesked",
+    "tablespoon": "Matsked",
+    "cup": "Kopp",
+    "ml": "Milliliter",
+    "l": "Liter",
+    "g": "Gram",
+    "kg": "Kilogram",
+    "custom": "Anpassat eller tomt mått"
+  },
+  "facilityTypes": {
+    "transport": "Transport",
+    "water_treadmill": "Vattentrampkvarn",
+    "indoor_arena": "Inomhusridbana",
+    "outdoor_arena": "Utomhusridbana",
+    "galloping_track": "Galoppbana",
+    "lunging_ring": "Longerbana",
+    "paddock": "Paddock",
+    "solarium": "Solarium",
+    "jumping_yard": "Hoppbana",
+    "treadmill": "Löpband",
+    "vibration_plate": "Vibrationsplatta",
+    "pasture": "Beteshage",
+    "walker": "Gångbana/Walker",
+    "other": "Annat"
+  },
+  "reservationStatus": {
+    "pending": "Väntande",
+    "confirmed": "Bekräftad",
+    "rejected": "Avvisad",
+    "cancelled": "Avbokad",
+    "completed": "Slutförd",
+    "no_show": "Uteblev"
+  },
+  "activityCategories": {
+    "sport": "Sport",
+    "care": "Vård",
+    "breeding": "Avel"
+  },
+  "activityTypes": {
+    "dentist": "Tandvård",
+    "deworm": "Avmaskning",
+    "farrier": "Hovslagare",
+    "influenza": "Influensa",
+    "rhino": "Rhino",
+    "vet": "Veterinär",
+    "client": "Kund",
+    "lesson": "Lektion",
+    "lunging": "Longering",
+    "paddock": "Hage",
+    "riding": "Ridning",
+    "show": "Tävling",
+    "foaling": "Fölning",
+    "insemination": "Inseminering",
+    "mareCycleCheck": "Brunstkontroll",
+    "stallionMount": "Språng"
+  },
+  "activityRoles": {
+    "owner": "Ägare",
+    "trainer": "Tränare",
+    "rider": "Ryttare",
+    "groom": "Skötare",
+    "veterinarian": "Veterinär",
+    "farrier": "Hovslagare",
+    "dentist": "Hästtandläkare"
+  },
+  "contactTypes": {
+    "personal": "Personlig",
+    "business": "Företag"
+  },
+  "userRoles": {
+    "administrator": "Administratör",
+    "veterinarian": "Veterinär",
+    "dentist": "Tandläkare",
+    "farrier": "Hovslagare",
+    "customer": "Kund",
+    "groom": "Skötare",
+    "saddlemaker": "Sadelmakare",
+    "horseowner": "Hästägare",
+    "rider": "Ryttare",
+    "inseminator": "Seminör"
+  },
+  "userRoleDescriptions": {
+    "administrator": "Full organisationsåtkomst",
+    "veterinarian": "Djurhälsotjänster",
+    "dentist": "Hästtandvårdstjänster",
+    "farrier": "Hovvårdstjänster",
+    "customer": "Hästägare/klient",
+    "groom": "Daglig skötsel",
+    "saddlemaker": "Utrustning och sadeltjänster",
+    "horseowner": "Extern hästägare",
+    "rider": "Professionell ryttare",
+    "inseminator": "Aveltjänster"
+  },
+  "facilityStatus": {
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "maintenance": "Underhåll"
+  },
+  "timeSlotDurations": {
+    "15min": "15 minuter",
+    "30min": "30 minuter",
+    "1hour": "1 timme"
+  },
+  "groupColors": {
+    "blue": "Blå",
+    "green": "Grön",
+    "amber": "Bärnsten",
+    "red": "Röd",
+    "purple": "Lila",
+    "pink": "Rosa"
+  }
+}

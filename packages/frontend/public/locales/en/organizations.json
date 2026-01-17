@@ -1,0 +1,119 @@
+{
+  "page": {
+    "title": "Organizations",
+    "description": "Manage your organizations and settings"
+  },
+  "dropdown": {
+    "title": "Organizations",
+    "create": "Create",
+    "loading": "Loading organizations...",
+    "selectOrganization": "Select Organization",
+    "active": "Active",
+    "menu": "Organization Menu",
+    "noOrganizations": "No organizations yet",
+    "createFirst": "Create Your First Organization",
+    "viewAll": "View All Organizations"
+  },
+  "menu": {
+    "members": "Members",
+    "integrations": "Integrations",
+    "manure": "Manure",
+    "permissions": "Permissions",
+    "subscription": "Subscription",
+    "settings": "Settings",
+    "leaveManagement": "Leave Management",
+    "scheduleManagement": "Schedule Management"
+  },
+  "form": {
+    "title": {
+      "create": "Create Organization",
+      "edit": "Edit Organization"
+    },
+    "description": {
+      "create": "Create a new organization to manage your stables",
+      "edit": "Update organization information"
+    },
+    "labels": {
+      "name": "Organization Name",
+      "description": "Description",
+      "email": "Contact Email",
+      "phone": "Contact Phone",
+      "address": "Address"
+    },
+    "placeholders": {
+      "name": "e.g., My Riding Center",
+      "description": "Brief description of your organization..."
+    }
+  },
+  "members": {
+    "title": "Organization Members",
+    "description": "Manage members and their roles",
+    "invite": "Invite Member",
+    "role": "Role",
+    "roles": "Roles",
+    "status": "Status",
+    "actions": "Actions",
+    "searchPlaceholder": "Search by name, email, or role...",
+    "noSearchResults": "No members match your search",
+    "emptyState": "No members yet. Invite users to get started.",
+    "allStables": "All Stables",
+    "assigned": "Assigned",
+    "confirmRemove": "Are you sure you want to remove {{email}} from this organization?"
+  },
+  "invite": {
+    "title": "Invite User to Organization",
+    "description": "Invite a new member to your organization and assign their roles",
+    "button": "Invite User",
+    "emailLabel": "Email",
+    "emailPlaceholder": "user@example.com",
+    "firstNameLabel": "First Name",
+    "lastNameLabel": "Last Name",
+    "phoneLabel": "Phone Number",
+    "phonePlaceholder": "+46 70 123 45 67",
+    "contactType": "Contact Type",
+    "rolesLabel": "Roles",
+    "primaryRoleLabel": "Primary Role",
+    "showInStaffPlanning": "Show in staff activity planning",
+    "sendInvitation": "Send Invitation",
+    "success": "Invitation sent successfully",
+    "error": "Failed to send invitation",
+    "inviteSent": "Invitation sent to {{email}}. They will receive an email to join.",
+    "alreadyMember": "User is already a member of this organization",
+    "inviteFailed": "Failed to send invitation. Please try again."
+  },
+  "permissions": {
+    "title": "Permissions",
+    "description": "Role-based access control for organization members",
+    "matrix": {
+      "title": "Permission Matrix",
+      "description": "Detailed breakdown of what each role can do",
+      "action": "Action"
+    },
+    "customRoles": {
+      "title": "Custom Roles & Advanced Permissions",
+      "description": "Available in Professional and Enterprise plans",
+      "explanation": "Create custom roles with granular permissions tailored to your organization's needs. Control access to specific stables, features, and data on a per-role basis.",
+      "specializedRoles": "Specialized roles available: Veterinarian, Dentist, Farrier, Groom, Horse Owner, Rider, and more."
+    }
+  },
+  "subscription": {
+    "title": "Subscription",
+    "description": "Manage your subscription plan",
+    "currentPlan": "Current Plan",
+    "upgrade": "Upgrade",
+    "downgrade": "Downgrade"
+  },
+  "integrations": {
+    "title": "Integrations",
+    "description": "Connect to third-party services"
+  },
+  "messages": {
+    "createSuccess": "Organization created successfully",
+    "updateSuccess": "Organization updated successfully",
+    "deleteSuccess": "Organization deleted successfully"
+  },
+  "emptyState": {
+    "title": "No organizations yet",
+    "description": "Create your first organization to get started"
+  }
+}

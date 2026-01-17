@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { BaseFormDialog } from "@/components/BaseFormDialog";
 import { useFormDialog } from "@/hooks/useFormDialog";
@@ -27,7 +28,7 @@ const feedTypeSchema = z.object({
     "kg",
     "custom",
   ]),
-  defaultQuantity: z
+  defaultQuantity: z.coerce
     .number()
     .min(0, "Quantity must be 0 or greater")
     .max(10000, "Quantity must be 10000 or less"),
@@ -52,6 +53,7 @@ export function FeedTypeFormDialog({
   feedType,
   onSave,
 }: FeedTypeFormDialogProps) {
+  const { t } = useTranslation(["feeding", "common"]);
   const isEditMode = !!feedType;
 
   const { form, handleSubmit, resetForm } = useFormDialog<FeedTypeFormData>({
@@ -78,11 +80,11 @@ export function FeedTypeFormDialog({
       onOpenChange(false);
     },
     successMessage: isEditMode
-      ? "Feed type updated successfully"
-      : "Feed type created successfully",
+      ? t("feeding:feedTypes.messages.updateSuccess")
+      : t("feeding:feedTypes.messages.createSuccess"),
     errorMessage: isEditMode
-      ? "Failed to update feed type"
-      : "Failed to create feed type",
+      ? t("feeding:feedTypes.messages.updateError")
+      : t("feeding:feedTypes.messages.createError"),
   });
 
   // Reset form when dialog opens with feed type data
@@ -101,10 +103,12 @@ export function FeedTypeFormDialog({
     }
   }, [feedType, open]);
 
-  const dialogTitle = isEditMode ? "Edit Feed Type" : "Add Feed Type";
+  const dialogTitle = isEditMode
+    ? t("feeding:feedTypes.form.title.edit")
+    : t("feeding:feedTypes.form.title.create");
   const dialogDescription = isEditMode
-    ? "Modify the feed type configuration."
-    : "Create a new feed type for your stable.";
+    ? t("feeding:feedTypes.form.description.edit")
+    : t("feeding:feedTypes.form.description.create");
 
   return (
     <BaseFormDialog
@@ -114,59 +118,61 @@ export function FeedTypeFormDialog({
       description={dialogDescription}
       form={form}
       onSubmit={handleSubmit}
-      submitLabel={isEditMode ? "Update" : "Create"}
+      submitLabel={
+        isEditMode ? t("common:buttons.update") : t("common:buttons.create")
+      }
       maxWidth="sm:max-w-[500px]"
     >
       <FormInput
         name="name"
-        label="Name"
+        label={t("feeding:feedTypes.form.labels.name")}
         form={form}
-        placeholder="e.g., Müsli Plus, Hay"
+        placeholder={t("feeding:feedTypes.form.placeholders.name")}
         required
       />
 
       <FormInput
         name="brand"
-        label="Brand"
+        label={t("feeding:feedTypes.form.labels.brand")}
         form={form}
-        placeholder="e.g., Krafft, Local Farm"
+        placeholder={t("feeding:feedTypes.form.placeholders.brand")}
         required
       />
 
       <FormSelect
         name="category"
-        label="Category"
+        label={t("feeding:feedTypes.form.labels.category")}
         form={form}
         options={FEED_CATEGORIES}
-        placeholder="Select category"
+        placeholder={t("feeding:feedTypes.form.placeholders.category")}
         required
       />
 
       <FormSelect
         name="quantityMeasure"
-        label="Quantity Measure"
+        label={t("feeding:feedTypes.form.labels.quantityMeasure")}
         form={form}
         options={QUANTITY_MEASURES}
-        placeholder="Select measure"
+        placeholder={t("feeding:feedTypes.form.placeholders.quantityMeasure")}
         required
       />
 
       <FormInput
         name="defaultQuantity"
-        label="Default Quantity"
+        label={t("feeding:feedTypes.form.labels.defaultQuantity")}
         form={form}
         type="number"
-        placeholder="e.g., 2"
-        helperText="Default amount when adding this feed to a horse"
+        placeholder={t("feeding:feedTypes.form.placeholders.defaultQuantity")}
+        helperText={t("feeding:feedTypes.form.help.defaultQuantity")}
         required
       />
 
       <FormTextarea
         name="warning"
-        label="Warning"
+        label={t("feeding:feedTypes.form.labels.warning")}
         form={form}
-        placeholder="e.g., Do not give more than 3kg per feeding"
-        helperText="Optional warning message shown when using this feed"
+        placeholder={t("feeding:feedTypes.form.placeholders.warning")}
+        helperText={t("feeding:feedTypes.form.help.warning")}
         rows={2}
       />
     </BaseFormDialog>

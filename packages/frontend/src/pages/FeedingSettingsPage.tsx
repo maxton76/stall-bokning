@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Settings, Plus, Pencil, Trash2, Wheat, Clock } from "lucide-react";
 import {
   Card,
@@ -7,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -58,6 +58,7 @@ import {
 } from "@/constants/feeding";
 
 export default function FeedingSettingsPage() {
+  const { t } = useTranslation(["feeding", "common"]);
   const { user } = useAuth();
   const [selectedStableId, setSelectedStableId] = useState<string>("");
 
@@ -120,9 +121,9 @@ export default function FeedingSettingsPage() {
       await feedTypes.reload();
     },
     successMessages: {
-      create: "Feed type created successfully",
-      update: "Feed type updated successfully",
-      delete: "Feed type deleted successfully",
+      create: t("feeding:feedTypes.messages.createSuccess"),
+      update: t("feeding:feedTypes.messages.updateSuccess"),
+      delete: t("feeding:feedTypes.messages.deleteSuccess"),
     },
   });
 
@@ -145,9 +146,9 @@ export default function FeedingSettingsPage() {
       await feedingTimes.reload();
     },
     successMessages: {
-      create: "Feeding time created successfully",
-      update: "Feeding time updated successfully",
-      delete: "Feeding time deleted successfully",
+      create: t("feeding:feedingTimes.messages.createSuccess"),
+      update: t("feeding:feedingTimes.messages.updateSuccess"),
+      delete: t("feeding:feedingTimes.messages.deleteSuccess"),
     },
   });
 
@@ -211,15 +212,17 @@ export default function FeedingSettingsPage() {
     setDeletingItem(null);
   };
 
-  // Sort feeding times by sortOrder
-  const sortedFeedingTimes = [...(feedingTimes.data || [])].sort(
-    (a, b) => a.sortOrder - b.sortOrder,
+  // Sort feeding times by time (HH:mm format)
+  const sortedFeedingTimes = [...(feedingTimes.data || [])].sort((a, b) =>
+    a.time.localeCompare(b.time),
   );
 
   if (stablesLoading) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">Loading stables...</p>
+        <p className="text-muted-foreground">
+          {t("feeding:loadingStates.stables")}
+        </p>
       </div>
     );
   }
@@ -229,9 +232,11 @@ export default function FeedingSettingsPage() {
       <div className="container mx-auto p-6">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <h3 className="text-lg font-semibold mb-2">No stables found</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {t("feeding:loadingStates.noStablesTitle")}
+            </h3>
             <p className="text-muted-foreground">
-              You need to be a member of a stable to configure feeding settings.
+              {t("feeding:loadingStates.noStablesForSettings")}
             </p>
           </CardContent>
         </Card>
@@ -246,10 +251,10 @@ export default function FeedingSettingsPage() {
         <Settings className="h-8 w-8 text-primary" />
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Feeding Settings
+            {t("feeding:page.settingsTitle")}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Configure feed types and feeding times for your stable
+            {t("feeding:page.settingsDescription")}
           </p>
         </div>
       </div>
@@ -261,40 +266,53 @@ export default function FeedingSettingsPage() {
             <div className="flex items-center gap-2">
               <Wheat className="h-5 w-5 text-primary" />
               <div>
-                <CardTitle>Feed Types</CardTitle>
+                <CardTitle>{t("feeding:feedTypes.title")}</CardTitle>
                 <CardDescription>
-                  Manage the types of feed available at your stable
+                  {t("feeding:feedTypes.description")}
                 </CardDescription>
               </div>
             </div>
             <Button onClick={handleAddFeedType} size="sm">
               <Plus className="h-4 w-4 mr-2" />
-              Add Feed Type
+              {t("feeding:actions.addFeedType")}
             </Button>
           </div>
         </CardHeader>
         <CardContent>
           {feedTypes.loading ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">Loading feed types...</p>
+              <p className="text-muted-foreground">
+                {t("feeding:feedTypes.loading")}
+              </p>
             </div>
           ) : (feedTypes.data || []).length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
-                No feed types found. Add your first feed type to get started.
+                {t("feeding:feedTypes.noFeedTypes")}
               </p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Brand</TableHead>
-                  <TableHead>Default Amount</TableHead>
-                  <TableHead>Warning</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-24 text-right">Actions</TableHead>
+                  <TableHead>
+                    {t("feeding:feedTypes.tableHeaders.name")}
+                  </TableHead>
+                  <TableHead>
+                    {t("feeding:feedTypes.tableHeaders.category")}
+                  </TableHead>
+                  <TableHead>
+                    {t("feeding:feedTypes.tableHeaders.brand")}
+                  </TableHead>
+                  <TableHead>
+                    {t("feeding:feedTypes.tableHeaders.defaultAmount")}
+                  </TableHead>
+                  <TableHead>
+                    {t("feeding:feedTypes.tableHeaders.warning")}
+                  </TableHead>
+                  <TableHead className="w-24 text-right">
+                    {t("feeding:feedTypes.tableHeaders.actions")}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -316,23 +334,6 @@ export default function FeedingSettingsPage() {
                         </span>
                       ) : (
                         <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {type.isActive ? (
-                        <Badge
-                          variant="outline"
-                          className="bg-green-50 text-green-700"
-                        >
-                          Active
-                        </Badge>
-                      ) : (
-                        <Badge
-                          variant="outline"
-                          className="bg-gray-50 text-gray-700"
-                        >
-                          Inactive
-                        </Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
@@ -368,39 +369,44 @@ export default function FeedingSettingsPage() {
             <div className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-primary" />
               <div>
-                <CardTitle>Feeding Times</CardTitle>
+                <CardTitle>{t("feeding:feedingTimes.title")}</CardTitle>
                 <CardDescription>
-                  Configure the daily feeding schedule time slots
+                  {t("feeding:feedingTimes.description")}
                 </CardDescription>
               </div>
             </div>
             <Button onClick={handleAddFeedingTime} size="sm">
               <Plus className="h-4 w-4 mr-2" />
-              Add Feeding Time
+              {t("feeding:actions.addFeedingTime")}
             </Button>
           </div>
         </CardHeader>
         <CardContent>
           {feedingTimes.loading ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">Loading feeding times...</p>
+              <p className="text-muted-foreground">
+                {t("feeding:feedingTimes.loading")}
+              </p>
             </div>
           ) : sortedFeedingTimes.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
-                No feeding times found. Default times will be created when you
-                first access the schedule.
+                {t("feeding:feedingTimes.noFeedingTimes")}
               </p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Sort Order</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-24 text-right">Actions</TableHead>
+                  <TableHead>
+                    {t("feeding:feedingTimes.tableHeaders.name")}
+                  </TableHead>
+                  <TableHead>
+                    {t("feeding:feedingTimes.tableHeaders.time")}
+                  </TableHead>
+                  <TableHead className="w-24 text-right">
+                    {t("feeding:feedingTimes.tableHeaders.actions")}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -408,26 +414,6 @@ export default function FeedingSettingsPage() {
                   <TableRow key={time.id}>
                     <TableCell className="font-medium">{time.name}</TableCell>
                     <TableCell>{time.time}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {time.sortOrder}
-                    </TableCell>
-                    <TableCell>
-                      {time.isActive ? (
-                        <Badge
-                          variant="outline"
-                          className="bg-green-50 text-green-700"
-                        >
-                          Active
-                        </Badge>
-                      ) : (
-                        <Badge
-                          variant="outline"
-                          className="bg-gray-50 text-gray-700"
-                        >
-                          Inactive
-                        </Badge>
-                      )}
-                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button
@@ -462,13 +448,11 @@ export default function FeedingSettingsPage() {
               <Settings className="h-5 w-5" />
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-medium">About Feeding Settings</p>
+              <p className="text-sm font-medium">
+                {t("feeding:infoCard.settingsTitle")}
+              </p>
               <p className="text-sm text-muted-foreground">
-                Feed types define the different feeds available at your stable
-                (roughage, concentrate, supplements, medicine). Feeding times
-                define the daily schedule slots when horses are fed. If no
-                feeding times are configured, default times (morning 07:00,
-                afternoon 13:00, evening 20:00) will be created automatically.
+                {t("feeding:infoCard.settingsDescription")}
               </p>
             </div>
           </div>
@@ -489,7 +473,6 @@ export default function FeedingSettingsPage() {
         onOpenChange={feedingTimeDialog.closeDialog}
         feedingTime={feedingTimeDialog.data || undefined}
         onSave={handleSaveFeedingTime}
-        existingCount={sortedFeedingTimes.length}
       />
 
       {/* Delete Confirmation Dialog */}
@@ -497,29 +480,33 @@ export default function FeedingSettingsPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Delete{" "}
-              {deletingItem?.type === "feedType" ? "Feed Type" : "Feeding Time"}
+              {deletingItem?.type === "feedType"
+                ? t("feeding:deleteDialog.feedTypeTitle")
+                : t("feeding:deleteDialog.feedingTimeTitle")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "
-              {deletingItem?.item
-                ? "name" in deletingItem.item
-                  ? deletingItem.item.name
-                  : ""
-                : ""}
-              "?
               {deletingItem?.type === "feedType"
-                ? " If this feed type is in use, it will be marked as inactive instead of deleted."
-                : " If this feeding time is in use, it will be marked as inactive instead of deleted."}
+                ? t("feeding:deleteDialog.feedTypeDescription", {
+                    name:
+                      deletingItem?.item && "name" in deletingItem.item
+                        ? deletingItem.item.name
+                        : "",
+                  })
+                : t("feeding:deleteDialog.feedingTimeDescription", {
+                    name:
+                      deletingItem?.item && "name" in deletingItem.item
+                        ? deletingItem.item.name
+                        : "",
+                  })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common:buttons.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-red-500 hover:bg-red-600"
             >
-              Delete
+              {t("common:buttons.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

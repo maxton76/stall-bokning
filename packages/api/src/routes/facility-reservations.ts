@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
-import { QueryDocumentSnapshot } from "firebase-admin/firestore";
+import { QueryDocumentSnapshot, Timestamp } from "firebase-admin/firestore";
 import { serializeTimestamps } from "../utils/serialization.js";
 
 /**

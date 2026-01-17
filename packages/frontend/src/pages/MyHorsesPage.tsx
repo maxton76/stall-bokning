@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Loader2Icon, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ import { useHorseFilters } from "@/hooks/useHorseFilters";
 import { useUserStables } from "@/hooks/useUserStables";
 
 export default function MyHorsesPage() {
+  const { t } = useTranslation(["horses", "common"]);
   const { user } = useAuth();
   const { currentOrganizationId } = useOrganizationContext();
   const navigate = useNavigate();
@@ -54,7 +56,7 @@ export default function MyHorsesPage() {
   // Data loading with custom hooks
   const horses = useAsyncData<Horse[]>({
     loadFn: () => getUserHorses(user!.uid),
-    errorMessage: "Failed to load horses. Please try again.",
+    errorMessage: t("horses:messages.loadError"),
   });
   const { stables } = useUserStables(user?.uid);
 
@@ -133,9 +135,9 @@ export default function MyHorsesPage() {
       await horses.reload();
     },
     successMessages: {
-      create: "Horse added successfully",
-      update: "Horse updated successfully",
-      delete: "Horse deleted successfully",
+      create: t("horses:messages.addSuccess"),
+      update: t("horses:messages.updateSuccess"),
+      delete: t("horses:messages.deleteSuccess"),
     },
   });
 
@@ -178,7 +180,7 @@ export default function MyHorsesPage() {
   const handleDeleteHorse = async (horse: Horse) => {
     await horseCRUD.remove(
       horse.id,
-      `Are you sure you want to delete ${horse.name}? This action cannot be undone.`,
+      t("horses:messages.confirmDelete", { name: horse.name }),
     );
   };
 
@@ -208,7 +210,7 @@ export default function MyHorsesPage() {
     if (!user) return;
 
     const confirmed = window.confirm(
-      `Unassign ${horse.name} from ${horse.currentStableName}?`,
+      t("horses:actions.unassignFromStable") + `: ${horse.name}?`,
     );
     if (!confirmed) return;
 
@@ -240,9 +242,7 @@ export default function MyHorsesPage() {
   };
 
   const handleDeleteVaccinationRecord = async (record: VaccinationRecord) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this vaccination record? This action cannot be undone.",
-    );
+    const confirmed = window.confirm(t("common:messages.confirmDelete"));
     if (!confirmed) return;
 
     try {
@@ -308,17 +308,17 @@ export default function MyHorsesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            My Horses
+            {t("horses:page.title")}
           </h1>
           <p className="text-sm sm:text-base text-muted-foreground mt-1">
-            Manage your horses and their stable assignments
+            {t("horses:page.description")}
           </p>
         </div>
         <div className="flex gap-2">
           <HorseExportButton horses={filteredHorses} />
           <Button onClick={handleCreateHorse} className="flex-1 sm:flex-none">
             <Plus className="mr-2 h-4 w-4" />
-            Add Horse
+            {t("horses:actions.addHorse")}
           </Button>
         </div>
       </div>
@@ -340,7 +340,7 @@ export default function MyHorsesPage() {
           <div className="relative flex-1 sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by Name, UELN, etc..."
+              placeholder={t("horses:filters.searchPlaceholder")}
               value={filters.searchQuery}
               onChange={(e) =>
                 setFilters((prev) => ({ ...prev, searchQuery: e.target.value }))
@@ -408,7 +408,8 @@ export default function MyHorsesPage() {
           <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                Vaccination History - {selectedHorseForVaccination.name}
+                {t("horses:vaccination.viewFullHistory")} -{" "}
+                {selectedHorseForVaccination.name}
               </DialogTitle>
             </DialogHeader>
             <VaccinationHistoryTable

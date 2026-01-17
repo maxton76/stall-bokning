@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { format } from "date-fns";
 import { BaseFormDialog } from "@/components/BaseFormDialog";
@@ -31,10 +32,10 @@ import type {
   VaccinationRule,
 } from "@/types/roles";
 import {
-  HORSE_COLORS,
-  HORSE_USAGE_OPTIONS,
-  HORSE_GENDERS,
-} from "@/constants/horseConstants";
+  useTranslatedHorseColors,
+  useTranslatedHorseGenders,
+  useTranslatedHorseUsage,
+} from "@/hooks/useTranslatedConstants";
 import { Timestamp } from "firebase/firestore";
 import { toDate } from "@/utils/timestampUtils";
 
@@ -130,8 +131,14 @@ export function HorseFormDialog({
   onViewVaccinationHistory,
   onAddVaccinationRecord,
 }: HorseFormDialogProps) {
+  const { t } = useTranslation(["horses", "common"]);
   const isEditMode = !!horse;
   const [vaccinationSectionOpen, setVaccinationSectionOpen] = useState(false);
+
+  // Get translated constants
+  const translatedColors = useTranslatedHorseColors();
+  const translatedGenders = useTranslatedHorseGenders();
+  const translatedUsageOptions = useTranslatedHorseUsage();
 
   // Get vaccination status for existing horses
   const { status: vaccinationStatus, loading: vaccinationLoading } =
@@ -187,7 +194,10 @@ export function HorseFormDialog({
         isExternal: data.isExternal,
         notes: data.notes?.trim() || undefined,
         specialInstructions: data.specialInstructions?.trim() || undefined,
-        equipment: data.equipment && data.equipment.length > 0 ? data.equipment : undefined,
+        equipment:
+          data.equipment && data.equipment.length > 0
+            ? data.equipment
+            : undefined,
         status: "active" as const,
         ueln: data.ueln?.trim() || undefined,
         chipNumber: data.chipNumber?.trim() || undefined,
@@ -244,9 +254,11 @@ export function HorseFormDialog({
       onOpenChange(false);
     },
     successMessage: isEditMode
-      ? "Horse updated successfully"
-      : "Horse added successfully",
-    errorMessage: isEditMode ? "Failed to update horse" : "Failed to add horse",
+      ? t("horses:messages.updateSuccess")
+      : t("horses:messages.addSuccess"),
+    errorMessage: isEditMode
+      ? t("common:messages.updateError")
+      : t("common:messages.createError"),
   });
 
   // Helper to format date for HTML5 date input (YYYY-MM-DD)
@@ -302,24 +314,24 @@ export function HorseFormDialog({
     }
   }, [form.formState.errors]);
 
-  const colorOptions = HORSE_COLORS.map((c) => ({
+  const colorOptions = translatedColors.map((c) => ({
     value: c.value,
     label: c.label,
   }));
-  const genderOptions = HORSE_GENDERS.map((g) => ({
+  const genderOptions = translatedGenders.map((g) => ({
     value: g.value,
     label: g.label,
   }));
   const stableOptions = [
-    { value: "none", label: "No stable (unassigned)" },
+    { value: "none", label: t("horses:options.noStable") },
     ...availableStables.map((s) => ({ value: s.id, label: s.name })),
   ];
   const groupOptions = [
-    { value: "none", label: "No group" },
+    { value: "none", label: t("horses:options.noGroup") },
     ...availableGroups.map((g) => ({ value: g.id, label: g.name })),
   ];
   const ruleOptions = [
-    { value: "none", label: "No vaccination rule" },
+    { value: "none", label: t("horses:options.noVaccinationRule") },
     ...availableRules.map((r) => ({ value: r.id, label: r.name })),
   ];
 
@@ -327,30 +339,37 @@ export function HorseFormDialog({
     <BaseFormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={title || (isEditMode ? "Edit Horse" : "Add New Horse")}
+      title={
+        title ||
+        (isEditMode
+          ? t("horses:form.title.edit")
+          : t("horses:form.title.create"))
+      }
       description={
         isEditMode
-          ? "Update the horse details below."
-          : "Add a new horse to your account. You can optionally assign it to a stable."
+          ? t("horses:form.description.edit")
+          : t("horses:form.description.create")
       }
       form={form}
       onSubmit={handleSubmit}
-      submitLabel={isEditMode ? "Update" : "Add Horse"}
+      submitLabel={
+        isEditMode ? t("horses:buttons.update") : t("horses:buttons.addHorse")
+      }
       maxWidth="sm:max-w-[600px]"
     >
       <FormInput
         name="name"
-        label="Horse Name"
+        label={t("horses:form.labels.name")}
         form={form}
-        placeholder="e.g., Thunder"
+        placeholder={t("horses:form.placeholders.name")}
         required
       />
 
       <FormInput
         name="breed"
-        label="Breed"
+        label={t("horses:form.labels.breed")}
         form={form}
-        placeholder="e.g., Arabian, Thoroughbred"
+        placeholder={t("horses:form.placeholders.breed")}
       />
 
       {/* Is External Toggle */}
@@ -371,7 +390,7 @@ export function HorseFormDialog({
           htmlFor="isExternal"
           className="text-sm font-normal cursor-pointer"
         >
-          This horse is external (not part of the stable)
+          {t("horses:form.labels.isExternal")}
         </Label>
       </div>
 
@@ -379,7 +398,7 @@ export function HorseFormDialog({
       {!isExternal && (
         <FormDatePicker
           name="dateOfArrival"
-          label="Date of Arrival"
+          label={t("horses:form.labels.dateOfArrival")}
           form={form}
           required
         />
@@ -389,7 +408,7 @@ export function HorseFormDialog({
       {!isExternal && allowStableAssignment && availableStables.length > 0 && (
         <FormSelect
           name="currentStableId"
-          label="Location (Stable)"
+          label={t("horses:form.labels.location")}
           form={form}
           options={stableOptions}
         />
@@ -399,9 +418,9 @@ export function HorseFormDialog({
       {!isExternal && (
         <FormCheckboxGroup
           name="usage"
-          label="Usage"
+          label={t("horses:form.labels.usage")}
           form={form}
-          options={HORSE_USAGE_OPTIONS.map((o) => ({
+          options={translatedUsageOptions.map((o) => ({
             value: o.value,
             label: `${o.icon} ${o.label}`,
           }))}
@@ -412,7 +431,7 @@ export function HorseFormDialog({
       {!isExternal && availableGroups.length > 0 && (
         <FormSelect
           name="horseGroupId"
-          label="Horse Group"
+          label={t("horses:form.labels.group")}
           form={form}
           options={groupOptions}
         />
@@ -422,7 +441,7 @@ export function HorseFormDialog({
       {!isExternal && availableRules.length > 0 && (
         <FormSelect
           name="vaccinationRuleId"
-          label="Vaccination Rule"
+          label={t("horses:form.labels.vaccinationRule")}
           form={form}
           options={ruleOptions}
         />
@@ -440,7 +459,7 @@ export function HorseFormDialog({
             <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium hover:underline">
               <span className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
-                Vaccination Records
+                {t("horses:form.sections.vaccinationRecords")}
               </span>
               <ChevronDown className="h-4 w-4" />
             </CollapsibleTrigger>
@@ -451,7 +470,7 @@ export function HorseFormDialog({
                 <div className="space-y-3">
                   <div>
                     <Label className="text-sm text-muted-foreground">
-                      Current Status
+                      {t("horses:vaccination.currentStatus")}
                     </Label>
                     <div className="mt-1">
                       <Badge
@@ -475,7 +494,7 @@ export function HorseFormDialog({
                     toDate(vaccinationStatus.lastVaccinationDate) && (
                       <div>
                         <Label className="text-sm text-muted-foreground">
-                          Last Vaccination
+                          {t("horses:vaccination.lastVaccination")}
                         </Label>
                         <p className="text-sm mt-1">
                           {format(
@@ -491,7 +510,7 @@ export function HorseFormDialog({
                     toDate(vaccinationStatus.nextDueDate) && (
                       <div>
                         <Label className="text-sm text-muted-foreground">
-                          Next Due Date
+                          {t("horses:vaccination.nextDueDate")}
                         </Label>
                         <p className="text-sm mt-1">
                           {format(
@@ -500,10 +519,16 @@ export function HorseFormDialog({
                           )}
                           {vaccinationStatus.daysUntilDue !== undefined && (
                             <span className="text-muted-foreground ml-2">
-                              ({Math.abs(vaccinationStatus.daysUntilDue)}{" "}
+                              (
                               {vaccinationStatus.daysUntilDue < 0
-                                ? "days overdue"
-                                : "days"}
+                                ? t("horses:vaccination.daysOverdue", {
+                                    count: Math.abs(
+                                      vaccinationStatus.daysUntilDue,
+                                    ),
+                                  })
+                                : t("horses:vaccination.daysRemaining", {
+                                    count: vaccinationStatus.daysUntilDue,
+                                  })}
                               )
                             </span>
                           )}
@@ -515,7 +540,7 @@ export function HorseFormDialog({
                   {vaccinationStatus.vaccinationRuleName && (
                     <div>
                       <Label className="text-sm text-muted-foreground">
-                        Vaccination Rule
+                        {t("horses:vaccination.vaccinationRule")}
                       </Label>
                       <p className="text-sm mt-1">
                         {vaccinationStatus.vaccinationRuleName}
@@ -527,7 +552,7 @@ export function HorseFormDialog({
 
               {vaccinationLoading && (
                 <p className="text-sm text-muted-foreground">
-                  Loading vaccination status...
+                  {t("horses:status.loading")}
                 </p>
               )}
 
@@ -541,7 +566,7 @@ export function HorseFormDialog({
                     onClick={onViewVaccinationHistory}
                   >
                     <History className="h-4 w-4 mr-2" />
-                    View Full History
+                    {t("horses:vaccination.viewFullHistory")}
                   </Button>
                 )}
                 {onAddVaccinationRecord && (
@@ -552,7 +577,7 @@ export function HorseFormDialog({
                     onClick={onAddVaccinationRecord}
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Record
+                    {t("horses:vaccination.addRecord")}
                   </Button>
                 )}
               </div>
@@ -565,63 +590,67 @@ export function HorseFormDialog({
         <div className="grid grid-cols-2 gap-4">
           <FormInput
             name="ueln"
-            label="UELN"
+            label={t("horses:form.labels.ueln")}
             form={form}
-            placeholder="Universal Equine Life Number"
+            placeholder={t("horses:form.placeholders.ueln")}
           />
           <FormInput
             name="chipNumber"
-            label="Chip Number"
+            label={t("horses:form.labels.chipNumber")}
             form={form}
-            placeholder="Microchip number"
+            placeholder={t("horses:form.placeholders.chipNumber")}
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <FormInput
             name="federationNumber"
-            label="Federation Number"
+            label={t("horses:form.labels.federationNumber")}
             form={form}
-            placeholder="Federation registration number"
+            placeholder={t("horses:form.placeholders.federationNumber")}
           />
           <FormInput
             name="feiPassNumber"
-            label="FEI Pass Number"
+            label={t("horses:form.labels.feiPassNumber")}
             form={form}
-            placeholder="FEI passport number"
+            placeholder={t("horses:form.placeholders.feiPassNumber")}
           />
         </div>
 
         <FormDatePicker
           name="feiExpiryDate"
-          label="FEI Passport Expiry"
+          label={t("horses:form.labels.feiExpiryDate")}
           form={form}
         />
       </div>
 
       <FormSelect
         name="color"
-        label="Color"
+        label={t("horses:form.labels.color")}
         form={form}
         options={colorOptions}
-        placeholder="Select color"
+        placeholder={t("horses:options.selectColor")}
         required
       />
 
       <FormSelect
         name="gender"
-        label="Gender"
+        label={t("horses:form.labels.gender")}
         form={form}
         options={genderOptions}
-        placeholder="Select gender"
+        placeholder={t("horses:options.selectGender")}
       />
 
-      <FormDatePicker name="dateOfBirth" label="Date of Birth" form={form} />
+      <FormDatePicker
+        name="dateOfBirth"
+        label={t("horses:form.labels.dateOfBirth")}
+        form={form}
+      />
 
       {/* Collapsible Additional Details Section */}
       <Collapsible>
         <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium hover:underline">
-          <span>Additional horse details</span>
+          <span>{t("horses:form.sections.additionalDetails")}</span>
           <ChevronDown className="h-4 w-4" />
         </CollapsibleTrigger>
 
@@ -629,55 +658,55 @@ export function HorseFormDialog({
           <div className="grid grid-cols-2 gap-4">
             <FormInput
               name="sire"
-              label="Sire"
+              label={t("horses:form.labels.sire")}
               form={form}
-              placeholder="Father's name"
+              placeholder={t("horses:form.placeholders.sire")}
             />
             <FormInput
               name="dam"
-              label="Dam"
+              label={t("horses:form.labels.dam")}
               form={form}
-              placeholder="Mother's name"
+              placeholder={t("horses:form.placeholders.dam")}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <FormInput
               name="withersHeight"
-              label="Withers Height (cm)"
+              label={t("horses:form.labels.withersHeight")}
               form={form}
               type="number"
-              placeholder="e.g., 165"
+              placeholder={t("horses:form.placeholders.withersHeight")}
             />
             <FormInput
               name="damsire"
-              label="Damsire"
+              label={t("horses:form.labels.damsire")}
               form={form}
-              placeholder="Mother's father"
+              placeholder={t("horses:form.placeholders.damsire")}
             />
           </div>
 
           <FormInput
             name="studbook"
-            label="Studbook"
+            label={t("horses:form.labels.studbook")}
             form={form}
-            placeholder="Studbook registration"
+            placeholder={t("horses:form.placeholders.studbook")}
           />
 
           <FormInput
             name="breeder"
-            label="Breeder"
+            label={t("horses:form.labels.breeder")}
             form={form}
-            placeholder="Breeder name"
+            placeholder={t("horses:form.placeholders.breeder")}
           />
         </CollapsibleContent>
       </Collapsible>
 
       <FormTextarea
         name="notes"
-        label="Notes"
+        label={t("horses:form.labels.notes")}
         form={form}
-        placeholder="Any additional information about this horse..."
+        placeholder={t("horses:form.placeholders.notes")}
         rows={3}
       />
 
@@ -691,12 +720,14 @@ export function HorseFormDialog({
           >
             <div className="flex items-center gap-2">
               <Bell className="h-4 w-4 text-amber-500" />
-              <span className="font-medium">Special Instructions</span>
+              <span className="font-medium">
+                {t("horses:form.sections.specialInstructions")}
+              </span>
               {(form.watch("specialInstructions") ||
                 (form.watch("equipment") &&
                   form.watch("equipment")!.length > 0)) && (
                 <Badge variant="secondary" className="ml-2">
-                  Active
+                  {t("horses:status.active")}
                 </Badge>
               )}
             </div>
@@ -705,15 +736,14 @@ export function HorseFormDialog({
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-4 pt-4">
           <p className="text-sm text-muted-foreground">
-            Add special instructions that should be shown when this horse is
-            included in activities (e.g., turnout, grooming).
+            {t("horses:form.help.specialInstructions")}
           </p>
 
           <FormTextarea
             name="specialInstructions"
-            label="Instructions"
+            label={t("horses:status.instructions")}
             form={form}
-            placeholder="Special handling instructions, dietary requirements, etc..."
+            placeholder={t("horses:form.placeholders.specialInstructions")}
             rows={3}
           />
 

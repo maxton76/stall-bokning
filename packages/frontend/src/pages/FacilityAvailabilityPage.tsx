@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   format,
@@ -35,17 +36,21 @@ import {
 import { getUserHorsesAtStable } from "@/services/horseService";
 import { FacilityCalendarView } from "@/components/FacilityCalendarView";
 import { FacilityReservationDialog } from "@/components/FacilityReservationDialog";
-import type { Facility } from "@/types/facility";
+import type { Facility, FacilityType } from "@/types/facility";
 import type { FacilityReservation } from "@/types/facilityReservation";
 import type { Horse } from "@stall-bokning/shared/types/domain";
 import { getWeekNumber } from "@/utils/dateHelpers";
-import { FACILITY_TYPE_LABELS } from "@/constants/facilityConstants";
 
 export default function FacilityAvailabilityPage() {
+  const { t } = useTranslation(["facilities", "common", "constants"]);
   const { facilityId } = useParams<{ facilityId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Helper function to get translated facility type
+  const getFacilityTypeLabel = (type: FacilityType) =>
+    t(`constants:facilityTypes.${type}`);
   const [viewMode, setViewMode] = useState<"day" | "week">("week");
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [dialogInitialValues, setDialogInitialValues] = useState<{
@@ -146,8 +151,8 @@ export default function FacilityAvailabilityPage() {
       reservationDialog.openDialog(reservation);
     } else {
       toast({
-        title: "View only",
-        description: "You can only edit your own reservations.",
+        title: t("common:messages.error"),
+        description: t("common:messages.error"),
       });
     }
   };
@@ -168,23 +173,13 @@ export default function FacilityAvailabilityPage() {
     const reservation = reservations.data?.find((r) => r.id === reservationId);
     if (!reservation || reservation.userId !== user.uid) {
       toast({
-        title: "Permission denied",
-        description: "You can only modify your own reservations.",
+        title: t("common:messages.error"),
+        description: t("common:messages.error"),
         variant: "destructive",
       });
       reservations.reload();
       return;
     }
-
-    const successMessages = {
-      reschedule: "Reservation rescheduled successfully",
-      resize: "Reservation duration updated successfully",
-    };
-
-    const errorMessages = {
-      reschedule: "Failed to reschedule reservation. Please try again.",
-      resize: "Failed to update reservation. Please try again.",
-    };
 
     try {
       const updates = {
@@ -195,16 +190,16 @@ export default function FacilityAvailabilityPage() {
       await updateReservation(reservationId, updates, user.uid);
 
       toast({
-        title: "Success",
-        description: successMessages[action],
+        title: t("common:messages.success"),
+        description: t("facilities:reservation.messages.updateSuccess"),
       });
 
       reservations.reload();
     } catch (error) {
       console.error(`Failed to ${action} reservation:`, error);
       toast({
-        title: "Error",
-        description: errorMessages[action],
+        title: t("common:messages.error"),
+        description: t("common:messages.saveFailed"),
         variant: "destructive",
       });
       reservations.reload();
@@ -228,8 +223,8 @@ export default function FacilityAvailabilityPage() {
     try {
       if (!user || !facility.data) {
         toast({
-          title: "Error",
-          description: "Missing required information",
+          title: t("common:messages.error"),
+          description: t("common:messages.loadingFailed"),
           variant: "destructive",
         });
         return;
@@ -272,15 +267,15 @@ export default function FacilityAvailabilityPage() {
           user.uid,
         );
         toast({
-          title: "Success",
-          description: "Reservation updated successfully",
+          title: t("common:messages.success"),
+          description: t("facilities:reservation.messages.updateSuccess"),
         });
       } else {
         // Create new reservation
         await createReservation(reservationData, user.uid, denormalizedData);
         toast({
-          title: "Success",
-          description: "Reservation created successfully",
+          title: t("common:messages.success"),
+          description: t("facilities:reservation.messages.createSuccess"),
         });
       }
 
@@ -289,8 +284,8 @@ export default function FacilityAvailabilityPage() {
     } catch (error) {
       console.error("Failed to save reservation:", error);
       toast({
-        title: "Error",
-        description: "Failed to save reservation. Please try again.",
+        title: t("common:messages.error"),
+        description: t("common:messages.saveFailed"),
         variant: "destructive",
       });
     }
@@ -299,8 +294,8 @@ export default function FacilityAvailabilityPage() {
   const handleDeleteReservation = async (reservationId: string) => {
     if (!user) {
       toast({
-        title: "Error",
-        description: "You must be logged in to cancel a reservation",
+        title: t("common:messages.error"),
+        description: t("common:messages.error"),
         variant: "destructive",
       });
       return;
@@ -309,16 +304,16 @@ export default function FacilityAvailabilityPage() {
     try {
       await cancelReservation(reservationId, user.uid);
       toast({
-        title: "Success",
-        description: "Reservation cancelled successfully",
+        title: t("common:messages.success"),
+        description: t("facilities:reservation.messages.cancelSuccess"),
       });
       reservationDialog.closeDialog();
       reservations.reload();
     } catch (error) {
       console.error("Failed to cancel reservation:", error);
       toast({
-        title: "Error",
-        description: "Failed to cancel reservation. Please try again.",
+        title: t("common:messages.error"),
+        description: t("common:messages.deleteFailed"),
         variant: "destructive",
       });
       throw error;
@@ -334,7 +329,7 @@ export default function FacilityAvailabilityPage() {
   if (facility.loading || reservations.loading) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted-foreground">{t("common:labels.loading")}</p>
       </div>
     );
   }
@@ -346,7 +341,7 @@ export default function FacilityAvailabilityPage() {
           <Button variant="ghost" size="sm" asChild>
             <Link to="/my-reservations">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              My reservations
+              {t("common:navigation.myReservations")}
             </Link>
           </Button>
         </div>
@@ -354,7 +349,7 @@ export default function FacilityAvailabilityPage() {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <CalendarIcon className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground text-center">
-              Facility not found or you don't have access to it.
+              {t("common:messages.loadingFailed")}
             </p>
           </CardContent>
         </Card>
@@ -371,7 +366,7 @@ export default function FacilityAvailabilityPage() {
           <Button variant="ghost" size="sm" asChild>
             <Link to="/my-reservations">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              My reservations
+              {t("common:navigation.myReservations")}
             </Link>
           </Button>
           <div className="h-6 w-px bg-border hidden sm:block" />
@@ -381,7 +376,7 @@ export default function FacilityAvailabilityPage() {
               size="sm"
               onClick={() => handleNavigate("today")}
             >
-              Today
+              {t("common:time.today")}
             </Button>
             <Button
               variant="outline"
@@ -405,7 +400,7 @@ export default function FacilityAvailabilityPage() {
               {format(currentWeekStart, "MMMM yyyy")}
             </h2>
             <Badge variant="outline" className="text-xs">
-              Week {getWeekNumber(currentWeekStart)}
+              {t("common:time.week")} {getWeekNumber(currentWeekStart)}
             </Badge>
           </div>
         </div>
@@ -417,13 +412,13 @@ export default function FacilityAvailabilityPage() {
             onValueChange={(value) => setViewMode(value as "day" | "week")}
           >
             <TabsList>
-              <TabsTrigger value="day">Day</TabsTrigger>
-              <TabsTrigger value="week">Week</TabsTrigger>
+              <TabsTrigger value="day">{t("common:time.today")}</TabsTrigger>
+              <TabsTrigger value="week">{t("common:time.week")}</TabsTrigger>
             </TabsList>
           </Tabs>
           <Button onClick={handleNewReservation}>
             <Plus className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Add</span>
+            <span className="hidden sm:inline">{t("common:buttons.add")}</span>
           </Button>
         </div>
       </div>
@@ -437,15 +432,15 @@ export default function FacilityAvailabilityPage() {
               <span className="font-semibold">{facility.data.name}</span>
             </div>
             <Badge variant="secondary">
-              {FACILITY_TYPE_LABELS[facility.data.type]}
+              {getFacilityTypeLabel(facility.data.type)}
             </Badge>
             <span className="text-sm text-muted-foreground">
-              Available: {facility.data.availableFrom} -{" "}
-              {facility.data.availableTo}
+              {t("facilities:availability.availableFrom")}:{" "}
+              {facility.data.availableFrom} - {facility.data.availableTo}
             </span>
             <span className="text-sm text-muted-foreground">
-              Max {facility.data.maxHorsesPerReservation} horse(s) per
-              reservation
+              {t("facilities:bookingRules.maxHorsesPerReservation")}:{" "}
+              {facility.data.maxHorsesPerReservation}
             </span>
           </div>
         </CardContent>

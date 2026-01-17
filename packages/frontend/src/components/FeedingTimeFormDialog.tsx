@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { BaseFormDialog } from "@/components/BaseFormDialog";
 import { useFormDialog } from "@/hooks/useFormDialog";
@@ -25,7 +26,6 @@ const feedingTimeSchema = z.object({
     .max(50, "Name must be 50 characters or less"),
   hour: z.string(),
   minute: z.string(),
-  sortOrder: z.number().int().min(0).max(100),
 });
 
 type FeedingTimeFormData = z.infer<typeof feedingTimeSchema>;
@@ -35,7 +35,6 @@ interface FeedingTimeFormDialogProps {
   onOpenChange: (open: boolean) => void;
   feedingTime?: FeedingTime;
   onSave: (data: CreateFeedingTimeData) => Promise<void>;
-  existingCount?: number;
 }
 
 export function FeedingTimeFormDialog({
@@ -43,8 +42,8 @@ export function FeedingTimeFormDialog({
   onOpenChange,
   feedingTime,
   onSave,
-  existingCount = 0,
 }: FeedingTimeFormDialogProps) {
+  const { t } = useTranslation(["feeding", "common"]);
   const isEditMode = !!feedingTime;
 
   const { form, handleSubmit, resetForm } = useFormDialog<FeedingTimeFormData>({
@@ -53,25 +52,23 @@ export function FeedingTimeFormDialog({
       name: "",
       hour: "07",
       minute: "00",
-      sortOrder: existingCount,
     },
     onSubmit: async (data) => {
       const time = `${data.hour}:${data.minute}`;
       await onSave({
         name: data.name.trim(),
         time,
-        sortOrder: data.sortOrder,
       });
     },
     onSuccess: () => {
       onOpenChange(false);
     },
     successMessage: isEditMode
-      ? "Feeding time updated successfully"
-      : "Feeding time created successfully",
+      ? t("feeding:feedingTimes.messages.updateSuccess")
+      : t("feeding:feedingTimes.messages.createSuccess"),
     errorMessage: isEditMode
-      ? "Failed to update feeding time"
-      : "Failed to create feeding time",
+      ? t("feeding:feedingTimes.messages.updateError")
+      : t("feeding:feedingTimes.messages.createError"),
   });
 
   // Reset form when dialog opens with feeding time data
@@ -82,22 +79,22 @@ export function FeedingTimeFormDialog({
         name: feedingTime.name,
         hour: hour || "07",
         minute: minute || "00",
-        sortOrder: feedingTime.sortOrder,
       });
     } else {
       resetForm({
         name: "",
         hour: "07",
         minute: "00",
-        sortOrder: existingCount,
       });
     }
-  }, [feedingTime, open, existingCount]);
+  }, [feedingTime, open]);
 
-  const dialogTitle = isEditMode ? "Edit Feeding Time" : "Add Feeding Time";
+  const dialogTitle = isEditMode
+    ? t("feeding:feedingTimes.form.title.edit")
+    : t("feeding:feedingTimes.form.title.create");
   const dialogDescription = isEditMode
-    ? "Modify the feeding time configuration."
-    : "Create a new feeding time slot for your stable.";
+    ? t("feeding:feedingTimes.form.description.edit")
+    : t("feeding:feedingTimes.form.description.create");
 
   return (
     <BaseFormDialog
@@ -107,20 +104,23 @@ export function FeedingTimeFormDialog({
       description={dialogDescription}
       form={form}
       onSubmit={handleSubmit}
-      submitLabel={isEditMode ? "Update" : "Create"}
+      submitLabel={
+        isEditMode ? t("common:buttons.update") : t("common:buttons.create")
+      }
       maxWidth="sm:max-w-[400px]"
     >
       <FormInput
         name="name"
-        label="Name"
+        label={t("feeding:feedingTimes.form.labels.name")}
         form={form}
-        placeholder="e.g., Morning, Afternoon, Evening"
+        placeholder={t("feeding:feedingTimes.form.placeholders.name")}
         required
       />
 
       <div className="space-y-2">
         <Label>
-          Time <span className="text-destructive ml-1">*</span>
+          {t("feeding:feedingTimes.form.labels.time")}{" "}
+          <span className="text-destructive ml-1">*</span>
         </Label>
         <div className="flex gap-2">
           <Select
@@ -128,7 +128,9 @@ export function FeedingTimeFormDialog({
             onValueChange={(value) => form.setValue("hour", value)}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Hour" />
+              <SelectValue
+                placeholder={t("feeding:feedingTimes.form.labels.hour")}
+              />
             </SelectTrigger>
             <SelectContent>
               {HOURS.map((hour) => (
@@ -144,7 +146,9 @@ export function FeedingTimeFormDialog({
             onValueChange={(value) => form.setValue("minute", value)}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Min" />
+              <SelectValue
+                placeholder={t("feeding:feedingTimes.form.labels.minute")}
+              />
             </SelectTrigger>
             <SelectContent>
               {MINUTES.map((minute) => (
@@ -156,18 +160,10 @@ export function FeedingTimeFormDialog({
           </Select>
         </div>
         <p className="text-xs text-muted-foreground">
-          Selected time: {form.watch("hour")}:{form.watch("minute")}
+          {t("feeding:feedingTimes.form.selectedTime")} {form.watch("hour")}:
+          {form.watch("minute")}
         </p>
       </div>
-
-      <FormInput
-        name="sortOrder"
-        label="Sort Order"
-        form={form}
-        type="number"
-        placeholder="e.g., 0, 1, 2"
-        helperText="Lower numbers appear first in the schedule"
-      />
     </BaseFormDialog>
   );
 }

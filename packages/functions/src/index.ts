@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore, Timestamp, FieldValue } from "firebase-admin/firestore";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { logger } from "firebase-functions";
 import * as crypto from "crypto";
@@ -16,13 +16,6 @@ interface AccrualConfig {
   monthlyAccrualHours: number;
   maxCarryoverHours: number;
   maxBalanceHours: number;
-}
-
-interface DaySchedule {
-  dayOfWeek: number;
-  startTime: string;
-  hours: number;
-  isWorkDay: boolean;
 }
 
 interface TimeBalanceData {
@@ -175,7 +168,7 @@ export const monthlyTimeAccrual = onSchedule(
     timeZone: "Europe/Stockholm",
     retryCount: 3,
   },
-  async (event) => {
+  async (_event) => {
     // Generate execution ID for tracing
     const executionId = crypto.randomUUID();
     const now = new Date();
@@ -541,17 +534,4 @@ async function updateTimeBalance(
   });
 }
 
-/**
- * On-demand accrual trigger for testing
- * Can be triggered manually via HTTP request
- */
-export const triggerAccrual = onSchedule(
-  {
-    schedule: "0 0 31 2 *", // Never runs (Feb 31st doesn't exist), manual trigger only
-    timeZone: "Europe/Stockholm",
-  },
-  async (event) => {
-    logger.info("Manual accrual trigger - redirecting to monthly accrual");
-    // This is a workaround - in production, use a proper HTTP function for manual triggers
-  },
-);
+// Note: Manual trigger function removed - use HTTP callable function for manual accrual triggers

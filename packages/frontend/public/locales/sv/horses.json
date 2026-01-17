@@ -1,0 +1,164 @@
+{
+  "page": {
+    "title": "Mina hästar",
+    "description": "Hantera dina hästar och deras stallplaceringar"
+  },
+  "form": {
+    "title": {
+      "create": "Lägg till ny häst",
+      "edit": "Redigera häst"
+    },
+    "description": {
+      "create": "Lägg till en ny häst till ditt konto. Du kan valfritt tilldela den till ett stall.",
+      "edit": "Uppdatera hästens information nedan."
+    },
+    "labels": {
+      "name": "Hästens namn",
+      "breed": "Ras",
+      "color": "Färg",
+      "gender": "Kön",
+      "dateOfBirth": "Födelsedatum",
+      "dateOfArrival": "Ankomstdatum",
+      "location": "Placering (Stall)",
+      "usage": "Användning",
+      "group": "Hästgrupp",
+      "vaccinationRule": "Vaccinationsregel",
+      "ueln": "UELN",
+      "chipNumber": "Chipnummer",
+      "federationNumber": "Förbundsnummer",
+      "feiPassNumber": "FEI-passnummer",
+      "feiExpiryDate": "FEI-passutgångsdatum",
+      "sire": "Far",
+      "dam": "Mor",
+      "damsire": "Morfar",
+      "withersHeight": "Mankhöjd (cm)",
+      "studbook": "Stambok",
+      "breeder": "Uppfödare",
+      "notes": "Anteckningar",
+      "specialInstructions": "Särskilda instruktioner",
+      "equipment": "Utrustning",
+      "isExternal": "Denna häst är extern (ingår inte i stallet)"
+    },
+    "placeholders": {
+      "name": "t.ex. Storm",
+      "breed": "t.ex. Arabiskt fullblod, Svenskt varmblod",
+      "ueln": "Universal Equine Life Number",
+      "chipNumber": "Mikrochipnummer",
+      "federationNumber": "Registreringsnummer hos ridsportförbundet",
+      "feiPassNumber": "FEI-passnummer",
+      "sire": "Faderns namn",
+      "dam": "Moderns namn",
+      "damsire": "Moderns far",
+      "withersHeight": "t.ex. 165",
+      "studbook": "Stamboksregistrering",
+      "breeder": "Uppfödarens namn",
+      "notes": "Ytterligare information om denna häst...",
+      "specialInstructions": "Särskilda hanteringsinstruktioner, kostbehov etc..."
+    },
+    "sections": {
+      "basicInfo": "Grundläggande information",
+      "identification": "Identifikation",
+      "additionalDetails": "Ytterligare uppgifter",
+      "specialInstructions": "Särskilda instruktioner",
+      "vaccinationRecords": "Vaccinationsjournal"
+    },
+    "help": {
+      "specialInstructions": "Lägg till särskilda instruktioner som ska visas när denna häst ingår i aktiviteter (t.ex. hage, ryktning)."
+    }
+  },
+  "vaccination": {
+    "currentStatus": "Aktuell status",
+    "lastVaccination": "Senaste vaccination",
+    "nextDueDate": "Nästa förfallodatum",
+    "vaccinationRule": "Vaccinationsregel",
+    "viewFullHistory": "Visa fullständig historik",
+    "addRecord": "Lägg till post",
+    "daysOverdue": "{{count}} dagar försenad",
+    "daysRemaining": "{{count}} dagar",
+    "upToDate": "Aktuell",
+    "neverVaccinated": "Aldrig vaccinerad"
+  },
+  "messages": {
+    "addSuccess": "Häst har lagts till",
+    "updateSuccess": "Häst har uppdaterats",
+    "deleteSuccess": "Häst har tagits bort",
+    "loadError": "Kunde inte ladda hästar. Försök igen.",
+    "confirmDelete": "Är du säker på att du vill ta bort {{name}}? Denna åtgärd kan inte ångras."
+  },
+  "actions": {
+    "addHorse": "Lägg till häst",
+    "editHorse": "Redigera häst",
+    "deleteHorse": "Ta bort häst",
+    "assignToStable": "Tilldela till stall",
+    "unassignFromStable": "Ta bort från stall"
+  },
+  "filters": {
+    "searchPlaceholder": "Sök på namn, UELN etc...",
+    "allStatuses": "Alla statusar",
+    "allGenders": "Alla kön",
+    "allStables": "Alla stall",
+    "allGroups": "Alla grupper"
+  },
+  "table": {
+    "name": "Namn",
+    "breed": "Ras",
+    "color": "Färg",
+    "gender": "Kön",
+    "stable": "Stall",
+    "group": "Grupp",
+    "status": "Status"
+  },
+  "groups": {
+    "title": "Hästgrupper",
+    "description": "Organisera dina hästar i grupper",
+    "form": {
+      "title": {
+        "create": "Skapa hästgrupp",
+        "edit": "Redigera hästgrupp"
+      },
+      "description": {
+        "create": "Skapa en ny grupp för att organisera dina hästar.",
+        "edit": "Uppdatera hästgruppens information nedan."
+      },
+      "labels": {
+        "name": "Gruppnamn",
+        "description": "Beskrivning",
+        "color": "Färg"
+      },
+      "placeholders": {
+        "name": "t.ex. Tävlingshästar",
+        "description": "Valfri beskrivning för denna grupp"
+      }
+    },
+    "messages": {
+      "createSuccess": "Hästgrupp har skapats",
+      "updateSuccess": "Hästgrupp har uppdaterats",
+      "deleteSuccess": "Hästgrupp har tagits bort"
+    }
+  },
+  "emptyState": {
+    "title": "Inga hästar ännu",
+    "description": "Kom igång genom att lägga till din första häst"
+  },
+  "options": {
+    "noStable": "Inget stall (ej tilldelad)",
+    "noGroup": "Ingen grupp",
+    "noVaccinationRule": "Ingen vaccinationsregel",
+    "selectColor": "Välj färg",
+    "selectGender": "Välj kön"
+  },
+  "validation": {
+    "nameRequired": "Hästens namn krävs",
+    "colorRequired": "Färg krävs",
+    "arrivalRequired": "Ankomstdatum krävs för icke-externa hästar"
+  },
+  "status": {
+    "loading": "Laddar vaccinationsstatus...",
+    "active": "Aktiv",
+    "instructions": "Instruktioner"
+  },
+  "buttons": {
+    "update": "Uppdatera",
+    "addHorse": "Lägg till häst"
+  }
+}

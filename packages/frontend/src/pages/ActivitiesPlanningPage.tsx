@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   startOfWeek,
   addWeeks,
@@ -33,6 +34,7 @@ import type { ActivityEntry } from "@/types/activity";
 import type { Horse } from "@/types/roles";
 
 export default function ActivitiesPlanningPage() {
+  const { t } = useTranslation(["activities", "common"]);
   const { user } = useAuth();
   const [selectedStableId, setSelectedStableId] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"day" | "week">("week");
@@ -170,7 +172,9 @@ export default function ActivitiesPlanningPage() {
   if (stablesLoading) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">Loading stables...</p>
+        <p className="text-muted-foreground">
+          {t("activities:stable.loading")}
+        </p>
       </div>
     );
   }
@@ -180,9 +184,11 @@ export default function ActivitiesPlanningPage() {
       <div className="container mx-auto p-6">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <h3 className="text-lg font-semibold mb-2">No stables found</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {t("activities:emptyState.noStables.title")}
+            </h3>
             <p className="text-muted-foreground">
-              You need to be a member of a stable to view planning.
+              {t("activities:emptyState.noStables.planning")}
             </p>
           </CardContent>
         </Card>
@@ -196,10 +202,10 @@ export default function ActivitiesPlanningPage() {
       <div className="mb-2 sm:mb-4">
         <Select value={selectedStableId} onValueChange={setSelectedStableId}>
           <SelectTrigger className="w-full sm:w-[280px]">
-            <SelectValue placeholder="Select a stable" />
+            <SelectValue placeholder={t("activities:stable.select")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Stables</SelectItem>
+            <SelectItem value="all">{t("activities:stable.all")}</SelectItem>
             {stables.map((stable) => (
               <SelectItem key={stable.id} value={stable.id}>
                 {stable.name}
@@ -235,7 +241,7 @@ export default function ActivitiesPlanningPage() {
             {/* Horse Rows */}
             {horses.loading ? (
               <div className="p-8 text-center text-muted-foreground">
-                Loading horses...
+                {t("activities:planning.loadingHorses")}
               </div>
             ) : horses.data && horses.data.length > 0 ? (
               horses.data.map((horse) => (
@@ -253,7 +259,7 @@ export default function ActivitiesPlanningPage() {
               ))
             ) : (
               <div className="p-8 text-center text-muted-foreground">
-                No horses found for this stable.
+                {t("activities:planning.noHorses")}
               </div>
             )}
           </div>

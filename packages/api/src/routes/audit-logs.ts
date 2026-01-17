@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
@@ -99,7 +100,6 @@ export async function auditLogsRoutes(fastify: FastifyInstance) {
 
         return reply.status(201).send({
           id: docRef.id,
-          logId,
           ...serializeTimestamps(auditLogData),
         });
       } catch (error) {

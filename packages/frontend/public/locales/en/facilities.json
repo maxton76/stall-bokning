@@ -1,0 +1,100 @@
+{
+  "page": {
+    "title": "Facilities",
+    "description": "Manage facilities and reservations",
+    "reservationsTitle": "Facility Reservations",
+    "reservationsDescription": "View and manage reservations for your facilities",
+    "manageTitle": "Manage Facilities",
+    "manageDescription": "Configure facilities and booking rules"
+  },
+  "form": {
+    "title": {
+      "create": "Add Facility",
+      "edit": "Edit Facility"
+    },
+    "description": {
+      "create": "Create a new facility with booking rules and availability",
+      "edit": "Update facility configuration and booking rules"
+    },
+    "labels": {
+      "name": "Facility Name",
+      "type": "Facility Type",
+      "description": "Description",
+      "status": "Status"
+    },
+    "placeholders": {
+      "name": "e.g., Main Indoor Arena",
+      "description": "Brief description of the facility"
+    },
+    "sections": {
+      "basicInfo": "Basic Information",
+      "bookingRules": "Booking Rules",
+      "availability": "Availability"
+    }
+  },
+  "bookingRules": {
+    "planningWindowOpens": "Planning window opens (days ahead)",
+    "planningWindowCloses": "Planning window closes (hours before)",
+    "maxHorsesPerReservation": "Maximum horses per reservation",
+    "minSlotDuration": "Minimum time slot duration",
+    "maxHoursPerReservation": "Maximum hours per reservation"
+  },
+  "availability": {
+    "availableFrom": "Available from",
+    "availableTo": "Available to",
+    "daysAvailable": "Days available"
+  },
+  "reservation": {
+    "title": {
+      "create": "Book Facility",
+      "edit": "Edit Reservation"
+    },
+    "labels": {
+      "facility": "Facility",
+      "date": "Date",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "horse": "Horse",
+      "notes": "Notes",
+      "status": "Status"
+    },
+    "messages": {
+      "createSuccess": "Reservation created successfully",
+      "updateSuccess": "Reservation updated successfully",
+      "deleteSuccess": "Reservation deleted successfully",
+      "cancelSuccess": "Reservation cancelled successfully"
+    },
+    "actions": {
+      "book": "Book",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "reject": "Reject"
+    }
+  },
+  "messages": {
+    "createSuccess": "Facility created successfully",
+    "updateSuccess": "Facility updated successfully",
+    "deleteSuccess": "Facility deleted successfully"
+  },
+  "actions": {
+    "addFacility": "Add Facility",
+    "viewReservations": "View Reservations",
+    "manageFacilities": "Manage Facilities"
+  },
+  "calendar": {
+    "title": "Facility Calendar",
+    "noReservations": "No reservations on this day"
+  },
+  "reservations": {
+    "noReservationsForDate": "No reservations for this date",
+    "reservationsFound": "{{count}} reservation(s) found"
+  },
+  "filters": {
+    "allTypes": "All types",
+    "allFacilities": "All facilities"
+  },
+  "emptyState": {
+    "title": "No facilities yet",
+    "description": "Get started by adding your first facility"
+  }
+}

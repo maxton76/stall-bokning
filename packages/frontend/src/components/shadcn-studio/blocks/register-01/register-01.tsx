@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,6 +19,7 @@ import AuthBackgroundShape from "@/assets/svg/auth-background-shape";
 import RegisterForm from "@/components/shadcn-studio/blocks/register-01/register-form";
 
 const Register = () => {
+  const { t } = useTranslation("auth");
   const { signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -53,11 +55,9 @@ const Register = () => {
     } catch (error) {
       console.error("Google sign in error:", error);
       toast({
-        title: "Error",
+        title: t("errors.loginFailed"),
         description:
-          error instanceof Error
-            ? error.message
-            : "Failed to sign in with Google",
+          error instanceof Error ? error.message : t("errors.loginFailed"),
         variant: "destructive",
       });
     } finally {
@@ -76,9 +76,11 @@ const Register = () => {
           <Logo className="gap-3" />
 
           <div>
-            <CardTitle className="mb-1.5 text-2xl">Join StableBook</CardTitle>
+            <CardTitle className="mb-1.5 text-2xl">
+              {t("register.title")}
+            </CardTitle>
             <CardDescription className="text-base">
-              Start managing your stable bookings today
+              {t("register.subtitle")}
             </CardDescription>
           </div>
         </CardHeader>
@@ -89,15 +91,15 @@ const Register = () => {
             <RegisterForm />
 
             <p className="text-muted-foreground text-center">
-              Already have an account?{" "}
+              {t("register.alreadyHaveAccount")}{" "}
               <a href="/login" className="text-card-foreground hover:underline">
-                Sign in instead
+                {t("register.signIn")}
               </a>
             </p>
 
             <div className="flex items-center gap-4">
               <Separator className="flex-1" />
-              <p>or</p>
+              <p>{t("login.or")}</p>
               <Separator className="flex-1" />
             </div>
 
@@ -107,7 +109,9 @@ const Register = () => {
               onClick={handleGoogleSignIn}
               disabled={googleLoading}
             >
-              {googleLoading ? "Signing in..." : "Sign in with Google"}
+              {googleLoading
+                ? t("login.signingIn")
+                : t("login.continueWithGoogle")}
             </Button>
           </div>
         </CardContent>

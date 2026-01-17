@@ -1,0 +1,146 @@
+{
+  "horseColors": {
+    "black": "Black",
+    "brown": "Brown",
+    "bay_brown": "Bay brown",
+    "dark_brown": "Dark brown",
+    "chestnut": "Chestnut",
+    "grey": "Grey",
+    "strawberry": "Strawberry",
+    "piebald": "Piebald",
+    "skewbald": "Skewbald",
+    "dun": "Dun",
+    "cream": "Cream",
+    "palomino": "Palomino",
+    "appaloosa": "Appaloosa"
+  },
+  "horseGenders": {
+    "stallion": "Stallion",
+    "mare": "Mare",
+    "gelding": "Gelding"
+  },
+  "horseUsage": {
+    "care": "Care",
+    "sport": "Sport",
+    "breeding": "Breeding"
+  },
+  "feedCategories": {
+    "roughage": "Roughage",
+    "concentrate": "Concentrate",
+    "supplement": "Supplement",
+    "medicine": "Medicine"
+  },
+  "quantityMeasures": {
+    "scoop": "Scoop",
+    "teaspoon": "Teaspoon",
+    "tablespoon": "Tablespoon",
+    "cup": "Cup",
+    "ml": "Milliliter",
+    "l": "Liter",
+    "g": "Gram",
+    "kg": "Kilogram",
+    "custom": "Custom or empty measure"
+  },
+  "facilityTypes": {
+    "transport": "Transport",
+    "water_treadmill": "Water treadmill",
+    "indoor_arena": "Indoor arena",
+    "outdoor_arena": "Outdoor arena",
+    "galloping_track": "Galloping track",
+    "lunging_ring": "Lunging ring",
+    "paddock": "Paddock",
+    "solarium": "Solarium",
+    "jumping_yard": "Jumping yard",
+    "treadmill": "Treadmill",
+    "vibration_plate": "Vibration plate",
+    "pasture": "Pasture",
+    "walker": "Walker",
+    "other": "Other"
+  },
+  "reservationStatus": {
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "rejected": "Rejected",
+    "cancelled": "Cancelled",
+    "completed": "Completed",
+    "no_show": "No Show"
+  },
+  "activityCategories": {
+    "sport": "Sport",
+    "care": "Care",
+    "breeding": "Breeding"
+  },
+  "activityTypes": {
+    "dentist": "Dentist",
+    "deworm": "Deworm",
+    "farrier": "Farrier",
+    "influenza": "Influenza",
+    "rhino": "Rhino",
+    "vet": "Vet",
+    "client": "Client",
+    "lesson": "Lesson",
+    "lunging": "Lunging",
+    "paddock": "Paddock",
+    "riding": "Riding",
+    "show": "Show",
+    "foaling": "Foaling",
+    "insemination": "Insemination",
+    "mareCycleCheck": "Mare Cycle Check",
+    "stallionMount": "Stallion Mount"
+  },
+  "activityRoles": {
+    "owner": "Owner",
+    "trainer": "Trainer",
+    "rider": "Rider",
+    "groom": "Groom",
+    "veterinarian": "Veterinarian",
+    "farrier": "Farrier",
+    "dentist": "Dentist"
+  },
+  "contactTypes": {
+    "personal": "Personal",
+    "business": "Business"
+  },
+  "userRoles": {
+    "administrator": "Administrator",
+    "veterinarian": "Veterinarian",
+    "dentist": "Dentist",
+    "farrier": "Farrier",
+    "customer": "Customer",
+    "groom": "Groom",
+    "saddlemaker": "Saddle Maker",
+    "horseowner": "Horse Owner",
+    "rider": "Rider",
+    "inseminator": "Inseminator"
+  },
+  "userRoleDescriptions": {
+    "administrator": "Full organization access",
+    "veterinarian": "Animal health services",
+    "dentist": "Equine dental services",
+    "farrier": "Hoof care services",
+    "customer": "Horse owner/client",
+    "groom": "Daily care staff",
+    "saddlemaker": "Tack and saddle services",
+    "horseowner": "External horse owner",
+    "rider": "Professional rider",
+    "inseminator": "Breeding services"
+  },
+  "facilityStatus": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "maintenance": "Maintenance"
+  },
+  "timeSlotDurations": {
+    "15min": "15 minutes",
+    "30min": "30 minutes",
+    "1hour": "1 hour"
+  },
+  "groupColors": {
+    "blue": "Blue",
+    "green": "Green",
+    "amber": "Amber",
+    "red": "Red",
+    "purple": "Purple",
+    "pink": "Pink"
+  }
+}

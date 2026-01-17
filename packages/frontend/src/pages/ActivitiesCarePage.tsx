@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Heart, Grid3x3, Table2, Search } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,6 +36,7 @@ import { Timestamp } from "firebase/firestore";
 import { toDate } from "@/utils/timestampUtils";
 
 export default function ActivitiesCarePage() {
+  const { t } = useTranslation(["activities", "common"]);
   const { user } = useAuth();
 
   // State for view mode
@@ -298,8 +300,8 @@ export default function ActivitiesCarePage() {
   return (
     <ActivityPageLayout
       icon={Heart}
-      title="Care Activities"
-      description="Veterinary, farrier, dentist, and other care-related activities"
+      title={t("activities:care.title")}
+      description={t("activities:care.description")}
       selectedStableId={selectedStableId}
       onStableChange={setSelectedStableId}
       stables={stables}
@@ -313,16 +315,20 @@ export default function ActivitiesCarePage() {
             <div className="flex items-center justify-between">
               {/* Stable Selector */}
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Stable:</label>
+                <label className="text-sm font-medium">
+                  {t("activities:care.stableLabel")}:
+                </label>
                 <Select
                   value={selectedStableId}
                   onValueChange={setSelectedStableId}
                 >
                   <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Select a stable" />
+                    <SelectValue placeholder={t("activities:stable.select")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Stables</SelectItem>
+                    <SelectItem value="all">
+                      {t("activities:stable.all")}
+                    </SelectItem>
                     {stables.map((stable) => (
                       <SelectItem key={stable.id} value={stable.id}>
                         {stable.name}
@@ -340,11 +346,11 @@ export default function ActivitiesCarePage() {
                 <TabsList>
                   <TabsTrigger value="matrix">
                     <Grid3x3 className="h-4 w-4 mr-2" />
-                    Matrix
+                    {t("activities:care.viewMode.matrix")}
                   </TabsTrigger>
                   <TabsTrigger value="table">
                     <Table2 className="h-4 w-4 mr-2" />
-                    Table
+                    {t("activities:care.viewMode.table")}
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -367,7 +373,7 @@ export default function ActivitiesCarePage() {
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by Name, UELN, etc..."
+                    placeholder={t("activities:care.search.placeholder")}
                     value={filters.searchQuery}
                     onChange={(e) =>
                       setFilters((prev) => ({
@@ -394,7 +400,7 @@ export default function ActivitiesCarePage() {
           {activities.loading || horses.loading ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
-                Loading care activities...
+                {t("activities:care.loading")}
               </p>
             </div>
           ) : viewMode === "matrix" ? (
