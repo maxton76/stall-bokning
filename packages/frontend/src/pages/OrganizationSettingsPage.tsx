@@ -203,7 +203,7 @@ export default function OrganizationSettingsPage() {
                 <div className="space-y-2">
                   <Label>{t("organizations:invite.contactType")}</Label>
                   <RadioGroup
-                    value={contactType}
+                    value={contactType ?? "Personal"}
                     onValueChange={(value) =>
                       setValue("contactType", value as "Personal" | "Business")
                     }
