@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import type { TFunction } from "i18next";
 import type { Horse } from "@/types/roles";
 import type { HorseFilters, FilterBadge } from "@shared/types/filters";
 import { createDefaultFilters } from "@shared/types/filters";
@@ -13,6 +14,9 @@ export interface UseHorseFiltersOptions {
 
   /** Auto-set stableId from context (optional) */
   stableContext?: string;
+
+  /** Translation function for localized labels (optional) */
+  t?: TFunction;
 }
 
 export interface UseHorseFiltersReturn {
@@ -54,7 +58,7 @@ export interface UseHorseFiltersReturn {
 export function useHorseFilters(
   options: UseHorseFiltersOptions,
 ): UseHorseFiltersReturn {
-  const { horses, initialFilters, stableContext } = options;
+  const { horses, initialFilters, stableContext, t } = options;
 
   // Initialize filters with defaults + initial values + stable context
   const [filters, setFilters] = useState<HorseFilters>(() => ({
@@ -223,10 +227,14 @@ export function useHorseFilters(
   const getActiveFilterBadges = useCallback((): FilterBadge[] => {
     const badges: FilterBadge[] = [];
 
+    // Helper to get translated text or fallback
+    const translate = (key: string, fallback: string) =>
+      t ? t(key) : fallback;
+
     if (filters.searchQuery) {
       badges.push({
         key: "searchQuery",
-        label: "Search",
+        label: translate("horses:filters.search", "Search"),
         value: filters.searchQuery,
         onRemove: () => clearFilter("searchQuery"),
       });
@@ -235,8 +243,11 @@ export function useHorseFilters(
     if (filters.stableId && filters.stableId !== "all") {
       badges.push({
         key: "stableId",
-        label: "Stable",
-        value: filters.stableId === "unassigned" ? "Unassigned" : "Selected",
+        label: translate("horses:filters.stable", "Stable"),
+        value:
+          filters.stableId === "unassigned"
+            ? translate("horses:filters.unassigned", "Unassigned")
+            : translate("horses:badges.selected", "Selected"),
         onRemove: () => clearFilter("stableId"),
       });
     }
@@ -244,9 +255,9 @@ export function useHorseFilters(
     if (filters.genders.length > 0) {
       badges.push({
         key: "genders",
-        label: "Gender",
+        label: translate("horses:filters.gender", "Gender"),
         value: filters.genders
-          .map((g) => g.charAt(0).toUpperCase() + g.slice(1))
+          .map((g) => translate(`horses:genders.${g}`, g))
           .join(", "),
         onRemove: () => clearFilter("genders"),
       });
@@ -257,7 +268,7 @@ export function useHorseFilters(
       const max = filters.ageMax ?? "∞";
       badges.push({
         key: "age",
-        label: "Age",
+        label: translate("horses:filters.ageRange", "Age"),
         value: `${min}-${max}`,
         onRemove: () => {
           clearFilter("ageMin");
@@ -269,8 +280,8 @@ export function useHorseFilters(
     if (filters.usage.length > 0) {
       badges.push({
         key: "usage",
-        label: "Usage",
-        value: `${filters.usage.length} selected`,
+        label: translate("horses:filters.usage", "Usage"),
+        value: `${filters.usage.length} ${translate("horses:badges.selected", "selected")}`,
         onRemove: () => clearFilter("usage"),
       });
     }
@@ -278,8 +289,8 @@ export function useHorseFilters(
     if (filters.groups.length > 0) {
       badges.push({
         key: "groups",
-        label: "Groups",
-        value: `${filters.groups.length} selected`,
+        label: translate("horses:filters.groups", "Groups"),
+        value: `${filters.groups.length} ${translate("horses:badges.selected", "selected")}`,
         onRemove: () => clearFilter("groups"),
       });
     }
@@ -287,14 +298,14 @@ export function useHorseFilters(
     if (filters.status) {
       badges.push({
         key: "status",
-        label: "Status",
-        value: filters.status.charAt(0).toUpperCase() + filters.status.slice(1),
+        label: translate("horses:filters.status", "Status"),
+        value: translate(`horses:filters.${filters.status}`, filters.status),
         onRemove: () => clearFilter("status"),
       });
     }
 
     return badges;
-  }, [filters, clearFilter]);
+  }, [filters, clearFilter, t]);
 
   return {
     filters,

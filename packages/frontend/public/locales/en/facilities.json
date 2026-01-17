@@ -7,6 +7,42 @@
     "manageTitle": "Manage Facilities",
     "manageDescription": "Configure facilities and booking rules"
   },
+  "myReservations": {
+    "title": "My reservations",
+    "description": "View and manage your facility reservations",
+    "selectStable": "Select stable",
+    "availableFacilities": "Available facilities",
+    "loadingFacilities": "Loading facilities...",
+    "noFacilities": "No facilities available for this stable.",
+    "viewAvailability": "View availability",
+    "myHorseReservations": "My horse reservations",
+    "noUpcomingReservations": "You don't have any upcoming reservations.",
+    "noStablesAccess": "You don't have access to any stables yet.",
+    "joinStablePrompt": "Join a stable to start making reservations.",
+    "cancelReservation": "Cancel reservation",
+    "openMenu": "Open menu",
+    "cancelDialog": {
+      "title": "Cancel reservation?",
+      "description": "Are you sure you want to cancel this reservation?",
+      "facilityInfo": "{{facility}} on {{date}}",
+      "cannotUndo": "This action cannot be undone.",
+      "keep": "Keep reservation",
+      "cancel": "Cancel reservation",
+      "cancelling": "Cancelling..."
+    },
+    "toast": {
+      "cancelled": "Reservation cancelled",
+      "cancelledDescription": "Your reservation has been cancelled successfully.",
+      "cancelError": "Failed to cancel reservation. Please try again."
+    },
+    "table": {
+      "date": "Date",
+      "time": "Time",
+      "facility": "Facility",
+      "horse": "Horse",
+      "status": "Status"
+    }
+  },
   "form": {
     "title": {
       "create": "Add Facility",
@@ -24,12 +60,21 @@
     },
     "placeholders": {
       "name": "e.g., Main Indoor Arena",
-      "description": "Brief description of the facility"
+      "description": "Brief description of the facility",
+      "type": "Select facility type"
     },
     "sections": {
       "basicInfo": "Basic Information",
       "bookingRules": "Booking Rules",
       "availability": "Availability"
+    },
+    "submit": {
+      "create": "Create Facility",
+      "update": "Save Changes"
+    },
+    "validation": {
+      "nameRequired": "Name is required",
+      "timeInvalid": "Invalid time format (HH:mm)"
     }
   },
   "bookingRules": {
@@ -46,35 +91,116 @@
   },
   "reservation": {
     "title": {
-      "create": "Book Facility",
+      "create": "New Reservation",
       "edit": "Edit Reservation"
+    },
+    "description": {
+      "create": "Create a new facility reservation",
+      "edit": "Update reservation details"
     },
     "labels": {
       "facility": "Facility",
       "date": "Date",
-      "startTime": "Start Time",
-      "endTime": "End Time",
+      "startTime": "Start time",
+      "endTime": "End time",
       "horse": "Horse",
+      "contactInfo": "Contact information",
       "notes": "Notes",
       "status": "Status"
+    },
+    "placeholders": {
+      "facility": "Select facility",
+      "date": "Pick a date",
+      "horse": "Select horse",
+      "contactInfo": "Phone or email for contact",
+      "notes": "Additional notes or special requirements..."
+    },
+    "alerts": {
+      "conflictTitle": "Scheduling Conflict",
+      "conflictDesc": "This time slot overlaps with {{count}} existing reservation(s)."
     },
     "messages": {
       "createSuccess": "Reservation created successfully",
       "updateSuccess": "Reservation updated successfully",
       "deleteSuccess": "Reservation deleted successfully",
-      "cancelSuccess": "Reservation cancelled successfully"
+      "cancelSuccess": "Reservation cancelled successfully",
+      "createError": "Failed to create reservation",
+      "updateError": "Failed to update reservation"
     },
     "actions": {
       "book": "Book",
       "cancel": "Cancel",
       "confirm": "Confirm",
-      "reject": "Reject"
+      "reject": "Reject",
+      "update": "Update Reservation",
+      "create": "Create Reservation",
+      "cancelButton": "Cancel Reservation",
+      "confirmCancel": "Yes, Cancel Reservation",
+      "keepIt": "No, Keep It",
+      "cancelling": "Cancelling..."
+    },
+    "validation": {
+      "facilityRequired": "Facility is required",
+      "dateRequired": "Date is required",
+      "timeInvalid": "Invalid time format",
+      "endAfterStart": "End time must be after start time",
+      "horseRequired": "Horse is required"
+    },
+    "delete": {
+      "confirmText": "Are you sure you want to cancel this reservation? This action cannot be undone."
     }
+  },
+  "types": {
+    "transport": "Transport",
+    "water_treadmill": "Water treadmill",
+    "indoor_arena": "Indoor arena",
+    "outdoor_arena": "Outdoor arena",
+    "galloping_track": "Galloping track",
+    "lunging_ring": "Lunging ring",
+    "round_pen": "Round Pen",
+    "paddock": "Paddock",
+    "solarium": "Solarium",
+    "jumping_yard": "Jumping yard",
+    "treadmill": "Treadmill",
+    "vibration_plate": "Vibration plate",
+    "pasture": "Pasture",
+    "walker": "Walker",
+    "wash_stall": "Wash Stall",
+    "tack_room": "Tack Room",
+    "other": "Other"
+  },
+  "facilityStatus": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "maintenance": "Maintenance"
+  },
+  "timeSlots": {
+    "15": "15 minutes",
+    "30": "30 minutes",
+    "60": "1 hour"
+  },
+  "days": {
+    "monday": "Mon",
+    "tuesday": "Tue",
+    "wednesday": "Wed",
+    "thursday": "Thu",
+    "friday": "Fri",
+    "saturday": "Sat",
+    "sunday": "Sun"
+  },
+  "status": {
+    "confirmed": "Confirmed",
+    "pending": "Pending",
+    "cancelled": "Cancelled",
+    "completed": "Completed",
+    "no_show": "No Show"
   },
   "messages": {
     "createSuccess": "Facility created successfully",
     "updateSuccess": "Facility updated successfully",
-    "deleteSuccess": "Facility deleted successfully"
+    "deleteSuccess": "Facility deleted successfully",
+    "createError": "Failed to create facility",
+    "updateError": "Failed to update facility"
   },
   "actions": {
     "addFacility": "Add Facility",

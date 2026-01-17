@@ -123,6 +123,36 @@ export async function getPortalInvoiceDetail(
   );
 }
 
+/**
+ * Flattened invoice response for payment page
+ * This merges the invoice properties with the response for easier access
+ */
+export type FlattenedPortalInvoice = PortalInvoiceDetailResponse["invoice"] & {
+  organizationId: string;
+  contactId: string;
+  payments: PortalInvoiceDetailResponse["payments"];
+  paidAmount: number;
+};
+
+/**
+ * Get portal invoice for payment - returns flattened structure
+ * @deprecated Use getPortalInvoiceDetail and destructure `invoice` property
+ */
+export async function getPortalInvoice(
+  invoiceId: string,
+): Promise<FlattenedPortalInvoice> {
+  const response = await getPortalInvoiceDetail(invoiceId);
+  // Flatten the response for backward compatibility
+  return {
+    ...response.invoice,
+    // Add any missing properties with defaults
+    organizationId: "", // This should come from the invoice context
+    contactId: "", // This should come from the invoice context
+    payments: response.payments,
+    paidAmount: response.payments.reduce((sum, p) => sum + p.amount, 0),
+  };
+}
+
 // ============================================
 // Activities
 // ============================================

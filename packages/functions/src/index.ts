@@ -1,8 +1,10 @@
-import { initializeApp } from "firebase-admin/app";
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { logger } from "firebase-functions";
 import * as crypto from "crypto";
+
+import { db, Timestamp } from "./lib/firebase.js";
+import { validateNumber } from "./lib/validation.js";
+import { formatErrorMessage } from "./lib/errors.js";
 
 // Re-export scheduled functions
 export { generateActivityInstances } from "./scheduled/generateInstances.js";
@@ -14,10 +16,6 @@ export {
   retryFailedNotifications,
   cleanupOldNotifications,
 } from "./notifications/index.js";
-
-// Initialize Firebase Admin
-initializeApp();
-const db = getFirestore();
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -42,21 +40,6 @@ interface TimeBalanceData {
 // ============================================================================
 // VALIDATION HELPERS
 // ============================================================================
-
-/**
- * Safely convert a value to a number with bounds checking
- */
-function validateNumber(
-  value: unknown,
-  defaultValue: number,
-  min: number,
-  max: number,
-): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return defaultValue;
-  }
-  return Math.max(min, Math.min(max, value));
-}
 
 /**
  * Validate and sanitize accrual configuration
@@ -177,6 +160,7 @@ export const monthlyTimeAccrual = onSchedule(
   {
     schedule: "5 0 1 * *", // At 00:05 on day 1 of every month
     timeZone: "Europe/Stockholm",
+    region: "europe-west1",
     retryCount: 3,
   },
   async (_event) => {
@@ -354,7 +338,7 @@ export const monthlyTimeAccrual = onSchedule(
               {
                 executionId,
                 organizationId,
-                error: error instanceof Error ? error.message : String(error),
+                error: formatErrorMessage(error),
               },
               "Error processing user",
             );
@@ -376,7 +360,7 @@ export const monthlyTimeAccrual = onSchedule(
       logger.error(
         {
           executionId,
-          error: error instanceof Error ? error.message : String(error),
+          error: formatErrorMessage(error),
         },
         "Monthly accrual failed",
       );

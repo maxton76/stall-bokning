@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
+import { cn, toDate } from "@/lib/utils";
 import {
   Bell,
   BellRing,
@@ -258,12 +258,10 @@ export function NotificationBell({ className }: NotificationBellProps) {
                       </p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(
-                            notification.createdAt instanceof Date
-                              ? notification.createdAt
-                              : new Date(notification.createdAt),
-                            { addSuffix: true, locale },
-                          )}
+                          {formatDistanceToNow(toDate(notification.createdAt), {
+                            addSuffix: true,
+                            locale,
+                          })}
                         </span>
                         {notification.read && (
                           <Check className="h-3 w-3 text-green-500" />

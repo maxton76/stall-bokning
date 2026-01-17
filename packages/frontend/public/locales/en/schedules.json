@@ -1,0 +1,148 @@
+{
+  "page": {
+    "title": "Schedule Overview",
+    "description": "Manage and view all shifts",
+    "descriptionFor": "for",
+    "descriptionAcross": "across",
+    "descriptionAllStables": "all {{count}} stables"
+  },
+  "actions": {
+    "createSchedule": "Create Schedule",
+    "assignToMe": "Assign to Me",
+    "markCompleted": "Mark Completed",
+    "cancelShift": "Cancel Shift",
+    "unassign": "Unassign",
+    "selectStableFirst": "Select a stable first to create a schedule"
+  },
+  "stats": {
+    "totalShifts": "Total Shifts",
+    "allUpcoming": "All upcoming shifts",
+    "unassigned": "Unassigned",
+    "needAttention": "Need attention",
+    "assigned": "Assigned",
+    "coveredShifts": "Covered shifts",
+    "coverage": "Coverage",
+    "overallCoverage": "Overall coverage"
+  },
+  "filters": {
+    "all": "All",
+    "unassigned": "Unassigned",
+    "assigned": "Assigned",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "missed": "Missed"
+  },
+  "status": {
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "missed": "Missed",
+    "assigned": "Assigned",
+    "unassigned": "Unassigned",
+    "you": "You"
+  },
+  "calendar": {
+    "title": "Calendar View",
+    "description": "Days are color-coded: All assigned - Partially assigned - Unassigned",
+    "legend": {
+      "allAssigned": "All assigned",
+      "partiallyAssigned": "Partially assigned",
+      "unassigned": "Unassigned"
+    }
+  },
+  "urgentShifts": {
+    "title": "Urgent Shifts",
+    "description": "Upcoming unassigned shifts",
+    "allAssigned": "All upcoming shifts are assigned!"
+  },
+  "allShifts": {
+    "title": "All Shifts",
+    "description": "View and manage all scheduled shifts"
+  },
+  "emptyState": {
+    "noShiftsFound": "No shifts found",
+    "joinStable": "Join a stable to see schedules",
+    "noSchedulesForStable": "No schedules published for this stable yet",
+    "noSchedulesYet": "No schedules published yet",
+    "createSchedulePrompt": "To create shifts, you need to create a schedule first:",
+    "selectStableAbove": "Select a stable above to create a schedule"
+  },
+  "dialog": {
+    "completeShift": {
+      "title": "Complete Shift",
+      "description": "Mark \"{{shiftName}}\" as completed. You can optionally add notes.",
+      "notesLabel": "Notes (optional)",
+      "notesPlaceholder": "Add any notes about this shift...",
+      "submitButton": "Complete"
+    },
+    "cancelShift": {
+      "title": "Cancel Shift",
+      "description": "Cancel \"{{shiftName}}\". Please provide a reason.",
+      "reasonLabel": "Reason (required)",
+      "reasonPlaceholder": "Why is this shift being cancelled?",
+      "submitButton": "Cancel Shift",
+      "reasonRequired": "Please provide a reason for cancellation"
+    },
+    "missedShift": {
+      "title": "Mark Shift as Missed",
+      "description": "Mark \"{{shiftName}}\" as missed. You can optionally add a reason.",
+      "reasonLabel": "Reason (optional)",
+      "reasonPlaceholder": "Why was this shift missed?",
+      "submitButton": "Mark Missed"
+    },
+    "cancel": "Cancel"
+  },
+  "stable": {
+    "selectPlaceholder": "Select stable",
+    "allStables": "All Stables",
+    "unknownStable": "Unknown Stable"
+  },
+  "createPage": {
+    "backButton": "Back to Stable",
+    "pageTitle": "Create New Schedule",
+    "pageDescription": "Set up a new schedule for your stable members",
+    "scheduleDetails": {
+      "title": "Schedule Details",
+      "description": "Define the timeframe and name for this schedule",
+      "nameLabel": "Schedule Name",
+      "namePlaceholder": "e.g. Weekly Schedule Dec 25-31",
+      "startDateLabel": "Start Date",
+      "endDateLabel": "End Date",
+      "duration": "Duration:",
+      "daysUnit": "days",
+      "estimatedShifts": "Estimated shifts:"
+    },
+    "shiftTypes": {
+      "title": "Select Shift Types",
+      "description": "Choose which shift types to include in this schedule",
+      "placeholder": "Select shift types...",
+      "searchPlaceholder": "Search shift types...",
+      "emptyState": "No shift types found.",
+      "selectedOne": "1 shift type selected",
+      "selectedMany": "{{count}} shift types selected",
+      "validationError": "Please select at least one shift type"
+    },
+    "assignmentMethod": {
+      "title": "Assignment Method",
+      "description": "Choose how shifts will be assigned to members",
+      "autoToggle": "Use Automatic Assignment",
+      "autoDescription": "Let the fairness algorithm distribute shifts automatically based on member history and availability",
+      "manualTitle": "Manual Assignment Mode",
+      "manualDescription": "You'll be redirected to the schedule editor where you can manually assign members to each shift. The system will still show fairness suggestions."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Configure how members will be notified about this schedule",
+      "notifyToggle": "Notify Members",
+      "notifyDescription": "Send email notifications to all members when the schedule is published"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "creating": "Creating...",
+      "createAutoAssign": "Create & Auto-Assign",
+      "createSchedule": "Create Schedule"
+    },
+    "errors": {
+      "createFailed": "Failed to create schedule. Please try again."
+    }
+  }
+}

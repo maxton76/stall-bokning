@@ -23,7 +23,7 @@ export function extractTemplateVariables(content: string): string[] {
 
   while ((match = variableRegex.exec(content)) !== null) {
     const varName = match[1];
-    if (!variables.includes(varName)) {
+    if (varName && !variables.includes(varName)) {
       variables.push(varName);
     }
   }

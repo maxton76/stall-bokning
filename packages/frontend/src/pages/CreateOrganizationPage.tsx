@@ -48,8 +48,6 @@ export default function CreateOrganizationPage() {
         timezone: formData.timezone,
       });
 
-      console.log("Organization created with ID:", organizationId);
-
       // Navigate to the new organization's users page
       navigate(`/organizations/${organizationId}/users`);
     } catch (error) {

@@ -9,9 +9,11 @@ import {
   Calendar,
   MessageSquare,
   ChevronRight,
-  Horse,
+  Rabbit,
   FileText,
 } from "lucide-react";
+// Note: Horse icon doesn't exist in lucide-react, using Rabbit as placeholder
+const Horse = Rabbit;
 import { Button } from "@/components/ui/button";
 import {
   Card,

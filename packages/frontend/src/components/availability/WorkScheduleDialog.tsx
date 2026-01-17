@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { format } from "date-fns";
 import {
@@ -17,24 +18,18 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import type { DaySchedule, WorkScheduleDisplay } from "@stall-bokning/shared";
-import { DAY_NAMES_FULL, DEFAULT_SCHEDULE } from "@/lib/availabilityConstants";
+import { DEFAULT_SCHEDULE } from "@/lib/availabilityConstants";
 
-const dayScheduleSchema = z.object({
-  dayOfWeek: z.number().min(0).max(6),
-  startTime: z
-    .string()
-    .regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format"),
-  hours: z.number().min(0).max(24),
-  isWorkDay: z.boolean(),
-});
-
-const workScheduleSchema = z.object({
-  effectiveFrom: z.string().min(1, "Effective from date is required"),
-  effectiveUntil: z.string().optional(),
-  weeklySchedule: z.array(dayScheduleSchema).length(7),
-});
-
-type WorkScheduleFormData = z.infer<typeof workScheduleSchema>;
+// Weekday keys for translation lookup (Sunday-first order)
+const WEEKDAY_KEYS = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+] as const;
 
 interface WorkScheduleDialogProps {
   open: boolean;
@@ -57,6 +52,27 @@ export function WorkScheduleDialog({
   userName,
   isLoading,
 }: WorkScheduleDialogProps) {
+  const { t } = useTranslation(["availability", "common"]);
+
+  const dayScheduleSchema = z.object({
+    dayOfWeek: z.number().min(0).max(6),
+    startTime: z
+      .string()
+      .regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format"),
+    hours: z.number().min(0).max(24),
+    isWorkDay: z.boolean(),
+  });
+
+  const workScheduleSchema = z.object({
+    effectiveFrom: z
+      .string()
+      .min(1, t("workScheduleDialog.validation.effectiveFromRequired")),
+    effectiveUntil: z.string().optional(),
+    weeklySchedule: z.array(dayScheduleSchema).length(7),
+  });
+
+  type WorkScheduleFormData = z.infer<typeof workScheduleSchema>;
+
   const {
     register,
     handleSubmit,
@@ -124,17 +140,24 @@ export function WorkScheduleDialog({
     }
   };
 
+  // Get translated weekday name
+  const getWeekdayName = (dayOfWeek: number): string => {
+    return t(`weekdays.${WEEKDAY_KEYS[dayOfWeek]}`);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>
-            {existingSchedule ? "Edit Work Schedule" : "Set Work Schedule"}
+            {existingSchedule
+              ? t("workScheduleDialog.editTitle")
+              : t("workScheduleDialog.setTitle")}
           </DialogTitle>
           <DialogDescription>
             {userName
-              ? `Configure the weekly work schedule for ${userName}.`
-              : "Configure the weekly work schedule."}
+              ? t("workScheduleDialog.description", { name: userName })
+              : t("workScheduleDialog.descriptionGeneric")}
           </DialogDescription>
         </DialogHeader>
 
@@ -143,7 +166,8 @@ export function WorkScheduleDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="effectiveFrom">
-                Effective from <span className="text-destructive">*</span>
+                {t("workScheduleDialog.effectiveFrom")}{" "}
+                <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="effectiveFrom"
@@ -157,7 +181,9 @@ export function WorkScheduleDialog({
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="effectiveUntil">Effective until (optional)</Label>
+              <Label htmlFor="effectiveUntil">
+                {t("workScheduleDialog.effectiveUntil")}
+              </Label>
               <Input
                 id="effectiveUntil"
                 type="date"
@@ -169,9 +195,9 @@ export function WorkScheduleDialog({
           {/* Weekly Schedule */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Weekly Schedule</Label>
+              <Label>{t("workScheduleDialog.weeklySchedule")}</Label>
               <span className="text-sm text-muted-foreground">
-                Total: {totalHours}h/week
+                {t("workScheduleDialog.totalHours", { hours: totalHours })}
               </span>
             </div>
 
@@ -180,7 +206,7 @@ export function WorkScheduleDialog({
                 <div key={field.id} className="flex items-center gap-4 p-3">
                   <div className="w-24">
                     <span className="font-medium text-sm">
-                      {DAY_NAMES_FULL[field.dayOfWeek]}
+                      {getWeekdayName(field.dayOfWeek)}
                     </span>
                   </div>
 
@@ -192,7 +218,9 @@ export function WorkScheduleDialog({
                       }
                     />
                     <span className="text-sm text-muted-foreground w-16">
-                      {weeklySchedule[index]?.isWorkDay ? "Work day" : "Off"}
+                      {weeklySchedule[index]?.isWorkDay
+                        ? t("workScheduleDialog.workDay")
+                        : t("workScheduleDialog.off")}
                     </span>
                   </div>
 
@@ -200,7 +228,7 @@ export function WorkScheduleDialog({
                     <>
                       <div className="flex items-center gap-2">
                         <Label className="text-sm text-muted-foreground">
-                          Start
+                          {t("workScheduleDialog.start")}
                         </Label>
                         <Input
                           type="time"
@@ -211,7 +239,7 @@ export function WorkScheduleDialog({
 
                       <div className="flex items-center gap-2">
                         <Label className="text-sm text-muted-foreground">
-                          Hours
+                          {t("workScheduleDialog.hours")}
                         </Label>
                         <Input
                           type="number"
@@ -238,13 +266,13 @@ export function WorkScheduleDialog({
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting || isLoading}
             >
-              Cancel
+              {t("common:buttons.cancel")}
             </Button>
             <Button type="submit" disabled={isSubmitting || isLoading}>
               {(isSubmitting || isLoading) && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Save Schedule
+              {t("workScheduleDialog.saveSchedule")}
             </Button>
           </DialogFooter>
         </form>

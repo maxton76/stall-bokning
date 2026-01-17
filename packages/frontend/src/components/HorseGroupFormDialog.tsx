@@ -1,86 +1,123 @@
-import { useEffect } from 'react'
-import { z } from 'zod'
-import { BaseFormDialog } from '@/components/BaseFormDialog'
-import { useFormDialog } from '@/hooks/useFormDialog'
-import { FormInput, FormTextarea } from '@/components/form'
-import { Label } from '@/components/ui/label'
-import type { HorseGroup } from '@/types/roles'
+import { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import { z } from "zod";
+import { BaseFormDialog } from "@/components/BaseFormDialog";
+import { useFormDialog } from "@/hooks/useFormDialog";
+import { FormInput, FormTextarea } from "@/components/form";
+import { Label } from "@/components/ui/label";
+import type { HorseGroup } from "@/types/roles";
 
 interface HorseGroupFormDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onSave: (group: Omit<HorseGroup, 'id' | 'organizationId' | 'createdAt' | 'updatedAt' | 'createdBy'>) => Promise<void>
-  group?: HorseGroup | null
-  title?: string
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (
+    group: Omit<
+      HorseGroup,
+      "id" | "organizationId" | "createdAt" | "updatedAt" | "createdBy"
+    >,
+  ) => Promise<void>;
+  group?: HorseGroup | null;
+  title?: string;
 }
 
-const COLOR_OPTIONS = [
-  { value: 'blue', label: 'Blue', color: '#3b82f6' },
-  { value: 'green', label: 'Green', color: '#10b981' },
-  { value: 'amber', label: 'Amber', color: '#f59e0b' },
-  { value: 'red', label: 'Red', color: '#ef4444' },
-  { value: 'purple', label: 'Purple', color: '#a855f7' },
-  { value: 'pink', label: 'Pink', color: '#ec4899' },
-]
-
-const horseGroupSchema = z.object({
-  name: z.string().min(1, 'Group name is required').max(50, 'Name must be 50 characters or less'),
-  description: z.string().optional(),
-  color: z.string().min(1, 'Please select a color'),
-})
-
-type HorseGroupFormData = z.infer<typeof horseGroupSchema>
+const COLOR_KEYS = ["blue", "green", "amber", "red", "purple", "pink"] as const;
+const COLOR_HEX: Record<(typeof COLOR_KEYS)[number], string> = {
+  blue: "#3b82f6",
+  green: "#10b981",
+  amber: "#f59e0b",
+  red: "#ef4444",
+  purple: "#a855f7",
+  pink: "#ec4899",
+};
 
 export function HorseGroupFormDialog({
   open,
   onOpenChange,
   onSave,
   group,
-  title
+  title,
 }: HorseGroupFormDialogProps) {
-  const isEditMode = !!group
+  const { t } = useTranslation("horses");
+  const isEditMode = !!group;
+
+  // Build color options with translated labels
+  const colorOptions = useMemo(
+    () =>
+      COLOR_KEYS.map((key) => ({
+        value: key,
+        label: t(`settings.groups.dialog.colors.${key}`),
+        color: COLOR_HEX[key],
+      })),
+    [t],
+  );
+
+  // Create schema with translated messages
+  const horseGroupSchema = useMemo(
+    () =>
+      z.object({
+        name: z
+          .string()
+          .min(1, t("settings.groups.dialog.validation.nameRequired"))
+          .max(50, t("settings.groups.dialog.validation.nameTooLong")),
+        description: z.string().optional(),
+        color: z
+          .string()
+          .min(1, t("settings.groups.dialog.validation.colorRequired")),
+      }),
+    [t],
+  );
+
+  type HorseGroupFormData = z.infer<typeof horseGroupSchema>;
 
   const { form, handleSubmit, resetForm } = useFormDialog<HorseGroupFormData>({
     schema: horseGroupSchema,
     defaultValues: {
-      name: '',
-      description: '',
-      color: COLOR_OPTIONS[0]?.value || '#3b82f6',
+      name: "",
+      description: "",
+      color: COLOR_KEYS[0],
     },
     onSubmit: async (data) => {
       await onSave({
         name: data.name.trim(),
         description: data.description?.trim() || undefined,
         color: data.color,
-      })
+      });
     },
     onSuccess: () => {
-      onOpenChange(false)
+      onOpenChange(false);
     },
-    successMessage: isEditMode ? 'Horse group updated successfully' : 'Horse group created successfully',
-    errorMessage: isEditMode ? 'Failed to update horse group' : 'Failed to create horse group',
-  })
+    successMessage: isEditMode
+      ? t("settings.groups.messages.updateSuccess")
+      : t("settings.groups.messages.createSuccess"),
+    errorMessage: isEditMode
+      ? t("settings.groups.messages.updateError")
+      : t("settings.groups.messages.createError"),
+  });
 
   // Watch color field for selection display
-  const selectedColor = form.watch('color')
+  const selectedColor = form.watch("color");
 
   // Reset form when dialog opens with group data
   useEffect(() => {
     if (group) {
       resetForm({
         name: group.name,
-        description: group.description || '',
-        color: group.color || COLOR_OPTIONS[0]?.value || '#3b82f6',
-      })
+        description: group.description || "",
+        color: group.color || COLOR_KEYS[0],
+      });
     } else {
-      resetForm()
+      resetForm();
     }
-  }, [group, open])
+  }, [group, open]);
 
-  const dialogTitle = title || (isEditMode ? 'Edit Horse Group' : 'Create Horse Group')
+  const dialogTitle =
+    title ||
+    (isEditMode
+      ? t("settings.groups.dialog.editTitle")
+      : t("settings.groups.dialog.createTitle"));
   const dialogDescription = isEditMode
-    ? 'Update the horse group details below.'
-    : 'Create a new group to organize your horses.'
+    ? t("settings.groups.dialog.editDescription")
+    : t("settings.groups.dialog.createDescription");
 
   return (
     <BaseFormDialog
@@ -90,38 +127,45 @@ export function HorseGroupFormDialog({
       description={dialogDescription}
       form={form}
       onSubmit={handleSubmit}
-      submitLabel={isEditMode ? 'Update' : 'Create'}
+      submitLabel={
+        isEditMode
+          ? t("settings.groups.dialog.submit.update")
+          : t("settings.groups.dialog.submit.create")
+      }
       maxWidth="sm:max-w-[500px]"
     >
       <FormInput
         name="name"
-        label="Group Name"
+        label={t("settings.groups.dialog.labels.name")}
         form={form}
-        placeholder="e.g., Competition Horses"
+        placeholder={t("settings.groups.dialog.placeholders.name")}
         required
       />
 
       <FormTextarea
         name="description"
-        label="Description"
+        label={t("settings.groups.dialog.labels.description")}
         form={form}
-        placeholder="Optional description for this group"
+        placeholder={t("settings.groups.dialog.placeholders.description")}
         rows={3}
       />
 
       {/* Color Picker - Custom implementation for better UX */}
       <div className="space-y-2">
-        <Label>Color <span className="text-destructive ml-1">*</span></Label>
+        <Label>
+          {t("settings.groups.dialog.labels.color")}{" "}
+          <span className="text-destructive ml-1">*</span>
+        </Label>
         <div className="grid grid-cols-3 gap-2">
-          {COLOR_OPTIONS.map((option) => (
+          {colorOptions.map((option) => (
             <button
               key={option.value}
               type="button"
-              onClick={() => form.setValue('color', option.value)}
+              onClick={() => form.setValue("color", option.value)}
               className={`flex items-center gap-2 p-3 rounded-md border-2 transition-colors ${
                 selectedColor === option.value
-                  ? 'border-primary bg-primary/5'
-                  : 'border-border hover:border-primary/50'
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:border-primary/50"
               }`}
             >
               <div
@@ -133,9 +177,11 @@ export function HorseGroupFormDialog({
           ))}
         </div>
         {form.formState.errors.color && (
-          <p className="text-sm text-destructive">{form.formState.errors.color.message}</p>
+          <p className="text-sm text-destructive">
+            {form.formState.errors.color.message}
+          </p>
         )}
       </div>
     </BaseFormDialog>
-  )
+  );
 }

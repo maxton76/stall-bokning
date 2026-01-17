@@ -1,4 +1,32 @@
 {
+  "categories": {
+    "roughage": "Grovfoder",
+    "concentrate": "Kraftfoder",
+    "supplement": "Tillskott",
+    "medicine": "Medicin"
+  },
+  "measurements": {
+    "scoop": "Skopa",
+    "teaspoon": "Tesked",
+    "tablespoon": "Matsked",
+    "cup": "Kopp",
+    "ml": "Milliliter",
+    "l": "Liter",
+    "g": "Gram",
+    "kg": "Kilogram",
+    "custom": "Anpassat mått"
+  },
+  "abbreviations": {
+    "scoop": "skopa",
+    "teaspoon": "tsk",
+    "tablespoon": "msk",
+    "cup": "kopp",
+    "ml": "ml",
+    "l": "L",
+    "g": "g",
+    "kg": "kg",
+    "custom": ""
+  },
   "page": {
     "scheduleTitle": "Utfodringsschema",
     "scheduleDescription": "Visa och hantera utfodringsscheman för hästar",

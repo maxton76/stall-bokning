@@ -163,6 +163,7 @@ export default function ActivitiesCarePage() {
     horses: horses.data || [],
     initialFilters: {},
     stableContext: selectedStableId === "all" ? undefined : selectedStableId,
+    t,
   });
 
   // Filter configuration for ActivitiesCarePage

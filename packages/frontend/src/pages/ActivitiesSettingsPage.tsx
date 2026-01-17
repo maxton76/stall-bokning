@@ -44,6 +44,7 @@ import {
   deleteActivityType,
   seedStandardActivityTypes,
 } from "@/services/activityTypeService";
+import { translateRoles } from "@/lib/activityTranslations";
 
 export default function ActivitiesSettingsPage() {
   const { t } = useTranslation(["activities", "common"]);
@@ -343,9 +344,7 @@ export default function ActivitiesSettingsPage() {
                                 </div>
                               </TableCell>
                               <TableCell className="text-sm text-muted-foreground">
-                                {type.roles.length > 0
-                                  ? type.roles.join(", ")
-                                  : "-"}
+                                {translateRoles(type.roles)}
                               </TableCell>
                               <TableCell>
                                 {type.isActive ? (

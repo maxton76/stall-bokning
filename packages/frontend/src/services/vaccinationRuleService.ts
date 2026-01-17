@@ -1,4 +1,5 @@
 import type { VaccinationRule } from "@/types/roles";
+import { authFetchJSON } from "@/utils/authFetch";
 
 // ============================================================================
 // Type Guards & Helpers
@@ -84,8 +85,6 @@ export function canDeleteVaccinationRule(
  * Get all system-wide vaccination rules (FEI, KNHS)
  */
 export async function getSystemVaccinationRules(): Promise<VaccinationRule[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ rules: VaccinationRule[] }>(
     `${import.meta.env.VITE_API_URL}/api/v1/vaccination-rules?scope=system`,
     { method: "GET" },
@@ -100,8 +99,6 @@ export async function getSystemVaccinationRules(): Promise<VaccinationRule[]> {
 export async function getOrganizationVaccinationRules(
   organizationId: string,
 ): Promise<VaccinationRule[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ rules: VaccinationRule[] }>(
     `${import.meta.env.VITE_API_URL}/api/v1/vaccination-rules?scope=organization&organizationId=${organizationId}`,
     { method: "GET" },
@@ -116,8 +113,6 @@ export async function getOrganizationVaccinationRules(
 export async function getUserVaccinationRules(
   userId: string,
 ): Promise<VaccinationRule[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ rules: VaccinationRule[] }>(
     `${import.meta.env.VITE_API_URL}/api/v1/vaccination-rules?scope=user`,
     { method: "GET" },
@@ -172,8 +167,6 @@ export async function getVaccinationRule(
   ruleId: string,
 ): Promise<VaccinationRule | null> {
   try {
-    const { authFetchJSON } = await import("@/utils/authFetch");
-
     const response = await authFetchJSON<VaccinationRule>(
       `${import.meta.env.VITE_API_URL}/api/v1/vaccination-rules/${ruleId}`,
       { method: "GET" },
@@ -207,8 +200,6 @@ export async function createVaccinationRule(
   >,
   scopeId: string,
 ): Promise<string> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const data: any = {
     scope,
     vaccineName: ruleData.name,
@@ -264,8 +255,6 @@ export async function updateVaccinationRule(
     throw new Error("Cannot update system vaccination rules");
   }
 
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const data: any = {};
   if (updates.name) data.vaccineName = updates.name;
   if (updates.periodMonths) data.intervalMonths = updates.periodMonths;
@@ -294,8 +283,6 @@ export async function deleteVaccinationRule(ruleId: string): Promise<void> {
   if (isSystemRule(rule)) {
     throw new Error("Cannot delete system vaccination rules");
   }
-
-  const { authFetchJSON } = await import("@/utils/authFetch");
 
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/vaccination-rules/${ruleId}`,

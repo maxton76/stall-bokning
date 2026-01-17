@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { toDate } from "@/lib/utils";
 import { authFetch } from "@/lib/authFetch";
 import type { Horse } from "@/types/roles";
 import type {
@@ -484,7 +485,7 @@ export function PedigreeCard({ horse }: PedigreeCardProps) {
                         {horse.breed && <span>{horse.breed}</span>}
                         {horse.dateOfBirth && (
                           <span className="ml-1">
-                            ({new Date(horse.dateOfBirth).getFullYear()})
+                            ({toDate(horse.dateOfBirth).getFullYear()})
                           </span>
                         )}
                       </div>

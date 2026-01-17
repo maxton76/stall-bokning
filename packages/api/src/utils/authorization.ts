@@ -444,3 +444,43 @@ export async function hasStableAccess(
   // Use standard access check
   return canAccessStable(userId, stableId);
 }
+
+// ============================================
+// HORSE-LEVEL AUTHORIZATION
+// ============================================
+
+/**
+ * Check if user can access a horse
+ * User must have access to the stable that owns the horse
+ *
+ * @param horseId - The horse's ID
+ * @param userId - The user's ID
+ * @returns Promise<boolean> - True if user has access to the horse
+ */
+export async function canAccessHorse(
+  horseId: string,
+  userId: string,
+): Promise<boolean> {
+  try {
+    // Get the horse document to find its stable
+    const horseDoc = await db.collection("horses").doc(horseId).get();
+    if (!horseDoc.exists) {
+      return false;
+    }
+
+    const horseData = horseDoc.data();
+    const stableId = horseData?.stableId;
+
+    // Horse must belong to a stable
+    if (!stableId) {
+      // If horse has no stable, check if user is the owner
+      return horseData?.ownerId === userId;
+    }
+
+    // Check if user has access to the stable
+    return canAccessStable(userId, stableId);
+  } catch (error) {
+    console.error("Error checking horse access:", error);
+    return false;
+  }
+}

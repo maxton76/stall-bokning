@@ -1,28 +1,8 @@
 import { logger } from "firebase-functions";
 
-/**
- * HTML entity escaping to prevent XSS in email content
- * Escapes the 5 XML entities: &, <, >, ", '
- */
-function escapeHtml(text: string): string {
-  const htmlEntities: Record<string, string> = {
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  };
-  return text.replace(/[&<>"']/g, (char) => htmlEntities[char]);
-}
-
-/**
- * Email validation using RFC 5322 simplified pattern
- */
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function isValidEmail(email: string): boolean {
-  return EMAIL_REGEX.test(email) && email.length <= 254;
-}
+import { escapeHtml } from "../lib/text.js";
+import { isValidEmail } from "../lib/validation.js";
+import { formatErrorMessage } from "../lib/errors.js";
 
 /**
  * Email sending configuration
@@ -264,7 +244,7 @@ export async function sendEmail(
 
     return { success: true };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = formatErrorMessage(error);
     logger.error(
       {
         error: errorMessage,

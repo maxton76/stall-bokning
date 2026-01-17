@@ -68,6 +68,8 @@ const CATEGORY_COLORS: Record<MediaCategory, string> = {
   conformation: "bg-amber-100 text-amber-800",
   competition: "bg-indigo-100 text-indigo-800",
   training: "bg-teal-100 text-teal-800",
+  purchase: "bg-orange-100 text-orange-800",
+  contract: "bg-cyan-100 text-cyan-800",
   other: "bg-gray-100 text-gray-800",
 };
 
@@ -79,6 +81,8 @@ const CATEGORY_LABELS: Record<MediaCategory, { en: string; sv: string }> = {
   conformation: { en: "Conformation", sv: "Exteriör" },
   competition: { en: "Competition", sv: "Tävling" },
   training: { en: "Training", sv: "Träning" },
+  purchase: { en: "Purchase", sv: "Köpedokument" },
+  contract: { en: "Contract", sv: "Kontrakt" },
   other: { en: "Other", sv: "Annat" },
 };
 

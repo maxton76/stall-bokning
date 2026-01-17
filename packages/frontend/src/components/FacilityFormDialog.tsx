@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { BaseFormDialog } from "@/components/BaseFormDialog";
 import { useFormDialog } from "@/hooks/useFormDialog";
@@ -11,90 +12,60 @@ import type {
   TimeSlotDuration,
 } from "@/types/facility";
 
-const FACILITY_TYPES: { value: FacilityType; label: string }[] = [
-  { value: "transport", label: "Transport" },
-  { value: "water_treadmill", label: "Water treadmill" },
-  { value: "indoor_arena", label: "Indoor arena" },
-  { value: "outdoor_arena", label: "Outdoor arena" },
-  { value: "galloping_track", label: "Galloping track" },
-  { value: "lunging_ring", label: "Lunging ring" },
-  { value: "paddock", label: "Paddock" },
-  { value: "solarium", label: "Solarium" },
-  { value: "jumping_yard", label: "Jumping yard" },
-  { value: "treadmill", label: "Treadmill" },
-  { value: "vibration_plate", label: "Vibration plate" },
-  { value: "pasture", label: "Pasture" },
-  { value: "walker", label: "Walker" },
-  { value: "other", label: "Other" },
+const FACILITY_TYPE_KEYS: FacilityType[] = [
+  "transport",
+  "water_treadmill",
+  "indoor_arena",
+  "outdoor_arena",
+  "galloping_track",
+  "lunging_ring",
+  "paddock",
+  "solarium",
+  "jumping_yard",
+  "treadmill",
+  "vibration_plate",
+  "pasture",
+  "walker",
+  "other",
 ];
 
-const TIME_SLOT_DURATIONS: { value: string; label: string }[] = [
-  { value: "15", label: "15 minutes" },
-  { value: "30", label: "30 minutes" },
-  { value: "60", label: "1 hour" },
-];
+const TIME_SLOT_KEYS = ["15", "30", "60"] as const;
 
-const STATUS_OPTIONS = [
-  { value: "active", label: "Active" },
-  { value: "inactive", label: "Inactive" },
-  { value: "maintenance", label: "Maintenance" },
-];
+const STATUS_KEYS = ["active", "inactive", "maintenance"] as const;
 
-const DAYS_OF_WEEK = [
-  { key: "monday", label: "Mon" },
-  { key: "tuesday", label: "Tue" },
-  { key: "wednesday", label: "Wed" },
-  { key: "thursday", label: "Thu" },
-  { key: "friday", label: "Fri" },
-  { key: "saturday", label: "Sat" },
-  { key: "sunday", label: "Sun" },
+const DAY_KEYS = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
 ] as const;
 
-const facilitySchema = z.object({
-  name: z.string().min(1, "Name is required").max(100),
-  type: z.enum([
-    "transport",
-    "water_treadmill",
-    "indoor_arena",
-    "outdoor_arena",
-    "galloping_track",
-    "lunging_ring",
-    "paddock",
-    "solarium",
-    "jumping_yard",
-    "treadmill",
-    "vibration_plate",
-    "pasture",
-    "walker",
-    "other",
-  ]),
-  description: z.string().optional(),
-  status: z.enum(["active", "inactive", "maintenance"]),
-  planningWindowOpens: z.coerce.number().min(0).max(365),
-  planningWindowCloses: z.coerce.number().min(0).max(168),
-  maxHorsesPerReservation: z.coerce.number().min(1).max(50),
-  minTimeSlotDuration: z
-    .enum(["15", "30", "60"])
-    .transform((val) => parseInt(val, 10) as TimeSlotDuration),
-  maxHoursPerReservation: z.coerce.number().min(1).max(24),
-  availableFrom: z
-    .string()
-    .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:mm)"),
-  availableTo: z
-    .string()
-    .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:mm)"),
-  daysAvailable: z.object({
-    monday: z.boolean(),
-    tuesday: z.boolean(),
-    wednesday: z.boolean(),
-    thursday: z.boolean(),
-    friday: z.boolean(),
-    saturday: z.boolean(),
-    sunday: z.boolean(),
-  }),
-});
-
-type FacilityFormData = z.infer<typeof facilitySchema>;
+// Schema will be created with useMemo inside component for translations
+type FacilityFormData = {
+  name: string;
+  type: FacilityType;
+  description?: string;
+  status: "active" | "inactive" | "maintenance";
+  planningWindowOpens: number;
+  planningWindowCloses: number;
+  maxHorsesPerReservation: number;
+  minTimeSlotDuration: TimeSlotDuration;
+  maxHoursPerReservation: number;
+  availableFrom: string;
+  availableTo: string;
+  daysAvailable: {
+    monday: boolean;
+    tuesday: boolean;
+    wednesday: boolean;
+    thursday: boolean;
+    friday: boolean;
+    saturday: boolean;
+    sunday: boolean;
+  };
+};
 
 interface FacilityFormDialogProps {
   open: boolean;
@@ -109,7 +80,103 @@ export function FacilityFormDialog({
   facility,
   onSave,
 }: FacilityFormDialogProps) {
+  const { t } = useTranslation("facilities");
   const isEditMode = !!facility;
+
+  // Build translated facility type options
+  const facilityTypeOptions = useMemo(
+    () =>
+      FACILITY_TYPE_KEYS.map((key) => ({
+        value: key,
+        label: t(`types.${key}`),
+      })),
+    [t],
+  );
+
+  // Build translated time slot options
+  const timeSlotOptions = useMemo(
+    () =>
+      TIME_SLOT_KEYS.map((key) => ({
+        value: key,
+        label: t(`timeSlots.${key}`),
+      })),
+    [t],
+  );
+
+  // Build translated status options
+  const statusOptions = useMemo(
+    () =>
+      STATUS_KEYS.map((key) => ({
+        value: key,
+        label: t(`facilityStatus.${key}`),
+      })),
+    [t],
+  );
+
+  // Build translated day options
+  const dayOptions = useMemo(
+    () =>
+      DAY_KEYS.map((key) => ({
+        key,
+        label: t(`days.${key}`),
+      })),
+    [t],
+  );
+
+  // Create schema with translated messages
+  const facilitySchema = useMemo(
+    () =>
+      z.object({
+        name: z.string().min(1, t("form.validation.nameRequired")).max(100),
+        type: z.enum([
+          "transport",
+          "water_treadmill",
+          "indoor_arena",
+          "outdoor_arena",
+          "galloping_track",
+          "lunging_ring",
+          "paddock",
+          "solarium",
+          "jumping_yard",
+          "treadmill",
+          "vibration_plate",
+          "pasture",
+          "walker",
+          "other",
+        ]),
+        description: z.string().optional(),
+        status: z.enum(["active", "inactive", "maintenance"]),
+        planningWindowOpens: z.coerce.number().min(0).max(365),
+        planningWindowCloses: z.coerce.number().min(0).max(168),
+        maxHorsesPerReservation: z.coerce.number().min(1).max(50),
+        minTimeSlotDuration: z
+          .enum(["15", "30", "60"])
+          .transform((val) => parseInt(val, 10) as TimeSlotDuration),
+        maxHoursPerReservation: z.coerce.number().min(1).max(24),
+        availableFrom: z
+          .string()
+          .regex(
+            /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
+            t("form.validation.timeInvalid"),
+          ),
+        availableTo: z
+          .string()
+          .regex(
+            /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
+            t("form.validation.timeInvalid"),
+          ),
+        daysAvailable: z.object({
+          monday: z.boolean(),
+          tuesday: z.boolean(),
+          wednesday: z.boolean(),
+          thursday: z.boolean(),
+          friday: z.boolean(),
+          saturday: z.boolean(),
+          sunday: z.boolean(),
+        }),
+      }),
+    [t],
+  );
 
   const { form, handleSubmit, resetForm } = useFormDialog<FacilityFormData>({
     schema: facilitySchema,
@@ -142,11 +209,13 @@ export function FacilityFormDialog({
       onOpenChange(false);
     },
     successMessage: isEditMode
-      ? "Facility updated successfully"
-      : "Facility created successfully",
+      ? t("messages.updateSuccess")
+      : t("messages.createSuccess"),
     errorMessage: isEditMode
-      ? "Failed to update facility"
-      : "Failed to create facility",
+      ? t("messages.updateError", { defaultValue: "Failed to update facility" })
+      : t("messages.createError", {
+          defaultValue: "Failed to create facility",
+        }),
   });
 
   // Reset form when dialog opens with facility data
@@ -185,62 +254,66 @@ export function FacilityFormDialog({
     <BaseFormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={isEditMode ? "Edit Facility" : "Add Facility"}
+      title={isEditMode ? t("form.title.edit") : t("form.title.create")}
       description={
-        isEditMode
-          ? "Update facility configuration and booking rules"
-          : "Create a new facility with booking rules and availability"
+        isEditMode ? t("form.description.edit") : t("form.description.create")
       }
       form={form}
       onSubmit={handleSubmit}
-      submitLabel={isEditMode ? "Save Changes" : "Create Facility"}
+      submitLabel={
+        isEditMode ? t("form.submit.update") : t("form.submit.create")
+      }
       maxWidth="sm:max-w-[700px]"
     >
       {/* Section 1: Basic Information */}
       <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Basic Information</h3>
+        <h3 className="font-semibold text-lg">
+          {t("form.sections.basicInfo")}
+        </h3>
 
         <FormSelect
           name="type"
-          label="Facility Type"
+          label={t("form.labels.type")}
           form={form}
-          options={FACILITY_TYPES}
-          placeholder="Select facility type"
+          options={facilityTypeOptions}
+          placeholder={t("form.placeholders.type")}
           required
         />
 
         <FormInput
           name="name"
-          label="Facility Name"
+          label={t("form.labels.name")}
           form={form}
-          placeholder="e.g., Main Indoor Arena"
+          placeholder={t("form.placeholders.name")}
           required
         />
 
         <FormTextarea
           name="description"
-          label="Description"
+          label={t("form.labels.description")}
           form={form}
-          placeholder="Brief description of the facility"
+          placeholder={t("form.placeholders.description")}
           rows={3}
         />
 
         <FormSelect
           name="status"
-          label="Status"
+          label={t("form.labels.status")}
           form={form}
-          options={STATUS_OPTIONS}
+          options={statusOptions}
         />
       </div>
 
       {/* Section 2: Booking Rules */}
       <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Booking Rules</h3>
+        <h3 className="font-semibold text-lg">
+          {t("form.sections.bookingRules")}
+        </h3>
 
         <div className="grid grid-cols-2 gap-4">
           <FormInput
             name="planningWindowOpens"
-            label="Planning window opens (days ahead)"
+            label={t("bookingRules.planningWindowOpens")}
             form={form}
             type="number"
             placeholder="14"
@@ -248,7 +321,7 @@ export function FacilityFormDialog({
 
           <FormInput
             name="planningWindowCloses"
-            label="Planning window closes (hours before)"
+            label={t("bookingRules.planningWindowCloses")}
             form={form}
             type="number"
             placeholder="1"
@@ -257,7 +330,7 @@ export function FacilityFormDialog({
 
         <FormInput
           name="maxHorsesPerReservation"
-          label="Maximum horses per reservation"
+          label={t("bookingRules.maxHorsesPerReservation")}
           form={form}
           type="number"
           placeholder="1"
@@ -265,14 +338,14 @@ export function FacilityFormDialog({
 
         <FormSelect
           name="minTimeSlotDuration"
-          label="Minimum time slot duration"
+          label={t("bookingRules.minSlotDuration")}
           form={form}
-          options={TIME_SLOT_DURATIONS}
+          options={timeSlotOptions}
         />
 
         <FormInput
           name="maxHoursPerReservation"
-          label="Maximum hours per reservation"
+          label={t("bookingRules.maxHoursPerReservation")}
           form={form}
           type="number"
           placeholder="2"
@@ -281,28 +354,30 @@ export function FacilityFormDialog({
 
       {/* Section 3: Availability */}
       <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Availability</h3>
+        <h3 className="font-semibold text-lg">
+          {t("form.sections.availability")}
+        </h3>
 
         <div className="grid grid-cols-2 gap-4">
           <FormInput
             name="availableFrom"
-            label="Available from"
+            label={t("availability.availableFrom")}
             form={form}
             type="time"
           />
 
           <FormInput
             name="availableTo"
-            label="Available to"
+            label={t("availability.availableTo")}
             form={form}
             type="time"
           />
         </div>
 
         <div className="space-y-2">
-          <Label>Days available</Label>
+          <Label>{t("availability.daysAvailable")}</Label>
           <div className="flex gap-2 flex-wrap">
-            {DAYS_OF_WEEK.map((day) => (
+            {dayOptions.map((day) => (
               <div key={day.key} className="flex items-center space-x-2">
                 <Checkbox
                   id={day.key}

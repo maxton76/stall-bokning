@@ -1,20 +1,17 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { Timestamp } from "firebase-admin/firestore";
-import { db } from "../config/firebase.js";
-import { authenticate, requireOrgAccess } from "../middleware/auth.js";
+import { db } from "../utils/firebase.js";
+import { authenticate, requireOrganizationAccess } from "../middleware/auth.js";
 import type {
-  AssistantQuery,
   AssistantResponse,
   AssistantIntent,
   AssistantIntentType,
   AssistantEntity,
   AssistantConversation,
-  AssistantMessage,
   AssistantSuggestion,
   ScheduleData,
   HorsesData,
-  ActivitiesData,
   InventoryData,
   InvoicesData,
   FeedingData,
@@ -22,8 +19,9 @@ import type {
   AvailabilityData,
   AnalyticsData,
   RecommendationsData,
-  DEFAULT_QUICK_ACTIONS,
 } from "@stall-bokning/shared";
+import { DEFAULT_QUICK_ACTIONS } from "@stall-bokning/shared";
+import type { AuthenticatedRequest } from "../types/index.js";
 
 // Query schema
 const querySchema = z.object({
@@ -227,7 +225,7 @@ function normalizeEntity(type: AssistantEntity["type"], value: string): string {
 // Extract parameters based on intent type
 function extractParameters(
   query: string,
-  intentType: AssistantIntentType,
+  _intentType: AssistantIntentType,
 ): Record<string, unknown> {
   const params: Record<string, unknown> = {};
 
@@ -256,8 +254,6 @@ function generateSuggestions(
   intent: AssistantIntent,
   language: "sv" | "en",
 ): AssistantSuggestion[] {
-  const suggestions: AssistantSuggestion[] = [];
-
   const suggestionMap: Record<AssistantIntentType, AssistantSuggestion[]> = {
     query_schedule: [
       {
@@ -334,7 +330,7 @@ function generateSuggestions(
 // Generate response message
 function generateResponseMessage(
   intent: AssistantIntent,
-  data: unknown,
+  _data: unknown,
   language: "sv" | "en",
 ): string {
   const messages: Record<AssistantIntentType, { sv: string; en: string }> = {
@@ -419,11 +415,11 @@ export async function assistantRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/assistant/query",
     {
-      preHandler: [authenticate, requireOrgAccess("params")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
     async (request, reply) => {
       const { organizationId } = request.params;
-      const userId = request.user!.uid;
+      const userId = (request as AuthenticatedRequest).user!.uid;
 
       const result = querySchema.safeParse(request.body);
       if (!result.success) {
@@ -444,7 +440,7 @@ export async function assistantRoutes(fastify: FastifyInstance) {
           intent,
           organizationId,
           context,
-          request.user!.uid,
+          (request as AuthenticatedRequest).user!.uid,
         );
 
         // Generate response
@@ -456,16 +452,16 @@ export async function assistantRoutes(fastify: FastifyInstance) {
           ? db.collection("assistantConversations").doc(conversationId)
           : db.collection("assistantConversations").doc();
 
-        const newMessage: AssistantMessage = {
+        const newMessage = {
           id: `msg_${Date.now()}`,
-          role: "user",
+          role: "user" as const,
           content: query,
           timestamp: Timestamp.now(),
         };
 
-        const assistantMessage: AssistantMessage = {
+        const assistantMessage = {
           id: `msg_${Date.now() + 1}`,
-          role: "assistant",
+          role: "assistant" as const,
           content: message,
           timestamp: Timestamp.now(),
           metadata: {
@@ -484,7 +480,7 @@ export async function assistantRoutes(fastify: FastifyInstance) {
           });
         } else {
           // Create new conversation
-          const conversation: Omit<AssistantConversation, "id"> = {
+          const conversation = {
             organizationId,
             userId,
             title: query.substring(0, 50),
@@ -524,7 +520,7 @@ export async function assistantRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/assistant/conversations/:conversationId",
     {
-      preHandler: [authenticate, requireOrgAccess("params")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
     async (request, reply) => {
       const { organizationId, conversationId } = request.params;
@@ -538,13 +534,13 @@ export async function assistantRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ error: "Conversation not found" });
       }
 
-      const conversation = doc.data() as AssistantConversation;
+      const conversationData = doc.data();
 
-      if (conversation.organizationId !== organizationId) {
+      if (conversationData?.organizationId !== organizationId) {
         return reply.status(403).send({ error: "Access denied" });
       }
 
-      return reply.send({ id: doc.id, ...conversation });
+      return reply.send({ ...conversationData, id: doc.id });
     },
   );
 
@@ -555,12 +551,12 @@ export async function assistantRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/assistant/conversations",
     {
-      preHandler: [authenticate, requireOrgAccess("params")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
     async (request, reply) => {
       const { organizationId } = request.params;
       const { limit = 20 } = request.query;
-      const userId = request.user!.uid;
+      const userId = (request as AuthenticatedRequest).user!.uid;
 
       const snapshot = await db
         .collection("assistantConversations")
@@ -587,7 +583,7 @@ export async function assistantRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/assistant/conversations/:conversationId",
     {
-      preHandler: [authenticate, requireOrgAccess("params")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
     async (request, reply) => {
       const { organizationId, conversationId } = request.params;
@@ -620,7 +616,7 @@ export async function assistantRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/assistant/quick-actions",
     {
-      preHandler: [authenticate, requireOrgAccess("params")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
     async (request, reply) => {
       const { language = "sv" } = request.query;
@@ -643,8 +639,8 @@ export async function assistantRoutes(fastify: FastifyInstance) {
 async function executeQuery(
   intent: AssistantIntent,
   organizationId: string,
-  context?: Partial<{ stableId: string; horseId: string; contactId: string }>,
-  userId?: string,
+  _context?: Partial<{ stableId: string; horseId: string; contactId: string }>,
+  _userId?: string,
 ): Promise<AssistantResponse["data"]> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);

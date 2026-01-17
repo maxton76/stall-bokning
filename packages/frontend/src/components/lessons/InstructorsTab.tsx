@@ -49,10 +49,13 @@ const instructorSchema = z.object({
 
 type InstructorFormData = z.infer<typeof instructorSchema>;
 
-interface InstructorsTabProps {
+export interface InstructorsTabProps {
   instructors: Instructor[];
-  onCreate: (data: CreateInstructorData) => Promise<void>;
-  onUpdate: (id: string, data: Partial<CreateInstructorData>) => Promise<void>;
+  isLoading?: boolean;
+  onRefresh?: () => Promise<unknown>;
+  // Legacy props for direct control
+  onCreate?: (data: CreateInstructorData) => Promise<void>;
+  onUpdate?: (id: string, data: Partial<CreateInstructorData>) => Promise<void>;
 }
 
 const COLORS = [
@@ -87,7 +90,8 @@ export function InstructorsTab({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<InstructorFormData>({
-    resolver: zodResolver(instructorSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(instructorSchema as any),
     defaultValues: {
       name: "",
       email: "",
@@ -149,9 +153,9 @@ export function InstructorsTab({
         isActive: data.isActive,
       };
 
-      if (editingInstructor) {
+      if (editingInstructor && onUpdate) {
         await onUpdate(editingInstructor.id, payload);
-      } else {
+      } else if (onCreate) {
         await onCreate(payload);
       }
       setDialogOpen(false);
@@ -212,7 +216,9 @@ export function InstructorsTab({
                           }}
                           className="text-white"
                         >
-                          {getInitials(instructor.name)}
+                          {getInitials(
+                            instructor.name || instructor.displayName || "?",
+                          )}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">

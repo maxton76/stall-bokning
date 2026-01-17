@@ -3,6 +3,7 @@ import type {
   CreateFacilityData,
   UpdateFacilityData,
 } from "@/types/facility";
+import { authFetchJSON } from "@/utils/authFetch";
 
 /**
  * Create a new facility
@@ -12,8 +13,6 @@ export async function createFacility(
   facilityData: CreateFacilityData,
   userId: string,
 ): Promise<string> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ id: string }>(
     `${import.meta.env.VITE_API_URL}/api/v1/facilities`,
     {
@@ -35,8 +34,6 @@ export async function getFacility(
   facilityId: string,
 ): Promise<Facility | null> {
   try {
-    const { authFetchJSON } = await import("@/utils/authFetch");
-
     const facility = await authFetchJSON<Facility>(
       `${import.meta.env.VITE_API_URL}/api/v1/facilities/${facilityId}`,
       { method: "GET" },
@@ -57,8 +54,6 @@ export async function getFacility(
 export async function getFacilitiesByStable(
   stableId: string,
 ): Promise<Facility[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ facilities: Facility[] }>(
     `${import.meta.env.VITE_API_URL}/api/v1/facilities?stableId=${stableId}`,
     { method: "GET" },
@@ -73,8 +68,6 @@ export async function getFacilitiesByStable(
 export async function getActiveFacilities(
   stableId: string,
 ): Promise<Facility[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ facilities: Facility[] }>(
     `${import.meta.env.VITE_API_URL}/api/v1/facilities?stableId=${stableId}&status=active`,
     { method: "GET" },
@@ -91,8 +84,6 @@ export async function updateFacility(
   updates: UpdateFacilityData,
   userId: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/facilities/${facilityId}`,
     {
@@ -109,8 +100,6 @@ export async function deleteFacility(
   facilityId: string,
   userId: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/facilities/${facilityId}`,
     {
@@ -124,8 +113,6 @@ export async function deleteFacility(
  * Hard delete facility
  */
 export async function hardDeleteFacility(facilityId: string): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/facilities/${facilityId}`,
     { method: "DELETE" },

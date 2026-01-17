@@ -1,6 +1,36 @@
 {
   "title": "Availability",
   "description": "Manage your availability and time off",
+  "myAvailability": {
+    "title": "My availability",
+    "reportSick": "Report sick",
+    "addLeaveRequest": "Add leave request",
+    "noLeaveRequests": "No leave requests yet",
+    "selectOrganization": "Please select an organization first."
+  },
+  "workSchedule": {
+    "title": "Work schedule",
+    "noSchedule": "No work schedule assigned yet. Contact your administrator.",
+    "start": "Start",
+    "hours": "Hours",
+    "weeklyHours": "Total: {{hours}}h/week",
+    "workDay": "Work day",
+    "off": "Off"
+  },
+  "balance": {
+    "title": "Balance",
+    "perToday": "Per today",
+    "currentBalance": "Current balance",
+    "endOfYear": "End of {{year}}",
+    "buildUp": "Build up",
+    "from": "From {{year}}",
+    "corrections": "Corrections",
+    "corrected": "Corrected",
+    "leave": "Leave",
+    "overtime": "Overtime",
+    "approved": "Approved",
+    "tentative": "Tentative"
+  },
   "leave": {
     "requestTitle": "Request Leave",
     "partialDay": "Partial Day",
@@ -24,8 +54,152 @@
     "status": {
       "pending": "Pending",
       "approved": "Approved",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
+    "types": {
+      "vacation": "Vacation",
+      "sick": "Sick leave",
+      "parental": "Parental leave",
+      "other": "Other"
     }
+  },
+  "leaveManagement": {
+    "title": "Leave Management",
+    "description": "Review and manage leave requests from your team",
+    "filters": "Filters",
+    "leaveRequests": "Leave Requests",
+    "requestsFound_one": "{{count}} request found",
+    "requestsFound_other": "{{count}} requests found",
+    "noRequests": "No leave requests found",
+    "reviewDialog": {
+      "approveTitle": "Approve Leave Request",
+      "rejectTitle": "Reject Leave Request",
+      "description": "{{name}} requested {{type}} from {{from}} to {{to}} ({{hours}}h impact).",
+      "noteLabel": "Note (optional)",
+      "approvePlaceholder": "Optional note to the employee...",
+      "rejectPlaceholder": "Reason for rejection..."
+    },
+    "table": {
+      "employee": "Employee",
+      "type": "Type",
+      "period": "Period",
+      "impact": "Impact",
+      "status": "Status",
+      "requested": "Requested",
+      "actions": "Actions"
+    }
+  },
+  "scheduleManagement": {
+    "title": "Schedule Management",
+    "description": "Configure work schedules and time balances for your team",
+    "workSchedulesTab": "Work Schedules",
+    "timeBalancesTab": "Time Balances",
+    "teamSchedules": "Team Work Schedules",
+    "membersCount_one": "{{count}} member in organization",
+    "membersCount_other": "{{count}} members in organization",
+    "noMembers": "No members found",
+    "timeBalancesTitle": "Time Balances",
+    "timeBalancesDescription": "View and adjust time balances for team members ({{year}})",
+    "schedulesTable": {
+      "member": "Member",
+      "roles": "Roles",
+      "weeklyHours": "Weekly Hours",
+      "scheduleStatus": "Schedule Status",
+      "effectiveFrom": "Effective From",
+      "actions": "Actions",
+      "configured": "Configured",
+      "notSet": "Not set",
+      "editSchedule": "Edit Schedule",
+      "setSchedule": "Set Schedule"
+    },
+    "balancesTable": {
+      "member": "Member",
+      "carryover": "Carryover",
+      "buildUp": "Build Up",
+      "corrections": "Corrections",
+      "usedLeave": "Used Leave",
+      "currentBalance": "Current Balance",
+      "actions": "Actions",
+      "adjust": "Adjust"
+    }
+  },
+  "reportSick": {
+    "title": "Report sick leave",
+    "firstSickDay": "First sick day",
+    "yesterday": "Yesterday",
+    "today": "Today",
+    "other": "Other",
+    "note": "Note",
+    "notePlaceholder": "Optional note...",
+    "validation": {
+      "firstSickDayRequired": "First sick day is required"
+    }
+  },
+  "workScheduleDialog": {
+    "editTitle": "Edit Work Schedule",
+    "setTitle": "Set Work Schedule",
+    "description": "Configure the weekly work schedule for {{name}}.",
+    "descriptionGeneric": "Configure the weekly work schedule.",
+    "effectiveFrom": "Effective from",
+    "effectiveUntil": "Effective until (optional)",
+    "weeklySchedule": "Weekly Schedule",
+    "totalHours": "Total: {{hours}}h/week",
+    "workDay": "Work day",
+    "off": "Off",
+    "start": "Start",
+    "hours": "Hours",
+    "saveSchedule": "Save Schedule",
+    "validation": {
+      "effectiveFromRequired": "Effective from date is required"
+    }
+  },
+  "balanceAdjustment": {
+    "title": "Adjust Time Balance",
+    "description": "Adjust the time balance for {{name}}.",
+    "descriptionGeneric": "Adjust the time balance.",
+    "currentBalance": "Current Balance",
+    "afterAdjustment": "After Adjustment",
+    "year": "Year",
+    "selectYear": "Select year",
+    "type": "Type",
+    "add": "Add",
+    "subtract": "Subtract",
+    "hours": "Hours",
+    "reason": "Reason",
+    "reasonPlaceholder": "Explain the reason for this adjustment...",
+    "applyAdjustment": "Apply Adjustment",
+    "validation": {
+      "amountPositive": "Amount must be positive",
+      "reasonRequired": "Reason is required",
+      "reasonTooLong": "Reason too long"
+    }
+  },
+  "statusFilter": {
+    "all": "All statuses",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "cancelled": "Cancelled"
+  },
+  "toast": {
+    "leaveRequestCreated": "Leave request created",
+    "leaveRequestCreatedDescription": "Your leave request has been submitted for approval.",
+    "sickLeaveReported": "Sick leave reported",
+    "sickLeaveReportedDescription": "Your sick leave has been recorded.",
+    "requestApproved": "Request approved",
+    "requestRejected": "Request rejected",
+    "reviewDescription": "Leave request for {{name}} has been {{status}}.",
+    "scheduleSaved": "Schedule saved",
+    "scheduleDescription": "Work schedule for {{name}} has been updated.",
+    "balanceAdjusted": "Balance adjusted",
+    "balanceDescription": "Time balance for {{name}} has been updated.",
+    "error": "Error",
+    "createLeaveError": "Failed to create leave request. Please try again.",
+    "reportSickError": "Failed to report sick leave. Please try again.",
+    "reviewError": "Failed to review leave request. Please try again.",
+    "saveScheduleError": "Failed to save work schedule. Please try again.",
+    "adjustBalanceError": "Failed to adjust time balance. Please try again."
   },
   "calendar": {
     "title": "Availability Calendar",
@@ -92,5 +266,23 @@
       "leave": "Leave",
       "constraint": "Constraint"
     }
+  },
+  "weekdays": {
+    "sunday": "Sunday",
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday"
+  },
+  "weekdaysShort": {
+    "sun": "Sun",
+    "mon": "Mon",
+    "tue": "Tue",
+    "wed": "Wed",
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat"
   }
 }

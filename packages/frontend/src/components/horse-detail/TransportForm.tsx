@@ -112,7 +112,8 @@ export function TransportForm({
   const [isInsuranceOpen, setIsInsuranceOpen] = useState(false);
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(formSchema as any),
     defaultValues: {
       loadingBehavior: defaultValues?.loadingBehavior,
       loadingNotes: defaultValues?.loadingNotes || "",

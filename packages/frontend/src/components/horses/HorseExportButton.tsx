@@ -1,40 +1,47 @@
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu'
-import { Download, FileSpreadsheet, FileText } from 'lucide-react'
-import { exportHorses } from '@/lib/exportUtils'
-import type { Horse } from '@/types/roles'
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Download, FileSpreadsheet, FileText } from "lucide-react";
+import { exportHorses } from "@/lib/exportUtils";
+import type { Horse } from "@/types/roles";
 
 interface HorseExportButtonProps {
-  horses: Horse[]
-  disabled?: boolean
+  horses: Horse[];
+  disabled?: boolean;
 }
 
-export function HorseExportButton({ horses, disabled }: HorseExportButtonProps) {
-  const [isExporting, setIsExporting] = useState(false)
+export function HorseExportButton({
+  horses,
+  disabled,
+}: HorseExportButtonProps) {
+  const { t } = useTranslation(["horses"]);
+  const [isExporting, setIsExporting] = useState(false);
 
-  const handleExport = async (format: 'csv' | 'excel') => {
+  const handleExport = async (format: "csv" | "excel") => {
     try {
-      setIsExporting(true)
+      setIsExporting(true);
 
       // Small delay to show loading state
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
-      exportHorses(horses, format)
+      exportHorses(horses, format);
     } catch (error) {
-      console.error('Export failed:', error)
-      alert('Failed to export data. Please try again.')
+      console.error("Export failed:", error);
+      alert(t("horses:export.error"));
     } finally {
-      setIsExporting(false)
+      setIsExporting(false);
     }
-  }
+  };
 
-  const horseCount = horses.length
+  const horseCount = horses.length;
+  const horseLabel =
+    horseCount === 1 ? t("horses:export.horse") : t("horses:export.horses");
 
   return (
     <DropdownMenu>
@@ -45,19 +52,24 @@ export function HorseExportButton({ horses, disabled }: HorseExportButtonProps) 
           className="gap-2"
         >
           <Download className="h-4 w-4" />
-          {isExporting ? 'Exporting...' : 'Export'}
+          {isExporting
+            ? t("horses:export.exporting")
+            : t("horses:export.button")}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => handleExport('csv')} className="gap-2">
+        <DropdownMenuItem onClick={() => handleExport("csv")} className="gap-2">
           <FileText className="h-4 w-4" />
-          Export as CSV ({horseCount} {horseCount === 1 ? 'horse' : 'horses'})
+          {t("horses:export.csv")} ({horseCount} {horseLabel})
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleExport('excel')} className="gap-2">
+        <DropdownMenuItem
+          onClick={() => handleExport("excel")}
+          className="gap-2"
+        >
           <FileSpreadsheet className="h-4 w-4" />
-          Export as Excel ({horseCount} {horseCount === 1 ? 'horse' : 'horses'})
+          {t("horses:export.excel")} ({horseCount} {horseLabel})
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

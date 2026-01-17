@@ -3,6 +3,7 @@ import type {
   CreateFeedTypeData,
   UpdateFeedTypeData,
 } from "@shared/types";
+import { authFetchJSON } from "@/utils/authFetch";
 
 // ============================================================================
 // Public Service API
@@ -19,8 +20,6 @@ export async function getFeedTypesByStable(
   stableId: string,
   activeOnly = true,
 ): Promise<FeedType[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const params = new URLSearchParams();
   if (activeOnly !== undefined) {
     params.append("activeOnly", String(activeOnly));
@@ -44,8 +43,6 @@ export async function getFeedTypesByStable(
  */
 export async function getFeedTypeById(id: string): Promise<FeedType | null> {
   try {
-    const { authFetchJSON } = await import("@/utils/authFetch");
-
     const response = await authFetchJSON<FeedType>(
       `${import.meta.env.VITE_API_URL}/api/v1/feed-types/${id}`,
       { method: "GET" },
@@ -68,8 +65,6 @@ export async function createFeedType(
   stableId: string,
   data: CreateFeedTypeData,
 ): Promise<string> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ id: string }>(
     `${import.meta.env.VITE_API_URL}/api/v1/feed-types`,
     {
@@ -92,8 +87,6 @@ export async function updateFeedType(
   id: string,
   updates: UpdateFeedTypeData,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/feed-types/${id}`,
     {
@@ -113,8 +106,6 @@ export async function updateFeedType(
  * @returns Promise that resolves when deletion is complete
  */
 export async function deleteFeedType(id: string): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/feed-types/${id}`,
     { method: "DELETE" },

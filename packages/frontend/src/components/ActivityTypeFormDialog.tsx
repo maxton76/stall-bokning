@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { BaseFormDialog } from "@/components/BaseFormDialog";
 import { useFormDialog } from "@/hooks/useFormDialog";
@@ -14,22 +15,6 @@ import type {
   ActivityTypeCategory,
 } from "@/types/activity";
 import { DEFAULT_COLORS } from "@/types/activity";
-
-const ACTIVITY_CATEGORIES: { value: ActivityTypeCategory; label: string }[] = [
-  { value: "Sport", label: "Sport" },
-  { value: "Care", label: "Care" },
-  { value: "Breeding", label: "Breeding" },
-];
-
-const AVAILABLE_ROLES: { value: string; label: string }[] = [
-  { value: "owner", label: "Owner" },
-  { value: "trainer", label: "Trainer" },
-  { value: "rider", label: "Rider" },
-  { value: "groom", label: "Groom" },
-  { value: "veterinarian", label: "Veterinarian" },
-  { value: "farrier", label: "Farrier" },
-  { value: "dentist", label: "Dentist" },
-];
 
 const activityTypeSchema = z.object({
   name: z
@@ -64,8 +49,45 @@ export function ActivityTypeFormDialog({
   activityType,
   onSave,
 }: ActivityTypeFormDialogProps) {
+  const { t } = useTranslation(["constants", "activities"]);
   const isEditMode = !!activityType;
   const isStandardType = activityType?.isStandard ?? false;
+
+  const ACTIVITY_CATEGORIES = useMemo(
+    () => [
+      {
+        value: "Sport" as ActivityTypeCategory,
+        label: t("constants:activityCategories.sport"),
+      },
+      {
+        value: "Care" as ActivityTypeCategory,
+        label: t("constants:activityCategories.care"),
+      },
+      {
+        value: "Breeding" as ActivityTypeCategory,
+        label: t("constants:activityCategories.breeding"),
+      },
+    ],
+    [t],
+  );
+
+  const AVAILABLE_ROLES = useMemo(
+    () => [
+      { value: "owner", label: t("constants:activityRoles.owner") },
+      { value: "trainer", label: t("constants:activityRoles.trainer") },
+      { value: "rider", label: t("constants:activityRoles.rider") },
+      { value: "groom", label: t("constants:activityRoles.groom") },
+      {
+        value: "veterinarian",
+        label: t("constants:activityRoles.veterinarian"),
+      },
+      { value: "farrier", label: t("constants:activityRoles.farrier") },
+      { value: "dentist", label: t("constants:activityRoles.dentist") },
+      { value: "instructor", label: t("constants:activityRoles.instructor") },
+      { value: "stable-hand", label: t("constants:activityRoles.stablehand") },
+    ],
+    [t],
+  );
 
   const { form, handleSubmit, resetForm } = useFormDialog<ActivityTypeFormData>(
     {

@@ -1,11 +1,12 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { canAccessHorse } from "../utils/authorization";
+import { canAccessHorse } from "../utils/authorization.js";
 import type {
   TeamMember,
   HorseTeam,
   TeamMemberInput,
-} from "@shared/types/team";
+} from "@stall-bokning/shared";
+import type { AuthenticatedRequest } from "../types/index.js";
 
 interface TeamParams {
   horseId: string;
@@ -23,7 +24,7 @@ export async function horseTeamRoutes(fastify: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const { horseId } = request.params;
-      const userId = request.user?.uid;
+      const userId = (request as AuthenticatedRequest).user?.uid;
 
       if (!userId) {
         return reply.status(401).send({ error: "Unauthorized" });
@@ -60,7 +61,7 @@ export async function horseTeamRoutes(fastify: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const { horseId } = request.params;
-      const userId = request.user?.uid;
+      const userId = (request as AuthenticatedRequest).user?.uid;
       const memberData = request.body;
 
       if (!userId) {
@@ -152,7 +153,7 @@ export async function horseTeamRoutes(fastify: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const { horseId, index } = request.params;
-      const userId = request.user?.uid;
+      const userId = (request as AuthenticatedRequest).user?.uid;
       const memberData = request.body;
       const memberIndex = parseInt(index || "0", 10);
 
@@ -216,9 +217,11 @@ export async function horseTeamRoutes(fastify: FastifyInstance) {
 
       // Collect additional contacts
       if (currentTeam.additionalContacts) {
-        currentTeam.additionalContacts.forEach((member, idx) => {
-          allMembers.push({ member, source: `additional-${idx}` });
-        });
+        currentTeam.additionalContacts.forEach(
+          (member: TeamMember, idx: number) => {
+            allMembers.push({ member, source: `additional-${idx}` });
+          },
+        );
       }
 
       if (memberIndex >= allMembers.length) {
@@ -304,7 +307,7 @@ export async function horseTeamRoutes(fastify: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const { horseId, index } = request.params;
-      const userId = request.user?.uid;
+      const userId = (request as AuthenticatedRequest).user?.uid;
       const memberIndex = parseInt(index || "0", 10);
 
       if (!userId) {
@@ -351,7 +354,7 @@ export async function horseTeamRoutes(fastify: FastifyInstance) {
 
       // Collect additional contacts
       if (currentTeam.additionalContacts) {
-        currentTeam.additionalContacts.forEach((_, idx) => {
+        currentTeam.additionalContacts.forEach((_: TeamMember, idx: number) => {
           allMembers.push({ source: `additional-${idx}` });
         });
       }

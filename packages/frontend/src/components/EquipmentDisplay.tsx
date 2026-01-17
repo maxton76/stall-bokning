@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { EquipmentItem } from "@stall-bokning/shared";
 
 interface EquipmentDisplayProps {
@@ -11,13 +12,14 @@ export function EquipmentDisplay({
   showHeader = true,
   compact = false,
 }: EquipmentDisplayProps) {
+  const { t } = useTranslation(["horses"]);
   if (!equipment || equipment.length === 0) return null;
 
   return (
     <div className="space-y-2">
       {showHeader && (
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-          Equipment
+          {t("equipmentDisplay.header")}
         </p>
       )}
       <div className="space-y-1">

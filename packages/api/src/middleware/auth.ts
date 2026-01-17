@@ -5,6 +5,13 @@ import type {
   StableContextRequest,
   OrganizationContextRequest,
 } from "../types/index.js";
+
+// Re-export types for use in routes
+export type {
+  AuthenticatedRequest,
+  StableContextRequest,
+  OrganizationContextRequest,
+};
 import {
   canAccessStable,
   canManageStable,
@@ -410,3 +417,11 @@ export function requireOrganizationAdmin(
     (request as OrganizationContextRequest).isOrganizationAdmin = true;
   };
 }
+
+/**
+ * Middleware: Require organization membership (any role)
+ * Alias for requireOrganizationAccess for naming consistency
+ *
+ * @param idSource - Where to extract the organizationId from: "query" | "params" | "body"
+ */
+export const requireOrganizationMember = requireOrganizationAccess;

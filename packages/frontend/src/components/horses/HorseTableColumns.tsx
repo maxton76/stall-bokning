@@ -15,6 +15,7 @@ import { HorseStatusIcons } from "./HorseStatusIcons";
 import { getHorseColorClasses, getHorseInitial } from "@/utils/horseColorUtils";
 import { toDate } from "@/utils/timestampUtils";
 import type { Horse } from "@/types/roles";
+import type { TFunction } from "i18next";
 
 interface HorseTableColumnsProps {
   onEdit: (horse: Horse) => void;
@@ -22,6 +23,7 @@ interface HorseTableColumnsProps {
   onUnassign: (horse: Horse) => void;
   onDelete: (horse: Horse) => void;
   onViewDetails?: (horse: Horse) => void;
+  t: TFunction;
 }
 
 export function createHorseTableColumns({
@@ -30,6 +32,7 @@ export function createHorseTableColumns({
   onUnassign,
   onDelete,
   onViewDetails,
+  t,
 }: HorseTableColumnsProps): ColumnDef<Horse>[] {
   return [
     // Avatar Column (NEW)
@@ -53,7 +56,7 @@ export function createHorseTableColumns({
     // Name Column (ENHANCED with pedigree subtitle and status icons)
     {
       accessorKey: "name",
-      header: "Name",
+      header: t("horses:table.name"),
       cell: ({ row }) => {
         const horse = row.original;
 
@@ -90,11 +93,11 @@ export function createHorseTableColumns({
     },
     {
       accessorKey: "gender",
-      header: "Gender",
+      header: t("horses:table.gender"),
       cell: ({ row }) => {
         const gender = row.getValue("gender") as string | undefined;
         return gender ? (
-          <span className="capitalize">{gender}</span>
+          <span>{t(`horses:genders.${gender}`)}</span>
         ) : (
           <span className="text-muted-foreground">—</span>
         );
@@ -103,7 +106,7 @@ export function createHorseTableColumns({
     // Age Column (ENHANCED with dual display: age + birth year)
     {
       accessorKey: "age",
-      header: "Age",
+      header: t("horses:table.age"),
       cell: ({ row }) => {
         const horse = row.original;
         let age: number | undefined;
@@ -151,7 +154,7 @@ export function createHorseTableColumns({
     },
     {
       accessorKey: "currentStableName",
-      header: "Stable",
+      header: t("horses:table.stable"),
       cell: ({ row }) => {
         const stableName = row.getValue("currentStableName") as
           | string
@@ -159,14 +162,16 @@ export function createHorseTableColumns({
         return stableName ? (
           <span>{stableName}</span>
         ) : (
-          <span className="text-muted-foreground">Unassigned</span>
+          <span className="text-muted-foreground">
+            {t("horses:table.unassigned")}
+          </span>
         );
       },
     },
     // Identification Column (ENHANCED with dual display: UELN + chip)
     {
       id: "identification",
-      header: "Identification",
+      header: t("horses:table.identification"),
       cell: ({ row }) => {
         const horse = row.original;
         const hasUeln = !!horse.ueln;
@@ -179,11 +184,15 @@ export function createHorseTableColumns({
         return (
           <div className="flex flex-col gap-0.5 font-mono text-sm">
             <div>
-              <span className="text-muted-foreground text-xs">UELN: </span>
+              <span className="text-muted-foreground text-xs">
+                {t("horses:table.ueln")}{" "}
+              </span>
               <span>{hasUeln ? horse.ueln : "—"}</span>
             </div>
             <div>
-              <span className="text-muted-foreground text-xs">chip: </span>
+              <span className="text-muted-foreground text-xs">
+                {t("horses:table.chip")}{" "}
+              </span>
               <span>{hasChip ? horse.chipNumber : "—"}</span>
             </div>
           </div>
@@ -192,7 +201,7 @@ export function createHorseTableColumns({
     },
     {
       accessorKey: "ownerName",
-      header: "Owner",
+      header: t("horses:table.owner"),
       cell: ({ row }) => {
         const ownerName = row.getValue("ownerName") as string | undefined;
         return ownerName ? (
@@ -205,7 +214,7 @@ export function createHorseTableColumns({
     // Group Column (NEW)
     {
       accessorKey: "horseGroupName",
-      header: "Group",
+      header: t("horses:table.group"),
       cell: ({ row }) => {
         const groupName = row.getValue("horseGroupName") as string | undefined;
         return groupName ? (
@@ -219,7 +228,7 @@ export function createHorseTableColumns({
     },
     {
       id: "actions",
-      header: "Actions",
+      header: t("horses:table.actions"),
       cell: ({ row }) => {
         const horse = row.original;
         const isAssigned = !!horse.currentStableId;
@@ -228,24 +237,26 @@ export function createHorseTableColumns({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
+                <span className="sr-only">
+                  {t("horses:table.menu.openMenu")}
+                </span>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => onEdit(horse)}>
                 <Pencil className="mr-2 h-4 w-4" />
-                Edit
+                {t("horses:table.menu.edit")}
               </DropdownMenuItem>
               {isAssigned ? (
                 <DropdownMenuItem onClick={() => onUnassign(horse)}>
                   <MapPin className="mr-2 h-4 w-4" />
-                  Unassign from Stable
+                  {t("horses:table.menu.unassignFromStable")}
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem onClick={() => onAssign(horse)}>
                   <MapPin className="mr-2 h-4 w-4" />
-                  Assign to Stable
+                  {t("horses:table.menu.assignToStable")}
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
@@ -254,7 +265,7 @@ export function createHorseTableColumns({
                 className="text-destructive focus:text-destructive"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Delete
+                {t("horses:table.menu.delete")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

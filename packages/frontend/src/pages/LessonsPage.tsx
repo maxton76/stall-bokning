@@ -72,7 +72,7 @@ export default function LessonsPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [instructorFilter, setInstructorFilter] = useState<string>("all");
 
-  const organizationId = currentOrganization?.id;
+  const organizationId = currentOrganization;
 
   // Compute week range for calendar view
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -132,11 +132,14 @@ export default function LessonsPage() {
 
     // Sort lessons by start time
     Object.keys(grouped).forEach((key) => {
-      grouped[key].sort((a, b) => {
-        const aTime = new Date(a.startTime as unknown as string).getTime();
-        const bTime = new Date(b.startTime as unknown as string).getTime();
-        return aTime - bTime;
-      });
+      const lessons = grouped[key];
+      if (lessons) {
+        lessons.sort((a, b) => {
+          const aTime = new Date(a.startTime as unknown as string).getTime();
+          const bTime = new Date(b.startTime as unknown as string).getTime();
+          return aTime - bTime;
+        });
+      }
     });
 
     return grouped;
@@ -526,7 +529,6 @@ export default function LessonsPage() {
         {/* Lesson Types Tab */}
         <TabsContent value="types">
           <LessonTypesTab
-            organizationId={organizationId}
             lessonTypes={lessonTypes.data?.lessonTypes || []}
             isLoading={lessonTypes.isLoading}
             onRefresh={() => lessonTypes.load()}
@@ -536,7 +538,6 @@ export default function LessonsPage() {
         {/* Instructors Tab */}
         <TabsContent value="instructors">
           <InstructorsTab
-            organizationId={organizationId}
             instructors={instructors.data?.instructors || []}
             isLoading={instructors.isLoading}
             onRefresh={() => instructors.load()}
@@ -546,7 +547,6 @@ export default function LessonsPage() {
         {/* Schedule Templates Tab */}
         <TabsContent value="templates">
           <ScheduleTemplatesTab
-            organizationId={organizationId}
             lessonTypes={lessonTypes.data?.lessonTypes || []}
             instructors={instructors.data?.instructors || []}
             onLessonsGenerated={() => lessons.load()}
@@ -558,7 +558,6 @@ export default function LessonsPage() {
       <CreateLessonDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        organizationId={organizationId}
         lessonTypes={lessonTypes.data?.lessonTypes || []}
         instructors={instructors.data?.instructors || []}
         onSuccess={handleLessonCreated}
@@ -568,7 +567,6 @@ export default function LessonsPage() {
         <LessonDetailDialog
           open={detailDialogOpen}
           onOpenChange={setDetailDialogOpen}
-          organizationId={organizationId}
           lesson={selectedLesson}
           lessonType={lessonTypes.data?.lessonTypes.find(
             (lt) => lt.id === selectedLesson.lessonTypeId,

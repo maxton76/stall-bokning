@@ -93,8 +93,6 @@ export default function ScheduleEditorPage() {
         // Get members with user details (backend handles the N+1 query optimization)
         const membersData = await getActiveMembersWithUserDetails(stableId);
 
-        console.log("✅ Members loaded:", membersData.length);
-
         // Map to StableMember interface format
         const membersList = membersData.map((member: any) => ({
           id: member.userId,
@@ -109,7 +107,6 @@ export default function ScheduleEditorPage() {
           currentPoints: 0, // TODO: Calculate from shifts
         })) as StableMember[];
 
-        console.log("📊 Final members list:", membersList);
         return membersList;
       } catch (error) {
         console.error("❌ Error loading members:", error);

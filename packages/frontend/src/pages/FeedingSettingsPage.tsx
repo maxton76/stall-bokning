@@ -52,10 +52,6 @@ import {
   updateFeedingTime,
   deleteFeedingTime,
 } from "@/services/feedingTimeService";
-import {
-  FEED_CATEGORY_LABELS,
-  QUANTITY_MEASURE_ABBREVIATIONS,
-} from "@/constants/feeding";
 
 export default function FeedingSettingsPage() {
   const { t } = useTranslation(["feeding", "common"]);
@@ -319,13 +315,15 @@ export default function FeedingSettingsPage() {
                 {(feedTypes.data || []).map((type) => (
                   <TableRow key={type.id}>
                     <TableCell className="font-medium">{type.name}</TableCell>
-                    <TableCell>{FEED_CATEGORY_LABELS[type.category]}</TableCell>
+                    <TableCell>
+                      {t(`feeding:categories.${type.category}`)}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {type.brand}
                     </TableCell>
                     <TableCell>
                       {type.defaultQuantity}{" "}
-                      {QUANTITY_MEASURE_ABBREVIATIONS[type.quantityMeasure]}
+                      {t(`feeding:abbreviations.${type.quantityMeasure}`)}
                     </TableCell>
                     <TableCell className="max-w-[200px]">
                       {type.warning ? (

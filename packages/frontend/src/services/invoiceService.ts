@@ -7,6 +7,7 @@ import type {
   PaymentMethod,
   ContactInvoiceSummary,
 } from "@stall-bokning/shared";
+import { authFetchJSON } from "@/utils/authFetch";
 
 // ============================================================================
 // Invoice CRUD Operations
@@ -22,8 +23,6 @@ export async function getOrganizationInvoices(
   organizationId: string,
   options?: { status?: InvoiceStatus; contactId?: string; limit?: number },
 ): Promise<Invoice[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const params = new URLSearchParams();
   if (options?.status) {
     params.append("status", options.status);
@@ -51,8 +50,6 @@ export async function getOrganizationInvoices(
  * @returns Promise with invoice
  */
 export async function getInvoice(invoiceId: string): Promise<Invoice | null> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   try {
     const response = await authFetchJSON<Invoice>(
       `${import.meta.env.VITE_API_URL}/api/v1/invoices/${invoiceId}`,
@@ -74,8 +71,6 @@ export async function createInvoice(
   organizationId: string,
   data: CreateInvoiceData,
 ): Promise<Invoice> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<Invoice>(
     `${import.meta.env.VITE_API_URL}/api/v1/invoices`,
     {
@@ -97,8 +92,6 @@ export async function updateInvoice(
   invoiceId: string,
   updates: UpdateInvoiceData,
 ): Promise<Invoice> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<Invoice>(
     `${import.meta.env.VITE_API_URL}/api/v1/invoices/${invoiceId}`,
     {
@@ -116,8 +109,6 @@ export async function updateInvoice(
  * @returns Promise that resolves when deleted
  */
 export async function deleteInvoice(invoiceId: string): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/invoices/${invoiceId}`,
     { method: "DELETE" },
@@ -136,8 +127,6 @@ export async function deleteInvoice(invoiceId: string): Promise<void> {
 export async function sendInvoice(
   invoiceId: string,
 ): Promise<{ success: boolean; message: string }> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ success: boolean; message: string }>(
     `${import.meta.env.VITE_API_URL}/api/v1/invoices/${invoiceId}/send`,
     { method: "POST" },
@@ -154,8 +143,6 @@ export async function sendInvoice(
 export async function cancelInvoice(
   invoiceId: string,
 ): Promise<{ success: boolean; message: string }> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ success: boolean; message: string }>(
     `${import.meta.env.VITE_API_URL}/api/v1/invoices/${invoiceId}/cancel`,
     { method: "POST" },
@@ -187,8 +174,6 @@ export async function recordPayment(
     status: InvoiceStatus;
   };
 }> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{
     success: boolean;
     payment: {
@@ -224,8 +209,6 @@ export async function getContactInvoices(
   contactId: string,
   limit = 20,
 ): Promise<ContactInvoiceSummary> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<ContactInvoiceSummary>(
     `${import.meta.env.VITE_API_URL}/api/v1/invoices/contact/${contactId}?limit=${limit}`,
     { method: "GET" },
@@ -249,8 +232,6 @@ export async function getOverdueInvoices(organizationId: string): Promise<{
   currency: string;
   invoices: (Invoice & { daysOverdue: number })[];
 }> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{
     count: number;
     totalOverdue: number;

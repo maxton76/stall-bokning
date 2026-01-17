@@ -1,14 +1,9 @@
-import { initializeApp, getApps } from "firebase-admin/app";
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { logger } from "firebase-functions";
 import * as crypto from "crypto";
 
-// Initialize Firebase Admin if not already initialized
-if (getApps().length === 0) {
-  initializeApp();
-}
-const db = getFirestore();
+import { db, Timestamp } from "../lib/firebase.js";
+import { formatErrorMessage } from "../lib/errors.js";
 
 /**
  * Retry Failed Notifications
@@ -107,7 +102,7 @@ export const retryFailedNotifications = onSchedule(
       logger.error(
         {
           executionId,
-          error: error instanceof Error ? error.message : String(error),
+          error: formatErrorMessage(error),
         },
         "Failed to retry notifications",
       );
@@ -208,7 +203,7 @@ export const cleanupOldNotifications = onSchedule(
       logger.error(
         {
           executionId,
-          error: error instanceof Error ? error.message : String(error),
+          error: formatErrorMessage(error),
         },
         "Failed to cleanup notifications",
       );

@@ -162,9 +162,8 @@ export default function ActivitiesPlanningPage() {
     formDialog.openDialog(activity);
   };
 
-  const handleSave = async (data: any) => {
+  const handleSave = async (_data: any) => {
     // TODO: Implement save logic
-    console.log("Save activity:", data);
     formDialog.closeDialog();
     activities.reload();
   };

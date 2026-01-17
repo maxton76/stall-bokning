@@ -93,20 +93,54 @@
     "unassignFromStable": "Ta bort från stall"
   },
   "filters": {
+    "title": "Filter",
+    "clearAll": "Rensa alla",
+    "search": "Sök",
     "searchPlaceholder": "Sök på namn, UELN etc...",
-    "allStatuses": "Alla statusar",
-    "allGenders": "Alla kön",
+    "stable": "Stall",
     "allStables": "Alla stall",
-    "allGroups": "Alla grupper"
+    "unassigned": "Ej tilldelad",
+    "gender": "Kön",
+    "allGenders": "Alla kön",
+    "allStatuses": "Alla statusar",
+    "allGroups": "Alla grupper",
+    "ageRange": "Åldersintervall",
+    "min": "Min",
+    "max": "Max",
+    "usage": "Användning",
+    "groups": "Grupper",
+    "status": "Status",
+    "all": "Alla",
+    "active": "Aktiv",
+    "inactive": "Inaktiv"
+  },
+  "badges": {
+    "selected": "vald"
   },
   "table": {
     "name": "Namn",
     "breed": "Ras",
     "color": "Färg",
     "gender": "Kön",
+    "age": "Ålder",
     "stable": "Stall",
+    "identification": "Identifiering",
+    "owner": "Ägare",
     "group": "Grupp",
-    "status": "Status"
+    "status": "Status",
+    "actions": "Åtgärder",
+    "unassigned": "Ej tilldelad",
+    "ueln": "UELN:",
+    "chip": "chip:",
+    "empty": "Inga hästar hittades",
+    "emptyDescription": "Prova att justera din sökning eller filter",
+    "menu": {
+      "openMenu": "Öppna meny",
+      "edit": "Redigera",
+      "assignToStable": "Tilldela stall",
+      "unassignFromStable": "Ta bort från stall",
+      "delete": "Ta bort"
+    }
   },
   "groups": {
     "title": "Hästgrupper",
@@ -169,9 +203,58 @@
     "active": "Aktiv",
     "instructions": "Instruktioner"
   },
+  "pagination": {
+    "showing": "Visar",
+    "to": "till",
+    "of": "av",
+    "horses": "hästar",
+    "previous": "Föregående",
+    "next": "Nästa",
+    "page": "Sida"
+  },
+  "export": {
+    "button": "Exportera",
+    "exporting": "Exporterar...",
+    "csv": "Exportera som CSV",
+    "excel": "Exportera som Excel",
+    "horse": "häst",
+    "horses": "hästar",
+    "error": "Kunde inte exportera data. Försök igen."
+  },
+  "mobile": {
+    "gender": "Kön:",
+    "age": "Ålder:",
+    "ueln": "UELN:"
+  },
+  "genders": {
+    "gelding": "Valack",
+    "stallion": "Hingst",
+    "mare": "Sto"
+  },
+  "usageTypes": {
+    "care": "Skötsel",
+    "sport": "Sport",
+    "breeding": "Avel"
+  },
   "buttons": {
     "update": "Uppdatera",
     "addHorse": "Lägg till häst"
+  },
+  "equipmentEditor": {
+    "title": "Utrustning",
+    "empty": "Ingen utrustning tillagd. Klicka nedan för att lägga till utrustning.",
+    "addButton": "Lägg till utrustning",
+    "namePlaceholder": "Utrustningsnamn (t.ex. Benskydd, Täcke)",
+    "locationPlaceholder": "Plats (t.ex. Sadelkammare krok 3)",
+    "notesPlaceholder": "Anteckningar (valfritt)"
+  },
+  "equipmentDisplay": {
+    "header": "Utrustning"
+  },
+  "specialInstructionsPopover": {
+    "title": "Särskilda instruktioner för {{horseName}}",
+    "loadError": "Kunde inte ladda instruktioner",
+    "noInstructions": "Inga särskilda instruktioner"
   },
   "health": {
     "title": "Hälsojournal",
@@ -554,6 +637,134 @@
       "normal": "Normal",
       "cool": "Sval",
       "warm": "Varm"
+    }
+  },
+  "settings": {
+    "page": {
+      "title": "Hästinställningar",
+      "description": "Hantera organisationsövergripande hästgrupper och vaccinationsregler (system-, organisations- och personliga)"
+    },
+    "navigation": {
+      "backToStable": "Tillbaka till stallet"
+    },
+    "loading": {
+      "stables": "Laddar stall...",
+      "groups": "Laddar grupper...",
+      "rules": "Laddar regler..."
+    },
+    "noStables": {
+      "title": "Inga stall hittades",
+      "description": "Du måste vara medlem i ett stall för att hantera hästinställningar."
+    },
+    "groups": {
+      "title": "Hästgrupper",
+      "description": "Organisera dina hästar i grupper (tillgängliga i alla stall)",
+      "addGroup": "Lägg till grupp",
+      "noGroups": "Inga grupper ännu. Skapa en för att komma igång.",
+      "dialog": {
+        "createTitle": "Skapa hästgrupp",
+        "editTitle": "Redigera hästgrupp",
+        "createDescription": "Skapa en ny grupp för att organisera dina hästar.",
+        "editDescription": "Uppdatera hästgruppens information nedan.",
+        "labels": {
+          "name": "Gruppnamn",
+          "description": "Beskrivning",
+          "color": "Färg"
+        },
+        "placeholders": {
+          "name": "t.ex. Tävlingshästar",
+          "description": "Valfri beskrivning för denna grupp"
+        },
+        "validation": {
+          "nameRequired": "Gruppnamn krävs",
+          "nameTooLong": "Namnet får inte vara längre än 50 tecken",
+          "colorRequired": "Välj en färg"
+        },
+        "colors": {
+          "blue": "Blå",
+          "green": "Grön",
+          "amber": "Bärnsten",
+          "red": "Röd",
+          "purple": "Lila",
+          "pink": "Rosa"
+        },
+        "submit": {
+          "create": "Skapa",
+          "update": "Uppdatera"
+        }
+      },
+      "deleteConfirm": "Är du säker på att du vill ta bort denna grupp? Hästar kommer att tas bort från gruppen.",
+      "messages": {
+        "createSuccess": "Hästgrupp har skapats",
+        "updateSuccess": "Hästgrupp har uppdaterats",
+        "deleteSuccess": "Hästgrupp har tagits bort",
+        "createError": "Kunde inte skapa hästgrupp",
+        "updateError": "Kunde inte uppdatera hästgrupp"
+      }
+    },
+    "vaccinationRules": {
+      "title": "Vaccinationsregler",
+      "description": "Standardregler och anpassade vaccinationskrav",
+      "addRule": "Lägg till regel",
+      "noRules": "Inga regler tillgängliga.",
+      "standard": "Standard",
+      "dialog": {
+        "createTitle": "Skapa vaccinationsregel",
+        "editTitle": "Redigera vaccinationsregel",
+        "createDescription": "Skapa en personlig eller organisationsövergripande vaccinationsregel.",
+        "editDescription": "Uppdatera vaccinationsregelns information nedan.",
+        "labels": {
+          "name": "Regelnamn",
+          "description": "Beskrivning",
+          "scope": "Regelomfattning",
+          "periodBetween": "Period mellan vaccinationer",
+          "months": "Månader",
+          "days": "Dagar",
+          "daysNotCompeting": "Dagar utan tävling efter vaccination"
+        },
+        "placeholders": {
+          "name": "t.ex. FEI-regler",
+          "description": "Valfri beskrivning för denna regel",
+          "daysNotCompeting": "t.ex. 7"
+        },
+        "validation": {
+          "nameRequired": "Regelnamn krävs",
+          "nameTooLong": "Namnet får inte vara längre än 100 tecken",
+          "monthsInvalid": "Månader måste vara 0 eller högre",
+          "daysInvalid": "Dagar måste vara 0 eller högre",
+          "periodRequired": "Perioden mellan vaccinationer måste vara minst 1 dag eller 1 månad"
+        },
+        "scope": {
+          "personal": "Personlig regel",
+          "personalDescription": "Endast synlig och redigerbar av dig",
+          "organization": "Organisationsregel",
+          "organizationDescription": "Delad med alla medlemmar i din organisation"
+        },
+        "helper": {
+          "vaccinateEvery": "Vaccinera var",
+          "enterPeriod": "Ange period mellan vaccinationer",
+          "daysNotCompetingHelp": "Antal dagar hästen inte får tävla efter vaccination"
+        },
+        "submit": {
+          "create": "Skapa",
+          "update": "Uppdatera"
+        }
+      },
+      "period": "Period",
+      "months": "månad",
+      "months_other": "månader",
+      "days": "dag",
+      "days_other": "dagar",
+      "and": "och",
+      "daysNotCompeting": "Dagar utan tävling",
+      "deleteConfirm": "Är du säker på att du vill ta bort denna regel? Hästar kommer att tas bort från regeln.",
+      "messages": {
+        "createSuccess": "Vaccinationsregel har skapats",
+        "updateSuccess": "Vaccinationsregel har uppdaterats",
+        "deleteSuccess": "Vaccinationsregel har tagits bort",
+        "createError": "Kunde inte skapa vaccinationsregel",
+        "updateError": "Kunde inte uppdatera vaccinationsregel"
+      }
     }
   }
 }

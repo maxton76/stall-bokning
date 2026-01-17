@@ -25,7 +25,13 @@ import {
   ArrowDownLeft,
   ChevronRight,
 } from "lucide-react";
-import { format, formatDistanceToNow, isToday, isYesterday } from "date-fns";
+import {
+  format,
+  formatDistanceToNow,
+  isToday,
+  isYesterday,
+  type Locale,
+} from "date-fns";
 import { sv, enUS } from "date-fns/locale";
 import { authFetch } from "@/lib/authFetch";
 import { toDate } from "@stall-bokning/shared";

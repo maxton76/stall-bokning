@@ -89,6 +89,32 @@
       "description": "Detaljerad översikt av vad varje roll kan göra",
       "action": "Åtgärd"
     },
+    "actions": {
+      "manageSettings": "Hantera organisationsinställningar",
+      "manageMembers": "Hantera medlemmar",
+      "viewAllStables": "Visa alla stall",
+      "createStables": "Skapa stall",
+      "editStableSettings": "Redigera stallinställningar",
+      "manageHorses": "Hantera hästar",
+      "viewSchedules": "Visa scheman",
+      "createSchedules": "Skapa scheman",
+      "bookShifts": "Boka pass",
+      "manageManureRecords": "Hantera gödselregister",
+      "viewIntegrations": "Visa integrationer",
+      "configureIntegrations": "Konfigurera integrationer",
+      "viewSubscription": "Visa prenumeration",
+      "manageBilling": "Hantera fakturering"
+    },
+    "roles": {
+      "administrator": "Administratör",
+      "manager": "Chef",
+      "member": "Medlem"
+    },
+    "roleDescriptions": {
+      "administrator": "Full åtkomst till alla organisationsfunktioner och inställningar",
+      "manager": "Kan hantera stall, hästar och scheman",
+      "member": "Grundläggande åtkomst för att visa och delta i stallaktiviteter"
+    },
     "customRoles": {
       "title": "Anpassade roller och avancerade behörigheter",
       "description": "Tillgängligt i Professional och Enterprise-planer",
@@ -96,16 +122,136 @@
       "specializedRoles": "Specialiserade roller tillgängliga: Veterinär, Tandläkare, Hovslagare, Skötare, Hästägare, Ryttare och fler."
     }
   },
+  "integrations": {
+    "title": "Integrationer",
+    "description": "Anslut till tredjepartstjänster",
+    "pageDescription": "Anslut externa tjänster för att utöka din organisations funktionalitet",
+    "status": {
+      "connected": "Ansluten",
+      "available": "Tillgänglig"
+    },
+    "categories": {
+      "email": "E-post",
+      "communication": "Kommunikation",
+      "payments": "Betalningar",
+      "calendar": "Kalender"
+    },
+    "items": {
+      "sendgrid": {
+        "description": "E-postleverans och marknadsföringsautomation"
+      },
+      "twilio": {
+        "description": "SMS och röstkommunikation"
+      },
+      "stripe": {
+        "description": "Betalningshantering och prenumerationer"
+      },
+      "googleCalendar": {
+        "description": "Kalendersynkronisering"
+      }
+    },
+    "buttons": {
+      "configure": "Konfigurera",
+      "disconnect": "Koppla från",
+      "connect": "Anslut"
+    },
+    "custom": {
+      "title": "Anpassade integrationer",
+      "description": "Bygg egna integrationer med vårt API",
+      "emptyState": "Inga anpassade integrationer konfigurerade ännu",
+      "createButton": "Skapa anpassad integration"
+    }
+  },
+  "manure": {
+    "title": "Gödselhantering",
+    "description": "Spåra gödselborttagning och distribution för alla stall",
+    "schedulePickup": "Schemalägg hämtning",
+    "status": {
+      "completed": "Slutförd",
+      "scheduled": "Schemalagd",
+      "cancelled": "Avbokad"
+    },
+    "stats": {
+      "thisMonth": "Denna månad",
+      "changeFromLastMonth": "{{change}} från förra månaden",
+      "scheduledPickups": "Schemalagda hämtningar",
+      "nextPickupInDays": "Nästa hämtning om {{days}} dagar",
+      "activeStables": "Aktiva stall",
+      "allStablesReporting": "Alla stall rapporterar"
+    },
+    "recentRecords": {
+      "title": "Senaste poster",
+      "description": "Historik över gödselborttagning och distribution"
+    },
+    "records": {
+      "amountEstimated": "{{amount}} ton (uppskattat)",
+      "toBeAssigned": "Ska tilldelas",
+      "notes": {
+        "deliveredToOrganicFarm": "Levererat till ekologisk gård",
+        "regularPickup": "Regelbunden hämtning",
+        "upcomingPickup": "Kommande hämtning"
+      }
+    },
+    "buttons": {
+      "viewDetails": "Visa detaljer"
+    },
+    "partners": {
+      "title": "Distributionspartners",
+      "description": "Gårdar och anläggningar som tar emot gödsel",
+      "emptyState": "Inga distributionspartners konfigurerade ännu",
+      "addButton": "Lägg till distributionspartner"
+    }
+  },
   "subscription": {
     "title": "Prenumeration",
     "description": "Hantera din prenumerationsplan",
+    "pageDescription": "Hantera din prenumeration och faktureringsinformation",
     "currentPlan": "Nuvarande plan",
+    "currentPlanDescription": "Din nuvarande prenumerationsnivå och funktioner",
     "upgrade": "Uppgradera",
-    "downgrade": "Nedgradera"
-  },
-  "integrations": {
-    "title": "Integrationer",
-    "description": "Anslut till tredjepartstjänster"
+    "downgrade": "Nedgradera",
+    "afterTrial": "(efter provperioden)",
+    "includedFeatures": "Inkluderade funktioner:",
+    "trial": {
+      "title": "Provperiod",
+      "description": "Din prenumeration är för närvarande i provperiod med alla funktioner. Du har {{days}} dagar kvar att testa alla funktioner."
+    },
+    "features": {
+      "upToMembers": "Upp till {{count}} medlemmar",
+      "unlimitedStables": "Obegränsat antal stall",
+      "advancedScheduling": "Avancerad schemaläggning",
+      "prioritySupport": "Prioriterad support",
+      "customIntegrations": "Anpassade integrationer",
+      "detailedAnalytics": "Detaljerad statistik"
+    },
+    "buttons": {
+      "changePlan": "Byt plan",
+      "upgradeNow": "Uppgradera nu"
+    },
+    "billing": {
+      "title": "Faktureringsinformation",
+      "description": "Din fakturerings- och kontaktinformation",
+      "labels": {
+        "name": "Namn",
+        "phone": "Telefonnummer",
+        "street": "Gatuadress",
+        "postcode": "Postnummer",
+        "city": "Stad",
+        "country": "Land"
+      }
+    },
+    "payment": {
+      "title": "Betalningsmetod",
+      "description": "Hantera din betalningsinformation",
+      "update": "Uppdatera",
+      "expires": "Går ut {{month}}/{{year}}",
+      "default": "Standard"
+    },
+    "history": {
+      "title": "Faktureringshistorik",
+      "description": "Dina tidigare fakturor och betalningshistorik",
+      "emptyState": "Ingen faktureringshistorik tillgänglig under provperioden"
+    }
   },
   "messages": {
     "createSuccess": "Organisation har skapats",

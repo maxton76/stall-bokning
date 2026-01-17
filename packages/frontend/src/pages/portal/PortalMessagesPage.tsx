@@ -43,7 +43,7 @@ import {
   type PortalMessagesResponse,
 } from "@/services/portalService";
 import type { PortalThread, PortalMessage } from "@stall-bokning/shared";
-import { cn } from "@/lib/utils";
+import { cn, toDate } from "@/lib/utils";
 
 export default function PortalMessagesPage() {
   const { t, i18n } = useTranslation(["portal", "common"]);
@@ -268,7 +268,7 @@ export default function PortalMessagesPage() {
                             {thread.lastMessagePreview}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {format(new Date(thread.lastMessageAt), "PPp", {
+                            {format(toDate(thread.lastMessageAt), "PPp", {
                               locale,
                             })}
                           </p>
@@ -347,7 +347,7 @@ export default function PortalMessagesPage() {
                                   : "text-muted-foreground",
                               )}
                             >
-                              {format(new Date(message.createdAt), "PPp", {
+                              {format(toDate(message.createdAt), "PPp", {
                                 locale,
                               })}
                             </p>

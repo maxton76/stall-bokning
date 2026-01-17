@@ -6,6 +6,25 @@ import type { Timestamp } from "firebase/firestore";
  */
 
 /**
+ * Recurrence Pattern for lessons and scheduled activities
+ * Used for defining repeating schedules (weekly, bi-weekly, monthly)
+ */
+export interface RecurrencePattern {
+  /** Recurrence frequency type */
+  frequency: "daily" | "weekly" | "biweekly" | "monthly";
+  /** Interval between occurrences (e.g., 2 for every 2 weeks) */
+  interval: number;
+  /** Days of week for weekly patterns (0 = Sunday, 6 = Saturday) */
+  daysOfWeek?: number[];
+  /** Day of month for monthly patterns */
+  dayOfMonth?: number;
+  /** Maximum occurrences (optional) */
+  count?: number;
+  /** End date for the recurrence (optional) */
+  until?: Timestamp | Date | string;
+}
+
+/**
  * Assignment mode for recurring activities
  * - fixed: Always assigned to specific users
  * - rotation: Rotates through a group of users (självskötare pattern)

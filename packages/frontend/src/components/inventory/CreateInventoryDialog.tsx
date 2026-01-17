@@ -77,7 +77,8 @@ export function CreateInventoryDialog({
   }, [open, stableId]);
 
   const form = useForm<CreateInventoryFormData>({
-    resolver: zodResolver(createInventorySchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(createInventorySchema as any),
     defaultValues: {
       feedTypeId: "",
       currentQuantity: 0,

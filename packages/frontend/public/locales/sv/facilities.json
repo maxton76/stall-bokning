@@ -7,6 +7,42 @@
     "manageTitle": "Hantera anläggningar",
     "manageDescription": "Konfigurera anläggningar och bokningsregler"
   },
+  "myReservations": {
+    "title": "Mina bokningar",
+    "description": "Visa och hantera dina anläggningsbokningar",
+    "selectStable": "Välj stall",
+    "availableFacilities": "Tillgängliga anläggningar",
+    "loadingFacilities": "Laddar anläggningar...",
+    "noFacilities": "Inga anläggningar tillgängliga för detta stall.",
+    "viewAvailability": "Visa tillgänglighet",
+    "myHorseReservations": "Mina hästbokningar",
+    "noUpcomingReservations": "Du har inga kommande bokningar.",
+    "noStablesAccess": "Du har inte tillgång till några stall ännu.",
+    "joinStablePrompt": "Gå med i ett stall för att börja boka.",
+    "cancelReservation": "Avboka",
+    "openMenu": "Öppna meny",
+    "cancelDialog": {
+      "title": "Avboka bokning?",
+      "description": "Är du säker på att du vill avboka denna bokning?",
+      "facilityInfo": "{{facility}} den {{date}}",
+      "cannotUndo": "Denna åtgärd kan inte ångras.",
+      "keep": "Behåll bokning",
+      "cancel": "Avboka",
+      "cancelling": "Avbokar..."
+    },
+    "toast": {
+      "cancelled": "Bokning avbokad",
+      "cancelledDescription": "Din bokning har avbokats.",
+      "cancelError": "Det gick inte att avboka bokningen. Försök igen."
+    },
+    "table": {
+      "date": "Datum",
+      "time": "Tid",
+      "facility": "Anläggning",
+      "horse": "Häst",
+      "status": "Status"
+    }
+  },
   "form": {
     "title": {
       "create": "Lägg till anläggning",
@@ -24,12 +60,21 @@
     },
     "placeholders": {
       "name": "t.ex. Stora ridhuset",
-      "description": "Kort beskrivning av anläggningen"
+      "description": "Kort beskrivning av anläggningen",
+      "type": "Välj anläggningstyp"
     },
     "sections": {
       "basicInfo": "Grundläggande information",
       "bookingRules": "Bokningsregler",
       "availability": "Tillgänglighet"
+    },
+    "submit": {
+      "create": "Skapa anläggning",
+      "update": "Spara ändringar"
+    },
+    "validation": {
+      "nameRequired": "Namn krävs",
+      "timeInvalid": "Ogiltigt tidsformat (HH:mm)"
     }
   },
   "bookingRules": {
@@ -46,8 +91,12 @@
   },
   "reservation": {
     "title": {
-      "create": "Boka anläggning",
+      "create": "Ny bokning",
       "edit": "Redigera bokning"
+    },
+    "description": {
+      "create": "Skapa en ny anläggningsbokning",
+      "edit": "Uppdatera bokningsdetaljer"
     },
     "labels": {
       "facility": "Anläggning",
@@ -55,26 +104,103 @@
       "startTime": "Starttid",
       "endTime": "Sluttid",
       "horse": "Häst",
+      "contactInfo": "Kontaktinformation",
       "notes": "Anteckningar",
       "status": "Status"
+    },
+    "placeholders": {
+      "facility": "Välj anläggning",
+      "date": "Välj datum",
+      "horse": "Välj häst",
+      "contactInfo": "Telefon eller e-post för kontakt",
+      "notes": "Ytterligare anteckningar eller speciella önskemål..."
+    },
+    "alerts": {
+      "conflictTitle": "Schemakonflikt",
+      "conflictDesc": "Denna tid överlappar med {{count}} befintlig(a) bokning(ar)."
     },
     "messages": {
       "createSuccess": "Bokning har skapats",
       "updateSuccess": "Bokning har uppdaterats",
       "deleteSuccess": "Bokning har tagits bort",
-      "cancelSuccess": "Bokning har avbokats"
+      "cancelSuccess": "Bokning har avbokats",
+      "createError": "Kunde inte skapa bokning",
+      "updateError": "Kunde inte uppdatera bokning"
     },
     "actions": {
       "book": "Boka",
       "cancel": "Avboka",
       "confirm": "Bekräfta",
-      "reject": "Avvisa"
+      "reject": "Avvisa",
+      "update": "Uppdatera bokning",
+      "create": "Skapa bokning",
+      "cancelButton": "Avboka bokning",
+      "confirmCancel": "Ja, avboka",
+      "keepIt": "Nej, behåll",
+      "cancelling": "Avbokar..."
+    },
+    "validation": {
+      "facilityRequired": "Anläggning krävs",
+      "dateRequired": "Datum krävs",
+      "timeInvalid": "Ogiltigt tidsformat",
+      "endAfterStart": "Sluttid måste vara efter starttid",
+      "horseRequired": "Häst krävs"
+    },
+    "delete": {
+      "confirmText": "Är du säker på att du vill avboka denna bokning? Denna åtgärd kan inte ångras."
     }
+  },
+  "types": {
+    "transport": "Transport",
+    "water_treadmill": "Vattenlöpband",
+    "indoor_arena": "Inomhusridhus",
+    "outdoor_arena": "Utomhusridhus",
+    "galloping_track": "Galoppbana",
+    "lunging_ring": "Longeringsbana",
+    "round_pen": "Rundhage",
+    "paddock": "Hage",
+    "solarium": "Solarium",
+    "jumping_yard": "Hoppbana",
+    "treadmill": "Löpband",
+    "vibration_plate": "Vibrationsplatta",
+    "pasture": "Betesmark",
+    "walker": "Walker",
+    "wash_stall": "Tvättspilta",
+    "tack_room": "Sadelkammare",
+    "other": "Övrigt"
+  },
+  "facilityStatus": {
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "maintenance": "Underhåll"
+  },
+  "timeSlots": {
+    "15": "15 minuter",
+    "30": "30 minuter",
+    "60": "1 timme"
+  },
+  "days": {
+    "monday": "Mån",
+    "tuesday": "Tis",
+    "wednesday": "Ons",
+    "thursday": "Tor",
+    "friday": "Fre",
+    "saturday": "Lör",
+    "sunday": "Sön"
+  },
+  "status": {
+    "confirmed": "Bekräftad",
+    "pending": "Väntande",
+    "cancelled": "Avbokad",
+    "completed": "Slutförd",
+    "no_show": "Uteblev"
   },
   "messages": {
     "createSuccess": "Anläggning har skapats",
     "updateSuccess": "Anläggning har uppdaterats",
-    "deleteSuccess": "Anläggning har tagits bort"
+    "deleteSuccess": "Anläggning har tagits bort",
+    "createError": "Kunde inte skapa anläggning",
+    "updateError": "Kunde inte uppdatera anläggning"
   },
   "actions": {
     "addFacility": "Lägg till anläggning",

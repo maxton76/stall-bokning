@@ -12,6 +12,10 @@ import { getUserOrganizations } from "../services/organizationService";
 
 interface OrganizationContextType {
   currentOrganizationId: string | null;
+  /** @deprecated Use currentOrganizationId */
+  currentOrganization: string | null;
+  /** @deprecated Use currentOrganizationId */
+  selectedOrganization: string | null;
   setCurrentOrganizationId: (id: string | null) => void;
   validating: boolean;
 }
@@ -80,14 +84,9 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
         if (organizations.length === 1) {
           // User has exactly one organization - auto-select it
           const orgId = organizations[0]!.id;
-          console.log("Auto-selecting single organization:", orgId);
           setCurrentOrganizationId(orgId);
         } else if (organizations.length > 1) {
           // User has multiple organizations - let them choose
-          console.log(
-            "User has multiple organizations, no auto-selection",
-            organizations.length,
-          );
           setCurrentOrganizationId(null);
         } else {
           // User has no organizations
@@ -115,7 +114,13 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
 
   return (
     <OrganizationContext.Provider
-      value={{ currentOrganizationId, setCurrentOrganizationId, validating }}
+      value={{
+        currentOrganizationId,
+        currentOrganization: currentOrganizationId,
+        selectedOrganization: currentOrganizationId,
+        setCurrentOrganizationId,
+        validating,
+      }}
     >
       {children}
     </OrganizationContext.Provider>
@@ -131,3 +136,8 @@ export function useOrganizationContext() {
   }
   return context;
 }
+
+/**
+ * Alias for useOrganizationContext for backward compatibility
+ */
+export const useOrganization = useOrganizationContext;

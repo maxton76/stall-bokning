@@ -1,6 +1,36 @@
 {
   "title": "Tillgänglighet",
   "description": "Hantera din tillgänglighet och ledighet",
+  "myAvailability": {
+    "title": "Min tillgänglighet",
+    "reportSick": "Sjukanmäl",
+    "addLeaveRequest": "Begär ledighet",
+    "noLeaveRequests": "Inga ledighetsansökningar ännu",
+    "selectOrganization": "Välj en organisation först."
+  },
+  "workSchedule": {
+    "title": "Arbetsschema",
+    "noSchedule": "Inget arbetsschema tilldelat ännu. Kontakta din administratör.",
+    "start": "Start",
+    "hours": "Timmar",
+    "weeklyHours": "Totalt: {{hours}}t/vecka",
+    "workDay": "Arbetsdag",
+    "off": "Ledig"
+  },
+  "balance": {
+    "title": "Saldo",
+    "perToday": "Per idag",
+    "currentBalance": "Nuvarande saldo",
+    "endOfYear": "Slut på {{year}}",
+    "buildUp": "Uppbyggnad",
+    "from": "Från {{year}}",
+    "corrections": "Korrigeringar",
+    "corrected": "Korrigerat",
+    "leave": "Ledighet",
+    "overtime": "Övertid",
+    "approved": "Godkänd",
+    "tentative": "Preliminär"
+  },
   "leave": {
     "requestTitle": "Begär ledighet",
     "partialDay": "Halv dag",
@@ -24,8 +54,152 @@
     "status": {
       "pending": "Väntande",
       "approved": "Godkänd",
-      "rejected": "Avvisad"
+      "rejected": "Avvisad",
+      "cancelled": "Avbruten"
+    },
+    "types": {
+      "vacation": "Semester",
+      "sick": "Sjukfrånvaro",
+      "parental": "Föräldraledighet",
+      "other": "Övrigt"
     }
+  },
+  "leaveManagement": {
+    "title": "Ledighetshantering",
+    "description": "Granska och hantera ledighetsansökningar från ditt team",
+    "filters": "Filter",
+    "leaveRequests": "Ledighetsansökningar",
+    "requestsFound_one": "{{count}} ansökan hittades",
+    "requestsFound_other": "{{count}} ansökningar hittades",
+    "noRequests": "Inga ledighetsansökningar hittades",
+    "reviewDialog": {
+      "approveTitle": "Godkänn ledighetsansökan",
+      "rejectTitle": "Avslå ledighetsansökan",
+      "description": "{{name}} begärde {{type}} från {{from}} till {{to}} ({{hours}}t påverkan).",
+      "noteLabel": "Anteckning (valfritt)",
+      "approvePlaceholder": "Valfri anteckning till medarbetaren...",
+      "rejectPlaceholder": "Anledning till avslag..."
+    },
+    "table": {
+      "employee": "Medarbetare",
+      "type": "Typ",
+      "period": "Period",
+      "impact": "Påverkan",
+      "status": "Status",
+      "requested": "Begärd",
+      "actions": "Åtgärder"
+    }
+  },
+  "scheduleManagement": {
+    "title": "Schemahantering",
+    "description": "Konfigurera arbetsscheman och tidsaldon för ditt team",
+    "workSchedulesTab": "Arbetsscheman",
+    "timeBalancesTab": "Tidsaldon",
+    "teamSchedules": "Teamets arbetsscheman",
+    "membersCount_one": "{{count}} medlem i organisationen",
+    "membersCount_other": "{{count}} medlemmar i organisationen",
+    "noMembers": "Inga medlemmar hittades",
+    "timeBalancesTitle": "Tidsaldon",
+    "timeBalancesDescription": "Visa och justera tidsaldon för teammedlemmar ({{year}})",
+    "schedulesTable": {
+      "member": "Medlem",
+      "roles": "Roller",
+      "weeklyHours": "Veckotimmar",
+      "scheduleStatus": "Schemastatus",
+      "effectiveFrom": "Gäller från",
+      "actions": "Åtgärder",
+      "configured": "Konfigurerad",
+      "notSet": "Ej inställt",
+      "editSchedule": "Redigera schema",
+      "setSchedule": "Ställ in schema"
+    },
+    "balancesTable": {
+      "member": "Medlem",
+      "carryover": "Överföring",
+      "buildUp": "Uppbyggnad",
+      "corrections": "Korrigeringar",
+      "usedLeave": "Använd ledighet",
+      "currentBalance": "Nuvarande saldo",
+      "actions": "Åtgärder",
+      "adjust": "Justera"
+    }
+  },
+  "reportSick": {
+    "title": "Sjukanmälan",
+    "firstSickDay": "Första sjukdagen",
+    "yesterday": "Igår",
+    "today": "Idag",
+    "other": "Annat",
+    "note": "Anteckning",
+    "notePlaceholder": "Valfri anteckning...",
+    "validation": {
+      "firstSickDayRequired": "Första sjukdagen krävs"
+    }
+  },
+  "workScheduleDialog": {
+    "editTitle": "Redigera arbetsschema",
+    "setTitle": "Ställ in arbetsschema",
+    "description": "Konfigurera det veckovisa arbetsschemat för {{name}}.",
+    "descriptionGeneric": "Konfigurera det veckovisa arbetsschemat.",
+    "effectiveFrom": "Gäller från",
+    "effectiveUntil": "Gäller till (valfritt)",
+    "weeklySchedule": "Veckoschema",
+    "totalHours": "Totalt: {{hours}}t/vecka",
+    "workDay": "Arbetsdag",
+    "off": "Ledig",
+    "start": "Start",
+    "hours": "Timmar",
+    "saveSchedule": "Spara schema",
+    "validation": {
+      "effectiveFromRequired": "Gäller från-datum krävs"
+    }
+  },
+  "balanceAdjustment": {
+    "title": "Justera tidssaldo",
+    "description": "Justera tidssaldot för {{name}}.",
+    "descriptionGeneric": "Justera tidssaldot.",
+    "currentBalance": "Nuvarande saldo",
+    "afterAdjustment": "Efter justering",
+    "year": "År",
+    "selectYear": "Välj år",
+    "type": "Typ",
+    "add": "Lägg till",
+    "subtract": "Dra ifrån",
+    "hours": "Timmar",
+    "reason": "Anledning",
+    "reasonPlaceholder": "Förklara anledningen till denna justering...",
+    "applyAdjustment": "Tillämpa justering",
+    "validation": {
+      "amountPositive": "Beloppet måste vara positivt",
+      "reasonRequired": "Anledning krävs",
+      "reasonTooLong": "Anledningen är för lång"
+    }
+  },
+  "statusFilter": {
+    "all": "Alla statusar",
+    "pending": "Väntande",
+    "approved": "Godkänd",
+    "rejected": "Avvisad",
+    "cancelled": "Avbruten"
+  },
+  "toast": {
+    "leaveRequestCreated": "Ledighetsansökan skapad",
+    "leaveRequestCreatedDescription": "Din ledighetsansökan har skickats in för godkännande.",
+    "sickLeaveReported": "Sjukfrånvaro rapporterad",
+    "sickLeaveReportedDescription": "Din sjukfrånvaro har registrerats.",
+    "requestApproved": "Ansökan godkänd",
+    "requestRejected": "Ansökan avslagen",
+    "reviewDescription": "Ledighetsansökan för {{name}} har blivit {{status}}.",
+    "scheduleSaved": "Schema sparat",
+    "scheduleDescription": "Arbetsschemat för {{name}} har uppdaterats.",
+    "balanceAdjusted": "Saldo justerat",
+    "balanceDescription": "Tidssaldot för {{name}} har uppdaterats.",
+    "error": "Fel",
+    "createLeaveError": "Det gick inte att skapa ledighetsansökan. Försök igen.",
+    "reportSickError": "Det gick inte att rapportera sjukfrånvaro. Försök igen.",
+    "reviewError": "Det gick inte att granska ledighetsansökan. Försök igen.",
+    "saveScheduleError": "Det gick inte att spara arbetsschemat. Försök igen.",
+    "adjustBalanceError": "Det gick inte att justera tidssaldot. Försök igen."
   },
   "calendar": {
     "title": "Tillgänglighetskalender",
@@ -92,5 +266,23 @@
       "leave": "Ledighet",
       "constraint": "Begränsning"
     }
+  },
+  "weekdays": {
+    "sunday": "Söndag",
+    "monday": "Måndag",
+    "tuesday": "Tisdag",
+    "wednesday": "Onsdag",
+    "thursday": "Torsdag",
+    "friday": "Fredag",
+    "saturday": "Lördag"
+  },
+  "weekdaysShort": {
+    "sun": "Sön",
+    "mon": "Mån",
+    "tue": "Tis",
+    "wed": "Ons",
+    "thu": "Tor",
+    "fri": "Fre",
+    "sat": "Lör"
   }
 }

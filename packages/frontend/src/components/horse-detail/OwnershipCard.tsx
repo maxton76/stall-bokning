@@ -357,7 +357,7 @@ export function OwnershipCard({ horse }: OwnershipCardProps) {
           </DialogHeader>
           <OwnershipForm
             horseId={horse.id}
-            ownership={ownershipDialog.data}
+            ownership={ownershipDialog.data ?? undefined}
             currentTotal={
               ownershipDialog.data
                 ? totalPercentage - (ownershipDialog.data.percentage || 0)

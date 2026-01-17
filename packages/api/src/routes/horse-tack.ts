@@ -1,11 +1,12 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
-import { canAccessHorse } from "../utils/authorization";
+import { canAccessHorse } from "../utils/authorization.js";
 import type {
   TackItem,
   CreateTackItemInput,
   UpdateTackItemInput,
-} from "@shared/types/tack";
+} from "@stall-bokning/shared";
+import type { AuthenticatedRequest } from "../types/index.js";
 
 interface TackParams {
   horseId: string;
@@ -23,7 +24,7 @@ export async function horseTackRoutes(fastify: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const { horseId } = request.params;
-      const userId = request.user?.uid;
+      const userId = (request as AuthenticatedRequest).user?.uid;
 
       if (!userId) {
         return reply.status(401).send({ error: "Unauthorized" });
@@ -64,7 +65,7 @@ export async function horseTackRoutes(fastify: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const { horseId, tackId } = request.params;
-      const userId = request.user?.uid;
+      const userId = (request as AuthenticatedRequest).user?.uid;
 
       if (!userId) {
         return reply.status(401).send({ error: "Unauthorized" });
@@ -110,7 +111,7 @@ export async function horseTackRoutes(fastify: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const { horseId } = request.params;
-      const userId = request.user?.uid;
+      const userId = (request as AuthenticatedRequest).user?.uid;
       const itemData = request.body;
 
       if (!userId) {
@@ -134,8 +135,8 @@ export async function horseTackRoutes(fastify: FastifyInstance) {
         return date;
       };
 
-      // Create the tack item
-      const newItem: Omit<TackItem, "id"> = {
+      // Create the tack item (without explicit type to avoid Timestamp incompatibility)
+      const newItem = {
         horseId,
         horseName,
         category: itemData.category,
@@ -199,7 +200,7 @@ export async function horseTackRoutes(fastify: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const { horseId, tackId } = request.params;
-      const userId = request.user?.uid;
+      const userId = (request as AuthenticatedRequest).user?.uid;
       const updateData = request.body;
 
       if (!userId) {
@@ -297,7 +298,7 @@ export async function horseTackRoutes(fastify: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const { horseId, tackId } = request.params;
-      const userId = request.user?.uid;
+      const userId = (request as AuthenticatedRequest).user?.uid;
 
       if (!userId) {
         return reply.status(401).send({ error: "Unauthorized" });

@@ -16,6 +16,7 @@ import {
   type MemberTrackingState,
 } from "@/utils/shiftTracking";
 import { toDate } from "@/utils/timestampUtils";
+import { authFetchJSON } from "@/utils/authFetch";
 
 // ============= Schedules =============
 
@@ -23,8 +24,6 @@ export async function createSchedule(
   data: CreateScheduleData,
   userId: string,
 ): Promise<string> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const scheduleData = {
     name: data.name,
     stableId: data.stableId,
@@ -51,8 +50,6 @@ export async function publishSchedule(
   scheduleId: string,
   userId: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/schedules/${scheduleId}/publish`,
     {
@@ -137,8 +134,6 @@ export async function calculateHistoricalPoints(
   memberIds: string[],
   memoryHorizonDays: number = 90,
 ): Promise<Map<string, number>> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const historicalPoints = new Map<string, number>();
   memberIds.forEach((id) => historicalPoints.set(id, 0));
 
@@ -202,8 +197,6 @@ export async function autoAssignShifts(
   historicalPoints?: Map<string, number>,
   _triggeredByUserId?: string,
 ): Promise<number> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const historicalPointsObj = historicalPoints
     ? Object.fromEntries(historicalPoints.entries())
     : undefined;
@@ -225,8 +218,6 @@ export async function autoAssignShifts(
 export async function getSchedule(
   scheduleId: string,
 ): Promise<Schedule | null> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   try {
     const response = await authFetchJSON<Schedule & { id: string }>(
       `${import.meta.env.VITE_API_URL}/api/v1/schedules/${scheduleId}`,
@@ -242,8 +233,6 @@ export async function getSchedule(
 export async function getSchedulesByStable(
   stableId: string,
 ): Promise<Schedule[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ schedules: Schedule[] }>(
     `${import.meta.env.VITE_API_URL}/api/v1/schedules/stable/${stableId}`,
     { method: "GET" },
@@ -255,8 +244,6 @@ export async function getSchedulesByStable(
 export async function getAllSchedulesForUser(
   userId: string,
 ): Promise<Schedule[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ schedules: Schedule[] }>(
     `${import.meta.env.VITE_API_URL}/api/v1/schedules/user/${userId}`,
     { method: "GET" },
@@ -271,8 +258,6 @@ export async function createShifts(
   _scheduleId: string, // Included for API consistency
   shifts: Omit<Shift, "id">[],
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   // Convert Timestamp dates to ISO strings for API
   const shiftsData = shifts.map((shift) => ({
     ...shift,
@@ -296,8 +281,6 @@ export async function createShifts(
 export async function getShiftsBySchedule(
   scheduleId: string,
 ): Promise<Shift[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const params = new URLSearchParams({ scheduleId });
 
   const response = await authFetchJSON<{ shifts: Shift[] }>(
@@ -313,8 +296,6 @@ export async function getShiftsByDateRange(
   startDate: Date,
   endDate: Date,
 ): Promise<Shift[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const params = new URLSearchParams({
     stableId,
     startDate: startDate.toISOString(),
@@ -330,8 +311,6 @@ export async function getShiftsByDateRange(
 }
 
 export async function getUnassignedShifts(stableId?: string): Promise<Shift[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const params = new URLSearchParams();
   if (stableId) {
     params.append("stableId", stableId);
@@ -354,8 +333,6 @@ export async function assignShift(
   userEmail: string,
   assignerId?: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}/assign`,
     {
@@ -374,8 +351,6 @@ export async function unassignShift(
   shiftId: string,
   unassignerId?: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}/unassign`,
     {
@@ -388,8 +363,6 @@ export async function unassignShift(
 }
 
 export async function deleteShift(shiftId: string): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}`,
     { method: "DELETE" },
@@ -405,8 +378,6 @@ export async function completeShift(
   shiftId: string,
   notes?: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}/complete`,
     {
@@ -423,8 +394,6 @@ export async function cancelShift(
   shiftId: string,
   reason: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}/cancel`,
     {
@@ -441,8 +410,6 @@ export async function markShiftMissed(
   shiftId: string,
   reason?: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}/missed`,
     {
@@ -455,8 +422,6 @@ export async function markShiftMissed(
 export async function deleteScheduleAndShifts(
   scheduleId: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/schedules/${scheduleId}`,
     { method: "DELETE" },
@@ -514,8 +479,6 @@ export function generateShifts(
 export async function getPublishedShiftsForStables(
   stableIds: string[],
 ): Promise<Shift[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ shifts: Shift[] }>(
     `${import.meta.env.VITE_API_URL}/api/v1/shifts?` +
       `stableIds=${stableIds.join(",")}&status=published`,

@@ -77,7 +77,7 @@ export default function PaymentSettingsPage() {
   >("daily");
   const [statementDescriptor, setStatementDescriptor] = useState("");
 
-  const orgId = organizationId || currentOrganization?.id;
+  const orgId = organizationId || currentOrganization;
 
   useEffect(() => {
     if (orgId) {

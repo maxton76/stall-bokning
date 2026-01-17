@@ -1,6 +1,7 @@
 import { Timestamp } from "firebase/firestore";
 import type { LocationHistory } from "@/types/roles";
 import { toDate } from "@/utils/timestampUtils";
+import { authFetchJSON } from "@/utils/authFetch";
 
 // ============================================================================
 // Create Operations
@@ -24,8 +25,6 @@ export async function createLocationHistoryEntry(
   userId: string,
   arrivalDate?: Timestamp,
 ): Promise<string> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const entryData = {
     locationType: "stable" as const,
     stableId,
@@ -69,8 +68,6 @@ export async function createExternalLocationHistoryEntry(
   contactId?: string,
   moveReason?: string,
 ): Promise<string> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const entryData = {
     locationType: "external" as const,
     externalLocation,
@@ -136,7 +133,6 @@ export async function closeLocationHistoryEntry(
   }
 
   // Close the entry via API
-  const { authFetchJSON } = await import("@/utils/authFetch");
 
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/location-history/${horseId}/${currentLocation.id}/close`,
@@ -163,8 +159,6 @@ export async function closeLocationHistoryEntry(
 export async function getHorseLocationHistory(
   horseId: string,
 ): Promise<LocationHistory[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ history: LocationHistory[] }>(
     `${import.meta.env.VITE_API_URL}/api/v1/location-history/horse/${horseId}`,
     { method: "GET" },
@@ -181,8 +175,6 @@ export async function getHorseLocationHistory(
 export async function getCurrentLocation(
   horseId: string,
 ): Promise<LocationHistory | null> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{
     currentLocation: LocationHistory | null;
   }>(
@@ -207,8 +199,6 @@ export async function getUserHorseLocationHistory(
     console.warn("getUserHorseLocationHistory called without userId");
     return [];
   }
-
-  const { authFetchJSON } = await import("@/utils/authFetch");
 
   const response = await authFetchJSON<{ history: LocationHistory[] }>(
     `${import.meta.env.VITE_API_URL}/api/v1/location-history/user/${userId}`,

@@ -233,7 +233,7 @@ export default function ContactDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={editDialog.openDialog}>
+          <Button variant="outline" onClick={() => editDialog.openDialog()}>
             <Edit className="mr-2 h-4 w-4" />
             {t("common:actions.edit")}
           </Button>

@@ -1,4 +1,32 @@
 {
+  "categories": {
+    "roughage": "Roughage",
+    "concentrate": "Concentrate",
+    "supplement": "Supplement",
+    "medicine": "Medicine"
+  },
+  "measurements": {
+    "scoop": "Scoop",
+    "teaspoon": "Teaspoon",
+    "tablespoon": "Tablespoon",
+    "cup": "Cup",
+    "ml": "Milliliter",
+    "l": "Liter",
+    "g": "Gram",
+    "kg": "Kilogram",
+    "custom": "Custom measure"
+  },
+  "abbreviations": {
+    "scoop": "scoop",
+    "teaspoon": "tsp",
+    "tablespoon": "tbsp",
+    "cup": "cup",
+    "ml": "ml",
+    "l": "L",
+    "g": "g",
+    "kg": "kg",
+    "custom": ""
+  },
   "page": {
     "scheduleTitle": "Feeding Schedule",
     "scheduleDescription": "View and manage horse feeding schedules",

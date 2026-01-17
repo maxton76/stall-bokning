@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Plus, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,14 +26,14 @@ import {
 } from "@/hooks/useAvailability";
 import { formatPeriodDisplay } from "@/services/availabilityService";
 import { useToast } from "@/hooks/use-toast";
-import {
-  LEAVE_TYPE_LABELS,
-  STATUS_BADGES,
-  DAY_NAMES_SHORT,
-  DEFAULT_SCHEDULE,
-} from "@/lib/availabilityConstants";
+import { STATUS_BADGES, DEFAULT_SCHEDULE } from "@/lib/availabilityConstants";
+import type { LeaveType, LeaveStatus } from "@stall-bokning/shared";
+
+// Weekday keys in Sunday-first order for translation lookup
+const WEEKDAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
 export default function MyAvailabilityPage() {
+  const { t } = useTranslation(["availability", "common"]);
   const { user } = useAuth();
   const { currentOrganizationId } = useOrganizationContext();
   const { toast } = useToast();
@@ -76,6 +77,25 @@ export default function MyAvailabilityPage() {
     return schedule;
   }, [workScheduleData]);
 
+  // Get translated leave type label
+  const getLeaveTypeLabel = (type: LeaveType): string => {
+    return t(`leave.types.${type}`);
+  };
+
+  // Get translated status badge
+  const getStatusBadge = (status: LeaveStatus) => {
+    const badge = STATUS_BADGES[status];
+    return {
+      variant: badge.variant,
+      label: t(`leave.status.${status}`),
+    };
+  };
+
+  // Get translated weekday name (short)
+  const getWeekdayShort = (dayOfWeek: number): string => {
+    return t(`weekdaysShort.${WEEKDAY_KEYS[dayOfWeek]}`);
+  };
+
   const handleSaveLeaveRequest = async (data: {
     firstDay: string;
     lastDay: string;
@@ -91,14 +111,14 @@ export default function MyAvailabilityPage() {
         note: data.note,
       });
       toast({
-        title: "Leave request created",
-        description: "Your leave request has been submitted for approval.",
+        title: t("toast.leaveRequestCreated"),
+        description: t("toast.leaveRequestCreatedDescription"),
       });
       requestLeaveDialog.closeDialog();
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to create leave request. Please try again.",
+        title: t("toast.error"),
+        description: t("toast.createLeaveError"),
         variant: "destructive",
       });
     }
@@ -117,14 +137,14 @@ export default function MyAvailabilityPage() {
         note: data.note,
       });
       toast({
-        title: "Sick leave reported",
-        description: "Your sick leave has been recorded.",
+        title: t("toast.sickLeaveReported"),
+        description: t("toast.sickLeaveReportedDescription"),
       });
       reportSickDialog.closeDialog();
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to report sick leave. Please try again.",
+        title: t("toast.error"),
+        description: t("toast.reportSickError"),
         variant: "destructive",
       });
     }
@@ -135,7 +155,7 @@ export default function MyAvailabilityPage() {
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center h-64">
           <p className="text-muted-foreground">
-            Please select an organization first.
+            {t("myAvailability.selectOrganization")}
           </p>
         </div>
       </div>
@@ -146,7 +166,9 @@ export default function MyAvailabilityPage() {
     <div className="container mx-auto p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">My availability</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {t("myAvailability.title")}
+        </h1>
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
@@ -154,14 +176,14 @@ export default function MyAvailabilityPage() {
             disabled={reportSickLeave.isPending}
           >
             <Stethoscope className="mr-2 h-4 w-4" />
-            Report sick
+            {t("myAvailability.reportSick")}
           </Button>
           <Button
             onClick={() => requestLeaveDialog.openDialog()}
             disabled={createLeaveRequest.isPending}
           >
             <Plus className="mr-2 h-4 w-4" />
-            Add leave request
+            {t("myAvailability.addLeaveRequest")}
           </Button>
         </div>
       </div>
@@ -177,10 +199,18 @@ export default function MyAvailabilityPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[150px]">Type</TableHead>
-                    <TableHead className="w-[200px]">Period</TableHead>
-                    <TableHead className="w-[100px]">Impact</TableHead>
-                    <TableHead className="w-[100px]">Status</TableHead>
+                    <TableHead className="w-[150px]">
+                      {t("common:labels.type")}
+                    </TableHead>
+                    <TableHead className="w-[200px]">
+                      {t("leaveManagement.table.period")}
+                    </TableHead>
+                    <TableHead className="w-[100px]">
+                      {t("leaveManagement.table.impact")}
+                    </TableHead>
+                    <TableHead className="w-[100px]">
+                      {t("common:labels.status")}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -190,29 +220,32 @@ export default function MyAvailabilityPage() {
                         colSpan={4}
                         className="text-center text-muted-foreground py-8"
                       >
-                        No leave requests yet
+                        {t("myAvailability.noLeaveRequests")}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    leaveRequestsData.map((request) => (
-                      <TableRow key={request.id}>
-                        <TableCell>{LEAVE_TYPE_LABELS[request.type]}</TableCell>
-                        <TableCell>
-                          {formatPeriodDisplay(
-                            request.firstDay,
-                            request.lastDay,
-                          )}
-                        </TableCell>
-                        <TableCell>{request.impactHours}h</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={STATUS_BADGES[request.status].variant}
-                          >
-                            {STATUS_BADGES[request.status].label}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    leaveRequestsData.map((request) => {
+                      const statusBadge = getStatusBadge(request.status);
+                      return (
+                        <TableRow key={request.id}>
+                          <TableCell>
+                            {getLeaveTypeLabel(request.type)}
+                          </TableCell>
+                          <TableCell>
+                            {formatPeriodDisplay(
+                              request.firstDay,
+                              request.lastDay,
+                            )}
+                          </TableCell>
+                          <TableCell>{request.impactHours}h</TableCell>
+                          <TableCell>
+                            <Badge variant={statusBadge.variant}>
+                              {statusBadge.label}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
@@ -221,7 +254,7 @@ export default function MyAvailabilityPage() {
             {/* Work Schedule Card */}
             <Card>
               <CardHeader>
-                <CardTitle>Work schedule</CardTitle>
+                <CardTitle>{t("workSchedule.title")}</CardTitle>
               </CardHeader>
               <CardContent>
                 {workSchedule.data ? (
@@ -232,16 +265,16 @@ export default function MyAvailabilityPage() {
                         className="text-center p-4 border rounded-lg"
                       >
                         <div className="font-medium text-sm mb-2">
-                          {DAY_NAMES_SHORT[day.dayOfWeek]}
+                          {getWeekdayShort(day.dayOfWeek)}
                         </div>
                         <div className="text-xs text-muted-foreground mb-1">
-                          Start
+                          {t("workSchedule.start")}
                         </div>
                         <div className="font-semibold mb-3">
                           {day.isWorkDay ? day.startTime : "-"}
                         </div>
                         <div className="text-xs text-muted-foreground mb-1">
-                          Hours
+                          {t("workSchedule.hours")}
                         </div>
                         <div className="text-3xl font-bold">
                           {day.hours || "-"}
@@ -251,7 +284,7 @@ export default function MyAvailabilityPage() {
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
-                    No work schedule assigned yet. Contact your administrator.
+                    {t("workSchedule.noSchedule")}
                   </div>
                 )}
               </CardContent>
@@ -262,21 +295,23 @@ export default function MyAvailabilityPage() {
           <div className="space-y-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Balance</CardTitle>
-                <p className="text-sm text-muted-foreground">Per today</p>
+                <CardTitle className="text-lg">{t("balance.title")}</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {t("balance.perToday")}
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Current Balance */}
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">
-                      Current balance
+                      {t("balance.currentBalance")}
                     </p>
                     <p className="text-3xl font-bold">
                       {timeBalanceData.currentBalance}h
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      End of {timeBalanceData.year}:{" "}
+                      {t("balance.endOfYear", { year: timeBalanceData.year })}:{" "}
                       {timeBalanceData.endOfYearProjection}h
                     </p>
                   </div>
@@ -284,7 +319,7 @@ export default function MyAvailabilityPage() {
 
                 <div className="border-t pt-4 space-y-2">
                   <BalanceSection
-                    title="Build up"
+                    title={t("balance.buildUp")}
                     total={
                       timeBalanceData.carryoverFromPreviousYear +
                       timeBalanceData.buildUpHours
@@ -293,31 +328,33 @@ export default function MyAvailabilityPage() {
                     onToggle={setBuildUpOpen}
                     details={[
                       {
-                        label: `From ${timeBalanceData.year - 1}`,
+                        label: t("balance.from", {
+                          year: timeBalanceData.year - 1,
+                        }),
                         value: timeBalanceData.carryoverFromPreviousYear,
                       },
                       {
-                        label: "Build up",
+                        label: t("balance.buildUp"),
                         value: timeBalanceData.buildUpHours,
                       },
                     ]}
                   />
 
                   <BalanceSection
-                    title="Corrections"
+                    title={t("balance.corrections")}
                     total={timeBalanceData.corrections}
                     isOpen={correctionsOpen}
                     onToggle={setCorrectionsOpen}
                     details={[
                       {
-                        label: "Corrected",
+                        label: t("balance.corrected"),
                         value: timeBalanceData.corrections,
                       },
                     ]}
                   />
 
                   <BalanceSection
-                    title="Leave"
+                    title={t("balance.leave")}
                     total={
                       timeBalanceData.approvedLeave +
                       timeBalanceData.tentativeLeave
@@ -326,24 +363,24 @@ export default function MyAvailabilityPage() {
                     onToggle={setLeaveOpen}
                     details={[
                       {
-                        label: "Approved",
+                        label: t("balance.approved"),
                         value: timeBalanceData.approvedLeave,
                       },
                       {
-                        label: "Tentative",
+                        label: t("balance.tentative"),
                         value: timeBalanceData.tentativeLeave,
                       },
                     ]}
                   />
 
                   <BalanceSection
-                    title="Overtime"
+                    title={t("balance.overtime")}
                     total={timeBalanceData.approvedOvertime}
                     isOpen={overtimeOpen}
                     onToggle={setOvertimeOpen}
                     details={[
                       {
-                        label: "Approved",
+                        label: t("balance.approved"),
                         value: timeBalanceData.approvedOvertime,
                       },
                     ]}

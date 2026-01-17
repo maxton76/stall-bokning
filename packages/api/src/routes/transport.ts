@@ -1,10 +1,8 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
-import { canAccessHorse } from "../utils/authorization";
-import type {
-  TransportInstructions,
-  UpdateTransportInstructionsInput,
-} from "@shared/types/transport";
+import { canAccessHorse } from "../utils/authorization.js";
+import type { UpdateTransportInstructionsInput } from "@stall-bokning/shared";
+import type { AuthenticatedRequest } from "../types/index.js";
 
 interface TransportParams {
   horseId: string;
@@ -21,7 +19,7 @@ export async function transportRoutes(fastify: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const { horseId } = request.params;
-      const userId = request.user?.uid;
+      const userId = (request as AuthenticatedRequest).user?.uid;
 
       if (!userId) {
         return reply.status(401).send({ error: "Unauthorized" });
@@ -61,7 +59,7 @@ export async function transportRoutes(fastify: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const { horseId } = request.params;
-      const userId = request.user?.uid;
+      const userId = (request as AuthenticatedRequest).user?.uid;
       const transportData = request.body;
 
       if (!userId) {
@@ -80,8 +78,8 @@ export async function transportRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ error: "Horse not found" });
       }
 
-      // Build transport instructions object
-      const transportInstructions: TransportInstructions = {
+      // Build transport instructions object (without explicit type to avoid Timestamp incompatibility)
+      const transportInstructions = {
         // Loading behavior
         loadingBehavior: transportData.loadingBehavior,
         loadingNotes: transportData.loadingNotes,
@@ -166,7 +164,7 @@ export async function transportRoutes(fastify: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const { horseId } = request.params;
-      const userId = request.user?.uid;
+      const userId = (request as AuthenticatedRequest).user?.uid;
 
       if (!userId) {
         return reply.status(401).send({ error: "Unauthorized" });
@@ -199,7 +197,7 @@ export async function transportRoutes(fastify: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const { horseId } = request.params;
-      const userId = request.user?.uid;
+      const userId = (request as AuthenticatedRequest).user?.uid;
 
       if (!userId) {
         return reply.status(401).send({ error: "Unauthorized" });

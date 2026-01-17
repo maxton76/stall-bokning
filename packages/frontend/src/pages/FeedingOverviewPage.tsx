@@ -118,7 +118,7 @@ export default function FeedingOverviewPage() {
 
   // Auto-select first stable
   useEffect(() => {
-    if (stables.length > 0 && !selectedStableId) {
+    if (stables.length > 0 && !selectedStableId && stables[0]) {
       setSelectedStableId(stables[0].id);
     }
   }, [stables, selectedStableId]);
@@ -126,8 +126,9 @@ export default function FeedingOverviewPage() {
   // Load analytics when stable or period changes
   useEffect(() => {
     if (selectedStableId) {
-      analytics.load();
+      void analytics.load();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStableId, period, referenceDate]);
 
   // Calculate date range for display

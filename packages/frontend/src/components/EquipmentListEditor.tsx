@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ export function EquipmentListEditor({
   value,
   onChange,
 }: EquipmentListEditorProps) {
+  const { t } = useTranslation(["horses"]);
   const addItem = () => {
     const newItem: EquipmentItem = {
       id: crypto.randomUUID(),
@@ -41,11 +43,13 @@ export function EquipmentListEditor({
 
   return (
     <div className="space-y-3">
-      <Label className="text-sm font-medium">Equipment</Label>
+      <Label className="text-sm font-medium">
+        {t("equipmentEditor.title")}
+      </Label>
 
       {value.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No equipment added. Click below to add equipment items.
+          {t("equipmentEditor.empty")}
         </p>
       ) : (
         <div className="space-y-2">
@@ -56,14 +60,14 @@ export function EquipmentListEditor({
             >
               <div className="flex-1 space-y-2">
                 <Input
-                  placeholder="Equipment name (e.g., Boots, Blanket)"
+                  placeholder={t("equipmentEditor.namePlaceholder")}
                   value={item.name}
                   onChange={(e) => updateItem(item.id, "name", e.target.value)}
                   className="h-8"
                 />
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Location (e.g., Tack room hook 3)"
+                    placeholder={t("equipmentEditor.locationPlaceholder")}
                     value={item.location || ""}
                     onChange={(e) =>
                       updateItem(item.id, "location", e.target.value)
@@ -71,7 +75,7 @@ export function EquipmentListEditor({
                     className="h-8 flex-1"
                   />
                   <Input
-                    placeholder="Notes (optional)"
+                    placeholder={t("equipmentEditor.notesPlaceholder")}
                     value={item.notes || ""}
                     onChange={(e) =>
                       updateItem(item.id, "notes", e.target.value)
@@ -102,7 +106,7 @@ export function EquipmentListEditor({
         className="w-full"
       >
         <Plus className="mr-2 h-4 w-4" />
-        Add Equipment
+        {t("equipmentEditor.addButton")}
       </Button>
     </div>
   );

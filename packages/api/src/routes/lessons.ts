@@ -1,10 +1,10 @@
-import type { FastifyInstance, FastifyRequest } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
 import {
   authenticate,
-  requireOrganizationMember,
+  requireOrganizationAccess,
   type AuthenticatedRequest,
 } from "../middleware/auth.js";
 import type {
@@ -12,13 +12,8 @@ import type {
   Lesson,
   LessonBooking,
   Instructor,
-  InstructorAvailability,
-  LessonScheduleTemplate,
-  LessonLevel,
-  LessonCategory,
   LessonStatus,
   BookingStatus,
-  CancellationPolicyType,
 } from "@stall-bokning/shared";
 
 // ============================================
@@ -43,13 +38,17 @@ const createLessonTypeSchema = z.object({
   minParticipants: z.number().min(1).default(1),
   maxParticipants: z.number().min(1).max(50),
   requiresOwnHorse: z.boolean().default(false),
+  schoolHorseAvailable: z.boolean().default(false),
+  schoolHorsePrice: z.number().min(0).optional(),
   color: z.string().optional(),
-  pricing: z.object({
-    basePrice: z.number().min(0),
-    currency: z.string().default("SEK"),
-    perParticipant: z.boolean().default(false),
-    memberDiscount: z.number().min(0).max(100).optional(),
-  }),
+  pricing: z
+    .object({
+      basePrice: z.number().min(0),
+      currency: z.string().default("SEK"),
+      perParticipant: z.boolean().default(false),
+      memberDiscount: z.number().min(0).max(100).optional(),
+    })
+    .optional(),
   cancellationPolicy: z
     .object({
       type: z.enum(["strict", "moderate", "flexible", "custom"]),
@@ -59,7 +58,13 @@ const createLessonTypeSchema = z.object({
       fullRefundHours: z.number().optional(),
     })
     .optional(),
+  requiredFacilityTypes: z.array(z.string()).optional(),
+  allowedInstructorIds: z.array(z.string()).optional(),
+  bookingWindowDays: z.number().min(1).default(30),
+  allowWaitlist: z.boolean().default(false),
+  requiresApproval: z.boolean().default(false),
   isActive: z.boolean().default(true),
+  isPublic: z.boolean().default(true),
 });
 
 const updateLessonTypeSchema = createLessonTypeSchema.partial();
@@ -174,10 +179,6 @@ function toFirestoreTimestamp(dateString: string): Timestamp {
   return Timestamp.fromDate(new Date(dateString));
 }
 
-function fromFirestoreTimestamp(timestamp: Timestamp): string {
-  return timestamp.toDate().toISOString();
-}
-
 // ============================================
 // Routes
 // ============================================
@@ -194,9 +195,9 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lesson-types",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
-    async (request, reply) => {
+    async (request, _reply) => {
       const { organizationId } = request.params;
       const includeInactive = request.query.includeInactive === "true";
 
@@ -227,7 +228,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lesson-types",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
     async (request, reply) => {
       const { organizationId } = request.params;
@@ -239,18 +240,38 @@ export async function lessonRoutes(fastify: FastifyInstance) {
         .collection("lessonTypes")
         .doc();
 
-      const lessonType: Omit<LessonType, "id"> = {
+      // Build lesson type without explicit type annotation to avoid Timestamp incompatibility
+      const lessonType = {
         organizationId,
-        ...validatedData,
-        pricing: {
-          ...validatedData.pricing,
-          currency: validatedData.pricing?.currency || "SEK",
-        },
-        cancellationPolicy: validatedData.cancellationPolicy || {
-          type: "moderate" as CancellationPolicyType,
-        },
+        name: validatedData.name,
+        description: validatedData.description,
+        category: validatedData.category,
+        level: validatedData.level || "beginner",
+        durationMinutes: validatedData.defaultDuration,
+        defaultDuration: validatedData.defaultDuration,
+        minParticipants: validatedData.minParticipants || 1,
+        maxParticipants: validatedData.maxParticipants,
+        isGroupLesson: validatedData.maxParticipants > 1,
+        color: validatedData.color,
+        price: validatedData.pricing?.basePrice || 0,
+        currency: validatedData.pricing?.currency || "SEK",
+        pricing: validatedData.pricing,
+        requiresOwnHorse: validatedData.requiresOwnHorse || false,
+        schoolHorseAvailable: validatedData.schoolHorseAvailable || false,
+        schoolHorsePrice: validatedData.schoolHorsePrice,
+        requiredFacilityTypes: validatedData.requiredFacilityTypes,
+        allowedInstructorIds: validatedData.allowedInstructorIds,
+        bookingWindowDays: validatedData.bookingWindowDays || 30,
+        cancellationPolicy:
+          validatedData.cancellationPolicy?.type || "moderate",
+        allowWaitlist: validatedData.allowWaitlist || false,
+        requiresApproval: validatedData.requiresApproval || false,
+        isActive: validatedData.isActive ?? true,
+        isPublic: validatedData.isPublic ?? true,
         createdAt: Timestamp.now(),
+        createdBy: (request as AuthenticatedRequest).user!.uid,
         updatedAt: Timestamp.now(),
+        updatedBy: (request as AuthenticatedRequest).user!.uid,
       };
 
       await lessonTypeRef.set(lessonType);
@@ -269,7 +290,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lesson-types/:lessonTypeId",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
     async (request, reply) => {
       const { organizationId, lessonTypeId } = request.params;
@@ -302,9 +323,9 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lesson-types/:lessonTypeId",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
-    async (request, reply) => {
+    async (request, _reply) => {
       const { organizationId, lessonTypeId } = request.params;
 
       const lessonTypeRef = db
@@ -333,9 +354,9 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/instructors",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
-    async (request, reply) => {
+    async (request, _reply) => {
       const { organizationId } = request.params;
       const includeInactive = request.query.includeInactive === "true";
 
@@ -366,7 +387,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/instructors",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
     async (request, reply) => {
       const { organizationId } = request.params;
@@ -378,7 +399,8 @@ export async function lessonRoutes(fastify: FastifyInstance) {
         .collection("instructors")
         .doc();
 
-      const instructor: Omit<Instructor, "id"> = {
+      // Build instructor without explicit type annotation to avoid Timestamp incompatibility
+      const instructor = {
         organizationId,
         ...validatedData,
         createdAt: Timestamp.now(),
@@ -401,7 +423,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/instructors/:instructorId",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
     async (request, reply) => {
       const { organizationId, instructorId } = request.params;
@@ -435,7 +457,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/instructors/:instructorId/availability",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
     async (request, reply) => {
       const { organizationId, instructorId } = request.params;
@@ -449,7 +471,8 @@ export async function lessonRoutes(fastify: FastifyInstance) {
         .collection("availability")
         .doc();
 
-      const availability: Omit<InstructorAvailability, "id"> = {
+      // Build availability without explicit type annotation to avoid Timestamp incompatibility
+      const availability = {
         instructorId,
         organizationId,
         ...validatedData,
@@ -476,9 +499,9 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/instructors/:instructorId/availability",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
-    async (request, reply) => {
+    async (request, _reply) => {
       const { organizationId, instructorId } = request.params;
 
       const snapshot = await db
@@ -517,9 +540,9 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
-    async (request, reply) => {
+    async (request, _reply) => {
       const { organizationId } = request.params;
       const {
         startDate,
@@ -578,7 +601,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/:lessonId",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
     async (request, reply) => {
       const { organizationId, lessonId } = request.params;
@@ -615,7 +638,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
     async (request, reply) => {
       const { organizationId } = request.params;
@@ -654,7 +677,8 @@ export async function lessonRoutes(fastify: FastifyInstance) {
         .collection("lessons")
         .doc();
 
-      const lesson: Omit<Lesson, "id"> = {
+      // Build lesson without explicit type annotation to avoid Timestamp incompatibility
+      const lesson = {
         organizationId,
         lessonTypeId: validatedData.lessonTypeId,
         lessonTypeName: lessonTypeData.name,
@@ -669,12 +693,12 @@ export async function lessonRoutes(fastify: FastifyInstance) {
           validatedData.maxParticipants || lessonTypeData.maxParticipants,
         currentParticipants: 0,
         waitlistCount: 0,
-        price: lessonTypeData.pricing.basePrice,
-        currency: lessonTypeData.pricing.currency,
+        price: lessonTypeData.price,
+        currency: lessonTypeData.currency,
         notes: validatedData.notes,
         isRecurring: validatedData.isRecurring,
         recurringPatternId: validatedData.recurringPatternId,
-        createdBy: auth.user.uid,
+        createdBy: auth.user!.uid,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
@@ -695,7 +719,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/:lessonId",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
     async (request, reply) => {
       const { organizationId, lessonId } = request.params;
@@ -753,11 +777,12 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/:lessonId/cancel",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
     async (request, reply) => {
       const { organizationId, lessonId } = request.params;
-      const { reason, notifyParticipants = true } = request.body || {};
+      const { reason, notifyParticipants: _notifyParticipants = true } =
+        request.body || {};
 
       const lessonRef = db
         .collection("organizations")
@@ -805,9 +830,9 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/:lessonId/bookings",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
-    async (request, reply) => {
+    async (request, _reply) => {
       const { organizationId, lessonId } = request.params;
 
       const snapshot = await db
@@ -835,7 +860,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/:lessonId/bookings",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
     async (request, reply) => {
       const { organizationId, lessonId } = request.params;
@@ -883,7 +908,16 @@ export async function lessonRoutes(fastify: FastifyInstance) {
 
       const bookingRef = lessonRef.collection("bookings").doc();
 
-      const booking: Omit<LessonBooking, "id"> = {
+      // Get price from lesson data (stored as custom field on creation)
+      // Cast through unknown to access custom fields not in the Lesson type
+      const lessonDataRecord = lessonData as unknown as Record<string, unknown>;
+      const lessonPrice = (lessonDataRecord.price as number) || 0;
+      const lessonCurrency = (lessonDataRecord.currency as string) || "SEK";
+      const lessonWaitlistCount =
+        (lessonDataRecord.waitlistCount as number) || 0;
+
+      // Build booking without explicit type annotation to avoid Timestamp incompatibility
+      const booking = {
         lessonId,
         organizationId,
         participantContactId: validatedData.participantContactId,
@@ -891,10 +925,10 @@ export async function lessonRoutes(fastify: FastifyInstance) {
         horseId: validatedData.horseId,
         status: isWaitlisted ? "waitlisted" : ("pending" as BookingStatus),
         paymentStatus: "pending",
-        amountDue: lessonData.price,
-        currency: lessonData.currency,
+        amountDue: lessonPrice,
+        currency: lessonCurrency,
         notes: validatedData.notes,
-        bookedBy: auth.user.uid,
+        bookedBy: auth.user!.uid,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
@@ -907,8 +941,8 @@ export async function lessonRoutes(fastify: FastifyInstance) {
           ? lessonData.currentParticipants
           : lessonData.currentParticipants + 1,
         waitlistCount: isWaitlisted
-          ? (lessonData.waitlistCount || 0) + 1
-          : lessonData.waitlistCount || 0,
+          ? lessonWaitlistCount + 1
+          : lessonWaitlistCount,
         updatedAt: Timestamp.now(),
       });
 
@@ -927,7 +961,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/:lessonId/bookings/:bookingId",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
     async (request, reply) => {
       const { organizationId, lessonId, bookingId } = request.params;
@@ -965,18 +999,21 @@ export async function lessonRoutes(fastify: FastifyInstance) {
           .doc(lessonId);
 
         const lessonDoc = await lessonRef.get();
-        const lessonData = lessonDoc.data() as Lesson;
+        const lessonData = lessonDoc.data();
+        const waitlistCount =
+          ((lessonData as Record<string, unknown>)?.waitlistCount as number) ||
+          0;
 
         if (previousStatus === "waitlisted") {
           await lessonRef.update({
-            waitlistCount: Math.max(0, (lessonData.waitlistCount || 0) - 1),
+            waitlistCount: Math.max(0, waitlistCount - 1),
             updatedAt: Timestamp.now(),
           });
         } else {
           await lessonRef.update({
             currentParticipants: Math.max(
               0,
-              lessonData.currentParticipants - 1,
+              ((lessonData?.currentParticipants as number) || 0) - 1,
             ),
             updatedAt: Timestamp.now(),
           });
@@ -995,7 +1032,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/:lessonId/bookings/:bookingId/cancel",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
     async (request, reply) => {
       const { organizationId, lessonId, bookingId } = request.params;
@@ -1036,16 +1073,21 @@ export async function lessonRoutes(fastify: FastifyInstance) {
         .doc(lessonId);
 
       const lessonDoc = await lessonRef.get();
-      const lessonData = lessonDoc.data() as Lesson;
+      const lessonData = lessonDoc.data();
+      const currentWaitlistCount =
+        ((lessonData as Record<string, unknown>)?.waitlistCount as number) || 0;
 
       if (wasWaitlisted) {
         await lessonRef.update({
-          waitlistCount: Math.max(0, (lessonData.waitlistCount || 0) - 1),
+          waitlistCount: Math.max(0, currentWaitlistCount - 1),
           updatedAt: Timestamp.now(),
         });
       } else {
         await lessonRef.update({
-          currentParticipants: Math.max(0, lessonData.currentParticipants - 1),
+          currentParticipants: Math.max(
+            0,
+            ((lessonData?.currentParticipants as number) || 0) - 1,
+          ),
           updatedAt: Timestamp.now(),
         });
 
@@ -1066,9 +1108,9 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lesson-schedule-templates",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
-    async (request, reply) => {
+    async (request, _reply) => {
       const { organizationId } = request.params;
 
       const snapshot = await db
@@ -1096,7 +1138,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lesson-schedule-templates",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
     async (request, reply) => {
       const { organizationId } = request.params;
@@ -1108,15 +1150,16 @@ export async function lessonRoutes(fastify: FastifyInstance) {
         .collection("lessonScheduleTemplates")
         .doc();
 
-      const template: Omit<LessonScheduleTemplate, "id"> = {
+      // Build template without explicit type annotation to avoid Timestamp incompatibility
+      const template = {
         organizationId,
         ...validatedData,
         effectiveFrom: validatedData.effectiveFrom
           ? toFirestoreTimestamp(validatedData.effectiveFrom)
-          : undefined,
+          : null,
         effectiveUntil: validatedData.effectiveUntil
           ? toFirestoreTimestamp(validatedData.effectiveUntil)
-          : undefined,
+          : null,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
@@ -1137,9 +1180,9 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/generate-from-templates",
     {
-      preHandler: [authenticate, requireOrganizationMember("organizationId")],
+      preHandler: [authenticate, requireOrganizationAccess("params")],
     },
-    async (request, reply) => {
+    async (request, _reply) => {
       const { organizationId } = request.params;
       const auth = request as AuthenticatedRequest;
       const { startDate, endDate } = request.body;
@@ -1152,8 +1195,9 @@ export async function lessonRoutes(fastify: FastifyInstance) {
         .where("isActive", "==", true)
         .get();
 
+      // Use Record type to avoid shared type incompatibility
       const templates = templatesSnapshot.docs.map(
-        (doc) => ({ id: doc.id, ...doc.data() }) as LessonScheduleTemplate,
+        (doc) => ({ id: doc.id, ...doc.data() }) as Record<string, unknown>,
       );
 
       // Generate lessons for each day in range
@@ -1168,22 +1212,18 @@ export async function lessonRoutes(fastify: FastifyInstance) {
           if (template.dayOfWeek !== dayOfWeek) continue;
 
           // Check effective dates
-          if (
-            template.effectiveFrom &&
-            date < (template.effectiveFrom as Timestamp).toDate()
-          )
-            continue;
-          if (
-            template.effectiveUntil &&
-            date > (template.effectiveUntil as Timestamp).toDate()
-          )
-            continue;
+          const effectiveFrom = template.effectiveFrom as Timestamp | null;
+          const effectiveUntil = template.effectiveUntil as Timestamp | null;
+          if (effectiveFrom && date < effectiveFrom.toDate()) continue;
+          if (effectiveUntil && date > effectiveUntil.toDate()) continue;
 
           // Create lesson
-          const [startHour, startMin] = template.startTime
+          const templateStartTime = template.startTime as string;
+          const templateEndTime = template.endTime as string;
+          const [startHour, startMin] = templateStartTime
             .split(":")
             .map(Number);
-          const [endHour, endMin] = template.endTime.split(":").map(Number);
+          const [endHour, endMin] = templateEndTime.split(":").map(Number);
 
           const lessonStart = new Date(date);
           lessonStart.setHours(startHour, startMin, 0, 0);
@@ -1196,20 +1236,20 @@ export async function lessonRoutes(fastify: FastifyInstance) {
             .collection("organizations")
             .doc(organizationId)
             .collection("lessonTypes")
-            .doc(template.lessonTypeId)
+            .doc(template.lessonTypeId as string)
             .get();
 
-          const lessonType = lessonTypeDoc.data() as LessonType;
+          const lessonType = lessonTypeDoc.data() as LessonType | undefined;
 
           // Get instructor info
           const instructorDoc = await db
             .collection("organizations")
             .doc(organizationId)
             .collection("instructors")
-            .doc(template.instructorId)
+            .doc(template.instructorId as string)
             .get();
 
-          const instructor = instructorDoc.data() as Instructor;
+          const instructor = instructorDoc.data() as Instructor | undefined;
 
           const lessonRef = db
             .collection("organizations")
@@ -1217,7 +1257,8 @@ export async function lessonRoutes(fastify: FastifyInstance) {
             .collection("lessons")
             .doc();
 
-          const lesson: Omit<Lesson, "id"> = {
+          // Build lesson without explicit type annotation to avoid Timestamp incompatibility
+          const lesson = {
             organizationId,
             lessonTypeId: template.lessonTypeId,
             lessonTypeName: lessonType?.name || template.name,
@@ -1225,18 +1266,20 @@ export async function lessonRoutes(fastify: FastifyInstance) {
             instructorName: instructor?.name || "Unknown",
             startTime: Timestamp.fromDate(lessonStart),
             endTime: Timestamp.fromDate(lessonEnd),
-            location: template.location,
+            location: template.location || null,
             facilityId: template.facilityId,
             status: "scheduled",
             maxParticipants:
-              template.maxParticipants || lessonType?.maxParticipants || 1,
+              (template.maxParticipants as number) ||
+              lessonType?.maxParticipants ||
+              1,
             currentParticipants: 0,
             waitlistCount: 0,
-            price: lessonType?.pricing?.basePrice || 0,
-            currency: lessonType?.pricing?.currency || "SEK",
+            price: lessonType?.price || 0,
+            currency: lessonType?.currency || "SEK",
             isRecurring: true,
             scheduleTemplateId: template.id,
-            createdBy: auth.user.uid,
+            createdBy: auth.user!.uid,
             createdAt: Timestamp.now(),
             updatedAt: Timestamp.now(),
           };

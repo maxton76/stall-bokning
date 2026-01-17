@@ -79,27 +79,30 @@ const templateSchema = z.object({
 type TemplateFormData = z.infer<typeof templateSchema>;
 
 const generateSchema = z.object({
-  startDate: z.date({ required_error: "Start date is required" }),
-  endDate: z.date({ required_error: "End date is required" }),
+  startDate: z.date({ message: "Start date is required" }),
+  endDate: z.date({ message: "End date is required" }),
 });
 
 type GenerateFormData = z.infer<typeof generateSchema>;
 
-interface ScheduleTemplatesTabProps {
-  templates: LessonScheduleTemplate[];
+export interface ScheduleTemplatesTabProps {
+  templates?: LessonScheduleTemplate[];
   lessonTypes: LessonType[];
   instructors: Instructor[];
-  onCreate: (data: CreateScheduleTemplateData) => Promise<void>;
-  onGenerate: (
+  onLessonsGenerated?: () => Promise<unknown>;
+  // Legacy props for direct control
+  onCreate?: (data: CreateScheduleTemplateData) => Promise<void>;
+  onGenerate?: (
     startDate: string,
     endDate: string,
   ) => Promise<{ createdCount: number }>;
 }
 
 export function ScheduleTemplatesTab({
-  templates,
+  templates = [],
   lessonTypes,
   instructors,
+  onLessonsGenerated,
   onCreate,
   onGenerate,
 }: ScheduleTemplatesTabProps) {
@@ -112,7 +115,8 @@ export function ScheduleTemplatesTab({
   const locale = i18n.language === "sv" ? sv : enUS;
 
   const createForm = useForm<TemplateFormData>({
-    resolver: zodResolver(templateSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(templateSchema as any),
     defaultValues: {
       name: "",
       lessonTypeId: "",
@@ -126,7 +130,8 @@ export function ScheduleTemplatesTab({
   });
 
   const generateForm = useForm<GenerateFormData>({
-    resolver: zodResolver(generateSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(generateSchema as any),
     defaultValues: {
       startDate: new Date(),
       endDate: addWeeks(new Date(), 4),
@@ -134,6 +139,7 @@ export function ScheduleTemplatesTab({
   });
 
   async function handleCreateSubmit(data: TemplateFormData) {
+    if (!onCreate) return;
     setIsSubmitting(true);
     try {
       await onCreate({
@@ -157,6 +163,7 @@ export function ScheduleTemplatesTab({
   }
 
   async function handleGenerateSubmit(data: GenerateFormData) {
+    if (!onGenerate) return;
     setIsSubmitting(true);
     try {
       const result = await onGenerate(
@@ -164,6 +171,7 @@ export function ScheduleTemplatesTab({
         format(data.endDate, "yyyy-MM-dd"),
       );
       setGenerateResult(result.createdCount);
+      onLessonsGenerated?.();
     } finally {
       setIsSubmitting(false);
     }

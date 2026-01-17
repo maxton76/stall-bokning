@@ -77,6 +77,8 @@
     "influenza": "Influenza",
     "rhino": "Rhino",
     "vet": "Vet",
+    "veterinarian": "Veterinarian",
+    "vaccination": "Vaccination",
     "client": "Client",
     "lesson": "Lesson",
     "lunging": "Lunging",
@@ -95,7 +97,11 @@
     "groom": "Groom",
     "veterinarian": "Veterinarian",
     "farrier": "Farrier",
-    "dentist": "Dentist"
+    "dentist": "Dentist",
+    "instructor": "Instructor",
+    "stablehand": "Stable Hand",
+    "handler": "Handler",
+    "breeder": "Breeder"
   },
   "contactTypes": {
     "personal": "Personal",

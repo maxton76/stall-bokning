@@ -1,4 +1,5 @@
 import { Timestamp } from "firebase/firestore";
+import { authFetchJSON } from "@/utils/authFetch";
 
 export interface Invitation {
   id: string;
@@ -36,8 +37,6 @@ export interface CreateInviteData {
 export async function getPendingInvitations(
   userEmail: string,
 ): Promise<Invitation[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const params = new URLSearchParams({ email: userEmail });
 
   const response = await authFetchJSON<{
@@ -66,8 +65,6 @@ export async function acceptInvitation(
   stableName: string,
   role: "manager" | "member",
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/invites/${inviteId}/accept`,
     {
@@ -91,8 +88,6 @@ export async function declineInvitation(
   inviteId: string,
   userId: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/invites/${inviteId}/decline`,
     {
@@ -118,8 +113,6 @@ export async function declineInvitation(
 export async function getInvitesByStable(
   stableId: string,
 ): Promise<Invitation[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ invites: Invitation[] }>(
     `${import.meta.env.VITE_API_URL}/api/v1/stables/${stableId}/invites`,
     { method: "GET" },
@@ -150,8 +143,6 @@ export async function getInvitesByStable(
 export async function createInvite(
   inviteData: CreateInviteData,
 ): Promise<string> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ id: string }>(
     `${import.meta.env.VITE_API_URL}/api/v1/invites`,
     {

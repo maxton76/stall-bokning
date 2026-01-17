@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   useReactTable,
   getCoreRowModel,
@@ -29,6 +30,7 @@ interface HorseTableProps {
 }
 
 export function HorseTable({ data, columns, onRowClick }: HorseTableProps) {
+  const { t } = useTranslation(["horses"]);
   const [sorting, setSorting] = useState<SortingState>([
     { id: "name", desc: false }, // Default sort by name ascending
   ]);
@@ -106,9 +108,9 @@ export function HorseTable({ data, columns, onRowClick }: HorseTableProps) {
                   className="h-24 text-center"
                 >
                   <div className="text-muted-foreground">
-                    <p className="text-lg mb-2">No horses found</p>
+                    <p className="text-lg mb-2">{t("horses:table.empty")}</p>
                     <p className="text-sm">
-                      Try adjusting your search or filters
+                      {t("horses:table.emptyDescription")}
                     </p>
                   </div>
                 </TableCell>
@@ -163,19 +165,25 @@ export function HorseTable({ data, columns, onRowClick }: HorseTableProps) {
                   <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                     {horse.gender && (
                       <div>
-                        <span className="text-muted-foreground">Gender:</span>{" "}
-                        {horse.gender}
+                        <span className="text-muted-foreground">
+                          {t("horses:mobile.gender")}
+                        </span>{" "}
+                        {t(`horses:genders.${horse.gender}`)}
                       </div>
                     )}
                     {horse.age && (
                       <div>
-                        <span className="text-muted-foreground">Age:</span>{" "}
+                        <span className="text-muted-foreground">
+                          {t("horses:mobile.age")}
+                        </span>{" "}
                         {horse.age}
                       </div>
                     )}
                     {horse.ueln && (
                       <div className="col-span-2">
-                        <span className="text-muted-foreground">UELN:</span>{" "}
+                        <span className="text-muted-foreground">
+                          {t("horses:mobile.ueln")}
+                        </span>{" "}
                         {horse.ueln}
                       </div>
                     )}
@@ -205,8 +213,8 @@ export function HorseTable({ data, columns, onRowClick }: HorseTableProps) {
         ) : (
           <Card>
             <CardContent className="p-8 text-center text-muted-foreground">
-              <p className="text-lg mb-2">No horses found</p>
-              <p className="text-sm">Try adjusting your search or filters</p>
+              <p className="text-lg mb-2">{t("horses:table.empty")}</p>
+              <p className="text-sm">{t("horses:table.emptyDescription")}</p>
             </CardContent>
           </Card>
         )}
@@ -215,17 +223,18 @@ export function HorseTable({ data, columns, onRowClick }: HorseTableProps) {
       {/* Pagination Controls */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-2">
         <div className="text-xs sm:text-sm text-muted-foreground">
-          Showing{" "}
+          {t("horses:pagination.showing")}{" "}
           {table.getState().pagination.pageIndex *
             table.getState().pagination.pageSize +
             1}{" "}
-          to{" "}
+          {t("horses:pagination.to")}{" "}
           {Math.min(
             (table.getState().pagination.pageIndex + 1) *
               table.getState().pagination.pageSize,
             table.getFilteredRowModel().rows.length,
           )}{" "}
-          of {table.getFilteredRowModel().rows.length} horses
+          {t("horses:pagination.of")} {table.getFilteredRowModel().rows.length}{" "}
+          {t("horses:pagination.horses")}
         </div>
         <div className="flex items-center space-x-2">
           <Button
@@ -235,11 +244,14 @@ export function HorseTable({ data, columns, onRowClick }: HorseTableProps) {
             disabled={!table.getCanPreviousPage()}
           >
             <ChevronLeft className="h-4 w-4 sm:mr-1" />
-            <span className="hidden sm:inline">Previous</span>
+            <span className="hidden sm:inline">
+              {t("horses:pagination.previous")}
+            </span>
           </Button>
           <div className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
-            Page {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount()}
+            {t("horses:pagination.page")}{" "}
+            {table.getState().pagination.pageIndex + 1}{" "}
+            {t("horses:pagination.of")} {table.getPageCount()}
           </div>
           <Button
             variant="outline"
@@ -247,7 +259,9 @@ export function HorseTable({ data, columns, onRowClick }: HorseTableProps) {
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            <span className="hidden sm:inline">Next</span>
+            <span className="hidden sm:inline">
+              {t("horses:pagination.next")}
+            </span>
             <ChevronRight className="h-4 w-4 sm:ml-1" />
           </Button>
         </div>

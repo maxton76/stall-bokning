@@ -376,7 +376,7 @@ export function HealthRecordsCard({ horse }: HealthRecordsCardProps) {
           </DialogHeader>
           <HealthRecordForm
             horseId={horse.id}
-            record={recordDialog.data}
+            record={recordDialog.data ?? undefined}
             onSuccess={handleSuccess}
             onCancel={() => recordDialog.closeDialog()}
           />

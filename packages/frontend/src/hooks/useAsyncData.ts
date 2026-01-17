@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 /**
  * Options for useAsyncData hook
@@ -7,11 +7,11 @@ import { useToast } from '@/hooks/use-toast'
  */
 interface UseAsyncDataOptions<T> {
   /** Async function that loads the data */
-  loadFn: () => Promise<T>
+  loadFn: () => Promise<T>;
   /** Custom error message to display on failure */
-  errorMessage?: string
+  errorMessage?: string;
   /** Callback executed on successful load */
-  onSuccess?: (data: T) => void
+  onSuccess?: (data: T) => void;
 }
 
 /**
@@ -52,58 +52,60 @@ interface UseAsyncDataOptions<T> {
  * ```
  */
 export function useAsyncData<T>(options: UseAsyncDataOptions<T>) {
-  const [data, setData] = useState<T | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
-  const { toast } = useToast()
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const { toast } = useToast();
 
   /**
    * Load data using the provided loadFn
    * @returns Promise resolving to the loaded data
    */
   const load = async (): Promise<T | null> => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
-      const result = await options.loadFn()
-      setData(result)
-      options.onSuccess?.(result)
-      return result
+      const result = await options.loadFn();
+      setData(result);
+      options.onSuccess?.(result);
+      return result;
     } catch (err) {
-      const error = err as Error
-      setError(error)
+      const error = err as Error;
+      setError(error);
       toast({
-        title: 'Error',
-        description: options.errorMessage || 'An error occurred',
-        variant: 'destructive'
-      })
-      throw error
+        title: "Error",
+        description: options.errorMessage || "An error occurred",
+        variant: "destructive",
+      });
+      throw error;
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   /**
    * Reload data (alias for load)
    */
-  const reload = () => load()
+  const reload = () => load();
 
   /**
    * Reset data and error state
    */
   const reset = () => {
-    setData(null)
-    setError(null)
-  }
+    setData(null);
+    setError(null);
+  };
 
   return {
     data,
     loading,
+    /** @deprecated Use `loading` instead */
+    isLoading: loading,
     error,
     load,
     reload,
     reset,
-    setData
-  }
+    setData,
+  };
 }

@@ -25,7 +25,7 @@ import type {
   InventoryTransaction,
   InventoryTransactionType,
 } from "@stall-bokning/shared";
-import { cn } from "@/lib/utils";
+import { cn, toDate } from "@/lib/utils";
 
 interface TransactionHistoryDialogProps {
   open: boolean;
@@ -131,7 +131,7 @@ export function TransactionHistoryDialog({
                       )}
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {format(new Date(transaction.createdAt), "PPp", {
+                      {format(toDate(transaction.createdAt), "PPp", {
                         locale,
                       })}
                       {transaction.createdByName && (

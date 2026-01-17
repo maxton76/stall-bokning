@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, CalendarIcon, Trash2 } from "lucide-react";
@@ -23,40 +24,16 @@ import type { FacilityReservation } from "@/types/facilityReservation";
 import type { Facility } from "@/types/facility";
 import { toDate } from "@/utils/timestampUtils";
 
-const reservationSchema = z
-  .object({
-    facilityId: z.string().min(1, "Facility is required"),
-    date: z.date({ message: "Date is required" }),
-    startTime: z
-      .string()
-      .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format"),
-    endTime: z
-      .string()
-      .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format"),
-    horseId: z.string().min(1, "Horse is required"),
-    contactInfo: z.string().optional(),
-    notes: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      const startParts = data.startTime.split(":");
-      const endParts = data.endTime.split(":");
-      if (startParts.length !== 2 || endParts.length !== 2) return false;
-
-      const startHour = parseInt(startParts[0] || "0", 10);
-      const startMin = parseInt(startParts[1] || "0", 10);
-      const endHour = parseInt(endParts[0] || "0", 10);
-      const endMin = parseInt(endParts[1] || "0", 10);
-
-      return endHour * 60 + endMin > startHour * 60 + startMin;
-    },
-    {
-      message: "End time must be after start time",
-      path: ["endTime"],
-    },
-  );
-
-type ReservationFormData = z.infer<typeof reservationSchema>;
+// Schema will be created with useMemo inside component for translations
+type ReservationFormData = {
+  facilityId: string;
+  date: Date;
+  startTime: string;
+  endTime: string;
+  horseId: string;
+  contactInfo?: string;
+  notes?: string;
+};
 
 interface FacilityReservationDialogProps {
   open: boolean;
@@ -84,9 +61,56 @@ export function FacilityReservationDialog({
   onDelete,
   initialValues,
 }: FacilityReservationDialogProps) {
+  const { t } = useTranslation("facilities");
   const isEditMode = !!reservation;
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Create schema with translated messages
+  const reservationSchema = useMemo(
+    () =>
+      z
+        .object({
+          facilityId: z
+            .string()
+            .min(1, t("reservation.validation.facilityRequired")),
+          date: z.date({ message: t("reservation.validation.dateRequired") }),
+          startTime: z
+            .string()
+            .regex(
+              /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
+              t("reservation.validation.timeInvalid"),
+            ),
+          endTime: z
+            .string()
+            .regex(
+              /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
+              t("reservation.validation.timeInvalid"),
+            ),
+          horseId: z.string().min(1, t("reservation.validation.horseRequired")),
+          contactInfo: z.string().optional(),
+          notes: z.string().optional(),
+        })
+        .refine(
+          (data) => {
+            const startParts = data.startTime.split(":");
+            const endParts = data.endTime.split(":");
+            if (startParts.length !== 2 || endParts.length !== 2) return false;
+
+            const startHour = parseInt(startParts[0] || "0", 10);
+            const startMin = parseInt(startParts[1] || "0", 10);
+            const endHour = parseInt(endParts[0] || "0", 10);
+            const endMin = parseInt(endParts[1] || "0", 10);
+
+            return endHour * 60 + endMin > startHour * 60 + startMin;
+          },
+          {
+            message: t("reservation.validation.endAfterStart"),
+            path: ["endTime"],
+          },
+        ),
+    [t],
+  );
 
   // Reset delete state when dialog opens/closes
   useEffect(() => {
@@ -129,11 +153,11 @@ export function FacilityReservationDialog({
       onOpenChange(false);
     },
     successMessage: isEditMode
-      ? "Reservation updated successfully"
-      : "Reservation created successfully",
+      ? t("reservation.messages.updateSuccess")
+      : t("reservation.messages.createSuccess"),
     errorMessage: isEditMode
-      ? "Failed to update reservation"
-      : "Failed to create reservation",
+      ? t("reservation.messages.updateError")
+      : t("reservation.messages.createError"),
   });
 
   // Reset form when dialog opens with reservation data or initial values
@@ -230,30 +254,37 @@ export function FacilityReservationDialog({
     <BaseFormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={isEditMode ? "Edit Reservation" : "New Reservation"}
+      title={
+        isEditMode ? t("reservation.title.edit") : t("reservation.title.create")
+      }
       description={
         isEditMode
-          ? "Update reservation details"
-          : "Create a new facility reservation"
+          ? t("reservation.description.edit")
+          : t("reservation.description.create")
       }
       form={form}
       onSubmit={handleSubmit}
-      submitLabel={isEditMode ? "Update Reservation" : "Create Reservation"}
+      submitLabel={
+        isEditMode
+          ? t("reservation.actions.update")
+          : t("reservation.actions.create")
+      }
       maxWidth="sm:max-w-[500px]"
     >
       <FormSelect
         name="facilityId"
-        label="Facility"
+        label={t("reservation.labels.facility")}
         form={form}
         options={facilityOptions}
-        placeholder="Select facility"
+        placeholder={t("reservation.placeholders.facility")}
         required
       />
 
       {/* Date Picker - Custom implementation */}
       <div className="space-y-2">
         <Label>
-          Date <span className="text-destructive">*</span>
+          {t("reservation.labels.date")}{" "}
+          <span className="text-destructive">*</span>
         </Label>
         <Popover>
           <PopoverTrigger asChild>
@@ -265,7 +296,7 @@ export function FacilityReservationDialog({
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {date ? format(date, "PPP") : "Pick a date"}
+              {date ? format(date, "PPP") : t("reservation.placeholders.date")}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0">
@@ -288,14 +319,14 @@ export function FacilityReservationDialog({
       <div className="grid grid-cols-2 gap-4">
         <FormInput
           name="startTime"
-          label="Start time"
+          label={t("reservation.labels.startTime")}
           form={form}
           type="time"
           required
         />
         <FormInput
           name="endTime"
-          label="End time"
+          label={t("reservation.labels.endTime")}
           form={form}
           type="time"
           required
@@ -306,10 +337,9 @@ export function FacilityReservationDialog({
       {conflicts.length > 0 && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Scheduling Conflict</AlertTitle>
+          <AlertTitle>{t("reservation.alerts.conflictTitle")}</AlertTitle>
           <AlertDescription>
-            This time slot overlaps with {conflicts.length} existing
-            reservation(s).
+            {t("reservation.alerts.conflictDesc", { count: conflicts.length })}
             {conflicts.map((conflict, idx) => {
               const conflictStart = toDate(conflict.startTime);
               const conflictEnd = toDate(conflict.endTime);
@@ -327,25 +357,25 @@ export function FacilityReservationDialog({
 
       <FormSelect
         name="horseId"
-        label="Horse"
+        label={t("reservation.labels.horse")}
         form={form}
         options={horseOptions}
-        placeholder="Select horse"
+        placeholder={t("reservation.placeholders.horse")}
         required
       />
 
       <FormInput
         name="contactInfo"
-        label="Contact information"
+        label={t("reservation.labels.contactInfo")}
         form={form}
-        placeholder="Phone or email for contact"
+        placeholder={t("reservation.placeholders.contactInfo")}
       />
 
       <FormTextarea
         name="notes"
-        label="Notes"
+        label={t("reservation.labels.notes")}
         form={form}
-        placeholder="Additional notes or special requirements..."
+        placeholder={t("reservation.placeholders.notes")}
         rows={3}
       />
 
@@ -360,13 +390,12 @@ export function FacilityReservationDialog({
               onClick={() => setShowDeleteConfirm(true)}
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              Cancel Reservation
+              {t("reservation.actions.cancelButton")}
             </Button>
           ) : (
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
-                Are you sure you want to cancel this reservation? This action
-                cannot be undone.
+                {t("reservation.delete.confirmText")}
               </p>
               <div className="flex gap-2">
                 <Button
@@ -375,7 +404,9 @@ export function FacilityReservationDialog({
                   onClick={handleDelete}
                   disabled={isDeleting}
                 >
-                  {isDeleting ? "Cancelling..." : "Yes, Cancel Reservation"}
+                  {isDeleting
+                    ? t("reservation.actions.cancelling")
+                    : t("reservation.actions.confirmCancel")}
                 </Button>
                 <Button
                   type="button"
@@ -383,7 +414,7 @@ export function FacilityReservationDialog({
                   onClick={() => setShowDeleteConfirm(false)}
                   disabled={isDeleting}
                 >
-                  No, Keep It
+                  {t("reservation.actions.keepIt")}
                 </Button>
               </div>
             </div>

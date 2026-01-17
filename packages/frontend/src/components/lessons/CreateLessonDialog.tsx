@@ -43,7 +43,7 @@ import type { LessonType, Instructor } from "@stall-bokning/shared";
 const createLessonSchema = z.object({
   lessonTypeId: z.string().min(1, "Lesson type is required"),
   instructorId: z.string().min(1, "Instructor is required"),
-  date: z.date({ required_error: "Date is required" }),
+  date: z.date({ message: "Date is required" }),
   startTime: z.string().min(1, "Start time is required"),
   endTime: z.string().min(1, "End time is required"),
   location: z.string().optional(),
@@ -53,12 +53,13 @@ const createLessonSchema = z.object({
 
 type CreateLessonFormData = z.infer<typeof createLessonSchema>;
 
-interface CreateLessonDialogProps {
+export interface CreateLessonDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   lessonTypes: LessonType[];
   instructors: Instructor[];
-  onSubmit: (data: {
+  onSuccess?: () => void;
+  onSubmit?: (data: {
     lessonTypeId: string;
     instructorId: string;
     startTime: string;
@@ -75,6 +76,7 @@ export function CreateLessonDialog({
   onOpenChange,
   lessonTypes,
   instructors,
+  onSuccess,
   onSubmit,
   selectedDate,
 }: CreateLessonDialogProps) {
@@ -82,7 +84,8 @@ export function CreateLessonDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<CreateLessonFormData>({
-    resolver: zodResolver(createLessonSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(createLessonSchema as any),
     defaultValues: {
       lessonTypeId: "",
       instructorId: "",
@@ -107,17 +110,20 @@ export function CreateLessonDialog({
       ).toISOString();
       const endTime = new Date(`${dateStr}T${data.endTime}:00`).toISOString();
 
-      await onSubmit({
-        lessonTypeId: data.lessonTypeId,
-        instructorId: data.instructorId,
-        startTime,
-        endTime,
-        location: data.location || undefined,
-        maxParticipants: data.maxParticipants || undefined,
-        notes: data.notes || undefined,
-      });
+      if (onSubmit) {
+        await onSubmit({
+          lessonTypeId: data.lessonTypeId,
+          instructorId: data.instructorId,
+          startTime,
+          endTime,
+          location: data.location || undefined,
+          maxParticipants: data.maxParticipants || undefined,
+          notes: data.notes || undefined,
+        });
+      }
       form.reset();
       onOpenChange(false);
+      onSuccess?.();
     } finally {
       setIsSubmitting(false);
     }

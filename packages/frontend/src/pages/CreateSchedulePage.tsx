@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   Calendar,
@@ -50,6 +51,7 @@ export default function CreateSchedulePage() {
   const { stableId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation(["schedules"]);
   const [isLoading, setIsLoading] = useState(false);
 
   const [scheduleData, setScheduleData] = useState({
@@ -141,7 +143,7 @@ export default function CreateSchedulePage() {
       navigate(`/stables/${stableId}/schedules/${scheduleId}/edit`);
     } catch (error) {
       console.error("Error creating schedule:", error);
-      alert("Failed to create schedule. Please try again.");
+      alert(t("schedules:createPage.errors.createFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -175,15 +177,15 @@ export default function CreateSchedulePage() {
         <Link to={`/stables/${stableId}`}>
           <Button variant="ghost" className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Stable
+            {t("schedules:createPage.backButton")}
           </Button>
         </Link>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Create New Schedule
+            {t("schedules:createPage.pageTitle")}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Set up a new schedule for your stable members
+            {t("schedules:createPage.pageDescription")}
           </p>
         </div>
       </div>
@@ -194,29 +196,35 @@ export default function CreateSchedulePage() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <Calendar className="mr-2 h-5 w-5" />
-              Schedule Details
+              {t("schedules:createPage.scheduleDetails.title")}
             </CardTitle>
             <CardDescription>
-              Define the timeframe and name for this schedule
+              {t("schedules:createPage.scheduleDetails.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Schedule Name</Label>
+              <Label htmlFor="name">
+                {t("schedules:createPage.scheduleDetails.nameLabel")}
+              </Label>
               <Input
                 id="name"
                 value={scheduleData.name}
                 onChange={(e) =>
                   setScheduleData({ ...scheduleData, name: e.target.value })
                 }
-                placeholder="e.g. Weekly Schedule Dec 25-31"
+                placeholder={t(
+                  "schedules:createPage.scheduleDetails.namePlaceholder",
+                )}
                 required
               />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date</Label>
+                <Label htmlFor="startDate">
+                  {t("schedules:createPage.scheduleDetails.startDateLabel")}
+                </Label>
                 <Input
                   id="startDate"
                   type="date"
@@ -232,7 +240,9 @@ export default function CreateSchedulePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="endDate">End Date</Label>
+                <Label htmlFor="endDate">
+                  {t("schedules:createPage.scheduleDetails.endDateLabel")}
+                </Label>
                 <Input
                   id="endDate"
                   type="date"
@@ -252,17 +262,21 @@ export default function CreateSchedulePage() {
             {scheduleData.startDate && scheduleData.endDate && (
               <div className="rounded-lg bg-muted p-4">
                 <p className="text-sm">
-                  <strong>Duration:</strong>{" "}
+                  <strong>
+                    {t("schedules:createPage.scheduleDetails.duration")}
+                  </strong>{" "}
                   {Math.ceil(
                     (new Date(scheduleData.endDate).getTime() -
                       new Date(scheduleData.startDate).getTime()) /
                       (1000 * 60 * 60 * 24),
                   ) + 1}{" "}
-                  days
+                  {t("schedules:createPage.scheduleDetails.daysUnit")}
                 </p>
                 <p className="text-sm">
-                  <strong>Estimated shifts:</strong> ~
-                  {calculateEstimatedShifts()}
+                  <strong>
+                    {t("schedules:createPage.scheduleDetails.estimatedShifts")}
+                  </strong>{" "}
+                  ~{calculateEstimatedShifts()}
                 </p>
               </div>
             )}
@@ -272,9 +286,9 @@ export default function CreateSchedulePage() {
         {/* Shift Type Selection */}
         <Card>
           <CardHeader>
-            <CardTitle>Select Shift Types</CardTitle>
+            <CardTitle>{t("schedules:createPage.shiftTypes.title")}</CardTitle>
             <CardDescription>
-              Choose which shift types to include in this schedule
+              {t("schedules:createPage.shiftTypes.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -291,13 +305,15 @@ export default function CreateSchedulePage() {
                 >
                   {scheduleData.selectedShiftTypes.length === 0 ? (
                     <span className="text-muted-foreground">
-                      Select shift types...
+                      {t("schedules:createPage.shiftTypes.placeholder")}
                     </span>
                   ) : (
                     <span className="text-left">
-                      {scheduleData.selectedShiftTypes.length} shift type
-                      {scheduleData.selectedShiftTypes.length !== 1 ? "s" : ""}{" "}
-                      selected
+                      {scheduleData.selectedShiftTypes.length === 1
+                        ? t("schedules:createPage.shiftTypes.selectedOne")
+                        : t("schedules:createPage.shiftTypes.selectedMany", {
+                            count: scheduleData.selectedShiftTypes.length,
+                          })}
                     </span>
                   )}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -305,9 +321,15 @@ export default function CreateSchedulePage() {
               </PopoverTrigger>
               <PopoverContent className="w-[400px] p-0" align="start">
                 <Command>
-                  <CommandInput placeholder="Search shift types..." />
+                  <CommandInput
+                    placeholder={t(
+                      "schedules:createPage.shiftTypes.searchPlaceholder",
+                    )}
+                  />
                   <CommandList>
-                    <CommandEmpty>No shift types found.</CommandEmpty>
+                    <CommandEmpty>
+                      {t("schedules:createPage.shiftTypes.emptyState")}
+                    </CommandEmpty>
                     <CommandGroup>
                       {shiftTypes.map((shiftType) => {
                         const isSelected =
@@ -384,7 +406,7 @@ export default function CreateSchedulePage() {
             {scheduleData.selectedShiftTypes.length === 0 && (
               <div className="rounded-lg bg-destructive/10 p-4">
                 <p className="text-sm text-destructive">
-                  ⚠️ Please select at least one shift type
+                  ⚠️ {t("schedules:createPage.shiftTypes.validationError")}
                 </p>
               </div>
             )}
@@ -396,21 +418,20 @@ export default function CreateSchedulePage() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <Wand2 className="mr-2 h-5 w-5" />
-              Assignment Method
+              {t("schedules:createPage.assignmentMethod.title")}
             </CardTitle>
             <CardDescription>
-              Choose how shifts will be assigned to members
+              {t("schedules:createPage.assignmentMethod.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center justify-between space-x-2">
               <div className="space-y-0.5">
                 <Label htmlFor="autoAssignment" className="text-base">
-                  Use Automatic Assignment
+                  {t("schedules:createPage.assignmentMethod.autoToggle")}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Let the fairness algorithm distribute shifts automatically
-                  based on member history and availability
+                  {t("schedules:createPage.assignmentMethod.autoDescription")}
                 </p>
               </div>
               <Switch
@@ -431,12 +452,12 @@ export default function CreateSchedulePage() {
                   <Users className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                      Manual Assignment Mode
+                      {t("schedules:createPage.assignmentMethod.manualTitle")}
                     </p>
                     <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                      You'll be redirected to the schedule editor where you can
-                      manually assign members to each shift. The system will
-                      still show fairness suggestions.
+                      {t(
+                        "schedules:createPage.assignmentMethod.manualDescription",
+                      )}
                     </p>
                   </div>
                 </div>
@@ -448,20 +469,21 @@ export default function CreateSchedulePage() {
         {/* Notifications */}
         <Card>
           <CardHeader>
-            <CardTitle>Notifications</CardTitle>
+            <CardTitle>
+              {t("schedules:createPage.notifications.title")}
+            </CardTitle>
             <CardDescription>
-              Configure how members will be notified about this schedule
+              {t("schedules:createPage.notifications.description")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between space-x-2">
               <div className="space-y-0.5">
                 <Label htmlFor="notifyMembers" className="text-base">
-                  Notify Members
+                  {t("schedules:createPage.notifications.notifyToggle")}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Send email notifications to all members when the schedule is
-                  published
+                  {t("schedules:createPage.notifications.notifyDescription")}
                 </p>
               </div>
               <Switch
@@ -479,7 +501,7 @@ export default function CreateSchedulePage() {
         <div className="flex items-center justify-between">
           <Link to={`/stables/${stableId}`}>
             <Button type="button" variant="outline">
-              Cancel
+              {t("schedules:createPage.actions.cancel")}
             </Button>
           </Link>
           <Button
@@ -487,16 +509,16 @@ export default function CreateSchedulePage() {
             disabled={isLoading || scheduleData.selectedShiftTypes.length === 0}
           >
             {isLoading ? (
-              "Creating..."
+              t("schedules:createPage.actions.creating")
             ) : scheduleData.useAutoAssignment ? (
               <>
                 <Wand2 className="mr-2 h-4 w-4" />
-                Create & Auto-Assign
+                {t("schedules:createPage.actions.createAutoAssign")}
               </>
             ) : (
               <>
                 <Calendar className="mr-2 h-4 w-4" />
-                Create Schedule
+                {t("schedules:createPage.actions.createSchedule")}
               </>
             )}
           </Button>

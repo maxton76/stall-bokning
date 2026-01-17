@@ -365,13 +365,6 @@
       "collectionGroup": "contacts",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "linkedMemberId", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "contacts",
-      "queryScope": "COLLECTION",
-      "fields": [
         { "fieldPath": "accessLevel", "order": "ASCENDING" },
         { "fieldPath": "organizationId", "order": "ASCENDING" },
         { "fieldPath": "badge", "order": "ASCENDING" },
@@ -693,13 +686,6 @@
         { "fieldPath": "referenceId", "order": "ASCENDING" },
         { "fieldPath": "reminderType", "order": "ASCENDING" },
         { "fieldPath": "userId", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "sentReminders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "sentAt", "order": "ASCENDING" }
       ]
     },
     {

@@ -76,12 +76,22 @@ export interface LessonType {
 
   // Duration and capacity
   durationMinutes: number;
+  /** @deprecated Use durationMinutes */
+  defaultDuration?: number;
   minParticipants: number;
   maxParticipants: number;
   isGroupLesson: boolean;
 
+  // UI display
+  color?: string;
+
   // Pricing
   price: number;
+  /** @deprecated Use price and related fields */
+  pricing?: {
+    basePrice: number;
+    memberDiscount?: number;
+  };
   currency: string; // Default: "SEK"
   pricePerAdditionalParticipant?: number; // For group lessons
 
@@ -176,6 +186,8 @@ export interface Lesson {
   // Location
   facilityId?: string;
   facilityName?: string;
+  /** Location string for display */
+  location?: string;
 
   // Instructor
   instructorId: string;
@@ -409,15 +421,23 @@ export interface Instructor {
   firstName: string;
   lastName: string;
   displayName: string;
+  /** @deprecated Use displayName */
+  name?: string;
   email: string;
   phone?: string;
   photoUrl?: string;
+
+  // UI display
+  color?: string;
 
   // Qualifications
   certifications: string[];
   specializations: LessonCategory[];
   experienceYears?: number;
   bio?: string;
+
+  /** @deprecated Use defaultHourlyRate */
+  defaultRate?: number;
 
   // Availability summary
   availableDays: number[]; // 0-6

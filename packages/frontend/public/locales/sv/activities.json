@@ -52,6 +52,13 @@
     },
     "search": {
       "placeholder": "Sök efter namn, UELN, etc..."
+    },
+    "matrix": {
+      "horse": "Häst"
+    },
+    "emptyState": {
+      "noHorses": "Inga hästar hittades för detta stall",
+      "noActivityTypes": "Inga vårdaktivitetstyper konfigurerade"
     }
   },
   "planning": {

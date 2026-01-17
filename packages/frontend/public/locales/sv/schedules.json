@@ -1,0 +1,148 @@
+{
+  "page": {
+    "title": "Schemavy",
+    "description": "Hantera och visa alla pass",
+    "descriptionFor": "for",
+    "descriptionAcross": "over",
+    "descriptionAllStables": "alla {{count}} stall"
+  },
+  "actions": {
+    "createSchedule": "Skapa schema",
+    "assignToMe": "Tilldela till mig",
+    "markCompleted": "Markera slutfort",
+    "cancelShift": "Avbryt pass",
+    "unassign": "Ta bort tilldelning",
+    "selectStableFirst": "Valj ett stall forst for att skapa ett schema"
+  },
+  "stats": {
+    "totalShifts": "Totalt antal pass",
+    "allUpcoming": "Alla kommande pass",
+    "unassigned": "Otilldelade",
+    "needAttention": "Behover uppmärksamhet",
+    "assigned": "Tilldelade",
+    "coveredShifts": "Tackta pass",
+    "coverage": "Tackning",
+    "overallCoverage": "Total tackning"
+  },
+  "filters": {
+    "all": "Alla",
+    "unassigned": "Otilldelade",
+    "assigned": "Tilldelade",
+    "completed": "Slutforda",
+    "cancelled": "Avbrutna",
+    "missed": "Missade"
+  },
+  "status": {
+    "completed": "Slutford",
+    "cancelled": "Avbruten",
+    "missed": "Missad",
+    "assigned": "Tilldelad",
+    "unassigned": "Otilldelad",
+    "you": "Du"
+  },
+  "calendar": {
+    "title": "Kalendervy",
+    "description": "Dagar ar fargkodade: Alla tilldelade - Delvis tilldelade - Otilldelade",
+    "legend": {
+      "allAssigned": "Alla tilldelade",
+      "partiallyAssigned": "Delvis tilldelade",
+      "unassigned": "Otilldelade"
+    }
+  },
+  "urgentShifts": {
+    "title": "Brådskandepass",
+    "description": "Kommande otilldelade pass",
+    "allAssigned": "Alla kommande pass ar tilldelade!"
+  },
+  "allShifts": {
+    "title": "Alla pass",
+    "description": "Visa och hantera alla schemalagda pass"
+  },
+  "emptyState": {
+    "noShiftsFound": "Inga pass hittades",
+    "joinStable": "Ga med i ett stall for att se scheman",
+    "noSchedulesForStable": "Inga scheman publicerade for detta stall annu",
+    "noSchedulesYet": "Inga scheman publicerade annu",
+    "createSchedulePrompt": "For att skapa pass behover du skapa ett schema forst:",
+    "selectStableAbove": "Valj ett stall ovan for att skapa ett schema"
+  },
+  "dialog": {
+    "completeShift": {
+      "title": "Slutfor pass",
+      "description": "Markera \"{{shiftName}}\" som slutfort. Du kan valfritt lagga till anteckningar.",
+      "notesLabel": "Anteckningar (valfritt)",
+      "notesPlaceholder": "Lagg till anteckningar om detta pass...",
+      "submitButton": "Slutfor"
+    },
+    "cancelShift": {
+      "title": "Avbryt pass",
+      "description": "Avbryt \"{{shiftName}}\". Vänligen ange en anledning.",
+      "reasonLabel": "Anledning (obligatorisk)",
+      "reasonPlaceholder": "Varfor avbryts detta pass?",
+      "submitButton": "Avbryt pass",
+      "reasonRequired": "Vänligen ange en anledning for avbokningen"
+    },
+    "missedShift": {
+      "title": "Markera pass som missat",
+      "description": "Markera \"{{shiftName}}\" som missat. Du kan valfritt lagga till en anledning.",
+      "reasonLabel": "Anledning (valfritt)",
+      "reasonPlaceholder": "Varfor missades detta pass?",
+      "submitButton": "Markera missat"
+    },
+    "cancel": "Avbryt"
+  },
+  "stable": {
+    "selectPlaceholder": "Valj stall",
+    "allStables": "Alla stall",
+    "unknownStable": "Okant stall"
+  },
+  "createPage": {
+    "backButton": "Tillbaka till stall",
+    "pageTitle": "Skapa nytt schema",
+    "pageDescription": "Skapa ett nytt schema för dina stallmedlemmar",
+    "scheduleDetails": {
+      "title": "Schemauppgifter",
+      "description": "Definiera tidsramen och namn för detta schema",
+      "nameLabel": "Schemanamn",
+      "namePlaceholder": "t.ex. Veckoschema 25-31 dec",
+      "startDateLabel": "Startdatum",
+      "endDateLabel": "Slutdatum",
+      "duration": "Varaktighet:",
+      "daysUnit": "dagar",
+      "estimatedShifts": "Beräknade pass:"
+    },
+    "shiftTypes": {
+      "title": "Välj skifttyper",
+      "description": "Välj vilka skifttyper som ska ingå i detta schema",
+      "placeholder": "Välj skifttyper...",
+      "searchPlaceholder": "Sök skifttyper...",
+      "emptyState": "Inga skifttyper hittades.",
+      "selectedOne": "1 skifttyp vald",
+      "selectedMany": "{{count}} skifttyper valda",
+      "validationError": "Välj minst en skifttyp"
+    },
+    "assignmentMethod": {
+      "title": "Tilldelningsmetod",
+      "description": "Välj hur pass ska tilldelas medlemmar",
+      "autoToggle": "Använd automatisk tilldelning",
+      "autoDescription": "Låt rättvisealgoritmen fördela pass automatiskt baserat på medlemmarnas historik och tillgänglighet",
+      "manualTitle": "Manuellt tilldelningsläge",
+      "manualDescription": "Du omdirigeras till schemeredigeraren där du manuellt kan tilldela medlemmar till varje pass. Systemet visar fortfarande rättviseförslag."
+    },
+    "notifications": {
+      "title": "Meddelanden",
+      "description": "Konfigurera hur medlemmar meddelas om detta schema",
+      "notifyToggle": "Meddela medlemmar",
+      "notifyDescription": "Skicka e-postmeddelanden till alla medlemmar när schemat publiceras"
+    },
+    "actions": {
+      "cancel": "Avbryt",
+      "creating": "Skapar...",
+      "createAutoAssign": "Skapa & tilldela automatiskt",
+      "createSchedule": "Skapa schema"
+    },
+    "errors": {
+      "createFailed": "Kunde inte skapa schema. Försök igen."
+    }
+  }
+}

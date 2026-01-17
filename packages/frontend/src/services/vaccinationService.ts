@@ -6,6 +6,7 @@ import type {
 import type { Horse } from "@/types/roles";
 import type { VaccinationRule } from "@shared/types/organization";
 import { toDate } from "@/utils/timestampUtils";
+import { authFetchJSON } from "@/utils/authFetch";
 
 /**
  * Vaccination Service
@@ -23,8 +24,6 @@ export async function createVaccinationRecord(
   data: Omit<VaccinationRecord, "id" | "createdAt" | "updatedAt">,
 ): Promise<VaccinationRecord> {
   try {
-    const { authFetchJSON } = await import("@/utils/authFetch");
-
     const record = await authFetchJSON<VaccinationRecord>(
       `${import.meta.env.VITE_API_URL}/api/v1/vaccination-records`,
       {
@@ -48,8 +47,6 @@ export async function updateVaccinationRecord(
   updates: Partial<VaccinationRecord>,
 ): Promise<void> {
   try {
-    const { authFetchJSON } = await import("@/utils/authFetch");
-
     await authFetchJSON<VaccinationRecord>(
       `${import.meta.env.VITE_API_URL}/api/v1/vaccination-records/${id}`,
       {
@@ -68,8 +65,6 @@ export async function updateVaccinationRecord(
  */
 export async function deleteVaccinationRecord(id: string): Promise<void> {
   try {
-    const { authFetchJSON } = await import("@/utils/authFetch");
-
     await authFetchJSON<{ success: boolean; id: string }>(
       `${import.meta.env.VITE_API_URL}/api/v1/vaccination-records/${id}`,
       {
@@ -89,8 +84,6 @@ export async function getHorseVaccinationRecords(
   horseId: string,
 ): Promise<VaccinationRecord[]> {
   try {
-    const { authFetchJSON } = await import("@/utils/authFetch");
-
     const response = await authFetchJSON<{ records: VaccinationRecord[] }>(
       `${import.meta.env.VITE_API_URL}/api/v1/vaccination-records/horse/${horseId}`,
       { method: "GET" },
@@ -110,8 +103,6 @@ export async function getOrganizationVaccinationRecords(
   organizationId: string,
 ): Promise<VaccinationRecord[]> {
   try {
-    const { authFetchJSON } = await import("@/utils/authFetch");
-
     const response = await authFetchJSON<{ records: VaccinationRecord[] }>(
       `${import.meta.env.VITE_API_URL}/api/v1/vaccination-records/organization/${organizationId}`,
       { method: "GET" },
@@ -251,8 +242,6 @@ export async function updateHorseVaccinationCache(
   horseId: string,
 ): Promise<void> {
   try {
-    const { authFetchJSON } = await import("@/utils/authFetch");
-
     await authFetchJSON<{ success: boolean; status: string }>(
       `${import.meta.env.VITE_API_URL}/api/v1/vaccination-records/horse/${horseId}/update-cache`,
       { method: "POST" },
@@ -272,8 +261,6 @@ export async function getExpiringSoon(
   days: number = 30,
 ): Promise<Horse[]> {
   try {
-    const { authFetchJSON } = await import("@/utils/authFetch");
-
     const response = await authFetchJSON<{ horses: Horse[] }>(
       `${import.meta.env.VITE_API_URL}/api/v1/horses/expiring-vaccinations?days=${days}`,
       { method: "GET" },

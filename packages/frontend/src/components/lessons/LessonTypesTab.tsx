@@ -73,7 +73,7 @@ const lessonTypeSchema = z.object({
     "other",
   ]),
   level: z
-    .enum(["beginner", "novice", "intermediate", "advanced", "professional"])
+    .enum(["beginner", "novice", "intermediate", "advanced", "expert"])
     .optional(),
   defaultDuration: z.coerce
     .number()
@@ -91,11 +91,14 @@ const lessonTypeSchema = z.object({
 
 type LessonTypeFormData = z.infer<typeof lessonTypeSchema>;
 
-interface LessonTypesTabProps {
+export interface LessonTypesTabProps {
   lessonTypes: LessonType[];
-  onCreate: (data: CreateLessonTypeData) => Promise<void>;
-  onUpdate: (id: string, data: Partial<CreateLessonTypeData>) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
+  isLoading?: boolean;
+  onRefresh?: () => Promise<unknown>;
+  // Legacy props for direct control
+  onCreate?: (data: CreateLessonTypeData) => Promise<void>;
+  onUpdate?: (id: string, data: Partial<CreateLessonTypeData>) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
 }
 
 const COLORS = [
@@ -130,7 +133,8 @@ export function LessonTypesTab({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<LessonTypeFormData>({
-    resolver: zodResolver(lessonTypeSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(lessonTypeSchema as any),
     defaultValues: {
       name: "",
       description: "",
@@ -168,14 +172,14 @@ export function LessonTypesTab({
     form.reset({
       name: lessonType.name,
       description: lessonType.description || "",
-      category: lessonType.category,
+      category: lessonType.category as LessonTypeFormData["category"],
       level: lessonType.level,
-      defaultDuration: lessonType.defaultDuration,
+      defaultDuration: lessonType.defaultDuration || lessonType.durationMinutes,
       minParticipants: lessonType.minParticipants || 1,
       maxParticipants: lessonType.maxParticipants,
       requiresOwnHorse: lessonType.requiresOwnHorse || false,
-      basePrice: lessonType.pricing.basePrice,
-      memberDiscount: lessonType.pricing.memberDiscount || 0,
+      basePrice: lessonType.pricing?.basePrice ?? lessonType.price ?? 0,
+      memberDiscount: lessonType.pricing?.memberDiscount || 0,
       color: lessonType.color || "#3b82f6",
       isActive: lessonType.isActive,
     });
@@ -204,9 +208,9 @@ export function LessonTypesTab({
         },
       };
 
-      if (editingType) {
+      if (editingType && onUpdate) {
         await onUpdate(editingType.id, payload);
-      } else {
+      } else if (onCreate) {
         await onCreate(payload);
       }
       setDialogOpen(false);
@@ -216,7 +220,7 @@ export function LessonTypesTab({
   }
 
   async function handleDelete() {
-    if (!deletingType) return;
+    if (!deletingType || !onDelete) return;
     setIsSubmitting(true);
     try {
       await onDelete(deletingType.id);
@@ -305,8 +309,8 @@ export function LessonTypesTab({
                       {lessonType.maxParticipants}
                     </TableCell>
                     <TableCell className="text-right">
-                      {lessonType.pricing.basePrice}{" "}
-                      {lessonType.pricing.currency || "SEK"}
+                      {lessonType.pricing?.basePrice ?? lessonType.price ?? 0}{" "}
+                      {lessonType.currency || "SEK"}
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -449,7 +453,7 @@ export function LessonTypesTab({
                             "novice",
                             "intermediate",
                             "advanced",
-                            "professional",
+                            "expert",
                           ].map((level) => (
                             <SelectItem key={level} value={level}>
                               {t(`lessons:types.level.${level}`)}

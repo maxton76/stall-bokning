@@ -46,14 +46,15 @@ import type {
   Instructor,
 } from "@stall-bokning/shared";
 
-interface LessonDetailDialogProps {
+export interface LessonDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   lesson: Lesson | null;
-  bookings: LessonBooking[];
+  bookings?: LessonBooking[];
   lessonType?: LessonType;
   instructor?: Instructor;
-  onCancel: (lessonId: string) => Promise<void>;
+  onUpdate?: () => void;
+  onCancel?: (lessonId: string) => Promise<void>;
   onEdit?: (lesson: Lesson) => void;
   onAddBooking?: (lessonId: string) => void;
   onCancelBooking?: (lessonId: string, bookingId: string) => Promise<void>;
@@ -63,9 +64,10 @@ export function LessonDetailDialog({
   open,
   onOpenChange,
   lesson,
-  bookings,
+  bookings = [],
   lessonType,
   instructor,
+  onUpdate,
   onCancel,
   onEdit,
   onAddBooking,
@@ -84,13 +86,12 @@ export function LessonDetailDialog({
 
   const startTime = new Date(lesson.startTime);
   const endTime = new Date(lesson.endTime);
-  const confirmedBookings = bookings.filter(
-    (b) => b.status === "confirmed" || b.status === "completed",
-  );
+  const confirmedBookings = bookings.filter((b) => b.status === "confirmed");
   const waitlistedBookings = bookings.filter((b) => b.status === "waitlisted");
   const spotsAvailable = lesson.maxParticipants - confirmedBookings.length;
 
   async function handleCancelLesson() {
+    if (!onCancel || !lesson) return;
     setIsCancelling(true);
     try {
       await onCancel(lesson.id);
@@ -102,7 +103,7 @@ export function LessonDetailDialog({
   }
 
   async function handleCancelBooking(bookingId: string) {
-    if (!onCancelBooking) return;
+    if (!onCancelBooking || !lesson) return;
     setIsCancelling(true);
     try {
       await onCancelBooking(lesson.id, bookingId);
@@ -326,8 +327,8 @@ export function LessonDetailDialog({
                         {t("lessons:fields.price")}
                       </span>
                       <span>
-                        {lessonType.pricing.basePrice}{" "}
-                        {lessonType.pricing.currency || "SEK"}
+                        {lessonType.pricing?.basePrice ?? lessonType.price ?? 0}{" "}
+                        {lessonType.currency || "SEK"}
                       </span>
                     </div>
                   </CardContent>

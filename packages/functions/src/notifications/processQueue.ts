@@ -1,9 +1,9 @@
-import { initializeApp, getApps } from "firebase-admin/app";
-import { getFirestore, Timestamp, FieldValue } from "firebase-admin/firestore";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { logger } from "firebase-functions";
 import * as crypto from "crypto";
 
+import { db, Timestamp, FieldValue } from "../lib/firebase.js";
+import { formatErrorMessage } from "../lib/errors.js";
 import { sendEmail } from "./sendEmail.js";
 import { sendPushNotification } from "./sendPush.js";
 import { sendTelegramMessage } from "./sendTelegram.js";
@@ -79,12 +79,6 @@ function getRateLimitDelay(channel: string): number {
   const tokensNeeded = 1 - bucket.tokens;
   return Math.ceil(tokensNeeded / limit.refillRate);
 }
-
-// Initialize Firebase Admin if not already initialized
-if (getApps().length === 0) {
-  initializeApp();
-}
-const db = getFirestore();
 
 /**
  * Queue item data structure
@@ -393,7 +387,7 @@ async function processQueueItem(
         error = `Unknown channel: ${channel}`;
     }
   } catch (err) {
-    error = err instanceof Error ? err.message : String(err);
+    error = formatErrorMessage(err);
     logger.error(
       {
         executionId,

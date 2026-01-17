@@ -69,13 +69,13 @@ function parseRRule(rrule: string): {
     const [key, value] = part.split("=");
     switch (key) {
       case "FREQ":
-        result.freq = value;
+        result.freq = value ?? "DAILY";
         break;
       case "INTERVAL":
-        result.interval = parseInt(value, 10);
+        result.interval = parseInt(value ?? "1", 10);
         break;
       case "BYDAY":
-        result.byDay = value.split(",");
+        result.byDay = value?.split(",") ?? [];
         break;
     }
   }

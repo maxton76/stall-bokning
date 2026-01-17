@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Check, X, Loader2, Filter } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { format } from "date-fns";
@@ -43,14 +44,15 @@ import {
   useReviewLeaveRequest,
 } from "@/hooks/useAvailability";
 import { useToast } from "@/hooks/use-toast";
-import type { LeaveRequestDisplay } from "@stall-bokning/shared";
-import {
-  LEAVE_TYPE_LABELS,
-  STATUS_BADGES,
-  STATUS_OPTIONS,
-} from "@/lib/availabilityConstants";
+import type {
+  LeaveRequestDisplay,
+  LeaveType,
+  LeaveStatus,
+} from "@stall-bokning/shared";
+import { STATUS_BADGES } from "@/lib/availabilityConstants";
 
 export default function LeaveManagementPage() {
+  const { t } = useTranslation(["availability", "common"]);
   const { currentOrganizationId } = useOrganizationContext();
   const { toast } = useToast();
 
@@ -72,6 +74,29 @@ export default function LeaveManagementPage() {
     { status: statusFilter === "all" ? undefined : statusFilter },
   );
   const reviewMutation = useReviewLeaveRequest();
+
+  // Get translated leave type label
+  const getLeaveTypeLabel = (type: LeaveType): string => {
+    return t(`leave.types.${type}`);
+  };
+
+  // Get translated status badge
+  const getStatusBadge = (status: LeaveStatus) => {
+    const badge = STATUS_BADGES[status];
+    return {
+      variant: badge.variant,
+      label: t(`leave.status.${status}`),
+    };
+  };
+
+  // Status filter options
+  const statusOptions = [
+    { value: "all", label: t("statusFilter.all") },
+    { value: "pending", label: t("statusFilter.pending") },
+    { value: "approved", label: t("statusFilter.approved") },
+    { value: "rejected", label: t("statusFilter.rejected") },
+    { value: "cancelled", label: t("statusFilter.cancelled") },
+  ];
 
   const handleOpenReviewDialog = (
     request: LeaveRequestDisplay,
@@ -95,14 +120,22 @@ export default function LeaveManagementPage() {
       });
       toast({
         title:
-          reviewAction === "approved" ? "Request approved" : "Request rejected",
-        description: `Leave request for ${selectedRequest.userName || "user"} has been ${reviewAction}.`,
+          reviewAction === "approved"
+            ? t("toast.requestApproved")
+            : t("toast.requestRejected"),
+        description: t("toast.reviewDescription", {
+          name: selectedRequest.userName || t("common:labels.unknown"),
+          status:
+            reviewAction === "approved"
+              ? t("leave.status.approved")
+              : t("leave.status.rejected"),
+        }),
       });
       setReviewDialogOpen(false);
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to review leave request. Please try again.",
+        title: t("toast.error"),
+        description: t("toast.reviewError"),
         variant: "destructive",
       });
     }
@@ -113,7 +146,7 @@ export default function LeaveManagementPage() {
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center h-64">
           <p className="text-muted-foreground">
-            Please select an organization first.
+            {t("myAvailability.selectOrganization")}
           </p>
         </div>
       </div>
@@ -126,10 +159,10 @@ export default function LeaveManagementPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Leave Management
+            {t("leaveManagement.title")}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Review and manage leave requests from your team
+            {t("leaveManagement.description")}
           </p>
         </div>
       </div>
@@ -139,19 +172,21 @@ export default function LeaveManagementPage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Filter className="h-4 w-4" />
-            Filters
+            {t("leaveManagement.filters")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
             <div className="w-[200px]">
-              <Label className="text-sm text-muted-foreground">Status</Label>
+              <Label className="text-sm text-muted-foreground">
+                {t("common:labels.status")}
+              </Label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
+                  <SelectValue placeholder={t("common:labels.select")} />
                 </SelectTrigger>
                 <SelectContent>
-                  {STATUS_OPTIONS.map((option) => (
+                  {statusOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
@@ -166,9 +201,11 @@ export default function LeaveManagementPage() {
       {/* Leave Requests Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Leave Requests</CardTitle>
+          <CardTitle>{t("leaveManagement.leaveRequests")}</CardTitle>
           <CardDescription>
-            {leaveRequests?.length ?? 0} request(s) found
+            {t("leaveManagement.requestsFound", {
+              count: leaveRequests?.length ?? 0,
+            })}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -178,13 +215,15 @@ export default function LeaveManagementPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Period</TableHead>
-                  <TableHead>Impact</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Requested</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t("leaveManagement.table.employee")}</TableHead>
+                  <TableHead>{t("leaveManagement.table.type")}</TableHead>
+                  <TableHead>{t("leaveManagement.table.period")}</TableHead>
+                  <TableHead>{t("leaveManagement.table.impact")}</TableHead>
+                  <TableHead>{t("leaveManagement.table.status")}</TableHead>
+                  <TableHead>{t("leaveManagement.table.requested")}</TableHead>
+                  <TableHead className="text-right">
+                    {t("leaveManagement.table.actions")}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -194,70 +233,77 @@ export default function LeaveManagementPage() {
                       colSpan={7}
                       className="text-center text-muted-foreground py-8"
                     >
-                      No leave requests found
+                      {t("leaveManagement.noRequests")}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  leaveRequests.map((request) => (
-                    <TableRow key={request.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">
-                            {request.userName || "Unknown"}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {request.userEmail}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>{LEAVE_TYPE_LABELS[request.type]}</TableCell>
-                      <TableCell>
-                        {formatPeriodDisplay(request.firstDay, request.lastDay)}
-                      </TableCell>
-                      <TableCell>{request.impactHours}h</TableCell>
-                      <TableCell>
-                        <Badge variant={STATUS_BADGES[request.status].variant}>
-                          {STATUS_BADGES[request.status].label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {format(request.requestedAt, "MMM d, yyyy")}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {request.status === "pending" && (
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                              onClick={() =>
-                                handleOpenReviewDialog(request, "approved")
-                              }
-                            >
-                              <Check className="h-4 w-4 mr-1" />
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() =>
-                                handleOpenReviewDialog(request, "rejected")
-                              }
-                            >
-                              <X className="h-4 w-4 mr-1" />
-                              Reject
-                            </Button>
+                  leaveRequests.map((request) => {
+                    const statusBadge = getStatusBadge(request.status);
+                    return (
+                      <TableRow key={request.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">
+                              {request.userName || t("common:labels.unknown")}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {request.userEmail}
+                            </p>
                           </div>
-                        )}
-                        {request.status !== "pending" && request.reviewedAt && (
-                          <span className="text-sm text-muted-foreground">
-                            {format(request.reviewedAt, "MMM d, yyyy")}
-                          </span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        </TableCell>
+                        <TableCell>{getLeaveTypeLabel(request.type)}</TableCell>
+                        <TableCell>
+                          {formatPeriodDisplay(
+                            request.firstDay,
+                            request.lastDay,
+                          )}
+                        </TableCell>
+                        <TableCell>{request.impactHours}h</TableCell>
+                        <TableCell>
+                          <Badge variant={statusBadge.variant}>
+                            {statusBadge.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {format(request.requestedAt, "MMM d, yyyy")}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {request.status === "pending" && (
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                onClick={() =>
+                                  handleOpenReviewDialog(request, "approved")
+                                }
+                              >
+                                <Check className="h-4 w-4 mr-1" />
+                                {t("common:buttons.confirm")}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() =>
+                                  handleOpenReviewDialog(request, "rejected")
+                                }
+                              >
+                                <X className="h-4 w-4 mr-1" />
+                                {t("common:status.rejected")}
+                              </Button>
+                            </div>
+                          )}
+                          {request.status !== "pending" &&
+                            request.reviewedAt && (
+                              <span className="text-sm text-muted-foreground">
+                                {format(request.reviewedAt, "MMM d, yyyy")}
+                              </span>
+                            )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -270,31 +316,38 @@ export default function LeaveManagementPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {reviewAction === "approved" ? "Approve" : "Reject"} Leave Request
+              {reviewAction === "approved"
+                ? t("leaveManagement.reviewDialog.approveTitle")
+                : t("leaveManagement.reviewDialog.rejectTitle")}
             </DialogTitle>
             <DialogDescription>
               {selectedRequest && (
                 <>
-                  {selectedRequest.userName || "Employee"} requested{" "}
-                  {LEAVE_TYPE_LABELS[selectedRequest.type].toLowerCase()} from{" "}
-                  {format(selectedRequest.firstDay, "MMM d")} to{" "}
-                  {format(selectedRequest.lastDay, "MMM d, yyyy")} (
-                  {selectedRequest.impactHours}h impact).
+                  {t("leaveManagement.reviewDialog.description", {
+                    name:
+                      selectedRequest.userName || t("common:labels.unknown"),
+                    type: getLeaveTypeLabel(selectedRequest.type).toLowerCase(),
+                    from: format(selectedRequest.firstDay, "MMM d"),
+                    to: format(selectedRequest.lastDay, "MMM d, yyyy"),
+                    hours: selectedRequest.impactHours,
+                  })}
                 </>
               )}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="reviewNote">Note (optional)</Label>
+              <Label htmlFor="reviewNote">
+                {t("leaveManagement.reviewDialog.noteLabel")}
+              </Label>
               <Textarea
                 id="reviewNote"
                 value={reviewNote}
                 onChange={(e) => setReviewNote(e.target.value)}
                 placeholder={
                   reviewAction === "approved"
-                    ? "Optional note to the employee..."
-                    : "Reason for rejection..."
+                    ? t("leaveManagement.reviewDialog.approvePlaceholder")
+                    : t("leaveManagement.reviewDialog.rejectPlaceholder")
                 }
                 rows={3}
               />
@@ -306,7 +359,7 @@ export default function LeaveManagementPage() {
               onClick={() => setReviewDialogOpen(false)}
               disabled={reviewMutation.isPending}
             >
-              Cancel
+              {t("common:buttons.cancel")}
             </Button>
             <Button
               onClick={handleReview}
@@ -320,7 +373,9 @@ export default function LeaveManagementPage() {
               ) : (
                 <X className="h-4 w-4 mr-2" />
               )}
-              {reviewAction === "approved" ? "Approve" : "Reject"}
+              {reviewAction === "approved"
+                ? t("common:buttons.confirm")
+                : t("common:status.rejected")}
             </Button>
           </DialogFooter>
         </DialogContent>

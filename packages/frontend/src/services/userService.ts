@@ -1,6 +1,7 @@
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { formatFullName } from "@/lib/nameUtils";
+import { authFetchJSON } from "@/utils/authFetch";
 
 export interface RegisterUserData {
   email: string;
@@ -42,8 +43,6 @@ export async function registerUser(data: RegisterUserData): Promise<string> {
     // - Creating organization
     // - Creating organization member record
     // - Migrating pending invites
-    const { authFetchJSON } = await import("@/utils/authFetch");
-
     const response = await authFetchJSON<{
       user: { id: string; email: string; firstName: string; lastName: string };
     }>(`${import.meta.env.VITE_API_URL}/api/v1/auth/signup`, {

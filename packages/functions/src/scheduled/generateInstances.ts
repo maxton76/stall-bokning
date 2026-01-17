@@ -1,14 +1,9 @@
-import { initializeApp, getApps } from "firebase-admin/app";
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { logger } from "firebase-functions";
 import * as crypto from "crypto";
 
-// Initialize Firebase Admin if not already initialized
-if (getApps().length === 0) {
-  initializeApp();
-}
-const db = getFirestore();
+import { db, Timestamp } from "../lib/firebase.js";
+import { formatErrorMessage } from "../lib/errors.js";
 
 /**
  * Parse RRULE string to extract recurrence pattern
@@ -158,7 +153,7 @@ function generateDates(
           currentDate.setDate(currentDate.getDate() + 7 * rrule.interval);
         }
         break;
-      case "MONTHLY":
+      case "MONTHLY": {
         // Fix monthly day overflow bug:
         // January 31 + 1 month should go to February 28/29, not March 3
         const originalDay = currentDate.getDate();
@@ -173,6 +168,7 @@ function generateDates(
         // Use the original day or the last day of the month, whichever is smaller
         currentDate.setDate(Math.min(originalDay, lastDayOfMonth));
         break;
+      }
       case "YEARLY":
         currentDate.setFullYear(currentDate.getFullYear() + rrule.interval);
         break;
@@ -243,6 +239,7 @@ export const generateActivityInstances = onSchedule(
   {
     schedule: "0 2 * * *", // At 02:00 every day
     timeZone: "Europe/Stockholm",
+    region: "europe-west1",
     retryCount: 3,
   },
   async (_event) => {
@@ -509,10 +506,7 @@ export const generateActivityInstances = onSchedule(
                     executionId,
                     recurringId,
                     batchCount,
-                    error:
-                      batchError instanceof Error
-                        ? batchError.message
-                        : String(batchError),
+                    error: formatErrorMessage(batchError),
                   },
                   "Failed to commit batch of activity instances",
                 );
@@ -564,7 +558,7 @@ export const generateActivityInstances = onSchedule(
             {
               executionId,
               recurringId: recurringDoc.id,
-              error: error instanceof Error ? error.message : String(error),
+              error: formatErrorMessage(error),
             },
             "Error processing recurring activity",
           );
@@ -585,7 +579,7 @@ export const generateActivityInstances = onSchedule(
       logger.error(
         {
           executionId,
-          error: error instanceof Error ? error.message : String(error),
+          error: formatErrorMessage(error),
         },
         "Activity instance generation failed",
       );

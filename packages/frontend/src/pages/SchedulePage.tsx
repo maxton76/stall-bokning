@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -55,10 +56,12 @@ import { useUserStables } from "@/hooks/useUserStables";
 import type { Shift, ShiftStatus } from "@/types/schedule";
 import { getPublishedShiftsForStables } from "@/services/scheduleService";
 import { toDate } from "@/utils/timestampUtils";
+import type { TFunction } from "i18next";
 
 // Helper to get badge for shift status
 function getStatusBadge(
   status: ShiftStatus,
+  t: TFunction,
   assignedToEmail?: string | null,
   currentUserEmail?: string,
 ) {
@@ -67,14 +70,14 @@ function getStatusBadge(
       return (
         <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
           <CheckIcon className="h-3 w-3 mr-1" />
-          Completed
+          {t("schedules:status.completed")}
         </Badge>
       );
     case "cancelled":
       return (
         <Badge variant="secondary" className="bg-gray-100 text-gray-600">
           <XCircleIcon className="h-3 w-3 mr-1" />
-          Cancelled
+          {t("schedules:status.cancelled")}
         </Badge>
       );
     case "missed":
@@ -84,7 +87,7 @@ function getStatusBadge(
           className="bg-orange-100 text-orange-800 hover:bg-orange-100"
         >
           <AlertTriangleIcon className="h-3 w-3 mr-1" />
-          Missed
+          {t("schedules:status.missed")}
         </Badge>
       );
     case "assigned":
@@ -93,12 +96,16 @@ function getStatusBadge(
           variant="outline"
           className="bg-green-50 text-green-700 border-green-200"
         >
-          {assignedToEmail === currentUserEmail ? "You" : "Assigned"}
+          {assignedToEmail === currentUserEmail
+            ? t("schedules:status.you")
+            : t("schedules:status.assigned")}
         </Badge>
       );
     case "unassigned":
     default:
-      return <Badge variant="destructive">Unassigned</Badge>;
+      return (
+        <Badge variant="destructive">{t("schedules:status.unassigned")}</Badge>
+      );
   }
 }
 
@@ -111,6 +118,7 @@ type FilterType =
   | "missed";
 
 export default function SchedulePage() {
+  const { t } = useTranslation(["schedules", "common"]);
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
@@ -141,16 +149,7 @@ export default function SchedulePage() {
         return [];
       }
 
-      console.log(
-        "Loading shifts for user:",
-        user.uid,
-        "stableIds:",
-        stableIds,
-      );
-
       const shiftsData = await getPublishedShiftsForStables(stableIds);
-
-      console.log("Loaded shifts:", shiftsData.length);
       return shiftsData;
     },
     enabled: !!user && !stablesLoading && stableIds.length > 0,
@@ -310,7 +309,7 @@ export default function SchedulePage() {
         await complete(shiftId, dialogInput || undefined);
       } else if (type === "cancel") {
         if (!dialogInput.trim()) {
-          alert("Please provide a reason for cancellation");
+          alert(t("schedules:dialog.cancelShift.reasonRequired"));
           return;
         }
         await cancel(shiftId, dialogInput);
@@ -347,26 +346,28 @@ export default function SchedulePage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Schedule Overview
+            {t("schedules:page.title")}
           </h1>
           <div className="text-muted-foreground mt-1">
-            Manage and view all shifts
+            {t("schedules:page.description")}
             {selectedStable !== "all" && stables.length > 0 && (
               <>
                 {" "}
-                for{" "}
+                {t("schedules:page.descriptionFor")}{" "}
                 <Badge variant="secondary" className="font-normal">
                   {stables.find((s) => s.id === selectedStable)?.name ||
-                    "Unknown Stable"}
+                    t("schedules:stable.unknownStable")}
                 </Badge>
               </>
             )}
             {selectedStable === "all" && stables.length > 1 && (
               <>
                 {" "}
-                across{" "}
+                {t("schedules:page.descriptionAcross")}{" "}
                 <Badge variant="secondary" className="font-normal">
-                  all {stables.length} stables
+                  {t("schedules:page.descriptionAllStables", {
+                    count: stables.length,
+                  })}
                 </Badge>
               </>
             )}
@@ -378,31 +379,35 @@ export default function SchedulePage() {
             <Link to={`/stables/${selectedStable}/schedules/create`}>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
-                Create Schedule
+                {t("schedules:actions.createSchedule")}
               </Button>
             </Link>
           ) : stables.length === 1 ? (
             <Link to={`/stables/${stables[0]?.id}/schedules/create`}>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
-                Create Schedule
+                {t("schedules:actions.createSchedule")}
               </Button>
             </Link>
           ) : (
-            <Button disabled title="Select a stable first to create a schedule">
+            <Button disabled title={t("schedules:actions.selectStableFirst")}>
               <Plus className="mr-2 h-4 w-4" />
-              Create Schedule
+              {t("schedules:actions.createSchedule")}
             </Button>
           )}
           {/* Stable Selector */}
           <div className="w-64">
             <Select value={selectedStable} onValueChange={setSelectedStable}>
               <SelectTrigger>
-                <SelectValue placeholder="Select stable" />
+                <SelectValue
+                  placeholder={t("schedules:stable.selectPlaceholder")}
+                />
               </SelectTrigger>
               <SelectContent>
                 {stables.length > 1 && (
-                  <SelectItem value="all">All Stables</SelectItem>
+                  <SelectItem value="all">
+                    {t("schedules:stable.allStables")}
+                  </SelectItem>
                 )}
                 {stables.map((stable) => (
                   <SelectItem key={stable.id} value={stable.id}>
@@ -419,49 +424,65 @@ export default function SchedulePage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Shifts</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {t("schedules:stats.totalShifts")}
+            </CardTitle>
             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalShifts}</div>
-            <p className="text-xs text-muted-foreground">All upcoming shifts</p>
+            <p className="text-xs text-muted-foreground">
+              {t("schedules:stats.allUpcoming")}
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unassigned</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {t("schedules:stats.unassigned")}
+            </CardTitle>
             <AlertCircleIcon className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">
               {stats.unassigned}
             </div>
-            <p className="text-xs text-muted-foreground">Need attention</p>
+            <p className="text-xs text-muted-foreground">
+              {t("schedules:stats.needAttention")}
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Assigned</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {t("schedules:stats.assigned")}
+            </CardTitle>
             <CheckCircleIcon className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
               {stats.assigned}
             </div>
-            <p className="text-xs text-muted-foreground">Covered shifts</p>
+            <p className="text-xs text-muted-foreground">
+              {t("schedules:stats.coveredShifts")}
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Coverage</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {t("schedules:stats.coverage")}
+            </CardTitle>
             <UsersIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.coverage}%</div>
-            <p className="text-xs text-muted-foreground">Overall coverage</p>
+            <p className="text-xs text-muted-foreground">
+              {t("schedules:stats.overallCoverage")}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -471,10 +492,9 @@ export default function SchedulePage() {
         {/* Calendar View */}
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Calendar View</CardTitle>
+            <CardTitle>{t("schedules:calendar.title")}</CardTitle>
             <CardDescription>
-              Days are color-coded: 🟢 All assigned • 🟡 Partially assigned • 🔴
-              Unassigned
+              {t("schedules:calendar.description")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -527,16 +547,20 @@ export default function SchedulePage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertCircleIcon className="h-5 w-5 text-destructive" />
-              Urgent Shifts
+              {t("schedules:urgentShifts.title")}
             </CardTitle>
-            <CardDescription>Upcoming unassigned shifts</CardDescription>
+            <CardDescription>
+              {t("schedules:urgentShifts.description")}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {upcomingUnassigned.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <CheckCircleIcon className="h-8 w-8 mx-auto mb-2 text-green-600" />
-                  <p className="text-sm">All upcoming shifts are assigned!</p>
+                  <p className="text-sm">
+                    {t("schedules:urgentShifts.allAssigned")}
+                  </p>
                 </div>
               ) : (
                 upcomingUnassigned.map((shift) => (
@@ -553,7 +577,9 @@ export default function SchedulePage() {
                           {shift.stableName}
                         </p>
                       </div>
-                      <Badge variant="destructive">Unassigned</Badge>
+                      <Badge variant="destructive">
+                        {t("schedules:status.unassigned")}
+                      </Badge>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
@@ -574,7 +600,7 @@ export default function SchedulePage() {
                       variant="outline"
                       onClick={() => handleAssignShift(shift)}
                     >
-                      Assign to Me
+                      {t("schedules:actions.assignToMe")}
                     </Button>
                   </div>
                 ))
@@ -589,9 +615,9 @@ export default function SchedulePage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>All Shifts</CardTitle>
+              <CardTitle>{t("schedules:allShifts.title")}</CardTitle>
               <CardDescription>
-                View and manage all scheduled shifts
+                {t("schedules:allShifts.description")}
               </CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -600,42 +626,42 @@ export default function SchedulePage() {
                 size="sm"
                 onClick={() => setFilter("all")}
               >
-                All ({stats.totalShifts})
+                {t("schedules:filters.all")} ({stats.totalShifts})
               </Button>
               <Button
                 variant={filter === "unassigned" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setFilter("unassigned")}
               >
-                Unassigned ({stats.unassigned})
+                {t("schedules:filters.unassigned")} ({stats.unassigned})
               </Button>
               <Button
                 variant={filter === "assigned" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setFilter("assigned")}
               >
-                Assigned ({stats.assigned})
+                {t("schedules:filters.assigned")} ({stats.assigned})
               </Button>
               <Button
                 variant={filter === "completed" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setFilter("completed")}
               >
-                Completed ({stats.completed})
+                {t("schedules:filters.completed")} ({stats.completed})
               </Button>
               <Button
                 variant={filter === "cancelled" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setFilter("cancelled")}
               >
-                Cancelled ({stats.cancelled})
+                {t("schedules:filters.cancelled")} ({stats.cancelled})
               </Button>
               <Button
                 variant={filter === "missed" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setFilter("missed")}
               >
-                Missed ({stats.missed})
+                {t("schedules:filters.missed")} ({stats.missed})
               </Button>
             </div>
           </div>
@@ -644,36 +670,36 @@ export default function SchedulePage() {
           {filteredShifts.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No shifts found</p>
+              <p>{t("schedules:emptyState.noShiftsFound")}</p>
               <p className="text-sm mt-2">
                 {stables.length === 0
-                  ? "Join a stable to see schedules"
+                  ? t("schedules:emptyState.joinStable")
                   : selectedStable !== "all"
-                    ? "No schedules published for this stable yet"
-                    : "No schedules published yet"}
+                    ? t("schedules:emptyState.noSchedulesForStable")
+                    : t("schedules:emptyState.noSchedulesYet")}
               </p>
               {stables.length > 0 && (
                 <div className="mt-4">
                   <p className="text-sm mb-2">
-                    To create shifts, you need to create a schedule first:
+                    {t("schedules:emptyState.createSchedulePrompt")}
                   </p>
                   {selectedStable !== "all" ? (
                     <Link to={`/stables/${selectedStable}/schedules/create`}>
                       <Button>
                         <Plus className="mr-2 h-4 w-4" />
-                        Create Schedule
+                        {t("schedules:actions.createSchedule")}
                       </Button>
                     </Link>
                   ) : stables.length === 1 ? (
                     <Link to={`/stables/${stables[0]?.id}/schedules/create`}>
                       <Button>
                         <Plus className="mr-2 h-4 w-4" />
-                        Create Schedule
+                        {t("schedules:actions.createSchedule")}
                       </Button>
                     </Link>
                   ) : (
                     <p className="text-xs">
-                      Select a stable above to create a schedule
+                      {t("schedules:emptyState.selectStableAbove")}
                     </p>
                   )}
                 </div>
@@ -721,6 +747,7 @@ export default function SchedulePage() {
                     <div className="w-28">
                       {getStatusBadge(
                         shift.status,
+                        t,
                         shift.assignedToEmail ?? undefined,
                         user?.email ?? undefined,
                       )}
@@ -732,7 +759,7 @@ export default function SchedulePage() {
                         variant="outline"
                         onClick={() => handleAssignShift(shift)}
                       >
-                        Assign to Me
+                        {t("schedules:actions.assignToMe")}
                       </Button>
                     )}
                     {shift.status === "assigned" && (
@@ -753,7 +780,7 @@ export default function SchedulePage() {
                             }
                           >
                             <CheckIcon className="mr-2 h-4 w-4 text-green-600" />
-                            Mark Completed
+                            {t("schedules:actions.markCompleted")}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() =>
@@ -765,13 +792,13 @@ export default function SchedulePage() {
                             }
                           >
                             <XCircleIcon className="mr-2 h-4 w-4 text-gray-500" />
-                            Cancel Shift
+                            {t("schedules:actions.cancelShift")}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => handleUnassignShift(shift.id)}
                           >
-                            Unassign
+                            {t("schedules:actions.unassign")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -805,34 +832,46 @@ export default function SchedulePage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {completionDialog.type === "complete" && "Complete Shift"}
-              {completionDialog.type === "cancel" && "Cancel Shift"}
-              {completionDialog.type === "missed" && "Mark Shift as Missed"}
+              {completionDialog.type === "complete" &&
+                t("schedules:dialog.completeShift.title")}
+              {completionDialog.type === "cancel" &&
+                t("schedules:dialog.cancelShift.title")}
+              {completionDialog.type === "missed" &&
+                t("schedules:dialog.missedShift.title")}
             </DialogTitle>
             <DialogDescription>
               {completionDialog.type === "complete" &&
-                `Mark "${completionDialog.shiftName}" as completed. You can optionally add notes.`}
+                t("schedules:dialog.completeShift.description", {
+                  shiftName: completionDialog.shiftName,
+                })}
               {completionDialog.type === "cancel" &&
-                `Cancel "${completionDialog.shiftName}". Please provide a reason.`}
+                t("schedules:dialog.cancelShift.description", {
+                  shiftName: completionDialog.shiftName,
+                })}
               {completionDialog.type === "missed" &&
-                `Mark "${completionDialog.shiftName}" as missed. You can optionally add a reason.`}
+                t("schedules:dialog.missedShift.description", {
+                  shiftName: completionDialog.shiftName,
+                })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="dialog-input">
-                {completionDialog.type === "complete" && "Notes (optional)"}
-                {completionDialog.type === "cancel" && "Reason (required)"}
-                {completionDialog.type === "missed" && "Reason (optional)"}
+                {completionDialog.type === "complete" &&
+                  t("schedules:dialog.completeShift.notesLabel")}
+                {completionDialog.type === "cancel" &&
+                  t("schedules:dialog.cancelShift.reasonLabel")}
+                {completionDialog.type === "missed" &&
+                  t("schedules:dialog.missedShift.reasonLabel")}
               </Label>
               <Textarea
                 id="dialog-input"
                 placeholder={
                   completionDialog.type === "complete"
-                    ? "Add any notes about this shift..."
+                    ? t("schedules:dialog.completeShift.notesPlaceholder")
                     : completionDialog.type === "cancel"
-                      ? "Why is this shift being cancelled?"
-                      : "Why was this shift missed?"
+                      ? t("schedules:dialog.cancelShift.reasonPlaceholder")
+                      : t("schedules:dialog.missedShift.reasonPlaceholder")
                 }
                 value={dialogInput}
                 onChange={(e) => setDialogInput(e.target.value)}
@@ -851,12 +890,15 @@ export default function SchedulePage() {
                 })
               }
             >
-              Cancel
+              {t("schedules:dialog.cancel")}
             </Button>
             <Button onClick={handleCompletionAction}>
-              {completionDialog.type === "complete" && "Complete"}
-              {completionDialog.type === "cancel" && "Cancel Shift"}
-              {completionDialog.type === "missed" && "Mark Missed"}
+              {completionDialog.type === "complete" &&
+                t("schedules:dialog.completeShift.submitButton")}
+              {completionDialog.type === "cancel" &&
+                t("schedules:dialog.cancelShift.submitButton")}
+              {completionDialog.type === "missed" &&
+                t("schedules:dialog.missedShift.submitButton")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,0 +1,1 @@
+{"version":3,"file":"common.d.ts","sourceRoot":"","sources":["../../src/types/common.ts"],"names":[],"mappings":"AAAA;;;GAGG;AAEH;;;GAGG;AACH,MAAM,WAAW,kBAAkB;IACjC,OAAO,EAAE,MAAM,CAAC;IAChB,WAAW,EAAE,MAAM,CAAC;IACpB,MAAM,IAAI,IAAI,CAAC;IACf,QAAQ,IAAI,MAAM,CAAC;CACpB;AAED;;;;GAIG;AACH,MAAM,MAAM,aAAa,GAAG,kBAAkB,CAAC"}

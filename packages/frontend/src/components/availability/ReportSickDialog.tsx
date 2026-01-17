@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { format, subDays } from "date-fns";
 import {
@@ -15,19 +16,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { cn } from "@/lib/utils";
 
-const reportSickSchema = z.object({
-  firstSickDay: z.string().min(1, "First sick day is required"),
-  note: z.string().optional(),
-});
-
-type ReportSickFormData = z.infer<typeof reportSickSchema>;
-
 type DateOption = "yesterday" | "today" | "other";
 
 interface ReportSickDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: ReportSickFormData) => Promise<void>;
+  onSave: (data: { firstSickDay: string; note?: string }) => Promise<void>;
   organizationId: string;
 }
 
@@ -37,8 +31,18 @@ export function ReportSickDialog({
   onSave,
   organizationId,
 }: ReportSickDialogProps) {
+  const { t } = useTranslation(["availability", "common"]);
   const [dateOption, setDateOption] = useState<DateOption>("today");
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const reportSickSchema = z.object({
+    firstSickDay: z
+      .string()
+      .min(1, t("reportSick.validation.firstSickDayRequired")),
+    note: z.string().optional(),
+  });
+
+  type ReportSickFormData = z.infer<typeof reportSickSchema>;
 
   const {
     register,
@@ -89,12 +93,13 @@ export function ReportSickDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Report sick leave</DialogTitle>
+          <DialogTitle>{t("reportSick.title")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pt-4">
           <div className="space-y-3">
             <Label>
-              First sick day <span className="text-destructive">*</span>
+              {t("reportSick.firstSickDay")}{" "}
+              <span className="text-destructive">*</span>
             </Label>
             <div className="flex gap-2">
               <Button
@@ -106,7 +111,7 @@ export function ReportSickDialog({
                 )}
                 onClick={() => handleDateOptionChange("yesterday")}
               >
-                Yesterday
+                {t("reportSick.yesterday")}
               </Button>
               <Button
                 type="button"
@@ -117,7 +122,7 @@ export function ReportSickDialog({
                 )}
                 onClick={() => handleDateOptionChange("today")}
               >
-                Today
+                {t("reportSick.today")}
               </Button>
               <Button
                 type="button"
@@ -128,7 +133,7 @@ export function ReportSickDialog({
                 )}
                 onClick={() => handleDateOptionChange("other")}
               >
-                Other
+                {t("reportSick.other")}
               </Button>
             </div>
             {showDatePicker && (
@@ -146,18 +151,20 @@ export function ReportSickDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="note">Note</Label>
+            <Label htmlFor="note">{t("reportSick.note")}</Label>
             <Textarea
               id="note"
               {...register("note")}
-              placeholder="Optional note..."
+              placeholder={t("reportSick.notePlaceholder")}
               rows={4}
             />
           </div>
 
           <div className="flex justify-end">
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : "Save"}
+              {isSubmitting
+                ? t("common:actions.saving")
+                : t("common:buttons.save")}
             </Button>
           </div>
         </form>

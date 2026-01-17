@@ -27,13 +27,6 @@ export default function CreateStablePage() {
   const organizationId =
     currentOrganizationId || searchParams.get("organizationId");
 
-  console.log("🏗️ CreateStablePage mounted:", {
-    currentOrganizationId,
-    urlOrganizationId: searchParams.get("organizationId"),
-    finalOrganizationId: organizationId,
-    userId: user?.uid,
-  });
-
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -45,15 +38,11 @@ export default function CreateStablePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("🚀 CreateStablePage: Form submitted");
 
     if (!user) {
       console.error("❌ CreateStablePage: No user authenticated");
       return;
     }
-
-    console.log("👤 CreateStablePage: User authenticated:", user.uid);
-    console.log("🏢 CreateStablePage: Organization ID:", organizationId);
 
     // Validate that we have an organization ID
     if (!organizationId) {
@@ -66,11 +55,6 @@ export default function CreateStablePage() {
     setIsLoading(true);
 
     try {
-      console.log(
-        "🏗️ CreateStablePage: Creating stable with organization:",
-        organizationId,
-      );
-
       // Create stable - organizationId is now always required
       const stableData = {
         name: formData.name,
@@ -81,10 +65,7 @@ export default function CreateStablePage() {
         organizationId, // Always include organizationId
       };
 
-      console.log("📋 CreateStablePage: Stable data:", stableData);
-
       const stableId = await createStable(user.uid, stableData);
-      console.log("✅ Stable created with ID:", stableId);
 
       // Navigate to the new stable's detail page
       navigate(`/stables/${stableId}`);

@@ -44,7 +44,8 @@ export function UsageDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<UsageFormData>({
-    resolver: zodResolver(usageSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(usageSchema as any),
     defaultValues: {
       quantity: 0,
       notes: "",

@@ -1,6 +1,8 @@
 import { getMessaging } from "firebase-admin/messaging";
 import { logger } from "firebase-functions";
 
+import { formatErrorMessage } from "../lib/errors.js";
+
 /**
  * Push notification payload
  */
@@ -100,7 +102,7 @@ export async function sendPushNotification(
     return { success: true };
   } catch (error) {
     const errorCode = (error as { code?: string }).code;
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = formatErrorMessage(error);
 
     // Check for invalid token errors
     const isInvalidToken = [
@@ -227,7 +229,7 @@ export async function sendMulticastPush(
       invalidTokens,
     };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = formatErrorMessage(error);
     logger.error(
       {
         error: errorMessage,

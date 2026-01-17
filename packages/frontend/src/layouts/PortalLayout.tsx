@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard,
-  Horse,
+  Rabbit,
   FileText,
   MessageSquare,
   User,
@@ -12,6 +12,8 @@ import {
   LogOut,
   ChevronDown,
 } from "lucide-react";
+// Note: Horse icon doesn't exist in lucide-react, using Rabbit as placeholder
+const Horse = Rabbit;
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
@@ -51,7 +53,7 @@ const portalNavItems = [
 
 export default function PortalLayout() {
   const { t } = useTranslation(["portal", "common"]);
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -63,7 +65,7 @@ export default function PortalLayout() {
   };
 
   const handleLogout = async () => {
-    await logout();
+    await signOut();
   };
 
   const NavLinks = ({ mobile = false }: { mobile?: boolean }) => (

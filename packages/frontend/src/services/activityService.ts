@@ -19,6 +19,7 @@ import {
   startOfMonth,
   endOfMonth,
 } from "date-fns";
+import { authFetchJSON } from "@/utils/authFetch";
 
 /**
  * Create activity (horse-related)
@@ -29,8 +30,6 @@ export async function createActivity(
   activityData: CreateActivityData,
   stableName: string,
 ): Promise<string> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const data = {
     ...activityData,
     type: "activity" as const,
@@ -59,8 +58,6 @@ export async function createTask(
   taskData: CreateTaskData,
   stableName: string,
 ): Promise<string> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const data = {
     ...taskData,
     type: "task" as const,
@@ -89,8 +86,6 @@ export async function createMessage(
   messageData: CreateMessageData,
   stableName: string,
 ): Promise<string> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const data = {
     ...messageData,
     type: "message" as const,
@@ -119,8 +114,6 @@ export async function getStableActivities(
   endDate?: Date,
   typeFilter?: EntryType[],
 ): Promise<ActivityEntry[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   // Build query parameters
   const params = new URLSearchParams();
   if (startDate) {
@@ -264,8 +257,6 @@ export async function getActivitiesByPeriodMultiStable(
 export async function getCareActivities(
   stableIds: string | string[],
 ): Promise<Activity[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   // Normalize to array
   const stableIdArray = Array.isArray(stableIds) ? stableIds : [stableIds];
 
@@ -288,8 +279,6 @@ export async function getMyActivities(
   stableId: string,
   userId: string,
 ): Promise<ActivityEntry[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ activities: ActivityEntry[] }>(
     `${import.meta.env.VITE_API_URL}/api/v1/activities/my/${userId}?stableId=${stableId}`,
     { method: "GET" },
@@ -306,8 +295,6 @@ export async function updateActivity(
   userId: string,
   updates: UpdateActivityEntryData,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/activities/${id}`,
     {
@@ -321,8 +308,6 @@ export async function updateActivity(
  * Delete any entry
  */
 export async function deleteActivity(id: string): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/activities/${id}`,
     { method: "DELETE" },
@@ -336,8 +321,6 @@ export async function completeActivity(
   id: string,
   userId: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/activities/${id}/complete`,
     { method: "PATCH" },
@@ -354,8 +337,6 @@ export async function getHorseActivities(
   horseId: string,
   limitCount: number = 10,
 ): Promise<Activity[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ activities: Activity[] }>(
     `${import.meta.env.VITE_API_URL}/api/v1/activities/horse/${horseId}?limit=${limitCount}`,
     { method: "GET" },
@@ -373,8 +354,6 @@ export async function getHorseActivities(
 export async function getUnfinishedActivities(
   horseId: string,
 ): Promise<Activity[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ activities: Activity[] }>(
     `${import.meta.env.VITE_API_URL}/api/v1/activities/horse/${horseId}/unfinished`,
     { method: "GET" },

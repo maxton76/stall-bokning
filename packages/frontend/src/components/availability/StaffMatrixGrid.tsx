@@ -176,7 +176,7 @@ export function StaffMatrixGrid({
 
                 {/* Day cells */}
                 {staff.days.map((day, dayIndex) => {
-                  const date = dates[dayIndex];
+                  const date = dates[dayIndex] ?? new Date();
                   const isWeekendDay = isWeekend(date);
 
                   return (
@@ -310,7 +310,9 @@ export function StaffMatrixGrid({
                       <TooltipContent>
                         <div className="text-sm">
                           <p className="font-medium">
-                            {format(date, "EEEE, MMMM d", { locale })}
+                            {format(parseISO(day.date), "EEEE, MMMM d", {
+                              locale,
+                            })}
                           </p>
                           <p>
                             {day.availableStaff} / {day.totalStaff}{" "}

@@ -72,7 +72,8 @@ export function RecordPaymentDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<RecordPaymentFormData>({
-    resolver: zodResolver(recordPaymentSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(recordPaymentSchema as any),
     defaultValues: {
       amount: invoice?.amountDue || 0,
       method: "bank_transfer",

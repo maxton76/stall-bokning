@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -92,6 +93,7 @@ export function ActivityFormDialog({
   stableMembers = [],
   activityTypes = [],
 }: ActivityFormDialogProps) {
+  const { t } = useTranslation(["activities", "common"]);
   const isEditMode = !!entry;
   const [selectedType, setSelectedType] = useState<
     "activity" | "task" | "message"
@@ -123,11 +125,11 @@ export function ActivityFormDialog({
       onOpenChange(false);
     },
     successMessage: isEditMode
-      ? "Entry updated successfully"
-      : "Entry created successfully",
+      ? t("activities:messages.updateSuccess")
+      : t("activities:messages.createSuccess"),
     errorMessage: isEditMode
-      ? "Failed to update entry"
-      : "Failed to create entry",
+      ? t("activities:messages.saveError")
+      : t("activities:messages.saveError"),
   });
 
   const date = form.watch("date");
@@ -207,25 +209,25 @@ export function ActivityFormDialog({
   const getAssignmentLabel = () => {
     // Only for activity type
     if (selectedType !== "activity") {
-      return "Assigned To";
+      return t("activities:form.labels.assignedTo");
     }
 
     // Get selected activity type config ID
     const selectedConfigId = form.watch("activityTypeConfigId");
     if (!selectedConfigId) {
-      return "Assigned To";
+      return t("activities:form.labels.assignedTo");
     }
 
     // Find the activity type config
     const selectedActivityType = activityTypes.find(
-      (t) => t.id === selectedConfigId,
+      (at) => at.id === selectedConfigId,
     );
     if (
       !selectedActivityType ||
       !selectedActivityType.roles ||
       selectedActivityType.roles.length === 0
     ) {
-      return "Assigned To";
+      return t("activities:form.labels.assignedTo");
     }
 
     // Capitalize and join roles
@@ -240,21 +242,27 @@ export function ActivityFormDialog({
     <BaseFormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={isEditMode ? "Edit Entry" : "New Entry"}
+      title={
+        isEditMode
+          ? t("activities:form.title.edit")
+          : t("activities:form.title.create")
+      }
       description={
         isEditMode
-          ? "Update entry details"
-          : "Create a new activity, task, or message"
+          ? t("activities:form.description.edit")
+          : t("activities:form.description.create")
       }
       form={form}
       onSubmit={handleSubmit}
-      submitLabel={isEditMode ? "Update" : "Create"}
+      submitLabel={
+        isEditMode ? t("common:buttons.update") : t("common:buttons.create")
+      }
       maxWidth="sm:max-w-[550px]"
       maxHeight="max-h-[90vh]"
     >
       {/* Type Selector */}
       <div className="space-y-3">
-        <Label>Entry Type</Label>
+        <Label>{t("activities:form.labels.entryType")}</Label>
         <RadioGroup
           value={selectedType}
           onValueChange={(value) =>
@@ -268,13 +276,13 @@ export function ActivityFormDialog({
               htmlFor="type-activity"
               className="font-normal cursor-pointer"
             >
-              Activity
+              {t("activities:form.entryTypes.activity")}
             </Label>
           </div>
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="task" id="type-task" />
             <Label htmlFor="type-task" className="font-normal cursor-pointer">
-              Task
+              {t("activities:form.entryTypes.task")}
             </Label>
           </div>
           <div className="flex items-center space-x-2">
@@ -283,7 +291,7 @@ export function ActivityFormDialog({
               htmlFor="type-message"
               className="font-normal cursor-pointer"
             >
-              Message
+              {t("activities:form.entryTypes.message")}
             </Label>
           </div>
         </RadioGroup>
@@ -292,7 +300,8 @@ export function ActivityFormDialog({
       {/* Date Picker */}
       <div className="space-y-2">
         <Label>
-          Date <span className="text-destructive">*</span>
+          {t("activities:form.labels.date")}{" "}
+          <span className="text-destructive">*</span>
         </Label>
         <Popover>
           <PopoverTrigger asChild>
@@ -304,7 +313,9 @@ export function ActivityFormDialog({
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {date ? format(date, "PPP") : "Pick a date"}
+              {date
+                ? format(date, "PPP")
+                : t("activities:form.placeholders.pickDate")}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0">
@@ -328,17 +339,18 @@ export function ActivityFormDialog({
         <>
           <FormSelect
             name="horseId"
-            label="Horse"
+            label={t("activities:form.labels.horse")}
             form={form as any}
             options={horses.map((h) => ({ value: h.id, label: h.name }))}
-            placeholder="Select horse"
+            placeholder={t("activities:form.placeholders.selectHorse")}
             required
           />
 
           {/* Activity Type - Custom select with icons and colors */}
           <div className="space-y-2">
             <Label htmlFor="activityType">
-              Activity <span className="text-destructive">*</span>
+              {t("activities:form.labels.activityType")}{" "}
+              <span className="text-destructive">*</span>
             </Label>
             <select
               value={
@@ -346,20 +358,20 @@ export function ActivityFormDialog({
               }
               onChange={(e) => {
                 const configId = e.target.value;
-                const selectedType = activityTypes.find(
-                  (t) => t.id === configId,
-                );
-                if (selectedType) {
-                  form.setValue("activityType", selectedType.name);
-                  form.setValue("activityTypeConfigId", selectedType.id);
-                  form.setValue("activityTypeColor", selectedType.color);
+                const actType = activityTypes.find((at) => at.id === configId);
+                if (actType) {
+                  form.setValue("activityType", actType.name);
+                  form.setValue("activityTypeConfigId", actType.id);
+                  form.setValue("activityTypeColor", actType.color);
                 }
               }}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <option value="">Select activity type</option>
+              <option value="">
+                {t("activities:form.placeholders.selectActivityType")}
+              </option>
               {activityTypes
-                .filter((t) => t.isActive)
+                .filter((at) => at.isActive)
                 .map((type) => (
                   <option key={type.id} value={type.id}>
                     {type.icon ? `${type.icon} ` : ""}
@@ -382,24 +394,24 @@ export function ActivityFormDialog({
         <>
           <FormInput
             name="title"
-            label="Title"
+            label={t("activities:form.labels.title")}
             form={form as any}
-            placeholder="Task title"
+            placeholder={t("activities:form.placeholders.taskTitle")}
             required
           />
 
           <FormTextarea
             name="description"
-            label="Description"
+            label={t("activities:form.labels.description")}
             form={form as any}
-            placeholder="Task description..."
+            placeholder={t("activities:form.placeholders.taskDescription")}
             rows={3}
             required
           />
 
           <FormColorPicker
             name="color"
-            label="Color"
+            label={t("activities:form.labels.color")}
             form={form as any}
             colors={DEFAULT_COLORS as unknown as string[]}
             required
@@ -412,24 +424,24 @@ export function ActivityFormDialog({
         <>
           <FormInput
             name="title"
-            label="Title"
+            label={t("activities:form.labels.title")}
             form={form as any}
-            placeholder="Message title"
+            placeholder={t("activities:form.placeholders.messageTitle")}
             required
           />
 
           <FormTextarea
             name="message"
-            label="Message"
+            label={t("activities:form.labels.message")}
             form={form as any}
-            placeholder="Message content..."
+            placeholder={t("activities:form.placeholders.message")}
             rows={3}
             required
           />
 
           <FormColorPicker
             name="color"
-            label="Color"
+            label={t("activities:form.labels.color")}
             form={form as any}
             colors={DEFAULT_COLORS as unknown as string[]}
             required
@@ -437,12 +449,12 @@ export function ActivityFormDialog({
 
           <FormSelect
             name="priority"
-            label="Priority"
+            label={t("activities:form.labels.priority")}
             form={form as any}
             options={[
-              { value: "low", label: "Low" },
-              { value: "medium", label: "Medium" },
-              { value: "high", label: "High" },
+              { value: "low", label: t("activities:form.priority.low") },
+              { value: "medium", label: t("activities:form.priority.medium") },
+              { value: "high", label: t("activities:form.priority.high") },
             ]}
           />
         </>
@@ -454,16 +466,16 @@ export function ActivityFormDialog({
         label={getAssignmentLabel()}
         form={form as any}
         options={stableMembers.map((m) => ({ value: m.id, label: m.name }))}
-        placeholder="Unassigned"
+        placeholder={t("activities:form.placeholders.unassigned")}
       />
 
       {/* Note field (activity-specific, at bottom) */}
       {selectedType === "activity" && (
         <FormTextarea
           name="note"
-          label="Note"
+          label={t("activities:form.labels.note")}
           form={form as any}
-          placeholder="Additional notes..."
+          placeholder={t("activities:form.placeholders.notes")}
           rows={3}
         />
       )}

@@ -1,6 +1,8 @@
+import { useTranslation } from "react-i18next";
 import { CareMatrixCell } from "./CareMatrixCell";
 import type { ActivityTypeConfig, Activity } from "@/types/activity";
 import { toDate } from "@/utils/timestampUtils";
+import { translateActivityType } from "@/lib/activityTranslations";
 
 interface CareMatrixViewProps {
   horses: Array<{ id: string; name: string; feiRules?: string }>;
@@ -59,6 +61,8 @@ export function CareMatrixView({
   activities,
   onCellClick,
 }: CareMatrixViewProps) {
+  const { t } = useTranslation(["activities", "common"]);
+
   // Filter to only show Care category activity types
   const careActivityTypes = activityTypes.filter((t) => t.category === "Care");
 
@@ -70,7 +74,9 @@ export function CareMatrixView({
   if (horses.length === 0) {
     return (
       <div className="border rounded-lg p-8 text-center">
-        <p className="text-muted-foreground">No horses found for this stable</p>
+        <p className="text-muted-foreground">
+          {t("activities:care.emptyState.noHorses")}
+        </p>
       </div>
     );
   }
@@ -79,7 +85,7 @@ export function CareMatrixView({
     return (
       <div className="border rounded-lg p-8 text-center">
         <p className="text-muted-foreground">
-          No care activity types configured
+          {t("activities:care.emptyState.noActivityTypes")}
         </p>
       </div>
     );
@@ -97,10 +103,14 @@ export function CareMatrixView({
           gridTemplateColumns: `200px repeat(${sortedActivityTypes.length}, 1fr)`,
         }}
       >
-        <div className="p-4 font-semibold border-r border-border">Horse</div>
+        <div className="p-4 font-semibold border-r border-border">
+          {t("activities:care.matrix.horse")}
+        </div>
         {sortedActivityTypes.map((type) => (
           <div key={type.id} className="p-4 text-center border-l border-border">
-            <div className="text-sm font-medium">{type.name}</div>
+            <div className="text-sm font-medium">
+              {translateActivityType(type.name)}
+            </div>
           </div>
         ))}
       </div>
@@ -138,7 +148,7 @@ export function CareMatrixView({
                 horseId={horse.id}
                 horseName={horse.name}
                 activityTypeId={type.id}
-                activityTypeName={type.name}
+                activityTypeName={translateActivityType(type.name)}
                 activityTypeColor={type.color}
                 lastActivity={lastActivity}
                 nextActivity={nextActivity}

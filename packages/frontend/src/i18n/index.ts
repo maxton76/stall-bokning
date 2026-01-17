@@ -24,6 +24,8 @@ export const namespaces = [
   "inventory",
   "errors",
   "invites",
+  "location",
+  "schedules",
 ] as const;
 
 export type Namespace = (typeof namespaces)[number];
@@ -42,6 +44,9 @@ export const languageFlags: Record<SupportedLanguage, string> = {
   sv: "🇸🇪",
 };
 
+// Cache-busting version - update this when translations change
+const TRANSLATIONS_VERSION = "2026.01.18.4";
+
 i18n
   .use(Backend)
   .use(LanguageDetector)
@@ -53,7 +58,7 @@ i18n
     ns: namespaces,
 
     backend: {
-      loadPath: "/locales/{{lng}}/{{ns}}.json",
+      loadPath: `/locales/{{lng}}/{{ns}}.json?v=${TRANSLATIONS_VERSION}`,
     },
 
     detection: {

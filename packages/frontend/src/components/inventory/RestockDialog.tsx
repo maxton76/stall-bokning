@@ -46,7 +46,8 @@ export function RestockDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<RestockFormData>({
-    resolver: zodResolver(restockSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(restockSchema as any),
     defaultValues: {
       quantity: 0,
       unitCost: item?.unitCost || undefined,

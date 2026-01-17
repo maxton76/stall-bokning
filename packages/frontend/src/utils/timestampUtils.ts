@@ -1,47 +1,15 @@
-import type { Timestamp } from "firebase/firestore";
-
 /**
- * Type guard to check if a value is a Firestore Timestamp
- */
-function isTimestamp(value: any): value is Timestamp {
-  return (
-    value && typeof value === "object" && typeof value.toDate === "function"
-  );
-}
-
-/**
- * Convert a timestamp value to a JavaScript Date object
- * Handles both Firestore Timestamp objects (from direct Firestore queries)
- * and ISO date strings (from API responses)
+ * Timestamp Utilities
  *
- * @param timestamp - Firestore Timestamp, ISO string, or Date object
- * @returns JavaScript Date object or null if invalid
+ * Re-exports toDate from shared package and provides frontend-specific
+ * date formatting functions.
  */
-export function toDate(
-  timestamp: Timestamp | string | Date | null | undefined,
-): Date | null {
-  if (!timestamp) {
-    return null;
-  }
 
-  // Already a Date object
-  if (timestamp instanceof Date) {
-    return timestamp;
-  }
+// Re-export toDate from shared package for consistency
+export { toDate } from "@stall-bokning/shared";
 
-  // Firestore Timestamp with toDate() method
-  if (isTimestamp(timestamp)) {
-    return timestamp.toDate();
-  }
-
-  // ISO date string from API
-  if (typeof timestamp === "string") {
-    const date = new Date(timestamp);
-    return isNaN(date.getTime()) ? null : date;
-  }
-
-  return null;
-}
+import { toDate } from "@stall-bokning/shared";
+import type { Timestamp } from "firebase/firestore";
 
 /**
  * Format a timestamp value to a localized date string
@@ -58,11 +26,11 @@ export function formatDate(
     day: "numeric",
   },
 ): string {
-  const date = toDate(timestamp);
-  if (!date) {
+  if (!timestamp) {
     return "";
   }
 
+  const date = toDate(timestamp);
   return new Intl.DateTimeFormat("en-US", options).format(date);
 }
 
@@ -75,6 +43,10 @@ export function formatDate(
 export function formatDateTime(
   timestamp: Timestamp | string | Date | null | undefined,
 ): string {
+  if (!timestamp) {
+    return "";
+  }
+
   return formatDate(timestamp, {
     year: "numeric",
     month: "short",

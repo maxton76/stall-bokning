@@ -63,7 +63,7 @@ import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { RecordPaymentDialog } from "@/components/invoices/RecordPaymentDialog";
 import { InvoiceDetailDialog } from "@/components/invoices/InvoiceDetailDialog";
 import type { Invoice, InvoiceStatus } from "@stall-bokning/shared";
-import { cn } from "@/lib/utils";
+import { cn, toDate } from "@/lib/utils";
 
 const STATUS_OPTIONS: InvoiceStatus[] = [
   "draft",
@@ -94,9 +94,9 @@ export default function InvoicesPage() {
   // Data
   const invoices = useAsyncData<Invoice[]>({
     loadFn: async () => {
-      if (!selectedOrganization?.id) return [];
+      if (!selectedOrganization) return [];
       return getOrganizationInvoices(
-        selectedOrganization.id,
+        selectedOrganization,
         statusFilter !== "all" ? { status: statusFilter } : undefined,
       );
     },
@@ -109,19 +109,19 @@ export default function InvoicesPage() {
     invoices: (Invoice & { daysOverdue: number })[];
   }>({
     loadFn: async () => {
-      if (!selectedOrganization?.id)
+      if (!selectedOrganization)
         return { count: 0, totalOverdue: 0, currency: "SEK", invoices: [] };
-      return getOverdueInvoices(selectedOrganization.id);
+      return getOverdueInvoices(selectedOrganization);
     },
   });
 
   // Load data when organization changes
   useEffect(() => {
-    if (selectedOrganization?.id) {
+    if (selectedOrganization) {
       invoices.load();
       overdueData.load();
     }
-  }, [selectedOrganization?.id, statusFilter]);
+  }, [selectedOrganization, statusFilter]);
 
   // Filtered invoices
   const filteredInvoices = useMemo(() => {
@@ -423,10 +423,10 @@ export default function InvoicesPage() {
                     </TableCell>
                     <TableCell>{invoice.contactName}</TableCell>
                     <TableCell>
-                      {format(new Date(invoice.issueDate), "PP", { locale })}
+                      {format(toDate(invoice.issueDate), "PP", { locale })}
                     </TableCell>
                     <TableCell>
-                      {format(new Date(invoice.dueDate), "PP", { locale })}
+                      {format(toDate(invoice.dueDate), "PP", { locale })}
                     </TableCell>
                     <TableCell className="text-right">
                       {formatCurrency(invoice.total, invoice.currency)}
@@ -518,7 +518,7 @@ export default function InvoicesPage() {
       <CreateInvoiceDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        organizationId={selectedOrganization.id}
+        organizationId={selectedOrganization || ""}
         onSuccess={handleRefresh}
       />
 

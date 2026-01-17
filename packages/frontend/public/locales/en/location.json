@@ -1,0 +1,37 @@
+{
+  "page": {
+    "title": "Location History",
+    "description": "Track your horses' movements between stables and external locations"
+  },
+  "history": {
+    "title": "Movement History",
+    "description": "View arrival and departure records for your horses",
+    "selectHorse": "Select horse",
+    "allHorses": "All Horses"
+  },
+  "table": {
+    "horse": "Horse",
+    "type": "Type",
+    "location": "Location",
+    "arrival": "Arrival",
+    "departure": "Departure",
+    "status": "Status",
+    "reason": "Reason"
+  },
+  "badges": {
+    "external": "External",
+    "stable": "Stable",
+    "temporary": "Temporary",
+    "permanent": "Permanent",
+    "current": "Current Location",
+    "past": "Past Location"
+  },
+  "empty": {
+    "title": "No location history found",
+    "description": "Location history will be created when horses are assigned to stables or moved to external locations"
+  },
+  "loading": "Loading location history...",
+  "error": {
+    "loadingHistory": "Error loading location history"
+  }
+}

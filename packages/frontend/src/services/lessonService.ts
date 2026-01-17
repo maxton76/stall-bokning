@@ -66,7 +66,7 @@ export interface CreateLessonTypeData {
   name: string;
   description?: string;
   category: "private" | "group" | "clinic" | "camp" | "assessment" | "other";
-  level?: "beginner" | "novice" | "intermediate" | "advanced" | "professional";
+  level?: "beginner" | "novice" | "intermediate" | "advanced" | "expert";
   defaultDuration: number;
   minParticipants?: number;
   maxParticipants: number;

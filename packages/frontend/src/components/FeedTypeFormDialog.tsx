@@ -1,11 +1,33 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { BaseFormDialog } from "@/components/BaseFormDialog";
 import { useFormDialog } from "@/hooks/useFormDialog";
 import { FormInput, FormSelect, FormTextarea } from "@/components/form";
-import type { FeedType, CreateFeedTypeData } from "@shared/types";
-import { FEED_CATEGORIES, QUANTITY_MEASURES } from "@/constants/feeding";
+import type {
+  FeedType,
+  CreateFeedTypeData,
+  FeedCategory,
+  QuantityMeasure,
+} from "@shared/types";
+
+const CATEGORY_KEYS: FeedCategory[] = [
+  "roughage",
+  "concentrate",
+  "supplement",
+  "medicine",
+];
+const MEASURE_KEYS: QuantityMeasure[] = [
+  "scoop",
+  "teaspoon",
+  "tablespoon",
+  "cup",
+  "ml",
+  "l",
+  "g",
+  "kg",
+  "custom",
+];
 
 const feedTypeSchema = z.object({
   name: z
@@ -55,6 +77,26 @@ export function FeedTypeFormDialog({
 }: FeedTypeFormDialogProps) {
   const { t } = useTranslation(["feeding", "common"]);
   const isEditMode = !!feedType;
+
+  // Build translated category options
+  const categoryOptions = useMemo(
+    () =>
+      CATEGORY_KEYS.map((key) => ({
+        value: key,
+        label: t(`feeding:categories.${key}`),
+      })),
+    [t],
+  );
+
+  // Build translated measurement options
+  const measureOptions = useMemo(
+    () =>
+      MEASURE_KEYS.map((key) => ({
+        value: key,
+        label: t(`feeding:measurements.${key}`),
+      })),
+    [t],
+  );
 
   const { form, handleSubmit, resetForm } = useFormDialog<FeedTypeFormData>({
     schema: feedTypeSchema,
@@ -143,7 +185,7 @@ export function FeedTypeFormDialog({
         name="category"
         label={t("feeding:feedTypes.form.labels.category")}
         form={form}
-        options={FEED_CATEGORIES}
+        options={categoryOptions}
         placeholder={t("feeding:feedTypes.form.placeholders.category")}
         required
       />
@@ -152,7 +194,7 @@ export function FeedTypeFormDialog({
         name="quantityMeasure"
         label={t("feeding:feedTypes.form.labels.quantityMeasure")}
         form={form}
-        options={QUANTITY_MEASURES}
+        options={measureOptions}
         placeholder={t("feeding:feedTypes.form.placeholders.quantityMeasure")}
         required
       />

@@ -89,6 +89,32 @@
       "description": "Detailed breakdown of what each role can do",
       "action": "Action"
     },
+    "actions": {
+      "manageSettings": "Manage organization settings",
+      "manageMembers": "Manage members",
+      "viewAllStables": "View all stables",
+      "createStables": "Create stables",
+      "editStableSettings": "Edit stable settings",
+      "manageHorses": "Manage horses",
+      "viewSchedules": "View schedules",
+      "createSchedules": "Create schedules",
+      "bookShifts": "Book shifts",
+      "manageManureRecords": "Manage manure records",
+      "viewIntegrations": "View integrations",
+      "configureIntegrations": "Configure integrations",
+      "viewSubscription": "View subscription",
+      "manageBilling": "Manage billing"
+    },
+    "roles": {
+      "administrator": "Administrator",
+      "manager": "Manager",
+      "member": "Member"
+    },
+    "roleDescriptions": {
+      "administrator": "Full access to all organization features and settings",
+      "manager": "Can manage stables, horses, and schedules",
+      "member": "Basic access to view and participate in stable activities"
+    },
     "customRoles": {
       "title": "Custom Roles & Advanced Permissions",
       "description": "Available in Professional and Enterprise plans",
@@ -96,16 +122,136 @@
       "specializedRoles": "Specialized roles available: Veterinarian, Dentist, Farrier, Groom, Horse Owner, Rider, and more."
     }
   },
+  "integrations": {
+    "title": "Integrations",
+    "description": "Connect to third-party services",
+    "pageDescription": "Connect external services to extend your organization's capabilities",
+    "status": {
+      "connected": "Connected",
+      "available": "Available"
+    },
+    "categories": {
+      "email": "Email",
+      "communication": "Communication",
+      "payments": "Payments",
+      "calendar": "Calendar"
+    },
+    "items": {
+      "sendgrid": {
+        "description": "Email delivery and marketing automation"
+      },
+      "twilio": {
+        "description": "SMS and voice communication"
+      },
+      "stripe": {
+        "description": "Payment processing and subscriptions"
+      },
+      "googleCalendar": {
+        "description": "Calendar synchronization"
+      }
+    },
+    "buttons": {
+      "configure": "Configure",
+      "disconnect": "Disconnect",
+      "connect": "Connect"
+    },
+    "custom": {
+      "title": "Custom Integrations",
+      "description": "Build your own integrations using our API",
+      "emptyState": "No custom integrations configured yet",
+      "createButton": "Create Custom Integration"
+    }
+  },
+  "manure": {
+    "title": "Manure Management",
+    "description": "Track manure removal and distribution across all stables",
+    "schedulePickup": "Schedule Pickup",
+    "status": {
+      "completed": "Completed",
+      "scheduled": "Scheduled",
+      "cancelled": "Cancelled"
+    },
+    "stats": {
+      "thisMonth": "This Month",
+      "changeFromLastMonth": "{{change}} from last month",
+      "scheduledPickups": "Scheduled Pickups",
+      "nextPickupInDays": "Next pickup in {{days}} days",
+      "activeStables": "Active Stables",
+      "allStablesReporting": "All stables reporting"
+    },
+    "recentRecords": {
+      "title": "Recent Records",
+      "description": "History of manure removal and distribution"
+    },
+    "records": {
+      "amountEstimated": "{{amount}} tons (estimated)",
+      "toBeAssigned": "To be assigned",
+      "notes": {
+        "deliveredToOrganicFarm": "Delivered to organic farm",
+        "regularPickup": "Regular pickup",
+        "upcomingPickup": "Upcoming pickup"
+      }
+    },
+    "buttons": {
+      "viewDetails": "View Details"
+    },
+    "partners": {
+      "title": "Distribution Partners",
+      "description": "Farms and facilities receiving manure",
+      "emptyState": "No distribution partners configured yet",
+      "addButton": "Add Distribution Partner"
+    }
+  },
   "subscription": {
     "title": "Subscription",
     "description": "Manage your subscription plan",
+    "pageDescription": "Manage your subscription and billing information",
     "currentPlan": "Current Plan",
+    "currentPlanDescription": "Your current subscription tier and features",
     "upgrade": "Upgrade",
-    "downgrade": "Downgrade"
-  },
-  "integrations": {
-    "title": "Integrations",
-    "description": "Connect to third-party services"
+    "downgrade": "Downgrade",
+    "afterTrial": "(after trial)",
+    "includedFeatures": "Included features:",
+    "trial": {
+      "title": "Trial Period",
+      "description": "Your subscription is currently in trial with all features. You have {{days}} days left to test all features."
+    },
+    "features": {
+      "upToMembers": "Up to {{count}} members",
+      "unlimitedStables": "Unlimited stables",
+      "advancedScheduling": "Advanced scheduling",
+      "prioritySupport": "Priority support",
+      "customIntegrations": "Custom integrations",
+      "detailedAnalytics": "Detailed analytics"
+    },
+    "buttons": {
+      "changePlan": "Change Plan",
+      "upgradeNow": "Upgrade Now"
+    },
+    "billing": {
+      "title": "Billing Details",
+      "description": "Your billing and contact information",
+      "labels": {
+        "name": "Name",
+        "phone": "Phone number",
+        "street": "Street",
+        "postcode": "Postal code",
+        "city": "City",
+        "country": "Country"
+      }
+    },
+    "payment": {
+      "title": "Payment Method",
+      "description": "Manage your payment information",
+      "update": "Update",
+      "expires": "Expires {{month}}/{{year}}",
+      "default": "Default"
+    },
+    "history": {
+      "title": "Billing History",
+      "description": "Your past invoices and payment history",
+      "emptyState": "No billing history available during trial period"
+    }
   },
   "messages": {
     "createSuccess": "Organization created successfully",

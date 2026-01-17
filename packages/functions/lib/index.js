@@ -56,27 +56,57 @@ var __importStar =
     };
   })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.triggerAccrual = exports.monthlyTimeAccrual = void 0;
-const app_1 = require("firebase-admin/app");
-const firestore_1 = require("firebase-admin/firestore");
+exports.monthlyTimeAccrual =
+  exports.cleanupOldNotifications =
+  exports.retryFailedNotifications =
+  exports.processNotificationQueue =
+  exports.scanForReminders =
+  exports.generateActivityInstances =
+    void 0;
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const firebase_functions_1 = require("firebase-functions");
 const crypto = __importStar(require("crypto"));
-// Initialize Firebase Admin
-(0, app_1.initializeApp)();
-const db = (0, firestore_1.getFirestore)();
+const firebase_js_1 = require("./lib/firebase.js");
+const validation_js_1 = require("./lib/validation.js");
+const errors_js_1 = require("./lib/errors.js");
+// Re-export scheduled functions
+var generateInstances_js_1 = require("./scheduled/generateInstances.js");
+Object.defineProperty(exports, "generateActivityInstances", {
+  enumerable: true,
+  get: function () {
+    return generateInstances_js_1.generateActivityInstances;
+  },
+});
+var reminderScanner_js_1 = require("./scheduled/reminderScanner.js");
+Object.defineProperty(exports, "scanForReminders", {
+  enumerable: true,
+  get: function () {
+    return reminderScanner_js_1.scanForReminders;
+  },
+});
+// Re-export notification functions
+var index_js_1 = require("./notifications/index.js");
+Object.defineProperty(exports, "processNotificationQueue", {
+  enumerable: true,
+  get: function () {
+    return index_js_1.processNotificationQueue;
+  },
+});
+Object.defineProperty(exports, "retryFailedNotifications", {
+  enumerable: true,
+  get: function () {
+    return index_js_1.retryFailedNotifications;
+  },
+});
+Object.defineProperty(exports, "cleanupOldNotifications", {
+  enumerable: true,
+  get: function () {
+    return index_js_1.cleanupOldNotifications;
+  },
+});
 // ============================================================================
 // VALIDATION HELPERS
 // ============================================================================
-/**
- * Safely convert a value to a number with bounds checking
- */
-function validateNumber(value, defaultValue, min, max) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return defaultValue;
-  }
-  return Math.max(min, Math.min(max, value));
-}
 /**
  * Validate and sanitize accrual configuration
  * Ensures all values are within reasonable bounds
@@ -84,14 +114,24 @@ function validateNumber(value, defaultValue, min, max) {
 function validateAccrualConfig(config) {
   const rawConfig = config && typeof config === "object" ? config : {};
   return {
-    monthlyAccrualHours: validateNumber(
+    monthlyAccrualHours: (0, validation_js_1.validateNumber)(
       rawConfig.monthlyAccrualHours,
       2.5,
       0,
       10,
     ),
-    maxCarryoverHours: validateNumber(rawConfig.maxCarryoverHours, 40, 0, 500),
-    maxBalanceHours: validateNumber(rawConfig.maxBalanceHours, 100, 0, 1000),
+    maxCarryoverHours: (0, validation_js_1.validateNumber)(
+      rawConfig.maxCarryoverHours,
+      40,
+      0,
+      500,
+    ),
+    maxBalanceHours: (0, validation_js_1.validateNumber)(
+      rawConfig.maxBalanceHours,
+      100,
+      0,
+      1000,
+    ),
   };
 }
 /**
@@ -128,17 +168,42 @@ function validateScheduleHours(schedule) {
 function validateTimeBalanceData(data) {
   const rawData = data && typeof data === "object" ? data : {};
   return {
-    carryoverFromPreviousYear: validateNumber(
+    carryoverFromPreviousYear: (0, validation_js_1.validateNumber)(
       rawData.carryoverFromPreviousYear,
       0,
       -1000,
       1000,
     ),
-    buildUpHours: validateNumber(rawData.buildUpHours, 0, -1000, 1000),
-    corrections: validateNumber(rawData.corrections, 0, -1000, 1000),
-    approvedLeave: validateNumber(rawData.approvedLeave, 0, 0, 10000),
-    tentativeLeave: validateNumber(rawData.tentativeLeave, 0, 0, 10000),
-    approvedOvertime: validateNumber(rawData.approvedOvertime, 0, 0, 10000),
+    buildUpHours: (0, validation_js_1.validateNumber)(
+      rawData.buildUpHours,
+      0,
+      -1000,
+      1000,
+    ),
+    corrections: (0, validation_js_1.validateNumber)(
+      rawData.corrections,
+      0,
+      -1000,
+      1000,
+    ),
+    approvedLeave: (0, validation_js_1.validateNumber)(
+      rawData.approvedLeave,
+      0,
+      0,
+      10000,
+    ),
+    tentativeLeave: (0, validation_js_1.validateNumber)(
+      rawData.tentativeLeave,
+      0,
+      0,
+      10000,
+    ),
+    approvedOvertime: (0, validation_js_1.validateNumber)(
+      rawData.approvedOvertime,
+      0,
+      0,
+      10000,
+    ),
     lastAccrualMonth:
       typeof rawData.lastAccrualMonth === "string"
         ? rawData.lastAccrualMonth
@@ -177,6 +242,7 @@ exports.monthlyTimeAccrual = (0, scheduler_1.onSchedule)(
   {
     schedule: "5 0 1 * *", // At 00:05 on day 1 of every month
     timeZone: "Europe/Stockholm",
+    region: "europe-west1",
     retryCount: 3,
   },
   async (_event) => {
@@ -198,7 +264,9 @@ exports.monthlyTimeAccrual = (0, scheduler_1.onSchedule)(
     const isNewYear = currentMonth === 0;
     try {
       // Get all organizations
-      const organizationsSnapshot = await db.collection("organizations").get();
+      const organizationsSnapshot = await firebase_js_1.db
+        .collection("organizations")
+        .get();
       firebase_functions_1.logger.info(
         {
           executionId,
@@ -218,7 +286,7 @@ exports.monthlyTimeAccrual = (0, scheduler_1.onSchedule)(
           ...(orgData?.accrualConfig || {}),
         });
         // Get all active members of this organization
-        const membersSnapshot = await db
+        const membersSnapshot = await firebase_js_1.db
           .collection("organizationMembers")
           .where("organizationId", "==", organizationId)
           .where("status", "==", "active")
@@ -241,11 +309,11 @@ exports.monthlyTimeAccrual = (0, scheduler_1.onSchedule)(
           }
           try {
             // Check if user has an active work schedule
-            const schedulesSnapshot = await db
+            const schedulesSnapshot = await firebase_js_1.db
               .collection("workSchedules")
               .where("userId", "==", userId)
               .where("organizationId", "==", organizationId)
-              .where("effectiveFrom", "<=", firestore_1.Timestamp.now())
+              .where("effectiveFrom", "<=", firebase_js_1.Timestamp.now())
               .orderBy("effectiveFrom", "desc")
               .limit(1)
               .get();
@@ -337,7 +405,7 @@ exports.monthlyTimeAccrual = (0, scheduler_1.onSchedule)(
               {
                 executionId,
                 organizationId,
-                error: error instanceof Error ? error.message : String(error),
+                error: (0, errors_js_1.formatErrorMessage)(error),
               },
               "Error processing user",
             );
@@ -358,7 +426,7 @@ exports.monthlyTimeAccrual = (0, scheduler_1.onSchedule)(
       firebase_functions_1.logger.error(
         {
           executionId,
-          error: error instanceof Error ? error.message : String(error),
+          error: (0, errors_js_1.formatErrorMessage)(error),
         },
         "Monthly accrual failed",
       );
@@ -380,7 +448,7 @@ async function handleYearEndCarryover(
 ) {
   const previousBalanceId = `${userId}_${organizationId}_${previousYear}`;
   const newBalanceId = `${userId}_${organizationId}_${newYear}`;
-  const previousBalanceDoc = await db
+  const previousBalanceDoc = await firebase_js_1.db
     .collection("timeBalances")
     .doc(previousBalanceId)
     .get();
@@ -395,9 +463,11 @@ async function handleYearEndCarryover(
     Math.max(previousBalance, 0),
     accrualConfig.maxCarryoverHours,
   );
-  const newBalanceRef = db.collection("timeBalances").doc(newBalanceId);
+  const newBalanceRef = firebase_js_1.db
+    .collection("timeBalances")
+    .doc(newBalanceId);
   const newBalanceDoc = await newBalanceRef.get();
-  const now = firestore_1.Timestamp.now();
+  const now = firebase_js_1.Timestamp.now();
   if (newBalanceDoc.exists) {
     // Update existing balance with carryover
     await newBalanceRef.update({
@@ -446,9 +516,9 @@ async function updateTimeBalance(
   executionId,
 ) {
   const balanceId = `${userId}_${organizationId}_${year}`;
-  const balanceRef = db.collection("timeBalances").doc(balanceId);
-  const now = firestore_1.Timestamp.now();
-  return await db.runTransaction(async (transaction) => {
+  const balanceRef = firebase_js_1.db.collection("timeBalances").doc(balanceId);
+  const now = firebase_js_1.Timestamp.now();
+  return await firebase_js_1.db.runTransaction(async (transaction) => {
     const balanceDoc = await transaction.get(balanceRef);
     if (balanceDoc.exists) {
       // Validate existing balance data
@@ -509,20 +579,5 @@ async function updateTimeBalance(
     return true;
   });
 }
-/**
- * On-demand accrual trigger for testing
- * Can be triggered manually via HTTP request
- */
-exports.triggerAccrual = (0, scheduler_1.onSchedule)(
-  {
-    schedule: "0 0 31 2 *", // Never runs (Feb 31st doesn't exist), manual trigger only
-    timeZone: "Europe/Stockholm",
-  },
-  async (_event) => {
-    firebase_functions_1.logger.info(
-      "Manual accrual trigger - redirecting to monthly accrual",
-    );
-    // This is a workaround - in production, use a proper HTTP function for manual triggers
-  },
-);
+// Note: Manual trigger function removed - use HTTP callable function for manual accrual triggers
 //# sourceMappingURL=index.js.map

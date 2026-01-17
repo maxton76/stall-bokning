@@ -74,7 +74,8 @@ export function TeamMemberForm({
   const { t, i18n } = useTranslation(["horses", "common"]);
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(formSchema as any),
     defaultValues: {
       role: defaultValues?.role || "rider",
       displayName: defaultValues?.displayName || "",

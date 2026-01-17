@@ -1,3 +1,6 @@
+// Common types
+export * from "./common.js";
+
 // Barrel export for all types
 export * from "./contact.js";
 export * from "./auditLog.js";

@@ -1,0 +1,37 @@
+{
+  "page": {
+    "title": "Platshistorik",
+    "description": "Spåra dina hästars förflyttningar mellan stall och externa platser"
+  },
+  "history": {
+    "title": "Förflyttningshistorik",
+    "description": "Visa ankomst- och avreseposter för dina hästar",
+    "selectHorse": "Välj häst",
+    "allHorses": "Alla hästar"
+  },
+  "table": {
+    "horse": "Häst",
+    "type": "Typ",
+    "location": "Plats",
+    "arrival": "Ankomst",
+    "departure": "Avresa",
+    "status": "Status",
+    "reason": "Anledning"
+  },
+  "badges": {
+    "external": "Extern",
+    "stable": "Stall",
+    "temporary": "Tillfällig",
+    "permanent": "Permanent",
+    "current": "Nuvarande plats",
+    "past": "Tidigare plats"
+  },
+  "empty": {
+    "title": "Ingen platshistorik hittades",
+    "description": "Platshistorik skapas när hästar tilldelas stall eller flyttas till externa platser"
+  },
+  "loading": "Laddar platshistorik...",
+  "error": {
+    "loadingHistory": "Fel vid laddning av platshistorik"
+  }
+}

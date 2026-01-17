@@ -141,18 +141,17 @@ export default function ContactsPage() {
   // Contacts data
   const contacts = useAsyncData<Contact[]>({
     loadFn: async () => {
-      if (!currentOrganization?.id) return [];
-      const result = await getOrganizationContacts(currentOrganization.id);
-      return result.contacts || [];
+      if (!currentOrganization) return [];
+      return getOrganizationContacts(currentOrganization);
     },
   });
 
   // Load contacts when organization changes
   useEffect(() => {
-    if (currentOrganization?.id) {
+    if (currentOrganization) {
       contacts.load();
     }
-  }, [currentOrganization?.id]);
+  }, [currentOrganization]);
 
   // Filter contacts
   const filteredContacts = (contacts.data || []).filter((contact) => {
@@ -227,7 +226,7 @@ export default function ContactsPage() {
                 })}
               </CardDescription>
             </div>
-            <Button onClick={createDialog.openDialog}>
+            <Button onClick={() => createDialog.openDialog()}>
               <Plus className="mr-2 h-4 w-4" />
               {t("contacts:actions.create")}
             </Button>

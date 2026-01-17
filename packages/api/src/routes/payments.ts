@@ -1,8 +1,9 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
-import { db } from "../config/firebase.js";
+import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
+import type { AuthenticatedRequest } from "../types/index.js";
 import type {
   OrganizationStripeSettings,
   PaymentIntent,
@@ -11,7 +12,6 @@ import type {
   CreateCheckoutSessionData,
   CreatePaymentIntentData,
   CreateRefundData,
-  SavedPaymentMethod,
   PrepaidAccount,
   PrepaidTransaction,
 } from "@stall-bokning/shared";
@@ -104,7 +104,7 @@ async function requireOrgAccess(
   request: FastifyRequest<{ Params: { organizationId: string } }>,
   reply: FastifyReply,
 ) {
-  const user = request.user;
+  const user = (request as AuthenticatedRequest).user;
   if (!user) {
     return reply.status(401).send({ error: "Unauthorized" });
   }
@@ -208,7 +208,8 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
       }
 
       const { organizationId } = request.params;
-      const { returnUrl, refreshUrl } = result.data;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { returnUrl: _returnUrl, refreshUrl: _refreshUrl } = result.data;
 
       // In production, this would create a Stripe Connect account
       // and generate an account link for onboarding
@@ -426,7 +427,7 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
         url: `https://checkout.stripe.com/pay/${sessionId}`,
         expiresAt: expiresAt.toISOString(),
         status: "open",
-      } as CheckoutSession;
+      } as unknown as CheckoutSession;
     },
   );
 
@@ -505,14 +506,15 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
       // Mock payment intent for development
       const intentId = `pi_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-      const paymentIntent: Partial<PaymentIntent> = {
+      // Build without explicit type to avoid Timestamp incompatibility
+      const paymentIntent = {
         id: intentId,
         organizationId,
         stripePaymentIntentId: intentId,
         amount: data.amount,
         amountReceived: 0,
         currency: data.currency || "sek",
-        status: "pending",
+        status: "pending" as const,
         stripeStatus: "requires_payment_method",
         contactId: data.contactId,
         contactEmail: contact?.email || "",
@@ -706,7 +708,7 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
         reason,
         status: "succeeded" as const,
         createdAt: Timestamp.now(),
-        createdBy: request.user?.uid,
+        createdBy: (request as AuthenticatedRequest).user?.uid,
       };
 
       // Update payment intent
@@ -797,11 +799,11 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
       // In production, attach payment method to Stripe customer
       // and retrieve card/bank details
 
-      // Mock saved payment method
-      const savedMethod: SavedPaymentMethod = {
+      // Mock saved payment method (without explicit type to avoid Timestamp incompatibility)
+      const savedMethod = {
         id: `pm_${Date.now()}`,
         stripePaymentMethodId: paymentMethodId,
-        type: "card",
+        type: "card" as const,
         isDefault: setAsDefault || false,
         card: {
           brand: "visa",
@@ -1040,7 +1042,7 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
           currency: currency || "sek",
           description: "Account deposit",
           createdAt: FieldValue.serverTimestamp(),
-          createdBy: request.user?.uid,
+          createdBy: (request as AuthenticatedRequest).user?.uid,
         });
 
       return {

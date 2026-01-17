@@ -100,11 +100,11 @@ export default function StaffMatrixPage() {
   // Data
   const matrixData = useAsyncData<StaffAvailabilityMatrix>({
     loadFn: async () => {
-      if (!selectedOrganization?.id) {
+      if (!selectedOrganization) {
         throw new Error("No organization selected");
       }
       return getStaffAvailabilityMatrix(
-        selectedOrganization.id,
+        selectedOrganization,
         dateRange.start,
         dateRange.end,
       );
@@ -113,11 +113,11 @@ export default function StaffMatrixPage() {
 
   // Load data when organization or date range changes
   useEffect(() => {
-    if (selectedOrganization?.id) {
+    if (selectedOrganization) {
       matrixData.load();
     }
   }, [
-    selectedOrganization?.id,
+    selectedOrganization,
     dateRange.start.getTime(),
     dateRange.end.getTime(),
   ]);

@@ -202,7 +202,7 @@ export default function InventoryPage() {
     },
   });
 
-  const summary = useAsyncData<InventorySummaryType>({
+  const summary = useAsyncData<ISummary>({
     loadFn: async () => {
       if (!selectedStableId) return null as any;
       return getInventorySummary(selectedStableId);
@@ -211,7 +211,7 @@ export default function InventoryPage() {
 
   // Auto-select first stable
   useEffect(() => {
-    if (stables.length > 0 && !selectedStableId) {
+    if (stables.length > 0 && !selectedStableId && stables[0]) {
       setSelectedStableId(stables[0].id);
     }
   }, [stables, selectedStableId]);
@@ -377,7 +377,7 @@ export default function InventoryPage() {
                       )}
                     />
                   </Button>
-                  <Button onClick={createDialog.openDialog}>
+                  <Button onClick={() => createDialog.openDialog()}>
                     <Plus className="mr-2 h-4 w-4" />
                     {t("inventory:list.addItem")}
                   </Button>
@@ -593,36 +593,36 @@ export default function InventoryPage() {
       {selectedStableId && (
         <>
           <CreateInventoryDialog
-            open={createDialog.isOpen}
-            onOpenChange={createDialog.closeDialog}
+            open={createDialog.open}
+            onOpenChange={() => createDialog.closeDialog()}
             stableId={selectedStableId}
             onSuccess={handleOperationSuccess}
           />
 
           <RestockDialog
-            open={restockDialog.isOpen}
-            onOpenChange={restockDialog.closeDialog}
+            open={restockDialog.open}
+            onOpenChange={() => restockDialog.closeDialog()}
             item={restockDialog.data}
             onSuccess={handleOperationSuccess}
           />
 
           <UsageDialog
-            open={usageDialog.isOpen}
-            onOpenChange={usageDialog.closeDialog}
+            open={usageDialog.open}
+            onOpenChange={() => usageDialog.closeDialog()}
             item={usageDialog.data}
             onSuccess={handleOperationSuccess}
           />
 
           <AdjustmentDialog
-            open={adjustmentDialog.isOpen}
-            onOpenChange={adjustmentDialog.closeDialog}
+            open={adjustmentDialog.open}
+            onOpenChange={() => adjustmentDialog.closeDialog()}
             item={adjustmentDialog.data}
             onSuccess={handleOperationSuccess}
           />
 
           <TransactionHistoryDialog
-            open={historyDialog.isOpen}
-            onOpenChange={historyDialog.closeDialog}
+            open={historyDialog.open}
+            onOpenChange={() => historyDialog.closeDialog()}
             item={historyDialog.data}
           />
         </>

@@ -15,58 +15,108 @@ export default function OrganizationPermissionsPage() {
   // Permission matrix: role -> permissions
   const permissions = [
     {
-      action: "Manage organization settings",
+      actionKey: "permissions.actions.manageSettings",
       admin: true,
       manager: false,
       member: false,
     },
-    { action: "Manage members", admin: true, manager: true, member: false },
-    { action: "View all stables", admin: true, manager: true, member: true },
-    { action: "Create stables", admin: true, manager: true, member: false },
     {
-      action: "Edit stable settings",
+      actionKey: "permissions.actions.manageMembers",
       admin: true,
       manager: true,
       member: false,
     },
-    { action: "Manage horses", admin: true, manager: true, member: true },
-    { action: "View schedules", admin: true, manager: true, member: true },
-    { action: "Create schedules", admin: true, manager: true, member: false },
-    { action: "Book shifts", admin: true, manager: true, member: true },
     {
-      action: "Manage manure records",
+      actionKey: "permissions.actions.viewAllStables",
+      admin: true,
+      manager: true,
+      member: true,
+    },
+    {
+      actionKey: "permissions.actions.createStables",
       admin: true,
       manager: true,
       member: false,
     },
-    { action: "View integrations", admin: true, manager: true, member: false },
     {
-      action: "Configure integrations",
+      actionKey: "permissions.actions.editStableSettings",
+      admin: true,
+      manager: true,
+      member: false,
+    },
+    {
+      actionKey: "permissions.actions.manageHorses",
+      admin: true,
+      manager: true,
+      member: true,
+    },
+    {
+      actionKey: "permissions.actions.viewSchedules",
+      admin: true,
+      manager: true,
+      member: true,
+    },
+    {
+      actionKey: "permissions.actions.createSchedules",
+      admin: true,
+      manager: true,
+      member: false,
+    },
+    {
+      actionKey: "permissions.actions.bookShifts",
+      admin: true,
+      manager: true,
+      member: true,
+    },
+    {
+      actionKey: "permissions.actions.manageManureRecords",
+      admin: true,
+      manager: true,
+      member: false,
+    },
+    {
+      actionKey: "permissions.actions.viewIntegrations",
+      admin: true,
+      manager: true,
+      member: false,
+    },
+    {
+      actionKey: "permissions.actions.configureIntegrations",
       admin: true,
       manager: false,
       member: false,
     },
-    { action: "View subscription", admin: true, manager: false, member: false },
-    { action: "Manage billing", admin: true, manager: false, member: false },
+    {
+      actionKey: "permissions.actions.viewSubscription",
+      admin: true,
+      manager: false,
+      member: false,
+    },
+    {
+      actionKey: "permissions.actions.manageBilling",
+      admin: true,
+      manager: false,
+      member: false,
+    },
   ];
 
   const roleDefinitions = [
     {
-      role: "Administrator",
+      roleKey: "permissions.roles.administrator",
       key: "admin" as const,
-      description: "Full access to all organization features and settings",
+      descriptionKey: "permissions.roleDescriptions.administrator",
       color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
     },
     {
-      role: "Manager",
+      roleKey: "permissions.roles.manager",
       key: "manager" as const,
-      description: "Can manage stables, horses, and schedules",
+      descriptionKey: "permissions.roleDescriptions.manager",
       color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
     },
     {
-      role: "Member",
+      roleKey: "permissions.roles.member",
       key: "member" as const,
-      description: "Basic access to view and participate in stable activities",
+      descriptionKey: "permissions.roleDescriptions.member",
       color:
         "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
     },
@@ -91,11 +141,15 @@ export default function OrganizationPermissionsPage() {
             <CardHeader>
               <div className="flex items-center gap-2 mb-2">
                 <Shield className="h-5 w-5" />
-                <CardTitle className="text-lg">{def.role}</CardTitle>
+                <CardTitle className="text-lg">
+                  {t(`organizations:${def.roleKey}`)}
+                </CardTitle>
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">{def.description}</p>
+              <p className="text-sm text-muted-foreground">
+                {t(`organizations:${def.descriptionKey}`)}
+              </p>
             </CardContent>
           </Card>
         ))}
@@ -119,7 +173,9 @@ export default function OrganizationPermissionsPage() {
                   </th>
                   {roleDefinitions.map((def) => (
                     <th key={def.key} className="text-center p-4">
-                      <Badge className={def.color}>{def.role}</Badge>
+                      <Badge className={def.color}>
+                        {t(`organizations:${def.roleKey}`)}
+                      </Badge>
                     </th>
                   ))}
                 </tr>
@@ -130,7 +186,9 @@ export default function OrganizationPermissionsPage() {
                     key={index}
                     className="border-b hover:bg-accent transition-colors"
                   >
-                    <td className="p-4">{perm.action}</td>
+                    <td className="p-4">
+                      {t(`organizations:${perm.actionKey}`)}
+                    </td>
                     <td className="text-center p-4">
                       {perm.admin ? (
                         <Check className="mx-auto h-5 w-5 text-green-600" />

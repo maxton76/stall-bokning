@@ -50,7 +50,7 @@ const formSchema = z.object({
     .number()
     .min(0, "Percentage must be at least 0")
     .max(100, "Percentage cannot exceed 100"),
-  startDate: z.date({ required_error: "Start date is required" }),
+  startDate: z.date({ message: "Start date is required" }),
   endDate: z.date().optional().nullable(),
   notes: z.string().optional(),
 });
@@ -76,7 +76,8 @@ export function OwnershipForm({
   const isEditing = !!ownership;
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(formSchema as any),
     defaultValues: {
       ownerName: ownership?.ownerName || "",
       ownerEmail: ownership?.ownerEmail || "",

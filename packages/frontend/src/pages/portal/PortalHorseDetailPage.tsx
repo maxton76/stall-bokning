@@ -5,12 +5,14 @@ import { format } from "date-fns";
 import { sv, enUS } from "date-fns/locale";
 import {
   ChevronLeft,
-  Horse,
+  Rabbit,
   Calendar,
   Activity,
   Heart,
   MapPin,
 } from "lucide-react";
+// Note: Horse icon doesn't exist in lucide-react, using Rabbit as placeholder
+const Horse = Rabbit;
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -293,8 +295,7 @@ export default function PortalHorseDetailPage() {
                         <div
                           className="h-2 w-2 rounded-full"
                           style={{
-                            backgroundColor:
-                              activity.activityTypeColor || "#6b7280",
+                            backgroundColor: "#6b7280",
                           }}
                         />
                         <div>

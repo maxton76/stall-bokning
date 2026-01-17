@@ -1,14 +1,8 @@
 import { logger } from "firebase-functions";
 
-/**
- * Validate Telegram chat ID format
- * Chat IDs are numeric, can be negative for groups
- */
-const CHAT_ID_REGEX = /^-?\d+$/;
-
-function isValidChatId(chatId: string): boolean {
-  return CHAT_ID_REGEX.test(chatId) && chatId.length <= 20;
-}
+import { escapeMarkdown } from "../lib/text.js";
+import { isValidChatId } from "../lib/validation.js";
+import { formatErrorMessage } from "../lib/errors.js";
 
 /**
  * Telegram message payload
@@ -46,40 +40,6 @@ function formatTelegramMessage(payload: TelegramPayload): string {
   }
 
   return message;
-}
-
-/**
- * Escape special characters for Telegram MarkdownV2
- */
-function escapeMarkdown(text: string): string {
-  // Characters that need escaping in MarkdownV2
-  const specialChars = [
-    "_",
-    "*",
-    "[",
-    "]",
-    "(",
-    ")",
-    "~",
-    "`",
-    ">",
-    "#",
-    "+",
-    "-",
-    "=",
-    "|",
-    "{",
-    "}",
-    ".",
-    "!",
-  ];
-
-  let escaped = text;
-  for (const char of specialChars) {
-    escaped = escaped.split(char).join(`\\${char}`);
-  }
-
-  return escaped;
 }
 
 /**
@@ -189,7 +149,7 @@ export async function sendTelegramMessage(
 
     return { success: true };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = formatErrorMessage(error);
     logger.error(
       {
         error: errorMessage,
@@ -244,7 +204,7 @@ export async function verifyTelegramWebhook(
 
     return { success: true };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = formatErrorMessage(error);
     return {
       success: false,
       error: errorMessage,
@@ -255,9 +215,7 @@ export async function verifyTelegramWebhook(
 /**
  * Get chat info to verify user
  */
-export async function getTelegramChatInfo(
-  chatId: string,
-): Promise<{
+export async function getTelegramChatInfo(chatId: string): Promise<{
   success: boolean;
   chatInfo?: Record<string, unknown>;
   error?: string;
@@ -298,7 +256,7 @@ export async function getTelegramChatInfo(
       chatInfo: result.result,
     };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = formatErrorMessage(error);
     return {
       success: false,
       error: errorMessage,

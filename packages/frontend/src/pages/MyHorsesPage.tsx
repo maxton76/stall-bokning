@@ -72,6 +72,7 @@ export default function MyHorsesPage() {
   } = useHorseFilters({
     horses: horses.data || [],
     initialFilters: { status: "active" },
+    t,
   });
 
   // Filter configuration for MyHorsesPage
@@ -292,6 +293,7 @@ export default function MyHorsesPage() {
     onUnassign: handleUnassign,
     onDelete: handleDeleteHorse,
     onViewDetails: handleViewDetails,
+    t,
   });
 
   if (horses.loading) {

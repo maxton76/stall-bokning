@@ -111,36 +111,40 @@ export function TackItemForm({
   const toDateString = (date: unknown): string => {
     if (!date) return "";
     if (typeof date === "object" && "seconds" in (date as object)) {
-      return new Date((date as { seconds: number }).seconds * 1000)
-        .toISOString()
-        .split("T")[0];
+      return (
+        new Date((date as { seconds: number }).seconds * 1000)
+          .toISOString()
+          .split("T")[0] ?? ""
+      );
     }
     if (date instanceof Date) {
-      return date.toISOString().split("T")[0];
+      return date.toISOString().split("T")[0] ?? "";
     }
     return "";
   };
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(formSchema as any),
     defaultValues: {
-      category: defaultValues?.category || "saddle",
-      name: defaultValues?.name || "",
-      description: defaultValues?.description || "",
-      brand: defaultValues?.brand || "",
-      model: defaultValues?.model || "",
-      size: defaultValues?.size || "",
-      color: defaultValues?.color || "",
-      condition: defaultValues?.condition || "good",
-      conditionNotes: defaultValues?.conditionNotes || "",
-      purchaseDate: toDateString(defaultValues?.purchaseDate),
-      purchasePrice: defaultValues?.purchasePrice?.toString() || "",
-      purchasedFrom: defaultValues?.purchasedFrom || "",
-      warrantyExpiry: toDateString(defaultValues?.warrantyExpiry),
-      warrantyNotes: defaultValues?.warrantyNotes || "",
-      storageLocation: defaultValues?.storageLocation || "",
-      nextMaintenanceDate: toDateString(defaultValues?.nextMaintenanceDate),
-      maintenanceNotes: defaultValues?.maintenanceNotes || "",
+      category: defaultValues?.category ?? "saddle",
+      name: defaultValues?.name ?? "",
+      description: defaultValues?.description ?? "",
+      brand: defaultValues?.brand ?? "",
+      model: defaultValues?.model ?? "",
+      size: defaultValues?.size ?? "",
+      color: defaultValues?.color ?? "",
+      condition: defaultValues?.condition ?? "good",
+      conditionNotes: defaultValues?.conditionNotes ?? "",
+      purchaseDate: toDateString(defaultValues?.purchaseDate) ?? "",
+      purchasePrice: defaultValues?.purchasePrice?.toString() ?? "",
+      purchasedFrom: defaultValues?.purchasedFrom ?? "",
+      warrantyExpiry: toDateString(defaultValues?.warrantyExpiry) ?? "",
+      warrantyNotes: defaultValues?.warrantyNotes ?? "",
+      storageLocation: defaultValues?.storageLocation ?? "",
+      nextMaintenanceDate:
+        toDateString(defaultValues?.nextMaintenanceDate) ?? "",
+      maintenanceNotes: defaultValues?.maintenanceNotes ?? "",
     },
   });
 

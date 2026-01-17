@@ -13,6 +13,7 @@ import type {
   CalendarLeaveStatus,
 } from "@stall-bokning/shared";
 import { format, differenceInDays } from "date-fns";
+import { authFetchJSON } from "@/utils/authFetch";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -147,8 +148,6 @@ export async function createLeaveRequest(data: {
   lastDay: string; // ISO date string YYYY-MM-DD
   note?: string;
 }): Promise<LeaveRequestDisplay> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ leaveRequest: LeaveRequest }>(
     `${API_URL}/api/v1/availability/leave-requests`,
     {
@@ -171,8 +170,6 @@ export async function reportSickLeave(data: {
   firstSickDay: string; // ISO date string YYYY-MM-DD
   note?: string;
 }): Promise<LeaveRequestDisplay> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ leaveRequest: LeaveRequest }>(
     `${API_URL}/api/v1/availability/sick-leave`,
     {
@@ -190,8 +187,6 @@ export async function reportSickLeave(data: {
 export async function getLeaveRequests(
   organizationId: string,
 ): Promise<LeaveRequestDisplay[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ leaveRequests: LeaveRequest[] }>(
     `${API_URL}/api/v1/availability/leave-requests?organizationId=${organizationId}`,
     { method: "GET" },
@@ -210,8 +205,6 @@ export async function updateLeaveRequest(
     status?: "cancelled";
   },
 ): Promise<LeaveRequestDisplay> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ leaveRequest: LeaveRequest }>(
     `${API_URL}/api/v1/availability/leave-requests/${id}`,
     {
@@ -236,8 +229,6 @@ export async function cancelLeaveRequest(
  * Delete a leave request
  */
 export async function deleteLeaveRequest(id: string): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(`${API_URL}/api/v1/availability/leave-requests/${id}`, {
     method: "DELETE",
   });
@@ -253,8 +244,6 @@ export async function deleteLeaveRequest(id: string): Promise<void> {
 export async function getWorkSchedule(
   organizationId: string,
 ): Promise<WorkScheduleDisplay | null> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   try {
     const response = await authFetchJSON<{ schedule: WorkSchedule | null }>(
       `${API_URL}/api/v1/availability/schedule?organizationId=${organizationId}`,
@@ -278,8 +267,6 @@ export async function getTimeBalance(
   organizationId: string,
   year?: number,
 ): Promise<TimeBalanceDisplay | null> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   try {
     const currentYear = year ?? new Date().getFullYear();
     const currentMonth = new Date().getMonth();
@@ -314,8 +301,6 @@ export async function getOrganizationLeaveRequests(
     endDate?: string;
   },
 ): Promise<LeaveRequestDisplay[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const params = new URLSearchParams({ organizationId });
   if (options?.status) params.append("status", options.status);
   if (options?.userId) params.append("userId", options.userId);
@@ -340,8 +325,6 @@ export async function reviewLeaveRequest(
     reviewNote?: string;
   },
 ): Promise<LeaveRequestDisplay> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ leaveRequest: LeaveRequest }>(
     `${API_URL}/api/v1/availability/admin/leave-requests/${id}/review`,
     {
@@ -365,8 +348,6 @@ export async function setWorkSchedule(
     effectiveUntil?: string; // ISO date string
   },
 ): Promise<WorkScheduleDisplay> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ schedule: WorkSchedule }>(
     `${API_URL}/api/v1/availability/admin/schedules/${userId}`,
     {
@@ -390,8 +371,6 @@ export async function adjustTimeBalance(
     reason: string;
   },
 ): Promise<TimeBalanceDisplay> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ balance: TimeBalance }>(
     `${API_URL}/api/v1/availability/admin/balance/${userId}`,
     {
@@ -426,8 +405,6 @@ interface MemberWithSchedule {
 export async function getOrganizationMembersWithSchedules(
   organizationId: string,
 ): Promise<MemberWithSchedule[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ members: MemberWithSchedule[] }>(
     `${API_URL}/api/v1/availability/admin/members-with-schedules?organizationId=${organizationId}`,
     { method: "GET" },
@@ -555,7 +532,7 @@ export async function getStaffAvailabilityMatrix(
           lastDay: {
             toDate: () => lr.lastDay,
           } as unknown as import("firebase/firestore").Timestamp,
-        })) as LeaveRequest[];
+        })) as unknown as LeaveRequest[];
 
       // Get leave status for this date
       const leaveInfo = getLeaveStatusForDate(dateStr, userLeaveRequests);

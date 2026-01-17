@@ -32,7 +32,7 @@ import {
 } from "@/services/paymentService";
 import {
   getPortalInvoice,
-  type PortalInvoiceDetailResponse,
+  type FlattenedPortalInvoice,
 } from "@/services/portalService";
 
 export default function PortalPaymentPage() {
@@ -43,9 +43,7 @@ export default function PortalPaymentPage() {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
 
-  const [invoice, setInvoice] = useState<PortalInvoiceDetailResponse | null>(
-    null,
-  );
+  const [invoice, setInvoice] = useState<FlattenedPortalInvoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
 

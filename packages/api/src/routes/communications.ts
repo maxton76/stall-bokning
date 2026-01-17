@@ -10,8 +10,12 @@
  */
 
 import { FastifyInstance } from "fastify";
-import { Timestamp } from "firebase-admin/firestore";
-import { db } from "../firebaseAdmin.js";
+import {
+  Timestamp,
+  QueryDocumentSnapshot,
+  DocumentData,
+} from "firebase-admin/firestore";
+import { db } from "../utils/firebase.js";
 import {
   authenticate,
   requireOrganizationAccess,
@@ -193,10 +197,12 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
       // Execute query
       const snapshot = await query.get();
 
-      let items = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as CommunicationRecord[];
+      let items = snapshot.docs.map(
+        (doc: QueryDocumentSnapshot<DocumentData>) => ({
+          id: doc.id,
+          ...doc.data(),
+        }),
+      ) as CommunicationRecord[];
 
       // Apply text search filter (client-side, limited to fetched results)
       if (search && search.length >= 2) {
@@ -299,7 +305,8 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
       const now = Timestamp.now();
       const user = (request as AuthenticatedRequest).user!;
 
-      const record: Omit<CommunicationRecord, "id"> = {
+      // Build record without explicit type to avoid Timestamp incompatibility
+      const record = {
         organizationId,
         contactId: input.contactId,
         contactName,
@@ -310,8 +317,11 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
         content: input.content,
         summary: input.summary,
         attachments: input.attachments?.map((a, i) => ({
-          ...a,
           id: `attachment_${i}_${Date.now()}`,
+          fileName: a.name,
+          fileType: a.mimeType || "application/octet-stream",
+          fileSize: a.size || 0,
+          url: a.url,
         })),
         relatedInvoiceId: input.relatedInvoiceId,
         relatedHorseId: input.relatedHorseId,
@@ -326,7 +336,7 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
         createdAt: now,
         updatedAt: now,
         createdBy: user.uid,
-        createdByName: user.name || user.email || "Unknown",
+        createdByName: user.displayName || user.email || "Unknown",
       };
 
       const docRef = await db.collection("communicationRecords").add(record);
@@ -376,7 +386,8 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
       const record = result.data!;
       const docRef = db.collection("communicationRecords").doc(communicationId);
 
-      const updates: Partial<CommunicationRecord> = {
+      // Build updates without explicit type to avoid Timestamp incompatibility
+      const updates: Record<string, unknown> = {
         updatedAt: Timestamp.now(),
       };
 
@@ -484,10 +495,12 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
 
       const snapshot = await query.get();
 
-      const items = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const items = snapshot.docs.map(
+        (doc: QueryDocumentSnapshot<DocumentData>) => ({
+          id: doc.id,
+          ...doc.data(),
+        }),
+      );
 
       return reply.send({ items });
     },
@@ -532,7 +545,7 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
         lastCommunication: undefined as Timestamp | undefined,
       };
 
-      snapshot.docs.forEach((doc) => {
+      snapshot.docs.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
         const data = doc.data();
         const type = data.type as string;
         const direction = data.direction as string;
@@ -596,10 +609,12 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
 
       const snapshot = await query.orderBy("name", "asc").get();
 
-      const templates = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const templates = snapshot.docs.map(
+        (doc: QueryDocumentSnapshot<DocumentData>) => ({
+          id: doc.id,
+          ...doc.data(),
+        }),
+      );
 
       return reply.send({ templates });
     },
@@ -636,7 +651,8 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
       // Extract variables from content
       const extractedVariables = extractTemplateVariables(input.content);
 
-      const template: Omit<CommunicationTemplate, "id"> = {
+      // Build template without explicit type to avoid Timestamp incompatibility
+      const template = {
         organizationId,
         name: input.name,
         description: input.description,
@@ -701,7 +717,8 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
       const template = result.data!;
       const docRef = db.collection("communicationTemplates").doc(templateId);
 
-      const updates: Partial<CommunicationTemplate> = {
+      // Build updates without explicit type to avoid Timestamp incompatibility
+      const updates: Record<string, unknown> = {
         updatedAt: Timestamp.now(),
       };
 

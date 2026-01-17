@@ -1,14 +1,9 @@
-import { initializeApp, getApps } from "firebase-admin/app";
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { logger } from "firebase-functions";
 import * as crypto from "crypto";
 
-// Initialize Firebase Admin if not already initialized
-if (getApps().length === 0) {
-  initializeApp();
-}
-const db = getFirestore();
+import { db, Timestamp } from "../lib/firebase.js";
+import { formatErrorMessage } from "../lib/errors.js";
 
 /**
  * Check if current time is within user's quiet hours
@@ -164,6 +159,7 @@ export const scanForReminders = onSchedule(
   {
     schedule: "*/15 * * * *", // Every 15 minutes
     timeZone: "Europe/Stockholm",
+    region: "europe-west1",
     retryCount: 2,
   },
   async (_event) => {
@@ -252,8 +248,6 @@ export const scanForReminders = onSchedule(
           const reminderTimes = preferences.shiftReminders.reminderTimes || [
             1440, 120,
           ];
-          const reminderSentKey = `reminderSent_${instanceId}`;
-
           for (const reminderMinutes of reminderTimes) {
             // Check if we're within 15 minutes of this reminder time
             const tolerance = 15;
@@ -341,7 +335,7 @@ export const scanForReminders = onSchedule(
             {
               executionId,
               instanceId: instanceDoc.id,
-              error: error instanceof Error ? error.message : String(error),
+              error: formatErrorMessage(error),
             },
             "Error processing instance reminder",
           );
@@ -496,7 +490,7 @@ export const scanForReminders = onSchedule(
             {
               executionId,
               horseId: horseDoc.id,
-              error: error instanceof Error ? error.message : String(error),
+              error: formatErrorMessage(error),
             },
             "Error processing health reminder",
           );
@@ -596,7 +590,7 @@ export const scanForReminders = onSchedule(
             {
               executionId,
               instanceId: instanceDoc.id,
-              error: error instanceof Error ? error.message : String(error),
+              error: formatErrorMessage(error),
             },
             "Error processing overdue activity",
           );
@@ -647,7 +641,7 @@ export const scanForReminders = onSchedule(
       logger.error(
         {
           executionId,
-          error: error instanceof Error ? error.message : String(error),
+          error: formatErrorMessage(error),
         },
         "Reminder scan failed",
       );

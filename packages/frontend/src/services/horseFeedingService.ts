@@ -3,6 +3,7 @@ import type {
   CreateHorseFeedingData,
   UpdateHorseFeedingData,
 } from "@shared/types";
+import { authFetchJSON } from "@/utils/authFetch";
 
 // ============================================================================
 // Public Service API
@@ -24,8 +25,6 @@ export async function getHorseFeedingsByStable(
     activeOnly?: boolean;
   },
 ): Promise<HorseFeeding[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const params = new URLSearchParams();
   if (options?.date) {
     params.append("date", options.date.toISOString());
@@ -63,8 +62,6 @@ export async function getHorseFeedingsByHorse(
   horseId: string,
   activeOnly = true,
 ): Promise<HorseFeeding[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const params = new URLSearchParams();
   params.append("activeOnly", String(activeOnly));
 
@@ -88,8 +85,6 @@ export async function getHorseFeedingById(
   id: string,
 ): Promise<HorseFeeding | null> {
   try {
-    const { authFetchJSON } = await import("@/utils/authFetch");
-
     const response = await authFetchJSON<HorseFeeding>(
       `${import.meta.env.VITE_API_URL}/api/v1/horse-feedings/${id}`,
       { method: "GET" },
@@ -112,8 +107,6 @@ export async function createHorseFeeding(
   stableId: string,
   data: CreateHorseFeedingData,
 ): Promise<string> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ id: string }>(
     `${import.meta.env.VITE_API_URL}/api/v1/horse-feedings`,
     {
@@ -136,8 +129,6 @@ export async function updateHorseFeeding(
   id: string,
   updates: UpdateHorseFeedingData,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/horse-feedings/${id}`,
     {
@@ -154,8 +145,6 @@ export async function updateHorseFeeding(
  * @returns Promise that resolves when deletion is complete
  */
 export async function deleteHorseFeeding(id: string): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/horse-feedings/${id}`,
     { method: "DELETE" },

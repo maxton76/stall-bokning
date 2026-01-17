@@ -1,0 +1,566 @@
+# Taskfile.yml - stall-bokning Project Tasks
+# https://taskfile.dev
+#
+# Usage:
+#   task --list              # List all tasks
+#   task deploy:frontend     # Deploy frontend to dev
+#   task deploy:api          # Deploy API to dev
+#   task deploy:function NAME=processNotificationQueue
+#   task tf:plan             # Terraform plan for dev
+#
+# Environment Override:
+#   task deploy:frontend ENV=staging
+#   task deploy:api ENV=prod
+
+version: '3'
+
+# =============================================================================
+# Variables
+# =============================================================================
+
+vars:
+  # Default environment (dev, staging, prod)
+  ENV: '{{.ENV | default "dev"}}'
+
+  # GCP Configuration
+  PROJECT_ID: stall-bokning-{{.ENV}}
+  REGION: europe-west1
+
+  # Service names
+  API_SERVICE: '{{.ENV}}-api-service'
+
+  # Paths
+  ROOT_DIR:
+    sh: pwd
+  FRONTEND_DIR: '{{.ROOT_DIR}}/packages/frontend'
+  API_DIR: '{{.ROOT_DIR}}/packages/api'
+  FUNCTIONS_DIR: '{{.ROOT_DIR}}/packages/functions'
+  SHARED_DIR: '{{.ROOT_DIR}}/packages/shared'
+  TERRAFORM_DIR: '{{.ROOT_DIR}}/terraform'
+
+# =============================================================================
+# Environment Configuration
+# =============================================================================
+
+env:
+  CLOUDSDK_CORE_PROJECT: '{{.PROJECT_ID}}'
+
+# =============================================================================
+# Tasks
+# =============================================================================
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  # ===========================================================================
+  # Environment Tasks
+  # ===========================================================================
+
+  env:
+    desc: Show current environment configuration
+    silent: true
+    cmds:
+      - echo "Environment Configuration"
+      - echo "========================="
+      - echo "ENV={{.ENV}}"
+      - echo "PROJECT_ID={{.PROJECT_ID}}"
+      - echo "REGION={{.REGION}}"
+      - echo "API_SERVICE={{.API_SERVICE}}"
+
+  env:switch:
+    desc: Switch Firebase/GCP environment
+    cmds:
+      - gcloud config set project {{.PROJECT_ID}}
+      - firebase use {{.PROJECT_ID}}
+      - echo "Switched to {{.ENV}} environment ({{.PROJECT_ID}})"
+
+  # ===========================================================================
+  # Deploy Tasks
+  # ===========================================================================
+
+  deploy:frontend:
+    desc: Build and deploy frontend to Firebase Hosting
+    dir: '{{.FRONTEND_DIR}}'
+    deps: [env:switch]
+    cmds:
+      - echo "Building frontend..."
+      - npm run build
+      - echo "Deploying to Firebase Hosting..."
+      - firebase deploy --only hosting --project {{.PROJECT_ID}}
+      - echo "Frontend deployed to {{.ENV}}"
+
+  deploy:api:
+    desc: Deploy API to Cloud Run
+    dir: '{{.API_DIR}}'
+    deps: [env:switch]
+    vars:
+      IMAGE: gcr.io/{{.PROJECT_ID}}/api-service:{{.TAG | default "latest"}}
+    cmds:
+      - echo "Building API container..."
+      - gcloud builds submit --tag {{.IMAGE}} --project {{.PROJECT_ID}}
+      - echo "Deploying to Cloud Run..."
+      - gcloud run deploy {{.API_SERVICE}} --image {{.IMAGE}} --region {{.REGION}} --platform managed --allow-unauthenticated --project {{.PROJECT_ID}}
+      - echo "API deployed to {{.ENV}}"
+
+  deploy:api:source:
+    desc: Deploy API directly from source (no container build)
+    dir: '{{.API_DIR}}'
+    deps: [env:switch]
+    cmds:
+      - echo "Deploying API from source..."
+      - gcloud run deploy {{.API_SERVICE}} --source . --region {{.REGION}} --platform managed --allow-unauthenticated --project {{.PROJECT_ID}}
+      - echo "API deployed to {{.ENV}}"
+
+  deploy:functions:
+    desc: Deploy all Cloud Functions
+    dir: '{{.FUNCTIONS_DIR}}'
+    deps: [env:switch]
+    cmds:
+      - echo "Building functions..."
+      - npm run build
+      - echo "Deploying all functions..."
+      - firebase deploy --only functions --project {{.PROJECT_ID}}
+      - echo "All functions deployed to {{.ENV}}"
+
+  deploy:function:
+    desc: Deploy a specific Cloud Function (NAME=functionName)
+    dir: '{{.FUNCTIONS_DIR}}'
+    deps: [env:switch]
+    requires:
+      vars: [NAME]
+    cmds:
+      - echo "Building functions..."
+      - npm run build
+      - echo "Deploying function {{.NAME}}..."
+      - firebase deploy --only functions:{{.NAME}} --project {{.PROJECT_ID}}
+      - echo "Function {{.NAME}} deployed to {{.ENV}}"
+
+  deploy:firestore:rules:
+    desc: Deploy Firestore security rules
+    deps: [env:switch]
+    cmds:
+      - echo "Deploying Firestore rules..."
+      - firebase deploy --only firestore:rules --project {{.PROJECT_ID}}
+      - echo "Firestore rules deployed to {{.ENV}}"
+
+  deploy:firestore:indexes:
+    desc: Deploy Firestore indexes
+    deps: [env:switch]
+    cmds:
+      - echo "Deploying Firestore indexes..."
+      - firebase deploy --only firestore:indexes --project {{.PROJECT_ID}}
+      - echo "Firestore indexes deployed to {{.ENV}}"
+
+  deploy:storage:rules:
+    desc: Deploy Storage security rules
+    deps: [env:switch]
+    cmds:
+      - echo "Deploying Storage rules..."
+      - firebase deploy --only storage --project {{.PROJECT_ID}}
+      - echo "Storage rules deployed to {{.ENV}}"
+
+  deploy:all:
+    desc: Deploy everything (frontend, API, functions, rules)
+    cmds:
+      - task: deploy:firestore:rules
+      - task: deploy:firestore:indexes
+      - task: deploy:storage:rules
+      - task: deploy:functions
+      - task: deploy:api
+      - task: deploy:frontend
+      - echo "Full deployment to {{.ENV}} complete!"
+
+  deploy:shared:publish:
+    desc: Publish shared package (VERSION_BUMP=patch|minor|major)
+    dir: '{{.SHARED_DIR}}'
+    vars:
+      VERSION_BUMP: '{{.VERSION_BUMP | default "patch"}}'
+    cmds:
+      - echo "Building shared package..."
+      - npm run build
+      - echo "Bumping version ({{.VERSION_BUMP}})..."
+      - npm version {{.VERSION_BUMP}}
+      - echo "Publishing to npm..."
+      - npm publish --access public
+      - echo "Shared package published"
+
+  # ===========================================================================
+  # Terraform Tasks
+  # ===========================================================================
+
+  tf:init:
+    desc: Initialize Terraform for environment
+    dir: '{{.TERRAFORM_DIR}}/environments/{{.ENV}}'
+    cmds:
+      - terraform init
+
+  tf:plan:
+    desc: Plan Terraform changes
+    dir: '{{.TERRAFORM_DIR}}/environments/{{.ENV}}'
+    cmds:
+      - terraform plan
+
+  tf:apply:
+    desc: Apply Terraform changes
+    dir: '{{.TERRAFORM_DIR}}/environments/{{.ENV}}'
+    cmds:
+      - terraform apply
+
+  tf:apply:auto:
+    desc: Apply Terraform changes (auto-approve)
+    dir: '{{.TERRAFORM_DIR}}/environments/{{.ENV}}'
+    cmds:
+      - terraform apply -auto-approve
+
+  tf:destroy:
+    desc: Destroy Terraform resources (DANGEROUS)
+    dir: '{{.TERRAFORM_DIR}}/environments/{{.ENV}}'
+    prompt: This will DESTROY all resources in {{.ENV}}. Are you sure?
+    cmds:
+      - terraform destroy
+
+  tf:state:list:
+    desc: List Terraform state
+    dir: '{{.TERRAFORM_DIR}}/environments/{{.ENV}}'
+    cmds:
+      - terraform state list
+
+  tf:output:
+    desc: Show Terraform outputs
+    dir: '{{.TERRAFORM_DIR}}/environments/{{.ENV}}'
+    cmds:
+      - terraform output
+
+  tf:validate:
+    desc: Validate Terraform configuration
+    dir: '{{.TERRAFORM_DIR}}/environments/{{.ENV}}'
+    cmds:
+      - terraform validate
+
+  tf:fmt:
+    desc: Format Terraform files
+    dir: '{{.TERRAFORM_DIR}}'
+    cmds:
+      - terraform fmt -recursive
+
+  tf:init-backend:
+    desc: Initialize Terraform state bucket
+    dir: '{{.TERRAFORM_DIR}}'
+    cmds:
+      - ./scripts/init-backend.sh {{.PROJECT_ID}}
+
+  tf:import:
+    desc: Import existing resources
+    dir: '{{.TERRAFORM_DIR}}'
+    cmds:
+      - ./scripts/import-existing.sh {{.PROJECT_ID}} {{.ENV}}
+
+  # ===========================================================================
+  # Development Tasks
+  # ===========================================================================
+
+  dev:frontend:
+    desc: Start frontend dev server
+    dir: '{{.FRONTEND_DIR}}'
+    cmds:
+      - npm run dev
+
+  dev:api:
+    desc: Start API dev server
+    dir: '{{.API_DIR}}'
+    cmds:
+      - npm run dev
+
+  dev:emulators:
+    desc: Start Firebase emulators
+    cmds:
+      - firebase emulators:start --import=./.firebase-data --export-on-exit=./.firebase-data
+
+  dev:emulators:export:
+    desc: Export emulator data
+    cmds:
+      - firebase emulators:export ./.firebase-data --force
+      - echo "Emulator data exported to .firebase-data/"
+
+  dev:emulators:clear:
+    desc: Clear emulator data
+    cmds:
+      - rm -rf ./.firebase-data
+      - echo "Emulator data cleared"
+
+  # ===========================================================================
+  # Build Tasks
+  # ===========================================================================
+
+  build:
+    desc: Build all packages
+    cmds:
+      - task: build:shared
+      - task: build:frontend
+      - task: build:api
+      - task: build:functions
+
+  build:frontend:
+    desc: Build frontend
+    dir: '{{.FRONTEND_DIR}}'
+    cmds:
+      - npm run build
+
+  build:api:
+    desc: Build API
+    dir: '{{.API_DIR}}'
+    cmds:
+      - npm run build
+
+  build:functions:
+    desc: Build functions
+    dir: '{{.FUNCTIONS_DIR}}'
+    cmds:
+      - npm run build
+
+  build:shared:
+    desc: Build shared package
+    dir: '{{.SHARED_DIR}}'
+    cmds:
+      - npm run build
+
+  # ===========================================================================
+  # Test Tasks
+  # ===========================================================================
+
+  test:
+    desc: Run all tests
+    cmds:
+      - task: test:frontend
+      - task: test:api
+      - task: test:functions
+
+  test:frontend:
+    desc: Run frontend tests
+    dir: '{{.FRONTEND_DIR}}'
+    cmds:
+      - npm run test
+
+  test:api:
+    desc: Run API tests
+    dir: '{{.API_DIR}}'
+    cmds:
+      - npm run test
+
+  test:functions:
+    desc: Run functions tests
+    dir: '{{.FUNCTIONS_DIR}}'
+    cmds:
+      - npm run test
+
+  test:e2e:
+    desc: Run E2E tests with Playwright
+    cmds:
+      - npx playwright test
+
+  test:e2e:ui:
+    desc: Run E2E tests with Playwright UI
+    cmds:
+      - npx playwright test --ui
+
+  # ===========================================================================
+  # Lint & Format Tasks
+  # ===========================================================================
+
+  lint:
+    desc: Lint all packages
+    cmds:
+      - npm run lint --workspaces --if-present
+
+  format:
+    desc: Format code with Prettier
+    cmds:
+      - npx prettier --write "packages/**/*.{ts,tsx,js,jsx,json,css,md}"
+
+  typecheck:
+    desc: Run TypeScript type checking
+    cmds:
+      - npm run typecheck --workspaces --if-present
+
+  # ===========================================================================
+  # Install Tasks
+  # ===========================================================================
+
+  install:
+    desc: Install all dependencies
+    cmds:
+      - npm install
+      - npm install --workspaces
+
+  install:clean:
+    desc: Clean install (remove node_modules first)
+    cmds:
+      - rm -rf node_modules packages/*/node_modules
+      - npm install
+      - npm install --workspaces
+
+  # ===========================================================================
+  # Secrets Tasks
+  # ===========================================================================
+
+  secrets:list:
+    desc: List all secrets
+    cmds:
+      - gcloud secrets list --project {{.PROJECT_ID}}
+
+  secrets:set:
+    desc: Set a secret value (SECRET=name VALUE=value)
+    requires:
+      vars: [SECRET, VALUE]
+    cmds:
+      - echo -n "{{.VALUE}}" | gcloud secrets versions add {{.ENV}}-{{.SECRET}} --data-file=- --project {{.PROJECT_ID}}
+      - echo "Secret {{.ENV}}-{{.SECRET}} updated"
+
+  secrets:set:file:
+    desc: Set a secret from file (SECRET=name FILE=path)
+    requires:
+      vars: [SECRET, FILE]
+    cmds:
+      - gcloud secrets versions add {{.ENV}}-{{.SECRET}} --data-file={{.FILE}} --project {{.PROJECT_ID}}
+      - echo "Secret {{.ENV}}-{{.SECRET}} updated from file"
+
+  secrets:get:
+    desc: Get a secret value (SECRET=name)
+    requires:
+      vars: [SECRET]
+    cmds:
+      - gcloud secrets versions access latest --secret={{.ENV}}-{{.SECRET}} --project {{.PROJECT_ID}}
+
+  # ===========================================================================
+  # Logs & Monitoring Tasks
+  # ===========================================================================
+
+  logs:api:
+    desc: View Cloud Run API logs
+    vars:
+      LIMIT: '{{.LIMIT | default "50"}}'
+    cmds:
+      - gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name={{.API_SERVICE}}" --limit={{.LIMIT}} --project {{.PROJECT_ID}} --format="table(timestamp,severity,textPayload)"
+
+  logs:functions:
+    desc: View Cloud Functions logs
+    vars:
+      LIMIT: '{{.LIMIT | default "50"}}'
+    cmds:
+      - gcloud logging read "resource.type=cloud_function" --limit={{.LIMIT}} --project {{.PROJECT_ID}} --format="table(timestamp,severity,resource.labels.function_name,textPayload)"
+
+  logs:function:
+    desc: View logs for specific function (NAME=functionName)
+    requires:
+      vars: [NAME]
+    vars:
+      LIMIT: '{{.LIMIT | default "50"}}'
+    cmds:
+      - gcloud logging read "resource.type=cloud_function AND resource.labels.function_name={{.NAME}}" --limit={{.LIMIT}} --project {{.PROJECT_ID}} --format="table(timestamp,severity,textPayload)"
+
+  logs:tail:api:
+    desc: Tail Cloud Run API logs (live)
+    cmds:
+      - gcloud logging tail "resource.type=cloud_run_revision AND resource.labels.service_name={{.API_SERVICE}}" --project {{.PROJECT_ID}}
+
+  # ===========================================================================
+  # Cloud Run Tasks
+  # ===========================================================================
+
+  run:describe:
+    desc: Describe Cloud Run service
+    cmds:
+      - gcloud run services describe {{.API_SERVICE}} --region {{.REGION}} --project {{.PROJECT_ID}}
+
+  run:url:
+    desc: Get Cloud Run service URL
+    cmds:
+      - gcloud run services describe {{.API_SERVICE}} --region {{.REGION}} --project {{.PROJECT_ID}} --format="value(status.url)"
+
+  run:revisions:
+    desc: List Cloud Run revisions
+    cmds:
+      - gcloud run revisions list --service {{.API_SERVICE}} --region {{.REGION}} --project {{.PROJECT_ID}}
+
+  # ===========================================================================
+  # Scheduler Tasks
+  # ===========================================================================
+
+  scheduler:list:
+    desc: List Cloud Scheduler jobs
+    cmds:
+      - gcloud scheduler jobs list --location {{.REGION}} --project {{.PROJECT_ID}}
+
+  scheduler:run:
+    desc: Manually trigger a scheduler job (JOB=job-name)
+    requires:
+      vars: [JOB]
+    cmds:
+      - gcloud scheduler jobs run {{.JOB}} --location {{.REGION}} --project {{.PROJECT_ID}}
+      - echo "Triggered job {{.JOB}}"
+
+  scheduler:pause:
+    desc: Pause a scheduler job (JOB=job-name)
+    requires:
+      vars: [JOB]
+    cmds:
+      - gcloud scheduler jobs pause {{.JOB}} --location {{.REGION}} --project {{.PROJECT_ID}}
+      - echo "Paused job {{.JOB}}"
+
+  scheduler:resume:
+    desc: Resume a scheduler job (JOB=job-name)
+    requires:
+      vars: [JOB]
+    cmds:
+      - gcloud scheduler jobs resume {{.JOB}} --location {{.REGION}} --project {{.PROJECT_ID}}
+      - echo "Resumed job {{.JOB}}"
+
+  # ===========================================================================
+  # Database Tasks
+  # ===========================================================================
+
+  db:export:
+    desc: Export Firestore data
+    vars:
+      BUCKET: '{{.PROJECT_ID}}-backups'
+      TIMESTAMP:
+        sh: date +%Y%m%d-%H%M%S
+    cmds:
+      - gcloud firestore export gs://{{.BUCKET}}/firestore/{{.TIMESTAMP}} --project {{.PROJECT_ID}}
+      - echo "Firestore exported to gs://{{.BUCKET}}/firestore/{{.TIMESTAMP}}"
+
+  db:import:
+    desc: Import Firestore data (BACKUP=gs://bucket/path)
+    requires:
+      vars: [BACKUP]
+    prompt: This will OVERWRITE data in {{.ENV}}. Are you sure?
+    cmds:
+      - gcloud firestore import {{.BACKUP}} --project {{.PROJECT_ID}}
+
+  # ===========================================================================
+  # Utility Tasks
+  # ===========================================================================
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf packages/frontend/dist
+      - rm -rf packages/api/dist
+      - rm -rf packages/functions/lib
+      - rm -rf packages/shared/dist
+      - echo "Build artifacts cleaned"
+
+  info:
+    desc: Show project information
+    cmds:
+      - task: env
+      - echo ""
+      - echo "Tool versions:"
+      - node --version
+      - npm --version
+      - firebase --version
+      - gcloud --version | head -1
+      - terraform --version | head -1

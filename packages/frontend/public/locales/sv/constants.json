@@ -77,6 +77,8 @@
     "influenza": "Influensa",
     "rhino": "Rhino",
     "vet": "Veterinär",
+    "veterinarian": "Veterinär",
+    "vaccination": "Vaccination",
     "client": "Kund",
     "lesson": "Lektion",
     "lunging": "Longering",
@@ -95,7 +97,11 @@
     "groom": "Skötare",
     "veterinarian": "Veterinär",
     "farrier": "Hovslagare",
-    "dentist": "Hästtandläkare"
+    "dentist": "Hästtandläkare",
+    "instructor": "Instruktör",
+    "stablehand": "Stallpersonal",
+    "handler": "Hästskötare",
+    "breeder": "Uppfödare"
   },
   "contactTypes": {
     "personal": "Personlig",

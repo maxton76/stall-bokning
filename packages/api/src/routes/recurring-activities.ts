@@ -11,11 +11,8 @@ import {
   getHorseGroupName,
 } from "../utils/denormalization.js";
 import type {
-  RecurringActivity,
   RecurringActivityStatus,
-  ActivityInstance,
   ActivityInstanceStatus,
-  RecurringActivityException,
   CreateRecurringActivityInput,
   UpdateRecurringActivityInput,
   UpdateProgressInput,
@@ -199,7 +196,8 @@ export async function recurringActivitiesRoutes(fastify: FastifyInstance) {
           : undefined;
 
         const now = Timestamp.now();
-        const docData: Omit<RecurringActivity, "id"> = {
+        // Build doc data without explicit type to avoid Timestamp incompatibility
+        const docData = {
           stableId: input.stableId,
           stableName,
           organizationId,
@@ -230,7 +228,7 @@ export async function recurringActivitiesRoutes(fastify: FastifyInstance) {
           weight: input.weight ?? 1,
           isHolidayMultiplied: input.isHolidayMultiplied ?? false,
           generateDaysAhead: input.generateDaysAhead ?? 60,
-          status: "active",
+          status: "active" as const,
           createdAt: now,
           createdBy: user.uid,
           updatedAt: now,

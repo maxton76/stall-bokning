@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,7 @@ export function HorseFilterPopover({
   onClearAll,
   children,
 }: HorseFilterPopoverProps) {
+  const { t } = useTranslation(["horses"]);
   const [isOpen, setIsOpen] = useState(false);
 
   const updateFilter = <K extends keyof HorseFilters>(
@@ -100,7 +102,7 @@ export function HorseFilterPopover({
         {children || (
           <Button variant="outline" className="gap-2">
             <Filter className="h-4 w-4" />
-            Filters
+            {t("horses:filters.title")}
             {activeFilterCount > 0 && (
               <Badge variant="secondary" className="ml-1 px-1.5">
                 {activeFilterCount}
@@ -113,10 +115,10 @@ export function HorseFilterPopover({
         <div className="space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <h4 className="font-medium">Filters</h4>
+            <h4 className="font-medium">{t("horses:filters.title")}</h4>
             {activeFilterCount > 0 && (
               <Button variant="ghost" size="sm" onClick={handleClearAll}>
-                Clear all
+                {t("horses:filters.clearAll")}
               </Button>
             )}
           </div>
@@ -124,11 +126,11 @@ export function HorseFilterPopover({
           {/* Search Filter */}
           {config.showSearch && (
             <div className="space-y-2">
-              <Label>Search</Label>
+              <Label>{t("horses:filters.search")}</Label>
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Name, UELN, chip number, breed..."
+                  placeholder={t("horses:filters.searchPlaceholder")}
                   value={filters.searchQuery}
                   onChange={(e) => updateFilter("searchQuery", e.target.value)}
                   className="pl-8"
@@ -140,7 +142,7 @@ export function HorseFilterPopover({
           {/* Stable Filter */}
           {config.showStable && !config.useStableContext && (
             <div className="space-y-2">
-              <Label>Stable</Label>
+              <Label>{t("horses:filters.stable")}</Label>
               <Select
                 value={filters.stableId || "all"}
                 onValueChange={(value) =>
@@ -151,8 +153,12 @@ export function HorseFilterPopover({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Stables</SelectItem>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  <SelectItem value="all">
+                    {t("horses:filters.allStables")}
+                  </SelectItem>
+                  <SelectItem value="unassigned">
+                    {t("horses:filters.unassigned")}
+                  </SelectItem>
                   {stables.map((stable) => (
                     <SelectItem key={stable.id} value={stable.id}>
                       {stable.name}
@@ -166,20 +172,20 @@ export function HorseFilterPopover({
           {/* Gender Filter (Multi-Select) */}
           {config.showGender && (
             <div className="space-y-2">
-              <Label>Gender</Label>
+              <Label>{t("horses:filters.gender")}</Label>
               <div className="space-y-2">
-                {["gelding", "stallion", "mare"].map((gender) => (
+                {(["gelding", "stallion", "mare"] as const).map((gender) => (
                   <div key={gender} className="flex items-center space-x-2">
                     <Checkbox
                       id={`gender-${gender}`}
-                      checked={filters.genders.includes(gender as any)}
-                      onCheckedChange={() => toggleGender(gender as any)}
+                      checked={filters.genders.includes(gender)}
+                      onCheckedChange={() => toggleGender(gender)}
                     />
                     <label
                       htmlFor={`gender-${gender}`}
-                      className="text-sm capitalize cursor-pointer"
+                      className="text-sm cursor-pointer"
                     >
-                      {gender}
+                      {t(`horses:genders.${gender}`)}
                     </label>
                   </div>
                 ))}
@@ -190,11 +196,11 @@ export function HorseFilterPopover({
           {/* Age Range Filter */}
           {config.showAge && (
             <div className="space-y-2">
-              <Label>Age Range</Label>
+              <Label>{t("horses:filters.ageRange")}</Label>
               <div className="flex gap-2">
                 <Input
                   type="number"
-                  placeholder="Min"
+                  placeholder={t("horses:filters.min")}
                   value={filters.ageMin ?? ""}
                   onChange={(e) =>
                     updateFilter(
@@ -206,7 +212,7 @@ export function HorseFilterPopover({
                 />
                 <Input
                   type="number"
-                  placeholder="Max"
+                  placeholder={t("horses:filters.max")}
                   value={filters.ageMax ?? ""}
                   onChange={(e) =>
                     updateFilter(
@@ -223,7 +229,7 @@ export function HorseFilterPopover({
           {/* Usage Filter */}
           {config.showUsage && (
             <div className="space-y-2">
-              <Label>Usage</Label>
+              <Label>{t("horses:filters.usage")}</Label>
               <div className="space-y-2">
                 {(["care", "sport", "breeding"] as const).map((usage) => (
                   <div key={usage} className="flex items-center space-x-2">
@@ -234,9 +240,9 @@ export function HorseFilterPopover({
                     />
                     <label
                       htmlFor={`usage-${usage}`}
-                      className="text-sm capitalize cursor-pointer"
+                      className="text-sm cursor-pointer"
                     >
-                      {usage}
+                      {t(`horses:usageTypes.${usage}`)}
                     </label>
                   </div>
                 ))}
@@ -247,7 +253,7 @@ export function HorseFilterPopover({
           {/* Groups Filter */}
           {config.showGroups && groups.length > 0 && (
             <div className="space-y-2">
-              <Label>Groups</Label>
+              <Label>{t("horses:filters.groups")}</Label>
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {groups.map((group) => (
                   <div key={group.id} className="flex items-center space-x-2">
@@ -277,7 +283,7 @@ export function HorseFilterPopover({
           {/* Status Filter */}
           {config.showStatus && (
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label>{t("horses:filters.status")}</Label>
               <Select
                 value={filters.status || "all"}
                 onValueChange={(value) =>
@@ -293,9 +299,13 @@ export function HorseFilterPopover({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="all">{t("horses:filters.all")}</SelectItem>
+                  <SelectItem value="active">
+                    {t("horses:filters.active")}
+                  </SelectItem>
+                  <SelectItem value="inactive">
+                    {t("horses:filters.inactive")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>

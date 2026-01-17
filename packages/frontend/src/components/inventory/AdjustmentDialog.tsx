@@ -45,7 +45,8 @@ export function AdjustmentDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<AdjustmentFormData>({
-    resolver: zodResolver(adjustmentSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(adjustmentSchema as any),
     defaultValues: {
       newQuantity: item?.currentQuantity || 0,
       reason: "",

@@ -52,6 +52,13 @@
     },
     "search": {
       "placeholder": "Search by Name, UELN, etc..."
+    },
+    "matrix": {
+      "horse": "Horse"
+    },
+    "emptyState": {
+      "noHorses": "No horses found for this stable",
+      "noActivityTypes": "No care activity types configured"
     }
   },
   "planning": {

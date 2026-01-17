@@ -73,14 +73,14 @@ function groupActivities(
         break;
       case "date":
         key = activity.scheduledDate
-          ? new Date(
+          ? (new Date(
               typeof activity.scheduledDate === "object" &&
                 "toDate" in activity.scheduledDate
                 ? (activity.scheduledDate as any).toDate()
                 : activity.scheduledDate,
             )
               .toISOString()
-              .split("T")[0]
+              .split("T")[0] ?? "unknown")
           : "unknown";
         break;
       case "horse":
@@ -202,7 +202,8 @@ function getCategoryIcon(category: string): React.ReactNode {
     hay: { emoji: "🌾", label: "Hay" },
     other: { emoji: "📋", label: "Other" },
   };
-  const iconData = icons[category] || icons.other;
+  const iconData = icons[category] ??
+    icons.other ?? { emoji: "📋", label: "Other" };
   return (
     <span className="text-base" role="img" aria-label={iconData.label}>
       {iconData.emoji}

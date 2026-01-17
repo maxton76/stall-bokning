@@ -67,19 +67,19 @@ export function AvailabilityCalendar({
 
     return days.map((date): AvailabilityCalendarDay => {
       const dateStr = format(date, "yyyy-MM-dd");
-      const dayOfWeek = date.getDay();
+      const dayOfWeek = date.getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6;
       const isWorkDay = workSchedule.workDays.includes(dayOfWeek);
 
       // Find leave request for this date
       const leaveRequest = leaveRequests.find((lr) => {
         const startDate =
-          lr.startDate instanceof Date
-            ? lr.startDate
-            : new Date((lr.startDate as any).seconds * 1000);
+          lr.firstDay instanceof Date
+            ? lr.firstDay
+            : new Date((lr.firstDay as any).seconds * 1000);
         const endDate =
-          lr.endDate instanceof Date
-            ? lr.endDate
-            : new Date((lr.endDate as any).seconds * 1000);
+          lr.lastDay instanceof Date
+            ? lr.lastDay
+            : new Date((lr.lastDay as any).seconds * 1000);
 
         return (
           isWithinInterval(date, { start: startDate, end: endDate }) ||
@@ -98,11 +98,11 @@ export function AvailabilityCalendar({
         } else if (leaveRequest.status === "pending") {
           leaveStatus = "pending";
         }
-        leaveType = leaveRequest.leaveType;
+        leaveType = leaveRequest.type;
       }
 
       // Check constraints for this day
-      const hasConstraint = constraints.some((c) => {
+      const hasConstraints = constraints.some((c) => {
         if (c.specificDate) {
           const constraintDate =
             c.specificDate instanceof Date
@@ -118,13 +118,19 @@ export function AvailabilityCalendar({
 
       return {
         date: dateStr,
+        dayOfWeek,
         isWorkDay,
         scheduledHours: isWorkDay ? 8 : 0,
         leaveStatus,
         leaveType,
         hasAssignments: false,
         assignmentCount: 0,
-        hasConstraint,
+        hasConstraints,
+        availableHours: isWorkDay ? 8 : 0,
+        isFullyAvailable:
+          !hasConstraints && leaveStatus === "none" && isWorkDay,
+        isPartiallyAvailable: hasConstraints || leaveStatus === "partial",
+        isUnavailable: leaveStatus === "approved" || !isWorkDay,
       };
     });
   }, [currentMonth, leaveRequests, constraints, workSchedule]);
@@ -157,7 +163,7 @@ export function AvailabilityCalendar({
       bgColor = "bg-muted/50";
     }
 
-    if (day.hasConstraint && day.leaveStatus === "none") {
+    if (day.hasConstraints && day.leaveStatus === "none") {
       bgColor = "bg-red-50 dark:bg-red-900/20";
     }
 
@@ -175,8 +181,8 @@ export function AvailabilityCalendar({
   const weekdaysFull = useMemo(() => {
     const days = [];
     for (let i = 1; i <= 7; i++) {
-      const dayIndex = i === 7 ? 0 : i;
-      days.push(t(`common:weekdays.${weekdays[i - 1].toLowerCase()}`));
+      const weekdayKey = weekdays[i - 1]?.toLowerCase() ?? "mon";
+      days.push(t(`common:weekdays.${weekdayKey}`));
     }
     return days;
   }, [t]);
@@ -279,7 +285,7 @@ export function AvailabilityCalendar({
                             ½
                           </Badge>
                         )}
-                        {day.hasConstraint && day.leaveStatus === "none" && (
+                        {day.hasConstraints && day.leaveStatus === "none" && (
                           <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
                         )}
                       </div>
@@ -300,7 +306,7 @@ export function AvailabilityCalendar({
                             t("availability:calendar.partialLeave")}
                         </p>
                       )}
-                      {day.hasConstraint && (
+                      {day.hasConstraints && (
                         <p className="text-red-500">
                           {t("availability:constraints.neverAvailable")}
                         </p>

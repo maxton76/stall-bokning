@@ -4,6 +4,7 @@ import type {
   CreateReservationData,
   UpdateReservationData,
 } from "@/types/facilityReservation";
+import { authFetchJSON } from "@/utils/authFetch";
 
 /**
  * Create a new reservation with denormalized data
@@ -21,8 +22,6 @@ export async function createReservation(
     horseName?: string;
   },
 ): Promise<string> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const fullData = {
     ...reservationData,
     ...denormalizedData,
@@ -55,8 +54,6 @@ export async function getReservation(
   reservationId: string,
 ): Promise<FacilityReservation | null> {
   try {
-    const { authFetchJSON } = await import("@/utils/authFetch");
-
     const reservation = await authFetchJSON<FacilityReservation>(
       `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations/${reservationId}`,
       { method: "GET" },
@@ -77,8 +74,6 @@ export async function getReservation(
 export async function getReservationsByFacility(
   facilityId: string,
 ): Promise<FacilityReservation[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ reservations: FacilityReservation[] }>(
     `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations?facilityId=${facilityId}`,
     { method: "GET" },
@@ -93,8 +88,6 @@ export async function getReservationsByFacility(
 export async function getUserReservations(
   userId: string,
 ): Promise<FacilityReservation[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ reservations: FacilityReservation[] }>(
     `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations?userId=${userId}`,
     { method: "GET" },
@@ -109,8 +102,6 @@ export async function getUserReservations(
 export async function getStableReservations(
   stableId: string,
 ): Promise<FacilityReservation[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ reservations: FacilityReservation[] }>(
     `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations?stableId=${stableId}`,
     { method: "GET" },
@@ -127,8 +118,6 @@ export async function getReservationsByDateRange(
   startDate: Timestamp,
   endDate: Timestamp,
 ): Promise<FacilityReservation[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const startISO = startDate.toDate().toISOString();
   const endISO = endDate.toDate().toISOString();
 
@@ -148,8 +137,6 @@ export async function updateReservation(
   updates: UpdateReservationData,
   userId: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   // Convert Timestamp fields to ISO strings
   const apiUpdates: any = { ...updates };
   if (updates.startTime instanceof Timestamp) {
@@ -175,8 +162,6 @@ export async function cancelReservation(
   reservationId: string,
   userId: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations/${reservationId}/cancel`,
     { method: "POST" },
@@ -199,8 +184,6 @@ export async function approveReservation(
   reviewerEmail: string,
   reviewNotes?: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations/${reservationId}/approve`,
     {
@@ -226,8 +209,6 @@ export async function rejectReservation(
   reviewerEmail: string,
   reviewNotes?: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations/${reservationId}/reject`,
     {
@@ -241,8 +222,6 @@ export async function rejectReservation(
  * Delete reservation
  */
 export async function deleteReservation(reservationId: string): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations/${reservationId}`,
     { method: "DELETE" },
@@ -258,8 +237,6 @@ export async function checkReservationConflicts(
   endTime: Timestamp,
   excludeReservationId?: string,
 ): Promise<FacilityReservation[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{
     conflicts: FacilityReservation[];
     hasConflicts: boolean;

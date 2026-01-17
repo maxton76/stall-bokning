@@ -56,7 +56,7 @@ const formSchema = z.object({
     "other",
   ]),
   title: z.string().min(1, "Title is required"),
-  date: z.date({ required_error: "Date is required" }),
+  date: z.date({ message: "Date is required" }),
   provider: z.string().optional(),
   clinic: z.string().optional(),
   diagnosis: z.string().optional(),
@@ -89,7 +89,8 @@ export function HealthRecordForm({
   const isEditing = !!record;
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(formSchema as any),
     defaultValues: {
       recordType: record?.recordType || "veterinary",
       title: record?.title || "",

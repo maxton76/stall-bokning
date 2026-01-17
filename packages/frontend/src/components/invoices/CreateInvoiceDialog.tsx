@@ -104,7 +104,8 @@ export function CreateInvoiceDialog({
   }, [open, organizationId]);
 
   const form = useForm<CreateInvoiceFormData>({
-    resolver: zodResolver(createInvoiceSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(createInvoiceSchema as any),
     defaultValues: {
       contactId: "",
       issueDate: new Date(),

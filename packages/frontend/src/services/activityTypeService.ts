@@ -3,6 +3,7 @@ import type {
   CreateActivityTypeData,
   UpdateActivityTypeData,
 } from "@/types/activity";
+import { authFetchJSON } from "@/utils/authFetch";
 
 // ============================================================================
 // Public Service API
@@ -21,8 +22,6 @@ export async function createActivityType(
   stableId: string,
   data: CreateActivityTypeData,
 ): Promise<string> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ id: string }>(
     `${import.meta.env.VITE_API_URL}/api/v1/activity-types`,
     {
@@ -45,8 +44,6 @@ export async function getActivityTypesByStable(
   stableId: string,
   activeOnly = true,
 ): Promise<ActivityTypeConfig[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const params = new URLSearchParams();
   if (activeOnly !== undefined) {
     params.append("activeOnly", String(activeOnly));
@@ -78,8 +75,6 @@ export async function updateActivityType(
   userId: string,
   updates: UpdateActivityTypeData,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/activity-types/${id}`,
     {
@@ -103,8 +98,6 @@ export async function deleteActivityType(
   id: string,
   userId: string,
 ): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/activity-types/${id}`,
     { method: "DELETE" },
@@ -121,8 +114,6 @@ export async function getActivityTypeById(
   id: string,
 ): Promise<ActivityTypeConfig | null> {
   try {
-    const { authFetchJSON } = await import("@/utils/authFetch");
-
     const response = await authFetchJSON<ActivityTypeConfig & { id: string }>(
       `${import.meta.env.VITE_API_URL}/api/v1/activity-types/${id}`,
       { method: "GET" },
@@ -152,8 +143,6 @@ export async function seedStandardActivityTypes(
   stableId: string,
   _userId: string,
 ): Promise<{ count: number }> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{
     success: boolean;
     count: number;

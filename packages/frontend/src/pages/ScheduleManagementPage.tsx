@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Calendar, Loader2, Settings, Clock, PiggyBank } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -65,6 +66,7 @@ interface OrganizationMember {
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function ScheduleManagementPage() {
+  const { t } = useTranslation(["availability", "common"]);
   const { currentOrganizationId } = useOrganizationContext();
   const { toast } = useToast();
 
@@ -126,15 +128,17 @@ export default function ScheduleManagementPage() {
         effectiveUntil: data.effectiveUntil,
       });
       toast({
-        title: "Schedule saved",
-        description: `Work schedule for ${selectedMember.displayName || selectedMember.email} has been updated.`,
+        title: t("toast.scheduleSaved"),
+        description: t("toast.scheduleDescription", {
+          name: selectedMember.displayName || selectedMember.email,
+        }),
       });
       setScheduleDialogOpen(false);
       refetch();
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to save work schedule. Please try again.",
+        title: t("toast.error"),
+        description: t("toast.saveScheduleError"),
         variant: "destructive",
       });
     }
@@ -156,15 +160,17 @@ export default function ScheduleManagementPage() {
         reason: data.reason,
       });
       toast({
-        title: "Balance adjusted",
-        description: `Time balance for ${balanceMember.displayName || balanceMember.email} has been updated.`,
+        title: t("toast.balanceAdjusted"),
+        description: t("toast.balanceDescription", {
+          name: balanceMember.displayName || balanceMember.email,
+        }),
       });
       setBalanceDialogOpen(false);
       refetch();
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to adjust time balance. Please try again.",
+        title: t("toast.error"),
+        description: t("toast.adjustBalanceError"),
         variant: "destructive",
       });
     }
@@ -196,7 +202,7 @@ export default function ScheduleManagementPage() {
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center h-64">
           <p className="text-muted-foreground">
-            Please select an organization first.
+            {t("myAvailability.selectOrganization")}
           </p>
         </div>
       </div>
@@ -209,10 +215,10 @@ export default function ScheduleManagementPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Schedule Management
+            {t("scheduleManagement.title")}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Configure work schedules and time balances for your team
+            {t("scheduleManagement.description")}
           </p>
         </div>
       </div>
@@ -221,11 +227,11 @@ export default function ScheduleManagementPage() {
         <TabsList>
           <TabsTrigger value="schedules" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            Work Schedules
+            {t("scheduleManagement.workSchedulesTab")}
           </TabsTrigger>
           <TabsTrigger value="balances" className="flex items-center gap-2">
             <PiggyBank className="h-4 w-4" />
-            Time Balances
+            {t("scheduleManagement.timeBalancesTab")}
           </TabsTrigger>
         </TabsList>
 
@@ -235,10 +241,12 @@ export default function ScheduleManagementPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
-                Team Work Schedules
+                {t("scheduleManagement.teamSchedules")}
               </CardTitle>
               <CardDescription>
-                {members?.length ?? 0} member(s) in organization
+                {t("scheduleManagement.membersCount", {
+                  count: members?.length ?? 0,
+                })}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -250,12 +258,24 @@ export default function ScheduleManagementPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Member</TableHead>
-                      <TableHead>Roles</TableHead>
-                      <TableHead>Weekly Hours</TableHead>
-                      <TableHead>Schedule Status</TableHead>
-                      <TableHead>Effective From</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead>
+                        {t("scheduleManagement.schedulesTable.member")}
+                      </TableHead>
+                      <TableHead>
+                        {t("scheduleManagement.schedulesTable.roles")}
+                      </TableHead>
+                      <TableHead>
+                        {t("scheduleManagement.schedulesTable.weeklyHours")}
+                      </TableHead>
+                      <TableHead>
+                        {t("scheduleManagement.schedulesTable.scheduleStatus")}
+                      </TableHead>
+                      <TableHead>
+                        {t("scheduleManagement.schedulesTable.effectiveFrom")}
+                      </TableHead>
+                      <TableHead className="text-right">
+                        {t("scheduleManagement.schedulesTable.actions")}
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -265,7 +285,7 @@ export default function ScheduleManagementPage() {
                           colSpan={6}
                           className="text-center text-muted-foreground py-8"
                         >
-                          No members found
+                          {t("scheduleManagement.noMembers")}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -283,7 +303,7 @@ export default function ScheduleManagementPage() {
                                 <p className="font-medium">
                                   {member.displayName ||
                                     `${member.firstName || ""} ${member.lastName || ""}`.trim() ||
-                                    "Unknown"}
+                                    t("common:labels.unknown")}
                                 </p>
                                 <p className="text-sm text-muted-foreground">
                                   {member.email}
@@ -315,9 +335,15 @@ export default function ScheduleManagementPage() {
                           </TableCell>
                           <TableCell>
                             {member.workSchedule ? (
-                              <Badge variant="default">Configured</Badge>
+                              <Badge variant="default">
+                                {t(
+                                  "scheduleManagement.schedulesTable.configured",
+                                )}
+                              </Badge>
                             ) : (
-                              <Badge variant="secondary">Not set</Badge>
+                              <Badge variant="secondary">
+                                {t("scheduleManagement.schedulesTable.notSet")}
+                              </Badge>
                             )}
                           </TableCell>
                           <TableCell>
@@ -337,7 +363,13 @@ export default function ScheduleManagementPage() {
                               onClick={() => handleOpenScheduleDialog(member)}
                             >
                               <Settings className="h-4 w-4 mr-1" />
-                              {member.workSchedule ? "Edit" : "Set"} Schedule
+                              {member.workSchedule
+                                ? t(
+                                    "scheduleManagement.schedulesTable.editSchedule",
+                                  )
+                                : t(
+                                    "scheduleManagement.schedulesTable.setSchedule",
+                                  )}
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -356,11 +388,12 @@ export default function ScheduleManagementPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <PiggyBank className="h-5 w-5" />
-                Time Balances
+                {t("scheduleManagement.timeBalancesTitle")}
               </CardTitle>
               <CardDescription>
-                View and adjust time balances for team members (
-                {new Date().getFullYear()})
+                {t("scheduleManagement.timeBalancesDescription", {
+                  year: new Date().getFullYear(),
+                })}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -372,13 +405,27 @@ export default function ScheduleManagementPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Member</TableHead>
-                      <TableHead>Carryover</TableHead>
-                      <TableHead>Build Up</TableHead>
-                      <TableHead>Corrections</TableHead>
-                      <TableHead>Used Leave</TableHead>
-                      <TableHead>Current Balance</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead>
+                        {t("scheduleManagement.balancesTable.member")}
+                      </TableHead>
+                      <TableHead>
+                        {t("scheduleManagement.balancesTable.carryover")}
+                      </TableHead>
+                      <TableHead>
+                        {t("scheduleManagement.balancesTable.buildUp")}
+                      </TableHead>
+                      <TableHead>
+                        {t("scheduleManagement.balancesTable.corrections")}
+                      </TableHead>
+                      <TableHead>
+                        {t("scheduleManagement.balancesTable.usedLeave")}
+                      </TableHead>
+                      <TableHead>
+                        {t("scheduleManagement.balancesTable.currentBalance")}
+                      </TableHead>
+                      <TableHead className="text-right">
+                        {t("scheduleManagement.balancesTable.actions")}
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -388,7 +435,7 @@ export default function ScheduleManagementPage() {
                           colSpan={7}
                           className="text-center text-muted-foreground py-8"
                         >
-                          No members found
+                          {t("scheduleManagement.noMembers")}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -408,7 +455,7 @@ export default function ScheduleManagementPage() {
                                   <p className="font-medium">
                                     {member.displayName ||
                                       `${member.firstName || ""} ${member.lastName || ""}`.trim() ||
-                                      "Unknown"}
+                                      t("common:labels.unknown")}
                                   </p>
                                   <p className="text-sm text-muted-foreground">
                                     {member.email}
@@ -476,7 +523,7 @@ export default function ScheduleManagementPage() {
                                 onClick={() => handleOpenBalanceDialog(member)}
                               >
                                 <PiggyBank className="h-4 w-4 mr-1" />
-                                Adjust
+                                {t("scheduleManagement.balancesTable.adjust")}
                               </Button>
                             </TableCell>
                           </TableRow>

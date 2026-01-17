@@ -54,6 +54,71 @@ stall-bokning/
 3. **Background Processing**: Firestore triggers → Cloud Functions → External APIs
 4. **File Storage**: Firebase Storage with signed URLs and security rules
 
+## Task Commands (Recommended)
+
+This project uses [Task](https://taskfile.dev) for common operations. Install via `brew install go-task`.
+
+### Quick Reference
+```bash
+task --list                              # List all available tasks
+task env                                 # Show current environment config
+task env:switch ENV=staging              # Switch to different environment
+```
+
+### Deployments (defaults to dev)
+```bash
+task deploy:frontend                     # Build & deploy frontend
+task deploy:api                          # Build & deploy Cloud Run API
+task deploy:functions                    # Deploy all Cloud Functions
+task deploy:function NAME=scanForReminders  # Deploy specific function
+task deploy:all                          # Deploy everything
+
+# Deploy to other environments
+task deploy:frontend ENV=staging
+task deploy:api ENV=prod
+```
+
+### Terraform
+```bash
+task tf:init                             # Initialize Terraform
+task tf:plan                             # Preview changes
+task tf:apply                            # Apply changes
+task tf:output                           # Show outputs
+task tf:init-backend                     # Create state bucket
+```
+
+### Development
+```bash
+task dev:frontend                        # Start frontend dev server
+task dev:api                             # Start API dev server
+task dev:emulators                       # Start Firebase emulators
+task build                               # Build all packages
+task test                                # Run all tests
+```
+
+### Logs & Monitoring
+```bash
+task logs:api                            # View Cloud Run logs
+task logs:functions                      # View all function logs
+task logs:function NAME=processQueue     # View specific function logs
+task logs:tail:api                       # Live tail API logs
+```
+
+### Secrets
+```bash
+task secrets:list                        # List all secrets
+task secrets:set SECRET=jwt-secret       # Set a secret value
+task secrets:get SECRET=jwt-secret       # Get a secret value
+```
+
+### Scheduler
+```bash
+task scheduler:list                      # List scheduler jobs
+task scheduler:run JOB=dev-monthly-time-accrual-scheduler  # Trigger job
+task scheduler:pause JOB=...             # Pause job
+task scheduler:resume JOB=...            # Resume job
+```
+
 ## Development Commands
 
 ### Environment Setup
@@ -73,10 +138,15 @@ cp .env.example .env                     # Create environment files
 
 ### Development Workflow
 ```bash
-# Start all services (requires 3 terminals)
-firebase emulators:start                 # Terminal 1: Firebase emulators (Auth, Firestore, Functions, Storage)
-cd packages/frontend && npm run dev      # Terminal 2: Frontend dev server (http://localhost:5555)
-cd packages/api && npm run dev           # Terminal 3: Cloud Run API (http://localhost:5003)
+# Using Task (recommended)
+task dev:emulators                       # Terminal 1: Firebase emulators
+task dev:frontend                        # Terminal 2: Frontend dev server
+task dev:api                             # Terminal 3: Cloud Run API
+
+# Or manually
+firebase emulators:start                 # Terminal 1: Firebase emulators
+cd packages/frontend && npm run dev      # Terminal 2: Frontend dev server
+cd packages/api && npm run dev           # Terminal 3: Cloud Run API
 
 # Emulator UI available at: http://localhost:4000
 ```
@@ -129,6 +199,33 @@ gcloud run deploy api-service \
 # View Cloud Run logs
 gcloud logging read "resource.type=cloud_run_revision" --limit 50
 ```
+
+### Terraform Operations
+```bash
+# Navigate to environment directory
+cd terraform/environments/dev
+
+# Initialize Terraform (first time or after adding providers)
+terraform init
+
+# Preview changes
+terraform plan
+
+# Apply changes
+terraform apply
+
+# View current state
+terraform state list
+terraform state show <resource-address>
+
+# Import existing resources
+./scripts/import-existing.sh stall-bokning-dev dev
+```
+
+**Managed Resources**: Cloud Run, Cloud Functions, Service Accounts, Secrets, Monitoring
+**Manual Resources**: Firestore Rules, Firestore Indexes, Storage Rules, Hosting (via Firebase CLI)
+
+See `terraform/README.md` for detailed documentation.
 
 ### Troubleshooting
 ```bash

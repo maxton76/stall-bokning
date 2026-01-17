@@ -5,11 +5,8 @@ import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 import type {
-  Notification,
-  NotificationPreferences,
   CreateNotificationInput,
   UpdateNotificationPreferencesInput,
-  DEFAULT_NOTIFICATION_PREFERENCES,
 } from "@stall-bokning/shared";
 
 export async function notificationsRoutes(fastify: FastifyInstance) {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { format, isFuture, parseISO } from "date-fns";
 import { Calendar, ArrowRight, MoreVertical, Warehouse } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,13 +55,9 @@ import { getActiveFacilities } from "@/services/facilityService";
 import type { FacilityReservation } from "@/types/facilityReservation";
 import type { Facility } from "@/types/facility";
 import { toDate } from "@/utils/timestampUtils";
-import {
-  FACILITY_TYPE_LABELS,
-  STATUS_BADGE_VARIANTS,
-  STATUS_LABELS,
-} from "@/constants/facilityConstants";
 
 export default function MyReservationsPage() {
+  const { t } = useTranslation(["facilities", "common"]);
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedStableId, setSelectedStableId] = useState<string>("");
@@ -134,6 +131,29 @@ export default function MyReservationsPage() {
       });
   }, [reservations.data, selectedStableId]);
 
+  // Get translated facility type label
+  const getFacilityTypeLabel = (type: string): string => {
+    return t(`types.${type}`, { defaultValue: type });
+  };
+
+  // Get translated status label and variant
+  const getStatusDisplay = (status: string) => {
+    const variants: Record<
+      string,
+      "default" | "secondary" | "destructive" | "outline"
+    > = {
+      confirmed: "default",
+      pending: "secondary",
+      cancelled: "destructive",
+      completed: "outline",
+      no_show: "destructive",
+    };
+    return {
+      label: t(`status.${status}`, { defaultValue: status }),
+      variant: variants[status] || "outline",
+    };
+  };
+
   const handleCancelClick = (reservation: FacilityReservation) => {
     setReservationToCancel(reservation);
     setCancelDialogOpen(true);
@@ -146,15 +166,15 @@ export default function MyReservationsPage() {
     try {
       await cancelReservation(reservationToCancel.id, user.uid);
       toast({
-        title: "Reservation cancelled",
-        description: "Your reservation has been cancelled successfully.",
+        title: t("myReservations.toast.cancelled"),
+        description: t("myReservations.toast.cancelledDescription"),
       });
       reservations.reload();
     } catch (error) {
       console.error("Failed to cancel reservation:", error);
       toast({
-        title: "Error",
-        description: "Failed to cancel reservation. Please try again.",
+        title: t("common:toast.error", { defaultValue: "Error" }),
+        description: t("myReservations.toast.cancelError"),
         variant: "destructive",
       });
     } finally {
@@ -167,7 +187,7 @@ export default function MyReservationsPage() {
   if (stablesLoading || reservations.loading) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted-foreground">{t("common:labels.loading")}</p>
       </div>
     );
   }
@@ -176,15 +196,15 @@ export default function MyReservationsPage() {
     return (
       <div className="container mx-auto p-6">
         <h1 className="text-3xl font-bold tracking-tight mb-4">
-          My reservations
+          {t("myReservations.title")}
         </h1>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Warehouse className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground text-center">
-              You don't have access to any stables yet.
+              {t("myReservations.noStablesAccess")}
               <br />
-              Join a stable to start making reservations.
+              {t("myReservations.joinStablePrompt")}
             </p>
           </CardContent>
         </Card>
@@ -197,15 +217,17 @@ export default function MyReservationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">My reservations</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {t("myReservations.title")}
+          </h1>
           <p className="text-muted-foreground mt-1">
-            View and manage your facility reservations
+            {t("myReservations.description")}
           </p>
         </div>
         {stables.length > 1 && (
           <Select value={selectedStableId} onValueChange={setSelectedStableId}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select stable" />
+              <SelectValue placeholder={t("myReservations.selectStable")} />
             </SelectTrigger>
             <SelectContent>
               {stables.map((stable) => (
@@ -220,9 +242,13 @@ export default function MyReservationsPage() {
 
       {/* Facility Cards Grid */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">Available facilities</h2>
+        <h2 className="text-xl font-semibold mb-4">
+          {t("myReservations.availableFacilities")}
+        </h2>
         {facilities.loading ? (
-          <p className="text-muted-foreground">Loading facilities...</p>
+          <p className="text-muted-foreground">
+            {t("myReservations.loadingFacilities")}
+          </p>
         ) : facilities.data && facilities.data.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {facilities.data.map((facility) => (
@@ -233,7 +259,7 @@ export default function MyReservationsPage() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg">{facility.name}</CardTitle>
                   <CardDescription>
-                    {FACILITY_TYPE_LABELS[facility.type]}
+                    {getFacilityTypeLabel(facility.type)}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -243,7 +269,7 @@ export default function MyReservationsPage() {
                     </span>
                     <Button variant="ghost" size="sm" asChild>
                       <Link to={`/my-reservations/facility/${facility.id}`}>
-                        View availability
+                        {t("myReservations.viewAvailability")}
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Link>
                     </Button>
@@ -257,7 +283,7 @@ export default function MyReservationsPage() {
             <CardContent className="flex flex-col items-center justify-center py-8">
               <Warehouse className="h-8 w-8 text-muted-foreground mb-2" />
               <p className="text-muted-foreground text-center text-sm">
-                No facilities available for this stable.
+                {t("myReservations.noFacilities")}
               </p>
             </CardContent>
           </Card>
@@ -266,13 +292,15 @@ export default function MyReservationsPage() {
 
       {/* Reservations Table */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">My horse reservations</h2>
+        <h2 className="text-xl font-semibold mb-4">
+          {t("myReservations.myHorseReservations")}
+        </h2>
         {filteredReservations.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-8">
               <Calendar className="h-8 w-8 text-muted-foreground mb-2" />
               <p className="text-muted-foreground text-center text-sm">
-                You don't have any upcoming reservations.
+                {t("myReservations.noUpcomingReservations")}
               </p>
             </CardContent>
           </Card>
@@ -281,11 +309,11 @@ export default function MyReservationsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Facility</TableHead>
-                  <TableHead>Horse</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t("myReservations.table.date")}</TableHead>
+                  <TableHead>{t("myReservations.table.time")}</TableHead>
+                  <TableHead>{t("myReservations.table.facility")}</TableHead>
+                  <TableHead>{t("myReservations.table.horse")}</TableHead>
+                  <TableHead>{t("myReservations.table.status")}</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -293,6 +321,7 @@ export default function MyReservationsPage() {
                 {filteredReservations.map((reservation) => {
                   const startTime = toDate(reservation.startTime);
                   const endTime = toDate(reservation.endTime);
+                  const statusDisplay = getStatusDisplay(reservation.status);
 
                   return (
                     <TableRow key={reservation.id}>
@@ -313,20 +342,14 @@ export default function MyReservationsPage() {
                         <div className="flex items-center gap-2">
                           <span>{reservation.facilityName}</span>
                           <Badge variant="outline" className="text-xs">
-                            {FACILITY_TYPE_LABELS[reservation.facilityType]}
+                            {getFacilityTypeLabel(reservation.facilityType)}
                           </Badge>
                         </div>
                       </TableCell>
                       <TableCell>{reservation.horseName || "-"}</TableCell>
                       <TableCell>
-                        <Badge
-                          variant={
-                            STATUS_BADGE_VARIANTS[reservation.status] ||
-                            "outline"
-                          }
-                        >
-                          {STATUS_LABELS[reservation.status] ||
-                            reservation.status}
+                        <Badge variant={statusDisplay.variant}>
+                          {statusDisplay.label}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -338,7 +361,9 @@ export default function MyReservationsPage() {
                               className="h-8 w-8"
                             >
                               <MoreVertical className="h-4 w-4" />
-                              <span className="sr-only">Open menu</span>
+                              <span className="sr-only">
+                                {t("myReservations.openMenu")}
+                              </span>
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -346,7 +371,7 @@ export default function MyReservationsPage() {
                               className="text-destructive focus:text-destructive"
                               onClick={() => handleCancelClick(reservation)}
                             >
-                              Cancel reservation
+                              {t("myReservations.cancelReservation")}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -364,32 +389,39 @@ export default function MyReservationsPage() {
       <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Cancel reservation?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("myReservations.cancelDialog.title")}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to cancel this reservation?
+              {t("myReservations.cancelDialog.description")}
               {reservationToCancel && (
                 <span className="block mt-2 font-medium text-foreground">
-                  {reservationToCancel.facilityName} on{" "}
-                  {toDate(reservationToCancel.startTime) &&
-                    format(
-                      toDate(reservationToCancel.startTime)!,
-                      "EEE, MMM d, yyyy",
-                    )}
+                  {t("myReservations.cancelDialog.facilityInfo", {
+                    facility: reservationToCancel.facilityName,
+                    date:
+                      toDate(reservationToCancel.startTime) &&
+                      format(
+                        toDate(reservationToCancel.startTime)!,
+                        "EEE, MMM d, yyyy",
+                      ),
+                  })}
                 </span>
               )}
-              This action cannot be undone.
+              {t("myReservations.cancelDialog.cannotUndo")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isCancelling}>
-              Keep reservation
+              {t("myReservations.cancelDialog.keep")}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmCancel}
               disabled={isCancelling}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isCancelling ? "Cancelling..." : "Cancel reservation"}
+              {isCancelling
+                ? t("myReservations.cancelDialog.cancelling")
+                : t("myReservations.cancelDialog.cancel")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

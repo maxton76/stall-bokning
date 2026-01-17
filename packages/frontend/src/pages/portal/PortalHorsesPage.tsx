@@ -1,7 +1,9 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { ChevronRight, Search, Horse } from "lucide-react";
+import { ChevronRight, Search, Rabbit } from "lucide-react";
+// Note: Horse icon doesn't exist in lucide-react, using Rabbit as placeholder
+const Horse = Rabbit;
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import {

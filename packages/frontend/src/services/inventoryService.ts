@@ -11,6 +11,7 @@ import type {
   CreateAdjustmentData,
   CreateWasteData,
 } from "@stall-bokning/shared";
+import { authFetchJSON } from "@/utils/authFetch";
 
 // ============================================================================
 // Inventory CRUD Operations
@@ -26,8 +27,6 @@ export async function getStableInventory(
   stableId: string,
   status?: InventoryStatus,
 ): Promise<FeedInventory[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const params = new URLSearchParams();
   if (status) {
     params.append("status", status);
@@ -51,8 +50,6 @@ export async function getStableInventory(
 export async function getInventoryItem(
   inventoryId: string,
 ): Promise<FeedInventory | null> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   try {
     const response = await authFetchJSON<FeedInventory>(
       `${import.meta.env.VITE_API_URL}/api/v1/inventory/${inventoryId}`,
@@ -72,8 +69,6 @@ export async function getInventoryItem(
 export async function createInventoryItem(
   data: CreateFeedInventoryData & { stableId: string },
 ): Promise<{ id: string }> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{ id: string }>(
     `${import.meta.env.VITE_API_URL}/api/v1/inventory`,
     {
@@ -95,8 +90,6 @@ export async function updateInventoryItem(
   inventoryId: string,
   updates: UpdateFeedInventoryData,
 ): Promise<FeedInventory> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<FeedInventory>(
     `${import.meta.env.VITE_API_URL}/api/v1/inventory/${inventoryId}`,
     {
@@ -114,8 +107,6 @@ export async function updateInventoryItem(
  * @returns Promise that resolves when deleted
  */
 export async function deleteInventoryItem(inventoryId: string): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/inventory/${inventoryId}`,
     { method: "DELETE" },
@@ -140,8 +131,6 @@ export async function recordRestock(
   transaction: InventoryTransaction;
   inventory: FeedInventory;
 }> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{
     success: boolean;
     transaction: InventoryTransaction;
@@ -171,8 +160,6 @@ export async function recordUsage(
   transaction: InventoryTransaction;
   inventory: FeedInventory;
 }> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{
     success: boolean;
     transaction: InventoryTransaction;
@@ -199,8 +186,6 @@ export async function recordAdjustment(
   transaction: InventoryTransaction;
   inventory: FeedInventory;
 }> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<{
     success: boolean;
     transaction: InventoryTransaction;
@@ -226,8 +211,6 @@ export async function getInventoryTransactions(
   inventoryId: string,
   options?: { limit?: number; type?: string },
 ): Promise<InventoryTransaction[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const params = new URLSearchParams();
   if (options?.limit) {
     params.append("limit", options.limit.toString());
@@ -262,8 +245,6 @@ export async function getInventoryAlerts(
   stableId: string,
   includeResolved = false,
 ): Promise<InventoryAlert[]> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const params = new URLSearchParams({
     includeResolved: includeResolved.toString(),
   });
@@ -282,8 +263,6 @@ export async function getInventoryAlerts(
  * @returns Promise that resolves when acknowledged
  */
 export async function acknowledgeAlert(alertId: string): Promise<void> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   await authFetchJSON(
     `${import.meta.env.VITE_API_URL}/api/v1/inventory/alerts/${alertId}/acknowledge`,
     { method: "PUT" },
@@ -302,8 +281,6 @@ export async function acknowledgeAlert(alertId: string): Promise<void> {
 export async function getInventorySummary(
   stableId: string,
 ): Promise<InventorySummary> {
-  const { authFetchJSON } = await import("@/utils/authFetch");
-
   const response = await authFetchJSON<InventorySummary>(
     `${import.meta.env.VITE_API_URL}/api/v1/inventory/stable/${stableId}/summary`,
     { method: "GET" },

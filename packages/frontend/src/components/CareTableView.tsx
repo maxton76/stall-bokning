@@ -1,5 +1,7 @@
+import { useTranslation } from "react-i18next";
 import { CareTableCell } from "./CareTableCell";
 import type { ActivityTypeConfig, Activity } from "@/types/activity";
+import { translateActivityType } from "@/lib/activityTranslations";
 
 interface CareTableViewProps {
   horses: Array<{ id: string; name: string; feiRules?: string }>;
@@ -18,6 +20,8 @@ export function CareTableView({
   activities,
   onCellClick,
 }: CareTableViewProps) {
+  const { t } = useTranslation(["activities", "common"]);
+
   const careTypes = activityTypes
     .filter((t) => t.category === "Care")
     .sort((a, b) => a.sortOrder - b.sortOrder);
@@ -49,7 +53,7 @@ export function CareTableView({
   if (horses.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        No horses found for this stable
+        {t("activities:care.emptyState.noHorses")}
       </div>
     );
   }
@@ -62,14 +66,16 @@ export function CareTableView({
             <thead className="bg-muted/50">
               <tr>
                 <th className="sticky left-0 z-10 bg-muted/50 px-4 py-3 text-left text-sm font-medium">
-                  Horse
+                  {t("activities:care.matrix.horse")}
                 </th>
                 {careTypes.map((type) => (
                   <th
                     key={type.id}
                     className="px-2 py-3 text-center text-sm font-medium"
                   >
-                    <div className="whitespace-nowrap">{type.name}</div>
+                    <div className="whitespace-nowrap">
+                      {translateActivityType(type.name)}
+                    </div>
                   </th>
                 ))}
               </tr>

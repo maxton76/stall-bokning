@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { Controller } from "react-hook-form";
 import { BaseFormDialog } from "@/components/BaseFormDialog";
@@ -22,28 +23,6 @@ interface VaccinationRuleFormDialogProps {
   title?: string;
 }
 
-const vaccinationRuleSchema = z
-  .object({
-    name: z
-      .string()
-      .min(1, "Rule name is required")
-      .max(100, "Name must be 100 characters or less"),
-    description: z.string().optional(),
-    periodMonths: z.coerce.number().min(0, "Months must be 0 or greater").int(),
-    periodDays: z.coerce.number().min(0, "Days must be 0 or greater").int(),
-    daysNotCompeting: z.coerce
-      .number()
-      .min(0, "Days must be 0 or greater")
-      .int(),
-    scope: z.enum(["organization", "user"] as const),
-  })
-  .refine((data) => data.periodMonths > 0 || data.periodDays > 0, {
-    message: "Period between vaccinations must be at least 1 day or 1 month",
-    path: ["periodMonths"], // Show error on periodMonths field
-  });
-
-type VaccinationRuleFormData = z.infer<typeof vaccinationRuleSchema>;
-
 export function VaccinationRuleFormDialog({
   open,
   onOpenChange,
@@ -51,7 +30,58 @@ export function VaccinationRuleFormDialog({
   rule,
   title,
 }: VaccinationRuleFormDialogProps) {
+  const { t } = useTranslation("horses");
   const isEditMode = !!rule;
+
+  // Create schema with translated messages
+  const vaccinationRuleSchema = useMemo(
+    () =>
+      z
+        .object({
+          name: z
+            .string()
+            .min(
+              1,
+              t("settings.vaccinationRules.dialog.validation.nameRequired"),
+            )
+            .max(
+              100,
+              t("settings.vaccinationRules.dialog.validation.nameTooLong"),
+            ),
+          description: z.string().optional(),
+          periodMonths: z.coerce
+            .number()
+            .min(
+              0,
+              t("settings.vaccinationRules.dialog.validation.monthsInvalid"),
+            )
+            .int(),
+          periodDays: z.coerce
+            .number()
+            .min(
+              0,
+              t("settings.vaccinationRules.dialog.validation.daysInvalid"),
+            )
+            .int(),
+          daysNotCompeting: z.coerce
+            .number()
+            .min(
+              0,
+              t("settings.vaccinationRules.dialog.validation.daysInvalid"),
+            )
+            .int(),
+          scope: z.enum(["organization", "user"] as const),
+        })
+        .refine((data) => data.periodMonths > 0 || data.periodDays > 0, {
+          message: t(
+            "settings.vaccinationRules.dialog.validation.periodRequired",
+          ),
+          path: ["periodMonths"],
+        }),
+    [t],
+  );
+
+  type VaccinationRuleFormData = z.infer<typeof vaccinationRuleSchema>;
 
   const { form, handleSubmit, resetForm } =
     useFormDialog<VaccinationRuleFormData>({
@@ -78,11 +108,11 @@ export function VaccinationRuleFormDialog({
         onOpenChange(false);
       },
       successMessage: isEditMode
-        ? "Vaccination rule updated successfully"
-        : "Vaccination rule created successfully",
+        ? t("settings.vaccinationRules.messages.updateSuccess")
+        : t("settings.vaccinationRules.messages.createSuccess"),
       errorMessage: isEditMode
-        ? "Failed to update vaccination rule"
-        : "Failed to create vaccination rule",
+        ? t("settings.vaccinationRules.messages.updateError")
+        : t("settings.vaccinationRules.messages.createError"),
     });
 
   // Watch period fields for helper text
@@ -98,7 +128,7 @@ export function VaccinationRuleFormDialog({
         periodMonths: rule.periodMonths,
         periodDays: rule.periodDays,
         daysNotCompeting: rule.daysNotCompeting,
-        scope: rule.scope === "system" ? "user" : rule.scope, // System rules can't be edited, default to user
+        scope: rule.scope === "system" ? "user" : rule.scope,
       });
     } else {
       resetForm();
@@ -106,16 +136,36 @@ export function VaccinationRuleFormDialog({
   }, [rule, open]);
 
   const dialogTitle =
-    title || (isEditMode ? "Edit Vaccination Rule" : "Create Vaccination Rule");
+    title ||
+    (isEditMode
+      ? t("settings.vaccinationRules.dialog.editTitle")
+      : t("settings.vaccinationRules.dialog.createTitle"));
   const dialogDescription = isEditMode
-    ? "Update the vaccination rule details below."
-    : "Create a personal or organization-wide vaccination rule.";
+    ? t("settings.vaccinationRules.dialog.editDescription")
+    : t("settings.vaccinationRules.dialog.createDescription");
 
-  // Helper text for period
-  const periodHelperText =
-    periodMonths > 0 || periodDays > 0
-      ? `Vaccinate every ${periodMonths > 0 ? `${periodMonths} month${periodMonths !== 1 ? "s" : ""}` : ""}${periodMonths > 0 && periodDays > 0 ? " and " : ""}${periodDays > 0 ? `${periodDays} day${periodDays !== 1 ? "s" : ""}` : ""}`
-      : "Enter period between vaccinations";
+  // Helper text for period - using i18n with pluralization
+  const buildPeriodHelperText = () => {
+    if (periodMonths <= 0 && periodDays <= 0) {
+      return t("settings.vaccinationRules.dialog.helper.enterPeriod");
+    }
+
+    const parts: string[] = [];
+    if (periodMonths > 0) {
+      parts.push(
+        `${periodMonths} ${t("settings.vaccinationRules.months", { count: periodMonths })}`,
+      );
+    }
+    if (periodDays > 0) {
+      parts.push(
+        `${periodDays} ${t("settings.vaccinationRules.days", { count: periodDays })}`,
+      );
+    }
+
+    return `${t("settings.vaccinationRules.dialog.helper.vaccinateEvery")} ${parts.join(` ${t("settings.vaccinationRules.and")} `)}`;
+  };
+
+  const periodHelperText = buildPeriodHelperText();
 
   return (
     <BaseFormDialog
@@ -125,14 +175,18 @@ export function VaccinationRuleFormDialog({
       description={dialogDescription}
       form={form}
       onSubmit={handleSubmit}
-      submitLabel={isEditMode ? "Update" : "Create"}
+      submitLabel={
+        isEditMode
+          ? t("settings.vaccinationRules.dialog.submit.update")
+          : t("settings.vaccinationRules.dialog.submit.create")
+      }
       maxWidth="sm:max-w-[500px]"
     >
       <FormInput
         name="name"
-        label="Rule Name"
+        label={t("settings.vaccinationRules.dialog.labels.name")}
         form={form}
-        placeholder="e.g., FEI rules"
+        placeholder={t("settings.vaccinationRules.dialog.placeholders.name")}
         required
       />
 
@@ -140,7 +194,8 @@ export function VaccinationRuleFormDialog({
       {!isEditMode && (
         <div className="space-y-2">
           <Label>
-            Rule Scope <span className="text-destructive ml-1">*</span>
+            {t("settings.vaccinationRules.dialog.labels.scope")}{" "}
+            <span className="text-destructive ml-1">*</span>
           </Label>
           <Controller
             name="scope"
@@ -157,9 +212,13 @@ export function VaccinationRuleFormDialog({
                     htmlFor="scope-user"
                     className="flex-1 cursor-pointer font-normal"
                   >
-                    <div className="font-medium">Personal Rule</div>
+                    <div className="font-medium">
+                      {t("settings.vaccinationRules.dialog.scope.personal")}
+                    </div>
                     <div className="text-xs text-muted-foreground">
-                      Only visible and editable by you
+                      {t(
+                        "settings.vaccinationRules.dialog.scope.personalDescription",
+                      )}
                     </div>
                   </Label>
                 </div>
@@ -172,9 +231,13 @@ export function VaccinationRuleFormDialog({
                     htmlFor="scope-organization"
                     className="flex-1 cursor-pointer font-normal"
                   >
-                    <div className="font-medium">Organization Rule</div>
+                    <div className="font-medium">
+                      {t("settings.vaccinationRules.dialog.scope.organization")}
+                    </div>
                     <div className="text-xs text-muted-foreground">
-                      Shared with all members of your organization
+                      {t(
+                        "settings.vaccinationRules.dialog.scope.organizationDescription",
+                      )}
                     </div>
                   </Label>
                 </div>
@@ -186,16 +249,18 @@ export function VaccinationRuleFormDialog({
 
       <FormTextarea
         name="description"
-        label="Description"
+        label={t("settings.vaccinationRules.dialog.labels.description")}
         form={form}
-        placeholder="Optional description for this rule"
+        placeholder={t(
+          "settings.vaccinationRules.dialog.placeholders.description",
+        )}
         rows={2}
       />
 
       {/* Period Between Vaccinations - Custom layout for better UX */}
       <div className="space-y-2">
         <Label>
-          Period Between Vaccinations{" "}
+          {t("settings.vaccinationRules.dialog.labels.periodBetween")}{" "}
           <span className="text-destructive ml-1">*</span>
         </Label>
         <div className="grid grid-cols-2 gap-4">
@@ -204,7 +269,7 @@ export function VaccinationRuleFormDialog({
               htmlFor="periodMonths"
               className="text-sm text-muted-foreground"
             >
-              Months
+              {t("settings.vaccinationRules.dialog.labels.months")}
             </Label>
             <Input
               id="periodMonths"
@@ -219,7 +284,7 @@ export function VaccinationRuleFormDialog({
               htmlFor="periodDays"
               className="text-sm text-muted-foreground"
             >
-              Days
+              {t("settings.vaccinationRules.dialog.labels.days")}
             </Label>
             <Input
               id="periodDays"
@@ -240,11 +305,15 @@ export function VaccinationRuleFormDialog({
 
       <FormInput
         name="daysNotCompeting"
-        label="Days Not Competing After Vaccination"
+        label={t("settings.vaccinationRules.dialog.labels.daysNotCompeting")}
         form={form}
         type="number"
-        placeholder="e.g., 7"
-        helperText="Number of days the horse cannot compete after vaccination"
+        placeholder={t(
+          "settings.vaccinationRules.dialog.placeholders.daysNotCompeting",
+        )}
+        helperText={t(
+          "settings.vaccinationRules.dialog.helper.daysNotCompetingHelp",
+        )}
       />
     </BaseFormDialog>
   );

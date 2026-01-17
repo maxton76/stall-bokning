@@ -10,6 +10,7 @@ import {
   Calendar,
   Receipt,
 } from "lucide-react";
+import { toDate } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -104,7 +105,7 @@ export function InvoiceDetailDialog({
                   <span>{t("invoices:fields.issueDate")}</span>
                 </div>
                 <p className="font-medium">
-                  {format(new Date(invoice.issueDate), "PP", { locale })}
+                  {format(toDate(invoice.issueDate), "PP", { locale })}
                 </p>
               </div>
 
@@ -114,7 +115,7 @@ export function InvoiceDetailDialog({
                   <span>{t("invoices:fields.dueDate")}</span>
                 </div>
                 <p className="font-medium">
-                  {format(new Date(invoice.dueDate), "PP", { locale })}
+                  {format(toDate(invoice.dueDate), "PP", { locale })}
                 </p>
               </div>
             </div>
@@ -248,7 +249,7 @@ export function InvoiceDetailDialog({
                       {invoice.payments.map((payment) => (
                         <TableRow key={payment.id}>
                           <TableCell>
-                            {format(new Date(payment.paidAt), "PP", { locale })}
+                            {format(toDate(payment.paidAt), "PP", { locale })}
                           </TableCell>
                           <TableCell>
                             {t(`invoices:paymentMethods.${payment.method}`)}

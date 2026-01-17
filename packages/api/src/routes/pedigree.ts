@@ -1,13 +1,14 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
-import { canAccessHorse } from "../utils/authorization";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { canAccessHorse } from "../utils/authorization.js";
 import type {
   HorsePedigree,
   PedigreeAncestor,
   HorseTelexSearchResult,
-  HorseTelexImportRequest,
   HorseTelexImportResult,
-} from "@shared/types/pedigree";
+  HorseTelexImportRequest,
+} from "@stall-bokning/shared";
+import type { AuthenticatedRequest } from "../types/index.js";
 
 interface PedigreeParams {
   horseId: string;
@@ -24,7 +25,7 @@ export async function pedigreeRoutes(fastify: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const { horseId } = request.params;
-      const userId = request.user?.uid;
+      const userId = (request as AuthenticatedRequest).user?.uid;
 
       if (!userId) {
         return reply.status(401).send({ error: "Unauthorized" });
@@ -64,7 +65,7 @@ export async function pedigreeRoutes(fastify: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const { horseId } = request.params;
-      const userId = request.user?.uid;
+      const userId = (request as AuthenticatedRequest).user?.uid;
       const pedigreeData = request.body;
 
       if (!userId) {
@@ -145,7 +146,7 @@ export async function pedigreeRoutes(fastify: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const { horseId } = request.params;
-      const userId = request.user?.uid;
+      const userId = (request as AuthenticatedRequest).user?.uid;
 
       if (!userId) {
         return reply.status(401).send({ error: "Unauthorized" });
@@ -183,7 +184,7 @@ export async function pedigreeRoutes(fastify: FastifyInstance) {
       request: FastifyRequest<{ Querystring: { q: string } }>,
       reply: FastifyReply,
     ) => {
-      const userId = request.user?.uid;
+      const userId = (request as AuthenticatedRequest).user?.uid;
 
       if (!userId) {
         return reply.status(401).send({ error: "Unauthorized" });
@@ -217,7 +218,7 @@ export async function pedigreeRoutes(fastify: FastifyInstance) {
       request: FastifyRequest<{ Params: { horseTelexId: string } }>,
       reply: FastifyReply,
     ) => {
-      const userId = request.user?.uid;
+      const userId = (request as AuthenticatedRequest).user?.uid;
 
       if (!userId) {
         return reply.status(401).send({ error: "Unauthorized" });
@@ -250,8 +251,9 @@ export async function pedigreeRoutes(fastify: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const { horseId } = request.params;
-      const userId = request.user?.uid;
-      const { horseTelexId, includeFullPedigree } = request.body;
+      const userId = (request as AuthenticatedRequest).user?.uid;
+      const { horseTelexId, includeFullPedigree: _includeFullPedigree } =
+        request.body;
 
       if (!userId) {
         return reply.status(401).send({ error: "Unauthorized" });
@@ -295,7 +297,7 @@ export async function pedigreeRoutes(fastify: FastifyInstance) {
   fastify.get(
     "/horsetelex/status",
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const userId = request.user?.uid;
+      const userId = (request as AuthenticatedRequest).user?.uid;
 
       if (!userId) {
         return reply.status(401).send({ error: "Unauthorized" });

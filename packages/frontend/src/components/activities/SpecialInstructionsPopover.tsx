@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Bell, Loader2 } from "lucide-react";
 import {
   Popover,
@@ -24,6 +25,7 @@ export function SpecialInstructionsPopover({
   horseId,
   horseName,
 }: SpecialInstructionsPopoverProps) {
+  const { t } = useTranslation(["horses"]);
   const [data, setData] = useState<SpecialInstructionsData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export function SpecialInstructionsPopover({
       setData(result);
     } catch (err) {
       console.error("Failed to fetch special instructions:", err);
-      setError("Could not load instructions");
+      setError(t("specialInstructionsPopover.loadError"));
     } finally {
       setIsLoading(false);
     }
@@ -62,7 +64,7 @@ export function SpecialInstructionsPopover({
           variant="ghost"
           size="icon"
           className="h-6 w-6 text-amber-500 hover:text-amber-600 hover:bg-amber-50"
-          title={`Special instructions for ${horseName}`}
+          title={t("specialInstructionsPopover.title", { horseName })}
         >
           <Bell className="h-4 w-4" />
         </Button>
@@ -80,9 +82,7 @@ export function SpecialInstructionsPopover({
             </div>
           )}
 
-          {error && (
-            <p className="text-sm text-destructive py-2">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive py-2">{error}</p>}
 
           {data && !isLoading && (
             <div className="space-y-3">
@@ -99,7 +99,7 @@ export function SpecialInstructionsPopover({
               {!data.specialInstructions &&
                 (!data.equipment || data.equipment.length === 0) && (
                   <p className="text-sm text-muted-foreground italic">
-                    No special instructions
+                    {t("specialInstructionsPopover.noInstructions")}
                   </p>
                 )}
             </div>

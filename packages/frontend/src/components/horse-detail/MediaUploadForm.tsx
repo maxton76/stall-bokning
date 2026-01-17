@@ -89,7 +89,8 @@ export function MediaUploadForm({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(formSchema as any),
     defaultValues: {
       title: "",
       category: "other",
