@@ -1,0 +1,84 @@
+{
+  "title": "Contacts",
+  "description": "Manage your contacts and customers",
+  "list": {
+    "title": "All Contacts",
+    "description": "Showing {{count}} contacts",
+    "empty": "No contacts found"
+  },
+  "actions": {
+    "create": "New Contact",
+    "backToList": "Back to Contacts"
+  },
+  "search": {
+    "placeholder": "Search by name, email or phone..."
+  },
+  "filters": {
+    "type": "Type",
+    "allTypes": "All Types",
+    "personal": "Personal",
+    "business": "Business",
+    "more": "More Filters",
+    "byBadge": "Filter by Badge",
+    "allBadges": "All Badges",
+    "byAccess": "Filter by Access",
+    "withAccess": "With Login Access",
+    "withoutAccess": "Without Login Access"
+  },
+  "type": {
+    "personal": "Personal",
+    "business": "Business"
+  },
+  "badge": {
+    "primary": "Primary",
+    "stable": "Stable",
+    "member": "Member",
+    "external": "External"
+  },
+  "hasAccess": "Has Access",
+  "table": {
+    "name": "Name",
+    "type": "Type",
+    "email": "Email",
+    "phone": "Phone",
+    "location": "Location",
+    "badge": "Badge"
+  },
+  "stats": {
+    "total": "Total",
+    "personal": "Personal",
+    "business": "Business",
+    "withAccess": "With Access",
+    "totalInvoices": "Total Invoices",
+    "totalInvoiced": "Total Invoiced",
+    "totalPaid": "Total Paid",
+    "outstanding": "Outstanding"
+  },
+  "detail": {
+    "info": "Contact Information",
+    "activity": "Activity",
+    "notFound": "Contact Not Found",
+    "notFoundDescription": "The contact you're looking for doesn't exist or has been removed.",
+    "noHorses": "No Linked Horses",
+    "noHorsesDescription": "This contact has no horses linked to them.",
+    "noInvoices": "No Invoices",
+    "noInvoicesDescription": "This contact has no invoices yet.",
+    "noActivities": "No Activities",
+    "noActivitiesDescription": "No activities linked to this contact."
+  },
+  "tabs": {
+    "horses": "Horses",
+    "invoices": "Invoices",
+    "activities": "Activities"
+  },
+  "fields": {
+    "email": "Email",
+    "phone": "Phone",
+    "secondPhone": "Secondary Phone",
+    "address": "Address",
+    "vatNumber": "VAT Number",
+    "companyNumber": "Company Registration Number",
+    "contactPerson": "Contact Person",
+    "notes": "Notes"
+  }
+}

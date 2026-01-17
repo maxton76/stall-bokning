@@ -1,0 +1,126 @@
+{
+  "title": "Notifikationer",
+  "empty": "Inga notifikationer",
+  "settings": "Inställningar",
+  "actions": {
+    "markAllRead": "Markera alla som lästa",
+    "markAsRead": "Markera som läst",
+    "clearRead": "Rensa lästa",
+    "delete": "Ta bort",
+    "viewAll": "Visa alla"
+  },
+  "types": {
+    "shift_reminder": "Påminnelse om pass",
+    "shift_assigned": "Pass tilldelat",
+    "shift_unassigned": "Pass borttaget",
+    "shift_missed": "Missat pass",
+    "health_reminder": "Hälsopåminnelse",
+    "health_overdue": "Försenad hälsovård",
+    "daily_summary": "Daglig sammanfattning",
+    "weekly_summary": "Veckosammanfattning",
+    "system": "Systemmeddelande"
+  },
+  "priority": {
+    "urgent": "Brådskande",
+    "high": "Hög",
+    "normal": "Normal",
+    "low": "Låg"
+  },
+  "preferences": {
+    "title": "Notifikationsinställningar",
+    "description": "Hantera hur du tar emot notifikationer",
+    "enabled": "Notifikationer aktiverade",
+    "channels": {
+      "title": "Notifikationskanaler",
+      "email": "E-post",
+      "push": "Push-notifikationer",
+      "inApp": "I appen",
+      "telegram": "Telegram"
+    },
+    "shiftReminders": {
+      "title": "Påminnelser för pass",
+      "enabled": "Aktivera passpåminnelser",
+      "timing": "Påminn mig",
+      "timing24h": "24 timmar innan",
+      "timing2h": "2 timmar innan",
+      "timing1h": "1 timme innan"
+    },
+    "healthReminders": {
+      "title": "Hälsopåminnelser",
+      "enabled": "Aktivera hälsopåminnelser",
+      "timing": "Påminn mig",
+      "timing7d": "1 vecka innan",
+      "timing1d": "1 dag innan"
+    },
+    "activityUpdates": {
+      "title": "Aktivitetsuppdateringar",
+      "enabled": "Aktivera aktivitetsuppdateringar",
+      "onCreate": "När aktivitet skapas",
+      "onUpdate": "När aktivitet uppdateras",
+      "onCancel": "När aktivitet avbryts",
+      "onComplete": "När aktivitet slutförs"
+    },
+    "summaries": {
+      "title": "Sammanfattningar",
+      "dailySummary": "Daglig sammanfattning",
+      "dailySummaryTime": "Tid för daglig sammanfattning",
+      "weeklySummary": "Veckosammanfattning",
+      "weeklySummaryDay": "Dag för veckosammanfattning"
+    },
+    "quietHours": {
+      "title": "Tysta timmar",
+      "enabled": "Aktivera tysta timmar",
+      "start": "Starttid",
+      "end": "Sluttid",
+      "description": "Inga notifikationer skickas under tysta timmar"
+    }
+  },
+  "messages": {
+    "markedAsRead": "Notifikation markerad som läst",
+    "allMarkedAsRead": "Alla notifikationer markerade som lästa",
+    "deleted": "Notifikation borttagen",
+    "clearedRead": "Lästa notifikationer rensade",
+    "preferencesUpdated": "Inställningar uppdaterade"
+  },
+  "errors": {
+    "loadFailed": "Kunde inte ladda notifikationer",
+    "updateFailed": "Kunde inte uppdatera notifikation",
+    "deleteFailed": "Kunde inte ta bort notifikation"
+  },
+  "delivery": {
+    "pending": "Väntar på leverans",
+    "sent": "Levererad",
+    "failed": "Leverans misslyckades",
+    "channels": {
+      "email": "E-post",
+      "push": "Push",
+      "inApp": "I appen",
+      "telegram": "Telegram"
+    }
+  },
+  "telegram": {
+    "connect": "Anslut Telegram",
+    "disconnect": "Koppla bort Telegram",
+    "connected": "Telegram anslutet",
+    "notConnected": "Telegram inte anslutet",
+    "verifyInstructions": "1. Öppna Telegram\n2. Sök efter @StallbokningBot\n3. Skicka /start\n4. Ange verifieringskoden nedan",
+    "verificationCode": "Verifieringskod",
+    "verifying": "Verifierar...",
+    "verified": "Verifierad",
+    "verificationFailed": "Verifiering misslyckades"
+  },
+  "push": {
+    "enable": "Aktivera push-notifikationer",
+    "enabled": "Push-notifikationer aktiverade",
+    "disabled": "Push-notifikationer inaktiverade",
+    "denied": "Push-notifikationer blockerade av webbläsaren",
+    "notSupported": "Push-notifikationer stöds inte i denna webbläsare",
+    "testNotification": "Skicka testnotifikation"
+  },
+  "time": {
+    "justNow": "Nyss",
+    "minutesAgo": "{{count}} min sedan",
+    "hoursAgo": "{{count}} tim sedan",
+    "daysAgo": "{{count}} dagar sedan"
+  }
+}

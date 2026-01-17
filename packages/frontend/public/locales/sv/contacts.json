@@ -1,0 +1,86 @@
+{
+  "title": "Kontakter",
+  "description": "Hantera dina kontakter och kunder",
+  "list": {
+    "title": "Alla kontakter",
+    "description": "Visar {{count}} kontakter",
+    "empty": "Inga kontakter hittades"
+  },
+  "actions": {
+    "create": "Ny kontakt",
+    "backToList": "Tillbaka till kontakter"
+  },
+  "search": {
+    "placeholder": "Sök efter namn, e-post eller telefon..."
+  },
+  "filters": {
+    "type": "Typ",
+    "allTypes": "Alla typer",
+    "personal": "Privatperson",
+    "business": "Företag",
+    "more": "Fler filter",
+    "byBadge": "Filtrera på märke",
+    "allBadges": "Alla märken",
+    "byAccess": "Filtrera på åtkomst",
+    "withAccess": "Med inloggningsåtkomst",
+    "withoutAccess": "Utan inloggningsåtkomst"
+  },
+  "type": {
+    "personal": "Privatperson",
+    "business": "Företag"
+  },
+  "badge": {
+    "primary": "Primär",
+    "stable": "Stall",
+    "member": "Medlem",
+    "external": "Extern"
+  },
+  "hasAccess": "Har åtkomst",
+  "table": {
+    "name": "Namn",
+    "type": "Typ",
+    "email": "E-post",
+    "phone": "Telefon",
+    "location": "Plats",
+    "badge": "Märke"
+  },
+  "stats": {
+    "total": "Totalt",
+    "personal": "Privatpersoner",
+    "business": "Företag",
+    "withAccess": "Med åtkomst"
+  },
+  "detail": {
+    "info": "Kontaktinformation",
+    "activity": "Aktivitet",
+    "notFound": "Kontakt hittades inte",
+    "notFoundDescription": "Kontakten du letar efter finns inte eller har tagits bort.",
+    "noHorses": "Inga kopplade hästar",
+    "noHorsesDescription": "Denna kontakt har inga hästar kopplade till sig.",
+    "noInvoices": "Inga fakturor",
+    "noInvoicesDescription": "Denna kontakt har inga fakturor ännu.",
+    "noActivities": "Inga aktiviteter",
+    "noActivitiesDescription": "Inga aktiviteter kopplade till denna kontakt."
+  },
+  "tabs": {
+    "horses": "Hästar",
+    "invoices": "Fakturor",
+    "activities": "Aktiviteter"
+  },
+  "fields": {
+    "email": "E-post",
+    "phone": "Telefon",
+    "secondPhone": "Sekundärt telefonnummer",
+    "address": "Adress",
+    "vatNumber": "Momsregistreringsnummer",
+    "companyNumber": "Organisationsnummer",
+    "contactPerson": "Kontaktperson",
+    "notes": "Anteckningar"
+  },
+  "stats": {
+    "totalInvoices": "Totalt antal fakturor",
+    "totalInvoiced": "Totalt fakturerat",
+    "totalPaid": "Totalt betalt",
+    "outstanding": "Utestående"
+  }
+}

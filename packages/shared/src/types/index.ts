@@ -8,3 +8,19 @@ export * from "./domain.js";
 export * from "./permissions.js";
 export * from "./feeding.js";
 export * from "./availability.js";
+export * from "./recurring.js";
+export * from "./notifications.js";
+
+// Horse module extensions
+export * from "./health.js";
+export * from "./ownership.js";
+export * from "./media.js";
+export * from "./team.js";
+export * from "./tack.js";
+export * from "./pedigree.js";
+export * from "./transport.js";
+
+// Business modules
+export * from "./inventory.js";
+export * from "./invoice.js";
+export * from "./communication.js";

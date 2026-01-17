@@ -1,0 +1,120 @@
+{
+  "title": "Återkommande aktiviteter",
+  "description": "Hantera schemalagda återkommande aktiviteter",
+  "presets": {
+    "title": "Vanliga mönster",
+    "daily": "Dagligen",
+    "dailyMorning": "Dagligen (morgon)",
+    "dailyEvening": "Dagligen (kväll)",
+    "twiceDaily": "Två gånger dagligen",
+    "weekdays": "Vardagar",
+    "weekends": "Helger",
+    "weekly": "Veckovis",
+    "biweekly": "Varannan vecka",
+    "monthly": "Månadsvis",
+    "yearly": "Årligen",
+    "custom": "Anpassad",
+    "everyXWeeks": "Var {{count}}:e vecka",
+    "everyXMonths": "Var {{count}}:e månad"
+  },
+  "frequency": {
+    "label": "Frekvens",
+    "daily": "Dagligen",
+    "weekly": "Veckovis",
+    "monthly": "Månadsvis",
+    "yearly": "Årligen"
+  },
+  "interval": {
+    "label": "Intervall",
+    "every": "Varje",
+    "days": "dag(ar)",
+    "weeks": "vecka/veckor",
+    "months": "månad(er)",
+    "years": "år"
+  },
+  "daysOfWeek": {
+    "label": "Veckodagar",
+    "monday": "Måndag",
+    "tuesday": "Tisdag",
+    "wednesday": "Onsdag",
+    "thursday": "Torsdag",
+    "friday": "Fredag",
+    "saturday": "Lördag",
+    "sunday": "Söndag"
+  },
+  "shortDays": {
+    "monday": "Mån",
+    "tuesday": "Tis",
+    "wednesday": "Ons",
+    "thursday": "Tor",
+    "friday": "Fre",
+    "saturday": "Lör",
+    "sunday": "Sön"
+  },
+  "time": {
+    "label": "Tid",
+    "startTime": "Starttid",
+    "endTime": "Sluttid",
+    "duration": "Varaktighet",
+    "minutes": "minuter"
+  },
+  "dateRange": {
+    "label": "Datumintervall",
+    "startDate": "Startdatum",
+    "endDate": "Slutdatum",
+    "noEndDate": "Inget slutdatum"
+  },
+  "assignment": {
+    "label": "Tilldelning",
+    "mode": "Tilldelningsläge",
+    "fixed": "Fast",
+    "rotation": "Rotation",
+    "fairDistribution": "Rättvis fördelning",
+    "assignedTo": "Tilldelad till",
+    "rotationGroup": "Rotationsgrupp"
+  },
+  "categories": {
+    "feeding": "Utfodring",
+    "mucking": "Mockning",
+    "turnout": "Släppa ut",
+    "bring-in": "Hämta in",
+    "health": "Hälsovård",
+    "grooming": "Ryktning",
+    "cleaning": "Städning",
+    "water": "Vatten",
+    "hay": "Hö",
+    "other": "Övrigt"
+  },
+  "exceptions": {
+    "title": "Undantag",
+    "skip": "Hoppa över",
+    "modify": "Ändra",
+    "reason": "Orsak"
+  },
+  "actions": {
+    "create": "Skapa återkommande aktivitet",
+    "edit": "Redigera återkommande aktivitet",
+    "delete": "Ta bort återkommande aktivitet",
+    "pause": "Pausa",
+    "resume": "Återuppta",
+    "generateNow": "Generera nu"
+  },
+  "status": {
+    "active": "Aktiv",
+    "paused": "Pausad",
+    "ended": "Avslutad"
+  },
+  "messages": {
+    "createSuccess": "Återkommande aktivitet skapad",
+    "updateSuccess": "Återkommande aktivitet uppdaterad",
+    "deleteSuccess": "Återkommande aktivitet borttagen",
+    "pauseSuccess": "Aktivitet pausad",
+    "resumeSuccess": "Aktivitet återupptagen"
+  },
+  "validation": {
+    "frequencyRequired": "Frekvens krävs",
+    "timeRequired": "Tid krävs",
+    "startDateRequired": "Startdatum krävs",
+    "endDateAfterStart": "Slutdatum måste vara efter startdatum"
+  }
+}

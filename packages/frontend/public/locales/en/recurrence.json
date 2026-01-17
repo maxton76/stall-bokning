@@ -1,0 +1,120 @@
+{
+  "title": "Recurring Activities",
+  "description": "Manage scheduled recurring activities",
+  "presets": {
+    "title": "Common Patterns",
+    "daily": "Daily",
+    "dailyMorning": "Daily (morning)",
+    "dailyEvening": "Daily (evening)",
+    "twiceDaily": "Twice daily",
+    "weekdays": "Weekdays",
+    "weekends": "Weekends",
+    "weekly": "Weekly",
+    "biweekly": "Every two weeks",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "custom": "Custom",
+    "everyXWeeks": "Every {{count}} weeks",
+    "everyXMonths": "Every {{count}} months"
+  },
+  "frequency": {
+    "label": "Frequency",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "yearly": "Yearly"
+  },
+  "interval": {
+    "label": "Interval",
+    "every": "Every",
+    "days": "day(s)",
+    "weeks": "week(s)",
+    "months": "month(s)",
+    "years": "year(s)"
+  },
+  "daysOfWeek": {
+    "label": "Days of the Week",
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday"
+  },
+  "shortDays": {
+    "monday": "Mon",
+    "tuesday": "Tue",
+    "wednesday": "Wed",
+    "thursday": "Thu",
+    "friday": "Fri",
+    "saturday": "Sat",
+    "sunday": "Sun"
+  },
+  "time": {
+    "label": "Time",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "duration": "Duration",
+    "minutes": "minutes"
+  },
+  "dateRange": {
+    "label": "Date Range",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "noEndDate": "No end date"
+  },
+  "assignment": {
+    "label": "Assignment",
+    "mode": "Assignment Mode",
+    "fixed": "Fixed",
+    "rotation": "Rotation",
+    "fairDistribution": "Fair Distribution",
+    "assignedTo": "Assigned To",
+    "rotationGroup": "Rotation Group"
+  },
+  "categories": {
+    "feeding": "Feeding",
+    "mucking": "Mucking",
+    "turnout": "Turnout",
+    "bring-in": "Bring in",
+    "health": "Health Care",
+    "grooming": "Grooming",
+    "cleaning": "Cleaning",
+    "water": "Water",
+    "hay": "Hay",
+    "other": "Other"
+  },
+  "exceptions": {
+    "title": "Exceptions",
+    "skip": "Skip",
+    "modify": "Modify",
+    "reason": "Reason"
+  },
+  "actions": {
+    "create": "Create Recurring Activity",
+    "edit": "Edit Recurring Activity",
+    "delete": "Delete Recurring Activity",
+    "pause": "Pause",
+    "resume": "Resume",
+    "generateNow": "Generate Now"
+  },
+  "status": {
+    "active": "Active",
+    "paused": "Paused",
+    "ended": "Ended"
+  },
+  "messages": {
+    "createSuccess": "Recurring activity created",
+    "updateSuccess": "Recurring activity updated",
+    "deleteSuccess": "Recurring activity deleted",
+    "pauseSuccess": "Activity paused",
+    "resumeSuccess": "Activity resumed"
+  },
+  "validation": {
+    "frequencyRequired": "Frequency is required",
+    "timeRequired": "Time is required",
+    "startDateRequired": "Start date is required",
+    "endDateAfterStart": "End date must be after start date"
+  }
+}

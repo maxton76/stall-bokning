@@ -11,6 +11,14 @@ export type LeaveType = "vacation" | "sick" | "parental" | "other";
 export type LeaveStatus = "pending" | "approved" | "rejected" | "cancelled";
 
 /**
+ * Partial day leave type
+ * - morning: First half of work day
+ * - afternoon: Second half of work day
+ * - custom: Custom time range within work day
+ */
+export type PartialDayType = "morning" | "afternoon" | "custom";
+
+/**
  * Leave request document structure
  * Users can request time off which requires approval
  */
@@ -26,6 +34,12 @@ export interface LeaveRequest {
   firstDay: Timestamp;
   lastDay: Timestamp;
   note?: string;
+
+  // Partial day support (Phase 3.1)
+  isPartialDay: boolean; // True if this is a partial day leave
+  partialDayType?: PartialDayType; // Only set if isPartialDay is true
+  partialDayStartTime?: string; // "HH:MM" format, only for custom type
+  partialDayEndTime?: string; // "HH:MM" format, only for custom type
 
   // Calculated impact
   impactHours: number; // Total hours of leave based on work schedule
@@ -69,8 +83,9 @@ export interface LeaveRequestDisplay extends Omit<
   createdAt: Date;
   updatedAt: Date;
   // Computed fields
-  periodDisplay: string; // e.g., "Jan 5 - Jan 7, 2026"
+  periodDisplay: string; // e.g., "Jan 5 - Jan 7, 2026" or "Jan 5 (morning)"
   durationDays: number;
+  partialDayDisplay?: string; // e.g., "Morning (08:00-12:00)"
 }
 
 /**
@@ -267,3 +282,310 @@ export const DEFAULT_AVAILABILITY_SETTINGS: Omit<
   notifyOnRequest: true,
   notifyOnApproval: true,
 };
+
+// ============================================================
+// Availability Constraints (Phase 3.2)
+// ============================================================
+
+/**
+ * Constraint type
+ * - never_available: User is never available during these times
+ * - preferred: User prefers these times (soft constraint)
+ */
+export type ConstraintType = "never_available" | "preferred";
+
+/**
+ * Availability Constraint
+ * Defines recurring times when a user is not available (or preferred)
+ * Stored in: availabilityConstraints/{id}
+ */
+export interface AvailabilityConstraint {
+  id: string;
+  userId: string;
+  userName?: string; // Denormalized for display
+  organizationId: string;
+
+  // Constraint type
+  type: ConstraintType;
+
+  // When does this constraint apply?
+  isRecurring: boolean; // True for weekly patterns
+  dayOfWeek?: 0 | 1 | 2 | 3 | 4 | 5 | 6; // Only for recurring (0=Sunday)
+  specificDate?: Timestamp; // Only for one-time constraints
+
+  // Time range
+  startTime: string; // "HH:MM" format
+  endTime: string; // "HH:MM" format
+  isAllDay: boolean; // If true, ignore start/end times
+
+  // Description
+  reason?: string; // e.g., "School pickup", "Second job"
+
+  // Validity period for recurring constraints
+  effectiveFrom?: Timestamp; // When this constraint starts applying
+  effectiveUntil?: Timestamp; // When this constraint stops applying (null = indefinite)
+
+  // Status
+  isActive: boolean;
+
+  // Metadata
+  createdAt: Timestamp;
+  createdBy: string;
+  updatedAt: Timestamp;
+  updatedBy: string;
+}
+
+/**
+ * Availability Constraint for display in UI
+ */
+export interface AvailabilityConstraintDisplay extends Omit<
+  AvailabilityConstraint,
+  | "specificDate"
+  | "effectiveFrom"
+  | "effectiveUntil"
+  | "createdAt"
+  | "updatedAt"
+> {
+  specificDate?: Date;
+  effectiveFrom?: Date;
+  effectiveUntil?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  // Computed fields
+  displayText: string; // e.g., "Mondays 15:00-17:00"
+  typeDisplay: string; // Localized type
+}
+
+// ============================================================
+// Availability Calendar Types (Phase 3.2)
+// ============================================================
+
+/**
+ * Leave status for a calendar day
+ */
+export type CalendarLeaveStatus = "none" | "pending" | "approved" | "partial";
+
+/**
+ * Availability calendar day
+ * Used for displaying availability in calendar view
+ */
+export interface AvailabilityCalendarDay {
+  date: string; // "YYYY-MM-DD" format
+  dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+  // Work schedule
+  isWorkDay: boolean;
+  scheduledHours: number;
+  workStartTime?: string;
+  workEndTime?: string;
+
+  // Leave status
+  leaveStatus: CalendarLeaveStatus;
+  leaveType?: LeaveType;
+  leaveRequestId?: string;
+  isPartialLeave?: boolean;
+  leaveHours?: number;
+
+  // Constraints
+  hasConstraints: boolean;
+  constraintHours?: number; // Hours blocked by constraints
+  constraints?: {
+    id: string;
+    type: ConstraintType;
+    startTime: string;
+    endTime: string;
+    reason?: string;
+  }[];
+
+  // Assignments
+  hasAssignments: boolean;
+  assignmentCount: number;
+  assignedHours?: number;
+  assignments?: {
+    id: string;
+    title: string;
+    startTime: string;
+    endTime: string;
+  }[];
+
+  // Computed availability
+  availableHours: number; // scheduledHours - leaveHours - constraintHours
+  isFullyAvailable: boolean;
+  isPartiallyAvailable: boolean;
+  isUnavailable: boolean;
+}
+
+/**
+ * Staff availability matrix row
+ * Used for team availability overview
+ */
+export interface StaffAvailabilityRow {
+  userId: string;
+  userName: string;
+  userEmail?: string;
+  role?: string;
+
+  // Daily availability
+  days: {
+    date: string;
+    availableHours: number;
+    isAvailable: boolean;
+    leaveStatus: CalendarLeaveStatus;
+    hasConstraints: boolean;
+    assignmentCount: number;
+  }[];
+
+  // Summary
+  totalAvailableHours: number;
+  totalScheduledHours: number;
+  availabilityPercentage: number;
+}
+
+/**
+ * Staff availability matrix
+ * Team-wide availability overview
+ */
+export interface StaffAvailabilityMatrix {
+  organizationId: string;
+  dateRange: {
+    start: string; // "YYYY-MM-DD"
+    end: string;
+  };
+
+  // Staff data
+  staffAvailability: StaffAvailabilityRow[];
+
+  // Team summary by date
+  teamSummary: {
+    date: string;
+    totalStaff: number;
+    availableStaff: number;
+    totalAvailableHours: number;
+    coverageScore: number; // 0-100, percentage of coverage
+    hasShortage: boolean; // True if below minimum staffing
+  }[];
+
+  // Overall summary
+  averageDailyAvailability: number;
+  minimumStaffingMet: boolean;
+  shortageCount: number; // Number of days with staffing shortage
+}
+
+// ============================================================
+// Availability Check Types (Phase 3.4)
+// ============================================================
+
+/**
+ * Availability conflict type
+ */
+export type AvailabilityConflictType =
+  | "approved_leave"
+  | "pending_leave"
+  | "constraint"
+  | "existing_assignment"
+  | "outside_work_hours";
+
+/**
+ * Availability conflict
+ * Represents a conflict when trying to assign work
+ */
+export interface AvailabilityConflict {
+  type: AvailabilityConflictType;
+  severity: "blocking" | "warning"; // blocking = cannot assign, warning = can override
+  description: string;
+  startTime?: string;
+  endTime?: string;
+  relatedId?: string; // Leave request ID, constraint ID, or assignment ID
+}
+
+/**
+ * Staff availability check result
+ * Used when checking if staff can be assigned
+ */
+export interface StaffAvailabilityCheck {
+  userId: string;
+  userName: string;
+  date: string;
+  requestedStartTime: string;
+  requestedEndTime: string;
+
+  // Result
+  isAvailable: boolean;
+  canOverride: boolean; // True if conflicts are only warnings
+
+  // Conflicts (if any)
+  conflicts: AvailabilityConflict[];
+
+  // Work schedule context
+  isWorkDay: boolean;
+  scheduledHours: number;
+  workStartTime?: string;
+  workEndTime?: string;
+}
+
+/**
+ * Available staff for activity
+ * Used for suggesting staff assignments
+ */
+export interface AvailableStaffForActivity {
+  activityId: string;
+  activityDate: string;
+  activityStartTime: string;
+  activityEndTime: string;
+
+  // Available staff (sorted by fairness score)
+  availableStaff: {
+    userId: string;
+    userName: string;
+    availabilityScore: number; // 100 = fully available, lower = has some constraints
+    fairnessScore: number; // Lower = should be assigned more
+    currentPeriodPoints: number; // Points already accumulated
+    conflicts: AvailabilityConflict[]; // Only warnings, no blocking conflicts
+  }[];
+
+  // Unavailable staff with reasons
+  unavailableStaff: {
+    userId: string;
+    userName: string;
+    reason: string;
+    conflicts: AvailabilityConflict[];
+  }[];
+}
+
+// ============================================================
+// Create/Update DTOs
+// ============================================================
+
+export interface CreateLeaveRequestData {
+  type: LeaveType;
+  firstDay: string | Date;
+  lastDay: string | Date;
+  note?: string;
+  isPartialDay?: boolean;
+  partialDayType?: PartialDayType;
+  partialDayStartTime?: string;
+  partialDayEndTime?: string;
+}
+
+export interface CreateAvailabilityConstraintData {
+  type: ConstraintType;
+  isRecurring: boolean;
+  dayOfWeek?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  specificDate?: string | Date;
+  startTime: string;
+  endTime: string;
+  isAllDay?: boolean;
+  reason?: string;
+  effectiveFrom?: string | Date;
+  effectiveUntil?: string | Date;
+}
+
+export interface UpdateAvailabilityConstraintData {
+  type?: ConstraintType;
+  startTime?: string;
+  endTime?: string;
+  isAllDay?: boolean;
+  reason?: string;
+  effectiveUntil?: string | Date | null;
+  isActive?: boolean;
+}

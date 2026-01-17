@@ -1,0 +1,200 @@
+{
+  "title": "Invoices",
+  "description": "Manage your invoices and payments",
+  "pageDescription": "Manage invoices and payments",
+  "createInvoice": "Create Invoice",
+  "noInvoices": "No invoices yet",
+  "noInvoicesDescription": "Create your first invoice to get started",
+
+  "actions": {
+    "create": "New Invoice",
+    "send": "Send Invoice",
+    "download": "Download PDF",
+    "recordPayment": "Record Payment",
+    "cancel": "Cancel Invoice",
+    "duplicate": "Duplicate",
+    "void": "Void",
+    "generatePdf": "Generate PDF",
+    "viewDetails": "View Details",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+
+  "status": {
+    "draft": "Draft",
+    "pending": "Pending",
+    "sent": "Sent",
+    "paid": "Paid",
+    "partiallyPaid": "Partially Paid",
+    "partially_paid": "Partially Paid",
+    "overdue": "Overdue",
+    "cancelled": "Cancelled",
+    "void": "Void"
+  },
+
+  "fields": {
+    "invoiceNumber": "Invoice Number",
+    "issueDate": "Issue Date",
+    "dueDate": "Due Date",
+    "contact": "Customer",
+    "items": "Line Items",
+    "subtotal": "Subtotal",
+    "vat": "VAT",
+    "total": "Total",
+    "notes": "Notes",
+    "paymentTerms": "Payment Terms",
+    "periodStart": "Period Start",
+    "periodEnd": "Period End",
+    "amountPaid": "Amount Paid",
+    "amountDue": "Amount Due",
+    "currency": "Currency",
+    "language": "Language",
+    "internalNotes": "Internal Notes",
+    "customerNotes": "Customer Notes",
+    "footerText": "Footer Text"
+  },
+
+  "itemTypes": {
+    "boarding": "Boarding",
+    "feed": "Feed",
+    "bedding": "Bedding",
+    "service": "Service",
+    "lesson": "Lesson",
+    "veterinary": "Veterinary",
+    "farrier": "Farrier",
+    "transport": "Transport",
+    "equipment": "Equipment",
+    "other": "Other"
+  },
+
+  "item": {
+    "description": "Description",
+    "type": "Type",
+    "quantity": "Quantity",
+    "unit": "Unit",
+    "unitPrice": "Unit Price",
+    "vatRate": "VAT Rate",
+    "discount": "Discount",
+    "lineTotal": "Line Total",
+    "horse": "Horse",
+    "period": "Period"
+  },
+
+  "units": {
+    "month": "month",
+    "hour": "hour",
+    "day": "day",
+    "piece": "piece",
+    "kg": "kg",
+    "bag": "bag"
+  },
+
+  "vatRates": {
+    "0": "0%",
+    "6": "6%",
+    "12": "12%",
+    "25": "25%"
+  },
+
+  "payment": {
+    "title": "Payments",
+    "recordPayment": "Record Payment",
+    "amount": "Amount",
+    "method": "Payment Method",
+    "reference": "Reference",
+    "paidAt": "Payment Date",
+    "notes": "Notes",
+    "noPayments": "No payments recorded"
+  },
+
+  "paymentMethods": {
+    "bank_transfer": "Bank Transfer",
+    "swish": "Swish",
+    "card": "Card Payment",
+    "cash": "Cash",
+    "stripe": "Stripe",
+    "other": "Other"
+  },
+
+  "list": {
+    "title": "All Invoices",
+    "empty": "No invoices found",
+    "description": "Showing {{count}} invoices"
+  },
+
+  "detail": {
+    "title": "Invoice Details",
+    "payments": "Payments",
+    "noPayments": "No payments recorded"
+  },
+
+  "dialogs": {
+    "create": {
+      "title": "Create Invoice",
+      "description": "Fill in the details to create a new invoice"
+    },
+    "edit": {
+      "title": "Edit Invoice",
+      "description": "Update the invoice information"
+    },
+    "payment": {
+      "title": "Record Payment",
+      "description": "Record a payment for this invoice"
+    },
+    "send": {
+      "title": "Send Invoice",
+      "description": "The invoice will be marked as sent",
+      "confirmText": "Do you want to send the invoice to {{contact}}?"
+    },
+    "cancel": {
+      "title": "Cancel Invoice",
+      "description": "This action cannot be undone",
+      "confirmText": "Are you sure you want to cancel this invoice?"
+    }
+  },
+
+  "messages": {
+    "createSuccess": "Invoice created",
+    "updateSuccess": "Invoice updated",
+    "sendSuccess": "Invoice sent",
+    "paymentSuccess": "Payment recorded",
+    "cancelSuccess": "Invoice cancelled",
+    "deleteSuccess": "Invoice deleted"
+  },
+
+  "errors": {
+    "createFailed": "Failed to create invoice",
+    "updateFailed": "Failed to update invoice",
+    "sendFailed": "Failed to send invoice",
+    "paymentFailed": "Failed to record payment",
+    "loadFailed": "Failed to load invoices",
+    "contactRequired": "Customer is required",
+    "itemsRequired": "At least one item is required",
+    "invalidDates": "Due date must be after issue date"
+  },
+
+  "filters": {
+    "allStatuses": "All Statuses",
+    "allContacts": "All Customers"
+  },
+
+  "summary": {
+    "totalInvoiced": "Total Invoiced",
+    "totalPaid": "Total Paid",
+    "totalOutstanding": "Outstanding",
+    "totalOverdue": "Overdue",
+    "invoiceCount": "Invoice Count",
+    "overdueCount": "Overdue Invoices"
+  },
+
+  "overdue": {
+    "title": "Overdue Invoices",
+    "daysOverdue": "{{count}} days overdue",
+    "daysOverdue_one": "{{count}} day overdue",
+    "noOverdue": "No overdue invoices"
+  },
+
+  "addItem": "Add Item",
+  "removeItem": "Remove Item",
+  "itemNumber": "Item {{number}}"
+}

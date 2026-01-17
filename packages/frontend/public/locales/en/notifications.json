@@ -1,0 +1,126 @@
+{
+  "title": "Notifications",
+  "empty": "No notifications",
+  "settings": "Settings",
+  "actions": {
+    "markAllRead": "Mark all as read",
+    "markAsRead": "Mark as read",
+    "clearRead": "Clear read",
+    "delete": "Delete",
+    "viewAll": "View all"
+  },
+  "types": {
+    "shift_reminder": "Shift Reminder",
+    "shift_assigned": "Shift Assigned",
+    "shift_unassigned": "Shift Unassigned",
+    "shift_missed": "Missed Shift",
+    "health_reminder": "Health Reminder",
+    "health_overdue": "Health Care Overdue",
+    "daily_summary": "Daily Summary",
+    "weekly_summary": "Weekly Summary",
+    "system": "System Message"
+  },
+  "priority": {
+    "urgent": "Urgent",
+    "high": "High",
+    "normal": "Normal",
+    "low": "Low"
+  },
+  "preferences": {
+    "title": "Notification Settings",
+    "description": "Manage how you receive notifications",
+    "enabled": "Notifications enabled",
+    "channels": {
+      "title": "Notification Channels",
+      "email": "Email",
+      "push": "Push notifications",
+      "inApp": "In-app",
+      "telegram": "Telegram"
+    },
+    "shiftReminders": {
+      "title": "Shift Reminders",
+      "enabled": "Enable shift reminders",
+      "timing": "Remind me",
+      "timing24h": "24 hours before",
+      "timing2h": "2 hours before",
+      "timing1h": "1 hour before"
+    },
+    "healthReminders": {
+      "title": "Health Reminders",
+      "enabled": "Enable health reminders",
+      "timing": "Remind me",
+      "timing7d": "1 week before",
+      "timing1d": "1 day before"
+    },
+    "activityUpdates": {
+      "title": "Activity Updates",
+      "enabled": "Enable activity updates",
+      "onCreate": "When activity is created",
+      "onUpdate": "When activity is updated",
+      "onCancel": "When activity is cancelled",
+      "onComplete": "When activity is completed"
+    },
+    "summaries": {
+      "title": "Summaries",
+      "dailySummary": "Daily summary",
+      "dailySummaryTime": "Daily summary time",
+      "weeklySummary": "Weekly summary",
+      "weeklySummaryDay": "Weekly summary day"
+    },
+    "quietHours": {
+      "title": "Quiet Hours",
+      "enabled": "Enable quiet hours",
+      "start": "Start time",
+      "end": "End time",
+      "description": "No notifications will be sent during quiet hours"
+    }
+  },
+  "messages": {
+    "markedAsRead": "Notification marked as read",
+    "allMarkedAsRead": "All notifications marked as read",
+    "deleted": "Notification deleted",
+    "clearedRead": "Read notifications cleared",
+    "preferencesUpdated": "Preferences updated"
+  },
+  "errors": {
+    "loadFailed": "Failed to load notifications",
+    "updateFailed": "Failed to update notification",
+    "deleteFailed": "Failed to delete notification"
+  },
+  "delivery": {
+    "pending": "Pending delivery",
+    "sent": "Delivered",
+    "failed": "Delivery failed",
+    "channels": {
+      "email": "Email",
+      "push": "Push",
+      "inApp": "In-app",
+      "telegram": "Telegram"
+    }
+  },
+  "telegram": {
+    "connect": "Connect Telegram",
+    "disconnect": "Disconnect Telegram",
+    "connected": "Telegram connected",
+    "notConnected": "Telegram not connected",
+    "verifyInstructions": "1. Open Telegram\n2. Search for @StallbokningBot\n3. Send /start\n4. Enter the verification code below",
+    "verificationCode": "Verification code",
+    "verifying": "Verifying...",
+    "verified": "Verified",
+    "verificationFailed": "Verification failed"
+  },
+  "push": {
+    "enable": "Enable push notifications",
+    "enabled": "Push notifications enabled",
+    "disabled": "Push notifications disabled",
+    "denied": "Push notifications blocked by browser",
+    "notSupported": "Push notifications not supported in this browser",
+    "testNotification": "Send test notification"
+  },
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} min ago",
+    "hoursAgo": "{{count}} hours ago",
+    "daysAgo": "{{count}} days ago"
+  }
+}

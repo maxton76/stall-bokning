@@ -1,0 +1,155 @@
+{
+  "title": "Lagerhantering",
+  "description": "Hantera foderlager och förbrukning",
+  "list": {
+    "title": "Lager",
+    "empty": "Inga lagerartiklar tillagda",
+    "emptyFiltered": "Inga artiklar matchar filtren",
+    "addItem": "Lägg till lagerartikel"
+  },
+  "status": {
+    "inStock": "I lager",
+    "lowStock": "Lågt lager",
+    "outOfStock": "Slut i lager"
+  },
+  "fields": {
+    "feedType": "Fodertyp",
+    "quantity": "Kvantitet",
+    "currentQuantity": "Nuvarande kvantitet",
+    "unit": "Enhet",
+    "minimumStockLevel": "Minsta lagernivå",
+    "reorderPoint": "Beställningspunkt",
+    "reorderQuantity": "Beställningskvantitet",
+    "supplier": "Leverantör",
+    "unitCost": "Enhetspris",
+    "totalValue": "Totalt värde",
+    "storageLocation": "Lagringsplats",
+    "batchNumber": "Batchnummer",
+    "expirationDate": "Utgångsdatum",
+    "lastPurchaseDate": "Senaste inköp",
+    "notes": "Anteckningar"
+  },
+  "units": {
+    "kg": "kg",
+    "g": "g",
+    "l": "liter",
+    "bags": "säckar",
+    "bales": "balar",
+    "scoops": "skopor",
+    "pieces": "st"
+  },
+  "transactions": {
+    "title": "Transaktionshistorik",
+    "type": {
+      "restock": "Påfyllning",
+      "usage": "Förbrukning",
+      "adjustment": "Justering",
+      "waste": "Svinn"
+    },
+    "empty": "Inga transaktioner ännu",
+    "quantity": "Mängd",
+    "previousQuantity": "Föregående kvantitet",
+    "newQuantity": "Ny kvantitet",
+    "reason": "Anledning",
+    "relatedActivity": "Relaterad aktivitet",
+    "relatedHorse": "Relaterad häst"
+  },
+  "actions": {
+    "restock": "Fyll på lager",
+    "recordUsage": "Registrera förbrukning",
+    "adjust": "Justera lager",
+    "recordWaste": "Registrera svinn",
+    "viewTransactions": "Visa transaktioner",
+    "edit": "Redigera",
+    "delete": "Ta bort"
+  },
+  "dialogs": {
+    "create": {
+      "title": "Lägg till lagerartikel",
+      "description": "Lägg till en ny artikel i lagret"
+    },
+    "edit": {
+      "title": "Redigera lagerartikel",
+      "description": "Uppdatera lagerartikelns detaljer"
+    },
+    "restock": {
+      "title": "Fyll på lager",
+      "description": "Registrera påfyllning av lager",
+      "quantityLabel": "Kvantitet att lägga till",
+      "invoiceNumber": "Fakturanummer (valfritt)"
+    },
+    "usage": {
+      "title": "Registrera förbrukning",
+      "description": "Registrera förbrukning från lagret",
+      "quantityLabel": "Förbrukad kvantitet"
+    },
+    "adjustment": {
+      "title": "Justera lager",
+      "description": "Korrigera lagersaldo efter inventering",
+      "newQuantityLabel": "Ny kvantitet",
+      "reasonLabel": "Anledning till justering",
+      "reasonPlaceholder": "T.ex. inventering, räkningskorrigering"
+    },
+    "waste": {
+      "title": "Registrera svinn",
+      "description": "Registrera förstört eller skadat lager",
+      "quantityLabel": "Svinnkvantitet",
+      "reasonLabel": "Anledning",
+      "reasons": {
+        "spoiled": "Bortskämt",
+        "damaged": "Skadat",
+        "pest": "Skadedjur",
+        "expired": "Utgånget",
+        "other": "Annat"
+      }
+    },
+    "delete": {
+      "title": "Ta bort lagerartikel",
+      "description": "Är du säker på att du vill ta bort denna lagerartikel? All transaktionshistorik kommer också att tas bort.",
+      "confirm": "Ta bort"
+    }
+  },
+  "alerts": {
+    "title": "Lagervarningar",
+    "lowStock": "Lågt lager",
+    "outOfStock": "Slut i lager",
+    "expiringSoon": "Utgår snart",
+    "empty": "Inga aktiva varningar",
+    "acknowledge": "Bekräfta",
+    "orderNow": "Beställ nu",
+    "contact": "Kontakta leverantör",
+    "shortage": "Underskott: {{amount}} {{unit}}"
+  },
+  "summary": {
+    "title": "Lageröversikt",
+    "totalItems": "Totalt antal artiklar",
+    "lowStockItems": "Lågt lager",
+    "outOfStockItems": "Slut i lager",
+    "expiringSoon": "Utgår snart",
+    "totalValue": "Totalt lagervärde"
+  },
+  "filters": {
+    "all": "Alla",
+    "inStock": "I lager",
+    "lowStock": "Lågt lager",
+    "outOfStock": "Slut i lager"
+  },
+  "messages": {
+    "createSuccess": "Lagerartikel tillagd",
+    "updateSuccess": "Lagerartikel uppdaterad",
+    "deleteSuccess": "Lagerartikel borttagen",
+    "restockSuccess": "Lagerpåfyllning registrerad",
+    "usageSuccess": "Förbrukning registrerad",
+    "adjustmentSuccess": "Lager justerat",
+    "wasteSuccess": "Svinn registrerat",
+    "alertAcknowledged": "Varning bekräftad"
+  },
+  "errors": {
+    "fetchFailed": "Kunde inte hämta lagerdata",
+    "createFailed": "Kunde inte lägga till lagerartikel",
+    "updateFailed": "Kunde inte uppdatera lagerartikel",
+    "deleteFailed": "Kunde inte ta bort lagerartikel",
+    "insufficientStock": "Otillräckligt lager",
+    "alreadyExists": "Lagerartikel för denna fodertyp finns redan"
+  }
+}

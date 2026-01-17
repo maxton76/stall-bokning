@@ -333,3 +333,114 @@ export async function isOrganizationAdmin(
     return false;
   }
 }
+
+/**
+ * Check if user can access organization (read operations)
+ * Alias for hasOrganizationAccess for naming consistency with stable functions
+ *
+ * @param userId - The user's ID
+ * @param organizationId - The organization's ID
+ * @returns Promise<boolean> - True if user has access to the organization
+ */
+export async function canAccessOrganization(
+  userId: string,
+  organizationId: string,
+): Promise<boolean> {
+  return hasOrganizationAccess(userId, organizationId);
+}
+
+/**
+ * Check if user can manage organization (admin operations)
+ * Alias for isOrganizationAdmin for naming consistency with stable functions
+ *
+ * @param userId - The user's ID
+ * @param organizationId - The organization's ID
+ * @returns Promise<boolean> - True if user can manage the organization
+ */
+export async function canManageOrganization(
+  userId: string,
+  organizationId: string,
+): Promise<boolean> {
+  return isOrganizationAdmin(userId, organizationId);
+}
+
+// ============================================
+// RECURRING ACTIVITY AUTHORIZATION
+// ============================================
+
+/**
+ * Check if user can manage recurring activities for a stable
+ * Requires: system_admin, owner, or manager role in organization
+ *
+ * @param stableId - The stable's ID
+ * @param userId - The user's ID
+ * @param userRole - The user's system role from JWT token
+ * @returns Promise<boolean> - True if user can manage recurring activities
+ */
+export async function canManageRecurring(
+  stableId: string,
+  userId: string,
+  userRole: string,
+): Promise<boolean> {
+  try {
+    // System admin can manage everything
+    if (userRole === "system_admin") return true;
+
+    // Check if user is stable owner
+    const stableDoc = await db.collection("stables").doc(stableId).get();
+    if (!stableDoc.exists) return false;
+
+    const stable = stableDoc.data();
+    if (stable?.ownerId === userId) return true;
+
+    // Check for manager role in organization membership
+    const organizationId = stable?.organizationId;
+    if (!organizationId) return false;
+
+    const memberId = `${userId}_${organizationId}`;
+    const memberDoc = await db
+      .collection("organizationMembers")
+      .doc(memberId)
+      .get();
+
+    if (!memberDoc.exists) return false;
+
+    const member = memberDoc.data();
+    if (member?.status !== "active") return false;
+
+    // Check if user has manager or admin role
+    const roles = member.roles || [];
+    return (
+      roles.includes("manager") ||
+      roles.includes("admin") ||
+      roles.includes("administrator")
+    );
+  } catch (error) {
+    console.error(
+      "Error checking recurring activity management access:",
+      error,
+    );
+    return false;
+  }
+}
+
+/**
+ * Check if user has access to a stable
+ * Supports system admin override
+ *
+ * @param stableId - The stable's ID
+ * @param userId - The user's ID
+ * @param userRole - The user's system role from JWT token
+ * @returns Promise<boolean> - True if user has any access to the stable
+ */
+export async function hasStableAccess(
+  stableId: string,
+  userId: string,
+  userRole: string,
+): Promise<boolean> {
+  // System admin can access everything
+  if (userRole === "system_admin") return true;
+
+  // Use standard access check
+  return canAccessStable(userId, stableId);
+}

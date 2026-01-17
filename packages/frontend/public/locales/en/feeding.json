@@ -184,5 +184,35 @@
   "emptyState": {
     "title": "No feeding schedule yet",
     "description": "Get started by configuring feed types and feeding times"
+  },
+  "analytics": {
+    "title": "Feeding Overview",
+    "description": "Track feeding costs and consumption across your stable",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "totalCost": "Total Cost",
+    "dailyAverage": "Daily Average",
+    "feedTypesUsed": "Feed Types Used",
+    "horsesTracked": "Horses Tracked",
+    "forPeriod": "for this period",
+    "perDay": "per day",
+    "activeFeedTypes": "active feed types",
+    "withFeedings": "with feedings",
+    "costBreakdown": "Cost Breakdown",
+    "byCost": "By Cost",
+    "byQuantity": "By Quantity",
+    "noData": "No feeding data available for this period",
+    "horseConsumption": "Consumption by Horse",
+    "horseConsumptionDescription": "View detailed feeding breakdown per horse",
+    "horse": "Horse",
+    "feedings": "Feedings",
+    "cost": "Cost",
+    "feedTypes": "feed types",
+    "horsesTotal": "horses",
+    "periodSummary": "Period Summary",
+    "period": "Period",
+    "totalFeedings": "Total Feedings",
+    "completionRate": "Completion Rate",
+    "wasteAmount": "Waste Cost"
   }
 }

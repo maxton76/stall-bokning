@@ -4,43 +4,7 @@ import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
-
-/**
- * Check if user has organization membership with stable access
- */
-async function hasOrgStableAccess(
-  stableId: string,
-  userId: string,
-): Promise<boolean> {
-  const stableDoc = await db.collection("stables").doc(stableId).get();
-  if (!stableDoc.exists) return false;
-
-  const stable = stableDoc.data()!;
-  const organizationId = stable.organizationId;
-
-  if (!organizationId) return false;
-
-  // Check organizationMembers collection
-  const memberId = `${userId}_${organizationId}`;
-  const memberDoc = await db
-    .collection("organizationMembers")
-    .doc(memberId)
-    .get();
-
-  if (!memberDoc.exists) return false;
-
-  const member = memberDoc.data()!;
-  if (member.status !== "active") return false;
-
-  // Check stable access permissions
-  if (member.stableAccess === "all") return true;
-  if (member.stableAccess === "specific") {
-    const assignedStables = member.assignedStableIds || [];
-    if (assignedStables.includes(stableId)) return true;
-  }
-
-  return false;
-}
+import { hasStableAccess } from "../utils/authorization.js";
 
 /**
  * Check if user has access to a horse
@@ -62,35 +26,11 @@ async function hasHorseAccess(
 
   // Check stable membership via organization
   if (horse.currentStableId) {
-    const stableDoc = await db
-      .collection("stables")
-      .doc(horse.currentStableId)
-      .get();
-    if (stableDoc.exists && stableDoc.data()?.ownerId === userId) return true;
-
-    // Check organization membership with stable access
-    if (await hasOrgStableAccess(horse.currentStableId, userId)) return true;
+    // Use shared hasStableAccess which checks ownership and org membership
+    if (await hasStableAccess(horse.currentStableId, userId, userRole)) {
+      return true;
+    }
   }
-
-  return false;
-}
-
-/**
- * Check if user has access to a stable
- */
-async function hasStableAccess(
-  stableId: string,
-  userId: string,
-  userRole: string,
-): Promise<boolean> {
-  if (userRole === "system_admin") return true;
-
-  // Check stable ownership
-  const stableDoc = await db.collection("stables").doc(stableId).get();
-  if (stableDoc.exists && stableDoc.data()?.ownerId === userId) return true;
-
-  // Check organization membership with stable access
-  if (await hasOrgStableAccess(stableId, userId)) return true;
 
   return false;
 }
@@ -770,6 +710,382 @@ export async function activitiesRoutes(fastify: FastifyInstance) {
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to complete activity",
+        });
+      }
+    },
+  );
+
+  /**
+   * GET /api/v1/activities/:activityId/available-staff
+   * Get available staff members for an activity, taking leave requests into account
+   */
+  fastify.get(
+    "/:activityId/available-staff",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { activityId } = request.params as { activityId: string };
+        const user = (request as AuthenticatedRequest).user!;
+
+        // Get activity to find stable and date
+        const activityDoc = await db
+          .collection("activities")
+          .doc(activityId)
+          .get();
+        if (!activityDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Activity not found",
+          });
+        }
+
+        const activity = activityDoc.data()!;
+
+        // Check access
+        const hasAccess = await hasStableAccess(
+          activity.stableId,
+          user.uid,
+          user.role,
+        );
+        if (!hasAccess) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to access this activity",
+          });
+        }
+
+        // Get activity date
+        const activityDate = activity.date?.toDate
+          ? activity.date.toDate()
+          : new Date(activity.date);
+
+        // Get stable to find organization
+        const stableDoc = await db
+          .collection("stables")
+          .doc(activity.stableId)
+          .get();
+        if (!stableDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Stable not found",
+          });
+        }
+        const stable = stableDoc.data()!;
+        const organizationId = stable.organizationId;
+
+        if (!organizationId) {
+          return { availableStaff: [], unavailableStaff: [] };
+        }
+
+        // Get all active members of the organization
+        const membersSnapshot = await db
+          .collection("organizationMembers")
+          .where("organizationId", "==", organizationId)
+          .where("status", "==", "active")
+          .get();
+
+        const members = membersSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        // Get user profiles for these members
+        const userIds = members.map((m: any) => m.userId);
+        const userProfiles = new Map<string, any>();
+
+        if (userIds.length > 0) {
+          // Fetch user profiles in batches of 10 (Firestore limit)
+          for (let i = 0; i < userIds.length; i += 10) {
+            const batch = userIds.slice(i, i + 10);
+            const usersSnapshot = await db
+              .collection("users")
+              .where("__name__", "in", batch)
+              .get();
+            usersSnapshot.docs.forEach((doc) => {
+              userProfiles.set(doc.id, { id: doc.id, ...doc.data() });
+            });
+          }
+        }
+
+        // Get leave requests for the activity date
+        const activityDateStart = new Date(activityDate);
+        activityDateStart.setHours(0, 0, 0, 0);
+        const activityDateEnd = new Date(activityDate);
+        activityDateEnd.setHours(23, 59, 59, 999);
+
+        const leaveSnapshot = await db
+          .collection("leaveRequests")
+          .where("organizationId", "==", organizationId)
+          .where("startDate", "<=", Timestamp.fromDate(activityDateEnd))
+          .get();
+
+        // Build map of users on leave
+        const usersOnLeave = new Map<
+          string,
+          { status: string; isPartial: boolean; leaveType?: string }
+        >();
+        leaveSnapshot.docs.forEach((doc) => {
+          const leave = doc.data();
+          const leaveStart = leave.startDate?.toDate
+            ? leave.startDate.toDate()
+            : new Date(leave.startDate);
+          const leaveEnd = leave.endDate?.toDate
+            ? leave.endDate.toDate()
+            : new Date(leave.endDate);
+
+          // Check if activity date falls within leave period
+          if (activityDate >= leaveStart && activityDate <= leaveEnd) {
+            if (leave.status === "approved" || leave.status === "pending") {
+              usersOnLeave.set(leave.userId, {
+                status: leave.status,
+                isPartial: leave.isPartialDay || false,
+                leaveType: leave.leaveType,
+              });
+            }
+          }
+        });
+
+        // Categorize staff
+        const availableStaff: any[] = [];
+        const unavailableStaff: any[] = [];
+
+        members.forEach((member: any) => {
+          const profile = userProfiles.get(member.userId);
+          const leaveInfo = usersOnLeave.get(member.userId);
+
+          const staffInfo = {
+            userId: member.userId,
+            displayName:
+              profile?.displayName || member.displayName || "Unknown",
+            email: profile?.email || member.email,
+            roles: member.roles || [],
+            leaveStatus: leaveInfo?.status || null,
+            isPartialLeave: leaveInfo?.isPartial || false,
+            leaveType: leaveInfo?.leaveType || null,
+          };
+
+          if (!leaveInfo) {
+            availableStaff.push(staffInfo);
+          } else if (leaveInfo.status === "approved" && !leaveInfo.isPartial) {
+            unavailableStaff.push(staffInfo);
+          } else if (leaveInfo.status === "pending") {
+            // Pending leave - staff is technically available but with warning
+            availableStaff.push({
+              ...staffInfo,
+              warning: "pending_leave",
+            });
+          } else if (leaveInfo.isPartial) {
+            // Partial leave - may be available depending on time
+            availableStaff.push({
+              ...staffInfo,
+              warning: "partial_leave",
+            });
+          }
+        });
+
+        return {
+          activityDate: activityDate.toISOString(),
+          availableStaff,
+          unavailableStaff,
+        };
+      } catch (error) {
+        request.log.error({ error }, "Failed to get available staff");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to get available staff",
+        });
+      }
+    },
+  );
+
+  /**
+   * POST /api/v1/activities/check-availability
+   * Check if a user is available for a specific date/time
+   */
+  fastify.post(
+    "/check-availability",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+        const { userId, organizationId, date, startTime, endTime } =
+          request.body as {
+            userId: string;
+            organizationId: string;
+            date: string;
+            startTime?: string;
+            endTime?: string;
+          };
+
+        if (!userId || !organizationId || !date) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "userId, organizationId, and date are required",
+          });
+        }
+
+        // Verify caller has access to organization
+        const memberDoc = await db
+          .collection("organizationMembers")
+          .doc(`${user.uid}_${organizationId}`)
+          .get();
+
+        if (!memberDoc.exists && user.role !== "system_admin") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have access to this organization",
+          });
+        }
+
+        const checkDate = new Date(date);
+        const dateStart = new Date(checkDate);
+        dateStart.setHours(0, 0, 0, 0);
+        const dateEnd = new Date(checkDate);
+        dateEnd.setHours(23, 59, 59, 999);
+
+        // Check leave requests
+        const leaveSnapshot = await db
+          .collection("leaveRequests")
+          .where("organizationId", "==", organizationId)
+          .where("userId", "==", userId)
+          .where("startDate", "<=", Timestamp.fromDate(dateEnd))
+          .get();
+
+        const conflicts: any[] = [];
+
+        leaveSnapshot.docs.forEach((doc) => {
+          const leave = doc.data();
+          const leaveStart = leave.startDate?.toDate
+            ? leave.startDate.toDate()
+            : new Date(leave.startDate);
+          const leaveEnd = leave.endDate?.toDate
+            ? leave.endDate.toDate()
+            : new Date(leave.endDate);
+
+          // Check if date falls within leave period
+          if (checkDate >= leaveStart && checkDate <= leaveEnd) {
+            const conflictType =
+              leave.status === "approved" ? "blocked" : "warning";
+
+            // For partial day leave, check if times overlap
+            if (leave.isPartialDay && startTime && endTime) {
+              const leaveStartTime = leave.partialDayStartTime || "00:00";
+              const leaveEndTime = leave.partialDayEndTime || "23:59";
+
+              // Simple time overlap check
+              const timesOverlap = !(
+                endTime <= leaveStartTime || startTime >= leaveEndTime
+              );
+
+              if (timesOverlap) {
+                conflicts.push({
+                  type: conflictType,
+                  reason:
+                    leave.status === "approved"
+                      ? "approved_partial_leave"
+                      : "pending_partial_leave",
+                  leaveType: leave.leaveType,
+                  startTime: leaveStartTime,
+                  endTime: leaveEndTime,
+                  leaveId: doc.id,
+                });
+              }
+            } else {
+              conflicts.push({
+                type: conflictType,
+                reason:
+                  leave.status === "approved"
+                    ? "approved_leave"
+                    : "pending_leave",
+                leaveType: leave.leaveType,
+                isPartialDay: leave.isPartialDay || false,
+                leaveId: doc.id,
+              });
+            }
+          }
+        });
+
+        // Check availability constraints
+        const constraintsSnapshot = await db
+          .collection("availabilityConstraints")
+          .where("organizationId", "==", organizationId)
+          .where("userId", "==", userId)
+          .get();
+
+        constraintsSnapshot.docs.forEach((doc) => {
+          const constraint = doc.data();
+          const dayOfWeek = checkDate.getDay();
+
+          // Check recurring constraints
+          if (constraint.isRecurring && constraint.dayOfWeek === dayOfWeek) {
+            if (constraint.type === "never_available") {
+              // Check time overlap if times provided
+              if (
+                startTime &&
+                endTime &&
+                constraint.startTime &&
+                constraint.endTime
+              ) {
+                const timesOverlap = !(
+                  endTime <= constraint.startTime ||
+                  startTime >= constraint.endTime
+                );
+                if (timesOverlap) {
+                  conflicts.push({
+                    type: "blocked",
+                    reason: "availability_constraint",
+                    startTime: constraint.startTime,
+                    endTime: constraint.endTime,
+                    constraintId: doc.id,
+                  });
+                }
+              } else if (constraint.isAllDay) {
+                conflicts.push({
+                  type: "blocked",
+                  reason: "availability_constraint_all_day",
+                  constraintId: doc.id,
+                });
+              }
+            }
+          }
+
+          // Check specific date constraints
+          if (constraint.specificDate) {
+            const constraintDate = constraint.specificDate?.toDate
+              ? constraint.specificDate.toDate()
+              : new Date(constraint.specificDate);
+
+            if (constraintDate.toDateString() === checkDate.toDateString()) {
+              conflicts.push({
+                type: "blocked",
+                reason: "specific_date_constraint",
+                constraintId: doc.id,
+              });
+            }
+          }
+        });
+
+        const isAvailable =
+          conflicts.filter((c) => c.type === "blocked").length === 0;
+        const hasWarnings =
+          conflicts.filter((c) => c.type === "warning").length > 0;
+
+        return {
+          userId,
+          date,
+          isAvailable,
+          hasWarnings,
+          conflicts,
+        };
+      } catch (error) {
+        request.log.error({ error }, "Failed to check availability");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to check availability",
         });
       }
     },

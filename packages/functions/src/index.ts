@@ -4,6 +4,17 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { logger } from "firebase-functions";
 import * as crypto from "crypto";
 
+// Re-export scheduled functions
+export { generateActivityInstances } from "./scheduled/generateInstances.js";
+export { scanForReminders } from "./scheduled/reminderScanner.js";
+
+// Re-export notification functions
+export {
+  processNotificationQueue,
+  retryFailedNotifications,
+  cleanupOldNotifications,
+} from "./notifications/index.js";
+
 // Initialize Firebase Admin
 initializeApp();
 const db = getFirestore();

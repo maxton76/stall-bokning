@@ -237,7 +237,10 @@
   "actions": {
     "addActivity": "Add Activity",
     "viewCalendar": "View Calendar",
-    "viewList": "View List"
+    "viewList": "View List",
+    "markAllComplete": "Mark all complete",
+    "markComplete": "Mark complete",
+    "markIncomplete": "Mark incomplete"
   },
   "filters": {
     "title": "Filter Activities",
@@ -278,5 +281,34 @@
     "select": "Select a stable",
     "all": "All Stables",
     "loading": "Loading stables..."
+  },
+  "groups": {
+    "unassigned": "Unassigned",
+    "allHorses": "All horses",
+    "noHorse": "No horse",
+    "byAssignee": "By assignee",
+    "byDate": "By date",
+    "byHorse": "By horse",
+    "byType": "By type"
+  },
+  "status": {
+    "completed": "Completed",
+    "scheduled": "Scheduled",
+    "missed": "Missed",
+    "pending": "Pending",
+    "inProgress": "In Progress",
+    "cancelled": "Cancelled",
+    "overdue": "Overdue"
+  },
+  "progress": {
+    "label": "Progress",
+    "allComplete": "All complete",
+    "ofTotal": "{{completed}} of {{total}}",
+    "percentComplete": "{{percent}}% complete"
+  },
+  "empty": {
+    "noActivities": "No activities",
+    "noActivitiesForDate": "No activities for this date",
+    "noActivitiesForFilter": "No activities match the filter"
   }
 }

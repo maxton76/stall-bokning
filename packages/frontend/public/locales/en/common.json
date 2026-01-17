@@ -5,6 +5,7 @@
     "horses": "Horses",
     "activities": "Activities",
     "feeding": "Feeding",
+    "feedingOverview": "Overview",
     "facilities": "Facilities",
     "schedule": "Schedule",
     "myAvailability": "My Availability",
@@ -12,8 +13,12 @@
     "settings": "Settings",
     "stables": "Stables",
     "organizations": "Organizations",
+    "contacts": "Contacts",
     "account": "Account",
-    "locationHistory": "Location History"
+    "locationHistory": "Location History",
+    "inventory": "Inventory",
+    "invoices": "Invoices",
+    "staffMatrix": "Staff Overview"
   },
   "buttons": {
     "save": "Save",
@@ -60,7 +65,15 @@
     "country": "Country",
     "color": "Color",
     "active": "Active",
-    "inactive": "Inactive"
+    "inactive": "Inactive",
+    "horse": "Horse",
+    "stable": "Stable",
+    "selectStable": "Select stable",
+    "items": "items",
+    "currency": "Currency",
+    "activeAlerts": "active alerts",
+    "select": "Select...",
+    "weekend": "Weekend"
   },
   "status": {
     "active": "Active",
@@ -145,5 +158,37 @@
     "veterinarian": "Veterinarian",
     "farrier": "Farrier",
     "dentist": "Dentist"
+  },
+  "dates": {
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "yesterday": "Yesterday"
+  },
+  "days": {
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday"
+  },
+  "actions": {
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
+    "clearSearch": "Clear search",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "create": "Create",
+    "saving": "Saving...",
+    "loading": "Loading...",
+    "save": "Save",
+    "retry": "Retry"
+  },
+  "search": {
+    "placeholder": "Search..."
+  },
+  "errors": {
+    "generic": "An error occurred. Please try again."
   }
 }

@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Stallbokningssystem** - A modern SaaS platform for stable owners and guests to manage and fairly distribute daily chores through an intelligent, weight-based booking system.
 
 **Status**: Phase 1 - Foundation (Planning stage)
-**Primary Language**: English
+**Default Language**: Swedish (sv) with English (en) support
 **Tech Stack**: React 19, Firebase, Google Cloud Platform
 
 ## Architecture
@@ -33,6 +33,7 @@ stall-bokning/
 - Real-time data via Firestore listeners
 - Protected routes via React Router v6
 - UI components: shadcn/ui with Tailwind CSS
+- **Internationalization (i18n)**: react-i18next with Swedish (sv) as default, English (en) supported
 
 **Backend**:
 - **Cloud Run API**: Main REST API service (Node.js 24, Fastify framework)
@@ -185,6 +186,57 @@ stripe listen --forward-to localhost:5003/api/v1/webhooks/stripe
 - Test in Emulator UI before production deployment
 - Users must be authenticated for most operations
 - Role-based access control via custom claims
+
+### Internationalization (i18n)
+
+**Configuration**:
+- Library: `react-i18next` with `i18next`
+- Default language: Swedish (`sv`)
+- Supported languages: Swedish (`sv`), English (`en`)
+- Language detection: Browser preference with localStorage persistence
+
+**Translation Files**:
+```
+packages/frontend/src/locales/
+├── sv/                      # Swedish translations (default)
+│   ├── common.json          # Shared labels, buttons, errors
+│   ├── auth.json            # Authentication screens
+│   ├── dashboard.json       # Dashboard content
+│   ├── horses.json          # Horse management
+│   ├── organizations.json   # Organization/stable management
+│   ├── schedules.json       # Scheduling and shifts
+│   └── ...
+└── en/                      # English translations
+    └── (same structure)
+```
+
+**Usage in Components**:
+```typescript
+import { useTranslation } from 'react-i18next';
+
+function MyComponent() {
+  const { t } = useTranslation(['common', 'horses']);
+
+  return (
+    <div>
+      <h1>{t('horses:titles.myHorses')}</h1>
+      <button>{t('common:buttons.save')}</button>
+    </div>
+  );
+}
+```
+
+**Translation Key Conventions**:
+- Use namespaced keys: `namespace:section.key`
+- Group by feature/domain in separate JSON files
+- Keep keys descriptive: `buttons.save`, `errors.required`, `titles.editHorse`
+- Always add keys to both `sv/` and `en/` files
+
+**Adding New Translations**:
+1. Add key to Swedish file first (`sv/*.json`)
+2. Add corresponding key to English file (`en/*.json`)
+3. Use `t('namespace:key')` in component
+4. Test both languages via language switcher
 
 ### File Structure Conventions
 

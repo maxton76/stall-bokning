@@ -237,7 +237,10 @@
   "actions": {
     "addActivity": "Lägg till aktivitet",
     "viewCalendar": "Visa kalender",
-    "viewList": "Visa lista"
+    "viewList": "Visa lista",
+    "markAllComplete": "Markera alla som klara",
+    "markComplete": "Markera som klar",
+    "markIncomplete": "Markera som ej klar"
   },
   "filters": {
     "title": "Filtrera aktiviteter",
@@ -278,5 +281,34 @@
     "select": "Välj ett stall",
     "all": "Alla stall",
     "loading": "Laddar stall..."
+  },
+  "groups": {
+    "unassigned": "Otilldelade",
+    "allHorses": "Alla hästar",
+    "noHorse": "Ingen häst",
+    "byAssignee": "Per tilldelad",
+    "byDate": "Per datum",
+    "byHorse": "Per häst",
+    "byType": "Per typ"
+  },
+  "status": {
+    "completed": "Slutförd",
+    "scheduled": "Schemalagd",
+    "missed": "Missad",
+    "pending": "Väntande",
+    "inProgress": "Pågående",
+    "cancelled": "Avbruten",
+    "overdue": "Försenad"
+  },
+  "progress": {
+    "label": "Framsteg",
+    "allComplete": "Alla klara",
+    "ofTotal": "{{completed}} av {{total}}",
+    "percentComplete": "{{percent}}% klart"
+  },
+  "empty": {
+    "noActivities": "Inga aktiviteter",
+    "noActivitiesForDate": "Inga aktiviteter för detta datum",
+    "noActivitiesForFilter": "Inga aktiviteter matchar filtret"
   }
 }

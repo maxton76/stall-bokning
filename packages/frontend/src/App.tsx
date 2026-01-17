@@ -47,9 +47,17 @@ const ActivitiesSettingsPage = lazy(
 // Feeding pages
 const FeedingSchedulePage = lazy(() => import("./pages/FeedingSchedulePage"));
 const FeedingSettingsPage = lazy(() => import("./pages/FeedingSettingsPage"));
+const FeedingOverviewPage = lazy(() => import("./pages/FeedingOverviewPage"));
+
+// Inventory pages
+const InventoryPage = lazy(() => import("./pages/InventoryPage"));
+
+// Invoice pages
+const InvoicesPage = lazy(() => import("./pages/InvoicesPage"));
 
 // Availability pages
 const MyAvailabilityPage = lazy(() => import("./pages/MyAvailabilityPage"));
+const StaffMatrixPage = lazy(() => import("./pages/StaffMatrixPage"));
 
 // My Reservations pages
 const MyReservationsPage = lazy(() => import("./pages/MyReservationsPage"));
@@ -94,6 +102,10 @@ const LeaveManagementPage = lazy(() => import("./pages/LeaveManagementPage"));
 const ScheduleManagementPage = lazy(
   () => import("./pages/ScheduleManagementPage"),
 );
+
+// Contact pages
+const ContactsPage = lazy(() => import("./pages/ContactsPage"));
+const ContactDetailPage = lazy(() => import("./pages/ContactDetailPage"));
 
 // Full-page loading spinner for initial route load
 function PageLoader() {
@@ -286,6 +298,14 @@ function App() {
 
                 {/* Feeding routes */}
                 <Route
+                  path="/feeding/overview"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <FeedingOverviewPage />
+                    </Suspense>
+                  }
+                />
+                <Route
                   path="/feeding/schedule"
                   element={
                     <Suspense fallback={<InlineLoader />}>
@@ -298,6 +318,26 @@ function App() {
                   element={
                     <Suspense fallback={<InlineLoader />}>
                       <FeedingSettingsPage />
+                    </Suspense>
+                  }
+                />
+
+                {/* Inventory routes */}
+                <Route
+                  path="/inventory"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <InventoryPage />
+                    </Suspense>
+                  }
+                />
+
+                {/* Invoice routes */}
+                <Route
+                  path="/invoices"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <InvoicesPage />
                     </Suspense>
                   }
                 />
@@ -454,6 +494,32 @@ function App() {
                   element={
                     <Suspense fallback={<InlineLoader />}>
                       <ScheduleManagementPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/organizations/:organizationId/staff-matrix"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <StaffMatrixPage />
+                    </Suspense>
+                  }
+                />
+
+                {/* Contact routes */}
+                <Route
+                  path="/contacts"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <ContactsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/contacts/:contactId"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <ContactDetailPage />
                     </Suspense>
                   }
                 />

@@ -169,6 +169,22 @@ export interface EquipmentItem {
 }
 
 /**
+ * Related link for horse (external URLs)
+ */
+export interface HorseLink {
+  id: string; // UUID for React keys
+  title: string; // Display title (e.g., "Competition Results", "Breeder Website")
+  url: string; // Full URL
+  category?:
+    | "competition"
+    | "breeder"
+    | "registry"
+    | "video"
+    | "social"
+    | "other";
+}
+
+/**
  * Horse document structure
  * Horses are user-owned assets that can optionally be assigned to stables
  * Both stable owners AND members can own horses
@@ -251,6 +267,21 @@ export interface Horse {
   specialInstructions?: string; // Free text instructions
   equipment?: EquipmentItem[]; // Structured equipment list
   hasSpecialInstructions?: boolean; // Computed flag for quick filtering
+
+  // Team information - See types/team.ts for HorseTeam interface
+  // Stored as embedded document for quick access
+  hasTeamAssignments?: boolean; // Computed flag for quick filtering
+
+  // Transport instructions - See types/transport.ts for TransportInstructions
+  // Stored as embedded document for quick access
+  hasTransportInstructions?: boolean; // Computed flag for quick filtering
+
+  // Pedigree - See types/pedigree.ts for HorsePedigree interface
+  // Stored as embedded document
+  hasPedigreeData?: boolean; // Computed flag for quick filtering
+
+  // Related URLs/Links
+  relatedLinks?: HorseLink[];
 
   // Metadata
   createdAt: Timestamp;

@@ -1,0 +1,155 @@
+{
+  "title": "Inventory Management",
+  "description": "Manage feed inventory and consumption",
+  "list": {
+    "title": "Inventory",
+    "empty": "No inventory items added",
+    "emptyFiltered": "No items match the filters",
+    "addItem": "Add Inventory Item"
+  },
+  "status": {
+    "inStock": "In Stock",
+    "lowStock": "Low Stock",
+    "outOfStock": "Out of Stock"
+  },
+  "fields": {
+    "feedType": "Feed Type",
+    "quantity": "Quantity",
+    "currentQuantity": "Current Quantity",
+    "unit": "Unit",
+    "minimumStockLevel": "Minimum Stock Level",
+    "reorderPoint": "Reorder Point",
+    "reorderQuantity": "Reorder Quantity",
+    "supplier": "Supplier",
+    "unitCost": "Unit Cost",
+    "totalValue": "Total Value",
+    "storageLocation": "Storage Location",
+    "batchNumber": "Batch Number",
+    "expirationDate": "Expiration Date",
+    "lastPurchaseDate": "Last Purchase",
+    "notes": "Notes"
+  },
+  "units": {
+    "kg": "kg",
+    "g": "g",
+    "l": "liters",
+    "bags": "bags",
+    "bales": "bales",
+    "scoops": "scoops",
+    "pieces": "pcs"
+  },
+  "transactions": {
+    "title": "Transaction History",
+    "type": {
+      "restock": "Restock",
+      "usage": "Usage",
+      "adjustment": "Adjustment",
+      "waste": "Waste"
+    },
+    "empty": "No transactions yet",
+    "quantity": "Quantity",
+    "previousQuantity": "Previous Quantity",
+    "newQuantity": "New Quantity",
+    "reason": "Reason",
+    "relatedActivity": "Related Activity",
+    "relatedHorse": "Related Horse"
+  },
+  "actions": {
+    "restock": "Restock",
+    "recordUsage": "Record Usage",
+    "adjust": "Adjust Stock",
+    "recordWaste": "Record Waste",
+    "viewTransactions": "View Transactions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "dialogs": {
+    "create": {
+      "title": "Add Inventory Item",
+      "description": "Add a new item to inventory"
+    },
+    "edit": {
+      "title": "Edit Inventory Item",
+      "description": "Update inventory item details"
+    },
+    "restock": {
+      "title": "Restock Inventory",
+      "description": "Record inventory restock",
+      "quantityLabel": "Quantity to Add",
+      "invoiceNumber": "Invoice Number (optional)"
+    },
+    "usage": {
+      "title": "Record Usage",
+      "description": "Record consumption from inventory",
+      "quantityLabel": "Quantity Used"
+    },
+    "adjustment": {
+      "title": "Adjust Stock",
+      "description": "Correct stock level after inventory count",
+      "newQuantityLabel": "New Quantity",
+      "reasonLabel": "Reason for Adjustment",
+      "reasonPlaceholder": "E.g., inventory count, correction"
+    },
+    "waste": {
+      "title": "Record Waste",
+      "description": "Record spoiled or damaged inventory",
+      "quantityLabel": "Waste Quantity",
+      "reasonLabel": "Reason",
+      "reasons": {
+        "spoiled": "Spoiled",
+        "damaged": "Damaged",
+        "pest": "Pest Damage",
+        "expired": "Expired",
+        "other": "Other"
+      }
+    },
+    "delete": {
+      "title": "Delete Inventory Item",
+      "description": "Are you sure you want to delete this inventory item? All transaction history will also be deleted.",
+      "confirm": "Delete"
+    }
+  },
+  "alerts": {
+    "title": "Inventory Alerts",
+    "lowStock": "Low Stock",
+    "outOfStock": "Out of Stock",
+    "expiringSoon": "Expiring Soon",
+    "empty": "No active alerts",
+    "acknowledge": "Acknowledge",
+    "orderNow": "Order Now",
+    "contact": "Contact Supplier",
+    "shortage": "Shortage: {{amount}} {{unit}}"
+  },
+  "summary": {
+    "title": "Inventory Overview",
+    "totalItems": "Total Items",
+    "lowStockItems": "Low Stock",
+    "outOfStockItems": "Out of Stock",
+    "expiringSoon": "Expiring Soon",
+    "totalValue": "Total Inventory Value"
+  },
+  "filters": {
+    "all": "All",
+    "inStock": "In Stock",
+    "lowStock": "Low Stock",
+    "outOfStock": "Out of Stock"
+  },
+  "messages": {
+    "createSuccess": "Inventory item added",
+    "updateSuccess": "Inventory item updated",
+    "deleteSuccess": "Inventory item deleted",
+    "restockSuccess": "Restock recorded",
+    "usageSuccess": "Usage recorded",
+    "adjustmentSuccess": "Stock adjusted",
+    "wasteSuccess": "Waste recorded",
+    "alertAcknowledged": "Alert acknowledged"
+  },
+  "errors": {
+    "fetchFailed": "Failed to fetch inventory data",
+    "createFailed": "Failed to add inventory item",
+    "updateFailed": "Failed to update inventory item",
+    "deleteFailed": "Failed to delete inventory item",
+    "insufficientStock": "Insufficient stock",
+    "alreadyExists": "Inventory item for this feed type already exists"
+  }
+}

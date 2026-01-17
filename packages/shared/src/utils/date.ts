@@ -73,3 +73,50 @@ export function isSameMonth(date1: Date, date2: Date): boolean {
     date1.getMonth() === date2.getMonth()
   );
 }
+
+/**
+ * Convert various timestamp formats to Date
+ * Handles:
+ * - Date objects (returned as-is)
+ * - Firebase Timestamps (client or admin SDK with toDate method)
+ * - ISO strings
+ * - Unix timestamps (milliseconds)
+ *
+ * This utility addresses the DRY violation found in multiple frontend components
+ * where timestamp conversion was duplicated.
+ *
+ * @param value - The value to convert to a Date
+ * @returns Date object
+ */
+export function toDate(value: unknown): Date {
+  // Already a Date
+  if (value instanceof Date) {
+    return value;
+  }
+
+  // Firebase Timestamp (has toDate method)
+  if (
+    value &&
+    typeof value === "object" &&
+    "toDate" in value &&
+    typeof (value as { toDate: () => Date }).toDate === "function"
+  ) {
+    return (value as { toDate: () => Date }).toDate();
+  }
+
+  // ISO string or other string format
+  if (typeof value === "string") {
+    const parsed = new Date(value);
+    if (!isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+
+  // Unix timestamp (number)
+  if (typeof value === "number") {
+    return new Date(value);
+  }
+
+  // Fallback to current date if value is invalid
+  return new Date();
+}

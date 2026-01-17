@@ -1,0 +1,200 @@
+{
+  "title": "Fakturor",
+  "description": "Hantera dina fakturor och betalningar",
+  "pageDescription": "Hantera fakturor och betalningar",
+  "createInvoice": "Skapa faktura",
+  "noInvoices": "Inga fakturor än",
+  "noInvoicesDescription": "Skapa din första faktura för att komma igång",
+
+  "actions": {
+    "create": "Ny faktura",
+    "send": "Skicka faktura",
+    "download": "Ladda ner PDF",
+    "recordPayment": "Registrera betalning",
+    "cancel": "Avbryt faktura",
+    "duplicate": "Duplicera",
+    "void": "Makulera",
+    "generatePdf": "Generera PDF",
+    "viewDetails": "Visa detaljer",
+    "edit": "Redigera",
+    "delete": "Ta bort"
+  },
+
+  "status": {
+    "draft": "Utkast",
+    "pending": "Väntande",
+    "sent": "Skickad",
+    "paid": "Betald",
+    "partiallyPaid": "Delvis betald",
+    "partially_paid": "Delvis betald",
+    "overdue": "Förfallen",
+    "cancelled": "Avbruten",
+    "void": "Makulerad"
+  },
+
+  "fields": {
+    "invoiceNumber": "Fakturanummer",
+    "issueDate": "Fakturadatum",
+    "dueDate": "Förfallodatum",
+    "contact": "Kund",
+    "items": "Rader",
+    "subtotal": "Delsumma",
+    "vat": "Moms",
+    "total": "Totalt",
+    "notes": "Anteckningar",
+    "paymentTerms": "Betalningsvillkor",
+    "periodStart": "Periodstart",
+    "periodEnd": "Periodslut",
+    "amountPaid": "Betalt belopp",
+    "amountDue": "Kvarstående",
+    "currency": "Valuta",
+    "language": "Språk",
+    "internalNotes": "Interna anteckningar",
+    "customerNotes": "Kundmeddelande",
+    "footerText": "Sidfot"
+  },
+
+  "itemTypes": {
+    "boarding": "Boxhyra",
+    "feed": "Foder",
+    "bedding": "Strö",
+    "service": "Tjänst",
+    "lesson": "Ridlektion",
+    "veterinary": "Veterinär",
+    "farrier": "Hovslagare",
+    "transport": "Transport",
+    "equipment": "Utrustning",
+    "other": "Övrigt"
+  },
+
+  "item": {
+    "description": "Beskrivning",
+    "type": "Typ",
+    "quantity": "Antal",
+    "unit": "Enhet",
+    "unitPrice": "À-pris",
+    "vatRate": "Momssats",
+    "discount": "Rabatt",
+    "lineTotal": "Summa",
+    "horse": "Häst",
+    "period": "Period"
+  },
+
+  "units": {
+    "month": "månad",
+    "hour": "timme",
+    "day": "dag",
+    "piece": "st",
+    "kg": "kg",
+    "bag": "påse"
+  },
+
+  "vatRates": {
+    "0": "0%",
+    "6": "6%",
+    "12": "12%",
+    "25": "25%"
+  },
+
+  "payment": {
+    "title": "Betalningar",
+    "recordPayment": "Registrera betalning",
+    "amount": "Belopp",
+    "method": "Betalningssätt",
+    "reference": "Referens",
+    "paidAt": "Betalningsdatum",
+    "notes": "Anteckningar",
+    "noPayments": "Inga betalningar registrerade"
+  },
+
+  "paymentMethods": {
+    "bank_transfer": "Banköverföring",
+    "swish": "Swish",
+    "card": "Kortbetalning",
+    "cash": "Kontant",
+    "stripe": "Stripe",
+    "other": "Annat"
+  },
+
+  "list": {
+    "title": "Alla fakturor",
+    "empty": "Inga fakturor hittades",
+    "description": "Visar {{count}} fakturor"
+  },
+
+  "detail": {
+    "title": "Fakturadetaljer",
+    "payments": "Betalningar",
+    "noPayments": "Inga betalningar registrerade"
+  },
+
+  "dialogs": {
+    "create": {
+      "title": "Skapa faktura",
+      "description": "Fyll i uppgifterna för att skapa en ny faktura"
+    },
+    "edit": {
+      "title": "Redigera faktura",
+      "description": "Uppdatera fakturainformationen"
+    },
+    "payment": {
+      "title": "Registrera betalning",
+      "description": "Registrera en betalning för denna faktura"
+    },
+    "send": {
+      "title": "Skicka faktura",
+      "description": "Fakturan kommer att markeras som skickad",
+      "confirmText": "Vill du skicka fakturan till {{contact}}?"
+    },
+    "cancel": {
+      "title": "Avbryt faktura",
+      "description": "Denna åtgärd kan inte ångras",
+      "confirmText": "Är du säker på att du vill avbryta denna faktura?"
+    }
+  },
+
+  "messages": {
+    "createSuccess": "Faktura skapad",
+    "updateSuccess": "Faktura uppdaterad",
+    "sendSuccess": "Faktura skickad",
+    "paymentSuccess": "Betalning registrerad",
+    "cancelSuccess": "Faktura avbruten",
+    "deleteSuccess": "Faktura borttagen"
+  },
+
+  "errors": {
+    "createFailed": "Kunde inte skapa faktura",
+    "updateFailed": "Kunde inte uppdatera faktura",
+    "sendFailed": "Kunde inte skicka faktura",
+    "paymentFailed": "Kunde inte registrera betalning",
+    "loadFailed": "Kunde inte ladda fakturor",
+    "contactRequired": "Kund krävs",
+    "itemsRequired": "Minst en rad krävs",
+    "invalidDates": "Förfallodatum måste vara efter fakturadatum"
+  },
+
+  "filters": {
+    "allStatuses": "Alla statusar",
+    "allContacts": "Alla kunder"
+  },
+
+  "summary": {
+    "totalInvoiced": "Totalt fakturerat",
+    "totalPaid": "Totalt betalt",
+    "totalOutstanding": "Utestående",
+    "totalOverdue": "Förfallet",
+    "invoiceCount": "Antal fakturor",
+    "overdueCount": "Förfallna fakturor"
+  },
+
+  "overdue": {
+    "title": "Förfallna fakturor",
+    "daysOverdue": "{{count}} dagar förfallen",
+    "daysOverdue_one": "{{count}} dag förfallen",
+    "noOverdue": "Inga förfallna fakturor"
+  },
+
+  "addItem": "Lägg till rad",
+  "removeItem": "Ta bort rad",
+  "itemNumber": "Rad {{number}}"
+}

@@ -20,11 +20,23 @@ import organizationMemberRoutes from "./routes/organizationMembers.js";
 import authRoutes from "./routes/auth.js";
 import { shiftTypesRoutes } from "./routes/shift-types.js";
 import { horseGroupsRoutes } from "./routes/horse-groups.js";
+import { healthRecordsRoutes } from "./routes/health-records.js";
+import { horseOwnershipRoutes } from "./routes/horse-ownership.js";
+import { horseMediaRoutes } from "./routes/horse-media.js";
+import { horseTeamRoutes } from "./routes/horse-team.js";
+import { horseTackRoutes } from "./routes/horse-tack.js";
 import { auditLogsRoutes } from "./routes/audit-logs.js";
 import { feedTypesRoutes } from "./routes/feed-types.js";
 import { feedingTimesRoutes } from "./routes/feeding-times.js";
 import { horseFeedingsRoutes } from "./routes/horse-feedings.js";
 import { availabilityRoutes } from "./routes/availability.js";
+import { recurringActivitiesRoutes } from "./routes/recurring-activities.js";
+import { notificationsRoutes } from "./routes/notifications.js";
+import { pedigreeRoutes } from "./routes/pedigree.js";
+import { transportRoutes } from "./routes/transport.js";
+import { inventoryRoutes } from "./routes/inventory.js";
+import { invoicesRoutes } from "./routes/invoices.js";
+import { communicationsRoutes } from "./routes/communications.js";
 
 const PORT = Number(process.env.PORT) || 8080;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -116,6 +128,15 @@ await fastify.register(organizationMemberRoutes, {
 });
 await fastify.register(shiftTypesRoutes, { prefix: "/api/v1/shift-types" });
 await fastify.register(horseGroupsRoutes, { prefix: "/api/v1/horse-groups" });
+await fastify.register(healthRecordsRoutes, {
+  prefix: "/api/v1/health-records",
+});
+await fastify.register(horseOwnershipRoutes, {
+  prefix: "/api/v1/horse-ownership",
+});
+await fastify.register(horseMediaRoutes, { prefix: "/api/v1/horse-media" });
+await fastify.register(horseTeamRoutes, { prefix: "/api/v1" });
+await fastify.register(horseTackRoutes, { prefix: "/api/v1" });
 await fastify.register(auditLogsRoutes, { prefix: "/api/v1/audit-logs" });
 await fastify.register(feedTypesRoutes, { prefix: "/api/v1/feed-types" });
 await fastify.register(feedingTimesRoutes, { prefix: "/api/v1/feeding-times" });
@@ -125,6 +146,17 @@ await fastify.register(horseFeedingsRoutes, {
 await fastify.register(availabilityRoutes, {
   prefix: "/api/v1/availability",
 });
+await fastify.register(recurringActivitiesRoutes, {
+  prefix: "/api/v1/recurring-activities",
+});
+await fastify.register(notificationsRoutes, {
+  prefix: "/api/v1/notifications",
+});
+await fastify.register(pedigreeRoutes, { prefix: "/api/v1" });
+await fastify.register(transportRoutes, { prefix: "/api/v1" });
+await fastify.register(inventoryRoutes, { prefix: "/api/v1/inventory" });
+await fastify.register(invoicesRoutes, { prefix: "/api/v1/invoices" });
+await fastify.register(communicationsRoutes, { prefix: "/api/v1" });
 
 // 404 handler
 fastify.setNotFoundHandler((request, reply) => {

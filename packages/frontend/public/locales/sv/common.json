@@ -5,6 +5,7 @@
     "horses": "Hästar",
     "activities": "Aktiviteter",
     "feeding": "Utfodring",
+    "feedingOverview": "Översikt",
     "facilities": "Anläggningar",
     "schedule": "Schema",
     "myAvailability": "Min tillgänglighet",
@@ -12,8 +13,12 @@
     "settings": "Inställningar",
     "stables": "Stall",
     "organizations": "Organisationer",
+    "contacts": "Kontakter",
     "account": "Konto",
-    "locationHistory": "Platshistorik"
+    "locationHistory": "Platshistorik",
+    "inventory": "Lagerhantering",
+    "invoices": "Fakturor",
+    "staffMatrix": "Personalöversikt"
   },
   "buttons": {
     "save": "Spara",
@@ -60,7 +65,15 @@
     "country": "Land",
     "color": "Färg",
     "active": "Aktiv",
-    "inactive": "Inaktiv"
+    "inactive": "Inaktiv",
+    "horse": "Häst",
+    "stable": "Stall",
+    "selectStable": "Välj stall",
+    "items": "artiklar",
+    "currency": "Valuta",
+    "activeAlerts": "aktiva varningar",
+    "select": "Välj...",
+    "weekend": "Helg"
   },
   "status": {
     "active": "Aktiv",
@@ -102,6 +115,38 @@
     "daysRemaining_other": "{{count}} dagar kvar",
     "overdue_one": "{{count}} dag försenad",
     "overdue_other": "{{count}} dagar försenad"
+  },
+  "dates": {
+    "today": "Idag",
+    "tomorrow": "Imorgon",
+    "yesterday": "Igår"
+  },
+  "days": {
+    "monday": "Måndag",
+    "tuesday": "Tisdag",
+    "wednesday": "Onsdag",
+    "thursday": "Torsdag",
+    "friday": "Fredag",
+    "saturday": "Lördag",
+    "sunday": "Söndag"
+  },
+  "actions": {
+    "expandAll": "Expandera alla",
+    "collapseAll": "Fäll ihop alla",
+    "clearSearch": "Rensa sökning",
+    "edit": "Redigera",
+    "cancel": "Avbryt",
+    "create": "Skapa",
+    "saving": "Sparar...",
+    "loading": "Laddar...",
+    "save": "Spara",
+    "retry": "Försök igen"
+  },
+  "search": {
+    "placeholder": "Sök..."
+  },
+  "errors": {
+    "generic": "Ett fel uppstod. Försök igen."
   },
   "weekdays": {
     "monday": "Måndag",

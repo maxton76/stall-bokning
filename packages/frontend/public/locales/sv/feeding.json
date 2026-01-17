@@ -184,5 +184,35 @@
   "emptyState": {
     "title": "Inget utfodringsschema ännu",
     "description": "Kom igång genom att konfigurera fodertyper och utfodringstider"
+  },
+  "analytics": {
+    "title": "Utfodringsöversikt",
+    "description": "Följ foderkostnader och förbrukning i ditt stall",
+    "weekly": "Veckovis",
+    "monthly": "Månadsvis",
+    "totalCost": "Total kostnad",
+    "dailyAverage": "Dagligt genomsnitt",
+    "feedTypesUsed": "Fodertyper använda",
+    "horsesTracked": "Hästar spårade",
+    "forPeriod": "för denna period",
+    "perDay": "per dag",
+    "activeFeedTypes": "aktiva fodertyper",
+    "withFeedings": "med utfodringar",
+    "costBreakdown": "Kostnadsfördelning",
+    "byCost": "Per kostnad",
+    "byQuantity": "Per mängd",
+    "noData": "Ingen utfodringsdata tillgänglig för denna period",
+    "horseConsumption": "Förbrukning per häst",
+    "horseConsumptionDescription": "Visa detaljerad utfodringsfördelning per häst",
+    "horse": "Häst",
+    "feedings": "Utfodringar",
+    "cost": "Kostnad",
+    "feedTypes": "fodertyper",
+    "horsesTotal": "hästar",
+    "periodSummary": "Periodsammanfattning",
+    "period": "Period",
+    "totalFeedings": "Totalt utfodringar",
+    "completionRate": "Genomförandegrad",
+    "wasteAmount": "Svinnskostnad"
   }
 }

@@ -1,0 +1,115 @@
+{
+  "title": "Kommunikation",
+  "history": "Kommunikationshistorik",
+  "newCommunication": "Ny kommunikation",
+  "editCommunication": "Redigera kommunikation",
+  "empty": "Ingen kommunikation registrerad än",
+  "emptyDescription": "Registrera din första kommunikation med denna kontakt",
+  "viewAll": "Visa alla",
+
+  "types": {
+    "email": "E-post",
+    "sms": "SMS",
+    "phone": "Telefonsamtal",
+    "meeting": "Möte",
+    "note": "Anteckning",
+    "telegram": "Telegram",
+    "in_app": "I appen"
+  },
+
+  "direction": {
+    "outbound": "Utgående",
+    "inbound": "Inkommande"
+  },
+
+  "status": {
+    "draft": "Utkast",
+    "sent": "Skickad",
+    "delivered": "Levererad",
+    "read": "Läst",
+    "failed": "Misslyckad",
+    "scheduled": "Schemalagd"
+  },
+
+  "fields": {
+    "type": "Typ",
+    "direction": "Riktning",
+    "subject": "Ämne",
+    "content": "Innehåll",
+    "summary": "Sammanfattning",
+    "occurredAt": "Datum & tid",
+    "scheduledAt": "Schemalagd till",
+    "relatedInvoice": "Relaterad faktura",
+    "relatedHorse": "Relaterad häst",
+    "relatedActivity": "Relaterad aktivitet",
+    "attachments": "Bilagor"
+  },
+
+  "placeholders": {
+    "subject": "Ange ämne...",
+    "content": "Ange kommunikationsdetaljer...",
+    "summary": "Kort sammanfattning (valfritt)...",
+    "searchCommunications": "Sök kommunikation..."
+  },
+
+  "filters": {
+    "title": "Filter",
+    "allTypes": "Alla typer",
+    "allDirections": "Alla riktningar",
+    "dateRange": "Datumintervall",
+    "clearFilters": "Rensa filter"
+  },
+
+  "actions": {
+    "create": "Registrera kommunikation",
+    "save": "Spara",
+    "cancel": "Avbryt",
+    "delete": "Ta bort",
+    "edit": "Redigera",
+    "view": "Visa detaljer"
+  },
+
+  "messages": {
+    "created": "Kommunikation registrerad",
+    "updated": "Kommunikation uppdaterad",
+    "deleted": "Kommunikation borttagen",
+    "confirmDelete": "Är du säker på att du vill ta bort denna kommunikation?"
+  },
+
+  "errors": {
+    "loadFailed": "Kunde inte ladda kommunikation",
+    "createFailed": "Kunde inte registrera kommunikation",
+    "updateFailed": "Kunde inte uppdatera kommunikation",
+    "deleteFailed": "Kunde inte ta bort kommunikation",
+    "contentRequired": "Innehåll krävs"
+  },
+
+  "templates": {
+    "title": "Mallar",
+    "useTemplate": "Använd mall",
+    "createTemplate": "Skapa mall",
+    "editTemplate": "Redigera mall",
+    "templateName": "Mallnamn",
+    "templateDescription": "Beskrivning",
+    "variables": "Variabler",
+    "noTemplates": "Inga mallar tillgängliga",
+    "selectTemplate": "Välj en mall..."
+  },
+
+  "stats": {
+    "title": "Kommunikationsstatistik",
+    "total": "Totalt antal",
+    "outbound": "Utgående",
+    "inbound": "Inkommande",
+    "lastContact": "Senaste kontakt",
+    "byType": "Per typ"
+  },
+
+  "timeline": {
+    "today": "Idag",
+    "yesterday": "Igår",
+    "thisWeek": "Denna vecka",
+    "thisMonth": "Denna månad",
+    "older": "Äldre"
+  }
+}

@@ -16,6 +16,12 @@ export const namespaces = [
   "organizations",
   "settings",
   "stables",
+  "recurrence",
+  "notifications",
+  "contacts",
+  "invoices",
+  "availability",
+  "inventory",
 ] as const;
 
 export type Namespace = (typeof namespaces)[number];

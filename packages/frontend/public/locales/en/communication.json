@@ -1,0 +1,115 @@
+{
+  "title": "Communications",
+  "history": "Communication History",
+  "newCommunication": "New Communication",
+  "editCommunication": "Edit Communication",
+  "empty": "No communications recorded yet",
+  "emptyDescription": "Record your first communication with this contact",
+  "viewAll": "View All",
+
+  "types": {
+    "email": "Email",
+    "sms": "SMS",
+    "phone": "Phone Call",
+    "meeting": "Meeting",
+    "note": "Note",
+    "telegram": "Telegram",
+    "in_app": "In-app"
+  },
+
+  "direction": {
+    "outbound": "Outbound",
+    "inbound": "Inbound"
+  },
+
+  "status": {
+    "draft": "Draft",
+    "sent": "Sent",
+    "delivered": "Delivered",
+    "read": "Read",
+    "failed": "Failed",
+    "scheduled": "Scheduled"
+  },
+
+  "fields": {
+    "type": "Type",
+    "direction": "Direction",
+    "subject": "Subject",
+    "content": "Content",
+    "summary": "Summary",
+    "occurredAt": "Date & Time",
+    "scheduledAt": "Scheduled For",
+    "relatedInvoice": "Related Invoice",
+    "relatedHorse": "Related Horse",
+    "relatedActivity": "Related Activity",
+    "attachments": "Attachments"
+  },
+
+  "placeholders": {
+    "subject": "Enter subject...",
+    "content": "Enter communication details...",
+    "summary": "Brief summary (optional)...",
+    "searchCommunications": "Search communications..."
+  },
+
+  "filters": {
+    "title": "Filters",
+    "allTypes": "All Types",
+    "allDirections": "All Directions",
+    "dateRange": "Date Range",
+    "clearFilters": "Clear Filters"
+  },
+
+  "actions": {
+    "create": "Record Communication",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View Details"
+  },
+
+  "messages": {
+    "created": "Communication recorded successfully",
+    "updated": "Communication updated successfully",
+    "deleted": "Communication deleted successfully",
+    "confirmDelete": "Are you sure you want to delete this communication record?"
+  },
+
+  "errors": {
+    "loadFailed": "Failed to load communications",
+    "createFailed": "Failed to record communication",
+    "updateFailed": "Failed to update communication",
+    "deleteFailed": "Failed to delete communication",
+    "contentRequired": "Content is required"
+  },
+
+  "templates": {
+    "title": "Templates",
+    "useTemplate": "Use Template",
+    "createTemplate": "Create Template",
+    "editTemplate": "Edit Template",
+    "templateName": "Template Name",
+    "templateDescription": "Description",
+    "variables": "Variables",
+    "noTemplates": "No templates available",
+    "selectTemplate": "Select a template..."
+  },
+
+  "stats": {
+    "title": "Communication Statistics",
+    "total": "Total Communications",
+    "outbound": "Outbound",
+    "inbound": "Inbound",
+    "lastContact": "Last Contact",
+    "byType": "By Type"
+  },
+
+  "timeline": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "older": "Older"
+  }
+}
