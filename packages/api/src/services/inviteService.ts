@@ -5,6 +5,8 @@ import type {
   OrganizationInvite,
   OrganizationRole,
   StableAccessLevel,
+  ContactType,
+  InviteContactAddress,
 } from "@stall-bokning/shared/types/organization";
 
 interface InviteData {
@@ -17,16 +19,21 @@ interface InviteData {
   showInPlanning: boolean;
   stableAccess: StableAccessLevel;
   assignedStableIds?: string[];
+  // Contact creation fields
+  contactType: ContactType;
+  businessName?: string;
+  address?: InviteContactAddress;
 }
 
 /**
  * Create a new organization invite for a non-existing user
+ * Also auto-creates a Contact linked to this invite
  */
 export async function createOrganizationInvite(
   organizationId: string,
   inviterUserId: string,
   inviteData: InviteData,
-): Promise<{ token: string; inviteId: string }> {
+): Promise<{ token: string; inviteId: string; contactId: string }> {
   const token = uuidv4();
   const inviteId = uuidv4();
 
@@ -45,24 +52,45 @@ export async function createOrganizationInvite(
   const orgData = orgDoc.data();
   const inviterData = inviterDoc.data();
 
+  // Create contact auto-linked to this invite
+  const contactId = await createContactForInvite(
+    organizationId,
+    inviteId,
+    inviteData,
+    inviterUserId,
+  );
+
   const invite: Omit<OrganizationInvite, "id"> = {
     organizationId,
     email: inviteData.email.toLowerCase(),
     firstName: inviteData.firstName,
     lastName: inviteData.lastName,
     phoneNumber: inviteData.phoneNumber,
+    // Contact type fields
+    contactType: inviteData.contactType,
+    businessName: inviteData.businessName,
+    address: inviteData.address,
+    // Role assignment
     roles: inviteData.roles,
     primaryRole: inviteData.primaryRole,
     showInPlanning: inviteData.showInPlanning,
     stableAccess: inviteData.stableAccess,
     assignedStableIds: inviteData.assignedStableIds || [],
+    // Contact integration
+    linkedContactId: contactId,
+    // Invite metadata
     token,
     status: "pending",
     expiresAt: Timestamp.fromMillis(
       Date.now() + 7 * 24 * 60 * 60 * 1000,
     ) as any, // 7 days
+    // Email tracking
+    sentAt: Timestamp.now() as any,
+    resentCount: 0,
+    // Audit trail
     invitedBy: inviterUserId,
     invitedAt: Timestamp.now() as any,
+    // Organization cache
     organizationName: orgData?.name || "",
     inviterName:
       `${inviterData?.firstName || ""} ${inviterData?.lastName || ""}`.trim(),
@@ -70,7 +98,72 @@ export async function createOrganizationInvite(
 
   await db.collection("invites").doc(inviteId).set(invite);
 
-  return { token, inviteId };
+  return { token, inviteId, contactId };
+}
+
+/**
+ * Create a Contact for an invite (auto-created during invitation)
+ */
+async function createContactForInvite(
+  organizationId: string,
+  inviteId: string,
+  inviteData: InviteData,
+  createdBy: string,
+): Promise<string> {
+  const now = Timestamp.now();
+
+  // Build contact data based on contact type
+  const baseContactData = {
+    contactType: inviteData.contactType,
+    accessLevel: "organization" as const,
+    organizationId,
+    // Linking fields
+    linkedInviteId: inviteId,
+    linkedMemberId: undefined,
+    linkedUserId: undefined,
+    // Badge and source
+    badge: "member" as const,
+    source: "invite" as const,
+    hasLoginAccess: true,
+    // Common fields
+    email: inviteData.email.toLowerCase(),
+    phoneNumber: inviteData.phoneNumber || "",
+    invoiceLanguage: "en" as const,
+    address: inviteData.address || {
+      street: "",
+      houseNumber: "",
+      postcode: "",
+      city: "",
+      country: "",
+    },
+    // Metadata
+    createdAt: now,
+    updatedAt: now,
+    createdBy,
+  };
+
+  let contactData: any;
+
+  if (inviteData.contactType === "Personal") {
+    contactData = {
+      ...baseContactData,
+      firstName: inviteData.firstName || "",
+      lastName: inviteData.lastName || "",
+    };
+  } else {
+    // Business contact
+    contactData = {
+      ...baseContactData,
+      businessName: inviteData.businessName || "",
+      contactPerson: {
+        firstName: inviteData.firstName || "",
+        lastName: inviteData.lastName || "",
+      },
+    };
+  }
+
+  const contactRef = await db.collection("contacts").add(contactData);
+  return contactRef.id;
 }
 
 /**
@@ -106,6 +199,7 @@ export async function getInviteByToken(
 
 /**
  * Accept an invite and create organization member
+ * Also updates the linked Contact with member and user IDs
  */
 export async function acceptInvite(
   inviteId: string,
@@ -151,18 +245,129 @@ export async function acceptInvite(
     respondedAt: Timestamp.now(),
   });
 
+  // Update linked Contact: linkedInviteId → linkedMemberId, add linkedUserId
+  if (invite.linkedContactId) {
+    await db.collection("contacts").doc(invite.linkedContactId).update({
+      linkedInviteId: null, // Clear invite link
+      linkedMemberId: memberId, // Add member link
+      linkedUserId: userId, // Add user link
+      updatedAt: Timestamp.now(),
+    });
+  }
+
   // Update organization stats
   await updateOrganizationStats(invite.organizationId);
 }
 
 /**
  * Decline an invite
+ * Also updates the linked Contact to external badge
  */
 export async function declineInvite(inviteId: string): Promise<void> {
+  const inviteDoc = await db.collection("invites").doc(inviteId).get();
+
+  if (!inviteDoc.exists) {
+    throw new Error("Invite not found");
+  }
+
+  const invite = inviteDoc.data() as Omit<OrganizationInvite, "id">;
+
   await db.collection("invites").doc(inviteId).update({
     status: "declined",
     respondedAt: Timestamp.now(),
   });
+
+  // Update linked Contact: convert to external badge
+  if (invite.linkedContactId) {
+    await db.collection("contacts").doc(invite.linkedContactId).update({
+      linkedInviteId: null, // Clear invite link
+      badge: "external", // Convert to external
+      hasLoginAccess: false, // Remove login access
+      updatedAt: Timestamp.now(),
+    });
+  }
+}
+
+/**
+ * Cancel an invite (admin action)
+ * Also updates the linked Contact to external badge
+ */
+export async function cancelInvite(inviteId: string): Promise<void> {
+  const inviteDoc = await db.collection("invites").doc(inviteId).get();
+
+  if (!inviteDoc.exists) {
+    throw new Error("Invite not found");
+  }
+
+  const invite = inviteDoc.data() as Omit<OrganizationInvite, "id">;
+
+  // Delete the invite
+  await db.collection("invites").doc(inviteId).delete();
+
+  // Update linked Contact: convert to external badge
+  if (invite.linkedContactId) {
+    await db.collection("contacts").doc(invite.linkedContactId).update({
+      linkedInviteId: null, // Clear invite link
+      badge: "external", // Convert to external
+      hasLoginAccess: false, // Remove login access
+      updatedAt: Timestamp.now(),
+    });
+  }
+}
+
+/**
+ * Resend an invite email
+ */
+export async function resendInvite(
+  inviteId: string,
+): Promise<{ token: string; expiresAt: Timestamp }> {
+  const inviteDoc = await db.collection("invites").doc(inviteId).get();
+
+  if (!inviteDoc.exists) {
+    throw new Error("Invite not found");
+  }
+
+  const invite = inviteDoc.data() as Omit<OrganizationInvite, "id">;
+
+  if (invite.status !== "pending") {
+    throw new Error("Can only resend pending invites");
+  }
+
+  // Generate new expiration (7 days from now)
+  const newExpiresAt = Timestamp.fromMillis(
+    Date.now() + 7 * 24 * 60 * 60 * 1000,
+  );
+
+  // Update invite with new expiration and resend tracking
+  await db
+    .collection("invites")
+    .doc(inviteId)
+    .update({
+      expiresAt: newExpiresAt,
+      lastResentAt: Timestamp.now(),
+      resentCount: (invite.resentCount || 0) + 1,
+    });
+
+  return { token: invite.token, expiresAt: newExpiresAt as any };
+}
+
+/**
+ * Get pending invites for an organization
+ */
+export async function getOrganizationInvites(
+  organizationId: string,
+): Promise<(OrganizationInvite & { id: string })[]> {
+  const snapshot = await db
+    .collection("invites")
+    .where("organizationId", "==", organizationId)
+    .where("status", "==", "pending")
+    .orderBy("invitedAt", "desc")
+    .get();
+
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...(doc.data() as Omit<OrganizationInvite, "id">),
+  }));
 }
 
 /**

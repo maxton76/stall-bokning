@@ -2,7 +2,17 @@ import type {
   Contact,
   CreateContactData,
   ContactDisplay,
+  ContactBadge,
 } from "@shared/types/contact";
+
+// Filter options for contacts
+export interface ContactFilterOptions {
+  organizationId?: string;
+  accessLevel?: "user" | "organization";
+  badge?: ContactBadge;
+  hasLoginAccess?: boolean;
+  search?: string;
+}
 
 // ============================================================================
 // CRUD Operations
@@ -194,6 +204,141 @@ export async function getContactsForSelection(
       email: contact.email,
       city: contact.address.city,
       country: contact.address.country,
+      badge: contact.badge,
+      hasLoginAccess: contact.hasLoginAccess,
     };
   });
+}
+
+// ============================================================================
+// Enhanced Filtering Operations
+// ============================================================================
+
+/**
+ * Get contacts with advanced filtering
+ * Supports badge, hasLoginAccess, and search filters
+ * @param userId - User ID
+ * @param options - Filter options
+ * @returns Promise with array of filtered contacts
+ */
+export async function getFilteredContacts(
+  userId: string,
+  options: ContactFilterOptions = {},
+): Promise<Contact[]> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  const params = new URLSearchParams();
+  if (options.organizationId) {
+    params.append("organizationId", options.organizationId);
+  }
+  if (options.accessLevel) {
+    params.append("accessLevel", options.accessLevel);
+  }
+  if (options.badge) {
+    params.append("badge", options.badge);
+  }
+  if (options.hasLoginAccess !== undefined) {
+    params.append("hasLoginAccess", options.hasLoginAccess.toString());
+  }
+  if (options.search) {
+    params.append("search", options.search);
+  }
+
+  const queryString = params.toString() ? `?${params.toString()}` : "";
+
+  const response = await authFetchJSON<{ contacts: Contact[] }>(
+    `${import.meta.env.VITE_API_URL}/api/v1/contacts${queryString}`,
+    { method: "GET" },
+  );
+
+  return response.contacts;
+}
+
+/**
+ * Get contacts by badge type
+ * @param organizationId - Organization ID
+ * @param badge - Badge type to filter by
+ * @returns Promise with array of contacts with the specified badge
+ */
+export async function getContactsByBadge(
+  organizationId: string,
+  badge: ContactBadge,
+): Promise<Contact[]> {
+  return getFilteredContacts("", {
+    organizationId,
+    accessLevel: "organization",
+    badge,
+  });
+}
+
+/**
+ * Get contacts with login access
+ * @param organizationId - Organization ID
+ * @returns Promise with array of contacts that have login access
+ */
+export async function getContactsWithLoginAccess(
+  organizationId: string,
+): Promise<Contact[]> {
+  return getFilteredContacts("", {
+    organizationId,
+    accessLevel: "organization",
+    hasLoginAccess: true,
+  });
+}
+
+/**
+ * Search contacts within an organization
+ * @param organizationId - Organization ID
+ * @param searchQuery - Search query string
+ * @returns Promise with array of matching contacts
+ */
+export async function searchOrganizationContacts(
+  organizationId: string,
+  searchQuery: string,
+): Promise<Contact[]> {
+  return getFilteredContacts("", {
+    organizationId,
+    accessLevel: "organization",
+    search: searchQuery,
+  });
+}
+
+// ============================================================================
+// Duplicate Detection
+// ============================================================================
+
+export interface DuplicateCheckResult {
+  hasDuplicates: boolean;
+  duplicates: Array<Contact & { matchType: "email" | "name" | "businessName" }>;
+}
+
+/**
+ * Check for duplicate contacts before creating
+ * @param organizationId - Organization ID
+ * @param checkData - Data to check for duplicates
+ * @returns Promise with duplicate check result
+ */
+export async function checkDuplicateContacts(
+  organizationId: string,
+  checkData: {
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    businessName?: string;
+  },
+): Promise<DuplicateCheckResult> {
+  const { authFetchJSON } = await import("@/utils/authFetch");
+
+  const response = await authFetchJSON<DuplicateCheckResult>(
+    `${import.meta.env.VITE_API_URL}/api/v1/contacts/check-duplicate`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        organizationId,
+        ...checkData,
+      }),
+    },
+  );
+
+  return response;
 }

@@ -151,6 +151,14 @@ export type HorseUsage = "care" | "sport" | "breeding";
 export type HorseStatus = "active" | "inactive";
 
 /**
+ * Horse ownership type - who owns the horse
+ * - member: Owned by an organization member (linked to OrganizationMember)
+ * - contact: Owned by a contact in the system (linked to Contact)
+ * - external: Owned by someone from another organization
+ */
+export type HorseOwnershipType = "member" | "contact" | "external";
+
+/**
  * Equipment item for horse special instructions
  */
 export interface EquipmentItem {
@@ -177,6 +185,12 @@ export interface Horse {
   ownerId: string; // User who owns this horse (can be owner or member)
   ownerName?: string; // Cached for display
   ownerEmail?: string; // Cached for display
+
+  // Enhanced ownership tracking
+  ownershipType: HorseOwnershipType; // member | contact | external
+  ownerContactId?: string; // Contact ID if ownershipType === 'contact'
+  ownerContactName?: string; // Cached contact name for display
+  ownerOrganizationId?: string; // External organization ID if ownershipType === 'external'
 
   // External horse flag - if true, horse is not part of the stable
   isExternal: boolean; // Default: false

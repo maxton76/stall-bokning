@@ -33,6 +33,14 @@ const createContactSchema = z.object({
   vatNumber: z.string().optional(),
   eoriNumber: z.string().optional(),
   contactPerson: z.string().optional(),
+  // Source tracking (optional - defaults will be set)
+  source: z.enum(["manual", "invite", "import", "sync"]).optional(),
+  badge: z.enum(["primary", "stable", "member", "external"]).optional(),
+  hasLoginAccess: z.boolean().optional(),
+  // Linking fields (optional)
+  linkedInviteId: z.string().optional(),
+  linkedMemberId: z.string().optional(),
+  linkedUserId: z.string().optional(),
 });
 
 const updateContactSchema = z.object({
@@ -101,6 +109,15 @@ export async function contactsRoutes(fastify: FastifyInstance) {
           organizationId:
             data.accessLevel === "organization" ? data.organizationId : null,
           userId: data.accessLevel === "user" ? user.uid : null,
+          // Linking fields
+          linkedInviteId: data.linkedInviteId || null,
+          linkedMemberId: data.linkedMemberId || null,
+          linkedUserId: data.linkedUserId || null,
+          // Badge and source
+          badge: data.badge || "external",
+          source: data.source || "manual",
+          hasLoginAccess: data.hasLoginAccess ?? false,
+          // Common fields
           email: data.email || null,
           phoneNumber: data.phoneNumber || null,
           iban: data.iban || null,
@@ -209,6 +226,7 @@ export async function contactsRoutes(fastify: FastifyInstance) {
   );
 
   // Get user contacts (user-level + organization-level if orgId provided)
+  // Supports filters: badge, hasLoginAccess, search
   fastify.get(
     "/",
     {
@@ -216,13 +234,17 @@ export async function contactsRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       try {
-        const { organizationId, accessLevel } = request.query as {
-          organizationId?: string;
-          accessLevel?: "user" | "organization";
-        };
+        const { organizationId, accessLevel, badge, hasLoginAccess, search } =
+          request.query as {
+            organizationId?: string;
+            accessLevel?: "user" | "organization";
+            badge?: "primary" | "stable" | "member" | "external";
+            hasLoginAccess?: string; // "true" or "false"
+            search?: string;
+          };
         const user = (request as AuthenticatedRequest).user!;
 
-        const contacts: any[] = [];
+        let contacts: any[] = [];
 
         // Get organization contacts if organizationId provided
         if (
@@ -236,10 +258,23 @@ export async function contactsRoutes(fastify: FastifyInstance) {
             .get();
 
           if (memberDoc.exists && memberDoc.data()?.status === "active") {
-            const orgContactsSnapshot = await db
+            let query = db
               .collection("contacts")
               .where("accessLevel", "==", "organization")
-              .where("organizationId", "==", organizationId)
+              .where("organizationId", "==", organizationId);
+
+            // Apply badge filter if provided
+            if (badge) {
+              query = query.where("badge", "==", badge);
+            }
+
+            // Apply hasLoginAccess filter if provided
+            if (hasLoginAccess !== undefined) {
+              const hasAccess = hasLoginAccess === "true";
+              query = query.where("hasLoginAccess", "==", hasAccess);
+            }
+
+            const orgContactsSnapshot = await query
               .orderBy("createdAt", "desc")
               .get();
 
@@ -254,10 +289,23 @@ export async function contactsRoutes(fastify: FastifyInstance) {
 
         // Get user's personal contacts
         if (!accessLevel || accessLevel === "user") {
-          const userContactsSnapshot = await db
+          let query = db
             .collection("contacts")
             .where("accessLevel", "==", "user")
-            .where("userId", "==", user.uid)
+            .where("userId", "==", user.uid);
+
+          // Apply badge filter if provided
+          if (badge) {
+            query = query.where("badge", "==", badge);
+          }
+
+          // Apply hasLoginAccess filter if provided
+          if (hasLoginAccess !== undefined) {
+            const hasAccess = hasLoginAccess === "true";
+            query = query.where("hasLoginAccess", "==", hasAccess);
+          }
+
+          const userContactsSnapshot = await query
             .orderBy("createdAt", "desc")
             .get();
 
@@ -266,6 +314,26 @@ export async function contactsRoutes(fastify: FastifyInstance) {
               id: doc.id,
               ...doc.data(),
             });
+          });
+        }
+
+        // Apply client-side search filter if provided
+        if (search && search.trim()) {
+          const searchLower = search.toLowerCase().trim();
+          contacts = contacts.filter((contact) => {
+            const firstName = contact.firstName?.toLowerCase() || "";
+            const lastName = contact.lastName?.toLowerCase() || "";
+            const businessName = contact.businessName?.toLowerCase() || "";
+            const email = contact.email?.toLowerCase() || "";
+            const fullName = `${firstName} ${lastName}`.trim();
+
+            return (
+              firstName.includes(searchLower) ||
+              lastName.includes(searchLower) ||
+              fullName.includes(searchLower) ||
+              businessName.includes(searchLower) ||
+              email.includes(searchLower)
+            );
           });
         }
 
@@ -409,6 +477,109 @@ export async function contactsRoutes(fastify: FastifyInstance) {
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to delete contact",
+        });
+      }
+    },
+  );
+
+  // POST /api/v1/contacts/check-duplicate - Check for duplicate contacts
+  fastify.post(
+    "/check-duplicate",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { email, organizationId, firstName, lastName, businessName } =
+          request.body as {
+            email?: string;
+            organizationId: string;
+            firstName?: string;
+            lastName?: string;
+            businessName?: string;
+          };
+        const user = (request as AuthenticatedRequest).user!;
+
+        // Verify organization membership
+        const memberId = `${user.uid}_${organizationId}`;
+        const memberDoc = await db
+          .collection("organizationMembers")
+          .doc(memberId)
+          .get();
+
+        if (!memberDoc.exists || memberDoc.data()?.status !== "active") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have access to this organization",
+          });
+        }
+
+        const duplicates: any[] = [];
+
+        // Check by email if provided
+        if (email) {
+          const emailSnapshot = await db
+            .collection("contacts")
+            .where("organizationId", "==", organizationId)
+            .where("email", "==", email.toLowerCase())
+            .limit(5)
+            .get();
+
+          emailSnapshot.docs.forEach((doc) => {
+            duplicates.push({
+              id: doc.id,
+              ...doc.data(),
+              matchType: "email",
+            });
+          });
+        }
+
+        // Check by name if provided (and not already found by email)
+        if (firstName && lastName && duplicates.length === 0) {
+          const nameSnapshot = await db
+            .collection("contacts")
+            .where("organizationId", "==", organizationId)
+            .where("firstName", "==", firstName)
+            .where("lastName", "==", lastName)
+            .limit(5)
+            .get();
+
+          nameSnapshot.docs.forEach((doc) => {
+            duplicates.push({
+              id: doc.id,
+              ...doc.data(),
+              matchType: "name",
+            });
+          });
+        }
+
+        // Check by business name if provided (for Business contacts)
+        if (businessName && duplicates.length === 0) {
+          const businessSnapshot = await db
+            .collection("contacts")
+            .where("organizationId", "==", organizationId)
+            .where("businessName", "==", businessName)
+            .limit(5)
+            .get();
+
+          businessSnapshot.docs.forEach((doc) => {
+            duplicates.push({
+              id: doc.id,
+              ...doc.data(),
+              matchType: "businessName",
+            });
+          });
+        }
+
+        return {
+          hasDuplicates: duplicates.length > 0,
+          duplicates,
+        };
+      } catch (error) {
+        request.log.error({ error }, "Failed to check for duplicates");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to check for duplicates",
         });
       }
     },

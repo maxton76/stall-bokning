@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, RefreshCw, X, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/PageHeader";
 import { RoleBadge, StatusBadge } from "@/utils/badgeHelpers";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -21,10 +22,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAsyncData } from "@/hooks/useAsyncData";
 import { useDialog } from "@/hooks/useDialog";
 import { useCRUD } from "@/hooks/useCRUD";
+import { useToast } from "@/hooks/use-toast";
 import { InviteUserDialog } from "@/components/InviteUserDialog";
 import { getOrganization } from "@/services/organizationService";
 import {
@@ -32,16 +40,26 @@ import {
   removeOrganizationMember,
   inviteOrganizationMember,
 } from "@/services/organizationMemberService";
+import {
+  getOrganizationInvites,
+  resendOrganizationInvite,
+  cancelOrganizationInvite,
+} from "@/services/inviteService";
 import type {
   Organization,
   OrganizationMember,
+  OrganizationInvite,
 } from "../../../shared/src/types/organization";
 
 export default function OrganizationUsersPage() {
   const { t } = useTranslation(["organizations", "common"]);
   const { organizationId } = useParams<{ organizationId: string }>();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const [processingInviteId, setProcessingInviteId] = useState<string | null>(
+    null,
+  );
   const inviteDialog = useDialog();
 
   // Organization data
@@ -60,10 +78,20 @@ export default function OrganizationUsersPage() {
     },
   });
 
+  // Pending invites data
+  const invites = useAsyncData<OrganizationInvite[]>({
+    loadFn: async () => {
+      if (!organizationId) return [];
+      const response = await getOrganizationInvites(organizationId);
+      return response.invites || [];
+    },
+  });
+
   // Load data when organizationId changes
   useEffect(() => {
     organization.load();
     members.load();
+    invites.load();
   }, [organizationId]);
 
   // CRUD operations
@@ -90,11 +118,16 @@ export default function OrganizationUsersPage() {
         user.uid, // inviterId
         {
           email: data.email,
-          roles: data.roles,
-          primaryRole: data.primaryRole,
           firstName: data.firstName,
           lastName: data.lastName,
           phoneNumber: data.phoneNumber,
+          // Contact type fields
+          contactType: data.contactType,
+          businessName: data.businessName,
+          address: data.address,
+          // Role assignment
+          roles: data.roles,
+          primaryRole: data.primaryRole,
           showInPlanning: data.showInPlanning,
           stableAccess: data.stableAccess,
           assignedStableIds: data.assignedStableIds,
@@ -104,22 +137,77 @@ export default function OrganizationUsersPage() {
       inviteDialog.closeDialog();
 
       // Show appropriate success message based on response type
-      if (response.type === "new_user") {
-        // Non-existing user - invite sent
-        alert(t("organizations:invite.inviteSent", { email: data.email }));
-      } else {
-        // Existing user - pending membership created
-        alert(t("organizations:invite.inviteSent", { email: data.email }));
-      }
+      toast({
+        title: t("organizations:invite.success"),
+        description: t("organizations:invite.inviteSent", {
+          email: data.email,
+        }),
+      });
 
       members.reload();
+      invites.reload();
     } catch (error: any) {
       if (error.response?.status === 409) {
-        alert(t("organizations:invite.alreadyMember"));
+        toast({
+          title: t("common:labels.error"),
+          description: t("organizations:invite.alreadyMember"),
+          variant: "destructive",
+        });
       } else {
-        alert(t("organizations:invite.inviteFailed"));
+        toast({
+          title: t("common:labels.error"),
+          description: t("organizations:invite.inviteFailed"),
+          variant: "destructive",
+        });
       }
       throw error;
+    }
+  };
+
+  // Handle resend invite
+  const handleResendInvite = async (inviteId: string, email: string) => {
+    if (!organizationId) return;
+
+    try {
+      setProcessingInviteId(inviteId);
+      await resendOrganizationInvite(organizationId, inviteId);
+      toast({
+        title: t("organizations:invite.resent"),
+        description: t("organizations:invite.resentDescription", { email }),
+      });
+      invites.reload();
+    } catch (error) {
+      toast({
+        title: t("common:labels.error"),
+        description: t("organizations:invite.resendFailed"),
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingInviteId(null);
+    }
+  };
+
+  // Handle cancel invite
+  const handleCancelInvite = async (inviteId: string, email: string) => {
+    if (!organizationId) return;
+    if (!confirm(t("organizations:invite.confirmCancel", { email }))) return;
+
+    try {
+      setProcessingInviteId(inviteId);
+      await cancelOrganizationInvite(organizationId, inviteId);
+      toast({
+        title: t("organizations:invite.cancelled"),
+        description: t("organizations:invite.cancelledDescription", { email }),
+      });
+      invites.reload();
+    } catch (error) {
+      toast({
+        title: t("common:labels.error"),
+        description: t("organizations:invite.cancelFailed"),
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingInviteId(null);
     }
   };
 
@@ -180,6 +268,156 @@ export default function OrganizationUsersPage() {
           </div>
         </CardHeader>
       </Card>
+
+      {/* Pending Invitations Table */}
+      {(invites.data?.length ?? 0) > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              {t("organizations:invites.title")} ({invites.data?.length || 0})
+            </CardTitle>
+            <CardDescription>
+              {t("organizations:invites.description")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {invites.loading ? (
+              <p className="text-sm text-muted-foreground">
+                {t("common:labels.loading")}
+              </p>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>
+                        {t("organizations:form.labels.email")}
+                      </TableHead>
+                      <TableHead>{t("common:labels.name")}</TableHead>
+                      <TableHead>{t("organizations:invites.sentOn")}</TableHead>
+                      <TableHead>
+                        {t("organizations:invites.expiresOn")}
+                      </TableHead>
+                      <TableHead>{t("organizations:members.roles")}</TableHead>
+                      <TableHead>
+                        {t("organizations:invites.resendCount")}
+                      </TableHead>
+                      <TableHead className="text-right">
+                        {t("common:buttons.actions")}
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {invites.data?.map((invite) => (
+                      <TableRow key={invite.id}>
+                        <TableCell className="font-medium">
+                          {invite.email}
+                        </TableCell>
+                        <TableCell>
+                          {invite.firstName && invite.lastName
+                            ? `${invite.firstName} ${invite.lastName}`
+                            : "-"}
+                          {invite.contactType === "Business" &&
+                            invite.businessName && (
+                              <Badge variant="outline" className="ml-2 text-xs">
+                                {invite.businessName}
+                              </Badge>
+                            )}
+                        </TableCell>
+                        <TableCell>
+                          {invite.sentAt
+                            ? new Date(
+                                (invite.sentAt as any).seconds * 1000,
+                              ).toLocaleDateString()
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {invite.expiresAt
+                            ? new Date(
+                                (invite.expiresAt as any).seconds * 1000,
+                              ).toLocaleDateString()
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {invite.roles.map((role) => (
+                              <RoleBadge
+                                key={role}
+                                role={role}
+                                className="text-xs"
+                              />
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {invite.resentCount > 0 ? (
+                            <Badge variant="secondary" className="text-xs">
+                              {t("organizations:invites.resentTimes", {
+                                count: invite.resentCount,
+                              })}
+                            </Badge>
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <TooltipProvider>
+                            <div className="flex gap-2 justify-end">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    disabled={processingInviteId === invite.id}
+                                    onClick={() =>
+                                      handleResendInvite(
+                                        invite.id!,
+                                        invite.email,
+                                      )
+                                    }
+                                  >
+                                    <RefreshCw
+                                      className={`h-4 w-4 ${processingInviteId === invite.id ? "animate-spin" : ""}`}
+                                    />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {t("organizations:invites.resend")}
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    disabled={processingInviteId === invite.id}
+                                    onClick={() =>
+                                      handleCancelInvite(
+                                        invite.id!,
+                                        invite.email,
+                                      )
+                                    }
+                                  >
+                                    <X className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {t("organizations:invites.cancel")}
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TooltipProvider>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Members Table */}
       <Card>

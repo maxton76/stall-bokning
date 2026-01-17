@@ -47,6 +47,11 @@ export async function inviteOrganizationMember(
           firstName: memberData.firstName,
           lastName: memberData.lastName,
           phoneNumber: memberData.phoneNumber,
+          // Contact type fields
+          contactType: memberData.contactType || "Personal",
+          businessName: memberData.businessName,
+          address: memberData.address,
+          // Role assignment
           roles: memberData.roles,
           primaryRole: memberData.primaryRole,
           showInPlanning: memberData.showInPlanning ?? true,
