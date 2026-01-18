@@ -1168,6 +1168,248 @@ match /vaccinationRecords/{recordId} {
 
 ---
 
+### 9. `routineTemplates/` Collection
+
+**Purpose**: Stores reusable routine flow definitions for organizations (Morgonpass, Dagpass, Kvällspass, etc.)
+
+**Document ID**: Auto-generated Firestore ID
+
+**Document Schema**:
+```typescript
+interface RoutineTemplate {
+  id: string;
+  organizationId: string;
+  stableId?: string;           // Optional: stable-specific template
+
+  // Identity
+  name: string;                // e.g., "Morgonpass", "Kvällspass"
+  description?: string;
+  type: 'morning' | 'midday' | 'evening' | 'custom';
+  icon?: string;
+  color?: string;              // Hex color for display
+
+  // Timing
+  defaultStartTime: string;    // "HH:MM" format
+  estimatedDuration: number;   // Minutes
+
+  // Steps (ordered)
+  steps: RoutineStep[];
+
+  // Settings
+  requiresNotesRead: boolean;  // Must read daily notes before starting
+  allowSkipSteps: boolean;
+  pointsValue: number;         // For fairness algorithm
+
+  // Audit
+  createdAt: Timestamp;
+  createdBy: string;
+  updatedAt: Timestamp;
+  updatedBy?: string;
+  isActive: boolean;
+}
+
+interface RoutineStep {
+  id: string;
+  order: number;
+  name: string;                // "Morgonfodring", "Mockning"
+  description?: string;
+  category: RoutineCategory;   // 'feeding' | 'medication' | 'blanket' | etc.
+  horseContext: 'all' | 'specific' | 'groups' | 'none';
+  showFeeding?: boolean;
+  showMedication?: boolean;
+  showSpecialInstructions?: boolean;
+  showBlanketStatus?: boolean;
+  requiresConfirmation: boolean;
+  allowPartialCompletion: boolean;
+  allowPhotoEvidence?: boolean;
+  estimatedMinutes?: number;
+}
+
+type RoutineCategory =
+  | 'preparation' | 'feeding' | 'medication' | 'blanket'
+  | 'turnout' | 'bring_in' | 'mucking' | 'water'
+  | 'health_check' | 'safety' | 'cleaning' | 'other';
+```
+
+**Indexes**:
+- `organizationId` + `isActive` + `name` (composite)
+- `organizationId` + `type` (composite)
+- `stableId` + `isActive` (composite)
+
+**Security Rules**:
+- LIST/GET: Organization members can view
+- CREATE/UPDATE/DELETE: Organization administrators only
+
+---
+
+### 10. `routineInstances/` Collection
+
+**Purpose**: Materialized routine execution for a specific date and assignment
+
+**Document ID**: Auto-generated Firestore ID
+
+**Document Schema**:
+```typescript
+interface RoutineInstance {
+  id: string;
+  templateId: string;
+  templateName: string;        // Denormalized
+  organizationId: string;
+  stableId: string;
+  stableName?: string;
+
+  // Scheduling
+  scheduledDate: Timestamp;
+  scheduledStartTime: string;  // "HH:MM"
+  estimatedDuration: number;
+
+  // Assignment
+  assignedTo?: string;
+  assignedToName?: string;
+  assignmentType: 'auto' | 'manual' | 'selfBooked';
+
+  // Status
+  status: 'scheduled' | 'started' | 'in_progress' | 'completed' | 'missed' | 'cancelled';
+  startedAt?: Timestamp;
+  completedAt?: Timestamp;
+  completedBy?: string;
+
+  // Progress
+  currentStepId?: string;
+  currentStepOrder?: number;
+  progress: RoutineProgress;
+
+  // Fairness
+  pointsValue: number;
+  pointsAwarded?: number;
+
+  // Daily notes
+  dailyNotesAcknowledged: boolean;
+  dailyNotesAcknowledgedAt?: Timestamp;
+
+  // Metadata
+  notes?: string;
+  createdAt: Timestamp;
+  createdBy: string;
+  updatedAt: Timestamp;
+}
+
+interface RoutineProgress {
+  stepsCompleted: number;
+  stepsTotal: number;
+  percentComplete: number;
+  stepProgress: Record<string, StepProgress>;
+}
+
+interface StepProgress {
+  stepId: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'skipped';
+  startedAt?: Timestamp;
+  completedAt?: Timestamp;
+  horseProgress?: Record<string, HorseStepProgress>;
+}
+
+interface HorseStepProgress {
+  horseId: string;
+  horseName: string;
+  completed: boolean;
+  skipped: boolean;
+  skipReason?: string;
+  notes?: string;
+  photoUrls?: string[];
+  feedingConfirmed?: boolean;
+  medicationGiven?: boolean;
+  medicationSkipped?: boolean;  // Triggers alert
+  blanketAction?: 'on' | 'off' | 'unchanged';
+}
+```
+
+**Indexes**:
+- `stableId` + `scheduledDate` (composite, descending)
+- `stableId` + `status` (composite)
+- `assignedTo` + `scheduledDate` (composite)
+- `templateId` + `scheduledDate` (composite)
+
+**Security Rules**:
+- LIST/GET: Stable members can view
+- CREATE: Stable managers only
+- UPDATE: Members can update progress fields; managers full control
+- DELETE: Stable managers only
+
+---
+
+### 11. `dailyNotes/` Collection
+
+**Purpose**: Daily notes and alerts for stable communication during routine execution
+
+**Document ID**: `{stableId}_{YYYY-MM-DD}` (e.g., "abc123_2026-01-18")
+
+**Document Schema**:
+```typescript
+interface DailyNotes {
+  id: string;                  // Same as document ID
+  organizationId: string;
+  stableId: string;
+  date: string;                // "YYYY-MM-DD"
+
+  // General notes
+  generalNotes?: string;
+  weatherNotes?: string;
+
+  // Horse-specific notes
+  horseNotes: HorseDailyNote[];
+
+  // Priority alerts
+  alerts: DailyAlert[];
+
+  // Metadata
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  lastUpdatedBy: string;
+  lastUpdatedByName?: string;
+}
+
+interface HorseDailyNote {
+  id: string;
+  horseId: string;
+  horseName: string;           // Denormalized
+  note: string;
+  priority: 'info' | 'warning' | 'critical';
+  category?: 'medication' | 'health' | 'feeding' | 'blanket' | 'behavior' | 'other';
+  createdAt: Timestamp;
+  createdBy: string;
+}
+
+interface DailyAlert {
+  id: string;
+  title: string;
+  message: string;
+  priority: 'info' | 'warning' | 'critical';
+  affectedHorseIds?: string[];
+  affectedHorseNames?: string[];
+  expiresAt?: Timestamp;
+  createdAt: Timestamp;
+  createdBy: string;
+}
+```
+
+**Indexes**:
+- `stableId` + `date` (composite, descending)
+- Document ID format enables efficient single-document lookups
+
+**Security Rules**:
+- LIST/GET: Stable members can view
+- CREATE/UPDATE: Any stable member can add notes
+- DELETE: Stable managers only
+
+**Usage Pattern**:
+1. Before starting a routine, user must acknowledge daily notes
+2. Notes can be updated throughout the day by any stable member
+3. Critical alerts are shown prominently in routine flow UI
+4. Horse-specific notes appear in the relevant step context
+
+---
+
 ## 🔐 Security Rules (Examples)
 
 ### Helper Functions

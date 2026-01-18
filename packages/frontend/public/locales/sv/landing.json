@@ -1,0 +1,214 @@
+{
+  "navigation": {
+    "features": "Funktioner",
+    "modules": "Moduler",
+    "pricing": "Priser",
+    "documentation": "Dokumentation",
+    "login": "Logga in",
+    "register": "Kom igång"
+  },
+  "hero": {
+    "badge": "Smart Stallhantering",
+    "badgeDescription": "Rättvis arbetsfördelning med viktbaserat system",
+    "title": "Smart schemaläggning för",
+    "titleHighlight": "rättvis arbetsfördelning",
+    "description": "Ett modernt SaaS-system för stall som automatiserar schemaläggning och säkerställer rättvis fördelning av dagliga sysslor genom ett intelligent, viktbaserat bokningssystem.",
+    "cta": "Kom igång gratis",
+    "ctaSecondary": "Se hur det fungerar"
+  },
+  "features": {
+    "title": "Kraftfulla funktioner för ditt stall",
+    "subtitle": "Allt du behöver för effektiv stallhantering och rättvis arbetsfördelning",
+    "fairness": {
+      "title": "Rättvis arbetsfördelning",
+      "description": "Vårt viktbaserade system säkerställer att alla bidrar lika mycket över tid. Varje uppgift har en vikt baserad på tid och ansträngning.",
+      "features": ["Viktbaserad algoritm", "Automatisk balansering", "Månatliga återställningar"]
+    },
+    "automation": {
+      "title": "Automatiserad schemaläggning",
+      "description": "Smarta förslag baserade på användarnas tillgänglighet och arbetsfördelning. Sparar tid och minskar konflikter.",
+      "features": ["Intelligenta förslag", "Kollisionshantering", "Tillgänglighetsintegrering"]
+    },
+    "notifications": {
+      "title": "Smarta påminnelser",
+      "description": "Håll alla uppdaterade med notifieringar via e-post, SMS, Telegram och push-notiser.",
+      "features": ["E-post & SMS", "Telegram-bot", "Push-notiser"]
+    },
+    "mobile": {
+      "title": "Mobilanpassad PWA",
+      "description": "Fungerar perfekt på alla enheter. Installera som app och använd offline.",
+      "features": ["Responsiv design", "Offline-stöd", "Installerbar app"]
+    },
+    "analytics": {
+      "title": "Statistik & rapporter",
+      "description": "Följ upp arbetsfördelningen med detaljerade rapporter och rättviseindex.",
+      "features": ["Rättviseindex", "Trendanalys", "Exporterbar data"]
+    },
+    "security": {
+      "title": "Säker & pålitlig",
+      "description": "Rollbaserad åtkomstkontroll och säker datahantering. GDPR-kompatibel.",
+      "features": ["Rollbaserad åtkomst", "Krypterad data", "GDPR-kompatibel"]
+    }
+  },
+  "modules": {
+    "title": "Kompletta moduler för stallhantering",
+    "subtitle": "Från schemaläggning till hästhälsa - allt i ett system",
+    "shifts": {
+      "title": "Schemahantering",
+      "description": "Hantera pass och arbetsscheman med viktbaserad fördelning för rättvisa.",
+      "features": ["Viktbaserad fördelning", "Passbyten", "Tillgänglighetshantering", "Automatiska påminnelser"]
+    },
+    "horses": {
+      "title": "Hästhantering",
+      "description": "Komplett hästregister med hälsologg, vaccinationer och dokumentation.",
+      "features": ["Hästprofiler", "Vaccinationsschema", "Hälsohistorik", "Dokumenthantering"]
+    },
+    "feeding": {
+      "title": "Utfodringshantering",
+      "description": "Individuella foderplaner och scheman för varje häst.",
+      "features": ["Foderplaner", "Schemaläggning", "Allergier & restriktioner", "Lagerhantering"]
+    },
+    "activities": {
+      "title": "Aktivitetsplanering",
+      "description": "Planera och följ upp dagliga aktiviteter och skötselrutiner.",
+      "features": ["Aktivitetslogg", "Rutinscheman", "Uppföljning", "Historik"]
+    },
+    "notifications": {
+      "title": "Notifieringar",
+      "description": "Flexibla notifieringar via flera kanaler baserat på användarpreferenser.",
+      "features": ["E-post & SMS", "Telegram-integration", "Push-notiser", "Anpassningsbara preferenser"]
+    },
+    "organizations": {
+      "title": "Organisationshantering",
+      "description": "Hantera flera stall, team och roller i en hierarkisk struktur.",
+      "features": ["Flera stall", "Rollhantering", "Teaminbjudningar", "Behörighetsnivåer"]
+    },
+    "reporting": {
+      "title": "Rapportering & analys",
+      "description": "Omfattande rapporter för att följa upp arbetsfördelning och trender.",
+      "features": ["Rättviseindex", "Arbetsfördelning", "Trendanalys", "Exportfunktion"]
+    },
+    "assistant": {
+      "title": "AI-assistent",
+      "description": "Naturligt språk för att snabbt hitta information och få smarta förslag.",
+      "features": ["Naturligt språk", "Smarta förslag", "Snabbsökning", "Kontextmedveten"]
+    }
+  },
+  "documentation": {
+    "title": "Dokumentation & guider",
+    "subtitle": "Lär dig hur du får ut mest av Stallbokning",
+    "gettingStarted": {
+      "title": "Komma igång",
+      "description": "Steg-för-steg guide för att sätta upp ditt stall och bjuda in medlemmar.",
+      "link": "Läs guiden"
+    },
+    "fairnessAlgorithm": {
+      "title": "Rättvisesystemet",
+      "description": "Förstå hur vår viktbaserade algoritm säkerställer rättvis arbetsfördelning.",
+      "link": "Läs mer"
+    },
+    "scheduling": {
+      "title": "Schemaläggning",
+      "description": "Komplett guide för att hantera scheman, pass och tillgänglighet.",
+      "link": "Läs guiden"
+    }
+  },
+  "testimonials": {
+    "title": "Vad våra kunder säger",
+    "subtitle": "Stall över hela Sverige använder Stallbokning för sin dagliga verksamhet",
+    "testimonial1": {
+      "title": "Äntligen rättvist!",
+      "content": "Vi hade alltid problem med att vissa gjorde mer än andra. Nu är allt transparent och rättvist. Systemet föreslår automatiskt vem som ska ta nästa pass baserat på arbetsbelastning.",
+      "author": "Anna Lindqvist",
+      "role": "Stallägare, Ängsdalens Ridklubb"
+    },
+    "testimonial2": {
+      "title": "Sparar så mycket tid",
+      "content": "Tidigare lade jag timmar på att koordinera schema via gruppchatten. Nu sköter sig allt automatiskt och alla får påminnelser i god tid.",
+      "author": "Erik Johansson",
+      "role": "Stallchef, Hästgården"
+    },
+    "testimonial3": {
+      "title": "Perfekt för oss",
+      "content": "Med 15 hästar och 20 aktiva medlemmar var det kaos innan. Nu har vi full kontroll och alla vet exakt vad de ska göra och när.",
+      "author": "Maria Svensson",
+      "role": "Verksamhetsledare, Skogsgläntan"
+    }
+  },
+  "pricing": {
+    "title": "Välj rätt plan för ditt stall",
+    "subtitle": "Börja gratis och uppgradera när du växer",
+    "monthly": "månad",
+    "perMonth": "/månad",
+    "free": {
+      "name": "Gratis",
+      "description": "Perfekt för små stall som vill testa systemet",
+      "price": "0",
+      "cta": "Kom igång gratis",
+      "features": [
+        "Upp till 5 användare",
+        "Grundläggande schemaläggning",
+        "E-postnotifieringar",
+        "1 stall"
+      ]
+    },
+    "pro": {
+      "name": "Pro",
+      "badge": "Populärast",
+      "description": "För växande stall med fler behov",
+      "price": "299",
+      "cta": "Prova gratis i 14 dagar",
+      "features": [
+        "Upp till 25 användare",
+        "Alla notifieringskanaler",
+        "Hästhantering",
+        "Rapporter & analys",
+        "Prioriterad support",
+        "Upp till 3 stall"
+      ]
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "description": "För stora anläggningar och ridklubbar",
+      "price": "Kontakta oss",
+      "cta": "Kontakta sälj",
+      "features": [
+        "Obegränsat antal användare",
+        "API-åtkomst",
+        "Dedikerad support",
+        "Anpassade integrationer",
+        "SLA-garanti",
+        "Obegränsat antal stall"
+      ]
+    }
+  },
+  "cta": {
+    "title": "Redo att förenkla stallarbetet?",
+    "description": "Gå med tusentals stall som redan använder Stallbokning för rättvis och effektiv arbetsfördelning.",
+    "button": "Kom igång gratis",
+    "noCreditCard": "Inget kreditkort krävs"
+  },
+  "footer": {
+    "description": "Smart schemaläggning för stall med rättvis arbetsfördelning.",
+    "product": {
+      "title": "Produkt",
+      "features": "Funktioner",
+      "pricing": "Priser",
+      "documentation": "Dokumentation"
+    },
+    "company": {
+      "title": "Företag",
+      "about": "Om oss",
+      "contact": "Kontakt",
+      "privacy": "Integritetspolicy",
+      "terms": "Användarvillkor"
+    },
+    "support": {
+      "title": "Support",
+      "help": "Hjälpcenter",
+      "guides": "Guider",
+      "api": "API-dokumentation"
+    },
+    "copyright": "Stallbokning. Alla rättigheter förbehållna."
+  }
+}

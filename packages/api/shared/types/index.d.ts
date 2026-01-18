@@ -20,6 +20,7 @@ export * from "./transport.js";
 export * from "./inventory.js";
 export * from "./invoice.js";
 export * from "./communication.js";
+export * from "./routine.js";
 export * from "./portal.js";
 export * from "./lesson.js";
 export * from "./payment.js";

@@ -545,7 +545,10 @@
       "departed": "Avrest",
       "since": "Sedan",
       "reason": "Anledning:",
-      "moveHorse": "Flytta häst"
+      "moveHorse": "Flytta häst",
+      "facilityNumber": "Anläggningsnummer",
+      "copyFacilityNumber": "Kopiera anläggningsnummer",
+      "copied": "Kopierat!"
     },
     "basicInfo": {
       "gender": "Kön",

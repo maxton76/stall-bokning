@@ -15,6 +15,7 @@
     "labels": {
       "name": "Stallnamn",
       "description": "Beskrivning",
+      "facilityNumber": "Anläggningsnummer",
       "address": "Gatuadress",
       "city": "Stad",
       "postalCode": "Postnummer",
@@ -23,6 +24,7 @@
     "placeholders": {
       "name": "t.ex. Gröna dalens stall",
       "description": "Kort beskrivning av ditt stall...",
+      "facilityNumber": "t.ex. SE123456789",
       "address": "t.ex. Vallvägen 12",
       "city": "t.ex. Stockholm",
       "postalCode": "t.ex. 123 45"

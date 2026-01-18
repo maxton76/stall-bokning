@@ -34,6 +34,7 @@ export default function CreateStablePage() {
     address: "",
     city: "",
     postalCode: "",
+    facilityNumber: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,6 +61,7 @@ export default function CreateStablePage() {
         name: formData.name,
         description: formData.description,
         address: `${formData.address}, ${formData.city} ${formData.postalCode}`,
+        facilityNumber: formData.facilityNumber || undefined,
         ownerId: user.uid,
         ownerEmail: user.email || undefined,
         organizationId, // Always include organizationId
@@ -141,6 +143,20 @@ export default function CreateStablePage() {
                 value={formData.description}
                 onChange={handleChange}
                 rows={4}
+              />
+            </div>
+
+            {/* Facility Number */}
+            <div className="space-y-2">
+              <Label htmlFor="facilityNumber">
+                {t("stables:form.labels.facilityNumber")}
+              </Label>
+              <Input
+                id="facilityNumber"
+                name="facilityNumber"
+                placeholder={t("stables:form.placeholders.facilityNumber")}
+                value={formData.facilityNumber}
+                onChange={handleChange}
               />
             </div>
 

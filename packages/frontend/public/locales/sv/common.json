@@ -18,7 +18,11 @@
     "locationHistory": "Platshistorik",
     "inventory": "Lagerhantering",
     "invoices": "Fakturor",
-    "staffMatrix": "Personalöversikt"
+    "staffMatrix": "Personalöversikt",
+    "routines": "Stallrutiner",
+    "routinesList": "Dagliga rutiner",
+    "routineTemplates": "Rutinmallar",
+    "routineAnalytics": "Statistik"
   },
   "buttons": {
     "save": "Spara",
@@ -74,7 +78,11 @@
     "activeAlerts": "aktiva varningar",
     "select": "Välj...",
     "weekend": "Helg",
-    "unknown": "Okänd"
+    "unknown": "Okänd",
+    "all": "Alla",
+    "copy": "Kopia",
+    "points": "poäng",
+    "optional": "valfritt"
   },
   "status": {
     "active": "Aktiv",

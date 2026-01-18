@@ -28,6 +28,9 @@ export * from "./inventory.js";
 export * from "./invoice.js";
 export * from "./communication.js";
 
+// Routine Flows
+export * from "./routine.js";
+
 // Portal (Client Self-Service)
 export * from "./portal.js";
 

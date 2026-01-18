@@ -15,6 +15,7 @@
     "labels": {
       "name": "Stable Name",
       "description": "Description",
+      "facilityNumber": "Facility Number",
       "address": "Street Address",
       "city": "City",
       "postalCode": "Postal Code",
@@ -23,6 +24,7 @@
     "placeholders": {
       "name": "e.g., Green Valley Stables",
       "description": "Brief description of your stable...",
+      "facilityNumber": "e.g., SE123456789",
       "address": "e.g., 123 Stable Road",
       "city": "e.g., Stockholm",
       "postalCode": "e.g., 123 45"

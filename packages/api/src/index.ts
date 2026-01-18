@@ -41,6 +41,8 @@ import { portalRoutes } from "./routes/portal.js";
 import { lessonRoutes } from "./routes/lessons.js";
 import { paymentsRoutes } from "./routes/payments.js";
 import { assistantRoutes } from "./routes/assistant.js";
+import { routinesRoutes } from "./routes/routines.js";
+import { dailyNotesRoutes } from "./routes/daily-notes.js";
 
 const PORT = Number(process.env.PORT) || 8080;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -165,6 +167,8 @@ await fastify.register(portalRoutes, { prefix: "/api/v1/portal" });
 await fastify.register(lessonRoutes, { prefix: "/api/v1" });
 await fastify.register(paymentsRoutes, { prefix: "/api/v1" });
 await fastify.register(assistantRoutes, { prefix: "/api/v1" });
+await fastify.register(routinesRoutes, { prefix: "/api/v1/routines" });
+await fastify.register(dailyNotesRoutes, { prefix: "/api/v1/daily-notes" });
 
 // 404 handler
 fastify.setNotFoundHandler((request, reply) => {

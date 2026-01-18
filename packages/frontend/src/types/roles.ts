@@ -38,6 +38,7 @@ export interface Stable {
   name: string;
   description?: string;
   address?: string;
+  facilityNumber?: string; // Anläggningsnummer - Jordbruksverket registration
   ownerId: string; // Must be a user with systemRole='stable_owner'
   ownerEmail?: string; // Cached for display
   organizationId?: string; // Link to parent organization (optional for backward compatibility)

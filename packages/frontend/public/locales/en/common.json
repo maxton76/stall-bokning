@@ -18,7 +18,11 @@
     "locationHistory": "Location History",
     "inventory": "Inventory",
     "invoices": "Invoices",
-    "staffMatrix": "Staff Overview"
+    "staffMatrix": "Staff Overview",
+    "routines": "Stable Routines",
+    "routinesList": "Today's Routines",
+    "routineTemplates": "Routine Templates",
+    "routineAnalytics": "Analytics"
   },
   "buttons": {
     "save": "Save",
@@ -74,7 +78,11 @@
     "activeAlerts": "active alerts",
     "select": "Select...",
     "weekend": "Weekend",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "all": "All",
+    "copy": "Copy",
+    "points": "points",
+    "optional": "optional"
   },
   "status": {
     "active": "Active",

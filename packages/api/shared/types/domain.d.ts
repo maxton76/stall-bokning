@@ -41,6 +41,7 @@ export interface Stable {
   name: string;
   description?: string;
   address?: string;
+  facilityNumber?: string;
   ownerId: string;
   ownerEmail?: string;
   organizationId?: string;

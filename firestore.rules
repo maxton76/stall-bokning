@@ -1557,6 +1557,115 @@ service cloud.firestore {
       );
     }
 
+    // ============================================================================
+    // ROUTINE TEMPLATES COLLECTION - ORGANIZATION-SCOPED
+    // ============================================================================
+
+    match /routineTemplates/{templateId} {
+      // LIST: Authenticated users (filtering by organizationId happens via query)
+      allow list: if isAuthenticated();
+
+      // GET: Organization members can view
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationMember(resource.data.organizationId)
+      );
+
+      // CREATE: Organization admins only
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationOwner(request.resource.data.organizationId) ||
+        isOrganizationAdministrator(request.resource.data.organizationId)
+      );
+
+      // UPDATE: Organization admins only
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationOwner(resource.data.organizationId) ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+
+      // DELETE: Organization admins only (soft delete via isActive)
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationOwner(resource.data.organizationId) ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+    }
+
+    // ============================================================================
+    // ROUTINE INSTANCES COLLECTION - STABLE-SCOPED EXECUTION
+    // ============================================================================
+
+    match /routineInstances/{instanceId} {
+      // LIST: Authenticated users (filtering by stableId happens via query)
+      allow list: if isAuthenticated();
+
+      // GET: Stable members can view
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canAccessStable(resource.data.stableId)
+      );
+
+      // CREATE: Stable managers or org admins
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(request.resource.data.stableId)
+      );
+
+      // UPDATE: Stable members can update progress, managers can update all
+      // Members limited to status, progress, completedAt, completedBy fields
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(resource.data.stableId) || // Manager full control
+        (canAccessStable(resource.data.stableId) && // Members limited update
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['status', 'startedAt', 'completedAt', 'completedBy',
+                     'currentStepId', 'currentStepOrder', 'progress',
+                     'dailyNotesAcknowledged', 'dailyNotesAcknowledgedAt',
+                     'notes', 'updatedAt', 'updatedBy']))
+      );
+
+      // DELETE: Stable managers only
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(resource.data.stableId)
+      );
+    }
+
+    // ============================================================================
+    // DAILY NOTES COLLECTION - STABLE-SCOPED COMMUNICATION
+    // ============================================================================
+
+    match /dailyNotes/{noteId} {
+      // LIST: Authenticated users (filtering by stableId happens via query)
+      allow list: if isAuthenticated();
+
+      // GET: Stable members can view
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canAccessStable(resource.data.stableId)
+      );
+
+      // CREATE: Any stable member can create notes
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canAccessStable(request.resource.data.stableId)
+      );
+
+      // UPDATE: Any stable member can update notes
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canAccessStable(resource.data.stableId)
+      );
+
+      // DELETE: Stable managers only
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(resource.data.stableId)
+      );
+    }
+
     // Default deny all
     match /{document=**} {
       allow read, write: if false;

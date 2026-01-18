@@ -135,6 +135,7 @@ const RegisterForm = () => {
         <Input
           type="text"
           id="firstName"
+          autoComplete="given-name"
           placeholder={t("register.firstNamePlaceholder")}
           value={formData.firstName}
           onChange={(e) =>
@@ -152,6 +153,7 @@ const RegisterForm = () => {
         <Input
           type="text"
           id="lastName"
+          autoComplete="family-name"
           placeholder={t("register.lastNamePlaceholder")}
           value={formData.lastName}
           onChange={(e) =>
@@ -169,6 +171,7 @@ const RegisterForm = () => {
         <Input
           type="email"
           id="userEmail"
+          autoComplete="email"
           placeholder={t("register.emailPlaceholder")}
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -185,6 +188,7 @@ const RegisterForm = () => {
           <Input
             id="password"
             type={isPasswordVisible ? "text" : "password"}
+            autoComplete="new-password"
             placeholder={t("register.passwordPlaceholder")}
             className="pr-9"
             value={formData.password}
@@ -220,6 +224,7 @@ const RegisterForm = () => {
           <Input
             id="confirmPassword"
             type={isConfirmPasswordVisible ? "text" : "password"}
+            autoComplete="new-password"
             placeholder={t("register.confirmPasswordPlaceholder")}
             className="pr-9"
             value={formData.confirmPassword}

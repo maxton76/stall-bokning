@@ -545,7 +545,10 @@
       "departed": "Departed",
       "since": "Since",
       "reason": "Reason:",
-      "moveHorse": "Move horse"
+      "moveHorse": "Move horse",
+      "facilityNumber": "Facility Number",
+      "copyFacilityNumber": "Copy facility number",
+      "copied": "Copied!"
     },
     "basicInfo": {
       "gender": "Gender",

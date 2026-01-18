@@ -5,6 +5,7 @@ import { SettingSection } from "../sections/SettingSection";
 export interface StableInfo {
   name: string;
   description: string;
+  facilityNumber: string;
   address: string;
   city: string;
   postalCode: string;
@@ -49,6 +50,15 @@ export function GeneralSettingsTab({
         onChange={(value) => handleFieldChange("description", value)}
         placeholder={t("stables:form.placeholders.description")}
         rows={3}
+        disabled={disabled}
+      />
+
+      <SettingField
+        id="facilityNumber"
+        label={t("stables:form.labels.facilityNumber")}
+        value={stableInfo.facilityNumber}
+        onChange={(value) => handleFieldChange("facilityNumber", value)}
+        placeholder={t("stables:form.placeholders.facilityNumber")}
         disabled={disabled}
       />
 

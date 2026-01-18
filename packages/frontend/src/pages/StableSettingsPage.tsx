@@ -30,6 +30,7 @@ export default function StableSettingsPage() {
   const [stableInfo, setStableInfo] = useState<StableInfo>({
     name: "Green Valley Stables",
     description: "A friendly stable community in Stockholm",
+    facilityNumber: "",
     address: "Vallvägen 12",
     city: "Stockholm",
     postalCode: "123 45",

@@ -12,6 +12,7 @@ const createStableSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().optional(),
   address: z.string().optional(),
+  facilityNumber: z.string().max(50).optional(), // Anläggningsnummer - Jordbruksverket registration
   organizationId: z.string().optional(),
   ownerEmail: z.string().email().optional(),
   // Optional marketplace fields

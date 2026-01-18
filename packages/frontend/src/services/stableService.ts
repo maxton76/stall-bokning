@@ -18,6 +18,7 @@ export interface CreateStableData {
   name: string;
   description?: string;
   address?: string;
+  facilityNumber?: string; // Anläggningsnummer - Jordbruksverket registration
   ownerId: string;
   ownerEmail?: string;
   organizationId?: string; // Optional for standalone stables
@@ -71,6 +72,7 @@ export async function createStable(
       name: data.name,
       description: data.description,
       address: data.address,
+      facilityNumber: data.facilityNumber,
       organizationId: data.organizationId,
       ownerEmail: data.ownerEmail,
     }),

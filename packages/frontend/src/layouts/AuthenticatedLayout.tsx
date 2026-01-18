@@ -27,6 +27,8 @@ import {
   UserCircle,
   CalendarCheck2,
   BarChart3,
+  ListChecks,
+  Play,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -108,6 +110,11 @@ export default function AuthenticatedLayout() {
           { href: "/feeding/schedule" },
           { href: "/feeding/settings" },
         ],
+      },
+      {
+        name: "routines",
+        href: "/routines",
+        subItems: [{ href: "/routines" }, { href: "/routines/templates" }],
       },
       {
         name: "facilities",
@@ -218,6 +225,32 @@ export default function AuthenticatedLayout() {
           label: t("common:navigation.settings"),
           href: "/feeding/settings",
           icon: Settings2Icon,
+        },
+      ],
+    },
+    {
+      name: "routines",
+      label: t("common:navigation.routines"),
+      href: "/routines",
+      icon: ListChecks,
+      subItems: [
+        {
+          name: "todaysRoutines",
+          label: t("common:navigation.routinesList"),
+          href: "/routines",
+          icon: Play,
+        },
+        {
+          name: "templates",
+          label: t("common:navigation.routineTemplates"),
+          href: "/routines/templates",
+          icon: ListChecks,
+        },
+        {
+          name: "analytics",
+          label: t("common:navigation.routineAnalytics"),
+          href: "/routines/analytics",
+          icon: BarChart3,
         },
       ],
     },
