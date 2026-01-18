@@ -67,10 +67,31 @@
     "emailLabel": "E-post",
     "emailPlaceholder": "användare@exempel.se",
     "firstNameLabel": "Förnamn",
+    "firstNamePlaceholder": "Förnamn",
     "lastNameLabel": "Efternamn",
+    "lastNamePlaceholder": "Efternamn",
     "phoneLabel": "Telefonnummer",
     "phonePlaceholder": "+46 70 123 45 67",
     "contactType": "Kontakttyp",
+    "contactTypes": {
+      "personal": "Privatperson",
+      "business": "Företag"
+    },
+    "businessNameLabel": "Företagsnamn",
+    "businessNamePlaceholder": "Företagsnamn",
+    "addressOptional": "Adress (valfritt)",
+    "address": {
+      "streetLabel": "Gatuadress",
+      "streetPlaceholder": "Gatunamn",
+      "numberLabel": "Nummer",
+      "numberPlaceholder": "123",
+      "postcodeLabel": "Postnummer",
+      "postcodePlaceholder": "12345",
+      "cityLabel": "Stad",
+      "cityPlaceholder": "Stockholm",
+      "countryLabel": "Land",
+      "countryPlaceholder": "Sverige"
+    },
     "rolesLabel": "Roller",
     "primaryRoleLabel": "Primär roll",
     "showInStaffPlanning": "Visa i personalplanering",
@@ -79,7 +100,54 @@
     "error": "Kunde inte skicka inbjudan",
     "inviteSent": "Inbjudan skickad till {{email}}. De kommer att få ett e-postmeddelande för att gå med.",
     "alreadyMember": "Användaren är redan medlem i denna organisation",
-    "inviteFailed": "Kunde inte skicka inbjudan. Försök igen."
+    "inviteFailed": "Kunde inte skicka inbjudan. Försök igen.",
+    "validation": {
+      "invalidEmail": "Ogiltig e-postadress",
+      "roleRequired": "Minst en roll måste väljas",
+      "primaryRoleRequired": "Primär roll krävs"
+    },
+    "roles": {
+      "administrator": {
+        "label": "Administratör",
+        "description": "Full organisationsåtkomst"
+      },
+      "veterinarian": {
+        "label": "Veterinär",
+        "description": "Djurhälsotjänster"
+      },
+      "dentist": {
+        "label": "Tandläkare",
+        "description": "Hästtandvård"
+      },
+      "farrier": {
+        "label": "Hovslagare",
+        "description": "Hovvård"
+      },
+      "customer": {
+        "label": "Kund",
+        "description": "Hästägare/klient"
+      },
+      "groom": {
+        "label": "Skötare",
+        "description": "Daglig omvårdnadspersonal"
+      },
+      "saddle_maker": {
+        "label": "Sadelmakare",
+        "description": "Utrustning och sadeltjänster"
+      },
+      "horse_owner": {
+        "label": "Hästägare",
+        "description": "Extern hästägare"
+      },
+      "rider": {
+        "label": "Ryttare",
+        "description": "Professionell ryttare"
+      },
+      "inseminator": {
+        "label": "Seminör",
+        "description": "Aveltjänster"
+      }
+    }
   },
   "permissions": {
     "title": "Behörigheter",

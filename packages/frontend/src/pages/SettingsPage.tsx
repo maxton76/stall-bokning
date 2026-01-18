@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Bell, Moon, Globe, Shield } from "lucide-react";
+import { Bell, Moon, Globe, Shield, Loader2 } from "lucide-react";
 import { ToggleSetting } from "@/components/settings/fields/ToggleSetting";
 import { SettingSection } from "@/components/settings/sections/SettingSection";
 import {
@@ -18,15 +18,89 @@ import {
   languageFlags,
   type SupportedLanguage,
 } from "@/i18n";
+import { useAuth } from "@/contexts/AuthContext";
+import { authFetchJSON } from "@/utils/authFetch";
+import { useToast } from "@/hooks/use-toast";
+
+interface UserSettings {
+  emailNotifications?: boolean;
+  pushNotifications?: boolean;
+  darkMode?: boolean;
+  timezone?: string;
+}
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation(["settings", "common"]);
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // Load user settings on mount
+  useEffect(() => {
+    async function loadSettings() {
+      if (!user) return;
+      try {
+        const response = await authFetchJSON<{
+          id: string;
+          settings?: UserSettings;
+        }>(`${import.meta.env.VITE_API_URL}/api/v1/auth/me`, { method: "GET" });
+
+        if (response?.settings) {
+          setEmailNotifications(response.settings.emailNotifications ?? true);
+          setPushNotifications(response.settings.pushNotifications ?? false);
+          setDarkMode(response.settings.darkMode ?? false);
+        }
+      } catch (error) {
+        console.error("Failed to load settings:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadSettings();
+  }, [user]);
 
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);
+  };
+
+  const handleSaveSettings = async () => {
+    setSaving(true);
+    try {
+      await authFetchJSON(
+        `${import.meta.env.VITE_API_URL}/api/v1/auth/me/settings`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            emailNotifications,
+            pushNotifications,
+            darkMode,
+          }),
+        },
+      );
+      toast({
+        title: t("common:messages.success"),
+        description: t("settings:messages.saved"),
+      });
+    } catch (error) {
+      console.error("Failed to save settings:", error);
+      toast({
+        title: t("common:messages.error"),
+        description: t("common:messages.saveFailed"),
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetToDefaults = () => {
+    setEmailNotifications(true);
+    setPushNotifications(false);
+    setDarkMode(false);
   };
 
   return (
@@ -159,8 +233,17 @@ export default function SettingsPage() {
 
       {/* Save Button */}
       <div className="flex justify-end gap-4">
-        <Button variant="outline">{t("common:buttons.resetToDefaults")}</Button>
-        <Button>{t("common:buttons.saveChanges")}</Button>
+        <Button
+          variant="outline"
+          onClick={handleResetToDefaults}
+          disabled={saving}
+        >
+          {t("common:buttons.resetToDefaults")}
+        </Button>
+        <Button onClick={handleSaveSettings} disabled={saving || loading}>
+          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {t("common:buttons.saveChanges")}
+        </Button>
       </div>
     </div>
   );

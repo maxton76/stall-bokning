@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
 import { BaseFormDialog } from "@/components/BaseFormDialog";
@@ -27,68 +27,45 @@ const addressSchema = z.object({
   country: z.string().optional(),
 });
 
-const inviteUserSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  phoneNumber: z.string().optional(),
-  contactType: z.enum(["Personal", "Business"]),
-  // Business-specific fields
-  businessName: z.string().optional(),
-  address: addressSchema.optional(),
-  // Role assignment
-  roles: z.array(z.string()).min(1, "At least one role must be selected"),
-  primaryRole: z.string().min(1, "Primary role is required"),
-  showInPlanning: z.boolean().default(true),
-  // Stable access
-  stableAccess: z.enum(["all", "specific"]).default("all"),
-  assignedStableIds: z.array(z.string()).optional(),
-});
+type InviteUserFormData = {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  contactType: "Personal" | "Business";
+  businessName?: string;
+  address?: {
+    street?: string;
+    houseNumber?: string;
+    postcode?: string;
+    city?: string;
+    country?: string;
+  };
+  roles: string[];
+  primaryRole: string;
+  showInPlanning: boolean;
+  stableAccess: "all" | "specific";
+  assignedStableIds?: string[];
+};
 
-type InviteUserFormData = z.infer<typeof inviteUserSchema>;
+const ROLE_KEYS = [
+  "administrator",
+  "veterinarian",
+  "dentist",
+  "farrier",
+  "customer",
+  "groom",
+  "saddle_maker",
+  "horse_owner",
+  "rider",
+  "inseminator",
+] as const;
 
 interface InviteUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (data: InviteUserFormData) => Promise<void>;
 }
-
-const organizationRoles: {
-  value: OrganizationRole;
-  label: string;
-  description: string;
-}[] = [
-  {
-    value: "administrator",
-    label: "Administrator",
-    description: "Full organization access",
-  },
-  {
-    value: "veterinarian",
-    label: "Veterinarian",
-    description: "Animal health services",
-  },
-  { value: "dentist", label: "Dentist", description: "Equine dental services" },
-  { value: "farrier", label: "Farrier", description: "Hoof care services" },
-  { value: "customer", label: "Customer", description: "Horse owner/client" },
-  { value: "groom", label: "Groom", description: "Daily care staff" },
-  {
-    value: "saddle_maker",
-    label: "Saddle Maker",
-    description: "Tack and saddle services",
-  },
-  {
-    value: "horse_owner",
-    label: "Horse Owner",
-    description: "External horse owner",
-  },
-  { value: "rider", label: "Rider", description: "Professional rider" },
-  {
-    value: "inseminator",
-    label: "Inseminator",
-    description: "Breeding services",
-  },
-];
 
 export function InviteUserDialog({
   open,
@@ -98,6 +75,43 @@ export function InviteUserDialog({
   const { t } = useTranslation(["organizations", "common"]);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [addressOpen, setAddressOpen] = useState(false);
+
+  // Build translated organization roles
+  const organizationRoles = useMemo(
+    () =>
+      ROLE_KEYS.map((key) => ({
+        value: key as OrganizationRole,
+        label: t(`organizations:invite.roles.${key}.label`),
+        description: t(`organizations:invite.roles.${key}.description`),
+      })),
+    [t],
+  );
+
+  // Create schema with translated validation messages
+  const inviteUserSchema = useMemo(
+    () =>
+      z.object({
+        email: z
+          .string()
+          .email(t("organizations:invite.validation.invalidEmail")),
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+        phoneNumber: z.string().optional(),
+        contactType: z.enum(["Personal", "Business"]),
+        businessName: z.string().optional(),
+        address: addressSchema.optional(),
+        roles: z
+          .array(z.string())
+          .min(1, t("organizations:invite.validation.roleRequired")),
+        primaryRole: z
+          .string()
+          .min(1, t("organizations:invite.validation.primaryRoleRequired")),
+        showInPlanning: z.boolean().default(true),
+        stableAccess: z.enum(["all", "specific"]).default("all"),
+        assignedStableIds: z.array(z.string()).optional(),
+      }),
+    [t],
+  );
 
   const { form, handleSubmit, resetForm } = useFormDialog<InviteUserFormData>({
     schema: inviteUserSchema,
@@ -128,8 +142,8 @@ export function InviteUserDialog({
       setSelectedRoles([]);
       onOpenChange(false);
     },
-    successMessage: "Invitation sent successfully",
-    errorMessage: "Failed to send invitation",
+    successMessage: t("organizations:invite.success"),
+    errorMessage: t("organizations:invite.error"),
   });
 
   // Watch form fields for conditional rendering
@@ -169,16 +183,16 @@ export function InviteUserDialog({
     <BaseFormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Invite User to Organization"
-      description="Invite a new member to your organization and assign their roles"
+      title={t("organizations:invite.title")}
+      description={t("organizations:invite.description")}
       form={form}
       onSubmit={handleSubmit}
-      submitLabel="Send Invitation"
+      submitLabel={t("organizations:invite.sendInvitation")}
       maxWidth="max-w-2xl"
     >
       {/* Contact Type */}
       <div className="space-y-2">
-        <Label>Contact Type</Label>
+        <Label>{t("organizations:invite.contactType")}</Label>
         <RadioGroup
           value={form.watch("contactType")}
           onValueChange={(value) =>
@@ -189,13 +203,13 @@ export function InviteUserDialog({
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="Personal" id="personal" />
             <Label htmlFor="personal" className="font-normal">
-              Personal
+              {t("organizations:invite.contactTypes.personal")}
             </Label>
           </div>
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="Business" id="business" />
             <Label htmlFor="business" className="font-normal">
-              Business
+              {t("organizations:invite.contactTypes.business")}
             </Label>
           </div>
         </RadioGroup>
@@ -203,34 +217,34 @@ export function InviteUserDialog({
 
       <FormInput
         name="email"
-        label="Email"
+        label={t("organizations:invite.emailLabel")}
         form={form}
         type="email"
-        placeholder="user@example.com"
+        placeholder={t("organizations:invite.emailPlaceholder")}
         required
       />
 
       <div className="grid grid-cols-2 gap-4">
         <FormInput
           name="firstName"
-          label="First Name"
+          label={t("organizations:invite.firstNameLabel")}
           form={form}
-          placeholder="First name"
+          placeholder={t("organizations:invite.firstNamePlaceholder")}
         />
         <FormInput
           name="lastName"
-          label="Last Name"
+          label={t("organizations:invite.lastNameLabel")}
           form={form}
-          placeholder="Last name"
+          placeholder={t("organizations:invite.lastNamePlaceholder")}
         />
       </div>
 
       <FormInput
         name="phoneNumber"
-        label="Phone Number"
+        label={t("organizations:invite.phoneLabel")}
         form={form}
         type="tel"
-        placeholder="+46 70 123 45 67"
+        placeholder={t("organizations:invite.phonePlaceholder")}
       />
 
       {/* Business-specific fields */}
@@ -238,9 +252,9 @@ export function InviteUserDialog({
         <>
           <FormInput
             name="businessName"
-            label="Business Name"
+            label={t("organizations:invite.businessNameLabel")}
             form={form}
-            placeholder="Company name"
+            placeholder={t("organizations:invite.businessNamePlaceholder")}
             required
           />
 
@@ -256,7 +270,7 @@ export function InviteUserDialog({
                   className={`h-4 w-4 transition-transform ${addressOpen ? "rotate-180" : ""}`}
                 />
                 <span className="text-sm text-muted-foreground">
-                  Address (optional)
+                  {t("organizations:invite.addressOptional")}
                 </span>
               </Button>
             </CollapsibleTrigger>
@@ -265,37 +279,47 @@ export function InviteUserDialog({
                 <div className="col-span-2">
                   <FormInput
                     name="address.street"
-                    label="Street"
+                    label={t("organizations:invite.address.streetLabel")}
                     form={form}
-                    placeholder="Street name"
+                    placeholder={t(
+                      "organizations:invite.address.streetPlaceholder",
+                    )}
                   />
                 </div>
                 <FormInput
                   name="address.houseNumber"
-                  label="Number"
+                  label={t("organizations:invite.address.numberLabel")}
                   form={form}
-                  placeholder="123"
+                  placeholder={t(
+                    "organizations:invite.address.numberPlaceholder",
+                  )}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <FormInput
                   name="address.postcode"
-                  label="Postcode"
+                  label={t("organizations:invite.address.postcodeLabel")}
                   form={form}
-                  placeholder="12345"
+                  placeholder={t(
+                    "organizations:invite.address.postcodePlaceholder",
+                  )}
                 />
                 <FormInput
                   name="address.city"
-                  label="City"
+                  label={t("organizations:invite.address.cityLabel")}
                   form={form}
-                  placeholder="Stockholm"
+                  placeholder={t(
+                    "organizations:invite.address.cityPlaceholder",
+                  )}
                 />
               </div>
               <FormInput
                 name="address.country"
-                label="Country"
+                label={t("organizations:invite.address.countryLabel")}
                 form={form}
-                placeholder="Sweden"
+                placeholder={t(
+                  "organizations:invite.address.countryPlaceholder",
+                )}
               />
             </CollapsibleContent>
           </Collapsible>
@@ -305,7 +329,8 @@ export function InviteUserDialog({
       {/* Roles Selection - Custom implementation due to descriptions */}
       <div className="space-y-3">
         <Label>
-          Roles <span className="text-destructive">*</span>
+          {t("organizations:invite.rolesLabel")}{" "}
+          <span className="text-destructive">*</span>
         </Label>
         <div className="grid grid-cols-2 gap-3 border rounded-lg p-4">
           {organizationRoles.map((role) => (
@@ -340,7 +365,8 @@ export function InviteUserDialog({
       {selectedRoles.length > 0 && (
         <div className="space-y-2">
           <Label>
-            Primary Role <span className="text-destructive">*</span>
+            {t("organizations:invite.primaryRoleLabel")}{" "}
+            <span className="text-destructive">*</span>
           </Label>
           <RadioGroup
             value={primaryRole}
@@ -383,7 +409,7 @@ export function InviteUserDialog({
           }
         />
         <Label htmlFor="showInPlanning" className="font-normal">
-          Show in staff activity planning
+          {t("organizations:invite.showInStaffPlanning")}
         </Label>
       </div>
     </BaseFormDialog>

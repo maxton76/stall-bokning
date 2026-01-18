@@ -67,10 +67,31 @@
     "emailLabel": "Email",
     "emailPlaceholder": "user@example.com",
     "firstNameLabel": "First Name",
+    "firstNamePlaceholder": "First name",
     "lastNameLabel": "Last Name",
+    "lastNamePlaceholder": "Last name",
     "phoneLabel": "Phone Number",
     "phonePlaceholder": "+46 70 123 45 67",
     "contactType": "Contact Type",
+    "contactTypes": {
+      "personal": "Personal",
+      "business": "Business"
+    },
+    "businessNameLabel": "Business Name",
+    "businessNamePlaceholder": "Company name",
+    "addressOptional": "Address (optional)",
+    "address": {
+      "streetLabel": "Street",
+      "streetPlaceholder": "Street name",
+      "numberLabel": "Number",
+      "numberPlaceholder": "123",
+      "postcodeLabel": "Postcode",
+      "postcodePlaceholder": "12345",
+      "cityLabel": "City",
+      "cityPlaceholder": "Stockholm",
+      "countryLabel": "Country",
+      "countryPlaceholder": "Sweden"
+    },
     "rolesLabel": "Roles",
     "primaryRoleLabel": "Primary Role",
     "showInStaffPlanning": "Show in staff activity planning",
@@ -79,7 +100,54 @@
     "error": "Failed to send invitation",
     "inviteSent": "Invitation sent to {{email}}. They will receive an email to join.",
     "alreadyMember": "User is already a member of this organization",
-    "inviteFailed": "Failed to send invitation. Please try again."
+    "inviteFailed": "Failed to send invitation. Please try again.",
+    "validation": {
+      "invalidEmail": "Invalid email address",
+      "roleRequired": "At least one role must be selected",
+      "primaryRoleRequired": "Primary role is required"
+    },
+    "roles": {
+      "administrator": {
+        "label": "Administrator",
+        "description": "Full organization access"
+      },
+      "veterinarian": {
+        "label": "Veterinarian",
+        "description": "Animal health services"
+      },
+      "dentist": {
+        "label": "Dentist",
+        "description": "Equine dental services"
+      },
+      "farrier": {
+        "label": "Farrier",
+        "description": "Hoof care services"
+      },
+      "customer": {
+        "label": "Customer",
+        "description": "Horse owner/client"
+      },
+      "groom": {
+        "label": "Groom",
+        "description": "Daily care staff"
+      },
+      "saddle_maker": {
+        "label": "Saddle Maker",
+        "description": "Tack and saddle services"
+      },
+      "horse_owner": {
+        "label": "Horse Owner",
+        "description": "External horse owner"
+      },
+      "rider": {
+        "label": "Rider",
+        "description": "Professional rider"
+      },
+      "inseminator": {
+        "label": "Inseminator",
+        "description": "Breeding services"
+      }
+    }
   },
   "permissions": {
     "title": "Permissions",

@@ -125,5 +125,11 @@
   "timezones": {
     "europe_stockholm": "Europa/Stockholm",
     "utc": "UTC"
+  },
+  "messages": {
+    "saved": "Dina inställningar har sparats"
+  },
+  "tabs": {
+    "general": "Allmänt"
   }
 }

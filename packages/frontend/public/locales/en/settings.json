@@ -125,5 +125,11 @@
   "timezones": {
     "europe_stockholm": "Europe/Stockholm",
     "utc": "UTC"
+  },
+  "messages": {
+    "saved": "Your settings have been saved"
+  },
+  "tabs": {
+    "general": "General"
   }
 }
