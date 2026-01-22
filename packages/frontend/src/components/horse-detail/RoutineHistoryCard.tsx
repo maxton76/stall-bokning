@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,10 +42,10 @@ const CATEGORY_OPTIONS: { value: RoutineCategory | "all"; labelKey: string }[] =
     { value: "medication", labelKey: "routines:categories.medication" },
     { value: "blanket", labelKey: "routines:categories.blanket" },
     { value: "turnout", labelKey: "routines:categories.turnout" },
-    { value: "bring_in", labelKey: "routines:categories.bringIn" },
+    { value: "bring_in", labelKey: "routines:categories.bring_in" },
     { value: "mucking", labelKey: "routines:categories.mucking" },
     { value: "water", labelKey: "routines:categories.water" },
-    { value: "health_check", labelKey: "routines:categories.healthCheck" },
+    { value: "health_check", labelKey: "routines:categories.health_check" },
   ];
 
 const DATE_RANGE_OPTIONS = [
@@ -64,11 +64,14 @@ export function RoutineHistoryCard({ horse }: RoutineHistoryCardProps) {
   const [dateRange, setDateRange] = useState<string>("30");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  // Calculate start date based on range
-  const startDate =
-    dateRange === "all"
-      ? undefined
-      : subDays(new Date(), parseInt(dateRange)).toISOString();
+  // Calculate start date based on range - memoized to prevent query key changes
+  const startDate = useMemo(() => {
+    if (dateRange === "all") return undefined;
+    // Use start of day to ensure stable value within same day
+    const date = subDays(new Date(), parseInt(dateRange));
+    date.setHours(0, 0, 0, 0);
+    return date.toISOString();
+  }, [dateRange]);
 
   const {
     data,

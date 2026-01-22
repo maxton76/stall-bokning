@@ -104,6 +104,17 @@ export function toDate(value: unknown): Date {
     return (value as { toDate: () => Date }).toDate();
   }
 
+  // Plain object with seconds/nanoseconds (serialized Timestamp from API)
+  if (
+    value &&
+    typeof value === "object" &&
+    "seconds" in value &&
+    typeof (value as { seconds: number }).seconds === "number"
+  ) {
+    const seconds = (value as { seconds: number }).seconds;
+    return new Date(seconds * 1000);
+  }
+
   // ISO string or other string format
   if (typeof value === "string") {
     const parsed = new Date(value);
