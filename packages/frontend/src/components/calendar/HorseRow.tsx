@@ -153,7 +153,7 @@ export function HorseRow({
                     key={activity.id}
                     className="text-xs p-1 rounded mb-1 cursor-pointer truncate"
                     style={{
-                      backgroundColor: activityType?.color || "#gray",
+                      backgroundColor: activityType?.color || "gray",
                       color: "white",
                       opacity: activity.status === "completed" ? 0.6 : 1,
                     }}

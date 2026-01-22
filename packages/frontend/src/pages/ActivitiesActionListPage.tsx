@@ -256,26 +256,46 @@ export default function ActivitiesActionListPage() {
   // CRUD operations
   const { create, update, remove } = useCRUD<ActivityEntry>({
     createFn: async (data: any) => {
-      if (!selectedStableId || !user) throw new Error("Missing required data");
-      const stable = stables.find((s) => s.id === selectedStableId);
-      if (!stable) throw new Error("Stable not found");
+      if (!user) throw new Error("User not authenticated");
 
       if (data.type === "activity") {
+        // For activities, use the horse's stable (not the selected stable filter)
+        const horse = horses.data?.find((h) => h.id === data.horseId);
+        if (!horse) throw new Error("Horse not found");
+        if (!horse.currentStableId)
+          throw new Error("Horse is not assigned to a stable");
+
         return await createActivity(
           user.uid,
-          selectedStableId,
+          horse.currentStableId,
           data,
-          stable.name,
+          horse.currentStableName || "",
         );
-      } else if (data.type === "task") {
-        return await createTask(user.uid, selectedStableId, data, stable.name);
       } else {
-        return await createMessage(
-          user.uid,
-          selectedStableId,
-          data,
-          stable.name,
-        );
+        // For tasks and messages, use the selected stable (must have a specific stable selected)
+        if (!selectedStableId || selectedStableId === "all") {
+          throw new Error(
+            "Please select a specific stable for tasks and messages",
+          );
+        }
+        const stable = stables.find((s) => s.id === selectedStableId);
+        if (!stable) throw new Error("Stable not found");
+
+        if (data.type === "task") {
+          return await createTask(
+            user.uid,
+            selectedStableId,
+            data,
+            stable.name,
+          );
+        } else {
+          return await createMessage(
+            user.uid,
+            selectedStableId,
+            data,
+            stable.name,
+          );
+        }
       }
     },
     updateFn: async (id, data) => {
