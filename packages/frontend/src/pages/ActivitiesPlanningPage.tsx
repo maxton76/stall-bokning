@@ -52,13 +52,14 @@ export default function ActivitiesPlanningPage() {
     startOfWeek(new Date(), { weekStartsOn: 1 }),
   );
   const [expandedHorses, setExpandedHorses] = useState<Set<string>>(new Set());
+  const [initialFormData, setInitialFormData] = useState<{
+    date?: Date;
+    horseId?: string;
+  }>({});
   const formDialog = useDialog<ActivityEntry>();
 
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
-
-  // Helper to check if a specific stable is selected (not "all")
-  const isSpecificStable = selectedStableId && selectedStableId !== "all";
 
   // Get week days
   const weekDays = useMemo(() => {
@@ -257,19 +258,32 @@ export default function ActivitiesPlanningPage() {
   };
 
   // Cell click - open form dialog with pre-filled date/horse
-  const handleCellClick = (_horseId: string, _date: Date, _hour?: number) => {
-    // Don't open dialog when viewing all stables
-    if (!isSpecificStable) return;
+  const handleCellClick = (horseId: string, date: Date, hour?: number) => {
+    // Set time if hour provided (expanded view), otherwise use noon as default
+    const dateWithTime = new Date(date);
+    if (hour !== undefined) {
+      dateWithTime.setHours(hour, 0, 0, 0);
+    } else {
+      dateWithTime.setHours(12, 0, 0, 0);
+    }
 
-    // Open dialog with undefined entry
-    // TODO: Pass horseId and date as initial data to ActivityFormDialog
-    // ActivityFormDialog needs to support initialData prop for horseId and date
+    setInitialFormData({
+      date: dateWithTime,
+      horseId: horseId,
+    });
     formDialog.openDialog(undefined);
   };
 
   // Activity click - edit existing activity
   const handleActivityClick = (activity: ActivityEntry) => {
+    setInitialFormData({}); // Clear initial data when editing existing activity
     formDialog.openDialog(activity);
+  };
+
+  // Handle dialog close - clear initial data
+  const handleDialogClose = () => {
+    formDialog.closeDialog();
+    setInitialFormData({});
   };
 
   // Routine click - navigate to routine flow
@@ -297,6 +311,7 @@ export default function ActivitiesPlanningPage() {
     // Note: tasks and messages are not supported in calendar view
 
     formDialog.closeDialog();
+    setInitialFormData({});
     activities.reload();
   };
 
@@ -415,7 +430,7 @@ export default function ActivitiesPlanningPage() {
           onFilterClick={() => {
             /* TODO: implement filter */
           }}
-          disableAdd={!isSpecificStable}
+          disableAdd={false}
         />
 
         {/* Calendar Grid - single scroll container */}
@@ -457,8 +472,14 @@ export default function ActivitiesPlanningPage() {
       {/* Activity Form Dialog */}
       <ActivityFormDialog
         open={formDialog.open}
-        onOpenChange={formDialog.closeDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleDialogClose();
+          }
+        }}
         entry={formDialog.data || undefined}
+        initialDate={initialFormData.date}
+        initialHorseId={initialFormData.horseId}
         onSave={handleSave}
         horses={horses.data?.map((h) => ({ id: h.id, name: h.name })) || []}
         stableMembers={[]}
