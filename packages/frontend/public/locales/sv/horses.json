@@ -37,7 +37,16 @@
       "notes": "Anteckningar",
       "specialInstructions": "Särskilda instruktioner",
       "equipment": "Utrustning",
-      "isExternal": "Denna häst är extern (ingår inte i stallet)"
+      "isExternal": "Denna häst är extern (ingår inte i stallet)",
+      "categoryInstructions": "Kategorispecifika instruktioner",
+      "categoryInstructionsHint": "Valfritt - visas under rutinkörning baserat på stegkategori",
+      "categoryInstructionsDescription": "Lägg till specifika instruktioner för olika rutinkategorier (t.ex. medicindosering, täckepreferenser). Dessa visas kontextuellt under rutinkörning.",
+      "categoryInstructionsPlaceholder": "Ange instruktioner för {{category}}...",
+      "generalInstructionsHint": "Allmän fallback för alla kategorier",
+      "selectCategory": "Välj kategori",
+      "selectCategoryPlaceholder": "Välj en rutinkategori",
+      "categoriesWithInstructions": "{{count}} kategori har instruktioner",
+      "categoriesWithInstructions_other": "{{count}} kategorier har instruktioner"
     },
     "placeholders": {
       "name": "t.ex. Storm",
@@ -768,6 +777,44 @@
         "createError": "Kunde inte skapa vaccinationsregel",
         "updateError": "Kunde inte uppdatera vaccinationsregel"
       }
+    }
+  },
+  "selection": {
+    "allHorses": "Alla hästar ({{count}})",
+    "horsesSelected": "{{count}} hästar valda",
+    "searchPlaceholder": "Sök hästar...",
+    "noHorsesFound": "Inga hästar hittades",
+    "selected": "{{count}} valda"
+  },
+  "groupSelection": {
+    "allGroups": "Alla grupper ({{count}})",
+    "groupsSelected": "{{count}} grupper valda",
+    "searchPlaceholder": "Sök grupper...",
+    "noGroupsFound": "Inga grupper hittades",
+    "selected": "{{count}} valda"
+  },
+  "routineHistory": {
+    "title": "Rutinhistorik",
+    "description": "Alla utförda rutinaktiviteter för denna häst",
+    "filters": {
+      "allCategories": "Alla kategorier",
+      "last7Days": "Senaste 7 dagarna",
+      "last30Days": "Senaste 30 dagarna",
+      "allTime": "Hela historiken"
+    },
+    "status": {
+      "completed": "Utförd",
+      "skipped": "Överhoppad"
+    },
+    "noActivities": "Inga rutinaktiviteter hittades",
+    "loadMore": "Ladda fler",
+    "executedBy": "Utförd av",
+    "skipReason": "Anledning",
+    "snapshot": {
+      "title": "Instruktioner vid utförande",
+      "feeding": "Utfodring",
+      "medication": "Medicinering",
+      "blanket": "Täcke"
     }
   }
 }

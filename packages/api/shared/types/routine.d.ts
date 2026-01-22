@@ -108,6 +108,7 @@ export interface RoutineInstance {
   startedAt?: FirestoreTimestamp;
   completedAt?: FirestoreTimestamp;
   completedBy?: string;
+  completedByName?: string;
   cancelledAt?: FirestoreTimestamp;
   cancelledBy?: string;
   cancellationReason?: string;
@@ -437,5 +438,110 @@ export interface DailyRoutineOverview {
   dailyNotesCount: number;
   alertsCount: number;
   hasUnreadNotes: boolean;
+}
+/**
+ * Horse Activity History Entry
+ * Captures a snapshot of routine activity completion for a specific horse.
+ * Single source of truth for all horse routine activities.
+ *
+ * Stored in: horseActivityHistory/{id}
+ *
+ * Query patterns:
+ * - By horseId + executedAt (horse timeline)
+ * - By horseId + category + executedAt (filtered horse timeline)
+ * - By routineInstanceId + stepOrder (routine completed view)
+ * - By stableId + executedAt (stable-wide activity view)
+ */
+export interface HorseActivityHistoryEntry {
+  id: string;
+  horseId: string;
+  routineInstanceId: string;
+  routineStepId: string;
+  organizationId: string;
+  stableId: string;
+  horseName: string;
+  stableName?: string;
+  routineTemplateName: string;
+  routineType: RoutineType;
+  stepName: string;
+  category: RoutineCategory;
+  stepOrder: number;
+  executionStatus: "completed" | "skipped";
+  executedAt: FirestoreTimestamp;
+  executedBy: string;
+  executedByName?: string;
+  scheduledDate: FirestoreTimestamp;
+  skipReason?: string;
+  notes?: string;
+  photoUrls?: string[];
+  feedingSnapshot?: {
+    instructions: HorseFeedingContext;
+    confirmed: boolean;
+  };
+  medicationSnapshot?: {
+    instructions: HorseMedicationContext;
+    given: boolean;
+    skipped: boolean;
+    skipReason?: string;
+  };
+  blanketSnapshot?: {
+    instructions: HorseBlanketContext;
+    action: "on" | "off" | "unchanged";
+  };
+  horseContextSnapshot?: {
+    specialInstructions?: string;
+    categoryInstructions?: string;
+    horseGroupName?: string;
+  };
+  createdAt: FirestoreTimestamp;
+  updatedAt: FirestoreTimestamp;
+  version: number;
+}
+/**
+ * Input for creating horse activity history entries
+ */
+export interface CreateHorseActivityHistoryInput {
+  horseId: string;
+  routineInstanceId: string;
+  routineStepId: string;
+  organizationId: string;
+  stableId: string;
+  horseName: string;
+  stableName?: string;
+  routineTemplateName: string;
+  routineType: RoutineType;
+  stepName: string;
+  category: RoutineCategory;
+  stepOrder: number;
+  executionStatus: "completed" | "skipped";
+  executedBy: string;
+  executedByName?: string;
+  scheduledDate: Date | FirestoreTimestamp;
+  skipReason?: string;
+  notes?: string;
+  photoUrls?: string[];
+  feedingSnapshot?: HorseActivityHistoryEntry["feedingSnapshot"];
+  medicationSnapshot?: HorseActivityHistoryEntry["medicationSnapshot"];
+  blanketSnapshot?: HorseActivityHistoryEntry["blanketSnapshot"];
+  horseContextSnapshot?: HorseActivityHistoryEntry["horseContextSnapshot"];
+}
+/**
+ * Filters for querying horse activity history
+ */
+export interface HorseActivityHistoryFilters {
+  category?: RoutineCategory;
+  startDate?: Date | string;
+  endDate?: Date | string;
+  limit?: number;
+  cursor?: string;
+}
+/**
+ * Response for paginated horse activity history
+ */
+export interface HorseActivityHistoryResponse {
+  activities: HorseActivityHistoryEntry[];
+  nextCursor?: string;
+  hasMore: boolean;
+  totalCount?: number;
 }
 //# sourceMappingURL=routine.d.ts.map

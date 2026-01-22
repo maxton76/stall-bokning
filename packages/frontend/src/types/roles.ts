@@ -1,6 +1,7 @@
 import { Timestamp } from "firebase/firestore";
 import type { VaccinationStatus } from "@shared/types/vaccination";
 import type { EquipmentItem, HorseOwnershipType } from "@shared/types/domain";
+import type { RoutineCategory } from "@shared/types/routine";
 
 /**
  * System-level roles (platform-wide)
@@ -166,7 +167,8 @@ export interface Horse {
   notes?: string;
 
   // Special Instructions (for turnout, handling, etc.)
-  specialInstructions?: string; // Free text instructions
+  specialInstructions?: string; // General fallback instructions
+  categoryInstructions?: Record<RoutineCategory, string>; // Category-specific instructions
   equipment?: EquipmentItem[]; // Structured equipment list
   hasSpecialInstructions?: boolean; // Computed flag for quick filtering
 

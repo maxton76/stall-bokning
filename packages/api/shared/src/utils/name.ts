@@ -223,8 +223,10 @@ export function getInitials(data: NameData): string {
   const parsedName = parseEmailToName(data.email);
   if (parsedName) {
     const parts = parsedName.split(" ");
-    if (parts.length >= 2) {
-      return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
+    const firstPart = parts[0];
+    const secondPart = parts[1];
+    if (parts.length >= 2 && firstPart && secondPart) {
+      return `${firstPart.charAt(0)}${secondPart.charAt(0)}`.toUpperCase();
     }
     return parsedName.substring(0, 2).toUpperCase();
   }

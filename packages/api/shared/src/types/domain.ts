@@ -29,6 +29,15 @@ export interface User {
 }
 
 /**
+ * Points system configuration for a stable
+ */
+export interface PointsSystemConfig {
+  resetPeriod: "monthly" | "quarterly" | "yearly" | "rolling" | "never";
+  memoryHorizonDays: number; // For rolling window (default 90)
+  holidayMultiplier: number; // Default 1.5
+}
+
+/**
  * Stable document structure
  * CONSOLIDATED from frontend and API (removed duplicate capacity/price fields from API version)
  */
@@ -37,11 +46,51 @@ export interface Stable {
   name: string;
   description?: string;
   address?: string;
+  facilityNumber?: string; // Anläggningsnummer - Jordbruksverket registration
   ownerId: string; // Must be a user with systemRole='stable_owner'
   ownerEmail?: string; // Cached for display
   organizationId?: string; // Link to parent organization (optional for backward compatibility)
+
+  // Points system configuration
+  pointsSystem?: PointsSystemConfig;
+
   createdAt: Timestamp;
   updatedAt: Timestamp;
+}
+
+/**
+ * Member availability constraints
+ */
+export interface MemberAvailability {
+  neverAvailable?: {
+    dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0=Sunday
+    timeSlots: { start: string; end: string }[]; // "HH:MM" format
+  }[];
+  preferredTimes?: {
+    dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+    timeSlots: { start: string; end: string }[];
+  }[];
+}
+
+/**
+ * Member shift limits
+ */
+export interface MemberLimits {
+  maxShiftsPerWeek?: number;
+  minShiftsPerWeek?: number;
+  maxShiftsPerMonth?: number;
+  minShiftsPerMonth?: number;
+}
+
+/**
+ * Member statistics for fairness tracking
+ */
+export interface MemberStats {
+  totalPoints: number; // All-time completed shift points
+  totalShifts: number; // All-time completed shifts
+  currentPeriodPoints: number; // Since last reset
+  lastShiftDate?: Timestamp; // Most recent completed shift
+  lastPointsReset?: Timestamp; // When points were last reset
 }
 
 /**
@@ -60,6 +109,13 @@ export interface StableMember {
   joinedAt: Timestamp;
   invitedBy?: string; // userId who sent the invite
   inviteAcceptedAt?: Timestamp;
+
+  // Shift assignment constraints
+  availability?: MemberAvailability;
+  limits?: MemberLimits;
+
+  // Fairness tracking statistics
+  stats?: MemberStats;
 }
 
 /**
@@ -96,6 +152,40 @@ export type HorseUsage = "care" | "sport" | "breeding";
 export type HorseStatus = "active" | "inactive";
 
 /**
+ * Horse ownership type - who owns the horse
+ * - member: Owned by an organization member (linked to OrganizationMember)
+ * - contact: Owned by a contact in the system (linked to Contact)
+ * - external: Owned by someone from another organization
+ */
+export type HorseOwnershipType = "member" | "contact" | "external";
+
+/**
+ * Equipment item for horse special instructions
+ */
+export interface EquipmentItem {
+  id: string; // UUID for React keys
+  name: string; // Equipment name (e.g., "Boots", "Täcke")
+  location?: string; // Storage location (e.g., "Sadelkammaren", "Hylla 3")
+  notes?: string; // Additional notes (e.g., "Endast vid regn")
+}
+
+/**
+ * Related link for horse (external URLs)
+ */
+export interface HorseLink {
+  id: string; // UUID for React keys
+  title: string; // Display title (e.g., "Competition Results", "Breeder Website")
+  url: string; // Full URL
+  category?:
+    | "competition"
+    | "breeder"
+    | "registry"
+    | "video"
+    | "social"
+    | "other";
+}
+
+/**
  * Horse document structure
  * Horses are user-owned assets that can optionally be assigned to stables
  * Both stable owners AND members can own horses
@@ -112,6 +202,12 @@ export interface Horse {
   ownerId: string; // User who owns this horse (can be owner or member)
   ownerName?: string; // Cached for display
   ownerEmail?: string; // Cached for display
+
+  // Enhanced ownership tracking
+  ownershipType: HorseOwnershipType; // member | contact | external
+  ownerContactId?: string; // Contact ID if ownershipType === 'contact'
+  ownerContactName?: string; // Cached contact name for display
+  ownerOrganizationId?: string; // External organization ID if ownershipType === 'external'
 
   // External horse flag - if true, horse is not part of the stable
   isExternal: boolean; // Default: false
@@ -167,6 +263,26 @@ export interface Horse {
   // Status
   status: HorseStatus;
   notes?: string;
+
+  // Special Instructions (for turnout, handling, etc.)
+  specialInstructions?: string; // Free text instructions
+  equipment?: EquipmentItem[]; // Structured equipment list
+  hasSpecialInstructions?: boolean; // Computed flag for quick filtering
+
+  // Team information - See types/team.ts for HorseTeam interface
+  // Stored as embedded document for quick access
+  hasTeamAssignments?: boolean; // Computed flag for quick filtering
+
+  // Transport instructions - See types/transport.ts for TransportInstructions
+  // Stored as embedded document for quick access
+  hasTransportInstructions?: boolean; // Computed flag for quick filtering
+
+  // Pedigree - See types/pedigree.ts for HorsePedigree interface
+  // Stored as embedded document
+  hasPedigreeData?: boolean; // Computed flag for quick filtering
+
+  // Related URLs/Links
+  relatedLinks?: HorseLink[];
 
   // Metadata
   createdAt: Timestamp;
@@ -263,17 +379,61 @@ export interface Schedule {
 }
 
 /**
- * Shift document structure (from API types)
+ * Shift status - expanded lifecycle
+ */
+export type ShiftStatus =
+  | "unassigned"
+  | "assigned"
+  | "completed"
+  | "cancelled"
+  | "missed";
+
+/**
+ * Shift document structure (enhanced for fairness system)
  */
 export interface Shift {
   id?: string;
+  scheduleId: string;
   stableId: string;
-  userId: string;
-  date: Date;
-  startTime: string;
-  endTime: string;
-  role: string;
-  status: "scheduled" | "completed" | "cancelled";
-  createdAt?: Date;
-  updatedAt?: Date;
+  stableName?: string;
+  date: Date | Timestamp;
+  shiftTypeId?: string;
+  shiftTypeName?: string;
+  time: string; // "HH:MM-HH:MM" format
+  points: number;
+  status: ShiftStatus;
+
+  // Assignment tracking
+  assignedTo: string | null;
+  assignedToName: string | null;
+  assignedToEmail: string | null;
+  assignedAt?: Timestamp;
+  assignedBy?: string;
+
+  // Points tracking
+  pointsAwarded?: number; // Actual points awarded (may include holiday multiplier)
+  isHolidayShift?: boolean;
+
+  // Completion tracking
+  completedAt?: Timestamp;
+  completedBy?: string;
+
+  // Cancellation tracking
+  cancelledAt?: Timestamp;
+  cancelledBy?: string;
+  cancellationReason?: string;
+
+  // Missed shift tracking
+  markedMissedAt?: Timestamp;
+  markedMissedBy?: string;
+  missedReason?: string;
+
+  // Legacy fields (for backward compatibility)
+  userId?: string;
+  startTime?: string;
+  endTime?: string;
+  role?: string;
+
+  createdAt?: Date | Timestamp;
+  updatedAt?: Date | Timestamp;
 }

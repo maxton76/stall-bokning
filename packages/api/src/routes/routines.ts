@@ -26,7 +26,357 @@ import type {
   StepProgress,
   RoutineStep,
   RoutineInstanceStatus,
+  CreateHorseActivityHistoryInput,
+  HorseFeedingContext,
+  HorseMedicationContext,
+  HorseBlanketContext,
 } from "@stall-bokning/shared";
+import {
+  createActivityHistoryEntries,
+  findExistingEntry,
+  updateEntry,
+} from "../services/horseActivityHistoryService.js";
+
+/**
+ * Enrich routine instance with template data
+ */
+async function enrichInstanceWithTemplate(
+  instanceId: string,
+  instanceData: RoutineInstance,
+): Promise<any> {
+  const templateDoc = await db
+    .collection("routineTemplates")
+    .doc(instanceData.templateId)
+    .get();
+
+  const template = templateDoc.exists
+    ? (templateDoc.data() as RoutineTemplate)
+    : null;
+
+  // Exclude id from instanceData to avoid duplicate property
+  const { id: _existingId, ...restData } = instanceData;
+
+  return serializeTimestamps({
+    id: instanceId,
+    ...restData,
+    template: template
+      ? {
+          name: template.name,
+          description: template.description,
+          type: template.type,
+          icon: template.icon,
+          color: template.color,
+          estimatedDuration: template.estimatedDuration,
+          requiresNotesRead: template.requiresNotesRead,
+          allowSkipSteps: template.allowSkipSteps,
+          steps: template.steps,
+        }
+      : null,
+  });
+}
+
+/**
+ * Resolve horses for a routine step based on its configuration
+ */
+async function resolveStepHorses(
+  step: RoutineStep,
+  stableId: string,
+): Promise<{ id: string; name: string }[]> {
+  // Handle "none" case
+  if (step.horseContext === "none") {
+    return [];
+  }
+
+  // Fetch all horses in the stable
+  const horsesSnapshot = await db
+    .collection("horses")
+    .where("currentStableId", "==", stableId)
+    .where("status", "==", "active")
+    .get();
+
+  let horses = horsesSnapshot.docs.map((doc) => ({
+    id: doc.id,
+    name: doc.data().name as string,
+  }));
+
+  // Handle "all" case
+  if (step.horseContext === "all") {
+    // Apply exclusions if specified
+    if (step.horseFilter?.excludeHorseIds?.length) {
+      horses = horses.filter(
+        (horse) => !step.horseFilter?.excludeHorseIds?.includes(horse.id),
+      );
+    }
+    return horses;
+  }
+
+  // Handle "specific" case
+  if (step.horseContext === "specific") {
+    if (!step.horseFilter?.horseIds?.length) {
+      return [];
+    }
+    return horses.filter((horse) =>
+      step.horseFilter?.horseIds?.includes(horse.id),
+    );
+  }
+
+  // Handle "groups" case
+  if (step.horseContext === "groups") {
+    if (!step.horseFilter?.groupIds?.length) {
+      return [];
+    }
+
+    // Fetch horse groups
+    const groupsSnapshot = await db
+      .collection("horseGroups")
+      .where("__name__", "in", step.horseFilter.groupIds)
+      .get();
+
+    // Collect horse IDs from groups
+    const horseIdsInGroups = new Set<string>();
+    groupsSnapshot.docs.forEach((doc) => {
+      const groupData = doc.data();
+      if (groupData.horseIds && Array.isArray(groupData.horseIds)) {
+        groupData.horseIds.forEach((id: string) => horseIdsInGroups.add(id));
+      }
+    });
+
+    horses = horses.filter((horse) => horseIdsInGroups.has(horse.id));
+
+    // Apply exclusions if specified
+    if (step.horseFilter?.excludeHorseIds?.length) {
+      horses = horses.filter(
+        (horse) => !step.horseFilter?.excludeHorseIds?.includes(horse.id),
+      );
+    }
+
+    return horses;
+  }
+
+  return [];
+}
+
+/**
+ * Fetch feeding context for a horse
+ */
+async function getHorseFeedingContext(
+  horseId: string,
+  stableId: string,
+): Promise<HorseFeedingContext | undefined> {
+  // Get active feedings for this horse
+  const feedingsSnapshot = await db
+    .collection("horseFeedings")
+    .where("horseId", "==", horseId)
+    .where("stableId", "==", stableId)
+    .where("isActive", "==", true)
+    .limit(1)
+    .get();
+
+  if (feedingsSnapshot.empty) {
+    return undefined;
+  }
+
+  const feeding = feedingsSnapshot.docs[0].data();
+
+  // Get feed type name
+  let feedTypeName = "Unknown feed";
+  if (feeding.feedTypeId) {
+    const feedTypeDoc = await db
+      .collection("feedTypes")
+      .doc(feeding.feedTypeId)
+      .get();
+    if (feedTypeDoc.exists) {
+      feedTypeName = feedTypeDoc.data()!.name;
+    }
+  }
+
+  return {
+    feedTypeName,
+    quantity: feeding.quantity || 0,
+    quantityMeasure: feeding.quantityMeasure || "portion",
+    specialInstructions: feeding.specialInstructions,
+  };
+}
+
+/**
+ * Fetch medication context for a horse (if they have active medications)
+ */
+async function getHorseMedicationContext(
+  horseId: string,
+): Promise<HorseMedicationContext | undefined> {
+  // Check health records for active medications
+  const medicationSnapshot = await db
+    .collection("healthRecords")
+    .where("horseId", "==", horseId)
+    .where("recordType", "==", "medication")
+    .where("isActive", "==", true)
+    .limit(1)
+    .get();
+
+  if (medicationSnapshot.empty) {
+    return undefined;
+  }
+
+  const medication = medicationSnapshot.docs[0].data();
+
+  return {
+    medicationName:
+      medication.title || medication.medicationName || "Unknown medication",
+    dosage: medication.dosage || "",
+    administrationMethod: medication.administrationMethod || "oral",
+    notes: medication.notes,
+    isRequired: medication.isRequired !== false,
+  };
+}
+
+/**
+ * Fetch blanket context for a horse
+ */
+async function getHorseBlanketContext(
+  horseId: string,
+): Promise<HorseBlanketContext | undefined> {
+  // Get horse data for blanket settings
+  const horseDoc = await db.collection("horses").doc(horseId).get();
+  if (!horseDoc.exists) {
+    return undefined;
+  }
+
+  const horse = horseDoc.data()!;
+
+  // If horse has blanket info
+  if (horse.blanketInfo || horse.currentBlanket) {
+    return {
+      currentBlanket: horse.currentBlanket,
+      recommendedAction: horse.blanketInfo?.recommendedAction || "none",
+      targetBlanket: horse.blanketInfo?.targetBlanket,
+      reason: horse.blanketInfo?.reason,
+    };
+  }
+
+  return undefined;
+}
+
+/**
+ * Create activity history entries for a completed step
+ */
+async function createStepActivityHistory(
+  instance: RoutineInstance,
+  template: RoutineTemplate,
+  step: RoutineStep,
+  stepProgress: StepProgress,
+  executedBy: string,
+  executedByName?: string,
+): Promise<void> {
+  // Resolve horses for this step
+  const horses = await resolveStepHorses(step, instance.stableId);
+
+  if (horses.length === 0) {
+    return; // No horses in this step, nothing to record
+  }
+
+  const entries: CreateHorseActivityHistoryInput[] = [];
+
+  for (const horse of horses) {
+    // Check if there's an explicit update for this horse
+    const horseProgress = stepProgress.horseProgress?.[horse.id];
+
+    // Determine execution status: explicit skip or default to completed
+    const isSkipped = horseProgress?.skipped === true;
+    const executionStatus = isSkipped ? "skipped" : "completed";
+
+    // Fetch current context snapshots
+    const feedingSnapshot = step.showFeeding
+      ? await getHorseFeedingContext(horse.id, instance.stableId).then((ctx) =>
+          ctx
+            ? {
+                instructions: ctx,
+                confirmed: horseProgress?.feedingConfirmed ?? true,
+              }
+            : undefined,
+        )
+      : undefined;
+
+    const medicationSnapshot = step.showMedication
+      ? await getHorseMedicationContext(horse.id).then((ctx) =>
+          ctx
+            ? {
+                instructions: ctx,
+                given: horseProgress?.medicationGiven ?? !isSkipped,
+                skipped: horseProgress?.medicationSkipped ?? isSkipped,
+                skipReason: horseProgress?.skipReason,
+              }
+            : undefined,
+        )
+      : undefined;
+
+    const blanketSnapshot = step.showBlanketStatus
+      ? await getHorseBlanketContext(horse.id).then((ctx) =>
+          ctx
+            ? {
+                instructions: ctx,
+                action: horseProgress?.blanketAction ?? "unchanged",
+              }
+            : undefined,
+        )
+      : undefined;
+
+    // Check for existing entry (re-opening scenario)
+    const existingEntry = await findExistingEntry(
+      instance.id,
+      step.id,
+      horse.id,
+    );
+
+    if (existingEntry) {
+      // Update existing entry
+      await updateEntry(existingEntry.id, {
+        executionStatus,
+        skipReason: horseProgress?.skipReason,
+        notes: horseProgress?.notes,
+        photoUrls: horseProgress?.photoUrls,
+        feedingSnapshot,
+        medicationSnapshot,
+        blanketSnapshot,
+      });
+    } else {
+      // Create new entry
+      entries.push({
+        horseId: horse.id,
+        routineInstanceId: instance.id,
+        routineStepId: step.id,
+        organizationId: instance.organizationId,
+        stableId: instance.stableId,
+        horseName: horse.name,
+        stableName: instance.stableName,
+        routineTemplateName: template.name,
+        routineType: template.type,
+        stepName: step.name,
+        category: step.category,
+        stepOrder: step.order,
+        executionStatus,
+        executedBy,
+        executedByName,
+        scheduledDate: instance.scheduledDate,
+        skipReason: horseProgress?.skipReason,
+        notes: horseProgress?.notes,
+        photoUrls: horseProgress?.photoUrls,
+        feedingSnapshot,
+        medicationSnapshot,
+        blanketSnapshot,
+        horseContextSnapshot: step.showSpecialInstructions
+          ? {
+              specialInstructions: horseProgress?.notes,
+            }
+          : undefined,
+      });
+    }
+  }
+
+  // Batch create new entries
+  if (entries.length > 0) {
+    await createActivityHistoryEntries(entries);
+  }
+}
 
 export async function routinesRoutes(fastify: FastifyInstance) {
   // ============================================================================
@@ -646,7 +996,7 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Get the template to include step definitions
+        // Get the template to include step definitions and metadata
         const templateDoc = await db
           .collection("routineTemplates")
           .doc(data.templateId)
@@ -660,7 +1010,19 @@ export async function routinesRoutes(fastify: FastifyInstance) {
         return serializeTimestamps({
           id: doc.id,
           ...restData,
-          template: template ? { steps: template.steps } : null,
+          template: template
+            ? {
+                name: template.name,
+                description: template.description,
+                type: template.type,
+                icon: template.icon,
+                color: template.color,
+                estimatedDuration: template.estimatedDuration,
+                requiresNotesRead: template.requiresNotesRead,
+                allowSkipSteps: template.allowSkipSteps,
+                steps: template.steps,
+              }
+            : null,
         });
       } catch (error) {
         request.log.error({ error }, "Failed to fetch routine instance");
@@ -684,9 +1046,24 @@ export async function routinesRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       try {
         const user = (request as AuthenticatedRequest).user!;
+
+        // Debug: Log the request body and schema shape
+        request.log.info(
+          { requestBody: request.body },
+          "Create routine instance request",
+        );
+        request.log.info(
+          { schemaShape: createRoutineInstanceSchema.shape },
+          "Schema shape",
+        );
+
         const parsed = createRoutineInstanceSchema.safeParse(request.body);
 
         if (!parsed.success) {
+          request.log.error(
+            { issues: parsed.error.issues },
+            "Validation failed",
+          );
           return reply.status(400).send({
             error: "Bad Request",
             message: "Invalid input",
@@ -752,7 +1129,8 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           organizationId: template.organizationId,
           stableId: input.stableId,
           scheduledDate,
-          scheduledStartTime: input.scheduledStartTime,
+          scheduledStartTime:
+            input.scheduledStartTime || template.defaultStartTime,
           estimatedDuration: template.estimatedDuration,
           assignedTo: input.assignedTo,
           assignmentType: input.assignedTo ? "manual" : "auto",
@@ -855,9 +1233,13 @@ export async function routinesRoutes(fastify: FastifyInstance) {
         await db.collection("routineInstances").doc(id).update(updateData);
 
         const updated = await db.collection("routineInstances").doc(id).get();
+        const enriched = await enrichInstanceWithTemplate(
+          updated.id,
+          updated.data() as RoutineInstance,
+        );
 
         return {
-          instance: serializeTimestamps({ id: updated.id, ...updated.data() }),
+          instance: enriched,
         };
       } catch (error) {
         request.log.error({ error }, "Failed to start routine");
@@ -1007,10 +1389,57 @@ export async function routinesRoutes(fastify: FastifyInstance) {
 
         await db.collection("routineInstances").doc(id).update(updateData);
 
+        // Create activity history entries when step is completed or skipped
+        if (input.status === "completed" || input.status === "skipped") {
+          try {
+            // Fetch template to get step details
+            const templateDoc = await db
+              .collection("routineTemplates")
+              .doc(data.templateId)
+              .get();
+
+            if (templateDoc.exists) {
+              const template = templateDoc.data() as RoutineTemplate;
+              const step = template.steps.find((s) => s.id === input.stepId);
+
+              if (step) {
+                // Ensure instance has id property
+                const instanceWithId: RoutineInstance = {
+                  ...data,
+                  id: doc.id,
+                };
+
+                await createStepActivityHistory(
+                  instanceWithId,
+                  template,
+                  step,
+                  currentStep,
+                  user.uid,
+                  user.displayName || user.email || undefined,
+                );
+                request.log.info(
+                  { stepId: input.stepId, instanceId: id },
+                  "Created activity history for completed step",
+                );
+              }
+            }
+          } catch (historyError) {
+            // Log but don't fail the request if history creation fails
+            request.log.error(
+              { error: historyError, stepId: input.stepId, instanceId: id },
+              "Failed to create activity history (non-blocking)",
+            );
+          }
+        }
+
         const updated = await db.collection("routineInstances").doc(id).get();
+        const enriched = await enrichInstanceWithTemplate(
+          updated.id,
+          updated.data() as RoutineInstance,
+        );
 
         return {
-          instance: serializeTimestamps({ id: updated.id, ...updated.data() }),
+          instance: enriched,
         };
       } catch (error) {
         request.log.error({ error }, "Failed to update routine progress");
@@ -1078,6 +1507,7 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           status: "completed" as RoutineInstanceStatus,
           completedAt: now,
           completedBy: user.uid,
+          completedByName: user.displayName || user.email || "Unknown user",
           "progress.stepsCompleted": data.progress.stepsTotal,
           "progress.percentComplete": 100,
           pointsAwarded: data.pointsValue,
@@ -1092,9 +1522,13 @@ export async function routinesRoutes(fastify: FastifyInstance) {
         // TODO: Send notification about completed routine
 
         const updated = await db.collection("routineInstances").doc(id).get();
+        const enriched = await enrichInstanceWithTemplate(
+          updated.id,
+          updated.data() as RoutineInstance,
+        );
 
         return {
-          instance: serializeTimestamps({ id: updated.id, ...updated.data() }),
+          instance: enriched,
         };
       } catch (error) {
         request.log.error({ error }, "Failed to complete routine");
@@ -1160,15 +1594,90 @@ export async function routinesRoutes(fastify: FastifyInstance) {
         });
 
         const updated = await db.collection("routineInstances").doc(id).get();
+        const enriched = await enrichInstanceWithTemplate(
+          updated.id,
+          updated.data() as RoutineInstance,
+        );
 
         return {
-          instance: serializeTimestamps({ id: updated.id, ...updated.data() }),
+          instance: enriched,
         };
       } catch (error) {
         request.log.error({ error }, "Failed to cancel routine");
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to cancel routine",
+        });
+      }
+    },
+  );
+
+  /**
+   * POST /api/v1/routines/instances/:id/restart
+   * Restart a cancelled routine
+   */
+  fastify.post(
+    "/instances/:id/restart",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const user = (request as AuthenticatedRequest).user!;
+
+        const doc = await db.collection("routineInstances").doc(id).get();
+        if (!doc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Routine instance not found",
+          });
+        }
+
+        const data = doc.data() as RoutineInstance;
+        const hasAccess = await hasStableAccess(
+          data.stableId,
+          user.uid,
+          user.role,
+        );
+        if (!hasAccess) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to restart this routine",
+          });
+        }
+
+        if (data.status !== "cancelled") {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: `Can only restart cancelled routines. Current status: ${data.status}`,
+          });
+        }
+
+        const now = Timestamp.now();
+        await db.collection("routineInstances").doc(id).update({
+          status: "scheduled",
+          cancelledAt: null,
+          cancelledBy: null,
+          cancellationReason: null,
+          updatedAt: now,
+          updatedBy: user.uid,
+        });
+
+        const updated = await db.collection("routineInstances").doc(id).get();
+        const enriched = await enrichInstanceWithTemplate(
+          updated.id,
+          updated.data() as RoutineInstance,
+        );
+
+        return {
+          instance: enriched,
+        };
+      } catch (error) {
+        request.log.error({ error }, "Failed to restart routine");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to restart routine",
         });
       }
     },

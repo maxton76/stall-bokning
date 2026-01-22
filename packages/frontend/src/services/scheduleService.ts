@@ -4,6 +4,7 @@ import type {
   CreateScheduleData,
   ShiftType,
 } from "@/types/schedule";
+import type { RoutineTemplate } from "@shared/types";
 import { Timestamp } from "firebase/firestore";
 import { parseShiftStartTime, createDateThreshold } from "@/utils/dateHelpers";
 import {
@@ -32,7 +33,9 @@ export async function createSchedule(
     endDate: data.endDate.toISOString(),
     useAutoAssignment: data.useAutoAssignment,
     notifyMembers: data.notifyMembers,
-    userId,
+    // Note: userId, selectedRoutineTemplates, and daysOfWeek are not part of schedule document
+    // - userId is derived from auth context by API
+    // - selectedRoutineTemplates and daysOfWeek are only used to generate shifts locally
   };
 
   const response = await authFetchJSON<{ id: string }>(
@@ -419,6 +422,37 @@ export async function markShiftMissed(
   );
 }
 
+/**
+ * Start a shift with a linked routine - creates routine instance and links it
+ */
+export async function startShiftWithRoutine(
+  shiftId: string,
+  routineInstanceId: string,
+): Promise<void> {
+  await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}/start-routine`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ routineInstanceId }),
+    },
+  );
+}
+
+/**
+ * Get a single shift by ID
+ */
+export async function getShift(shiftId: string): Promise<Shift | null> {
+  try {
+    const response = await authFetchJSON<Shift>(
+      `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}`,
+      { method: "GET" },
+    );
+    return response;
+  } catch (error) {
+    return null;
+  }
+}
+
 export async function deleteScheduleAndShifts(
   scheduleId: string,
 ): Promise<void> {
@@ -430,6 +464,58 @@ export async function deleteScheduleAndShifts(
 
 // ============= Helper Functions =============
 
+/**
+ * Generate shifts from routine templates
+ * This is the new way to create shifts - directly from routine templates with selected days
+ */
+export function generateShiftsFromRoutines(
+  scheduleId: string,
+  stableId: string,
+  stableName: string,
+  startDate: Date,
+  endDate: Date,
+  routineTemplates: RoutineTemplate[],
+  daysOfWeek: string[], // e.g., ["Mon", "Tue", "Wed", "Thu", "Fri"]
+): Omit<Shift, "id">[] {
+  const shifts: Omit<Shift, "id">[] = [];
+  const currentDate = new Date(startDate);
+
+  while (currentDate <= endDate) {
+    const dayName = currentDate.toLocaleDateString("en-US", {
+      weekday: "short",
+    });
+
+    // Check if this day is in the selected days of week
+    if (daysOfWeek.includes(dayName)) {
+      routineTemplates.forEach((routine) => {
+        shifts.push({
+          scheduleId,
+          stableId,
+          stableName,
+          date: Timestamp.fromDate(new Date(currentDate)),
+          time: routine.defaultStartTime || "08:00",
+          points: routine.pointsValue || 10,
+          status: "unassigned",
+          assignedTo: null,
+          assignedToName: null,
+          assignedToEmail: null,
+          // Direct routine template connection
+          routineTemplateId: routine.id,
+          routineTemplateName: routine.name,
+        });
+      });
+    }
+
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return shifts;
+}
+
+/**
+ * @deprecated Use generateShiftsFromRoutines instead
+ * Generate shifts from shift types (legacy function for backwards compatibility)
+ */
 export function generateShifts(
   scheduleId: string,
   stableId: string,
@@ -453,14 +539,18 @@ export function generateShifts(
           stableId,
           stableName,
           date: Timestamp.fromDate(new Date(currentDate)),
-          shiftTypeId: shiftType.id,
-          shiftTypeName: shiftType.name,
           time: shiftType.time,
           points: shiftType.points,
           status: "unassigned",
           assignedTo: null,
           assignedToName: null,
           assignedToEmail: null,
+          // Use routine template if available, otherwise use shift type as fallback
+          routineTemplateId: shiftType.routineTemplateId || shiftType.id,
+          routineTemplateName: shiftType.routineTemplateName || shiftType.name,
+          // Legacy fields
+          shiftTypeId: shiftType.id,
+          shiftTypeName: shiftType.name,
         });
       }
     });

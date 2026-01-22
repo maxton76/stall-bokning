@@ -96,6 +96,17 @@
     "allStables": "Alla stall",
     "unknownStable": "Okant stall"
   },
+  "shiftType": {
+    "linkedRoutine": "Kopplad rutin",
+    "selectRoutine": "Valj rutinmall (valfritt)",
+    "noRoutine": "Ingen kopplad rutin",
+    "routineLinkedHint": "Nar nagot startar detta pass guidas de genom den kopplade rutinen"
+  },
+  "shift": {
+    "startShift": "Starta pass",
+    "startShiftWithRoutine": "Starta pass ({{routineName}})",
+    "startingRoutine": "Startar rutin..."
+  },
   "createPage": {
     "backButton": "Tillbaka till stall",
     "pageTitle": "Skapa nytt schema",
@@ -120,6 +131,34 @@
       "selectedOne": "1 skifttyp vald",
       "selectedMany": "{{count}} skifttyper valda",
       "validationError": "Välj minst en skifttyp"
+    },
+    "routines": {
+      "title": "Välj rutiner",
+      "description": "Välj vilka rutinmallar som ska ingå i detta schema",
+      "placeholder": "Välj rutiner...",
+      "searchPlaceholder": "Sök rutiner...",
+      "emptyState": "Inga rutiner hittades.",
+      "noRoutinesAvailable": "Inga rutinmallar tillgängliga. Skapa rutinmallar i inställningarna först.",
+      "selectedOne": "1 rutin vald",
+      "selectedMany": "{{count}} rutiner valda",
+      "validationError": "Välj minst en rutin"
+    },
+    "daysOfWeek": {
+      "title": "Välj dagar",
+      "description": "Vilka veckodagar ska pass skapas för",
+      "quickSelect": {
+        "weekdays": "Vardagar",
+        "weekends": "Helger",
+        "allDays": "Alla dagar"
+      },
+      "validationError": "Välj minst en dag",
+      "Mon": "Mån",
+      "Tue": "Tis",
+      "Wed": "Ons",
+      "Thu": "Tor",
+      "Fri": "Fre",
+      "Sat": "Lör",
+      "Sun": "Sön"
     },
     "assignmentMethod": {
       "title": "Tilldelningsmetod",

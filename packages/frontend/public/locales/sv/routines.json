@@ -1,4 +1,10 @@
 {
+  "title": "Rutiner",
+  "manageRoutines": "Hantera rutiner",
+  "emptyState": {
+    "title": "Inga rutiner kopplade",
+    "description": "Det finns inga rutinmallar kopplade till detta stall. Skapa rutiner i inställningarna."
+  },
   "page": {
     "title": "Stallrutiner",
     "description": "Hantera och utför dagliga rutiner",
@@ -45,6 +51,7 @@
     "continue": "Fortsätt",
     "complete": "Slutför rutin",
     "cancel": "Avbryt",
+    "restart": "Återaktivera",
     "nextStep": "Nästa steg",
     "previousStep": "Föregående steg",
     "skip": "Hoppa över",
@@ -57,7 +64,9 @@
     "createTemplate": "Skapa mall",
     "editTemplate": "Redigera mall",
     "duplicateTemplate": "Duplicera mall",
-    "deleteTemplate": "Ta bort mall"
+    "deleteTemplate": "Ta bort mall",
+    "quickStart": "Snabbstart",
+    "backToActivities": "Tillbaka till aktiviteter"
   },
   "flow": {
     "step": "Steg",
@@ -70,7 +79,14 @@
     "noHorses": "Inga hästar i detta steg",
     "allHorsesCompleted": "Alla hästar klara",
     "horsesRemaining": "{{count}} hästar kvar",
-    "completionRequired": "Alla hästar måste markeras som klara"
+    "completionRequired": "Alla hästar måste markeras som klara",
+    "readOnlyView": "Endast visningsläge",
+    "completionNotes": "Slutföringsanteckningar",
+    "stepsOverview": "Stegöversikt",
+    "completedByUser": "Slutförd av användare",
+    "stepCompleted": "Steget slutfört",
+    "stepNotCompleted": "Steget ej slutfört",
+    "noHorseDataRecorded": "Ingen hästdata registrerades för detta steg"
   },
   "horse": {
     "feeding": "Utfodring",
@@ -79,8 +95,10 @@
     "specialInstructions": "Specialinstruktioner",
     "done": "Klart",
     "skip": "Hoppa över",
+    "skipped": "Överhoppad",
     "skipReason": "Orsak till att hoppa över",
     "medicationRequired": "Medicin måste ges",
+    "medicationGiven": "Medicin given",
     "medicationSkipped": "Medicin hoppades över",
     "blanketOn": "Täcke på",
     "blanketOff": "Täcke av",
@@ -151,7 +169,13 @@
     "requiresConfirmation": "Kräver bekräftelse",
     "allowPartialCompletion": "Tillåt delvis slutförande",
     "allowPhotoEvidence": "Tillåt fotobevis",
-    "estimatedMinutes": "Beräknad tid (minuter)"
+    "estimatedMinutes": "Beräknad tid (minuter)",
+    "selectHorses": "Välj hästar",
+    "selectHorsesPlaceholder": "Välj hästar för detta steg...",
+    "selectGroups": "Välj hästgrupper",
+    "selectGroupsPlaceholder": "Välj grupper för detta steg...",
+    "excludeHorses": "Exkludera hästar (valfritt)",
+    "excludeHorsesPlaceholder": "Exkludera specifika hästar..."
   },
   "standardTemplates": {
     "morning": {
@@ -200,6 +224,8 @@
     "routineStartedMessage": "{{routineName}} har startats",
     "routineCompleted": "Rutin slutförd",
     "routineCompletedMessage": "{{routineName}} slutförd av {{userName}}",
+    "routineAndShiftCompleted": "Rutin & pass slutfört",
+    "routineRestarted": "Rutin återaktiverad",
     "routineMissed": "Rutin missad",
     "routineMissedMessage": "{{routineName}} markerades som missad"
   },
@@ -209,7 +235,9 @@
     "cannotComplete": "Kan inte slutföra rutin",
     "notesRequired": "Du måste läsa dagens anteckningar först",
     "stepRequired": "Du måste slutföra detta steg",
-    "medicationRequired": "Medicin måste bekräftas eller hoppas över"
+    "medicationRequired": "Medicin måste bekräftas eller hoppas över",
+    "shiftCompletionFailed": "Rutin slutförd men passet kunde inte markeras som klart",
+    "restartFailed": "Kunde inte återaktivera rutinen"
   },
   "empty": {
     "noRoutines": "Inga rutiner schemalagda",

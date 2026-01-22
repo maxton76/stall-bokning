@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { createUserWithEmailAndPassword } from "firebase/auth";
@@ -14,7 +14,10 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
-import { acceptOrganizationInvite } from "@/services/inviteService";
+import {
+  acceptOrganizationInvite,
+  getInviteDetails,
+} from "@/services/inviteService";
 
 export default function SignupPage() {
   const { t } = useTranslation("auth");
@@ -32,6 +35,47 @@ export default function SignupPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Invite details state
+  const [inviteDetails, setInviteDetails] = useState<{
+    organizationName: string;
+    inviterName: string;
+    roles: string[];
+    email: string;
+    firstName?: string;
+    lastName?: string;
+  } | null>(null);
+
+  const [loadingInvite, setLoadingInvite] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+
+  // Fetch invite details on mount if invite token exists
+  useEffect(() => {
+    if (inviteToken) {
+      fetchInviteDetails();
+    }
+  }, [inviteToken]);
+
+  const fetchInviteDetails = async () => {
+    try {
+      setLoadingInvite(true);
+      const details = await getInviteDetails(inviteToken!);
+
+      setInviteDetails(details);
+
+      // Pre-fill form with invite data
+      setFormData((prev) => ({
+        ...prev,
+        email: details.email,
+        firstName: details.firstName || "",
+        lastName: details.lastName || "",
+      }));
+    } catch (err: any) {
+      setInviteError(err.message || "Failed to load invitation");
+    } finally {
+      setLoadingInvite(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
@@ -138,6 +182,47 @@ export default function SignupPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Loading state for invite */}
+          {loadingInvite ? (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">{t("register.loadingInvite")}</span>
+            </div>
+          ) : null}
+
+          {/* Invite error state */}
+          {inviteError && !loadingInvite ? (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>
+                {inviteError}
+                <p className="mt-2 text-sm">
+                  {t("register.continueWithoutInvite")}
+                </p>
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
+          {/* Invitation context display */}
+          {inviteDetails && !loadingInvite ? (
+            <Alert className="mb-4 bg-blue-50 border-blue-200">
+              <AlertDescription className="text-sm">
+                <p className="font-semibold mb-1">
+                  {t("register.invitationFrom", {
+                    organization: inviteDetails.organizationName,
+                  })}
+                </p>
+                <p className="text-muted-foreground">
+                  {t("register.invitedBy", {
+                    name: inviteDetails.inviterName,
+                  })}
+                </p>
+                <p className="text-muted-foreground mt-1">
+                  {t("register.roles")}: {inviteDetails.roles.join(", ")}
+                </p>
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}
             <div>
@@ -152,7 +237,14 @@ export default function SignupPage() {
                 onChange={handleChange}
                 required
                 placeholder={t("register.emailPlaceholder")}
+                disabled={!!inviteDetails}
+                className={inviteDetails ? "bg-muted cursor-not-allowed" : ""}
               />
+              {inviteDetails && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t("register.emailFromInvite")}
+                </p>
+              )}
             </div>
 
             {/* First Name */}

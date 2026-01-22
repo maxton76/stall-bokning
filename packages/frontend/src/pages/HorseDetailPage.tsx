@@ -23,6 +23,7 @@ import { CareCard } from "@/components/horse-detail/CareCard";
 import { VaccinationCard } from "@/components/horse-detail/VaccinationCard";
 import { ActivitiesCard } from "@/components/horse-detail/ActivitiesCard";
 import { TeamCard } from "@/components/horse-detail/TeamCard";
+import { RoutineHistoryCard } from "@/components/horse-detail/RoutineHistoryCard";
 import type { Horse, HorseGroup } from "@/types/roles";
 
 export default function HorseDetailPage() {
@@ -182,6 +183,7 @@ export default function HorseDetailPage() {
         <CareCard horse={horse.data} />
         <VaccinationCard horse={horse.data} />
         <ActivitiesCard horse={horse.data} />
+        <RoutineHistoryCard horse={horse.data} />
         <TeamCard horse={horse.data} />
       </div>
 

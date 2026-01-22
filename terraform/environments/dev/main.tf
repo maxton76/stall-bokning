@@ -118,10 +118,14 @@ module "cloud_run" {
   jwt_refresh_secret_id    = module.secrets.jwt_refresh_secret_id
   stripe_secret_key_id     = module.secrets.stripe_secret_key_id
   stripe_webhook_secret_id = module.secrets.stripe_webhook_secret_id
-  sendgrid_api_key_id      = module.secrets.sendgrid_api_key_id
+  sendgrid_api_key_id      = module.secrets.sendgrid_api_key_id # deprecated
+  smtp_password_id         = module.secrets.smtp_password_id
   twilio_account_sid_id    = module.secrets.twilio_account_sid_id
   twilio_auth_token_id     = module.secrets.twilio_auth_token_id
   telegram_bot_token_id    = module.secrets.telegram_bot_token_id
+
+  # Application configuration
+  frontend_url = "https://stall-bokning-dev.web.app"
 
   # Environment variables
   cors_origins = var.cors_origins

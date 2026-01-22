@@ -65,3 +65,8 @@ output "telegram_bot_token_id" {
   description = "Secret ID for Telegram bot token"
   value       = google_secret_manager_secret.secrets["telegram-bot-token"].id
 }
+
+output "smtp_password_id" {
+  description = "Secret ID for SMTP password"
+  value       = google_secret_manager_secret.secrets["smtp-password"].id
+}

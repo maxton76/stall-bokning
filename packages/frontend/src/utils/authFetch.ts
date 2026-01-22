@@ -74,6 +74,10 @@ export async function authFetchJSON<T = any>(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
+    // Log full error details for debugging
+    if (error.details) {
+      console.error("API validation error details:", error.details);
+    }
     throw new Error(
       error.message || `Request failed with status ${response.status}`,
     );

@@ -141,9 +141,20 @@ variable "stripe_webhook_secret_id" {
 }
 
 variable "sendgrid_api_key_id" {
-  description = "Secret Manager secret ID for SendGrid API key"
+  description = "Secret Manager secret ID for SendGrid API key (deprecated - use smtp_password_id)"
   type        = string
   default     = ""
+}
+
+variable "smtp_password_id" {
+  description = "Secret Manager secret ID for SMTP password"
+  type        = string
+  default     = ""
+}
+
+variable "frontend_url" {
+  description = "Frontend application URL for email links"
+  type        = string
 }
 
 variable "twilio_account_sid_id" {

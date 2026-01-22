@@ -76,11 +76,14 @@ resource "google_identity_platform_config" "default" {
     }
   }
 
-  # Block disposable email domains
-  blocking_functions {
-    triggers {
-      event_type   = "beforeCreate"
-      function_uri = var.auth_blocking_function_uri != "" ? var.auth_blocking_function_uri : null
+  # Block disposable email domains (only configure if function URI is provided)
+  dynamic "blocking_functions" {
+    for_each = var.auth_blocking_function_uri != "" ? [1] : []
+    content {
+      triggers {
+        event_type   = "beforeCreate"
+        function_uri = var.auth_blocking_function_uri
+      }
     }
   }
 

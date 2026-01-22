@@ -57,6 +57,7 @@ var __importStar =
   })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.monthlyTimeAccrual =
+  exports.onSchedulePublished =
   exports.cleanupOldNotifications =
   exports.retryFailedNotifications =
   exports.processNotificationQueue =
@@ -102,6 +103,14 @@ Object.defineProperty(exports, "cleanupOldNotifications", {
   enumerable: true,
   get: function () {
     return index_js_1.cleanupOldNotifications;
+  },
+});
+// Re-export trigger functions
+var onSchedulePublished_js_1 = require("./triggers/onSchedulePublished.js");
+Object.defineProperty(exports, "onSchedulePublished", {
+  enumerable: true,
+  get: function () {
+    return onSchedulePublished_js_1.onSchedulePublished;
   },
 });
 // ============================================================================

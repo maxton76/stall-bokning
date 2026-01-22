@@ -30,7 +30,10 @@ export type AuditResource =
   | "horse"
   | "horseGroup"
   | "activity"
-  | "vaccinationRule";
+  | "vaccinationRule"
+  | "horseFeeding"
+  | "feedType"
+  | "feedingTime";
 /**
  * Field-level change details
  */

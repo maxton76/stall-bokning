@@ -149,6 +149,23 @@
       }
     }
   },
+  "invites": {
+    "title": "Väntande inbjudningar",
+    "description": "Inbjudningar som väntar på att accepteras",
+    "sentOn": "Skickad",
+    "expiresOn": "Går ut",
+    "resendCount": "Skickat om",
+    "resentTimes": "{{count}}x",
+    "resend": "Skicka om",
+    "cancel": "Avbryt inbjudan",
+    "resent": "Inbjudan skickad om",
+    "resentDescription": "Inbjudan har skickats om till {{email}}",
+    "resendFailed": "Kunde inte skicka om inbjudan",
+    "cancelled": "Inbjudan avbruten",
+    "cancelledDescription": "Inbjudan till {{email}} har avbrutits",
+    "cancelFailed": "Kunde inte avbryta inbjudan",
+    "confirmCancel": "Är du säker på att du vill avbryta inbjudan till {{email}}?"
+  },
   "permissions": {
     "title": "Behörigheter",
     "description": "Rollbaserad åtkomstkontroll för organisationsmedlemmar",

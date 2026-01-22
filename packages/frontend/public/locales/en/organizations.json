@@ -149,6 +149,23 @@
       }
     }
   },
+  "invites": {
+    "title": "Pending Invitations",
+    "description": "Invitations waiting to be accepted",
+    "sentOn": "Sent On",
+    "expiresOn": "Expires On",
+    "resendCount": "Resent Count",
+    "resentTimes": "{{count}}x",
+    "resend": "Resend",
+    "cancel": "Cancel Invitation",
+    "resent": "Invitation Resent",
+    "resentDescription": "Invitation has been resent to {{email}}",
+    "resendFailed": "Failed to resend invitation",
+    "cancelled": "Invitation Cancelled",
+    "cancelledDescription": "Invitation to {{email}} has been cancelled",
+    "cancelFailed": "Failed to cancel invitation",
+    "confirmCancel": "Are you sure you want to cancel the invitation to {{email}}?"
+  },
   "permissions": {
     "title": "Permissions",
     "description": "Role-based access control for organization members",

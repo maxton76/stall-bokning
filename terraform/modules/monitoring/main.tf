@@ -33,7 +33,7 @@ resource "google_monitoring_notification_channel" "email" {
 # =============================================================================
 
 resource "google_monitoring_uptime_check_config" "cloud_run_health" {
-  count = var.enable_uptime_checks && var.cloud_run_service_url != "" ? 1 : 0
+  count = var.enable_uptime_checks ? 1 : 0
 
   display_name = "${var.environment}-api-health-check"
   project      = var.project_id

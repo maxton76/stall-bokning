@@ -242,5 +242,34 @@
     "totalFeedings": "Total Feedings",
     "completionRate": "Completion Rate",
     "wasteAmount": "Waste Cost"
+  },
+  "history": {
+    "title": "Feeding History",
+    "description": "View all changes to feeding schedules",
+    "noHistory": "No history available",
+    "noHistoryDescription": "History tracking started recently. Only changes after this date are shown.",
+    "viewDetails": "View details",
+    "hideDetails": "Hide details",
+    "unknownUser": "Unknown user",
+    "loadMore": "Load more",
+    "action": "Action",
+    "added": "added",
+    "removed": "removed",
+    "updated": "updated",
+    "for": "for",
+    "actions": {
+      "create": "Created",
+      "update": "Updated",
+      "delete": "Deleted"
+    },
+    "fields": {
+      "quantity": "Quantity",
+      "feedTypeId": "Feed Type",
+      "feedingTimeId": "Feeding Time",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "notes": "Notes",
+      "isActive": "Active"
+    }
   }
 }

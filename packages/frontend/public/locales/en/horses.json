@@ -37,7 +37,16 @@
       "notes": "Notes",
       "specialInstructions": "Special Instructions",
       "equipment": "Equipment",
-      "isExternal": "This horse is external (not part of the stable)"
+      "isExternal": "This horse is external (not part of the stable)",
+      "categoryInstructions": "Category-Specific Instructions",
+      "categoryInstructionsHint": "Optional - shows during routine execution based on step category",
+      "categoryInstructionsDescription": "Add specific instructions for different routine categories (e.g., medication dosage, blanket preferences). These will display contextually during routine execution.",
+      "categoryInstructionsPlaceholder": "Enter instructions for {{category}}...",
+      "generalInstructionsHint": "General fallback for all categories",
+      "selectCategory": "Select category",
+      "selectCategoryPlaceholder": "Select a routine category",
+      "categoriesWithInstructions": "{{count}} category has instructions",
+      "categoriesWithInstructions_other": "{{count}} categories have instructions"
     },
     "placeholders": {
       "name": "e.g., Thunder",
@@ -768,6 +777,44 @@
         "createError": "Failed to create vaccination rule",
         "updateError": "Failed to update vaccination rule"
       }
+    }
+  },
+  "selection": {
+    "allHorses": "All horses ({{count}})",
+    "horsesSelected": "{{count}} horses selected",
+    "searchPlaceholder": "Search horses...",
+    "noHorsesFound": "No horses found",
+    "selected": "{{count}} selected"
+  },
+  "groupSelection": {
+    "allGroups": "All groups ({{count}})",
+    "groupsSelected": "{{count}} groups selected",
+    "searchPlaceholder": "Search groups...",
+    "noGroupsFound": "No groups found",
+    "selected": "{{count}} selected"
+  },
+  "routineHistory": {
+    "title": "Routine History",
+    "description": "All completed routine activities for this horse",
+    "filters": {
+      "allCategories": "All categories",
+      "last7Days": "Last 7 days",
+      "last30Days": "Last 30 days",
+      "allTime": "All time"
+    },
+    "status": {
+      "completed": "Completed",
+      "skipped": "Skipped"
+    },
+    "noActivities": "No routine activities found",
+    "loadMore": "Load more",
+    "executedBy": "Executed by",
+    "skipReason": "Reason",
+    "snapshot": {
+      "title": "Instructions at execution time",
+      "feeding": "Feeding",
+      "medication": "Medication",
+      "blanket": "Blanket"
     }
   }
 }

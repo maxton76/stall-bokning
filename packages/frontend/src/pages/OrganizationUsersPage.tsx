@@ -328,14 +328,16 @@ export default function OrganizationUsersPage() {
                         <TableCell>
                           {invite.sentAt
                             ? new Date(
-                                (invite.sentAt as any).seconds * 1000,
+                                (invite.sentAt as any)._seconds * 1000 ||
+                                  (invite.sentAt as any).seconds * 1000,
                               ).toLocaleDateString()
                             : "-"}
                         </TableCell>
                         <TableCell>
                           {invite.expiresAt
                             ? new Date(
-                                (invite.expiresAt as any).seconds * 1000,
+                                (invite.expiresAt as any)._seconds * 1000 ||
+                                  (invite.expiresAt as any).seconds * 1000,
                               ).toLocaleDateString()
                             : "-"}
                         </TableCell>

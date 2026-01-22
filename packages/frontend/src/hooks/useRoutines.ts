@@ -152,7 +152,7 @@ export function useRoutineFlow(instanceId: string | undefined) {
 
   // Get current step configuration
   const currentStep: RoutineStep | undefined = instance
-    ? (instance as any).templateSnapshot?.steps?.[currentStepIndex]
+    ? (instance as any).template?.steps?.[currentStepIndex]
     : undefined;
 
   // Calculate if all horses in current step are completed
@@ -163,21 +163,27 @@ export function useRoutineFlow(instanceId: string | undefined) {
     currentStepProgress?.status === "completed" ||
     currentStepProgress?.status === "skipped";
 
-  const start = useCallback(async () => {
-    if (!instanceId) return;
+  const start = useCallback(
+    async (dailyNotesAcknowledged: boolean = true) => {
+      if (!instanceId) return;
 
-    try {
-      setLoading(true);
-      setError(null);
-      const updated = await startRoutineInstance(instanceId);
-      setInstance(updated);
-    } catch (err) {
-      setError(err as Error);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [instanceId]);
+      try {
+        setLoading(true);
+        setError(null);
+        const updated = await startRoutineInstance(
+          instanceId,
+          dailyNotesAcknowledged,
+        );
+        setInstance(updated);
+      } catch (err) {
+        setError(err as Error);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [instanceId],
+  );
 
   const updateProgress = useCallback(
     async (
@@ -190,7 +196,7 @@ export function useRoutineFlow(instanceId: string | undefined) {
         setIsSubmitting(true);
         const updated = await updateRoutineProgress(instanceId, {
           stepId,
-          stepStatus: status,
+          status,
         });
         setInstance(updated);
       } catch (err) {
@@ -285,6 +291,19 @@ export function useRoutineFlow(instanceId: string | undefined) {
     await completeStep(currentStep.id);
   }, [currentStep?.id, completeStep]);
 
+  const goToPreviousStep = useCallback(async () => {
+    if (!instance) return;
+    if (currentStepIndex <= 0) return; // Can't go back from first step
+
+    // Get the previous step
+    const template = (instance as any).template;
+    const previousStep = template?.steps?.[currentStepIndex - 1];
+    if (!previousStep?.id) return;
+
+    // Mark the previous step as "in_progress" to allow re-doing it
+    await updateProgress(previousStep.id, "in_progress");
+  }, [instance, currentStepIndex, updateProgress]);
+
   const markHorseDone = useCallback(
     async (horseId: string, notes?: string) => {
       if (!currentStep?.id) return;
@@ -347,6 +366,7 @@ export function useRoutineFlow(instanceId: string | undefined) {
     complete,
     cancel,
     goToNextStep,
+    goToPreviousStep,
     markHorseDone,
     skipHorse,
     confirmMedication,
@@ -582,8 +602,8 @@ export function useRoutineAnalytics(
 
       // Group by routine type and user
       instances.forEach((instance) => {
-        const templateSnapshot = (instance as any).templateSnapshot;
-        const type = templateSnapshot?.type ?? "custom";
+        const template = (instance as any).template;
+        const type = template?.type ?? "custom";
 
         if (!stats.byType[type]) {
           stats.byType[type] = { scheduled: 0, completed: 0 };

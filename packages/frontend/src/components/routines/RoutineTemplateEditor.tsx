@@ -34,6 +34,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
+import { HorseMultiSelect } from "@/components/HorseMultiSelect";
+import { HorseGroupMultiSelect } from "@/components/HorseGroupMultiSelect";
 import type {
   RoutineTemplate,
   RoutineStep,
@@ -397,6 +399,8 @@ export function RoutineTemplateEditor({
                 onMoveDown={() => moveStepDown(index)}
                 canMoveUp={index > 0}
                 canMoveDown={index < steps.length - 1}
+                stableId={stableId}
+                organizationId={organizationId}
                 t={t}
               />
             ))}
@@ -430,6 +434,8 @@ interface StepEditorProps {
   onMoveDown: () => void;
   canMoveUp: boolean;
   canMoveDown: boolean;
+  stableId: string;
+  organizationId: string;
   t: (key: string) => string;
 }
 
@@ -444,6 +450,8 @@ function StepEditor({
   onMoveDown,
   canMoveUp,
   canMoveDown,
+  stableId,
+  organizationId,
   t,
 }: StepEditorProps) {
   return (
@@ -564,7 +572,11 @@ function StepEditor({
                 <Select
                   value={step.horseContext}
                   onValueChange={(v) =>
-                    onUpdate({ horseContext: v as RoutineStepHorseContext })
+                    onUpdate({
+                      horseContext: v as RoutineStepHorseContext,
+                      // Reset horseFilter when context changes
+                      horseFilter: undefined,
+                    })
                   }
                 >
                   <SelectTrigger>
@@ -579,6 +591,67 @@ function StepEditor({
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Conditional horse/group selection based on horseContext */}
+              {step.horseContext === "specific" &&
+                stableId &&
+                stableId !== "__all__" && (
+                  <div>
+                    <Label>{t("routines:stepConfig.selectHorses")}</Label>
+                    <HorseMultiSelect
+                      stableId={stableId}
+                      selectedHorseIds={step.horseFilter?.horseIds || []}
+                      onChange={(horseIds) =>
+                        onUpdate({
+                          horseFilter: { ...step.horseFilter, horseIds },
+                        })
+                      }
+                      placeholder={t(
+                        "routines:stepConfig.selectHorsesPlaceholder",
+                      )}
+                    />
+                  </div>
+                )}
+
+              {step.horseContext === "groups" && (
+                <div>
+                  <Label>{t("routines:stepConfig.selectGroups")}</Label>
+                  <HorseGroupMultiSelect
+                    organizationId={organizationId}
+                    selectedGroupIds={step.horseFilter?.groupIds || []}
+                    onChange={(groupIds) =>
+                      onUpdate({
+                        horseFilter: { ...step.horseFilter, groupIds },
+                      })
+                    }
+                    placeholder={t(
+                      "routines:stepConfig.selectGroupsPlaceholder",
+                    )}
+                  />
+                </div>
+              )}
+
+              {/* Optional exclude horses for "all" or "groups" context */}
+              {(step.horseContext === "all" ||
+                step.horseContext === "groups") &&
+                stableId &&
+                stableId !== "__all__" && (
+                  <div>
+                    <Label>{t("routines:stepConfig.excludeHorses")}</Label>
+                    <HorseMultiSelect
+                      stableId={stableId}
+                      selectedHorseIds={step.horseFilter?.excludeHorseIds || []}
+                      onChange={(excludeHorseIds) =>
+                        onUpdate({
+                          horseFilter: { ...step.horseFilter, excludeHorseIds },
+                        })
+                      }
+                      placeholder={t(
+                        "routines:stepConfig.excludeHorsesPlaceholder",
+                      )}
+                    />
+                  </div>
+                )}
 
               <div>
                 <Label>{t("routines:stepConfig.estimatedMinutes")}</Label>

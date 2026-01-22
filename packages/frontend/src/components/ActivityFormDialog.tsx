@@ -1,8 +1,9 @@
 import { useEffect, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { format, eachDayOfInterval, getDay } from "date-fns";
+import { Calendar as CalendarIcon, ListChecks } from "lucide-react";
+import type { RoutineTemplate } from "@shared/types";
 import { BaseFormDialog } from "@/components/BaseFormDialog";
 import { useFormDialog } from "@/hooks/useFormDialog";
 import {
@@ -15,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Popover,
   PopoverContent,
@@ -58,10 +60,21 @@ const messageSchema = z.object({
   priority: z.enum(["low", "medium", "high"]).optional(),
 });
 
+const routineSchema = z.object({
+  type: z.literal("routine"),
+  date: z.date({ message: "Date is required" }),
+  endDate: z.date().optional(),
+  selectedDays: z
+    .array(z.number().min(0).max(6))
+    .min(1, "Select at least one day"),
+  templateId: z.string().min(1, "Template is required"),
+});
+
 const formSchema = z.discriminatedUnion("type", [
   activitySchema,
   taskSchema,
   messageSchema,
+  routineSchema,
 ]);
 
 type FormData = z.infer<typeof formSchema>;
@@ -79,6 +92,8 @@ interface ActivityFormDialogProps {
   horses?: Array<{ id: string; name: string }>;
   stableMembers?: Array<{ id: string; name: string }>;
   activityTypes?: ActivityTypeConfig[];
+  routineTemplates?: RoutineTemplate[];
+  onCreateRoutine?: (templateId: string, dates: Date[]) => Promise<void>;
 }
 
 export function ActivityFormDialog({
@@ -92,11 +107,13 @@ export function ActivityFormDialog({
   horses = [],
   stableMembers = [],
   activityTypes = [],
+  routineTemplates = [],
+  onCreateRoutine,
 }: ActivityFormDialogProps) {
-  const { t } = useTranslation(["activities", "common"]);
+  const { t } = useTranslation(["activities", "routines", "common"]);
   const isEditMode = !!entry;
   const [selectedType, setSelectedType] = useState<
-    "activity" | "task" | "message"
+    "activity" | "task" | "message" | "routine"
   >("activity");
 
   // Memoize defaultValues to prevent infinite loop
@@ -119,14 +136,43 @@ export function ActivityFormDialog({
     schema: formSchema,
     defaultValues,
     onSubmit: async (data) => {
-      await onSave(data);
+      if (data.type === "routine") {
+        // Handle routine creation separately
+        if (onCreateRoutine) {
+          // Calculate all dates in the range that match selected weekdays
+          const startDate = data.date;
+          const endDate = data.endDate || data.date;
+          const selectedDays = data.selectedDays;
+
+          const allDates = eachDayOfInterval({
+            start: startDate,
+            end: endDate,
+          });
+          const matchingDates = allDates.filter((date) =>
+            selectedDays.includes(getDay(date)),
+          );
+
+          if (matchingDates.length > 0) {
+            await onCreateRoutine(data.templateId, matchingDates);
+          }
+        }
+      } else {
+        // Handle activity, task, message
+        await onSave(
+          data as Omit<FormData, "type"> & {
+            type: "activity" | "task" | "message";
+          },
+        );
+      }
     },
     onSuccess: () => {
       onOpenChange(false);
     },
     successMessage: isEditMode
       ? t("activities:messages.updateSuccess")
-      : t("activities:messages.createSuccess"),
+      : selectedType === "routine"
+        ? t("routines:scheduling.success")
+        : t("activities:messages.createSuccess"),
     errorMessage: isEditMode
       ? t("activities:messages.saveError")
       : t("activities:messages.saveError"),
@@ -200,7 +246,9 @@ export function ActivityFormDialog({
   ]);
 
   // Update form type when radio selection changes
-  const handleTypeChange = (newType: "activity" | "task" | "message") => {
+  const handleTypeChange = (
+    newType: "activity" | "task" | "message" | "routine",
+  ) => {
     setSelectedType(newType);
     form.setValue("type", newType as any);
   };
@@ -266,9 +314,11 @@ export function ActivityFormDialog({
         <RadioGroup
           value={selectedType}
           onValueChange={(value) =>
-            handleTypeChange(value as "activity" | "task" | "message")
+            handleTypeChange(
+              value as "activity" | "task" | "message" | "routine",
+            )
           }
-          className="flex gap-4"
+          className="flex flex-wrap gap-4"
         >
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="activity" id="type-activity" />
@@ -292,6 +342,20 @@ export function ActivityFormDialog({
               className="font-normal cursor-pointer"
             >
               {t("activities:form.entryTypes.message")}
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem
+              value="routine"
+              id="type-routine"
+              disabled={!onCreateRoutine || routineTemplates.length === 0}
+            />
+            <Label
+              htmlFor="type-routine"
+              className="font-normal cursor-pointer flex items-center gap-1"
+            >
+              <ListChecks className="h-4 w-4" />
+              {t("activities:form.entryTypes.routine")}
             </Label>
           </div>
         </RadioGroup>
@@ -460,14 +524,129 @@ export function ActivityFormDialog({
         </>
       )}
 
-      {/* Assigned To (common field) */}
-      <FormSelect
-        name="assignedTo"
-        label={getAssignmentLabel()}
-        form={form as any}
-        options={stableMembers.map((m) => ({ value: m.id, label: m.name }))}
-        placeholder={t("activities:form.placeholders.unassigned")}
-      />
+      {/* Routine-specific fields */}
+      {selectedType === "routine" && (
+        <>
+          {routineTemplates.length > 0 ? (
+            <>
+              <FormSelect
+                name="templateId"
+                label={t("activities:form.labels.template")}
+                form={form as any}
+                options={routineTemplates.map((t) => ({
+                  value: t.id,
+                  label: t.name,
+                }))}
+                placeholder={t("activities:form.placeholders.selectTemplate")}
+                required
+              />
+
+              {/* End Date Picker */}
+              <div className="space-y-2">
+                <Label>{t("activities:form.labels.endDate")}</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !form.watch("endDate") && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {form.watch("endDate")
+                        ? format(form.watch("endDate") as Date, "PPP")
+                        : t("activities:form.placeholders.pickEndDate")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={form.watch("endDate") as Date | undefined}
+                      onSelect={(endDate) =>
+                        endDate && form.setValue("endDate", endDate)
+                      }
+                      disabled={(date) =>
+                        date < (form.watch("date") || new Date())
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Weekday Selection */}
+              <div className="space-y-3">
+                <Label>
+                  {t("activities:form.labels.weekdays")}{" "}
+                  <span className="text-destructive">*</span>
+                </Label>
+                <div className="flex flex-wrap gap-3">
+                  {[
+                    { day: 1, label: t("activities:form.weekdays.mon") },
+                    { day: 2, label: t("activities:form.weekdays.tue") },
+                    { day: 3, label: t("activities:form.weekdays.wed") },
+                    { day: 4, label: t("activities:form.weekdays.thu") },
+                    { day: 5, label: t("activities:form.weekdays.fri") },
+                    { day: 6, label: t("activities:form.weekdays.sat") },
+                    { day: 0, label: t("activities:form.weekdays.sun") },
+                  ].map(({ day, label }) => {
+                    const selectedDays =
+                      (form.watch("selectedDays") as number[]) || [];
+                    const isChecked = selectedDays.includes(day);
+                    return (
+                      <div key={day} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`day-${day}`}
+                          checked={isChecked}
+                          onCheckedChange={(checked) => {
+                            const current = selectedDays;
+                            if (checked) {
+                              form.setValue("selectedDays", [...current, day]);
+                            } else {
+                              form.setValue(
+                                "selectedDays",
+                                current.filter((d) => d !== day),
+                              );
+                            }
+                          }}
+                        />
+                        <Label
+                          htmlFor={`day-${day}`}
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          {label}
+                        </Label>
+                      </div>
+                    );
+                  })}
+                </div>
+                {"selectedDays" in form.formState.errors &&
+                  form.formState.errors.selectedDays && (
+                    <p className="text-sm text-destructive">
+                      {form.formState.errors.selectedDays.message}
+                    </p>
+                  )}
+              </div>
+            </>
+          ) : (
+            <div className="text-sm text-muted-foreground p-4 bg-muted rounded-md">
+              {t("activities:form.noTemplatesAvailable")}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Assigned To (common field - hidden for routines) */}
+      {selectedType !== "routine" && (
+        <FormSelect
+          name="assignedTo"
+          label={getAssignmentLabel()}
+          form={form as any}
+          options={stableMembers.map((m) => ({ value: m.id, label: m.name }))}
+          placeholder={t("activities:form.placeholders.unassigned")}
+        />
+      )}
 
       {/* Note field (activity-specific, at bottom) */}
       {selectedType === "activity" && (

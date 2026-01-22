@@ -469,7 +469,7 @@ export async function canAccessHorse(
     }
 
     const horseData = horseDoc.data();
-    const stableId = horseData?.stableId;
+    const stableId = horseData?.currentStableId; // FIXED: was stableId, should be currentStableId
 
     // Horse must belong to a stable
     if (!stableId) {
@@ -482,5 +482,159 @@ export async function canAccessHorse(
   } catch (error) {
     console.error("Error checking horse access:", error);
     return false;
+  }
+}
+
+// ============================================
+// HORSE FIELD-LEVEL RBAC
+// ============================================
+
+/**
+ * Access level for horse data based on user's role
+ * - public: Basic public info (name, breed, color)
+ * - basic_care: Daily care info (instructions, equipment)
+ * - professional: Professional services data (medical, hoof care)
+ * - management: Administrative data (owner info, full records)
+ * - owner: Full access to all fields
+ */
+export type HorseAccessLevel =
+  | "public"
+  | "basic_care"
+  | "professional"
+  | "management"
+  | "owner";
+
+/**
+ * Context object containing user's access level and role information for a specific horse
+ */
+export interface HorseAccessContext {
+  userId: string;
+  systemRole: string;
+  isOwner: boolean;
+  organizationRoles: string[];
+  stableAccess: "all" | "specific";
+  accessLevel: HorseAccessLevel;
+}
+
+/**
+ * Determine access level based on organization roles and system role
+ * Higher access levels include all lower-level permissions
+ *
+ * @param roles - User's organization roles
+ * @param systemRole - User's system-level role
+ * @param isStableOwner - Whether user owns the stable
+ * @returns HorseAccessLevel - Determined access level
+ */
+export function determineAccessLevel(
+  roles: string[],
+  systemRole: string,
+  isStableOwner: boolean,
+): HorseAccessLevel {
+  // System admin and stable owners get management level
+  if (systemRole === "system_admin" || isStableOwner) {
+    return "management";
+  }
+
+  // Administrator role gets management level
+  if (roles.includes("administrator")) {
+    return "management";
+  }
+
+  // Professional services roles get professional level
+  if (roles.some((r) => ["veterinarian", "dentist", "farrier"].includes(r))) {
+    return "professional";
+  }
+
+  // Daily care staff get basic_care level
+  if (roles.some((r) => ["groom", "rider", "customer"].includes(r))) {
+    return "basic_care";
+  }
+
+  // Default to public level for all other roles
+  return "public";
+}
+
+/**
+ * Get user's access context for a specific horse
+ * Determines what level of data the user can see based on ownership and role
+ *
+ * @param horseId - The horse's ID
+ * @param userId - The user's ID
+ * @param systemRole - The user's system role
+ * @returns Promise<HorseAccessContext | null> - Access context or null if no access
+ */
+export async function getHorseAccessContext(
+  horseId: string,
+  userId: string,
+  systemRole: string,
+): Promise<HorseAccessContext | null> {
+  try {
+    // Get horse data
+    const horseDoc = await db.collection("horses").doc(horseId).get();
+    if (!horseDoc.exists) {
+      return null;
+    }
+
+    const horse = horseDoc.data();
+    if (!horse) {
+      return null;
+    }
+
+    // Check ownership - owners get full access
+    const isOwner = horse.ownerId === userId;
+    if (isOwner) {
+      return {
+        userId,
+        systemRole,
+        isOwner: true,
+        organizationRoles: [],
+        stableAccess: "all",
+        accessLevel: "owner",
+      };
+    }
+
+    // Check stable access for non-owners
+    if (!horse.currentStableId) {
+      // Unassigned horses are owner-only
+      return null;
+    }
+
+    // Get organization member data for stable
+    const orgMember = await getOrganizationMemberForStable(
+      userId,
+      horse.currentStableId,
+    );
+
+    if (!orgMember) {
+      // No access to this stable
+      return null;
+    }
+
+    // Check if user owns the stable
+    const stableDoc = await db
+      .collection("stables")
+      .doc(horse.currentStableId)
+      .get();
+    const isStableOwner =
+      stableDoc.exists && stableDoc.data()?.ownerId === userId;
+
+    // Determine access level based on roles
+    const accessLevel = determineAccessLevel(
+      orgMember.roles || [],
+      systemRole,
+      isStableOwner,
+    );
+
+    return {
+      userId,
+      systemRole,
+      isOwner: false,
+      organizationRoles: orgMember.roles || [],
+      stableAccess: orgMember.stableAccess,
+      accessLevel,
+    };
+  } catch (error) {
+    console.error("Error getting horse access context:", error);
+    return null;
   }
 }

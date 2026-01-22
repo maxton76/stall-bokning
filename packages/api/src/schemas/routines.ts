@@ -167,13 +167,12 @@ export const updateRoutineTemplateSchema = z.object({
 export const createRoutineInstanceSchema = z.object({
   templateId: z.string().min(1, "Template ID is required"),
   stableId: z.string().min(1, "Stable ID is required"),
-  scheduledDate: z.union([z.string().datetime(), z.date()]),
-  scheduledStartTime: timeSchema,
+  scheduledDate: z.string().min(1, "Scheduled date is required"), // Accepts ISO string, parsed in route handler
+  scheduledStartTime: z.string().optional(), // Optional - defaults to template's defaultStartTime
   assignedTo: z.string().optional(),
 });
 
 export const startRoutineSchema = z.object({
-  instanceId: z.string().min(1, "Instance ID is required"),
   dailyNotesAcknowledged: z.boolean(),
 });
 
@@ -195,7 +194,6 @@ export const updateHorseProgressSchema = z.object({
 });
 
 export const updateStepProgressSchema = z.object({
-  instanceId: z.string().min(1, "Instance ID is required"),
   stepId: z.string().min(1, "Step ID is required"),
   status: stepStatusSchema.optional(),
   generalNotes: z.string().max(1000).optional(),
@@ -204,7 +202,6 @@ export const updateStepProgressSchema = z.object({
 });
 
 export const completeRoutineSchema = z.object({
-  instanceId: z.string().min(1, "Instance ID is required"),
   notes: z.string().max(2000).optional(),
 });
 

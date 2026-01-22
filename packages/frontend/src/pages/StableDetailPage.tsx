@@ -6,11 +6,12 @@ import {
   Settings,
   Calendar,
   BarChart3,
-  Pencil,
-  Trash2,
-  Plus,
   Loader2Icon,
   House as HorseIcon,
+  ClipboardList,
+  ExternalLink,
+  Clock,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,23 +23,15 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ShiftTypeDialog } from "@/components/ShiftTypeDialog";
 import { HorseCard } from "@/components/HorseCard";
 import { EmptyState } from "@/components/EmptyState";
-import {
-  getShiftTypesByStable,
-  createShiftType,
-  updateShiftType,
-  deleteShiftType,
-} from "@/services/shiftTypeService";
 import { getStableHorses } from "@/services/horseService";
 import { getStable } from "@/services/stableService";
-import type { ShiftType } from "@/types/schedule";
+import { getRoutineTemplates } from "@/services/routineService";
 import type { Horse } from "@/types/roles";
+import type { RoutineTemplate } from "@shared/types";
 import { useToast } from "@/hooks/use-toast";
-import { useDialog } from "@/hooks/useDialog";
 import { useAsyncData } from "@/hooks/useAsyncData";
-import { useCRUD } from "@/hooks/useCRUD";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Stable {
@@ -48,16 +41,20 @@ interface Stable {
   address?: string;
   ownerId: string;
   ownerEmail?: string;
+  organizationId?: string;
 }
 
 export default function StableDetailPage() {
-  const { t } = useTranslation(["stables", "common", "horses", "schedule"]);
+  const { t } = useTranslation([
+    "stables",
+    "common",
+    "horses",
+    "schedule",
+    "routines",
+  ]);
   const { stableId } = useParams();
   const { toast } = useToast();
   const { user } = useAuth();
-
-  // Dialog state management
-  const shiftTypeDialog = useDialog<ShiftType>();
 
   // Data loading with custom hooks
   const stable = useAsyncData<Stable | null>({
@@ -68,9 +65,16 @@ export default function StableDetailPage() {
     errorMessage: "Failed to load stable data. Please try again.",
   });
 
-  const shiftTypes = useAsyncData<ShiftType[]>({
-    loadFn: () => getShiftTypesByStable(stableId!),
-    errorMessage: "Failed to load shift types. Please try again.",
+  const routines = useAsyncData<RoutineTemplate[]>({
+    loadFn: async () => {
+      if (!stable.data?.organizationId) return [];
+      return await getRoutineTemplates(
+        stable.data.organizationId,
+        stableId!,
+        true,
+      );
+    },
+    errorMessage: "Failed to load routines. Please try again.",
   });
 
   const horses = useAsyncData<Horse[]>({
@@ -82,73 +86,16 @@ export default function StableDetailPage() {
   useEffect(() => {
     if (stableId) {
       stable.load();
-      shiftTypes.load();
       horses.load();
     }
   }, [stableId]);
 
-  // CRUD operations for shift types
-  const shiftTypeCRUD = useCRUD<ShiftType>({
-    createFn: async (data) => {
-      if (!stableId || !user)
-        throw new Error("Stable ID and user are required");
-      return await createShiftType(
-        stableId,
-        data as Omit<
-          ShiftType,
-          "id" | "stableId" | "createdAt" | "updatedAt" | "lastModifiedBy"
-        >,
-        user.uid,
-      );
-    },
-    updateFn: async (id, data) => {
-      if (!user) throw new Error("User is required");
-      await updateShiftType(
-        id,
-        data as Omit<
-          ShiftType,
-          "id" | "stableId" | "createdAt" | "lastModifiedBy"
-        >,
-        user.uid,
-      );
-    },
-    deleteFn: deleteShiftType,
-    onSuccess: async () => {
-      await shiftTypes.reload();
-    },
-    successMessages: {
-      create: "Shift type created successfully",
-      update: "Shift type updated successfully",
-      delete: "Shift type deleted successfully",
-    },
-  });
-
-  // Shift type handlers
-  const handleSaveShiftType = async (
-    data: Omit<ShiftType, "id" | "stableId" | "createdAt" | "updatedAt">,
-  ) => {
-    if (shiftTypeDialog.data) {
-      await shiftTypeCRUD.update(shiftTypeDialog.data.id, data);
-    } else {
-      await shiftTypeCRUD.create(data);
+  // Load routines when stable data is available (need organizationId)
+  useEffect(() => {
+    if (stable.data?.organizationId) {
+      routines.load();
     }
-    shiftTypeDialog.closeDialog();
-  };
-
-  const handleDeleteShiftType = async (shiftType: ShiftType) => {
-    await shiftTypeCRUD.remove(
-      shiftType.id,
-      `Are you sure you want to delete ${shiftType.name}? This action cannot be undone.`,
-    );
-  };
-
-  const handleCreateShiftType = () => {
-    shiftTypeDialog.openDialog();
-  };
-
-  const handleEditShiftType = (shiftType: ShiftType) => {
-    shiftTypeDialog.openDialog(shiftType);
-  };
+  }, [stable.data?.organizationId]);
 
   if (stable.loading || !stable.data) {
     return (
@@ -206,12 +153,12 @@ export default function StableDetailPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              {t("schedule:shiftTypes.title")}
+              {t("routines:title")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {shiftTypes.data?.length || 0}
+              {routines.data?.length || 0}
             </div>
           </CardContent>
         </Card>
@@ -251,9 +198,12 @@ export default function StableDetailPage() {
               {horses.data?.length || 0}
             </Badge>
           </TabsTrigger>
-          <TabsTrigger value="shifts">
-            <Calendar className="mr-2 h-4 w-4" />
-            {t("schedule:shiftTypes.title")}
+          <TabsTrigger value="routines">
+            <ClipboardList className="mr-2 h-4 w-4" />
+            {t("routines:title")}
+            <Badge variant="secondary" className="ml-2">
+              {routines.data?.length || 0}
+            </Badge>
           </TabsTrigger>
           <TabsTrigger value="stats">
             <BarChart3 className="mr-2 h-4 w-4" />
@@ -294,19 +244,19 @@ export default function StableDetailPage() {
           )}
         </TabsContent>
 
-        {/* Shift Types Tab */}
-        <TabsContent value="shifts" className="space-y-4">
+        {/* Routines Tab */}
+        <TabsContent value="routines" className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold">
-              {t("schedule:shiftTypes.title")}
-            </h2>
-            <Button onClick={handleCreateShiftType}>
-              <Plus className="mr-2 h-4 w-4" />
-              {t("schedule:shiftTypes.create")}
-            </Button>
+            <h2 className="text-2xl font-semibold">{t("routines:title")}</h2>
+            <Link to="/settings/routines">
+              <Button variant="outline">
+                {t("routines:manageRoutines")}
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
           </div>
 
-          {shiftTypes.loading ? (
+          {routines.loading ? (
             <Card>
               <CardContent className="p-6">
                 <p className="text-muted-foreground text-center">
@@ -314,58 +264,55 @@ export default function StableDetailPage() {
                 </p>
               </CardContent>
             </Card>
-          ) : !shiftTypes.data || shiftTypes.data.length === 0 ? (
+          ) : !routines.data || routines.data.length === 0 ? (
             <EmptyState
-              icon={Calendar}
-              title={t("schedule:shiftTypes.emptyState.title")}
-              description={t("schedule:shiftTypes.emptyState.description")}
+              icon={ClipboardList}
+              title={t("routines:emptyState.title")}
+              description={t("routines:emptyState.description")}
               action={{
-                label: t("schedule:shiftTypes.create"),
-                onClick: handleCreateShiftType,
+                label: t("routines:manageRoutines"),
+                onClick: () => (window.location.href = "/settings/routines"),
               }}
             />
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {shiftTypes.data.map((shiftType) => (
-                <Card key={shiftType.id}>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {routines.data.map((routine) => (
+                <Card key={routine.id}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
-                        <CardTitle>{shiftType.name}</CardTitle>
-                        <CardDescription>{shiftType.time}</CardDescription>
+                        <CardTitle className="text-lg">
+                          {routine.name}
+                        </CardTitle>
+                        {routine.description && (
+                          <CardDescription className="line-clamp-2">
+                            {routine.description}
+                          </CardDescription>
+                        )}
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEditShiftType(shiftType)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteShiftType(shiftType)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
+                      <Badge variant="secondary">
+                        {routine.steps?.length || 0}{" "}
+                        {t("routines:template.steps")}
+                      </Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          {t("schedule:shiftTypes.form.points")}
-                        </span>
-                        <span className="font-medium">{shiftType.points}</span>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        <span>{routine.defaultStartTime || "08:00"}</span>
+                        {routine.estimatedDuration && (
+                          <span className="text-muted-foreground">
+                            (~{routine.estimatedDuration}{" "}
+                            {t("common:time.minutes")})
+                          </span>
+                        )}
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          {t("schedule:shiftTypes.form.daysOfWeek")}
-                        </span>
-                        <span className="font-medium">
-                          {shiftType.daysOfWeek.join(", ")}
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Star className="h-4 w-4" />
+                        <span>
+                          {routine.pointsValue || 10}{" "}
+                          {t("schedule:shiftTypes.form.points").toLowerCase()}
                         </span>
                       </div>
                     </div>
@@ -390,19 +337,6 @@ export default function StableDetailPage() {
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Shift Type Dialog */}
-      <ShiftTypeDialog
-        open={shiftTypeDialog.open}
-        onOpenChange={(open) => !open && shiftTypeDialog.closeDialog()}
-        onSave={handleSaveShiftType}
-        shiftType={shiftTypeDialog.data}
-        title={
-          shiftTypeDialog.data
-            ? t("schedule:shiftTypes.edit")
-            : t("schedule:shiftTypes.create")
-        }
-      />
     </div>
   );
 }

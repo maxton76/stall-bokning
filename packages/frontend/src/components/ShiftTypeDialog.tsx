@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { z } from "zod";
+import { useTranslation } from "react-i18next";
 import { BaseFormDialog } from "@/components/BaseFormDialog";
 import { useFormDialog } from "@/hooks/useFormDialog";
 import { FormInput, FormCheckboxGroup, FormTextarea } from "@/components/form";
@@ -14,8 +15,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sunrise, Sun, Sunset, Moon, Sparkles } from "lucide-react";
+import {
+  Sunrise,
+  Sun,
+  Sunset,
+  Moon,
+  Sparkles,
+  Link2,
+  Link2Off,
+} from "lucide-react";
 import type { ShiftType } from "@/types/schedule";
+import { useRoutineTemplates } from "@/hooks/useRoutines";
 
 interface ShiftTypeDialogProps {
   open: boolean;
@@ -25,6 +35,8 @@ interface ShiftTypeDialogProps {
   ) => Promise<void>;
   shiftType?: ShiftType | null;
   title?: string;
+  organizationId?: string;
+  stableId?: string;
 }
 
 const DAYS_OF_WEEK = [
@@ -183,6 +195,8 @@ const shiftTypeSchema = z
     startMinute: z.string(),
     endHour: z.string(),
     endMinute: z.string(),
+    routineTemplateId: z.string().optional(),
+    routineTemplateName: z.string().optional(),
   })
   .refine(
     (data) => {
@@ -205,9 +219,16 @@ export function ShiftTypeDialog({
   onSave,
   shiftType,
   title,
+  organizationId,
+  stableId,
 }: ShiftTypeDialogProps) {
+  const { t } = useTranslation(["schedules", "common"]);
   const isEditMode = !!shiftType;
   const [activeTab, setActiveTab] = useState<string>("templates");
+
+  // Fetch routine templates for this organization/stable
+  const { templates: routineTemplates, loading: routineTemplatesLoading } =
+    useRoutineTemplates(organizationId, stableId);
 
   const { form, handleSubmit, resetForm } = useFormDialog<ShiftTypeFormData>({
     schema: shiftTypeSchema,
@@ -220,6 +241,8 @@ export function ShiftTypeDialog({
       startMinute: "00",
       endHour: "09",
       endMinute: "00",
+      routineTemplateId: undefined,
+      routineTemplateName: undefined,
     },
     onSubmit: async (data) => {
       const time = formatTimeRange(
@@ -235,6 +258,8 @@ export function ShiftTypeDialog({
         points: data.points,
         time,
         daysOfWeek: data.daysOfWeek,
+        routineTemplateId: data.routineTemplateId || undefined,
+        routineTemplateName: data.routineTemplateName || undefined,
       });
     },
     onSuccess: () => {
@@ -263,6 +288,8 @@ export function ShiftTypeDialog({
         startMinute,
         endHour,
         endMinute,
+        routineTemplateId: shiftType.routineTemplateId || undefined,
+        routineTemplateName: shiftType.routineTemplateName || undefined,
       });
       setActiveTab("custom"); // When editing, go to custom tab
     } else {
@@ -360,14 +387,24 @@ export function ShiftTypeDialog({
           </TabsContent>
 
           <TabsContent value="custom" className="mt-4 space-y-4">
-            <ShiftTypeFormFields form={form} />
+            <ShiftTypeFormFields
+              form={form}
+              routineTemplates={routineTemplates}
+              routineTemplatesLoading={routineTemplatesLoading}
+              t={t}
+            />
           </TabsContent>
         </Tabs>
       )}
 
       {isEditMode && (
         <div className="space-y-4">
-          <ShiftTypeFormFields form={form} />
+          <ShiftTypeFormFields
+            form={form}
+            routineTemplates={routineTemplates}
+            routineTemplatesLoading={routineTemplatesLoading}
+            t={t}
+          />
         </div>
       )}
     </BaseFormDialog>
@@ -375,7 +412,39 @@ export function ShiftTypeDialog({
 }
 
 // Extracted form fields component
-function ShiftTypeFormFields({ form }: { form: any }) {
+interface ShiftTypeFormFieldsProps {
+  form: any;
+  routineTemplates: Array<{
+    id: string;
+    name: string;
+    estimatedDuration: number;
+  }>;
+  routineTemplatesLoading: boolean;
+  t: (key: string) => string;
+}
+
+function ShiftTypeFormFields({
+  form,
+  routineTemplates,
+  routineTemplatesLoading,
+  t,
+}: ShiftTypeFormFieldsProps) {
+  const selectedRoutineId = form.watch("routineTemplateId");
+  const selectedRoutine = routineTemplates.find(
+    (r) => r.id === selectedRoutineId,
+  );
+
+  const handleRoutineChange = (value: string) => {
+    if (value === "none") {
+      form.setValue("routineTemplateId", undefined);
+      form.setValue("routineTemplateName", undefined);
+    } else {
+      const routine = routineTemplates.find((r) => r.id === value);
+      form.setValue("routineTemplateId", value);
+      form.setValue("routineTemplateName", routine?.name || undefined);
+    }
+  };
+
   return (
     <>
       <FormInput
@@ -394,6 +463,47 @@ function ShiftTypeFormFields({ form }: { form: any }) {
         helperText="List the tasks that need to be completed during this shift"
         rows={6}
       />
+
+      {/* Routine Template Selector */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2">
+          {selectedRoutineId ? (
+            <Link2 className="h-4 w-4 text-primary" />
+          ) : (
+            <Link2Off className="h-4 w-4 text-muted-foreground" />
+          )}
+          {t("schedules:shiftType.linkedRoutine")}
+        </Label>
+        <Select
+          value={selectedRoutineId || "none"}
+          onValueChange={handleRoutineChange}
+          disabled={routineTemplatesLoading}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder={t("schedules:shiftType.selectRoutine")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">
+              {t("schedules:shiftType.noRoutine")}
+            </SelectItem>
+            {routineTemplates.map((routine) => (
+              <SelectItem key={routine.id} value={routine.id}>
+                <div className="flex items-center justify-between gap-2">
+                  <span>{routine.name}</span>
+                  <Badge variant="outline" className="ml-2 text-xs">
+                    ~{routine.estimatedDuration} min
+                  </Badge>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {selectedRoutine && (
+          <p className="text-xs text-muted-foreground">
+            {t("schedules:shiftType.routineLinkedHint")}
+          </p>
+        )}
+      </div>
 
       {/* Time Range Picker - Custom layout for better UX */}
       <div className="space-y-2">

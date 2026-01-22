@@ -4,13 +4,20 @@
     "myHorses": "Mina hästar",
     "horses": "Hästar",
     "activities": "Aktiviteter",
+    "todaysWork": "Dagens arbete",
+    "planning": "Planering",
+    "care": "Vårdaktiviteter",
+    "analytics": "Statistik",
     "feeding": "Utfodring",
     "feedingOverview": "Översikt",
+    "feedingHistory": "Historik",
     "facilities": "Anläggningar",
     "schedule": "Schema",
     "myAvailability": "Min tillgänglighet",
     "myReservations": "Mina bokningar",
     "settings": "Inställningar",
+    "generalSettings": "Allmänt",
+    "activitySettings": "Aktivitetsinställningar",
     "stables": "Stall",
     "organizations": "Organisationer",
     "contacts": "Kontakter",
@@ -46,7 +53,8 @@
     "saveChanges": "Spara ändringar",
     "resetToDefaults": "Återställ till standard",
     "sendInvitation": "Skicka inbjudan",
-    "viewAll": "Visa alla"
+    "viewAll": "Visa alla",
+    "actions": "Åtgärder"
   },
   "labels": {
     "name": "Namn",
@@ -237,5 +245,10 @@
     "enableNotifications": "Aktivera notiser",
     "disableNotifications": "Avaktivera notiser",
     "notificationPermissionDenied": "Notisbehörighet nekad"
+  },
+  "filters": {
+    "allHorses": "Alla hästar",
+    "allActions": "Alla åtgärder",
+    "limit": "Antal"
   }
 }

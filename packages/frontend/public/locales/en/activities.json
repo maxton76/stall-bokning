@@ -3,6 +3,12 @@
     "title": "Activities",
     "description": "Manage activities and schedule events for your horses"
   },
+  "today": {
+    "title": "Today's Work",
+    "description": "Activities and routines for today",
+    "viewAll": "All",
+    "noWork": "No work planned for today"
+  },
   "tabs": {
     "actionList": "Action List",
     "planning": "Planning",
@@ -46,6 +52,8 @@
     "description": "Veterinary, farrier, dentist, and other care-related activities",
     "loading": "Loading care activities...",
     "stableLabel": "Stable",
+    "next": "Next",
+    "done": "Done",
     "viewMode": {
       "matrix": "Matrix",
       "table": "Table"
@@ -139,7 +147,7 @@
       "edit": "Edit Entry"
     },
     "description": {
-      "create": "Create a new activity, task, or message",
+      "create": "Create a new activity, task, message, or schedule a routine",
       "edit": "Update entry details"
     },
     "labels": {
@@ -158,7 +166,11 @@
       "assignedTo": "Assigned To",
       "priority": "Priority",
       "status": "Status",
-      "reminder": "Reminder"
+      "reminder": "Reminder",
+      "template": "Routine Template",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "weekdays": "Weekdays"
     },
     "placeholders": {
       "title": "e.g., Vet checkup",
@@ -171,12 +183,25 @@
       "selectHorse": "Select horse",
       "selectActivityType": "Select activity type",
       "pickDate": "Pick a date",
-      "unassigned": "Unassigned"
+      "pickEndDate": "Pick end date",
+      "unassigned": "Unassigned",
+      "selectTemplate": "Select routine template"
     },
+    "weekdays": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "noTemplatesAvailable": "No routine templates available. Go to Routines > Templates to create one.",
     "entryTypes": {
       "activity": "Activity",
       "task": "Task",
-      "message": "Message"
+      "message": "Message",
+      "routine": "Routine"
     },
     "priority": {
       "low": "Low",
@@ -301,6 +326,9 @@
     "select": "Select a stable",
     "all": "All Stables",
     "loading": "Loading stables..."
+  },
+  "routines": {
+    "weekRoutines": "Week Routines"
   },
   "groups": {
     "unassigned": "Unassigned",

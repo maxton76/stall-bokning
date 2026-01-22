@@ -118,7 +118,7 @@ export default function RoutineAnalyticsPage() {
           </div>
         </div>
 
-        <Button variant="outline" onClick={() => navigate("/routines")}>
+        <Button variant="outline" onClick={() => navigate("/activities")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           {t("common:buttons.back")}
         </Button>

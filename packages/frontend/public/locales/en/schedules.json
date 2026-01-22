@@ -96,6 +96,17 @@
     "allStables": "All Stables",
     "unknownStable": "Unknown Stable"
   },
+  "shiftType": {
+    "linkedRoutine": "Linked Routine",
+    "selectRoutine": "Select routine template (optional)",
+    "noRoutine": "No linked routine",
+    "routineLinkedHint": "When someone starts this shift they will be guided through the linked routine"
+  },
+  "shift": {
+    "startShift": "Start Shift",
+    "startShiftWithRoutine": "Start Shift ({{routineName}})",
+    "startingRoutine": "Starting routine..."
+  },
   "createPage": {
     "backButton": "Back to Stable",
     "pageTitle": "Create New Schedule",
@@ -120,6 +131,34 @@
       "selectedOne": "1 shift type selected",
       "selectedMany": "{{count}} shift types selected",
       "validationError": "Please select at least one shift type"
+    },
+    "routines": {
+      "title": "Select Routines",
+      "description": "Choose which routine templates to include in this schedule",
+      "placeholder": "Select routines...",
+      "searchPlaceholder": "Search routines...",
+      "emptyState": "No routines found.",
+      "noRoutinesAvailable": "No routine templates available. Create routine templates in settings first.",
+      "selectedOne": "1 routine selected",
+      "selectedMany": "{{count}} routines selected",
+      "validationError": "Please select at least one routine"
+    },
+    "daysOfWeek": {
+      "title": "Select Days",
+      "description": "Which weekdays should shifts be created for",
+      "quickSelect": {
+        "weekdays": "Weekdays",
+        "weekends": "Weekends",
+        "allDays": "All Days"
+      },
+      "validationError": "Please select at least one day",
+      "Mon": "Mon",
+      "Tue": "Tue",
+      "Wed": "Wed",
+      "Thu": "Thu",
+      "Fri": "Fri",
+      "Sat": "Sat",
+      "Sun": "Sun"
     },
     "assignmentMethod": {
       "title": "Assignment Method",

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { AuthProvider } from "./contexts/AuthContext";
 import { OrganizationProvider } from "./contexts/OrganizationContext";
@@ -32,10 +32,8 @@ const FacilitiesReservationsPage = lazy(
 );
 const ManageFacilitiesPage = lazy(() => import("./pages/ManageFacilitiesPage"));
 
-// Activity pages
-const ActivitiesActionListPage = lazy(
-  () => import("./pages/ActivitiesActionListPage"),
-);
+// Activity pages (unified "Today" dashboard combines activities and routines)
+const TodayPage = lazy(() => import("./pages/TodayPage"));
 const ActivitiesPlanningPage = lazy(
   () => import("./pages/ActivitiesPlanningPage"),
 );
@@ -48,6 +46,7 @@ const ActivitiesSettingsPage = lazy(
 const FeedingSchedulePage = lazy(() => import("./pages/FeedingSchedulePage"));
 const FeedingSettingsPage = lazy(() => import("./pages/FeedingSettingsPage"));
 const FeedingOverviewPage = lazy(() => import("./pages/FeedingOverviewPage"));
+const FeedingHistoryPage = lazy(() => import("./pages/FeedingHistoryPage"));
 
 // Inventory pages
 const InventoryPage = lazy(() => import("./pages/InventoryPage"));
@@ -301,12 +300,12 @@ function App() {
                   }
                 />
 
-                {/* Activity routes */}
+                {/* Activity routes - Unified "Today" dashboard (combines activities + routines) */}
                 <Route
                   path="/activities"
                   element={
                     <Suspense fallback={<InlineLoader />}>
-                      <ActivitiesActionListPage />
+                      <TodayPage />
                     </Suspense>
                   }
                 />
@@ -327,12 +326,17 @@ function App() {
                   }
                 />
                 <Route
-                  path="/activities/settings"
+                  path="/activities/analytics"
                   element={
                     <Suspense fallback={<InlineLoader />}>
-                      <ActivitiesSettingsPage />
+                      <RoutineAnalyticsPage />
                     </Suspense>
                   }
+                />
+                {/* Legacy redirect: /activities/settings moved to /settings/activities */}
+                <Route
+                  path="/activities/settings"
+                  element={<Navigate to="/settings/activities" replace />}
                 />
 
                 {/* Feeding routes */}
@@ -349,6 +353,14 @@ function App() {
                   element={
                     <Suspense fallback={<InlineLoader />}>
                       <FeedingSchedulePage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/feeding/history"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <FeedingHistoryPage />
                     </Suspense>
                   }
                 />
@@ -581,15 +593,7 @@ function App() {
                   }
                 />
 
-                {/* Routine routes */}
-                <Route
-                  path="/routines"
-                  element={
-                    <Suspense fallback={<InlineLoader />}>
-                      <RoutinesPage />
-                    </Suspense>
-                  }
-                />
+                {/* Routine flow route (kept for routine execution) */}
                 <Route
                   path="/routines/flow/:instanceId"
                   element={
@@ -598,8 +602,23 @@ function App() {
                     </Suspense>
                   }
                 />
+                {/* Legacy redirects: Routines menu reorganized under Activities and Settings */}
+                <Route
+                  path="/routines"
+                  element={<Navigate to="/activities" replace />}
+                />
                 <Route
                   path="/routines/templates"
+                  element={<Navigate to="/settings/routines" replace />}
+                />
+                <Route
+                  path="/routines/analytics"
+                  element={<Navigate to="/activities/analytics" replace />}
+                />
+
+                {/* Settings routes for configuration */}
+                <Route
+                  path="/settings/routines"
                   element={
                     <Suspense fallback={<InlineLoader />}>
                       <RoutineTemplatesPage />
@@ -607,10 +626,10 @@ function App() {
                   }
                 />
                 <Route
-                  path="/routines/analytics"
+                  path="/settings/activities"
                   element={
                     <Suspense fallback={<InlineLoader />}>
-                      <RoutineAnalyticsPage />
+                      <ActivitiesSettingsPage />
                     </Suspense>
                   }
                 />

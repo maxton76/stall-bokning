@@ -29,6 +29,7 @@ import { auditLogsRoutes } from "./routes/audit-logs.js";
 import { feedTypesRoutes } from "./routes/feed-types.js";
 import { feedingTimesRoutes } from "./routes/feeding-times.js";
 import { horseFeedingsRoutes } from "./routes/horse-feedings.js";
+import { feedingHistoryRoutes } from "./routes/feeding-history.js";
 import { availabilityRoutes } from "./routes/availability.js";
 import { recurringActivitiesRoutes } from "./routes/recurring-activities.js";
 import { notificationsRoutes } from "./routes/notifications.js";
@@ -43,6 +44,7 @@ import { paymentsRoutes } from "./routes/payments.js";
 import { assistantRoutes } from "./routes/assistant.js";
 import { routinesRoutes } from "./routes/routines.js";
 import { dailyNotesRoutes } from "./routes/daily-notes.js";
+import { horseActivityHistoryRoutes } from "./routes/horse-activity-history.js";
 
 const PORT = Number(process.env.PORT) || 8080;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -149,6 +151,9 @@ await fastify.register(feedingTimesRoutes, { prefix: "/api/v1/feeding-times" });
 await fastify.register(horseFeedingsRoutes, {
   prefix: "/api/v1/horse-feedings",
 });
+await fastify.register(feedingHistoryRoutes, {
+  prefix: "/api/v1/feeding-history",
+});
 await fastify.register(availabilityRoutes, {
   prefix: "/api/v1/availability",
 });
@@ -169,6 +174,9 @@ await fastify.register(paymentsRoutes, { prefix: "/api/v1" });
 await fastify.register(assistantRoutes, { prefix: "/api/v1" });
 await fastify.register(routinesRoutes, { prefix: "/api/v1/routines" });
 await fastify.register(dailyNotesRoutes, { prefix: "/api/v1/daily-notes" });
+await fastify.register(horseActivityHistoryRoutes, {
+  prefix: "/api/v1/horse-activity-history",
+});
 
 // 404 handler
 fastify.setNotFoundHandler((request, reply) => {

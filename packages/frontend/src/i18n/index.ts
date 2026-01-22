@@ -27,6 +27,7 @@ export const namespaces = [
   "location",
   "schedules",
   "landing",
+  "routines",
 ] as const;
 
 export type Namespace = (typeof namespaces)[number];
@@ -46,7 +47,7 @@ export const languageFlags: Record<SupportedLanguage, string> = {
 };
 
 // Cache-busting version - update this when translations change
-const TRANSLATIONS_VERSION = "2026.01.18.5";
+const TRANSLATIONS_VERSION = "2026.01.22.1";
 
 i18n
   .use(Backend)

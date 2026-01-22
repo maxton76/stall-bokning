@@ -22,7 +22,9 @@ import {
 } from "@/components/ui/collapsible";
 import { ChevronDown, Calendar, History, Plus, Bell } from "lucide-react";
 import { EquipmentListEditor } from "@/components/EquipmentListEditor";
+import { CategoryInstructionsDropdown } from "@/components/CategoryInstructionsDropdown";
 import type { EquipmentItem } from "@stall-bokning/shared";
+import type { RoutineCategory } from "@shared/types";
 import { useVaccinationStatus } from "@/hooks/useVaccinationStatus";
 import type {
   Horse,
@@ -100,6 +102,22 @@ const horseSchema = z
     breeder: z.string().optional(),
     notes: z.string().optional(),
     specialInstructions: z.string().optional(),
+    categoryInstructions: z
+      .object({
+        preparation: z.string().optional(),
+        feeding: z.string().optional(),
+        medication: z.string().optional(),
+        blanket: z.string().optional(),
+        turnout: z.string().optional(),
+        bring_in: z.string().optional(),
+        mucking: z.string().optional(),
+        water: z.string().optional(),
+        health_check: z.string().optional(),
+        safety: z.string().optional(),
+        cleaning: z.string().optional(),
+        other: z.string().optional(),
+      })
+      .optional(),
     equipment: z
       .array(
         z.object({
@@ -172,6 +190,20 @@ export function HorseFormDialog({
       breeder: "",
       notes: "",
       specialInstructions: "",
+      categoryInstructions: {
+        preparation: "",
+        feeding: "",
+        medication: "",
+        blanket: "",
+        turnout: "",
+        bring_in: "",
+        mucking: "",
+        water: "",
+        health_check: "",
+        safety: "",
+        cleaning: "",
+        other: "",
+      },
       equipment: [],
     },
     onSubmit: async (data) => {
@@ -194,6 +226,14 @@ export function HorseFormDialog({
         isExternal: data.isExternal,
         notes: data.notes?.trim() || undefined,
         specialInstructions: data.specialInstructions?.trim() || undefined,
+        categoryInstructions: data.categoryInstructions
+          ? Object.fromEntries(
+              Object.entries(data.categoryInstructions).map(([key, value]) => [
+                key,
+                value?.trim() || "",
+              ]),
+            )
+          : undefined,
         equipment:
           data.equipment && data.equipment.length > 0
             ? data.equipment
@@ -298,6 +338,20 @@ export function HorseFormDialog({
         breeder: horse.breeder || "",
         notes: horse.notes || "",
         specialInstructions: horse.specialInstructions || "",
+        categoryInstructions: horse.categoryInstructions || {
+          preparation: "",
+          feeding: "",
+          medication: "",
+          blanket: "",
+          turnout: "",
+          bring_in: "",
+          mucking: "",
+          water: "",
+          health_check: "",
+          safety: "",
+          cleaning: "",
+          other: "",
+        },
         equipment: horse.equipment || [],
       });
     } else {
@@ -741,11 +795,31 @@ export function HorseFormDialog({
 
           <FormTextarea
             name="specialInstructions"
-            label={t("horses:status.instructions")}
+            label={t("horses:form.labels.specialInstructions")}
             form={form}
             placeholder={t("horses:form.placeholders.specialInstructions")}
             rows={3}
           />
+          <p className="text-xs text-muted-foreground -mt-2">
+            {t("horses:form.labels.generalInstructionsHint")}
+          </p>
+
+          {/* Category-Specific Instructions */}
+          <div className="space-y-2">
+            <Label>
+              {t("horses:form.labels.categoryInstructions")}
+              <span className="text-xs text-muted-foreground ml-2">
+                {t("horses:form.labels.categoryInstructionsHint")}
+              </span>
+            </Label>
+            <p className="text-sm text-muted-foreground mb-2">
+              {t("horses:form.labels.categoryInstructionsDescription")}
+            </p>
+            <CategoryInstructionsDropdown
+              value={form.watch("categoryInstructions") || {}}
+              onChange={(value) => form.setValue("categoryInstructions", value)}
+            />
+          </div>
 
           <EquipmentListEditor
             value={form.watch("equipment") || []}

@@ -227,6 +227,94 @@ interface UserPreferences {
 
 ---
 
+### 1.3 Special Instructions - Category-Specific Instructions
+
+**Purpose**: Horse owners can provide category-specific instructions that display contextually during routine execution based on step category.
+
+**Data Model**:
+```typescript
+interface Horse {
+  // ... existing fields ...
+
+  // Special Instructions
+  specialInstructions?: string; // General fallback instructions for all categories
+  categoryInstructions?: Record<RoutineCategory, string>; // Category-specific instructions
+  equipment?: EquipmentItem[];
+  hasSpecialInstructions?: boolean; // Computed flag for quick filtering
+}
+
+type RoutineCategory =
+  | "preparation"    // Förberedelse
+  | "feeding"        // Utfodring
+  | "medication"     // Medicinering
+  | "blanket"        // Täckehantering
+  | "turnout"        // Utsläpp
+  | "bring_in"       // Insläpp
+  | "mucking"        // Mockning
+  | "water"          // Vatten
+  | "health_check"   // Visitering
+  | "safety"         // Säkerhetskontroll
+  | "cleaning"       // Städning
+  | "other";         // Övrigt
+```
+
+**Priority System**:
+1. **Category-specific instructions** (if available for the step's category)
+2. **General instructions** (`specialInstructions`) as fallback
+3. **undefined** (no instructions)
+
+**Example**:
+```typescript
+const horse: Horse = {
+  id: "horse-123",
+  name: "Thunder",
+  specialInstructions: "Always speak calmly around this horse",
+  categoryInstructions: {
+    medication: "Give 2 pills at 8am with food. Do not crush pills.",
+    feeding: "Extra hay in evening feed. Avoid alfalfa.",
+    blanket: "Use lightweight blanket below 15°C, heavy blanket below 5°C",
+    // ... other categories can be empty or omitted
+  }
+};
+
+// During routine execution:
+// Step category: "medication" → Displays: "Give 2 pills at 8am with food. Do not crush pills."
+// Step category: "turnout" → Displays: "Always speak calmly around this horse" (fallback)
+// Step category: "mucking" → Displays: "Always speak calmly around this horse" (fallback)
+```
+
+**UI Implementation**:
+- **Edit Form**: Tabbed interface grouping 12 categories into 4 logical tabs:
+  - Tab 1: Feeding & Medication (feeding, medication)
+  - Tab 2: Blankets & Turnout (blanket, turnout, bring_in)
+  - Tab 3: Care & Maintenance (mucking, water, health_check, safety, cleaning)
+  - Tab 4: Other (preparation, other)
+- **Routine Flow**: Instructions automatically resolve and display based on current step's category
+
+**Resolution Logic**:
+```typescript
+function getInstructionsForHorseStep(
+  horse: Horse,
+  stepCategory?: RoutineCategory
+): string | undefined {
+  // Priority 1: Category-specific
+  if (stepCategory && horse.categoryInstructions?.[stepCategory]?.trim()) {
+    return horse.categoryInstructions[stepCategory];
+  }
+
+  // Priority 2: General fallback
+  return horse.specialInstructions;
+}
+```
+
+**Benefits**:
+- Contextual instructions reduce information overload
+- Category-specific guidance improves task accuracy
+- Backward compatible (existing `specialInstructions` continue to work)
+- Type-safe with TypeScript `Record<RoutineCategory, string>`
+
+---
+
 ### 2. `stables/` Collection
 
 **Purpose**: Stores all information about stables

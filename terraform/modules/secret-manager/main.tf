@@ -35,6 +35,12 @@ locals {
       labels      = { type = "notification", service = "sendgrid", sensitivity = "medium" }
     }
 
+    # SMTP Secrets
+    "smtp-password" = {
+      description = "SMTP gateway password for outgoing email"
+      labels      = { type = "notification", service = "smtp", sensitivity = "high" }
+    }
+
     # Twilio Secrets
     "twilio-account-sid" = {
       description = "Twilio account SID"
@@ -84,23 +90,31 @@ resource "google_secret_manager_secret" "secrets" {
 # =============================================================================
 
 # Grant Cloud Run service account access to secrets
+# Note: This will be created even if empty string is passed, but GCP will reject it.
+# In practice, the dev environment always provides valid service account emails from the IAM module.
 resource "google_secret_manager_secret_iam_member" "cloud_run_accessor" {
-  for_each = var.cloud_run_service_account_email != "" ? local.all_secrets : {}
+  for_each = local.all_secrets
 
   project   = var.project_id
   secret_id = google_secret_manager_secret.secrets[each.key].secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${var.cloud_run_service_account_email}"
+
+  # Ensure this only runs after service accounts are created
+  depends_on = [google_secret_manager_secret.secrets]
 }
 
 # Grant Cloud Functions service account access to secrets
 resource "google_secret_manager_secret_iam_member" "cloud_functions_accessor" {
-  for_each = var.cloud_functions_service_account_email != "" ? local.all_secrets : {}
+  for_each = local.all_secrets
 
   project   = var.project_id
   secret_id = google_secret_manager_secret.secrets[each.key].secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${var.cloud_functions_service_account_email}"
+
+  # Ensure this only runs after service accounts are created
+  depends_on = [google_secret_manager_secret.secrets]
 }
 
 # =============================================================================

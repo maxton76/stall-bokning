@@ -84,7 +84,7 @@ tasks:
   deploy:frontend:
     desc: Build and deploy frontend to Firebase Hosting
     dir: '{{.FRONTEND_DIR}}'
-    deps: [env:switch]
+    deps: [env:switch, config:check]
     cmds:
       - echo "Building frontend..."
       - npm run build
@@ -539,6 +539,65 @@ tasks:
     prompt: This will OVERWRITE data in {{.ENV}}. Are you sure?
     cmds:
       - gcloud firestore import {{.BACKUP}} --project {{.PROJECT_ID}}
+
+  # ===========================================================================
+  # Config Tasks (API URL Synchronization)
+  # ===========================================================================
+
+  config:check:
+    desc: Check if frontend .env has correct API URL
+    vars:
+      EXPECTED_URL:
+        sh: gcloud run services describe {{.API_SERVICE}} --region {{.REGION}} --project {{.PROJECT_ID}} --format="value(status.url)" 2>/dev/null || echo "SERVICE_NOT_FOUND"
+      CURRENT_URL:
+        sh: grep "^VITE_API_URL=" {{.FRONTEND_DIR}}/.env 2>/dev/null | cut -d'=' -f2 || echo "NOT_SET"
+    cmds:
+      - |
+        if [ "{{.EXPECTED_URL}}" = "SERVICE_NOT_FOUND" ]; then
+          echo "⚠️  Cloud Run service {{.API_SERVICE}} not found. Deploy API first."
+          exit 1
+        fi
+        if [ "{{.CURRENT_URL}}" = "NOT_SET" ]; then
+          echo "⚠️  VITE_API_URL not set in frontend .env"
+          echo "   Expected: {{.EXPECTED_URL}}"
+          echo "   Run: task config:sync-api-url"
+          exit 1
+        fi
+        if [ "{{.CURRENT_URL}}" != "{{.EXPECTED_URL}}" ]; then
+          echo "⚠️  API URL mismatch!"
+          echo "   Current:  {{.CURRENT_URL}}"
+          echo "   Expected: {{.EXPECTED_URL}}"
+          echo "   Run: task config:sync-api-url"
+          exit 1
+        fi
+        echo "✅ API URL is correct: {{.EXPECTED_URL}}"
+
+  config:sync-api-url:
+    desc: Update frontend .env with correct API URL from Cloud Run
+    vars:
+      API_URL:
+        sh: gcloud run services describe {{.API_SERVICE}} --region {{.REGION}} --project {{.PROJECT_ID}} --format="value(status.url)"
+    cmds:
+      - |
+        if [ -z "{{.API_URL}}" ]; then
+          echo "❌ Could not get API URL. Is {{.API_SERVICE}} deployed?"
+          exit 1
+        fi
+        if grep -q "^VITE_API_URL=" {{.FRONTEND_DIR}}/.env 2>/dev/null; then
+          sed -i.bak "s|^VITE_API_URL=.*|VITE_API_URL={{.API_URL}}|" {{.FRONTEND_DIR}}/.env
+          rm -f {{.FRONTEND_DIR}}/.env.bak
+          echo "✅ Updated VITE_API_URL={{.API_URL}}"
+        else
+          echo "VITE_API_URL={{.API_URL}}" >> {{.FRONTEND_DIR}}/.env
+          echo "✅ Added VITE_API_URL={{.API_URL}}"
+        fi
+
+  config:show-api-url:
+    desc: Show the current Cloud Run API URL
+    cmds:
+      - |
+        echo "Cloud Run Service: {{.API_SERVICE}}"
+        echo "API URL: $(gcloud run services describe {{.API_SERVICE}} --region {{.REGION}} --project {{.PROJECT_ID}} --format='value(status.url)' 2>/dev/null || echo 'Not deployed')"
 
   # ===========================================================================
   # Utility Tasks

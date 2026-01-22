@@ -82,6 +82,7 @@ export default function AuthenticatedLayout() {
   // State for accordion menu - track which menu item is expanded
   const [expandedItem, setExpandedItem] = useState<string | null>(() => {
     // Initialize with currently active menu item expanded
+    // Updated to match new navigation structure (routines moved to settings)
     const navigation = [
       {
         name: "horses",
@@ -99,7 +100,7 @@ export default function AuthenticatedLayout() {
           { href: "/activities" },
           { href: "/activities/planning" },
           { href: "/activities/care" },
-          { href: "/activities/settings" },
+          { href: "/activities/analytics" },
         ],
       },
       {
@@ -108,13 +109,9 @@ export default function AuthenticatedLayout() {
         subItems: [
           { href: "/feeding/overview" },
           { href: "/feeding/schedule" },
+          { href: "/feeding/history" },
           { href: "/feeding/settings" },
         ],
-      },
-      {
-        name: "routines",
-        href: "/routines",
-        subItems: [{ href: "/routines" }, { href: "/routines/templates" }],
       },
       {
         name: "facilities",
@@ -127,7 +124,15 @@ export default function AuthenticatedLayout() {
       },
       { name: "schedule", href: "/schedule" },
       { name: "myAvailability", href: "/my-availability" },
-      { name: "settings", href: "/settings" },
+      {
+        name: "settings",
+        href: "/settings",
+        subItems: [
+          { href: "/settings" },
+          { href: "/settings/routines" },
+          { href: "/settings/activities" },
+        ],
+      },
     ];
 
     // Find which menu item's submenu contains current path
@@ -143,6 +148,7 @@ export default function AuthenticatedLayout() {
   };
 
   // Main navigation items with translation keys
+  // Reorganized: Activities (daily work) is the main hub, Settings contains configuration
   const navigation = [
     {
       name: "horses",
@@ -177,28 +183,28 @@ export default function AuthenticatedLayout() {
       icon: ClipboardList,
       subItems: [
         {
-          name: "actionList",
-          label: t("common:navigation.activities"),
+          name: "today",
+          label: t("common:navigation.todaysWork"),
           href: "/activities",
-          icon: ClipboardList,
+          icon: Play,
         },
         {
           name: "planning",
-          label: t("common:navigation.schedule"),
+          label: t("common:navigation.planning"),
           href: "/activities/planning",
           icon: CalendarIcon,
         },
         {
           name: "care",
-          label: t("common:roles.groom"),
+          label: t("common:navigation.care"),
           href: "/activities/care",
           icon: Heart,
         },
         {
-          name: "settings",
-          label: t("common:navigation.settings"),
-          href: "/activities/settings",
-          icon: SettingsIcon,
+          name: "analytics",
+          label: t("common:navigation.analytics"),
+          href: "/activities/analytics",
+          icon: BarChart3,
         },
       ],
     },
@@ -221,36 +227,16 @@ export default function AuthenticatedLayout() {
           icon: CalendarIcon,
         },
         {
+          name: "history",
+          label: t("common:navigation.feedingHistory"),
+          href: "/feeding/history",
+          icon: History,
+        },
+        {
           name: "settings",
           label: t("common:navigation.settings"),
           href: "/feeding/settings",
           icon: Settings2Icon,
-        },
-      ],
-    },
-    {
-      name: "routines",
-      label: t("common:navigation.routines"),
-      href: "/routines",
-      icon: ListChecks,
-      subItems: [
-        {
-          name: "todaysRoutines",
-          label: t("common:navigation.routinesList"),
-          href: "/routines",
-          icon: Play,
-        },
-        {
-          name: "templates",
-          label: t("common:navigation.routineTemplates"),
-          href: "/routines/templates",
-          icon: ListChecks,
-        },
-        {
-          name: "analytics",
-          label: t("common:navigation.routineAnalytics"),
-          href: "/routines/analytics",
-          icon: BarChart3,
         },
       ],
     },
@@ -297,6 +283,26 @@ export default function AuthenticatedLayout() {
       label: t("common:navigation.settings"),
       href: "/settings",
       icon: SettingsIcon,
+      subItems: [
+        {
+          name: "routineTemplates",
+          label: t("common:navigation.routineTemplates"),
+          href: "/settings/routines",
+          icon: ListChecks,
+        },
+        {
+          name: "activitySettings",
+          label: t("common:navigation.activitySettings"),
+          href: "/settings/activities",
+          icon: ClipboardList,
+        },
+        {
+          name: "general",
+          label: t("common:navigation.generalSettings"),
+          href: "/settings",
+          icon: Settings2Icon,
+        },
+      ],
     },
   ];
 

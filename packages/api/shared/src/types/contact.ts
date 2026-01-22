@@ -11,6 +11,24 @@ export type ContactAccessLevel = "organization" | "user";
 export type InvoiceLanguage = "en" | "sv" | "de" | "fr" | "nl";
 
 /**
+ * Contact badge types for visual identification
+ * - primary: Organization owner
+ * - stable: Contact representing the stable/organization itself
+ * - member: Active member or pending invite
+ * - external: Non-member contact (horse owner, vendor, etc.)
+ */
+export type ContactBadge = "primary" | "stable" | "member" | "external";
+
+/**
+ * Contact source - how the contact was created
+ * - manual: Created manually by user
+ * - invite: Auto-created during member invitation
+ * - import: Imported from external system
+ * - sync: Synced from connected service
+ */
+export type ContactSource = "manual" | "invite" | "import" | "sync";
+
+/**
  * Address information shared by both contact types
  */
 export interface ContactAddress {
@@ -54,6 +72,16 @@ export interface BaseContact {
   // Ownership
   organizationId?: string; // Set if accessLevel === 'organization'
   userId?: string; // Set if accessLevel === 'user'
+
+  // Member/Invite Linking
+  linkedMemberId?: string; // Format: {userId}_{organizationId} - set after invite acceptance
+  linkedInviteId?: string; // Invite ID - set when contact created via invitation (before user exists)
+  linkedUserId?: string; // Firebase Auth UID - set when linked to a registered user
+
+  // Badge and Source
+  badge?: ContactBadge; // Visual badge type (primary, stable, member, external)
+  source: ContactSource; // How the contact was created
+  hasLoginAccess: boolean; // Whether this contact has platform login access
 
   // Common fields
   email: string;
@@ -116,6 +144,14 @@ export interface CreatePersonalContactData {
   note?: string;
   address: ContactAddress;
   breedingInfo?: BreedingInfo;
+  // Linking fields (optional - set when creating from invite)
+  linkedInviteId?: string;
+  linkedMemberId?: string;
+  linkedUserId?: string;
+  // Source tracking
+  source?: ContactSource; // Defaults to 'manual' if not provided
+  hasLoginAccess?: boolean; // Defaults to false if not provided
+  badge?: ContactBadge; // Calculated if not provided
 }
 
 /**
@@ -136,6 +172,14 @@ export interface CreateBusinessContactData {
   note?: string;
   contactPerson?: ContactPerson;
   address: ContactAddress;
+  // Linking fields (optional - set when creating from invite)
+  linkedInviteId?: string;
+  linkedMemberId?: string;
+  linkedUserId?: string;
+  // Source tracking
+  source?: ContactSource; // Defaults to 'manual' if not provided
+  hasLoginAccess?: boolean; // Defaults to false if not provided
+  badge?: ContactBadge; // Calculated if not provided
 }
 
 /**
@@ -156,4 +200,7 @@ export interface ContactDisplay {
   email: string;
   city: string;
   country: string;
+  badge?: ContactBadge; // Visual badge type
+  hasLoginAccess: boolean; // Whether contact can log in
+  linkedMemberId?: string; // If linked to a member
 }

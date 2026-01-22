@@ -85,6 +85,11 @@ export async function authenticate(
     (request as AuthenticatedRequest).user = {
       uid: decodedToken.uid || decodedToken.user_id,
       email: decodedToken.email || "",
+      displayName:
+        decodedToken.name ||
+        decodedToken.display_name ||
+        decodedToken.email ||
+        "Unknown user",
       role:
         (decodedToken.role as "user" | "system_admin" | "stable_owner") ||
         "user",

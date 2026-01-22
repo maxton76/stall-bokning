@@ -1,4 +1,9 @@
 import { Timestamp } from "firebase/firestore";
+import type {
+  MemberAvailability,
+  MemberLimits,
+  MemberStats,
+} from "./domain.js";
 
 /**
  * Organization roles for multi-role permission system
@@ -57,6 +62,9 @@ export interface Organization {
   ownerId: string; // Organization owner (must be stable_owner systemRole)
   ownerEmail: string; // Cached for display
 
+  // Contact Integration
+  stableContactId?: string; // Contact representing the stable/organization itself (badge: 'stable')
+
   // Subscription
   subscriptionTier: SubscriptionTier;
 
@@ -100,6 +108,13 @@ export interface OrganizationMember {
   stableAccess: StableAccessLevel;
   assignedStableIds?: string[]; // Only populated if stableAccess === 'specific'
 
+  // Shift assignment constraints (moved from stableMembers)
+  availability?: MemberAvailability;
+  limits?: MemberLimits;
+
+  // Fairness tracking statistics (moved from stableMembers)
+  stats?: MemberStats;
+
   // Metadata
   joinedAt: Timestamp;
   invitedBy: string; // User ID of inviter
@@ -119,6 +134,19 @@ export interface CreateOrganizationData {
 }
 
 /**
+ * Contact address for invite (imported from contact.ts for self-containment)
+ */
+export interface InviteContactAddress {
+  street: string;
+  houseNumber: string;
+  addressLine2?: string;
+  postcode: string;
+  city: string;
+  stateProvince?: string;
+  country: string;
+}
+
+/**
  * Data required to invite a new organization member
  */
 export interface InviteOrganizationMemberData {
@@ -131,6 +159,10 @@ export interface InviteOrganizationMemberData {
   showInPlanning: boolean;
   stableAccess: StableAccessLevel;
   assignedStableIds?: string[];
+  // Contact creation fields
+  contactType: ContactType; // Required for auto-creating contact
+  businessName?: string; // For Business contacts
+  address?: InviteContactAddress; // Optional address
 }
 
 /**
@@ -152,6 +184,11 @@ export interface OrganizationInvite {
   lastName?: string;
   phoneNumber?: string;
 
+  // Contact type for auto-created contact
+  contactType: ContactType; // Personal | Business
+  businessName?: string; // For Business contacts
+  address?: InviteContactAddress; // Optional address
+
   // Role assignment
   roles: OrganizationRole[];
   primaryRole: OrganizationRole;
@@ -159,10 +196,18 @@ export interface OrganizationInvite {
   stableAccess: StableAccessLevel;
   assignedStableIds?: string[];
 
+  // Contact integration
+  linkedContactId?: string; // Auto-created contact ID
+
   // Invite metadata
   token: string; // Unique invite token (UUID)
   status: InviteStatus;
   expiresAt: Timestamp; // 7 days from creation
+
+  // Email tracking
+  sentAt?: Timestamp; // When email first sent
+  lastResentAt?: Timestamp; // When last resent
+  resentCount: number; // Number of resends (starts at 0)
 
   // Audit trail
   invitedBy: string; // Inviter user ID

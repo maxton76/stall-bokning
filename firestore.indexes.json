@@ -444,6 +444,15 @@
       ]
     },
     {
+      "collectionGroup": "auditLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "resource", "order": "ASCENDING" },
+        { "fieldPath": "stableId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "feedTypes",
       "queryScope": "COLLECTION",
       "fields": [
@@ -916,6 +925,39 @@
         { "fieldPath": "stableId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "scheduledDate", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "horseActivityHistory",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "horseId", "order": "ASCENDING" },
+        { "fieldPath": "executedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "horseActivityHistory",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "horseId", "order": "ASCENDING" },
+        { "fieldPath": "category", "order": "ASCENDING" },
+        { "fieldPath": "executedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "horseActivityHistory",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "routineInstanceId", "order": "ASCENDING" },
+        { "fieldPath": "stepOrder", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "horseActivityHistory",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "stableId", "order": "ASCENDING" },
+        { "fieldPath": "executedAt", "order": "DESCENDING" }
       ]
     }
   ],

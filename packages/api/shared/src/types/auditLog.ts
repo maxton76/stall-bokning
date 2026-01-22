@@ -32,7 +32,10 @@ export type AuditResource =
   | "horse"
   | "horseGroup"
   | "activity"
-  | "vaccinationRule";
+  | "vaccinationRule"
+  | "horseFeeding" // Horse feeding schedules
+  | "feedType" // Feed types (hay, grain, etc.)
+  | "feedingTime"; // Feeding times (morning, evening, etc.)
 
 /**
  * Field-level change details

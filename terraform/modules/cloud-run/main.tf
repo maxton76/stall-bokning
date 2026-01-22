@@ -13,6 +13,15 @@ locals {
     LOG_LEVEL            = var.environment == "prod" ? "info" : "debug"
     CORS_ORIGINS         = join(",", var.cors_origins)
     API_VERSION          = "v1"
+
+    # SMTP Configuration
+    EMAIL_SMTP_SERVER = "send.one.com"
+    EMAIL_SMTP_PORT   = "587"
+    EMAIL_SMTP_USER   = "info@stallbokning.se"
+    EMAIL_SMTP_SECURE = "false" # false for port 587 (STARTTLS)
+
+    # Frontend URL for email links
+    FRONTEND_URL = var.frontend_url
   }
 
   # Merge default with custom environment variables
@@ -24,7 +33,8 @@ locals {
     JWT_REFRESH_SECRET    = var.jwt_refresh_secret_id
     STRIPE_SECRET_KEY     = var.stripe_secret_key_id
     STRIPE_WEBHOOK_SECRET = var.stripe_webhook_secret_id
-    SENDGRID_API_KEY      = var.sendgrid_api_key_id
+    SENDGRID_API_KEY      = var.sendgrid_api_key_id # deprecated - use EMAIL_SMTP_PASSWORD
+    EMAIL_SMTP_PASSWORD   = var.smtp_password_id
     TWILIO_ACCOUNT_SID    = var.twilio_account_sid_id
     TWILIO_AUTH_TOKEN     = var.twilio_auth_token_id
     TELEGRAM_BOT_TOKEN    = var.telegram_bot_token_id

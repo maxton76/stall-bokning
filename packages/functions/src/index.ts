@@ -17,6 +17,9 @@ export {
   cleanupOldNotifications,
 } from "./notifications/index.js";
 
+// Re-export trigger functions
+export { onSchedulePublished } from "./triggers/onSchedulePublished.js";
+
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================

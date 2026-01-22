@@ -23,12 +23,15 @@ export default async function inviteRoutes(fastify: FastifyInstance) {
         });
       }
 
-      // Return public invite information (don't expose sensitive data)
+      // Return public invite information (including email for pre-filling signup form)
       return reply.send({
         organizationName: invite.organizationName,
         inviterName: invite.inviterName,
         roles: invite.roles,
         expiresAt: invite.expiresAt,
+        email: invite.email,
+        firstName: invite.firstName,
+        lastName: invite.lastName,
       });
     } catch (error) {
       request.log.error({ error }, "Failed to get invite details");

@@ -14,14 +14,18 @@ const batchCreateShiftsSchema = z.object({
       stableId: z.string().min(1),
       stableName: z.string().min(1),
       date: z.string().datetime(),
-      shiftTypeId: z.string().min(1),
-      shiftTypeName: z.string().min(1),
       time: z.string().min(1),
       points: z.number().positive(),
       status: z.enum(["unassigned", "assigned"]).default("unassigned"),
       assignedTo: z.string().nullable().optional(),
       assignedToName: z.string().nullable().optional(),
       assignedToEmail: z.string().nullable().optional(),
+      // New routine-based fields (primary)
+      routineTemplateId: z.string().min(1).optional(),
+      routineTemplateName: z.string().min(1).optional(),
+      // Legacy shift type fields (for backwards compatibility)
+      shiftTypeId: z.string().min(1).optional(),
+      shiftTypeName: z.string().min(1).optional(),
     }),
   ),
 });

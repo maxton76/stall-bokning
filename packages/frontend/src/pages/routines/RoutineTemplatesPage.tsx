@@ -196,7 +196,7 @@ export default function RoutineTemplatesPage() {
         </div>
 
         <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => navigate("/routines")}>
+          <Button variant="outline" onClick={() => navigate("/activities")}>
             {t("common:buttons.back")}
           </Button>
           <Button onClick={handleCreateTemplate}>

@@ -284,6 +284,62 @@ stripe listen --forward-to localhost:5003/api/v1/webhooks/stripe
 - Users must be authenticated for most operations
 - Role-based access control via custom claims
 
+### Role-Based Access Control (RBAC)
+
+**Implementation Status**: ✅ Phase 1 Complete (Backend Infrastructure)
+
+The system implements **field-level RBAC** for horse data with 5 access levels:
+- **Level 1: public** - Basic horse information (all stable members)
+- **Level 2: basic_care** - Care instructions and equipment (grooms, riders)
+- **Level 3: professional** - Medical and identification data (veterinarians, farriers, dentists)
+- **Level 4: management** - Owner information and notes (administrators, stable owners)
+- **Level 5: owner** - Full access to all fields (horse owners)
+
+**Key Principles**:
+- Field-level access control **enforced on backend** (not frontend filtering)
+- Horse owners always get full access regardless of other roles
+- Multi-role users get highest applicable access level
+- Health records filtered by professional specialty (veterinarians see only veterinary records)
+
+**API Endpoints**:
+```typescript
+// Get owned horses (full data)
+GET /api/v1/horses?scope=my
+
+// Get stable horses (role-filtered)
+GET /api/v1/horses?scope=stable&stableId=STABLE_ID
+
+// Get all accessible horses
+GET /api/v1/horses?scope=all
+```
+
+**Frontend Service Functions**:
+```typescript
+getMyHorses()              // Only owned horses with full data
+getStableHorses(stableId)  // Stable horses with role-based filtering
+getAllAccessibleHorses()   // Owned + stable horses
+```
+
+**⚠️ Important for Development**:
+- Use `getMyHorses()` instead of deprecated `getUserHorses()`
+- Check `horse._accessLevel` and `horse._isOwner` metadata in responses
+- Test with different user roles to verify field projection
+- 6 pages still need migration from deprecated `getUserHorses()` function
+
+**Comprehensive Documentation**: See `docs/RBAC.md` for:
+- Complete field visibility matrix by role
+- Access level determination logic
+- Health records filtering rules
+- API testing examples
+- Troubleshooting guide
+- Migration status and future enhancements
+
+**Implementation Files**:
+- Backend authorization: `packages/api/src/utils/authorization.ts`
+- Field projection: `packages/api/src/utils/horseProjection.ts`
+- API routes: `packages/api/src/routes/horses.ts`
+- Frontend service: `packages/frontend/src/services/horseService.ts`
+
 ### Internationalization (i18n)
 
 **Configuration**:
@@ -386,8 +442,9 @@ The system uses a weight-based algorithm to distribute chores fairly:
 3. **Stable Guest**: Shift booking, personal dashboard access
 
 ### Notification System
+
 Multi-channel notification strategy:
-1. **Email** (SendGrid): Primary channel, transactional emails
+1. **Email** (SMTP via send.one.com): Primary channel, transactional emails. Password stored in Secret Manager (`dev-smtp-password`). See `.env.example` files and `packages/functions/src/lib/smtp.ts` for configuration.
 2. **SMS** (Twilio): Optional, high-priority alerts
 3. **Telegram Bot**: User-preferred notification channel
 4. **In-app**: Real-time notifications via Firestore
@@ -399,6 +456,7 @@ Comprehensive documentation located in `docs/`:
 - **[TECH_STACK.md](./docs/TECH_STACK.md)**: Detailed tech stack, infrastructure, cost estimation
 - **[ARCHITECTURE.md](./docs/ARCHITECTURE.md)**: System architecture, data flow diagrams, ADRs, security model
 - **[DATABASE_SCHEMA.md](./docs/DATABASE_SCHEMA.md)**: Firestore collections, schemas, security rules, queries
+- **[RBAC.md](./docs/RBAC.md)**: Role-based access control system, field-level permissions, API reference
 - **[SETUP.md](./docs/SETUP.md)**: Complete development setup guide, troubleshooting
 - **[IMPLEMENTATION_PLAN.md](./docs/IMPLEMENTATION_PLAN.md)**: 4-phase roadmap, 46 user stories, sprint planning
 

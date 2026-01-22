@@ -28,7 +28,7 @@ import type { Horse } from "@/types/roles";
 import type { VaccinationRecord } from "@shared/types/vaccination";
 import type { FilterConfig } from "@shared/types/filters";
 import {
-  getUserHorses,
+  getMyHorses,
   createHorse,
   updateHorse,
   deleteHorse,
@@ -55,7 +55,7 @@ export default function MyHorsesPage() {
 
   // Data loading with custom hooks
   const horses = useAsyncData<Horse[]>({
-    loadFn: () => getUserHorses(user!.uid),
+    loadFn: () => getMyHorses(), // Only owned horses with full data access
     errorMessage: t("horses:messages.loadError"),
   });
   const { stables } = useUserStables(user?.uid);

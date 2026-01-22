@@ -3,14 +3,34 @@ import { logger } from "firebase-functions";
 import { escapeHtml } from "../lib/text.js";
 import { isValidEmail } from "../lib/validation.js";
 import { formatErrorMessage } from "../lib/errors.js";
+import { initializeSMTP, sendViaSMTP, isSMTPInitialized } from "../lib/smtp.js";
 
 /**
- * Email sending configuration
+ * Email provider type
  */
-interface EmailConfig {
+type EmailProvider = "sendgrid" | "smtp" | "auto";
+
+/**
+ * Email sending configuration for SendGrid
+ */
+interface SendGridConfig {
   apiKey: string;
   fromEmail: string;
   fromName: string;
+}
+
+/**
+ * Get the configured email provider
+ * - "smtp": Use SMTP only
+ * - "sendgrid": Use SendGrid only
+ * - "auto": Try SMTP first, fallback to SendGrid
+ */
+function getEmailProvider(): EmailProvider {
+  const provider = process.env.EMAIL_PROVIDER?.toLowerCase();
+  if (provider === "smtp" || provider === "sendgrid") {
+    return provider;
+  }
+  return "auto"; // Default: try SMTP first, then SendGrid
 }
 
 /**
@@ -28,7 +48,7 @@ interface EmailPayload {
 /**
  * Get SendGrid configuration from environment
  */
-function getEmailConfig(): EmailConfig | null {
+function getSendGridConfig(): SendGridConfig | null {
   const apiKey = process.env.SENDGRID_API_KEY;
   const fromEmail =
     process.env.SENDGRID_FROM_EMAIL || "noreply@stallbokning.se";
@@ -159,36 +179,12 @@ function buildHtmlBody(
 /**
  * Send email via SendGrid API
  */
-export async function sendEmail(
+async function sendViaSendGrid(
   payload: EmailPayload,
-  actionUrl?: string,
+  config: SendGridConfig,
+  htmlBody: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const config = getEmailConfig();
-
-  if (!config) {
-    return {
-      success: false,
-      error: "Email not configured - SENDGRID_API_KEY missing",
-    };
-  }
-
-  // Validate email address format
-  if (!isValidEmail(payload.to)) {
-    logger.warn(
-      { email: payload.to.substring(0, 30) },
-      "Invalid email address format",
-    );
-    return {
-      success: false,
-      error: "Invalid email address format",
-    };
-  }
-
   try {
-    const htmlBody =
-      payload.htmlBody ||
-      buildHtmlBody(payload.subject, payload.body, actionUrl);
-
     const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
       method: "POST",
       headers: {
@@ -238,8 +234,9 @@ export async function sendEmail(
       {
         to: payload.to,
         subject: payload.subject,
+        provider: "sendgrid",
       },
-      "Email sent successfully",
+      "Email sent successfully via SendGrid",
     );
 
     return { success: true };
@@ -250,11 +247,124 @@ export async function sendEmail(
         error: errorMessage,
         to: payload.to,
       },
-      "Failed to send email",
+      "Failed to send email via SendGrid",
     );
     return {
       success: false,
       error: errorMessage,
     };
   }
+}
+
+/**
+ * Send email using SMTP
+ */
+async function sendEmailViaSMTP(
+  payload: EmailPayload,
+  htmlBody: string,
+): Promise<{ success: boolean; error?: string }> {
+  // Initialize SMTP if not already done
+  if (!isSMTPInitialized()) {
+    const initialized = await initializeSMTP();
+    if (!initialized) {
+      return {
+        success: false,
+        error: "Failed to initialize SMTP connection",
+      };
+    }
+  }
+
+  const result = await sendViaSMTP({
+    to: payload.to,
+    subject: payload.subject,
+    text: payload.body,
+    html: htmlBody,
+  });
+
+  if (result.success) {
+    logger.info(
+      {
+        to: payload.to,
+        subject: payload.subject,
+        messageId: result.messageId,
+        provider: "smtp",
+      },
+      "Email sent successfully via SMTP",
+    );
+  }
+
+  return {
+    success: result.success,
+    error: result.error,
+  };
+}
+
+/**
+ * Send email via configured provider (SMTP or SendGrid)
+ *
+ * Provider selection (via EMAIL_PROVIDER env var):
+ * - "smtp": Use SMTP only
+ * - "sendgrid": Use SendGrid only
+ * - "auto" (default): Try SMTP first, fallback to SendGrid
+ */
+export async function sendEmail(
+  payload: EmailPayload,
+  actionUrl?: string,
+): Promise<{ success: boolean; error?: string }> {
+  // Validate email address format
+  if (!isValidEmail(payload.to)) {
+    logger.warn(
+      { email: payload.to.substring(0, 30) },
+      "Invalid email address format",
+    );
+    return {
+      success: false,
+      error: "Invalid email address format",
+    };
+  }
+
+  const htmlBody =
+    payload.htmlBody || buildHtmlBody(payload.subject, payload.body, actionUrl);
+
+  const provider = getEmailProvider();
+  const sendGridConfig = getSendGridConfig();
+
+  // SMTP only mode
+  if (provider === "smtp") {
+    return sendEmailViaSMTP(payload, htmlBody);
+  }
+
+  // SendGrid only mode
+  if (provider === "sendgrid") {
+    if (!sendGridConfig) {
+      return {
+        success: false,
+        error: "Email not configured - SENDGRID_API_KEY missing",
+      };
+    }
+    return sendViaSendGrid(payload, sendGridConfig, htmlBody);
+  }
+
+  // Auto mode: Try SMTP first, then SendGrid
+  logger.info("Attempting to send email via SMTP (auto mode)");
+
+  const smtpResult = await sendEmailViaSMTP(payload, htmlBody);
+  if (smtpResult.success) {
+    return smtpResult;
+  }
+
+  // SMTP failed, try SendGrid as fallback
+  logger.warn(
+    { smtpError: smtpResult.error },
+    "SMTP failed, falling back to SendGrid",
+  );
+
+  if (!sendGridConfig) {
+    return {
+      success: false,
+      error: `SMTP failed (${smtpResult.error}) and SendGrid not configured`,
+    };
+  }
+
+  return sendViaSendGrid(payload, sendGridConfig, htmlBody);
 }

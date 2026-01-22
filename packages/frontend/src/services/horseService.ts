@@ -129,29 +129,75 @@ export async function deleteHorse(horseId: string): Promise<void> {
 // ============================================================================
 
 /**
+ * Get horses based on scope with field-level RBAC
+ * @param scope - 'my' (owned), 'stable' (specific stable), 'all' (all accessible)
+ * @param stableId - Required if scope='stable'
+ * @param status - Filter by status (default: 'active')
+ * @returns Promise with array of horses (with _accessLevel and _isOwner metadata)
+ */
+export async function getHorses(
+  scope: "my" | "stable" | "all" = "my",
+  stableId?: string,
+  status: "active" | "inactive" = "active",
+): Promise<Horse[]> {
+  const params = new URLSearchParams({ scope, status });
+  if (stableId) params.append("stableId", stableId);
+
+  const response = await authFetchJSON<{
+    horses: Horse[];
+    meta: { scope: string; count: number };
+  }>(`${API_BASE}?${params.toString()}`);
+
+  return response.horses;
+}
+
+/**
+ * Get only horses owned by the current user (full data access)
+ * @param stableId - Optional: filter to specific stable
+ * @param status - Filter by status (default: 'active')
+ * @returns Promise with array of owned horses
+ */
+export async function getMyHorses(
+  stableId?: string,
+  status: "active" | "inactive" = "active",
+): Promise<Horse[]> {
+  return getHorses("my", stableId, status);
+}
+
+/**
+ * Get all horses assigned to a specific stable (role-filtered data)
+ * User must have access to the stable
+ * @param stableId - Stable ID
+ * @param status - Filter by status (default: 'active')
+ * @returns Promise with array of horses
+ */
+export async function getStableHorses(
+  stableId: string,
+  status: "active" | "inactive" = "active",
+): Promise<Horse[]> {
+  return getHorses("stable", stableId, status);
+}
+
+/**
+ * Get all horses accessible to the user across all their stables (role-filtered)
+ * Includes owned horses (full data) + stable horses (filtered by role)
+ * @param status - Filter by status (default: 'active')
+ * @returns Promise with array of horses
+ */
+export async function getAllAccessibleHorses(
+  status: "active" | "inactive" = "active",
+): Promise<Horse[]> {
+  return getHorses("all", undefined, status);
+}
+
+/**
+ * @deprecated Use getMyHorses() instead
  * Get all horses owned by a user OR in user's stables via API
  * @param _userId - User ID (uses authenticated user from token)
  * @returns Promise with array of horses
  */
 export async function getUserHorses(_userId: string): Promise<Horse[]> {
-  const response = await authFetchJSON<{ horses: Horse[] }>(API_BASE);
-
-  // Filter to active horses only (API returns all horses user has access to)
-  return response.horses.filter((horse) => horse.status === "active");
-}
-
-/**
- * Get all horses assigned to a stable via API
- * @param stableId - Stable ID
- * @returns Promise with array of horses
- */
-export async function getStableHorses(stableId: string): Promise<Horse[]> {
-  const response = await authFetchJSON<{ horses: Horse[] }>(
-    `${API_BASE}?stableId=${stableId}`,
-  );
-
-  // Filter to active horses only
-  return response.horses.filter((horse) => horse.status === "active");
+  return getAllAccessibleHorses("active");
 }
 
 /**

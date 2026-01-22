@@ -5,7 +5,7 @@ import { authFetchJSON } from "@/utils/authFetch";
  */
 export async function getInviteDetails(token: string) {
   const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/invites/${token}`,
+    `${import.meta.env.VITE_API_URL}/api/v1/invites/${token}`,
     {
       method: "GET",
       headers: {
@@ -27,7 +27,7 @@ export async function getInviteDetails(token: string) {
  */
 export async function acceptOrganizationInvite(token: string) {
   return await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/invites/${token}/accept`,
+    `${import.meta.env.VITE_API_URL}/api/v1/invites/${token}/accept`,
     {
       method: "POST",
     },
@@ -39,7 +39,7 @@ export async function acceptOrganizationInvite(token: string) {
  */
 export async function declineOrganizationInvite(token: string) {
   const response = await fetch(
-    `${import.meta.env.VITE_API_URL}/invites/${token}/decline`,
+    `${import.meta.env.VITE_API_URL}/api/v1/invites/${token}/decline`,
     {
       method: "POST",
       headers: {
@@ -84,7 +84,9 @@ export async function declineMembershipInvite(memberId: string) {
  * Get pending invites for current user (requires authentication)
  */
 export async function getPendingInvites() {
-  return await authFetchJSON(`${import.meta.env.VITE_API_URL}/invites/pending`);
+  return await authFetchJSON(
+    `${import.meta.env.VITE_API_URL}/api/v1/invites/pending`,
+  );
 }
 
 // ============================================================================

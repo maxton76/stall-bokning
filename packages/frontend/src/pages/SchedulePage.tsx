@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar } from "@/components/ui/calendar";
@@ -48,14 +48,20 @@ import {
   XCircleIcon,
   AlertTriangleIcon,
   Plus,
+  PlayCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useShiftActions } from "@/hooks/useSchedules";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserStables } from "@/hooks/useUserStables";
 import type { Shift, ShiftStatus } from "@/types/schedule";
-import { getPublishedShiftsForStables } from "@/services/scheduleService";
+import {
+  getPublishedShiftsForStables,
+  startShiftWithRoutine,
+} from "@/services/scheduleService";
+import { createRoutineInstance } from "@/services/routineService";
 import { toDate } from "@/utils/timestampUtils";
+import { useToast } from "@/hooks/use-toast";
 import type { TFunction } from "i18next";
 
 // Helper to get badge for shift status
@@ -120,12 +126,15 @@ type FilterType =
 export default function SchedulePage() {
   const { t } = useTranslation(["schedules", "common"]);
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     new Date(),
   );
   const [filter, setFilter] = useState<FilterType>("all");
   const [selectedStable, setSelectedStable] = useState<string>("all"); // Auto-selected by useEffect if only 1 stable
+  const [startingShiftId, setStartingShiftId] = useState<string | null>(null);
   const { assign, unassign, complete, cancel, markMissed } = useShiftActions();
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
 
@@ -329,6 +338,46 @@ export default function SchedulePage() {
       setDialogInput("");
     } catch (error) {
       console.error(`Error ${type}ing shift:`, error);
+    }
+  };
+
+  // Handle starting a shift with a linked routine
+  const handleStartShiftWithRoutine = async (shift: Shift) => {
+    if (!shift.routineTemplateId || !shift.stableId) return;
+
+    setStartingShiftId(shift.id);
+    try {
+      // Create a routine instance for today
+      const today = new Date();
+      const scheduledDate = today.toISOString().split("T")[0];
+      if (!scheduledDate) throw new Error("Invalid date");
+
+      const instanceId = await createRoutineInstance({
+        templateId: shift.routineTemplateId,
+        stableId: shift.stableId,
+        scheduledDate,
+        scheduledStartTime: shift.time.split("-")[0],
+        assignedTo: user?.uid,
+      });
+
+      // Link the routine instance to the shift
+      await startShiftWithRoutine(shift.id, instanceId);
+
+      // Navigate to the routine flow page with shift context
+      navigate(`/routines/flow/${instanceId}?shiftId=${shift.id}`);
+
+      toast({
+        title: t("schedules:shift.startingRoutine"),
+        description: shift.routineTemplateName || shift.shiftTypeName,
+      });
+    } catch (error) {
+      console.error("Error starting shift with routine:", error);
+      toast({
+        title: t("common:errors.genericError"),
+        variant: "destructive",
+      });
+    } finally {
+      setStartingShiftId(null);
     }
   };
 
@@ -571,7 +620,7 @@ export default function SchedulePage() {
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="font-medium text-sm">
-                          {shift.shiftTypeName}
+                          {shift.routineTemplateName || shift.shiftTypeName}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {shift.stableName}
@@ -715,7 +764,9 @@ export default function SchedulePage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
                       <div>
-                        <p className="font-medium">{shift.shiftTypeName}</p>
+                        <p className="font-medium">
+                          {shift.routineTemplateName || shift.shiftTypeName}
+                        </p>
                         <p className="text-sm text-muted-foreground">
                           {shift.stableName}
                           {shift.assignedToName &&
@@ -763,45 +814,69 @@ export default function SchedulePage() {
                       </Button>
                     )}
                     {shift.status === "assigned" && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button size="sm" variant="outline">
-                            <MoreHorizontalIcon className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() =>
-                              openCompletionDialog(
-                                "complete",
-                                shift.id,
-                                shift.shiftTypeName,
-                              )
-                            }
-                          >
-                            <CheckIcon className="mr-2 h-4 w-4 text-green-600" />
-                            {t("schedules:actions.markCompleted")}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              openCompletionDialog(
-                                "cancel",
-                                shift.id,
-                                shift.shiftTypeName,
-                              )
-                            }
-                          >
-                            <XCircleIcon className="mr-2 h-4 w-4 text-gray-500" />
-                            {t("schedules:actions.cancelShift")}
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => handleUnassignShift(shift.id)}
-                          >
-                            {t("schedules:actions.unassign")}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex items-center gap-2">
+                        {/* Start Shift button for shifts with linked routine */}
+                        {shift.routineTemplateId &&
+                          shift.assignedTo === user?.uid &&
+                          !shift.routineInstanceId && (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => handleStartShiftWithRoutine(shift)}
+                              disabled={startingShiftId === shift.id}
+                            >
+                              {startingShiftId === shift.id ? (
+                                <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <PlayCircle className="mr-2 h-4 w-4" />
+                              )}
+                              {t("schedules:shift.startShift")}
+                            </Button>
+                          )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="outline">
+                              <MoreHorizontalIcon className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() =>
+                                openCompletionDialog(
+                                  "complete",
+                                  shift.id,
+                                  shift.routineTemplateName ||
+                                    shift.shiftTypeName ||
+                                    "",
+                                )
+                              }
+                            >
+                              <CheckIcon className="mr-2 h-4 w-4 text-green-600" />
+                              {t("schedules:actions.markCompleted")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                openCompletionDialog(
+                                  "cancel",
+                                  shift.id,
+                                  shift.routineTemplateName ||
+                                    shift.shiftTypeName ||
+                                    "",
+                                )
+                              }
+                            >
+                              <XCircleIcon className="mr-2 h-4 w-4 text-gray-500" />
+                              {t("schedules:actions.cancelShift")}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleUnassignShift(shift.id)}
+                            >
+                              {t("schedules:actions.unassign")}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     )}
                     {(shift.status === "completed" ||
                       shift.status === "cancelled" ||

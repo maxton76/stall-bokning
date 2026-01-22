@@ -435,7 +435,7 @@ export default function StableSchedulePage() {
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-medium text-sm">
-                        {shift.shiftTypeName}
+                        {shift.routineTemplateName || shift.shiftTypeName}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {toDate(shift.date)?.toLocaleDateString()}
@@ -533,7 +533,9 @@ export default function StableSchedulePage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
                       <div>
-                        <p className="font-medium">{shift.shiftTypeName}</p>
+                        <p className="font-medium">
+                          {shift.routineTemplateName || shift.shiftTypeName}
+                        </p>
                         <p className="text-sm text-muted-foreground">
                           {toDate(shift.date)?.toLocaleDateString()} •{" "}
                           {shift.time}
@@ -576,7 +578,9 @@ export default function StableSchedulePage() {
                               openCompletionDialog(
                                 "complete",
                                 shift.id,
-                                shift.shiftTypeName,
+                                shift.routineTemplateName ||
+                                  shift.shiftTypeName ||
+                                  "",
                               )
                             }
                           >
@@ -588,7 +592,9 @@ export default function StableSchedulePage() {
                               openCompletionDialog(
                                 "cancel",
                                 shift.id,
-                                shift.shiftTypeName,
+                                shift.routineTemplateName ||
+                                  shift.shiftTypeName ||
+                                  "",
                               )
                             }
                           >
@@ -600,7 +606,9 @@ export default function StableSchedulePage() {
                               openCompletionDialog(
                                 "missed",
                                 shift.id,
-                                shift.shiftTypeName,
+                                shift.routineTemplateName ||
+                                  shift.shiftTypeName ||
+                                  "",
                               )
                             }
                           >

@@ -1,5 +1,6 @@
 import { Plus, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { Activity } from "@/types/activity";
@@ -27,6 +28,7 @@ export function CareMatrixCell({
   nextActivity,
   onClick,
 }: CareMatrixCellProps) {
+  const { t } = useTranslation(["activities", "common"]);
   const hasLastActivity = !!lastActivity;
   const hasNextActivity = !!nextActivity;
 
@@ -60,7 +62,7 @@ export function CareMatrixCell({
           variant="outline"
           className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
         >
-          Done {format(lastActivityDate, "M/d/yy")}
+          {t("activities:care.done")} {format(lastActivityDate, "M/d/yy")}
         </Badge>
       )}
 
@@ -70,7 +72,8 @@ export function CareMatrixCell({
           variant="outline"
           className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
         >
-          Next {format(toDate(nextActivity.date)!, "M/d/yy")}
+          {t("activities:care.next")}{" "}
+          {format(toDate(nextActivity.date)!, "M/d/yy")}
         </Badge>
       )}
 

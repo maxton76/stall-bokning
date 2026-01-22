@@ -4,6 +4,12 @@ import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
+import {
+  getHorseAccessContext,
+  canAccessStable,
+} from "../utils/authorization.js";
+import { projectHorseFields } from "../utils/horseProjection.js";
+import type { Horse } from "@stall-bokning/shared";
 
 /**
  * Check if user has organization membership with stable access
@@ -88,6 +94,149 @@ async function getUserOrgStableIds(userId: string): Promise<string[]> {
   }
 
   return [...new Set(stableIds)]; // Remove duplicates
+}
+
+/**
+ * Get owned horses with full access (Level 5: owner)
+ */
+async function getOwnedHorses(
+  userId: string,
+  stableId?: string,
+  status?: string,
+): Promise<any[]> {
+  let query = db.collection("horses").where("ownerId", "==", userId);
+
+  if (stableId) {
+    query = query.where("currentStableId", "==", stableId) as any;
+  }
+  if (status) {
+    query = query.where("status", "==", status) as any;
+  }
+
+  const snapshot = await query.get();
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+    _accessLevel: "owner",
+    _isOwner: true,
+  }));
+}
+
+/**
+ * Get horses in a specific stable with role-based projection
+ */
+async function getStableHorsesWithProjection(
+  userId: string,
+  systemRole: string,
+  stableId: string,
+  status?: string,
+): Promise<any[]> {
+  // Get horses in stable
+  let query = db.collection("horses").where("currentStableId", "==", stableId);
+  if (status) {
+    query = query.where("status", "==", status) as any;
+  }
+
+  const snapshot = await query.get();
+  const horses = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+  // Apply projection based on user's role for each horse
+  const projected = await Promise.all(
+    horses.map(async (horse: any) => {
+      // Skip horses user owns (they get full access via getOwnedHorses)
+      if (horse.ownerId === userId) {
+        return null;
+      }
+
+      const context = await getHorseAccessContext(horse.id, userId, systemRole);
+      if (!context) {
+        return null; // Should not happen if stable access was verified
+      }
+
+      const projectedHorse = projectHorseFields(
+        horse as Horse,
+        context.accessLevel,
+        context,
+      );
+
+      return serializeTimestamps(projectedHorse);
+    }),
+  );
+
+  return projected.filter((h) => h !== null) as any[];
+}
+
+/**
+ * Get all horses accessible to user across all their stables with projection
+ */
+async function getAllAccessibleHorses(
+  userId: string,
+  systemRole: string,
+  status?: string,
+): Promise<any[]> {
+  // Get owned horses (full access)
+  const ownedHorses = await getOwnedHorses(userId, undefined, status);
+
+  // Get user's accessible stables
+  const [ownedStables, orgStableIds] = await Promise.all([
+    db.collection("stables").where("ownerId", "==", userId).get(),
+    getUserOrgStableIds(userId),
+  ]);
+
+  const userStableIds = [
+    ...ownedStables.docs.map((doc) => doc.id),
+    ...orgStableIds,
+  ];
+
+  // Get horses in accessible stables (with projection)
+  const stableHorses: any[] = [];
+
+  if (userStableIds.length > 0) {
+    // Firestore IN query limitation: max 10 items
+    const batchSize = 10;
+    for (let i = 0; i < userStableIds.length; i += batchSize) {
+      const batchIds = userStableIds.slice(i, i + batchSize);
+
+      let query = db
+        .collection("horses")
+        .where("currentStableId", "in", batchIds);
+
+      if (status) {
+        query = query.where("status", "==", status) as any;
+      }
+
+      const snapshot = await query.get();
+      const horses = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      // Apply projection for each horse
+      for (const horse of horses) {
+        // Skip owned horses (already included above)
+        if ((horse as any).ownerId === userId) {
+          continue;
+        }
+
+        const context = await getHorseAccessContext(
+          horse.id,
+          userId,
+          systemRole,
+        );
+        if (context) {
+          const projectedHorse = projectHorseFields(
+            horse as Horse,
+            context.accessLevel,
+            context,
+          );
+          stableHorses.push(serializeTimestamps(projectedHorse));
+        }
+      }
+    }
+  }
+
+  // Combine and deduplicate
+  return [...ownedHorses, ...stableHorses];
 }
 
 export async function horsesRoutes(fastify: FastifyInstance) {
@@ -295,11 +444,12 @@ export async function horsesRoutes(fastify: FastifyInstance) {
 
   /**
    * GET /api/v1/horses
-   * Returns horses owned by user OR in user's stables
+   * Returns horses based on scope with field-level RBAC
    * Query params:
-   *   - stableId (optional): Filter horses by stable
-   *   - ownerId (optional): Filter horses by owner (must match authenticated user unless system_admin)
+   *   - scope (optional): 'my' (owned), 'stable' (specific stable), 'all' (all accessible) - default: 'my'
+   *   - stableId (optional): Filter horses by stable (required if scope='stable')
    *   - status (optional): Filter horses by status (e.g., 'active')
+   *   - ownerId (optional, DEPRECATED): Filter horses by owner (for backward compatibility)
    */
   fastify.get(
     "/",
@@ -309,10 +459,16 @@ export async function horsesRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       try {
         const user = (request as AuthenticatedRequest).user!;
-        const { stableId, ownerId, status } = request.query as {
+        const {
+          scope = "my",
+          stableId,
+          status,
+          ownerId,
+        } = request.query as {
+          scope?: "my" | "stable" | "all";
           stableId?: string;
-          ownerId?: string;
           status?: string;
+          ownerId?: string;
         };
 
         // Security: Only allow querying own horses unless system_admin
@@ -323,8 +479,8 @@ export async function horsesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // System admins can see all horses
-        if (user.role === "system_admin") {
+        // System admins can see all horses without projection
+        if (user.role === "system_admin" && scope === "all") {
           let query = db.collection("horses");
 
           if (stableId) {
@@ -342,107 +498,70 @@ export async function horsesRoutes(fastify: FastifyInstance) {
             serializeTimestamps({
               id: doc.id,
               ...doc.data(),
+              _accessLevel: "owner",
+              _isOwner: false,
             }),
           );
 
-          return { horses };
+          return {
+            horses,
+            meta: {
+              scope,
+              count: horses.length,
+            },
+          };
         }
 
-        // Regular users: get horses they own OR horses in their stables
-        // If ownerId is specified, only get owned horses (not stable horses)
-        const getOwnedHorses = !ownerId || ownerId === user.uid;
+        let horses: any[] = [];
 
-        let ownedHorses: FirebaseFirestore.QuerySnapshot | null = null;
-        if (getOwnedHorses) {
-          let ownedQuery = db
-            .collection("horses")
-            .where("ownerId", "==", user.uid);
-
-          if (stableId) {
-            ownedQuery = ownedQuery.where(
-              "currentStableId",
-              "==",
-              stableId,
-            ) as any;
-          }
-          if (status) {
-            ownedQuery = ownedQuery.where("status", "==", status) as any;
+        if (scope === "my" || ownerId === user.uid) {
+          // Only owned horses (Level 5 - full data)
+          horses = await getOwnedHorses(user.uid, stableId, status);
+        } else if (scope === "stable") {
+          // Horses in specific stable (role-filtered)
+          if (!stableId) {
+            return reply.status(400).send({
+              error: "Bad Request",
+              message: "stableId required for scope=stable",
+            });
           }
 
-          ownedHorses = await ownedQuery.get();
-
-          // If ownerId filter is specified, only return owned horses
-          if (ownerId === user.uid) {
-            return {
-              horses: ownedHorses.docs.map((doc) =>
-                serializeTimestamps({ id: doc.id, ...doc.data() }),
-              ),
-            };
+          // Verify stable access
+          const hasAccess = await canAccessStable(user.uid, stableId);
+          if (!hasAccess) {
+            return reply.status(403).send({
+              error: "Forbidden",
+              message: "You do not have access to this stable",
+            });
           }
-        }
 
-        // Get stables where user is owner or has org membership access
-        const [ownedStables, orgStableIds] = await Promise.all([
-          db.collection("stables").where("ownerId", "==", user.uid).get(),
-          getUserOrgStableIds(user.uid),
-        ]);
-
-        const userStableIds = [
-          ...ownedStables.docs.map((doc) => doc.id),
-          ...orgStableIds,
-        ];
-
-        // Get horses in user's stables
-        const stableHorses: any[] = [];
-
-        if (userStableIds.length > 0) {
-          // Firestore IN query limitation: max 10 items
-          // If more than 10 stables, batch the queries
-          const batchSize = 10;
-          for (let i = 0; i < userStableIds.length; i += batchSize) {
-            const batchIds = userStableIds.slice(i, i + batchSize);
-            const snapshot = await db
-              .collection("horses")
-              .where("currentStableId", "in", batchIds)
-              .get();
-
-            stableHorses.push(
-              ...snapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-              })),
-            );
-          }
-        }
-
-        // Combine owned horses and stable horses
-        const allHorses = [
-          ...(ownedHorses
-            ? ownedHorses.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-            : []),
-          ...stableHorses,
-        ];
-
-        // Remove duplicates
-        const uniqueHorses = Array.from(
-          new Map(allHorses.map((horse) => [horse.id, horse])).values(),
-        );
-
-        // Filter by stableId if provided (already filtered in queries above, but keep for safety)
-        let filteredHorses = stableId
-          ? uniqueHorses.filter((horse) => horse.currentStableId === stableId)
-          : uniqueHorses;
-
-        // Filter by status if provided
-        if (status) {
-          filteredHorses = filteredHorses.filter(
-            (horse) => horse.status === status,
+          // Get owned horses in this stable (full access)
+          const ownedInStable = await getOwnedHorses(
+            user.uid,
+            stableId,
+            status,
           );
+
+          // Get other horses in stable with projection
+          const stableHorsesProjected = await getStableHorsesWithProjection(
+            user.uid,
+            user.role,
+            stableId,
+            status,
+          );
+
+          horses = [...ownedInStable, ...stableHorsesProjected];
+        } else if (scope === "all") {
+          // All accessible horses (owned + stable horses, role-filtered)
+          horses = await getAllAccessibleHorses(user.uid, user.role, status);
         }
 
-        // Serialize timestamps before returning
         return {
-          horses: filteredHorses.map((horse) => serializeTimestamps(horse)),
+          horses: horses.map((h) => serializeTimestamps(h)),
+          meta: {
+            scope,
+            count: horses.length,
+          },
         };
       } catch (error) {
         request.log.error({ error }, "Failed to fetch horses");
@@ -456,7 +575,7 @@ export async function horsesRoutes(fastify: FastifyInstance) {
 
   /**
    * GET /api/v1/horses/:id
-   * Returns single horse if user has access (owns horse OR is member of horse's stable)
+   * Returns single horse with field-level RBAC based on user's role
    */
   fastify.get(
     "/:id",
@@ -477,45 +596,27 @@ export async function horsesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const horse = doc.data()!;
+        const horse = doc.data()! as Horse;
 
-        // System admins can access any horse
-        if (user.role === "system_admin") {
-          return serializeTimestamps({ id: doc.id, ...horse });
+        // Get access context for this horse
+        const context = await getHorseAccessContext(id, user.uid, user.role);
+
+        if (!context) {
+          // User has no access to this horse
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to access this horse",
+          });
         }
 
-        // Check if user owns the horse
-        if (horse.ownerId === user.uid) {
-          return serializeTimestamps({ id: doc.id, ...horse });
-        }
+        // Apply field projection based on access level
+        const projectedHorse = projectHorseFields(
+          { ...horse, id: doc.id } as Horse,
+          context.accessLevel,
+          context,
+        );
 
-        // Check if horse is in a stable where user is owner or member
-        if (horse.currentStableId) {
-          const stableDoc = await db
-            .collection("stables")
-            .doc(horse.currentStableId)
-            .get();
-
-          if (stableDoc.exists) {
-            const stable = stableDoc.data()!;
-
-            // Check if user is stable owner
-            if (stable.ownerId === user.uid) {
-              return serializeTimestamps({ id: doc.id, ...horse });
-            }
-
-            // Check organization membership with stable access
-            if (await hasOrgStableAccess(horse.currentStableId, user.uid)) {
-              return serializeTimestamps({ id: doc.id, ...horse });
-            }
-          }
-        }
-
-        // User has no access to this horse
-        return reply.status(403).send({
-          error: "Forbidden",
-          message: "You do not have permission to access this horse",
-        });
+        return serializeTimestamps(projectedHorse);
       } catch (error) {
         request.log.error({ error }, "Failed to fetch horse");
         return reply.status(500).send({

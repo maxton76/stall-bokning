@@ -476,7 +476,9 @@ export default function ScheduleEditorPage() {
                       className="flex items-center justify-between p-4 border rounded-lg"
                     >
                       <div className="flex-1">
-                        <div className="font-medium">{shift.shiftTypeName}</div>
+                        <div className="font-medium">
+                          {shift.routineTemplateName || shift.shiftTypeName}
+                        </div>
                         <div className="text-sm text-muted-foreground">
                           {shift.time} • {shift.points} points
                         </div>

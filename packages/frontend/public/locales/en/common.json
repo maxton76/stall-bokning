@@ -4,13 +4,20 @@
     "myHorses": "My Horses",
     "horses": "Horses",
     "activities": "Activities",
+    "todaysWork": "Today's Work",
+    "planning": "Planning",
+    "care": "Care Activities",
+    "analytics": "Analytics",
     "feeding": "Feeding",
     "feedingOverview": "Overview",
+    "feedingHistory": "History",
     "facilities": "Facilities",
     "schedule": "Schedule",
     "myAvailability": "My Availability",
     "myReservations": "My Reservations",
     "settings": "Settings",
+    "generalSettings": "General",
+    "activitySettings": "Activity Settings",
     "stables": "Stables",
     "organizations": "Organizations",
     "contacts": "Contacts",
@@ -46,7 +53,8 @@
     "saveChanges": "Save Changes",
     "resetToDefaults": "Reset to Defaults",
     "sendInvitation": "Send Invitation",
-    "viewAll": "View All"
+    "viewAll": "View All",
+    "actions": "Actions"
   },
   "labels": {
     "name": "Name",
@@ -237,5 +245,10 @@
     "enableNotifications": "Enable notifications",
     "disableNotifications": "Disable notifications",
     "notificationPermissionDenied": "Notification permission denied"
+  },
+  "filters": {
+    "allHorses": "All Horses",
+    "allActions": "All Actions",
+    "limit": "Limit"
   }
 }

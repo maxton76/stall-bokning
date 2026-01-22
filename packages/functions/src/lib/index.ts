@@ -8,3 +8,4 @@ export * from "./firebase.js";
 export * from "./validation.js";
 export * from "./text.js";
 export * from "./errors.js";
+export * from "./smtp.js";

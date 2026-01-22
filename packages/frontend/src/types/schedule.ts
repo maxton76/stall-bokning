@@ -32,11 +32,20 @@ export interface Shift {
   stableId: string;
   stableName: string;
   date: Timestamp;
-  shiftTypeId: string;
-  shiftTypeName: string;
   time: string;
   points: number;
   status: ShiftStatus;
+
+  // Routine integration (primary - new schedules use this)
+  routineTemplateId: string; // Direct link to routine template
+  routineTemplateName: string; // Denormalized for display
+  routineInstanceId?: string; // Created when shift is started with routine
+
+  // Legacy shift type fields (kept for backwards compatibility with old schedules)
+  /** @deprecated Use routineTemplateId instead */
+  shiftTypeId?: string;
+  /** @deprecated Use routineTemplateName instead */
+  shiftTypeName?: string;
 
   // Assignment tracking
   assignedTo: string | null;
@@ -73,6 +82,8 @@ export interface ShiftType {
   time: string;
   points: number;
   daysOfWeek: string[];
+  routineTemplateId?: string; // Link to routine template
+  routineTemplateName?: string; // Denormalized for display
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -83,9 +94,12 @@ export interface CreateScheduleData {
   stableName: string;
   startDate: Date;
   endDate: Date;
-  selectedShiftTypes: string[];
+  selectedRoutineTemplates: string[]; // Array of routine template IDs
+  daysOfWeek: string[]; // Days when shifts should be created (e.g., ["Mon", "Tue", "Wed"])
   useAutoAssignment: boolean;
   notifyMembers: boolean;
+  /** @deprecated Use selectedRoutineTemplates instead */
+  selectedShiftTypes?: string[];
 }
 
 export interface MemberAvailability {

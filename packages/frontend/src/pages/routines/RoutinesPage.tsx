@@ -180,7 +180,7 @@ export default function RoutinesPage() {
           </div>
         </div>
 
-        <Button onClick={() => navigate("/routines/templates")}>
+        <Button onClick={() => navigate("/settings/routines")}>
           <Plus className="h-4 w-4 mr-2" />
           {t("routines:actions.createTemplate")}
         </Button>

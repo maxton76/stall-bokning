@@ -1,4 +1,10 @@
 {
+  "title": "Routines",
+  "manageRoutines": "Manage routines",
+  "emptyState": {
+    "title": "No routines linked",
+    "description": "There are no routine templates linked to this stable. Create routines in settings."
+  },
   "page": {
     "title": "Stable Routines",
     "description": "Manage and execute daily routines",
@@ -45,6 +51,7 @@
     "continue": "Continue",
     "complete": "Complete Routine",
     "cancel": "Cancel",
+    "restart": "Restart",
     "nextStep": "Next Step",
     "previousStep": "Previous Step",
     "skip": "Skip",
@@ -57,7 +64,9 @@
     "createTemplate": "Create Template",
     "editTemplate": "Edit Template",
     "duplicateTemplate": "Duplicate Template",
-    "deleteTemplate": "Delete Template"
+    "deleteTemplate": "Delete Template",
+    "quickStart": "Quick Start",
+    "backToActivities": "Back to Activities"
   },
   "flow": {
     "step": "Step",
@@ -70,7 +79,14 @@
     "noHorses": "No horses in this step",
     "allHorsesCompleted": "All horses completed",
     "horsesRemaining": "{{count}} horses remaining",
-    "completionRequired": "All horses must be marked as completed"
+    "completionRequired": "All horses must be marked as completed",
+    "readOnlyView": "Read-only view",
+    "completionNotes": "Completion notes",
+    "stepsOverview": "Steps overview",
+    "completedByUser": "Completed by user",
+    "stepCompleted": "Step completed",
+    "stepNotCompleted": "Step not completed",
+    "noHorseDataRecorded": "No horse data was recorded for this step"
   },
   "horse": {
     "feeding": "Feeding",
@@ -79,8 +95,10 @@
     "specialInstructions": "Special Instructions",
     "done": "Done",
     "skip": "Skip",
+    "skipped": "Skipped",
     "skipReason": "Skip Reason",
     "medicationRequired": "Medication must be given",
+    "medicationGiven": "Medication given",
     "medicationSkipped": "Medication skipped",
     "blanketOn": "Blanket on",
     "blanketOff": "Blanket off",
@@ -151,7 +169,13 @@
     "requiresConfirmation": "Requires confirmation",
     "allowPartialCompletion": "Allow partial completion",
     "allowPhotoEvidence": "Allow photo evidence",
-    "estimatedMinutes": "Estimated time (minutes)"
+    "estimatedMinutes": "Estimated time (minutes)",
+    "selectHorses": "Select Horses",
+    "selectHorsesPlaceholder": "Choose horses for this step...",
+    "selectGroups": "Select Horse Groups",
+    "selectGroupsPlaceholder": "Choose groups for this step...",
+    "excludeHorses": "Exclude Horses (Optional)",
+    "excludeHorsesPlaceholder": "Exclude specific horses..."
   },
   "standardTemplates": {
     "morning": {
@@ -200,6 +224,8 @@
     "routineStartedMessage": "{{routineName}} has been started",
     "routineCompleted": "Routine Completed",
     "routineCompletedMessage": "{{routineName}} completed by {{userName}}",
+    "routineAndShiftCompleted": "Routine & Shift Completed",
+    "routineRestarted": "Routine Restarted",
     "routineMissed": "Routine Missed",
     "routineMissedMessage": "{{routineName}} was marked as missed"
   },
@@ -209,7 +235,9 @@
     "cannotComplete": "Cannot complete routine",
     "notesRequired": "You must read today's notes first",
     "stepRequired": "You must complete this step",
-    "medicationRequired": "Medication must be confirmed or skipped"
+    "medicationRequired": "Medication must be confirmed or skipped",
+    "shiftCompletionFailed": "Routine completed but shift could not be marked complete",
+    "restartFailed": "Failed to restart routine"
   },
   "empty": {
     "noRoutines": "No routines scheduled",

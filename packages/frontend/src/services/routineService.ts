@@ -6,6 +6,8 @@ import type {
   HorseStepProgress,
   CreateRoutineTemplateInput,
   UpdateRoutineTemplateInput,
+  UpdateStepProgressInput,
+  UpdateHorseProgressInput,
 } from "@shared/types";
 
 // Local interface for creating routine instances
@@ -15,14 +17,6 @@ interface CreateRoutineInstanceInput {
   scheduledDate: string; // "YYYY-MM-DD"
   scheduledStartTime?: string;
   assignedTo?: string;
-}
-
-// Local interface for progress updates
-interface RoutineProgressUpdateInput {
-  stepId: string;
-  stepStatus?: "pending" | "in_progress" | "completed" | "skipped";
-  horseId?: string;
-  horseProgress?: Partial<HorseStepProgress>;
 }
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -106,6 +100,18 @@ export async function deleteRoutineTemplate(templateId: string): Promise<void> {
 // ==================== Routine Instances ====================
 
 /**
+ * Get a single routine instance by ID
+ */
+export async function getRoutineInstance(
+  instanceId: string,
+): Promise<RoutineInstance> {
+  return authFetchJSON<RoutineInstance>(
+    `${API_URL}/api/v1/routines/instances/${instanceId}`,
+    { method: "GET" },
+  );
+}
+
+/**
  * Get routine instances for a stable on a specific date
  */
 export async function getRoutineInstances(
@@ -151,10 +157,17 @@ export async function createRoutineInstance(
  */
 export async function startRoutineInstance(
   instanceId: string,
+  dailyNotesAcknowledged: boolean = true,
 ): Promise<RoutineInstance> {
   const response = await authFetchJSON<{ instance: RoutineInstance }>(
     `${API_URL}/api/v1/routines/instances/${instanceId}/start`,
-    { method: "POST" },
+    {
+      method: "POST",
+      body: JSON.stringify({
+        instanceId,
+        dailyNotesAcknowledged,
+      }),
+    },
   );
 
   return response.instance;
@@ -165,13 +178,16 @@ export async function startRoutineInstance(
  */
 export async function updateRoutineProgress(
   instanceId: string,
-  update: RoutineProgressUpdateInput,
+  update: Omit<UpdateStepProgressInput, "instanceId">,
 ): Promise<RoutineInstance> {
   const response = await authFetchJSON<{ instance: RoutineInstance }>(
     `${API_URL}/api/v1/routines/instances/${instanceId}/progress`,
     {
       method: "PUT",
-      body: JSON.stringify(update),
+      body: JSON.stringify({
+        ...update,
+        instanceId,
+      }),
     },
   );
 
@@ -215,6 +231,22 @@ export async function cancelRoutineInstance(
 }
 
 /**
+ * Restart a cancelled routine instance
+ */
+export async function restartRoutineInstance(
+  instanceId: string,
+): Promise<RoutineInstance> {
+  const response = await authFetchJSON<{ instance: RoutineInstance }>(
+    `${API_URL}/api/v1/routines/instances/${instanceId}/restart`,
+    {
+      method: "POST",
+    },
+  );
+
+  return response.instance;
+}
+
+/**
  * Update horse step progress within a routine
  */
 export async function updateHorseStepProgress(
@@ -225,8 +257,12 @@ export async function updateHorseStepProgress(
 ): Promise<RoutineInstance> {
   return updateRoutineProgress(instanceId, {
     stepId,
-    horseId,
-    horseProgress: progress,
+    horseUpdates: [
+      {
+        horseId,
+        ...progress,
+      },
+    ],
   });
 }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import {
   startOfWeek,
   addWeeks,
@@ -7,6 +8,8 @@ import {
   addDays,
   startOfDay,
   endOfDay,
+  format,
+  isSameDay,
 } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -16,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserStables } from "@/hooks/useUserStables";
 import { useAsyncData } from "@/hooks/useAsyncData";
@@ -30,12 +34,15 @@ import {
   getUserHorsesAtStable,
   getUserHorsesAtStables,
 } from "@/services/horseService";
+import { getRoutineInstances } from "@/services/routineService";
 import type { ActivityEntry } from "@/types/activity";
 import type { Horse } from "@/types/roles";
+import type { RoutineInstance } from "@shared/types";
 
 export default function ActivitiesPlanningPage() {
   const { t } = useTranslation(["activities", "common"]);
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [selectedStableId, setSelectedStableId] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"day" | "week">("week");
   const [currentWeekStart, setCurrentWeekStart] = useState(
@@ -90,6 +97,36 @@ export default function ActivitiesPlanningPage() {
     },
   });
 
+  // Load routine instances for week
+  const routines = useAsyncData<RoutineInstance[]>({
+    loadFn: async () => {
+      if (stables.length === 0) return [];
+
+      // If "all" is selected, fetch from all stables
+      if (selectedStableId === "all") {
+        const promises = stables.map((stable) =>
+          getRoutineInstances(stable.id, currentWeekStart),
+        );
+        const results = await Promise.all(promises);
+        return results.flat();
+      }
+
+      // Single stable
+      return await getRoutineInstances(selectedStableId, currentWeekStart);
+    },
+  });
+
+  // Filter routines by selected stable
+  const filteredRoutineInstances = useMemo(() => {
+    if (!routines.data) return [];
+
+    if (selectedStableId === "all") {
+      return routines.data;
+    }
+
+    return routines.data.filter((i) => i.stableId === selectedStableId);
+  }, [routines.data, selectedStableId]);
+
   // Load horses
   const horses = useAsyncData<Horse[]>({
     loadFn: async () => {
@@ -114,6 +151,13 @@ export default function ActivitiesPlanningPage() {
       activities.load();
     }
   }, [selectedStableId, stables, dateRange.start, dateRange.end]);
+
+  // Reload routines when stable, stables list, or week changes
+  useEffect(() => {
+    if (stables.length > 0) {
+      routines.load();
+    }
+  }, [selectedStableId, stables, currentWeekStart]);
 
   // Reload horses when stable or stables list changes
   useEffect(() => {
@@ -160,6 +204,11 @@ export default function ActivitiesPlanningPage() {
   // Activity click - edit existing activity
   const handleActivityClick = (activity: ActivityEntry) => {
     formDialog.openDialog(activity);
+  };
+
+  // Routine click - navigate to routine flow
+  const handleRoutineClick = (routine: RoutineInstance) => {
+    navigate(`/routines/flow/${routine.id}`);
   };
 
   const handleSave = async (_data: any) => {
@@ -213,6 +262,63 @@ export default function ActivitiesPlanningPage() {
           </SelectContent>
         </Select>
       </div>
+
+      {/* Routines Section */}
+      {filteredRoutineInstances.length > 0 && (
+        <Card className="mb-4 sm:mb-6">
+          <CardContent className="p-4">
+            <h3 className="text-lg font-semibold mb-4">
+              {t("activities:routines.weekRoutines")}
+            </h3>
+
+            {/* Group routines by date */}
+            <div className="space-y-4">
+              {weekDays.map((day) => {
+                const dayRoutines = filteredRoutineInstances.filter(
+                  (routine) => {
+                    const routineDate = new Date(routine.scheduledDate as any);
+                    return isSameDay(routineDate, day);
+                  },
+                );
+
+                if (dayRoutines.length === 0) return null;
+
+                return (
+                  <div key={day.toISOString()}>
+                    <div className="text-sm font-medium text-gray-600 mb-2">
+                      {format(day, "EEEE, MMM d")}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {dayRoutines.map((routine) => (
+                        <div
+                          key={routine.id}
+                          className="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg cursor-pointer hover:bg-purple-200 transition-colors flex items-center gap-2"
+                          onClick={() => handleRoutineClick(routine)}
+                        >
+                          <Clock className="w-4 h-4" />
+                          <span className="text-sm font-medium">
+                            {routine.templateName}
+                          </span>
+                          {selectedStableId === "all" && routine.stableName && (
+                            <span className="text-xs opacity-75">
+                              · {routine.stableName}
+                            </span>
+                          )}
+                          {routine.scheduledStartTime && (
+                            <span className="text-xs opacity-75">
+                              {routine.scheduledStartTime}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Calendar Card */}
       <Card className="flex-1 flex flex-col overflow-hidden">

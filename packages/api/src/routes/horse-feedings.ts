@@ -5,6 +5,10 @@ import type { AuthenticatedRequest } from "../types/index.js";
 import { Timestamp } from "firebase-admin/firestore";
 import { canAccessStable, isSystemAdmin } from "../utils/authorization.js";
 import { serializeTimestamps } from "../utils/serialization.js";
+import {
+  createAuditLog,
+  calculateChanges,
+} from "../services/auditLogService.js";
 
 /**
  * Parse date string to Timestamp
@@ -358,6 +362,39 @@ export async function horseFeedingsRoutes(fastify: FastifyInstance) {
           .collection("horseFeedings")
           .add(horseFeedingData);
 
+        // Create audit log for feeding creation
+        try {
+          await createAuditLog({
+            userId: user.uid,
+            userEmail: user.email,
+            userName: user.displayName,
+            action: "create",
+            resource: "horseFeeding",
+            resourceId: docRef.id,
+            resourceName: `${horse.name} - ${feedingTime.name} - ${feedType.name}`,
+            stableId: data.stableId,
+            details: {
+              horseId: data.horseId,
+              horseName: horse.name,
+              feedTypeId: data.feedTypeId,
+              feedTypeName: feedType.name,
+              feedingTimeId: data.feedingTimeId,
+              feedingTimeName: feedingTime.name,
+              quantity: data.quantity,
+              quantityMeasure: feedType.quantityMeasure,
+              startDate: data.startDate,
+              endDate: data.endDate,
+              notes: data.notes,
+            },
+          });
+        } catch (auditError) {
+          // Log audit failure but don't fail the request
+          request.log.error(
+            { error: auditError },
+            "Failed to create audit log for feeding creation",
+          );
+        }
+
         return reply.status(201).send({
           id: docRef.id,
           ...serializeTimestamps(horseFeedingData),
@@ -491,7 +528,49 @@ export async function horseFeedingsRoutes(fastify: FastifyInstance) {
           updateData.feedingTimeName = feedingTime.name;
         }
 
+        // Calculate changes for audit log
+        const changes = calculateChanges(
+          existing,
+          { ...existing, ...updateData },
+          [
+            "quantity",
+            "feedTypeId",
+            "feedingTimeId",
+            "startDate",
+            "endDate",
+            "notes",
+            "isActive",
+          ],
+        );
+
         await docRef.update(updateData);
+
+        // Create audit log for feeding update (only if something changed)
+        if (changes.length > 0) {
+          try {
+            await createAuditLog({
+              userId: user.uid,
+              userEmail: user.email,
+              userName: user.displayName,
+              action: "update",
+              resource: "horseFeeding",
+              resourceId: id,
+              resourceName: `${existing.horseName} - ${updateData.feedingTimeName || existing.feedingTimeName}`,
+              stableId: existing.stableId,
+              details: {
+                changes,
+                horseId: existing.horseId,
+                horseName: existing.horseName,
+              },
+            });
+          } catch (auditError) {
+            // Log audit failure but don't fail the request
+            request.log.error(
+              { error: auditError },
+              "Failed to create audit log for feeding update",
+            );
+          }
+        }
 
         return serializeTimestamps({ id, ...existing, ...updateData });
       } catch (error) {
@@ -544,6 +623,36 @@ export async function horseFeedingsRoutes(fastify: FastifyInstance) {
 
         // Hard delete
         await docRef.delete();
+
+        // Create audit log for feeding deletion
+        try {
+          await createAuditLog({
+            userId: user.uid,
+            userEmail: user.email,
+            userName: user.displayName,
+            action: "delete",
+            resource: "horseFeeding",
+            resourceId: id,
+            resourceName: `${existing.horseName} - ${existing.feedingTimeName}`,
+            stableId: existing.stableId,
+            details: {
+              horseId: existing.horseId,
+              horseName: existing.horseName,
+              feedTypeId: existing.feedTypeId,
+              feedTypeName: existing.feedTypeName,
+              quantity: existing.quantity,
+              quantityMeasure: existing.quantityMeasure,
+              startDate: existing.startDate,
+              endDate: existing.endDate,
+            },
+          });
+        } catch (auditError) {
+          // Log audit failure but don't fail the request
+          request.log.error(
+            { error: auditError },
+            "Failed to create audit log for feeding deletion",
+          );
+        }
 
         return { success: true, id };
       } catch (error) {

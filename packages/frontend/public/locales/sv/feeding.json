@@ -242,5 +242,34 @@
     "totalFeedings": "Totalt utfodringar",
     "completionRate": "Genomförandegrad",
     "wasteAmount": "Svinnskostnad"
+  },
+  "history": {
+    "title": "Utfodringshistorik",
+    "description": "Visa alla ändringar i utfodringsscheman",
+    "noHistory": "Ingen historik tillgänglig",
+    "noHistoryDescription": "Historikloggning startade nyligen. Endast ändringar efter detta datum visas.",
+    "viewDetails": "Visa detaljer",
+    "hideDetails": "Dölj detaljer",
+    "unknownUser": "Okänd användare",
+    "loadMore": "Ladda fler",
+    "action": "Åtgärd",
+    "added": "lade till",
+    "removed": "tog bort",
+    "updated": "uppdaterade",
+    "for": "för",
+    "actions": {
+      "create": "Skapade",
+      "update": "Uppdaterade",
+      "delete": "Raderade"
+    },
+    "fields": {
+      "quantity": "Mängd",
+      "feedTypeId": "Fodertyp",
+      "feedingTimeId": "Utfodringstid",
+      "startDate": "Startdatum",
+      "endDate": "Slutdatum",
+      "notes": "Anteckningar",
+      "isActive": "Aktiv"
+    }
   }
 }

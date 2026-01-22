@@ -10,6 +10,8 @@ import {
   Check,
   ChevronsUpDown,
   X,
+  Clock,
+  ListTodo,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Popover,
   PopoverContent,
@@ -42,16 +45,28 @@ import { queryKeys } from "@/lib/queryClient";
 import {
   createSchedule,
   createShifts,
-  generateShifts,
+  generateShiftsFromRoutines,
 } from "@/services/scheduleService";
-import { getShiftTypesByStable } from "@/services/shiftTypeService";
-import type { ShiftType } from "@/types/schedule";
+import { getRoutineTemplates } from "@/services/routineService";
+import { getStable } from "@/services/stableService";
+import type { RoutineTemplate } from "@shared/types";
+
+// Days of week options
+const DAYS_OF_WEEK = [
+  { id: "Mon", label: "Mon" },
+  { id: "Tue", label: "Tue" },
+  { id: "Wed", label: "Wed" },
+  { id: "Thu", label: "Thu" },
+  { id: "Fri", label: "Fri" },
+  { id: "Sat", label: "Sat" },
+  { id: "Sun", label: "Sun" },
+] as const;
 
 export default function CreateSchedulePage() {
   const { stableId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { t } = useTranslation(["schedules"]);
+  const { t } = useTranslation(["schedules", "common"]);
   const [isLoading, setIsLoading] = useState(false);
 
   const [scheduleData, setScheduleData] = useState({
@@ -59,43 +74,54 @@ export default function CreateSchedulePage() {
     startDate: "",
     endDate: "",
     useAutoAssignment: true,
-    selectedShiftTypes: [] as string[],
+    selectedRoutines: [] as string[],
+    daysOfWeek: ["Mon", "Tue", "Wed", "Thu", "Fri"] as string[],
     notifyMembers: true,
   });
 
-  // Fetch stable info
-  const { data: stableName = "" } = useQuery({
+  // Fetch stable info (including organizationId)
+  const { data: stable } = useQuery({
     queryKey: queryKeys.stables.detail(stableId || ""),
     queryFn: async () => {
-      if (!stableId) return "";
-      const { getStable } = await import("@/services/stableService");
-      const stable = await getStable(stableId);
-      return stable?.name || "";
+      if (!stableId) return null;
+      return await getStable(stableId);
     },
     enabled: !!stableId,
     staleTime: 10 * 60 * 1000,
   });
 
-  // Fetch shift types
-  const { data: shiftTypes = [] } = useQuery({
-    queryKey: ["shiftTypes", "stable", stableId],
+  const stableName = stable?.name || "";
+  const organizationId = stable?.organizationId || "";
+
+  // Fetch routine templates for the organization/stable
+  const { data: routineTemplates = [] } = useQuery({
+    queryKey: ["routineTemplates", organizationId, stableId],
     queryFn: async () => {
-      if (!stableId) return [];
-      return await getShiftTypesByStable(stableId);
+      if (!organizationId) return [];
+      return await getRoutineTemplates(organizationId, stableId, true);
     },
-    enabled: !!stableId,
+    enabled: !!organizationId,
     staleTime: 5 * 60 * 1000,
   });
 
   // State for dropdown open
-  const [shiftTypeDropdownOpen, setShiftTypeDropdownOpen] = useState(false);
+  const [routineDropdownOpen, setRoutineDropdownOpen] = useState(false);
 
-  const handleShiftTypeToggle = (shiftTypeId: string) => {
+  const handleRoutineToggle = (routineId: string) => {
     setScheduleData({
       ...scheduleData,
-      selectedShiftTypes: scheduleData.selectedShiftTypes.includes(shiftTypeId)
-        ? scheduleData.selectedShiftTypes.filter((id) => id !== shiftTypeId)
-        : [...scheduleData.selectedShiftTypes, shiftTypeId],
+      selectedRoutines: scheduleData.selectedRoutines.includes(routineId)
+        ? scheduleData.selectedRoutines.filter((id) => id !== routineId)
+        : [...scheduleData.selectedRoutines, routineId],
+    });
+  };
+
+  const handleDayToggle = (dayId: string) => {
+    setScheduleData({
+      ...scheduleData,
+      daysOfWeek: scheduleData.daysOfWeek.includes(dayId)
+        ? scheduleData.daysOfWeek.filter((id) => id !== dayId)
+        : [...scheduleData.daysOfWeek, dayId],
     });
   };
 
@@ -114,26 +140,28 @@ export default function CreateSchedulePage() {
           stableName,
           startDate: new Date(scheduleData.startDate),
           endDate: new Date(scheduleData.endDate),
-          selectedShiftTypes: scheduleData.selectedShiftTypes,
+          selectedRoutineTemplates: scheduleData.selectedRoutines,
+          daysOfWeek: scheduleData.daysOfWeek,
           useAutoAssignment: scheduleData.useAutoAssignment,
           notifyMembers: scheduleData.notifyMembers,
         },
         user.uid,
       );
 
-      // Get selected shift types
-      const selectedTypes = shiftTypes.filter((st) =>
-        scheduleData.selectedShiftTypes.includes(st.id),
+      // Get selected routine templates
+      const selectedTemplates = routineTemplates.filter((rt) =>
+        scheduleData.selectedRoutines.includes(rt.id),
       );
 
-      // Generate shifts
-      const shifts = generateShifts(
+      // Generate shifts from routine templates
+      const shifts = generateShiftsFromRoutines(
         scheduleId,
         stableId,
         stableName,
         new Date(scheduleData.startDate),
         new Date(scheduleData.endDate),
-        selectedTypes,
+        selectedTemplates,
+        scheduleData.daysOfWeek,
       );
 
       // Create shifts in Firestore
@@ -151,23 +179,37 @@ export default function CreateSchedulePage() {
 
   const calculateEstimatedShifts = () => {
     if (!scheduleData.startDate || !scheduleData.endDate) return 0;
+    if (scheduleData.selectedRoutines.length === 0) return 0;
+    if (scheduleData.daysOfWeek.length === 0) return 0;
 
     const start = new Date(scheduleData.startDate);
     const end = new Date(scheduleData.endDate);
     const days =
       Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-    // Simple calculation: count how many shifts would be created
-    let totalShifts = 0;
-    scheduleData.selectedShiftTypes.forEach((stId) => {
-      const shiftType = shiftTypes.find((st) => st.id === stId);
-      if (shiftType) {
-        // Count how many days match the shift's days of week
-        totalShifts += Math.floor(days / 7) * shiftType.daysOfWeek.length;
+    // Count how many selected days fall within the date range
+    let matchingDays = 0;
+    const currentDate = new Date(start);
+    while (currentDate <= end) {
+      const dayName = currentDate.toLocaleDateString("en-US", {
+        weekday: "short",
+      });
+      if (scheduleData.daysOfWeek.includes(dayName)) {
+        matchingDays++;
       }
-    });
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
 
-    return totalShifts;
+    // Each matching day has one shift per selected routine
+    return matchingDays * scheduleData.selectedRoutines.length;
+  };
+
+  const formatDuration = (minutes: number) => {
+    if (minutes < 60) return `${minutes} ${t("common:time.minutes")}`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (mins === 0) return `${hours} ${t("common:time.hours")}`;
+    return `${hours}h ${mins}m`;
   };
 
   return (
@@ -283,36 +325,39 @@ export default function CreateSchedulePage() {
           </CardContent>
         </Card>
 
-        {/* Shift Type Selection */}
+        {/* Routine Selection */}
         <Card>
           <CardHeader>
-            <CardTitle>{t("schedules:createPage.shiftTypes.title")}</CardTitle>
+            <CardTitle className="flex items-center">
+              <ListTodo className="mr-2 h-5 w-5" />
+              {t("schedules:createPage.routines.title")}
+            </CardTitle>
             <CardDescription>
-              {t("schedules:createPage.shiftTypes.description")}
+              {t("schedules:createPage.routines.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Popover
-              open={shiftTypeDropdownOpen}
-              onOpenChange={setShiftTypeDropdownOpen}
+              open={routineDropdownOpen}
+              onOpenChange={setRoutineDropdownOpen}
             >
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
-                  aria-expanded={shiftTypeDropdownOpen}
+                  aria-expanded={routineDropdownOpen}
                   className="w-full justify-between h-auto min-h-10"
                 >
-                  {scheduleData.selectedShiftTypes.length === 0 ? (
+                  {scheduleData.selectedRoutines.length === 0 ? (
                     <span className="text-muted-foreground">
-                      {t("schedules:createPage.shiftTypes.placeholder")}
+                      {t("schedules:createPage.routines.placeholder")}
                     </span>
                   ) : (
                     <span className="text-left">
-                      {scheduleData.selectedShiftTypes.length === 1
-                        ? t("schedules:createPage.shiftTypes.selectedOne")
-                        : t("schedules:createPage.shiftTypes.selectedMany", {
-                            count: scheduleData.selectedShiftTypes.length,
+                      {scheduleData.selectedRoutines.length === 1
+                        ? t("schedules:createPage.routines.selectedOne")
+                        : t("schedules:createPage.routines.selectedMany", {
+                            count: scheduleData.selectedRoutines.length,
                           })}
                     </span>
                   )}
@@ -323,28 +368,25 @@ export default function CreateSchedulePage() {
                 <Command>
                   <CommandInput
                     placeholder={t(
-                      "schedules:createPage.shiftTypes.searchPlaceholder",
+                      "schedules:createPage.routines.searchPlaceholder",
                     )}
                   />
                   <CommandList>
                     <CommandEmpty>
-                      {t("schedules:createPage.shiftTypes.emptyState")}
+                      {t("schedules:createPage.routines.emptyState")}
                     </CommandEmpty>
                     <CommandGroup>
-                      {shiftTypes.map((shiftType) => {
+                      {routineTemplates.map((routine) => {
                         const isSelected =
-                          scheduleData.selectedShiftTypes.includes(
-                            shiftType.id,
-                          );
+                          scheduleData.selectedRoutines.includes(routine.id);
                         return (
                           <CommandItem
-                            key={shiftType.id}
-                            value={shiftType.name}
+                            key={routine.id}
+                            value={routine.name}
                             onSelect={() => {
-                              handleShiftTypeToggle(shiftType.id);
+                              handleRoutineToggle(routine.id);
                             }}
                             className="cursor-pointer"
-                            // Prevent closing on select for multi-select behavior
                             onMouseDown={(e) => e.preventDefault()}
                           >
                             <div
@@ -358,12 +400,21 @@ export default function CreateSchedulePage() {
                               <Check className="h-3 w-3" />
                             </div>
                             <div className="flex-1">
-                              <div className="font-medium">
-                                {shiftType.name}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {shiftType.time} • {shiftType.points} pts •{" "}
-                                {shiftType.daysOfWeek.join(", ")}
+                              <div className="font-medium">{routine.name}</div>
+                              <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                <span className="flex items-center">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  {routine.defaultStartTime || "08:00"}
+                                </span>
+                                <span>•</span>
+                                <span>
+                                  ~
+                                  {formatDuration(
+                                    routine.estimatedDuration || 60,
+                                  )}
+                                </span>
+                                <span>•</span>
+                                <span>{routine.pointsValue || 10} pts</span>
                               </div>
                             </div>
                           </CommandItem>
@@ -375,25 +426,27 @@ export default function CreateSchedulePage() {
               </PopoverContent>
             </Popover>
 
-            {/* Selected shift types display */}
-            {scheduleData.selectedShiftTypes.length > 0 && (
+            {/* Selected routines display */}
+            {scheduleData.selectedRoutines.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {scheduleData.selectedShiftTypes.map((stId) => {
-                  const shiftType = shiftTypes.find((st) => st.id === stId);
-                  if (!shiftType) return null;
+                {scheduleData.selectedRoutines.map((routineId) => {
+                  const routine = routineTemplates.find(
+                    (rt) => rt.id === routineId,
+                  );
+                  if (!routine) return null;
                   return (
                     <Badge
-                      key={stId}
+                      key={routineId}
                       variant="secondary"
                       className="flex items-center gap-1 pr-1"
                     >
-                      {shiftType.name}
+                      {routine.name}
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
                         className="h-4 w-4 p-0 hover:bg-transparent"
-                        onClick={() => handleShiftTypeToggle(stId)}
+                        onClick={() => handleRoutineToggle(routineId)}
                       >
                         <X className="h-3 w-3" />
                       </Button>
@@ -403,13 +456,118 @@ export default function CreateSchedulePage() {
               </div>
             )}
 
-            {scheduleData.selectedShiftTypes.length === 0 && (
+            {scheduleData.selectedRoutines.length === 0 && (
               <div className="rounded-lg bg-destructive/10 p-4">
                 <p className="text-sm text-destructive">
-                  ⚠️ {t("schedules:createPage.shiftTypes.validationError")}
+                  ⚠️ {t("schedules:createPage.routines.validationError")}
                 </p>
               </div>
             )}
+
+            {routineTemplates.length === 0 && (
+              <div className="rounded-lg bg-muted p-4">
+                <p className="text-sm text-muted-foreground">
+                  {t("schedules:createPage.routines.noTemplates")}
+                </p>
+                <Link
+                  to="/settings/routines"
+                  className="text-sm text-primary hover:underline"
+                >
+                  {t("schedules:createPage.routines.createTemplateLink")}
+                </Link>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Days of Week Selection */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Calendar className="mr-2 h-5 w-5" />
+              {t("schedules:createPage.daysOfWeek.title")}
+            </CardTitle>
+            <CardDescription>
+              {t("schedules:createPage.daysOfWeek.description")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-4">
+              {DAYS_OF_WEEK.map((day) => (
+                <div key={day.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`day-${day.id}`}
+                    checked={scheduleData.daysOfWeek.includes(day.id)}
+                    onCheckedChange={() => handleDayToggle(day.id)}
+                  />
+                  <Label
+                    htmlFor={`day-${day.id}`}
+                    className="text-sm font-medium cursor-pointer"
+                  >
+                    {t(`schedules:createPage.daysOfWeek.${day.label}`)}
+                  </Label>
+                </div>
+              ))}
+            </div>
+
+            {scheduleData.daysOfWeek.length === 0 && (
+              <div className="rounded-lg bg-destructive/10 p-4">
+                <p className="text-sm text-destructive">
+                  ⚠️ {t("schedules:createPage.daysOfWeek.validationError")}
+                </p>
+              </div>
+            )}
+
+            {/* Quick select buttons */}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setScheduleData({
+                    ...scheduleData,
+                    daysOfWeek: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+                  })
+                }
+              >
+                {t("schedules:createPage.daysOfWeek.quickSelect.weekdays")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setScheduleData({
+                    ...scheduleData,
+                    daysOfWeek: ["Sat", "Sun"],
+                  })
+                }
+              >
+                {t("schedules:createPage.daysOfWeek.quickSelect.weekends")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setScheduleData({
+                    ...scheduleData,
+                    daysOfWeek: [
+                      "Mon",
+                      "Tue",
+                      "Wed",
+                      "Thu",
+                      "Fri",
+                      "Sat",
+                      "Sun",
+                    ],
+                  })
+                }
+              >
+                {t("schedules:createPage.daysOfWeek.quickSelect.allDays")}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -506,7 +664,11 @@ export default function CreateSchedulePage() {
           </Link>
           <Button
             type="submit"
-            disabled={isLoading || scheduleData.selectedShiftTypes.length === 0}
+            disabled={
+              isLoading ||
+              scheduleData.selectedRoutines.length === 0 ||
+              scheduleData.daysOfWeek.length === 0
+            }
           >
             {isLoading ? (
               t("schedules:createPage.actions.creating")

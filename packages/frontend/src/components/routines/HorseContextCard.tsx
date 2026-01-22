@@ -78,6 +78,7 @@ interface HorseContextCardProps {
   onBlanketAction?: (action: "on" | "off" | "unchanged") => void;
   onPhotoCapture?: (file: File) => void;
   isSubmitting?: boolean;
+  readonly?: boolean;
 }
 
 export function HorseContextCard({
@@ -95,6 +96,7 @@ export function HorseContextCard({
   onBlanketAction,
   onPhotoCapture,
   isSubmitting = false,
+  readonly = false,
 }: HorseContextCardProps) {
   const { t } = useTranslation(["routines", "common"]);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -200,6 +202,11 @@ export function HorseContextCard({
                       {t("routines:horse.skipReason")}: {progress.skipReason}
                     </CardDescription>
                   )}
+                  {isCompleted && progress?.notes && (
+                    <CardDescription>
+                      {t("routines:actions.addNote")}: {progress.notes}
+                    </CardDescription>
+                  )}
                 </div>
               </div>
 
@@ -292,7 +299,7 @@ export function HorseContextCard({
                   </div>
 
                   {/* Medication confirmation */}
-                  {!isDone && onMedicationConfirm && (
+                  {!isDone && !readonly && onMedicationConfirm && (
                     <div className="flex gap-2 mt-3">
                       <Button
                         size="sm"
@@ -340,7 +347,7 @@ export function HorseContextCard({
                     </p>
                   )}
 
-                  {!isDone && onBlanketAction && (
+                  {!isDone && !readonly && onBlanketAction && (
                     <div className="flex gap-2 mt-3">
                       <Button
                         size="sm"
@@ -398,8 +405,23 @@ export function HorseContextCard({
                 </div>
               )}
 
+              {/* Saved Notes Display (when completed) */}
+              {isDone && progress?.notes && (
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-start gap-2">
+                    <FileText className="h-4 w-4 mt-0.5 text-blue-600" />
+                    <div>
+                      <p className="font-medium text-blue-900">
+                        {t("routines:actions.addNote")}
+                      </p>
+                      <p className="text-sm text-blue-800">{progress.notes}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Notes input */}
-              {!isDone && (
+              {!isDone && !readonly && (
                 <div>
                   <Input
                     placeholder={t("routines:actions.addNote")}
@@ -411,7 +433,7 @@ export function HorseContextCard({
               )}
 
               {/* Action Buttons */}
-              {!isDone && (
+              {!isDone && !readonly && (
                 <div className="flex gap-2">
                   <Button
                     onClick={handleMarkDone}
@@ -439,7 +461,7 @@ export function HorseContextCard({
           </CollapsibleContent>
 
           {/* Collapsed preview */}
-          {!isExpanded && !isDone && (
+          {!isExpanded && !isDone && !readonly && (
             <CardContent className="pt-0">
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 {step.showFeeding && feedingInfo && (

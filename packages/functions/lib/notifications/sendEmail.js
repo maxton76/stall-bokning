@@ -5,10 +5,24 @@ const firebase_functions_1 = require("firebase-functions");
 const text_js_1 = require("../lib/text.js");
 const validation_js_1 = require("../lib/validation.js");
 const errors_js_1 = require("../lib/errors.js");
+const smtp_js_1 = require("../lib/smtp.js");
+/**
+ * Get the configured email provider
+ * - "smtp": Use SMTP only
+ * - "sendgrid": Use SendGrid only
+ * - "auto": Try SMTP first, fallback to SendGrid
+ */
+function getEmailProvider() {
+  const provider = process.env.EMAIL_PROVIDER?.toLowerCase();
+  if (provider === "smtp" || provider === "sendgrid") {
+    return provider;
+  }
+  return "auto"; // Default: try SMTP first, then SendGrid
+}
 /**
  * Get SendGrid configuration from environment
  */
-function getEmailConfig() {
+function getSendGridConfig() {
   const apiKey = process.env.SENDGRID_API_KEY;
   const fromEmail =
     process.env.SENDGRID_FROM_EMAIL || "noreply@stallbokning.se";
@@ -129,29 +143,8 @@ function buildHtmlBody(title, body, actionUrl) {
 /**
  * Send email via SendGrid API
  */
-async function sendEmail(payload, actionUrl) {
-  const config = getEmailConfig();
-  if (!config) {
-    return {
-      success: false,
-      error: "Email not configured - SENDGRID_API_KEY missing",
-    };
-  }
-  // Validate email address format
-  if (!(0, validation_js_1.isValidEmail)(payload.to)) {
-    firebase_functions_1.logger.warn(
-      { email: payload.to.substring(0, 30) },
-      "Invalid email address format",
-    );
-    return {
-      success: false,
-      error: "Invalid email address format",
-    };
-  }
+async function sendViaSendGrid(payload, config, htmlBody) {
   try {
-    const htmlBody =
-      payload.htmlBody ||
-      buildHtmlBody(payload.subject, payload.body, actionUrl);
     const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
       method: "POST",
       headers: {
@@ -199,8 +192,9 @@ async function sendEmail(payload, actionUrl) {
       {
         to: payload.to,
         subject: payload.subject,
+        provider: "sendgrid",
       },
-      "Email sent successfully",
+      "Email sent successfully via SendGrid",
     );
     return { success: true };
   } catch (error) {
@@ -210,12 +204,107 @@ async function sendEmail(payload, actionUrl) {
         error: errorMessage,
         to: payload.to,
       },
-      "Failed to send email",
+      "Failed to send email via SendGrid",
     );
     return {
       success: false,
       error: errorMessage,
     };
   }
+}
+/**
+ * Send email using SMTP
+ */
+async function sendEmailViaSMTP(payload, htmlBody) {
+  // Initialize SMTP if not already done
+  if (!(0, smtp_js_1.isSMTPInitialized)()) {
+    const initialized = await (0, smtp_js_1.initializeSMTP)();
+    if (!initialized) {
+      return {
+        success: false,
+        error: "Failed to initialize SMTP connection",
+      };
+    }
+  }
+  const result = await (0, smtp_js_1.sendViaSMTP)({
+    to: payload.to,
+    subject: payload.subject,
+    text: payload.body,
+    html: htmlBody,
+  });
+  if (result.success) {
+    firebase_functions_1.logger.info(
+      {
+        to: payload.to,
+        subject: payload.subject,
+        messageId: result.messageId,
+        provider: "smtp",
+      },
+      "Email sent successfully via SMTP",
+    );
+  }
+  return {
+    success: result.success,
+    error: result.error,
+  };
+}
+/**
+ * Send email via configured provider (SMTP or SendGrid)
+ *
+ * Provider selection (via EMAIL_PROVIDER env var):
+ * - "smtp": Use SMTP only
+ * - "sendgrid": Use SendGrid only
+ * - "auto" (default): Try SMTP first, fallback to SendGrid
+ */
+async function sendEmail(payload, actionUrl) {
+  // Validate email address format
+  if (!(0, validation_js_1.isValidEmail)(payload.to)) {
+    firebase_functions_1.logger.warn(
+      { email: payload.to.substring(0, 30) },
+      "Invalid email address format",
+    );
+    return {
+      success: false,
+      error: "Invalid email address format",
+    };
+  }
+  const htmlBody =
+    payload.htmlBody || buildHtmlBody(payload.subject, payload.body, actionUrl);
+  const provider = getEmailProvider();
+  const sendGridConfig = getSendGridConfig();
+  // SMTP only mode
+  if (provider === "smtp") {
+    return sendEmailViaSMTP(payload, htmlBody);
+  }
+  // SendGrid only mode
+  if (provider === "sendgrid") {
+    if (!sendGridConfig) {
+      return {
+        success: false,
+        error: "Email not configured - SENDGRID_API_KEY missing",
+      };
+    }
+    return sendViaSendGrid(payload, sendGridConfig, htmlBody);
+  }
+  // Auto mode: Try SMTP first, then SendGrid
+  firebase_functions_1.logger.info(
+    "Attempting to send email via SMTP (auto mode)",
+  );
+  const smtpResult = await sendEmailViaSMTP(payload, htmlBody);
+  if (smtpResult.success) {
+    return smtpResult;
+  }
+  // SMTP failed, try SendGrid as fallback
+  firebase_functions_1.logger.warn(
+    { smtpError: smtpResult.error },
+    "SMTP failed, falling back to SendGrid",
+  );
+  if (!sendGridConfig) {
+    return {
+      success: false,
+      error: `SMTP failed (${smtpResult.error}) and SendGrid not configured`,
+    };
+  }
+  return sendViaSendGrid(payload, sendGridConfig, htmlBody);
 }
 //# sourceMappingURL=sendEmail.js.map

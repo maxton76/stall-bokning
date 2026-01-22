@@ -3,6 +3,12 @@
     "title": "Aktiviteter",
     "description": "Hantera aktiviteter och schemalägg händelser för dina hästar"
   },
+  "today": {
+    "title": "Dagens arbete",
+    "description": "Aktiviteter och rutiner för idag",
+    "viewAll": "Alla",
+    "noWork": "Inget arbete planerat för idag"
+  },
   "tabs": {
     "actionList": "Åtgärdslista",
     "planning": "Planering",
@@ -46,6 +52,8 @@
     "description": "Veterinär-, hovslagare-, tandläkare- och andra vårdrelaterade aktiviteter",
     "loading": "Laddar vårdaktiviteter...",
     "stableLabel": "Stall",
+    "next": "Nästa",
+    "done": "Senast",
     "viewMode": {
       "matrix": "Matris",
       "table": "Tabell"
@@ -139,7 +147,7 @@
       "edit": "Redigera post"
     },
     "description": {
-      "create": "Skapa en ny aktivitet, uppgift eller meddelande",
+      "create": "Skapa en ny aktivitet, uppgift, meddelande eller schemalägg rutin",
       "edit": "Uppdatera postdetaljer"
     },
     "labels": {
@@ -158,7 +166,11 @@
       "assignedTo": "Tilldelad till",
       "priority": "Prioritet",
       "status": "Status",
-      "reminder": "Påminnelse"
+      "reminder": "Påminnelse",
+      "template": "Rutinmall",
+      "startDate": "Startdatum",
+      "endDate": "Slutdatum",
+      "weekdays": "Veckodagar"
     },
     "placeholders": {
       "title": "t.ex. Veterinärbesök",
@@ -171,12 +183,25 @@
       "selectHorse": "Välj häst",
       "selectActivityType": "Välj aktivitetstyp",
       "pickDate": "Välj ett datum",
-      "unassigned": "Otilldelad"
+      "pickEndDate": "Välj slutdatum",
+      "unassigned": "Otilldelad",
+      "selectTemplate": "Välj rutinmall"
     },
+    "weekdays": {
+      "mon": "Mån",
+      "tue": "Tis",
+      "wed": "Ons",
+      "thu": "Tor",
+      "fri": "Fre",
+      "sat": "Lör",
+      "sun": "Sön"
+    },
+    "noTemplatesAvailable": "Inga rutinmallar tillgängliga. Gå till Rutiner > Mallar för att skapa en.",
     "entryTypes": {
       "activity": "Aktivitet",
       "task": "Uppgift",
-      "message": "Meddelande"
+      "message": "Meddelande",
+      "routine": "Rutin"
     },
     "priority": {
       "low": "Låg",
@@ -301,6 +326,9 @@
     "select": "Välj ett stall",
     "all": "Alla stall",
     "loading": "Laddar stall..."
+  },
+  "routines": {
+    "weekRoutines": "Veckans Rutiner"
   },
   "groups": {
     "unassigned": "Otilldelade",
