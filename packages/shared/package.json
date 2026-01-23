@@ -1,6 +1,6 @@
 {
   "name": "@stall-bokning/shared",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Shared types, utilities, and schemas for stall-bokning monorepo",
   "type": "module",
   "main": "./dist/index.js",
@@ -75,5 +75,8 @@
   "devDependencies": {
     "@types/node": "^20.10.0",
     "typescript": "^5.7.2"
+  },
+  "publishConfig": {
+    "registry": "https://europe-west1-npm.pkg.dev/stall-bokning-dev/npm-packages/"
   }
 }

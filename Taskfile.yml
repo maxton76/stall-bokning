@@ -172,18 +172,20 @@ tasks:
       - echo "Full deployment to {{.ENV}} complete!"
 
   deploy:shared:publish:
-    desc: Publish shared package (VERSION_BUMP=patch|minor|major)
+    desc: Publish shared package to Artifact Registry (VERSION_BUMP=patch|minor|major)
     dir: '{{.SHARED_DIR}}'
     vars:
       VERSION_BUMP: '{{.VERSION_BUMP | default "patch"}}'
     cmds:
+      - echo "Refreshing Artifact Registry credentials..."
+      - npx google-artifactregistry-auth
       - echo "Building shared package..."
       - npm run build
       - echo "Bumping version ({{.VERSION_BUMP}})..."
-      - npm version {{.VERSION_BUMP}}
-      - echo "Publishing to npm..."
-      - npm publish --access public
-      - echo "Shared package published"
+      - npm version {{.VERSION_BUMP}} --no-git-tag-version
+      - echo "Publishing to Google Artifact Registry..."
+      - npm publish
+      - echo "Shared package published to Artifact Registry"
 
   # ===========================================================================
   # Terraform Tasks
