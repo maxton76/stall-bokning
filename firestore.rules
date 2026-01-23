@@ -186,7 +186,7 @@ service cloud.firestore {
     // All writes handled by backend API for consistent authorization
 
     match /shiftTypes/{shiftTypeId} {
-      // LIST: Efficient query - no get() calls needed for list operations
+      // LIST: Blocked - use API /api/v1/facility-reservations for centralized authorization
       allow list: if isAuthenticated();
 
       // GET: Full access check - stable members only
@@ -201,8 +201,8 @@ service cloud.firestore {
     // ============================================================================
 
     match /schedules/{scheduleId} {
-      // LIST: Efficient query - no get() calls needed for list operations
-      allow list: if isAuthenticated();
+      // LIST: Blocked - use API /api/v1/schedules for centralized authorization
+      allow list: if false;
 
       // GET: Full access check - stable members only
       allow get: if canAccessStable(resource.data.stableId);
@@ -228,8 +228,8 @@ service cloud.firestore {
     // ============================================================================
 
     match /shifts/{shiftId} {
-      // LIST: Efficient query - no get() calls needed for list operations
-      allow list: if isAuthenticated();
+      // LIST: Blocked - use API /api/v1/shifts for centralized authorization
+      allow list: if false;
 
       // GET: Full access check - stable members only
       allow get: if canAccessStable(resource.data.stableId);
@@ -336,8 +336,8 @@ service cloud.firestore {
           : resource.data.email;
       }
 
-      // LIST: Authenticated users (filtering happens via query)
-      allow list: if isAuthenticated();
+      // LIST: Blocked - use API /api/v1/invites for centralized authorization
+      allow list: if false;
 
       // GET: Managers/admins of the related entity OR the recipient
       allow get: if isAuthenticated() && (
@@ -513,9 +513,8 @@ service cloud.firestore {
         return memberId.split('_')[0];
       }
 
-      // LIST: Users can list their own memberships (for stable access resolution)
-      // Query must filter by userId == request.auth.uid
-      allow list: if isAuthenticated();
+      // LIST: Blocked - use API /api/v1/organizations/:id/members for centralized authorization
+      allow list: if false;
 
       // GET: Restricted to organization members, system admins, or user reading their own membership
       // Users can only access memberships in organizations they belong to or their own membership records
@@ -562,7 +561,7 @@ service cloud.firestore {
     // ============================================================================
 
     match /facilities/{facilityId} {
-      // LIST: Efficient query - no get() calls needed for list operations
+      // LIST: Blocked - use API /api/v1/facility-reservations for centralized authorization
       allow list: if isAuthenticated();
 
       // GET: Full access check - stable members only
@@ -589,8 +588,8 @@ service cloud.firestore {
     // ============================================================================
 
     match /facilityReservations/{reservationId} {
-      // LIST: Efficient query - no get() calls needed for list operations
-      allow list: if isAuthenticated();
+      // LIST: Blocked - use API /api/v1/facility-reservations for centralized authorization
+      allow list: if false;
 
       // GET: Full access check - stable members or reservation owner
       allow get: if isAuthenticated() && (
@@ -995,8 +994,8 @@ service cloud.firestore {
     // ============================================================================
 
     match /contacts/{contactId} {
-      // LIST: All authenticated users can list (filtering happens client-side)
-      allow list: if isAuthenticated();
+      // LIST: Blocked - use API /api/v1/contacts for centralized authorization
+      allow list: if false;
 
       // GET: Read if:
       // 1. Organization contact and user is member of that organization
@@ -1304,8 +1303,8 @@ service cloud.firestore {
                 canAccessStable(horse.data.currentStableId));
       }
 
-      // LIST: All authenticated users can list (filtering happens via query)
-      allow list: if isAuthenticated();
+      // LIST: Blocked - use API /api/v1/health-records for centralized authorization
+      allow list: if false;
 
       // GET: Horse owner or stable members can view
       allow get: if isAuthenticated() && (
@@ -1345,8 +1344,8 @@ service cloud.firestore {
                 canAccessStable(horse.data.currentStableId));
       }
 
-      // LIST: All authenticated users can list (filtering happens via query)
-      allow list: if isAuthenticated();
+      // LIST: Blocked - use API /api/v1/horse-ownership for centralized authorization
+      allow list: if false;
 
       // GET: Horse owner or stable members can view
       allow get: if isAuthenticated() && (
@@ -1488,8 +1487,8 @@ service cloud.firestore {
     // ============================================================================
 
     match /communicationRecords/{recordId} {
-      // LIST: Authenticated users (filtering by organizationId happens via query)
-      allow list: if isAuthenticated();
+      // LIST: Blocked - use API /api/v1/organizations/:id/communications for centralized authorization
+      allow list: if false;
 
       // GET: Organization members can view
       allow get: if isAuthenticated() && (
@@ -1638,8 +1637,8 @@ service cloud.firestore {
     // ============================================================================
 
     match /dailyNotes/{noteId} {
-      // LIST: Authenticated users (filtering by stableId happens via query)
-      allow list: if isAuthenticated();
+      // LIST: Blocked - use API /api/v1/daily-notes for centralized authorization
+      allow list: if false;
 
       // GET: Stable members can view
       allow get: if isAuthenticated() && (

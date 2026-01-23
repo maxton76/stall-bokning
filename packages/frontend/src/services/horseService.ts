@@ -1,13 +1,3 @@
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-  limit,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import type { Horse, UserHorseInventory } from "@/types/roles";
 import { authFetchJSON } from "@/utils/authFetch";
 
@@ -332,43 +322,32 @@ export async function transferHorse(
 /**
  * Get organization ID for a horse's current stable
  * Returns null if horse not assigned or stable not in organization
- * @param horse - Horse object
+ * Falls back to owner's organization membership if horse is unassigned
+ * @param horse - Horse object (must have id property)
  * @returns Promise with organization ID or null
  */
 export async function getHorseOrganizationId(
   horse: Horse,
 ): Promise<string | null> {
-  // If horse is assigned to a stable, get organization from stable
-  if (horse.currentStableId) {
-    const stableDoc = await getDoc(doc(db, "stables", horse.currentStableId));
-    if (stableDoc.exists()) {
-      const organizationId = stableDoc.data().organizationId || null;
-      return organizationId;
-    }
-    console.warn("⚠️ getHorseOrganizationId: Stable doc not found");
-  }
-
-  // For unassigned horses, get organization from owner's membership
-  if (horse.ownerId) {
-    const membershipsQuery = query(
-      collection(db, "organizationMembers"),
-      where("userId", "==", horse.ownerId),
-      where("status", "==", "active"),
-      limit(1),
+  try {
+    const response = await authFetchJSON<{ organizationId: string | null }>(
+      `${API_BASE}/${horse.id}/organization`,
     );
-    const membershipsSnapshot = await getDocs(membershipsQuery);
-
-    if (!membershipsSnapshot.empty) {
-      const organizationId = membershipsSnapshot.docs[0]!.data().organizationId;
-      return organizationId;
+    return response.organizationId;
+  } catch (error: any) {
+    // Return null if horse not found or access denied
+    if (error.status === 404 || error.status === 403) {
+      console.warn(
+        `⚠️ getHorseOrganizationId: ${error.status === 404 ? "Horse not found" : "Access denied"}`,
+      );
+      return null;
     }
-    console.warn(
-      "⚠️ getHorseOrganizationId: No active memberships found for owner",
+    console.error(
+      "❌ getHorseOrganizationId: Failed to get organization",
+      error,
     );
+    throw error;
   }
-
-  console.warn("❌ getHorseOrganizationId: No organization found");
-  return null;
 }
 
 // ============================================================================

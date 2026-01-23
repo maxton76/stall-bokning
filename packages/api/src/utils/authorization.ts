@@ -1,6 +1,53 @@
 import { db } from "./firebase.js";
 
 /**
+ * Get all stable IDs the user has access to
+ * Used for filtering queries to only authorized data
+ *
+ * @param userId - The user's ID
+ * @returns Promise<string[]> - Array of accessible stableIds
+ */
+export async function getUserAccessibleStableIds(
+  userId: string,
+): Promise<string[]> {
+  const stableIds: Set<string> = new Set();
+
+  // Get stables the user owns
+  const ownedStables = await db
+    .collection("stables")
+    .where("ownerId", "==", userId)
+    .get();
+  ownedStables.docs.forEach((doc) => stableIds.add(doc.id));
+
+  // Get user's organization memberships
+  const memberships = await db
+    .collection("organizationMembers")
+    .where("userId", "==", userId)
+    .where("status", "==", "active")
+    .get();
+
+  // For each membership, get accessible stables
+  for (const memberDoc of memberships.docs) {
+    const member = memberDoc.data();
+    const organizationId = member.organizationId;
+
+    if (member.stableAccess === "all") {
+      // Get all stables in this organization
+      const orgStables = await db
+        .collection("stables")
+        .where("organizationId", "==", organizationId)
+        .get();
+      orgStables.docs.forEach((doc) => stableIds.add(doc.id));
+    } else if (member.stableAccess === "specific" && member.assignedStableIds) {
+      // Add specific assigned stables
+      member.assignedStableIds.forEach((id: string) => stableIds.add(id));
+    }
+  }
+
+  return Array.from(stableIds);
+}
+
+/**
  * Role types for stable access (derived from organization roles)
  * 'owner' - Stable owner (via stables.ownerId)
  * 'administrator' - Organization administrator with stable access

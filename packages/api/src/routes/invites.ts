@@ -10,37 +10,68 @@ import {
 
 export default async function inviteRoutes(fastify: FastifyInstance) {
   // GET /api/v1/invites/:token - Get invite details (public endpoint)
-  fastify.get("/:token", async (request, reply) => {
-    try {
-      const { token } = request.params as { token: string };
+  // Rate limited more strictly to prevent token enumeration attacks
+  fastify.get(
+    "/:token",
+    {
+      config: {
+        rateLimit: {
+          max: 10,
+          timeWindow: "1 minute",
+          keyGenerator: (request: any) => {
+            // Rate limit by IP for public endpoints
+            return request.ip;
+          },
+          onExceeded: (request: any) => {
+            request.log.warn(
+              { ip: request.ip, path: request.url },
+              "Rate limit exceeded on invite token lookup - potential enumeration attempt",
+            );
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { token } = request.params as { token: string };
 
-      const invite = await getInviteByToken(token);
+        // Basic token format validation to fail fast on invalid tokens
+        // Tokens should be 64 hex characters (256 bits from crypto.randomBytes(32))
+        if (!/^[a-f0-9]{64}$/i.test(token)) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Invite not found or expired",
+          });
+        }
 
-      if (!invite) {
-        return reply.status(404).send({
-          error: "Not Found",
-          message: "Invite not found or expired",
+        const invite = await getInviteByToken(token);
+
+        if (!invite) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Invite not found or expired",
+          });
+        }
+
+        // Return public invite information (including email for pre-filling signup form)
+        return reply.send({
+          organizationName: invite.organizationName,
+          inviterName: invite.inviterName,
+          roles: invite.roles,
+          expiresAt: invite.expiresAt,
+          email: invite.email,
+          firstName: invite.firstName,
+          lastName: invite.lastName,
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to get invite details");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to get invite details",
         });
       }
-
-      // Return public invite information (including email for pre-filling signup form)
-      return reply.send({
-        organizationName: invite.organizationName,
-        inviterName: invite.inviterName,
-        roles: invite.roles,
-        expiresAt: invite.expiresAt,
-        email: invite.email,
-        firstName: invite.firstName,
-        lastName: invite.lastName,
-      });
-    } catch (error) {
-      request.log.error({ error }, "Failed to get invite details");
-      return reply.status(500).send({
-        error: "Internal Server Error",
-        message: "Failed to get invite details",
-      });
-    }
-  });
+    },
+  );
 
   // POST /api/v1/invites/:token/accept - Accept invite (requires authentication)
   fastify.post(

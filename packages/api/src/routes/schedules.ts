@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db } from "../utils/firebase.js";
 import { authenticate, requireStableAccess } from "../middleware/auth.js";
 import type { AuthenticatedRequest, Schedule } from "../types/index.js";
-import { canManageSchedules } from "../utils/authorization.js";
+import { canManageSchedules, canAccessStable } from "../utils/authorization.js";
 import {
   autoAssignShifts,
   calculateAssignmentSummary,
@@ -184,8 +184,15 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
         }
 
         const user = (request as AuthenticatedRequest).user!;
+        const { stableId } = validation.data;
 
-        // Middleware already verified stable management permissions
+        // Verify user can manage schedules for this stable
+        const canManage = await canManageSchedules(user.uid, stableId);
+        if (!canManage && user.role !== "system_admin") {
+          // Return 404 to prevent resource enumeration
+          return reply.status(404).send({ error: "Resource not found" });
+        }
+
         const scheduleData: Schedule = {
           name: validation.data.name,
           stableId: validation.data.stableId,
@@ -329,16 +336,13 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
 
         const schedule = doc.data() as Schedule;
 
-        // Check access permissions
-        const canManage = await canManageSchedules(user.uid, schedule.stableId);
-        if (
-          schedule.createdBy !== user.uid &&
-          !canManage &&
-          user.role !== "system_admin"
-        ) {
-          return reply.status(403).send({
-            error: "Forbidden",
-            message: "You do not have permission to view this schedule",
+        // Check access permissions - any stable member can view schedules
+        const hasAccess = await canAccessStable(user.uid, schedule.stableId);
+        if (!hasAccess && user.role !== "system_admin") {
+          // Return 404 to prevent resource enumeration
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Schedule not found",
           });
         }
 

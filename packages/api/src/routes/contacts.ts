@@ -483,6 +483,7 @@ export async function contactsRoutes(fastify: FastifyInstance) {
   );
 
   // POST /api/v1/contacts/check-duplicate - Check for duplicate contacts
+  // SECURITY: Only returns isDuplicate boolean and matchType, never exposes contact data
   fastify.post(
     "/check-duplicate",
     {
@@ -514,67 +515,51 @@ export async function contactsRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const duplicates: any[] = [];
-
         // Check by email if provided
         if (email) {
           const emailSnapshot = await db
             .collection("contacts")
             .where("organizationId", "==", organizationId)
             .where("email", "==", email.toLowerCase())
-            .limit(5)
+            .limit(1)
             .get();
 
-          emailSnapshot.docs.forEach((doc) => {
-            duplicates.push({
-              id: doc.id,
-              ...doc.data(),
-              matchType: "email",
-            });
-          });
+          if (!emailSnapshot.empty) {
+            return reply.send({ isDuplicate: true, matchType: "email" });
+          }
         }
 
-        // Check by name if provided (and not already found by email)
-        if (firstName && lastName && duplicates.length === 0) {
+        // Check by name if provided
+        if (firstName && lastName) {
           const nameSnapshot = await db
             .collection("contacts")
             .where("organizationId", "==", organizationId)
             .where("firstName", "==", firstName)
             .where("lastName", "==", lastName)
-            .limit(5)
+            .limit(1)
             .get();
 
-          nameSnapshot.docs.forEach((doc) => {
-            duplicates.push({
-              id: doc.id,
-              ...doc.data(),
-              matchType: "name",
-            });
-          });
+          if (!nameSnapshot.empty) {
+            return reply.send({ isDuplicate: true, matchType: "name" });
+          }
         }
 
         // Check by business name if provided (for Business contacts)
-        if (businessName && duplicates.length === 0) {
+        if (businessName) {
           const businessSnapshot = await db
             .collection("contacts")
             .where("organizationId", "==", organizationId)
             .where("businessName", "==", businessName)
-            .limit(5)
+            .limit(1)
             .get();
 
-          businessSnapshot.docs.forEach((doc) => {
-            duplicates.push({
-              id: doc.id,
-              ...doc.data(),
-              matchType: "businessName",
-            });
-          });
+          if (!businessSnapshot.empty) {
+            return reply.send({ isDuplicate: true, matchType: "businessName" });
+          }
         }
 
-        return {
-          hasDuplicates: duplicates.length > 0,
-          duplicates,
-        };
+        // No duplicates found
+        return reply.send({ isDuplicate: false });
       } catch (error) {
         request.log.error({ error }, "Failed to check for duplicates");
         return reply.status(500).send({

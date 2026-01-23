@@ -1,5 +1,6 @@
-import { Timestamp } from 'firebase/firestore'
-import { authFetchJSON } from '@/utils/authFetch'
+import { Timestamp } from "firebase/firestore";
+import { authFetchJSON } from "@/utils/authFetch";
+import { logger } from "@/utils/logger";
 import type {
   AuditLog,
   CreateAuditLogData,
@@ -7,14 +8,14 @@ import type {
   ChangeDetails,
   RoleChangeDetails,
   ReservationStatusChange,
-  AssignmentDetails
-} from '@shared/types/auditLog'
+  AssignmentDetails,
+} from "@shared/types/auditLog";
 
 // ============================================================================
 // API-First Service - All writes go through the API
 // ============================================================================
 
-const API_BASE = `${import.meta.env.VITE_API_URL}/api/v1/audit-logs`
+const API_BASE = `${import.meta.env.VITE_API_URL}/api/v1/audit-logs`;
 
 // ============================================================================
 // Create Operations
@@ -25,22 +26,27 @@ const API_BASE = `${import.meta.env.VITE_API_URL}/api/v1/audit-logs`
  * @param logData - Audit log data
  * @returns Promise with created log ID
  */
-export async function createAuditLog(logData: CreateAuditLogData): Promise<string> {
-  const response = await authFetchJSON<{ id: string; logId: string }>(API_BASE, {
-    method: 'POST',
-    body: JSON.stringify({
-      action: logData.action,
-      resource: logData.resource,
-      resourceId: logData.resourceId,
-      resourceName: logData.resourceName,
-      organizationId: logData.organizationId,
-      stableId: logData.stableId,
-      details: logData.details,
-      userEmail: logData.userEmail,
-      userName: logData.userName,
-    }),
-  })
-  return response.id
+export async function createAuditLog(
+  logData: CreateAuditLogData,
+): Promise<string> {
+  const response = await authFetchJSON<{ id: string; logId: string }>(
+    API_BASE,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        action: logData.action,
+        resource: logData.resource,
+        resourceId: logData.resourceId,
+        resourceName: logData.resourceName,
+        organizationId: logData.organizationId,
+        stableId: logData.stableId,
+        details: logData.details,
+        userEmail: logData.userEmail,
+        userName: logData.userName,
+      }),
+    },
+  );
+  return response.id;
 }
 
 /**
@@ -58,28 +64,31 @@ export async function logRoleChange(
   memberEmail: string,
   organizationId: string,
   organizationName: string,
-  roleChange: Omit<RoleChangeDetails, 'memberId' | 'memberEmail' | 'organizationId' | 'organizationName'>,
-  userId: string
+  roleChange: Omit<
+    RoleChangeDetails,
+    "memberId" | "memberEmail" | "organizationId" | "organizationName"
+  >,
+  userId: string,
 ): Promise<string> {
   const roleChangeDetails: RoleChangeDetails = {
     memberId,
     memberEmail,
     organizationId,
     organizationName,
-    ...roleChange
-  }
+    ...roleChange,
+  };
 
   return createAuditLog({
     userId,
-    action: 'role_change',
-    resource: 'organizationMember',
+    action: "role_change",
+    resource: "organizationMember",
     resourceId: memberId,
     resourceName: memberEmail,
     organizationId,
     details: {
-      roleChange: roleChangeDetails
-    }
-  })
+      roleChange: roleChangeDetails,
+    },
+  });
 }
 
 /**
@@ -100,13 +109,13 @@ export async function logReservationStatusChange(
   reservationId: string,
   facilityId: string,
   facilityName: string,
-  previousStatus: 'pending' | 'approved' | 'rejected',
-  newStatus: 'pending' | 'approved' | 'rejected',
+  previousStatus: "pending" | "approved" | "rejected",
+  newStatus: "pending" | "approved" | "rejected",
   reviewerId: string,
   reviewerName: string,
   reviewerEmail: string,
   reviewNotes: string | undefined,
-  organizationId?: string
+  organizationId?: string,
 ): Promise<string> {
   const statusChange: ReservationStatusChange = {
     reservationId,
@@ -117,24 +126,29 @@ export async function logReservationStatusChange(
     reviewerId,
     reviewerName,
     reviewerEmail,
-    reviewNotes
-  }
+    reviewNotes,
+  };
 
-  const action = newStatus === 'approved' ? 'approve' : newStatus === 'rejected' ? 'reject' : 'update'
+  const action =
+    newStatus === "approved"
+      ? "approve"
+      : newStatus === "rejected"
+        ? "reject"
+        : "update";
 
   return createAuditLog({
     userId: reviewerId,
     userEmail: reviewerEmail,
     userName: reviewerName,
     action,
-    resource: 'facilityReservation',
+    resource: "facilityReservation",
     resourceId: reservationId,
     resourceName: facilityName,
     organizationId,
     details: {
-      statusChange
-    }
-  })
+      statusChange,
+    },
+  });
 }
 
 /**
@@ -153,11 +167,11 @@ export async function logShiftAssignment(
   shiftId: string,
   shiftDate: Timestamp,
   shiftType: string,
-  assignmentType: 'manual' | 'auto',
+  assignmentType: "manual" | "auto",
   assignedTo: string,
   assignedToName: string,
   userId: string,
-  stableId?: string
+  stableId?: string,
 ): Promise<string> {
   const assignment: AssignmentDetails = {
     shiftId,
@@ -165,20 +179,20 @@ export async function logShiftAssignment(
     shiftType,
     assignmentType,
     assignedTo,
-    assignedToName
-  }
+    assignedToName,
+  };
 
   return createAuditLog({
     userId,
-    action: 'assign',
-    resource: 'shift',
+    action: "assign",
+    resource: "shift",
     resourceId: shiftId,
     resourceName: shiftType,
     stableId,
     details: {
-      assignment
-    }
-  })
+      assignment,
+    },
+  });
 }
 
 /**
@@ -195,19 +209,19 @@ export async function logHorseUpdate(
   horseName: string,
   stableId: string | undefined,
   changes: ChangeDetails[],
-  userId: string
+  userId: string,
 ): Promise<string> {
   return createAuditLog({
     userId,
-    action: 'update',
-    resource: 'horse',
+    action: "update",
+    resource: "horse",
     resourceId: horseId,
     resourceName: horseName,
     stableId,
     details: {
-      changes
-    }
-  })
+      changes,
+    },
+  });
 }
 
 // ============================================================================
@@ -219,38 +233,40 @@ export async function logHorseUpdate(
  * @param filters - Filter criteria
  * @returns Promise with array of audit logs
  */
-export async function queryAuditLogs(filters: AuditLogFilter): Promise<AuditLog[]> {
+export async function queryAuditLogs(
+  filters: AuditLogFilter,
+): Promise<AuditLog[]> {
   // Build query params
-  const params = new URLSearchParams()
-  if (filters.limit) params.set('limit', filters.limit.toString())
-  if (filters.resource) params.set('resource', filters.resource)
-  if (filters.action) params.set('action', filters.action)
+  const params = new URLSearchParams();
+  if (filters.limit) params.set("limit", filters.limit.toString());
+  if (filters.resource) params.set("resource", filters.resource);
+  if (filters.action) params.set("action", filters.action);
 
   // Determine which endpoint to use based on filters
   if (filters.organizationId) {
     const response = await authFetchJSON<{ auditLogs: AuditLog[] }>(
-      `${API_BASE}/organization/${filters.organizationId}?${params.toString()}`
-    )
-    return response.auditLogs
+      `${API_BASE}/organization/${filters.organizationId}?${params.toString()}`,
+    );
+    return response.auditLogs;
   }
 
   if (filters.userId) {
     const response = await authFetchJSON<{ auditLogs: AuditLog[] }>(
-      `${API_BASE}/user/${filters.userId}?${params.toString()}`
-    )
-    return response.auditLogs
+      `${API_BASE}/user/${filters.userId}?${params.toString()}`,
+    );
+    return response.auditLogs;
   }
 
   if (filters.resource && filters.resourceId) {
     const response = await authFetchJSON<{ auditLogs: AuditLog[] }>(
-      `${API_BASE}/resource/${filters.resource}/${filters.resourceId}?${params.toString()}`
-    )
-    return response.auditLogs
+      `${API_BASE}/resource/${filters.resource}/${filters.resourceId}?${params.toString()}`,
+    );
+    return response.auditLogs;
   }
 
   // Default: return empty array if no valid filter combination
-  console.warn('queryAuditLogs: No valid filter combination provided')
-  return []
+  logger.warn("queryAuditLogs: No valid filter combination provided");
+  return [];
 }
 
 /**
@@ -263,9 +279,9 @@ export async function queryAuditLogs(filters: AuditLogFilter): Promise<AuditLog[
 export async function getResourceAuditLogs(
   resource: string,
   resourceId: string,
-  limit = 50
+  limit = 50,
 ): Promise<AuditLog[]> {
-  return queryAuditLogs({ resource: resource as any, resourceId, limit })
+  return queryAuditLogs({ resource: resource as any, resourceId, limit });
 }
 
 /**
@@ -276,9 +292,9 @@ export async function getResourceAuditLogs(
  */
 export async function getOrganizationAuditLogs(
   organizationId: string,
-  limit = 100
+  limit = 100,
 ): Promise<AuditLog[]> {
-  return queryAuditLogs({ organizationId, limit })
+  return queryAuditLogs({ organizationId, limit });
 }
 
 /**
@@ -287,8 +303,11 @@ export async function getOrganizationAuditLogs(
  * @param limit - Optional limit (default 50)
  * @returns Promise with array of audit logs
  */
-export async function getUserAuditLogs(userId: string, limit = 50): Promise<AuditLog[]> {
-  return queryAuditLogs({ userId, limit })
+export async function getUserAuditLogs(
+  userId: string,
+  limit = 50,
+): Promise<AuditLog[]> {
+  return queryAuditLogs({ userId, limit });
 }
 
 // ============================================================================
@@ -305,46 +324,52 @@ export async function getUserAuditLogs(userId: string, limit = 50): Promise<Audi
 export function calculateChanges(
   oldObj: Record<string, unknown>,
   newObj: Record<string, unknown>,
-  fieldsToTrack?: string[]
+  fieldsToTrack?: string[],
 ): ChangeDetails[] {
-  const changes: ChangeDetails[] = []
-  const timestamp = Timestamp.now()
+  const changes: ChangeDetails[] = [];
+  const timestamp = Timestamp.now();
 
   // Determine which fields to check
   const fieldsToCheck = fieldsToTrack || [
     ...Object.keys(oldObj),
-    ...Object.keys(newObj)
-  ]
+    ...Object.keys(newObj),
+  ];
 
   // Remove duplicates
-  const uniqueFields = [...new Set(fieldsToCheck)]
+  const uniqueFields = [...new Set(fieldsToCheck)];
 
   for (const field of uniqueFields) {
-    const oldValue = oldObj[field]
-    const newValue = newObj[field]
+    const oldValue = oldObj[field];
+    const newValue = newObj[field];
 
     // Skip if values are the same
-    if (oldValue === newValue) continue
+    if (oldValue === newValue) continue;
 
     // Skip metadata fields
-    if (['updatedAt', 'lastModifiedBy', 'createdAt', 'createdBy'].includes(field)) {
-      continue
+    if (
+      ["updatedAt", "lastModifiedBy", "createdAt", "createdBy"].includes(field)
+    ) {
+      continue;
     }
 
     // Sanitize sensitive data
-    if (['password', 'token', 'apiKey', 'secret'].some(s => field.toLowerCase().includes(s))) {
-      continue
+    if (
+      ["password", "token", "apiKey", "secret"].some((s) =>
+        field.toLowerCase().includes(s),
+      )
+    ) {
+      continue;
     }
 
     changes.push({
       field,
       oldValue,
       newValue,
-      timestamp
-    })
+      timestamp,
+    });
   }
 
-  return changes
+  return changes;
 }
 
 /**
@@ -353,9 +378,11 @@ export function calculateChanges(
  * @param logFunction - Async function that creates an audit log
  * @returns Promise that resolves immediately but logs errors
  */
-export async function safeAuditLog(logFunction: () => Promise<string>): Promise<void> {
-  logFunction().catch(err => {
-    console.error('Audit log failed:', err)
+export async function safeAuditLog(
+  logFunction: () => Promise<string>,
+): Promise<void> {
+  logFunction().catch((err) => {
+    logger.error("Audit log failed:", err);
     // In production, you might want to send this to a monitoring service
-  })
+  });
 }

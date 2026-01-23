@@ -7,6 +7,7 @@ import { serializeTimestamps } from "../utils/serialization.js";
 import {
   getHorseAccessContext,
   canAccessStable,
+  hasStableAccess,
 } from "../utils/authorization.js";
 import { projectHorseFields } from "../utils/horseProjection.js";
 import type { Horse } from "@stall-bokning/shared";
@@ -1333,6 +1334,27 @@ export async function horsesRoutes(fastify: FastifyInstance) {
           });
         }
 
+        // Verify user has access to the stable where the group belongs
+        const group = await db
+          .collection("horseGroups")
+          .doc(data.groupId)
+          .get();
+        if (!group.exists) {
+          return reply.status(404).send({ error: "Group not found" });
+        }
+
+        const groupStableId = group.data()?.stableId;
+        if (groupStableId) {
+          const hasAccess = await hasStableAccess(
+            groupStableId,
+            user.uid,
+            user.role || "",
+          );
+          if (!hasAccess) {
+            return reply.status(404).send({ error: "Resource not found" });
+          }
+        }
+
         // Get all horses in the group
         const horsesSnapshot = await db
           .collection("horses")
@@ -1344,18 +1366,14 @@ export async function horsesRoutes(fastify: FastifyInstance) {
           return { success: true, unassignedCount: 0 };
         }
 
-        // Verify user owns all horses or is system_admin
+        // Verify user owns all horses, has stable access, or is system_admin
         const unauthorizedHorses = horsesSnapshot.docs.filter(
           (doc) =>
             doc.data().ownerId !== user.uid && user.role !== "system_admin",
         );
 
-        if (unauthorizedHorses.length > 0) {
-          return reply.status(403).send({
-            error: "Forbidden",
-            message:
-              "You do not have permission to unassign some of these horses",
-          });
+        if (unauthorizedHorses.length > 0 && !groupStableId) {
+          return reply.status(404).send({ error: "Resource not found" });
         }
 
         // Batch update all horses
@@ -1576,6 +1594,91 @@ export async function horsesRoutes(fastify: FastifyInstance) {
   );
 
   /**
+   * GET /api/v1/horses/:id/organization
+   * Get the organization ID for a horse's current stable
+   * Returns null if horse is not assigned to a stable or stable has no organization
+   * Falls back to owner's organization membership if horse is unassigned
+   */
+  fastify.get(
+    "/:id/organization",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const user = (request as AuthenticatedRequest).user!;
+
+        const horseDoc = await db.collection("horses").doc(id).get();
+
+        if (!horseDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Horse not found",
+          });
+        }
+
+        const horse = horseDoc.data()!;
+
+        // Check access: user must own the horse, have stable access, or be system_admin
+        let hasAccess = false;
+
+        if (user.role === "system_admin") {
+          hasAccess = true;
+        } else if (horse.ownerId === user.uid) {
+          hasAccess = true;
+        } else if (horse.currentStableId) {
+          hasAccess = await canAccessStable(user.uid, horse.currentStableId);
+        }
+
+        if (!hasAccess) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to access this horse",
+          });
+        }
+
+        // If horse is assigned to a stable, get organization from stable
+        if (horse.currentStableId) {
+          const stableDoc = await db
+            .collection("stables")
+            .doc(horse.currentStableId)
+            .get();
+
+          if (stableDoc.exists) {
+            const organizationId = stableDoc.data()?.organizationId || null;
+            return { organizationId };
+          }
+        }
+
+        // For unassigned horses, get organization from owner's membership
+        if (horse.ownerId) {
+          const membershipsSnapshot = await db
+            .collection("organizationMembers")
+            .where("userId", "==", horse.ownerId)
+            .where("status", "==", "active")
+            .limit(1)
+            .get();
+
+          if (!membershipsSnapshot.empty) {
+            const organizationId =
+              membershipsSnapshot.docs[0]!.data().organizationId;
+            return { organizationId };
+          }
+        }
+
+        return { organizationId: null };
+      } catch (error) {
+        request.log.error({ error }, "Failed to get horse organization");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to get horse organization",
+        });
+      }
+    },
+  );
+
+  /**
    * POST /api/v1/horses/batch/unassign-member-horses
    * Unassign all horses owned by a user from a specific stable
    * Body: { userId: string, stableId: string }
@@ -1597,6 +1700,16 @@ export async function horsesRoutes(fastify: FastifyInstance) {
           });
         }
 
+        // Verify requesting user has access to the stable
+        const hasAccess = await hasStableAccess(
+          data.stableId,
+          user.uid,
+          user.role || "",
+        );
+        if (!hasAccess) {
+          return reply.status(404).send({ error: "Resource not found" });
+        }
+
         // Verify user has permission (must be stable owner/admin or the horse owner)
         if (data.userId !== user.uid && user.role !== "system_admin") {
           // Check if user is stable owner
@@ -1605,12 +1718,12 @@ export async function horsesRoutes(fastify: FastifyInstance) {
             .doc(data.stableId)
             .get();
           if (!stableDoc.exists || stableDoc.data()?.ownerId !== user.uid) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to unassign these horses",
-            });
+            return reply.status(404).send({ error: "Resource not found" });
           }
         }
+
+        // Note: We don't require target user to be a stable member - they might just own horses there
+        // The query below will verify they actually have horses at the stable
 
         // Get all horses owned by the user at the stable
         const horsesSnapshot = await db

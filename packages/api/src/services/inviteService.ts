@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import { Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
@@ -8,6 +9,15 @@ import type {
   ContactType,
   InviteContactAddress,
 } from "@stall-bokning/shared/types/organization";
+
+/**
+ * Generate a cryptographically secure invite token
+ * Uses 32 bytes (256 bits) of randomness for security against enumeration attacks
+ * @returns 64-character hexadecimal string
+ */
+function generateSecureToken(): string {
+  return crypto.randomBytes(32).toString("hex");
+}
 
 interface InviteData {
   email: string;
@@ -34,7 +44,9 @@ export async function createOrganizationInvite(
   inviterUserId: string,
   inviteData: InviteData,
 ): Promise<{ token: string; inviteId: string; contactId: string }> {
-  const token = uuidv4();
+  // Use cryptographically secure token for security-sensitive invite token
+  const token = generateSecureToken();
+  // UUID is fine for document IDs (uniqueness, not security)
   const inviteId = uuidv4();
 
   // Get organization and inviter details for email

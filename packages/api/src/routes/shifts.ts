@@ -3,7 +3,11 @@ import { z } from "zod";
 import { db } from "../utils/firebase.js";
 import { authenticate, requireStableManagement } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
-import { canManageSchedules, canAccessStable } from "../utils/authorization.js";
+import {
+  canManageSchedules,
+  canAccessStable,
+  getUserAccessibleStableIds,
+} from "../utils/authorization.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 
 const batchCreateShiftsSchema = z.object({
@@ -72,6 +76,15 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
             status?: string;
           };
 
+        const user = (request as AuthenticatedRequest).user!;
+
+        // Get user's accessible stables for authorization
+        // System admins bypass this check
+        let userAccessibleStableIds: string[] = [];
+        if (user.role !== "system_admin") {
+          userAccessibleStableIds = await getUserAccessibleStableIds(user.uid);
+        }
+
         // Handle stableIds with status=published (query shifts from published schedules)
         if (stableIds && status === "published") {
           const ids = stableIds
@@ -88,6 +101,16 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
               error: "Bad Request",
               message: "Cannot query more than 10 stables at once",
             });
+          }
+
+          // Authorization: Verify user has access to ALL requested stables
+          // Return 404 for unauthorized access (prevents enumeration)
+          if (user.role !== "system_admin") {
+            for (const id of ids) {
+              if (!userAccessibleStableIds.includes(id)) {
+                return reply.status(404).send({ error: "Resource not found" });
+              }
+            }
           }
 
           // Step 1: Get published schedules for these stables
@@ -183,9 +206,48 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
             });
           }
 
+          // Authorization: Verify user has access to ALL requested stables
+          // Return 404 for unauthorized access (prevents enumeration)
+          if (user.role !== "system_admin") {
+            for (const id of ids) {
+              if (!userAccessibleStableIds.includes(id)) {
+                return reply.status(404).send({ error: "Resource not found" });
+              }
+            }
+          }
+
           query = query.where("stableId", "in", ids) as any;
         } else if (stableId) {
+          // Authorization: Verify user has access to the requested stable
+          // Return 404 for unauthorized access (prevents enumeration)
+          if (
+            user.role !== "system_admin" &&
+            !userAccessibleStableIds.includes(stableId)
+          ) {
+            return reply.status(404).send({ error: "Resource not found" });
+          }
+
           query = query.where("stableId", "==", stableId) as any;
+        } else if (user.role !== "system_admin") {
+          // No stable filter provided - restrict to user's accessible stables
+          if (userAccessibleStableIds.length === 0) {
+            return { shifts: [] };
+          }
+          // Firestore 'in' operator limit is 30, chunk if needed
+          if (userAccessibleStableIds.length <= 30) {
+            query = query.where(
+              "stableId",
+              "in",
+              userAccessibleStableIds,
+            ) as any;
+          } else {
+            // For users with access to many stables, require explicit stable filter
+            return reply.status(400).send({
+              error: "Bad Request",
+              message:
+                "Please specify stableId or stableIds parameter to filter results",
+            });
+          }
         }
 
         if (status && status !== "published") {
@@ -233,11 +295,49 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       try {
         const { stableId } = request.query as { stableId?: string };
+        const user = (request as AuthenticatedRequest).user!;
+
+        // Get user's accessible stables for authorization
+        // System admins bypass this check
+        let userAccessibleStableIds: string[] = [];
+        if (user.role !== "system_admin") {
+          userAccessibleStableIds = await getUserAccessibleStableIds(user.uid);
+
+          // If user has no accessible stables, return empty array
+          if (userAccessibleStableIds.length === 0) {
+            return { shifts: [] };
+          }
+        }
 
         let query = db.collection("shifts").where("status", "==", "unassigned");
 
         if (stableId) {
+          // Authorization: Verify user has access to the requested stable
+          // Return 404 for unauthorized access (prevents enumeration)
+          if (
+            user.role !== "system_admin" &&
+            !userAccessibleStableIds.includes(stableId)
+          ) {
+            return reply.status(404).send({ error: "Resource not found" });
+          }
+
           query = query.where("stableId", "==", stableId) as any;
+        } else if (user.role !== "system_admin") {
+          // No stable filter provided - restrict to user's accessible stables
+          // Firestore 'in' operator limit is 30, chunk if needed
+          if (userAccessibleStableIds.length <= 30) {
+            query = query.where(
+              "stableId",
+              "in",
+              userAccessibleStableIds,
+            ) as any;
+          } else {
+            // For users with access to many stables, require explicit stable filter
+            return reply.status(400).send({
+              error: "Bad Request",
+              message: "Please specify stableId parameter to filter results",
+            });
+          }
         }
 
         query = query.orderBy("date", "asc") as any;

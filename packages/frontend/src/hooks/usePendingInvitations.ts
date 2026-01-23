@@ -2,8 +2,6 @@ import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAsyncData } from "@/hooks/useAsyncData";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import i18n from "@/i18n";
 import {
   getPendingInvitations,
@@ -62,16 +60,10 @@ export function usePendingInvitations(): UsePendingInvitationsResult {
         );
       }
 
-      // ✅ FALLBACK for legacy data (shouldn't happen after migration)
-      let stableName = invite.stableName;
+      // stableName is now guaranteed by API (enriched for legacy data)
+      const stableName = invite.stableName;
       if (!stableName) {
-        console.warn("Fetching missing stableName from stable document");
-        const stableDoc = await getDoc(doc(db, "stables", stableId));
-        if (stableDoc.exists()) {
-          stableName = stableDoc.data().name;
-        } else {
-          throw new Error(i18n.t("invites:errors.stableNotFound"));
-        }
+        throw new Error(i18n.t("invites:errors.stableNotFound"));
       }
 
       // ✅ VALIDATE user has firstName/lastName from AuthContext

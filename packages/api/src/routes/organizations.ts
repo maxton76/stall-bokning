@@ -461,6 +461,7 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
   // ========================================================================
 
   // Get organization members
+  // Supports optional ?status= query parameter for server-side filtering
   fastify.get(
     "/:id/members",
     {
@@ -469,6 +470,7 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       try {
         const { id } = request.params as { id: string };
+        const { status } = request.query as { status?: string };
         const user = (request as AuthenticatedRequest).user!;
 
         // Verify organization exists and user has access
@@ -500,10 +502,17 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const snapshot = await db
+        // Build query with optional status filter
+        let query: FirebaseFirestore.Query = db
           .collection("organizationMembers")
-          .where("organizationId", "==", id)
-          .get();
+          .where("organizationId", "==", id);
+
+        // Apply server-side status filter if provided
+        if (status && ["active", "inactive", "pending"].includes(status)) {
+          query = query.where("status", "==", status);
+        }
+
+        const snapshot = await query.get();
 
         const members = snapshot.docs.map((doc) => ({
           id: doc.id,

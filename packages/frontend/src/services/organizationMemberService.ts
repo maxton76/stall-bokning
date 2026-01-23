@@ -103,6 +103,7 @@ export async function getOrganizationMembers(
 
 /**
  * Get all active members of an organization
+ * Uses server-side filtering for better performance and security
  * @param organizationId - Organization ID
  * @returns Promise with array of active organization members
  */
@@ -110,12 +111,11 @@ export async function getActiveOrganizationMembers(
   organizationId: string,
 ): Promise<OrganizationMember[]> {
   const response = await authFetchJSON<{ members: OrganizationMember[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/organizations/${organizationId}/members`,
+    `${import.meta.env.VITE_API_URL}/api/v1/organizations/${organizationId}/members?status=active`,
     { method: "GET" },
   );
 
-  // Filter active members on client side
-  return response.members.filter((m) => m.status === "active");
+  return response.members;
 }
 
 /**

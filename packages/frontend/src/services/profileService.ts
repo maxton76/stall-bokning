@@ -3,6 +3,7 @@ import { User as FirestoreUser } from "@/types/roles";
 import { AppUser } from "@/types/auth";
 import { formatFullName, getInitials } from "@/lib/nameUtils";
 import { authFetchJSON } from "@/utils/authFetch";
+import { logger } from "@/utils/logger";
 
 // In-memory cache to avoid repeated API reads
 const profileCache = new Map<
@@ -38,10 +39,10 @@ export async function fetchUserProfile(
       return data;
     }
 
-    console.warn(`User profile not found for uid: ${uid}`);
+    logger.warn(`User profile not found for uid: ${uid}`);
     return null;
   } catch (error) {
-    console.error("Failed to fetch user profile:", error);
+    logger.error("Failed to fetch user profile:", error);
     return null;
   }
 }

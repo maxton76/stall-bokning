@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Plus, Pencil, Trash2, Search, RefreshCw, X, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { useAsyncData } from "@/hooks/useAsyncData";
 import { useDialog } from "@/hooks/useDialog";
 import { useCRUD } from "@/hooks/useCRUD";
@@ -55,12 +56,29 @@ export default function OrganizationUsersPage() {
   const { t } = useTranslation(["organizations", "common"]);
   const { organizationId } = useParams<{ organizationId: string }>();
   const { user } = useAuth();
+  const { currentOrganizationId } = useOrganization();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [processingInviteId, setProcessingInviteId] = useState<string | null>(
     null,
   );
   const inviteDialog = useDialog();
+
+  // Security: Validate URL organizationId matches user's current organization context
+  // This prevents URL manipulation attacks where users try to access other organizations
+  useEffect(() => {
+    if (
+      organizationId &&
+      currentOrganizationId &&
+      organizationId !== currentOrganizationId
+    ) {
+      console.warn(
+        `[OrganizationUsersPage] Organization mismatch detected: URL=${organizationId}, current=${currentOrganizationId}`,
+      );
+      navigate("/dashboard", { replace: true });
+    }
+  }, [organizationId, currentOrganizationId, navigate]);
 
   // Organization data
   const organization = useAsyncData<Organization | null>({

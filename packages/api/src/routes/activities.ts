@@ -467,11 +467,19 @@ export async function activitiesRoutes(fastify: FastifyInstance) {
           user.role,
         );
         if (!hasAccess) {
-          return reply.status(403).send({
-            error: "Forbidden",
-            message:
-              "You do not have permission to create activities in this stable",
-          });
+          return reply.status(404).send({ error: "Resource not found" });
+        }
+
+        // If horseId is provided, verify user has access to the horse
+        if (data.horseId) {
+          const horseAccessCheck = await hasHorseAccess(
+            data.horseId,
+            user.uid,
+            user.role,
+          );
+          if (!horseAccessCheck) {
+            return reply.status(404).send({ error: "Resource not found" });
+          }
         }
 
         // Prepare document data

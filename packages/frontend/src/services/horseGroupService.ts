@@ -1,11 +1,12 @@
-import type { HorseGroup } from '@/types/roles'
-import { authFetchJSON } from '@/utils/authFetch'
+import type { HorseGroup } from "@/types/roles";
+import { authFetchJSON } from "@/utils/authFetch";
+import { logger } from "@/utils/logger";
 
 // ============================================================================
 // API-First Service - All writes go through the API
 // ============================================================================
 
-const API_BASE = `${import.meta.env.VITE_API_URL}/api/v1/horse-groups`
+const API_BASE = `${import.meta.env.VITE_API_URL}/api/v1/horse-groups`;
 
 /**
  * Create a new horse group via API
@@ -17,16 +18,24 @@ const API_BASE = `${import.meta.env.VITE_API_URL}/api/v1/horse-groups`
 export async function createHorseGroup(
   organizationId: string,
   _userId: string,
-  groupData: Omit<HorseGroup, 'id' | 'organizationId' | 'createdAt' | 'updatedAt' | 'createdBy' | 'lastModifiedBy'>
+  groupData: Omit<
+    HorseGroup,
+    | "id"
+    | "organizationId"
+    | "createdAt"
+    | "updatedAt"
+    | "createdBy"
+    | "lastModifiedBy"
+  >,
 ): Promise<string> {
   const response = await authFetchJSON<HorseGroup & { id: string }>(API_BASE, {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify({
       organizationId,
       ...groupData,
     }),
-  })
-  return response.id
+  });
+  return response.id;
 }
 
 /**
@@ -34,15 +43,17 @@ export async function createHorseGroup(
  * @param groupId - Group ID
  * @returns Promise with group data or null if not found
  */
-export async function getHorseGroup(groupId: string): Promise<HorseGroup | null> {
+export async function getHorseGroup(
+  groupId: string,
+): Promise<HorseGroup | null> {
   try {
-    return await authFetchJSON<HorseGroup>(`${API_BASE}/${groupId}`)
+    return await authFetchJSON<HorseGroup>(`${API_BASE}/${groupId}`);
   } catch (error) {
     // Return null if not found (404)
-    if (error instanceof Error && error.message.includes('404')) {
-      return null
+    if (error instanceof Error && error.message.includes("404")) {
+      return null;
     }
-    throw error
+    throw error;
   }
 }
 
@@ -56,12 +67,14 @@ export async function getHorseGroup(groupId: string): Promise<HorseGroup | null>
 export async function updateHorseGroup(
   groupId: string,
   _userId: string,
-  updates: Partial<Omit<HorseGroup, 'id' | 'organizationId' | 'createdAt' | 'createdBy'>>
+  updates: Partial<
+    Omit<HorseGroup, "id" | "organizationId" | "createdAt" | "createdBy">
+  >,
 ): Promise<void> {
   await authFetchJSON(`${API_BASE}/${groupId}`, {
-    method: 'PATCH',
+    method: "PATCH",
     body: JSON.stringify(updates),
-  })
+  });
 }
 
 /**
@@ -71,8 +84,8 @@ export async function updateHorseGroup(
  */
 export async function deleteHorseGroup(groupId: string): Promise<void> {
   await authFetchJSON(`${API_BASE}/${groupId}`, {
-    method: 'DELETE',
-  })
+    method: "DELETE",
+  });
 }
 
 /**
@@ -80,11 +93,13 @@ export async function deleteHorseGroup(groupId: string): Promise<void> {
  * @param organizationId - Organization ID
  * @returns Promise with array of horse groups
  */
-export async function getOrganizationHorseGroups(organizationId: string): Promise<HorseGroup[]> {
+export async function getOrganizationHorseGroups(
+  organizationId: string,
+): Promise<HorseGroup[]> {
   const response = await authFetchJSON<{ horseGroups: HorseGroup[] }>(
-    `${API_BASE}/organization/${organizationId}`
-  )
-  return response.horseGroups
+    `${API_BASE}/organization/${organizationId}`,
+  );
+  return response.horseGroups;
 }
 
 /**
@@ -93,8 +108,12 @@ export async function getOrganizationHorseGroups(organizationId: string): Promis
  * @param _stableId - Stable ID (ignored, use organizationId instead)
  * @returns Promise with array of horse groups
  */
-export async function getStableHorseGroups(_stableId: string): Promise<HorseGroup[]> {
-  console.warn('getStableHorseGroups is deprecated. Use getOrganizationHorseGroups instead.')
+export async function getStableHorseGroups(
+  _stableId: string,
+): Promise<HorseGroup[]> {
+  logger.warn(
+    "getStableHorseGroups is deprecated. Use getOrganizationHorseGroups instead.",
+  );
   // For backward compatibility during migration
-  return []
+  return [];
 }
