@@ -1,6 +1,7 @@
 {
   "navigation": {
     "dashboard": "Dashboard",
+    "overview": "Overview",
     "myHorses": "My Horses",
     "horses": "Horses",
     "activities": "Activities",
@@ -10,9 +11,13 @@
     "analytics": "Analytics",
     "feeding": "Feeding",
     "feedingOverview": "Overview",
+    "feedingToday": "Today",
     "feedingHistory": "History",
     "facilities": "Facilities",
     "schedule": "Schedule",
+    "scheduleWeek": "Week",
+    "scheduleMonth": "Month",
+    "scheduleDistribution": "Distribution",
     "myAvailability": "My Availability",
     "myReservations": "My Reservations",
     "settings": "Settings",
@@ -29,7 +34,16 @@
     "routines": "Stable Routines",
     "routinesList": "Today's Routines",
     "routineTemplates": "Routine Templates",
-    "routineAnalytics": "Analytics"
+    "routineAnalytics": "Analytics",
+    "tasks": "Tasks",
+    "tasksToday": "Today",
+    "tasksUpcoming": "Upcoming",
+    "tasksCompleted": "Completed",
+    "myPage": "My Page",
+    "myTasks": "My Tasks",
+    "myStatistics": "My Statistics",
+    "myAccount": "My Account",
+    "notifications": "Notifications"
   },
   "buttons": {
     "save": "Save",
@@ -224,6 +238,75 @@
     "recentActivity": {
       "title": "Recent Activity",
       "placeholder": "Dashboard widgets will be integrated here"
+    }
+  },
+  "overview": {
+    "title": "Overview",
+    "subtitle": "Here's what needs to be done today",
+    "sections": {
+      "overdue": "Overdue Tasks",
+      "activeRoutines": "Active Routines",
+      "upcomingRoutines": "Upcoming Routines",
+      "nextFeeding": "Next Feeding",
+      "myTasks": "My Tasks Today",
+      "quickActions": "Quick Actions"
+    },
+    "emptyState": {
+      "noTasks": "No tasks today",
+      "allDone": "All done for today!"
+    }
+  },
+  "tasks": {
+    "title": "Tasks",
+    "today": {
+      "title": "Today's Tasks",
+      "subtitle": "Tasks to be completed today"
+    },
+    "upcoming": {
+      "title": "Upcoming Tasks",
+      "subtitle": "Planned tasks for upcoming days"
+    },
+    "completed": {
+      "title": "Completed Tasks",
+      "subtitle": "Tasks that have been completed"
+    },
+    "emptyState": {
+      "today": "No tasks for today",
+      "upcoming": "No upcoming tasks",
+      "completed": "No completed tasks yet"
+    },
+    "actions": {
+      "complete": "Mark as complete",
+      "comment": "Add comment",
+      "reportIssue": "Report issue"
+    }
+  },
+  "myPage": {
+    "title": "My Page",
+    "tasks": {
+      "title": "My Tasks",
+      "subtitle": "Tasks assigned to you"
+    },
+    "statistics": {
+      "title": "My Statistics",
+      "subtitle": "Your activity overview",
+      "tasksCompleted": "Tasks completed",
+      "hoursWorked": "Hours worked",
+      "feedingsCompleted": "Feedings completed"
+    }
+  },
+  "schedule": {
+    "week": {
+      "title": "Week View",
+      "subtitle": "Schedule overview for the week"
+    },
+    "month": {
+      "title": "Month View",
+      "subtitle": "Schedule overview for the month"
+    },
+    "distribution": {
+      "title": "Distribution",
+      "subtitle": "Fair distribution of tasks"
     }
   },
   "pwa": {

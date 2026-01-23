@@ -16,9 +16,32 @@ const InviteAcceptPage = lazy(() => import("./pages/InviteAcceptPage"));
 
 // Lazy-load authenticated pages
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const OverviewPage = lazy(() => import("./pages/OverviewPage"));
 const AccountPage = lazy(() => import("./pages/AccountPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const SchedulePage = lazy(() => import("./pages/SchedulePage"));
+
+// Task pages
+const TasksTodayPage = lazy(() => import("./pages/tasks/TasksTodayPage"));
+const TasksUpcomingPage = lazy(() => import("./pages/tasks/TasksUpcomingPage"));
+const TasksCompletedPage = lazy(
+  () => import("./pages/tasks/TasksCompletedPage"),
+);
+
+// My Page
+const MyTasksPage = lazy(() => import("./pages/my-page/MyTasksPage"));
+const MyStatisticsPage = lazy(() => import("./pages/my-page/MyStatisticsPage"));
+
+// Schedule views
+const ScheduleWeekPage = lazy(
+  () => import("./pages/schedule/ScheduleWeekPage"),
+);
+const ScheduleMonthPage = lazy(
+  () => import("./pages/schedule/ScheduleMonthPage"),
+);
+const ScheduleDistributionPage = lazy(
+  () => import("./pages/schedule/ScheduleDistributionPage"),
+);
 
 // Horse pages
 const MyHorsesPage = lazy(() => import("./pages/MyHorsesPage"));
@@ -43,6 +66,7 @@ const ActivitiesSettingsPage = lazy(
 );
 
 // Feeding pages
+const FeedingTodayPage = lazy(() => import("./pages/FeedingTodayPage"));
 const FeedingSchedulePage = lazy(() => import("./pages/FeedingSchedulePage"));
 const FeedingSettingsPage = lazy(() => import("./pages/FeedingSettingsPage"));
 const FeedingHistoryPage = lazy(() => import("./pages/FeedingHistoryPage"));
@@ -188,13 +212,19 @@ function App() {
                   </ProtectedRoute>
                 }
               >
+                {/* Overview - new landing page */}
                 <Route
-                  path="/dashboard"
+                  path="/overview"
                   element={
                     <Suspense fallback={<InlineLoader />}>
-                      <DashboardPage />
+                      <OverviewPage />
                     </Suspense>
                   }
+                />
+                {/* Legacy redirect: /dashboard → /overview */}
+                <Route
+                  path="/dashboard"
+                  element={<Navigate to="/overview" replace />}
                 />
                 <Route
                   path="/account"
@@ -212,19 +242,41 @@ function App() {
                     </Suspense>
                   }
                 />
+                {/* Schedule routes */}
                 <Route
                   path="/schedule"
+                  element={<Navigate to="/schedule/week" replace />}
+                />
+                <Route
+                  path="/schedule/week"
                   element={
                     <Suspense fallback={<InlineLoader />}>
-                      <SchedulePage />
+                      <ScheduleWeekPage />
                     </Suspense>
                   }
                 />
                 <Route
-                  path="/my-availability"
+                  path="/schedule/month"
                   element={
                     <Suspense fallback={<InlineLoader />}>
-                      <MyAvailabilityPage />
+                      <ScheduleMonthPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/schedule/distribution"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <ScheduleDistributionPage />
+                    </Suspense>
+                  }
+                />
+                {/* Legacy schedule page still available at /schedule/legacy */}
+                <Route
+                  path="/schedule/legacy"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <SchedulePage />
                     </Suspense>
                   }
                 />
@@ -245,6 +297,71 @@ function App() {
                       <FacilityAvailabilityPage />
                     </Suspense>
                   }
+                />
+
+                {/* Task routes - daily chores/shifts execution */}
+                <Route
+                  path="/tasks"
+                  element={<Navigate to="/tasks/today" replace />}
+                />
+                <Route
+                  path="/tasks/today"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <TasksTodayPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/tasks/upcoming"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <TasksUpcomingPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/tasks/completed"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <TasksCompletedPage />
+                    </Suspense>
+                  }
+                />
+
+                {/* My Page routes - personal aggregation */}
+                <Route
+                  path="/my-page"
+                  element={<Navigate to="/my-page/tasks" replace />}
+                />
+                <Route
+                  path="/my-page/tasks"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <MyTasksPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/my-page/availability"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <MyAvailabilityPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/my-page/statistics"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <MyStatisticsPage />
+                    </Suspense>
+                  }
+                />
+                {/* Legacy redirect: /my-availability → /my-page/availability */}
+                <Route
+                  path="/my-availability"
+                  element={<Navigate to="/my-page/availability" replace />}
                 />
 
                 {/* Horse routes */}
@@ -341,11 +458,19 @@ function App() {
                 {/* Feeding routes */}
                 <Route
                   path="/feeding"
-                  element={<Navigate to="/feeding/schedule" replace />}
+                  element={<Navigate to="/feeding/today" replace />}
+                />
+                <Route
+                  path="/feeding/today"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <FeedingTodayPage />
+                    </Suspense>
+                  }
                 />
                 <Route
                   path="/feeding/overview"
-                  element={<Navigate to="/feeding/schedule" replace />}
+                  element={<Navigate to="/feeding/today" replace />}
                 />
                 <Route
                   path="/feeding/schedule"

@@ -1,34 +1,14 @@
-import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { Outlet, Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
-import { useOrganizationContext } from "@/contexts/OrganizationContext";
+import { useNavigation } from "@/hooks/useNavigation";
 import {
-  CalendarIcon,
-  SettingsIcon,
-  UsersIcon,
   SearchIcon,
   BellIcon,
-  House as HorseIcon,
-  History,
-  Settings as Settings2Icon,
   User,
   LogOut,
-  Building2,
-  Plug,
-  Tractor,
-  Shield,
-  CreditCard,
-  Warehouse,
-  ClipboardList,
-  Heart,
   ChevronDown,
-  Wheat,
-  UserCircle,
-  CalendarCheck2,
-  BarChart3,
-  ListChecks,
-  Play,
+  Settings as SettingsIcon,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -73,290 +53,16 @@ import { LanguageSwitcherCompact } from "@/components/LanguageSwitcher";
 import { AssistantButton } from "@/components/assistant";
 
 export default function AuthenticatedLayout() {
-  const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { currentOrganizationId } = useOrganizationContext();
   const { t } = useTranslation(["common", "organizations"]);
-
-  // State for accordion menu - track which menu item is expanded
-  const [expandedItem, setExpandedItem] = useState<string | null>(() => {
-    // Initialize with currently active menu item expanded
-    // Updated to match new navigation structure (routines moved to settings)
-    const navigation = [
-      {
-        name: "horses",
-        href: "/horses",
-        subItems: [
-          { href: "/horses" },
-          { href: "/location-history" },
-          { href: "/horses/settings" },
-        ],
-      },
-      {
-        name: "activities",
-        href: "/activities",
-        subItems: [
-          { href: "/activities" },
-          { href: "/activities/planning" },
-          { href: "/activities/care" },
-          { href: "/activities/analytics" },
-        ],
-      },
-      {
-        name: "feeding",
-        href: "/feeding",
-        subItems: [
-          { href: "/feeding/schedule" },
-          { href: "/feeding/history" },
-          { href: "/feeding/settings" },
-        ],
-      },
-      {
-        name: "facilities",
-        href: "/facilities",
-        subItems: [
-          { href: "/facilities/reservations" },
-          { href: "/facilities/manage" },
-          { href: "/stables" },
-        ],
-      },
-      { name: "schedule", href: "/schedule" },
-      { name: "myAvailability", href: "/my-availability" },
-      {
-        name: "settings",
-        href: "/settings",
-        subItems: [
-          { href: "/settings" },
-          { href: "/settings/routines" },
-          { href: "/settings/activities" },
-        ],
-      },
-    ];
-
-    // Find which menu item's submenu contains current path
-    const activeMenuItem = navigation.find((item) =>
-      item.subItems?.some((subItem) => location.pathname === subItem.href),
-    );
-    return activeMenuItem?.name || null;
-  });
-
-  // Toggle accordion menu item
-  const toggleMenuItem = (itemName: string) => {
-    setExpandedItem(expandedItem === itemName ? null : itemName);
-  };
-
-  // Main navigation items with translation keys
-  // Reorganized: Activities (daily work) is the main hub, Settings contains configuration
-  const navigation = [
-    {
-      name: "horses",
-      label: t("common:navigation.myHorses"),
-      href: "/horses",
-      icon: HorseIcon,
-      subItems: [
-        {
-          name: "horseList",
-          label: t("common:navigation.horses"),
-          href: "/horses",
-          icon: HorseIcon,
-        },
-        {
-          name: "locationHistory",
-          label: t("common:navigation.locationHistory"),
-          href: "/location-history",
-          icon: History,
-        },
-        {
-          name: "settings",
-          label: t("common:navigation.settings"),
-          href: "/horses/settings",
-          icon: Settings2Icon,
-        },
-      ],
-    },
-    {
-      name: "activities",
-      label: t("common:navigation.activities"),
-      href: "/activities",
-      icon: ClipboardList,
-      subItems: [
-        {
-          name: "today",
-          label: t("common:navigation.todaysWork"),
-          href: "/activities",
-          icon: Play,
-        },
-        {
-          name: "planning",
-          label: t("common:navigation.planning"),
-          href: "/activities/planning",
-          icon: CalendarIcon,
-        },
-        {
-          name: "care",
-          label: t("common:navigation.care"),
-          href: "/activities/care",
-          icon: Heart,
-        },
-        {
-          name: "analytics",
-          label: t("common:navigation.analytics"),
-          href: "/activities/analytics",
-          icon: BarChart3,
-        },
-      ],
-    },
-    {
-      name: "feeding",
-      label: t("common:navigation.feeding"),
-      href: "/feeding",
-      icon: Wheat,
-      subItems: [
-        {
-          name: "schedule",
-          label: t("common:navigation.schedule"),
-          href: "/feeding/schedule",
-          icon: CalendarIcon,
-        },
-        {
-          name: "history",
-          label: t("common:navigation.feedingHistory"),
-          href: "/feeding/history",
-          icon: History,
-        },
-        {
-          name: "settings",
-          label: t("common:navigation.settings"),
-          href: "/feeding/settings",
-          icon: Settings2Icon,
-        },
-      ],
-    },
-    {
-      name: "facilities",
-      label: t("common:navigation.facilities"),
-      href: "/facilities",
-      icon: Warehouse,
-      subItems: [
-        {
-          name: "reservations",
-          label: t("common:navigation.myReservations"),
-          href: "/facilities/reservations",
-          icon: CalendarIcon,
-        },
-        {
-          name: "manageFacilities",
-          label: t("common:navigation.facilities"),
-          href: "/facilities/manage",
-          icon: SettingsIcon,
-        },
-        {
-          name: "stables",
-          label: t("common:navigation.stables"),
-          href: "/stables",
-          icon: Building2,
-        },
-      ],
-    },
-    {
-      name: "schedule",
-      label: t("common:navigation.schedule"),
-      href: "/schedule",
-      icon: CalendarIcon,
-    },
-    {
-      name: "myAvailability",
-      label: t("common:navigation.myAvailability"),
-      href: "/my-availability",
-      icon: UserCircle,
-    },
-    {
-      name: "settings",
-      label: t("common:navigation.settings"),
-      href: "/settings",
-      icon: SettingsIcon,
-      subItems: [
-        {
-          name: "routineTemplates",
-          label: t("common:navigation.routineTemplates"),
-          href: "/settings/routines",
-          icon: ListChecks,
-        },
-        {
-          name: "activitySettings",
-          label: t("common:navigation.activitySettings"),
-          href: "/settings/activities",
-          icon: ClipboardList,
-        },
-        {
-          name: "general",
-          label: t("common:navigation.generalSettings"),
-          href: "/settings",
-          icon: Settings2Icon,
-        },
-      ],
-    },
-  ];
-
-  // Organization navigation (only show sub-items if an organization is selected)
-  const organizationNavigation = currentOrganizationId
-    ? {
-        name: "organizationAdmin",
-        label: t("organizations:menu.settings"),
-        icon: Building2,
-        subItems: [
-          {
-            name: "members",
-            label: t("organizations:menu.members"),
-            href: `/organizations/${currentOrganizationId}/users`,
-            icon: UsersIcon,
-          },
-          {
-            name: "leaveManagement",
-            label: t("organizations:menu.leaveManagement"),
-            href: `/organizations/${currentOrganizationId}/leave-management`,
-            icon: CalendarIcon,
-          },
-          {
-            name: "scheduleManagement",
-            label: t("organizations:menu.scheduleManagement"),
-            href: `/organizations/${currentOrganizationId}/schedule-management`,
-            icon: ClipboardList,
-          },
-          {
-            name: "integrations",
-            label: t("organizations:menu.integrations"),
-            href: `/organizations/${currentOrganizationId}/integrations`,
-            icon: Plug,
-          },
-          {
-            name: "manure",
-            label: t("organizations:menu.manure"),
-            href: `/organizations/${currentOrganizationId}/manure`,
-            icon: Tractor,
-          },
-          {
-            name: "permissions",
-            label: t("organizations:menu.permissions"),
-            href: `/organizations/${currentOrganizationId}/permissions`,
-            icon: Shield,
-          },
-          {
-            name: "subscription",
-            label: t("organizations:menu.subscription"),
-            href: `/organizations/${currentOrganizationId}/subscription`,
-            icon: CreditCard,
-          },
-          {
-            name: "settings",
-            label: t("organizations:menu.settings"),
-            href: `/organizations/${currentOrganizationId}/settings`,
-            icon: Settings2Icon,
-          },
-        ],
-      }
-    : null;
+  const {
+    navigation,
+    organizationNavigation,
+    expandedItem,
+    toggleItem,
+    pathname,
+  } = useNavigation();
 
   const handleLogout = async () => {
     await signOut();
@@ -382,22 +88,34 @@ export default function AuthenticatedLayout() {
               <SidebarMenu>
                 {navigation.map((item) => {
                   // Items with subItems use Collapsible for accordion behavior
-                  if (item.subItems) {
+                  if (item.subItems && item.subItems.length > 0) {
                     return (
                       <Collapsible
-                        key={item.name}
-                        open={expandedItem === item.name}
-                        onOpenChange={() => toggleMenuItem(item.name)}
+                        key={item.id}
+                        open={expandedItem === item.id}
+                        onOpenChange={() => toggleItem(item.id)}
                       >
                         <SidebarMenuItem>
                           <CollapsibleTrigger asChild>
                             <SidebarMenuButton>
                               <item.icon className="size-5" />
                               <span>{item.label}</span>
+                              {item.badge && (
+                                <Badge
+                                  variant={
+                                    item.badge === "new"
+                                      ? "default"
+                                      : "secondary"
+                                  }
+                                  className="ml-1 text-[10px] py-0 px-1"
+                                >
+                                  {item.badge}
+                                </Badge>
+                              )}
                               <ChevronDown
                                 className={cn(
                                   "ml-auto size-4 transition-transform duration-200",
-                                  expandedItem === item.name && "rotate-180",
+                                  expandedItem === item.id && "rotate-180",
                                 )}
                               />
                             </SidebarMenuButton>
@@ -406,12 +124,10 @@ export default function AuthenticatedLayout() {
                           <CollapsibleContent>
                             <SidebarMenuSub>
                               {item.subItems.map((subItem) => (
-                                <SidebarMenuSubItem key={subItem.name}>
+                                <SidebarMenuSubItem key={subItem.id}>
                                   <SidebarMenuSubButton
                                     asChild
-                                    isActive={
-                                      location.pathname === subItem.href
-                                    }
+                                    isActive={pathname === subItem.href}
                                   >
                                     <Link to={subItem.href}>
                                       <subItem.icon className="size-4" />
@@ -429,44 +145,29 @@ export default function AuthenticatedLayout() {
 
                   // Items without subItems remain as direct links
                   return (
-                    <SidebarMenuItem key={item.name}>
+                    <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
                         asChild
-                        isActive={location.pathname === item.href}
+                        isActive={pathname === item.href}
                       >
                         <Link to={item.href}>
                           <item.icon className="size-5" />
                           <span>{item.label}</span>
+                          {item.badge && (
+                            <Badge
+                              variant={
+                                item.badge === "new" ? "default" : "secondary"
+                              }
+                              className="ml-auto text-[10px] py-0 px-1"
+                            >
+                              {item.badge}
+                            </Badge>
+                          )}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
                 })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-
-          {/* My Reservations - Personal Section */}
-          <SidebarGroup>
-            <SidebarGroupLabel>
-              {t("common:userMenu.profile")}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={
-                      location.pathname === "/my-reservations" ||
-                      location.pathname.startsWith("/my-reservations/")
-                    }
-                  >
-                    <Link to="/my-reservations">
-                      <CalendarCheck2 className="size-5" />
-                      <span>{t("common:navigation.myReservations")}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -480,10 +181,8 @@ export default function AuthenticatedLayout() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <Collapsible
-                    open={expandedItem === organizationNavigation.name}
-                    onOpenChange={() =>
-                      toggleMenuItem(organizationNavigation.name)
-                    }
+                    open={expandedItem === organizationNavigation.id}
+                    onOpenChange={() => toggleItem(organizationNavigation.id)}
                   >
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
@@ -493,7 +192,7 @@ export default function AuthenticatedLayout() {
                           <ChevronDown
                             className={cn(
                               "ml-auto size-4 transition-transform duration-200",
-                              expandedItem === organizationNavigation.name &&
+                              expandedItem === organizationNavigation.id &&
                                 "rotate-180",
                             )}
                           />
@@ -503,10 +202,10 @@ export default function AuthenticatedLayout() {
                       <CollapsibleContent>
                         <SidebarMenuSub>
                           {organizationNavigation.subItems.map((subItem) => (
-                            <SidebarMenuSubItem key={subItem.name}>
+                            <SidebarMenuSubItem key={subItem.id}>
                               <SidebarMenuSubButton
                                 asChild
-                                isActive={location.pathname === subItem.href}
+                                isActive={pathname === subItem.href}
                               >
                                 <Link to={subItem.href}>
                                   <subItem.icon className="size-4" />

@@ -1,6 +1,7 @@
 {
   "navigation": {
     "dashboard": "Översikt",
+    "overview": "Översikt",
     "myHorses": "Mina hästar",
     "horses": "Hästar",
     "activities": "Aktiviteter",
@@ -10,9 +11,13 @@
     "analytics": "Statistik",
     "feeding": "Utfodring",
     "feedingOverview": "Översikt",
+    "feedingToday": "Idag",
     "feedingHistory": "Historik",
     "facilities": "Anläggningar",
     "schedule": "Schema",
+    "scheduleWeek": "Vecka",
+    "scheduleMonth": "Månad",
+    "scheduleDistribution": "Fördelning",
     "myAvailability": "Min tillgänglighet",
     "myReservations": "Mina bokningar",
     "settings": "Inställningar",
@@ -29,7 +34,16 @@
     "routines": "Stallrutiner",
     "routinesList": "Dagliga rutiner",
     "routineTemplates": "Rutinmallar",
-    "routineAnalytics": "Statistik"
+    "routineAnalytics": "Statistik",
+    "tasks": "Uppgifter",
+    "tasksToday": "Idag",
+    "tasksUpcoming": "Kommande",
+    "tasksCompleted": "Slutförda",
+    "myPage": "Min sida",
+    "myTasks": "Mina uppgifter",
+    "myStatistics": "Min statistik",
+    "myAccount": "Mitt konto",
+    "notifications": "Notiser"
   },
   "buttons": {
     "save": "Spara",
@@ -224,6 +238,75 @@
     "recentActivity": {
       "title": "Senaste aktivitet",
       "placeholder": "Instrumentpanelswidgetar integreras här"
+    }
+  },
+  "overview": {
+    "title": "Översikt",
+    "subtitle": "Här är vad som behöver göras idag",
+    "sections": {
+      "overdue": "Försenade uppgifter",
+      "activeRoutines": "Aktiva rutiner",
+      "upcomingRoutines": "Kommande rutiner",
+      "nextFeeding": "Nästa utfodring",
+      "myTasks": "Mina uppgifter idag",
+      "quickActions": "Snabbåtgärder"
+    },
+    "emptyState": {
+      "noTasks": "Inga uppgifter idag",
+      "allDone": "Allt klart för idag!"
+    }
+  },
+  "tasks": {
+    "title": "Uppgifter",
+    "today": {
+      "title": "Dagens uppgifter",
+      "subtitle": "Uppgifter som ska utföras idag"
+    },
+    "upcoming": {
+      "title": "Kommande uppgifter",
+      "subtitle": "Planerade uppgifter för kommande dagar"
+    },
+    "completed": {
+      "title": "Slutförda uppgifter",
+      "subtitle": "Uppgifter som har slutförts"
+    },
+    "emptyState": {
+      "today": "Inga uppgifter för idag",
+      "upcoming": "Inga kommande uppgifter",
+      "completed": "Inga slutförda uppgifter ännu"
+    },
+    "actions": {
+      "complete": "Markera som klar",
+      "comment": "Lägg till kommentar",
+      "reportIssue": "Rapportera problem"
+    }
+  },
+  "myPage": {
+    "title": "Min sida",
+    "tasks": {
+      "title": "Mina uppgifter",
+      "subtitle": "Uppgifter tilldelade till dig"
+    },
+    "statistics": {
+      "title": "Min statistik",
+      "subtitle": "Din aktivitetsöversikt",
+      "tasksCompleted": "Slutförda uppgifter",
+      "hoursWorked": "Arbetade timmar",
+      "feedingsCompleted": "Utfodringar genomförda"
+    }
+  },
+  "schedule": {
+    "week": {
+      "title": "Veckovy",
+      "subtitle": "Schemaöversikt för veckan"
+    },
+    "month": {
+      "title": "Månadsvy",
+      "subtitle": "Schemaöversikt för månaden"
+    },
+    "distribution": {
+      "title": "Fördelning",
+      "subtitle": "Rättvis fördelning av uppgifter"
     }
   },
   "pwa": {
