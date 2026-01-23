@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import type { ActivityTypeConfig, Activity } from "@/types/activity";
 import { toDate } from "@/utils/timestampUtils";
+import { useTranslatedActivityTypes } from "@/hooks/useTranslatedActivityTypes";
 
 interface QuickAddDialogProps {
   open: boolean;
@@ -29,20 +30,25 @@ export function QuickAddDialog({
   onAdd,
 }: QuickAddDialogProps) {
   const { t } = useTranslation("activities");
+  const translateActivityType = useTranslatedActivityTypes();
 
   // Don't render if missing data
   if (!horse || !activityType) {
     return null;
   }
 
+  // Get translated activity type name
+  const displayName = translateActivityType(activityType);
+  const displayNameLower = displayName.toLowerCase();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{activityType.name}</DialogTitle>
+          <DialogTitle>{displayName}</DialogTitle>
           <DialogDescription>
             {t("quickAdd.description", {
-              activity: activityType.name.toLowerCase(),
+              activity: displayNameLower,
               horse: horse.name,
             })}
           </DialogDescription>
@@ -61,7 +67,7 @@ export function QuickAddDialog({
         {/* Last Done Status */}
         <div className="mb-2">
           <div className="text-sm font-medium">
-            {t("quickAdd.lastDone")} {activityType.name.toLowerCase()}
+            {t("quickAdd.lastDone")} {displayNameLower}
           </div>
           <div className="text-sm text-muted-foreground">
             {lastActivity && toDate(lastActivity.date)

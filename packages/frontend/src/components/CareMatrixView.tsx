@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { CareMatrixCell } from "./CareMatrixCell";
 import type { ActivityTypeConfig, Activity } from "@/types/activity";
 import { toDate } from "@/utils/timestampUtils";
-import { translateActivityType } from "@/lib/activityTranslations";
+import { useTranslatedActivityTypes } from "@/hooks/useTranslatedActivityTypes";
 
 interface CareMatrixViewProps {
   horses: Array<{ id: string; name: string; feiRules?: string }>;
@@ -62,6 +62,7 @@ export function CareMatrixView({
   onCellClick,
 }: CareMatrixViewProps) {
   const { t } = useTranslation(["activities", "common"]);
+  const translateActivityType = useTranslatedActivityTypes();
 
   // Filter to only show Care category activity types
   const careActivityTypes = activityTypes.filter((t) => t.category === "Care");
@@ -109,7 +110,7 @@ export function CareMatrixView({
         {sortedActivityTypes.map((type) => (
           <div key={type.id} className="p-4 text-center border-l border-border">
             <div className="text-sm font-medium">
-              {translateActivityType(type.name)}
+              {translateActivityType(type)}
             </div>
           </div>
         ))}
@@ -148,7 +149,7 @@ export function CareMatrixView({
                 horseId={horse.id}
                 horseName={horse.name}
                 activityTypeId={type.id}
-                activityTypeName={translateActivityType(type.name)}
+                activityTypeName={translateActivityType(type)}
                 activityTypeColor={type.color}
                 lastActivity={lastActivity}
                 nextActivity={nextActivity}

@@ -29,6 +29,7 @@ import {
   type ActivityTypeConfig,
 } from "@/types/activity";
 import { toDate } from "@/utils/timestampUtils";
+import { useTranslatedActivityTypes } from "@/hooks/useTranslatedActivityTypes";
 
 // Validation schema for activity (activityType will be validated as string since it's dynamic)
 const activitySchema = z.object({
@@ -111,6 +112,7 @@ export function ActivityFormDialog({
   onCreateRoutine,
 }: ActivityFormDialogProps) {
   const { t } = useTranslation(["activities", "routines", "common"]);
+  const translateActivityType = useTranslatedActivityTypes();
   const isEditMode = !!entry;
   const [selectedType, setSelectedType] = useState<
     "activity" | "task" | "message" | "routine"
@@ -439,7 +441,7 @@ export function ActivityFormDialog({
                 .map((type) => (
                   <option key={type.id} value={type.id}>
                     {type.icon ? `${type.icon} ` : ""}
-                    {type.name}
+                    {translateActivityType(type)}
                   </option>
                 ))}
             </select>

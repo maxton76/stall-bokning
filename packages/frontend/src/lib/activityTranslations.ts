@@ -21,6 +21,17 @@ function normalizeActivityKey(name: string): string {
 /**
  * Translate activity type name (e.g., "Dentist" → "Tandvård")
  * Falls back to the original name if no translation is found.
+ *
+ * @deprecated Use `useTranslatedActivityTypes` hook instead for React components.
+ * This function is kept for backwards compatibility with non-React code.
+ *
+ * @example
+ * // Old approach (deprecated):
+ * translateActivityType(activityType.name)
+ *
+ * // New approach (preferred):
+ * const translateActivityType = useTranslatedActivityTypes();
+ * translateActivityType(activityType) // Pass the full object, not just name
  */
 export function translateActivityType(name: string): string {
   const key = normalizeActivityKey(name);

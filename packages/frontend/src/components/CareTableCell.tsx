@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { ActivityTypeConfig, Activity } from "@/types/activity";
 import { toDate } from "@/utils/timestampUtils";
+import { useTranslatedActivityTypes } from "@/hooks/useTranslatedActivityTypes";
 
 interface CareTableCellProps {
   horseId: string;
@@ -27,8 +28,10 @@ export function CareTableCell({
   nextActivity,
   onClick,
 }: CareTableCellProps) {
+  const translateActivityType = useTranslatedActivityTypes();
   const handleClick = () => onClick(horseId, activityTypeId, nextActivity);
   const hasNextActivity = !!nextActivity;
+  const displayName = translateActivityType(activityType);
 
   return (
     <button
@@ -39,7 +42,7 @@ export function CareTableCell({
         "border-l border-border",
         "min-h-[80px]",
       )}
-      aria-label={`${hasNextActivity ? "Edit" : lastActivity ? "View" : "Add"} ${activityType.name} activity for ${horseName}`}
+      aria-label={`${hasNextActivity ? "Edit" : lastActivity ? "View" : "Add"} ${displayName} activity for ${horseName}`}
     >
       {/* Show last completed activity */}
       {lastActivity && toDate(lastActivity.date) && (

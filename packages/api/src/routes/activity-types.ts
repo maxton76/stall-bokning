@@ -8,11 +8,13 @@ import { serializeTimestamps } from "../utils/serialization.js";
 /**
  * Standard activity types for seeding
  * Consolidated from @shared/constants/activity
+ * Each type has a `key` field for i18n translation lookup
  */
 const STANDARD_ACTIVITY_TYPES = [
-  // === Care Category (sortOrder 1-4) ===
+  // === Care Category (sortOrder 1-6) ===
   {
     name: "Dentist",
+    key: "dentist",
     color: "#22c55e",
     category: "Care",
     roles: ["dentist"],
@@ -20,110 +22,141 @@ const STANDARD_ACTIVITY_TYPES = [
     sortOrder: 1,
   },
   {
+    name: "Deworm",
+    key: "deworm",
+    color: "#a855f7",
+    category: "Care",
+    roles: ["veterinarian", "stable-hand"],
+    icon: "💊",
+    sortOrder: 2,
+  },
+  {
     name: "Farrier",
+    key: "farrier",
     color: "#f97316",
     category: "Care",
     roles: ["farrier"],
     icon: "🔨",
-    sortOrder: 2,
+    sortOrder: 3,
   },
   {
-    name: "Vaccination",
+    name: "Influenza",
+    key: "influenza",
     color: "#3b82f6",
     category: "Care",
     roles: ["veterinarian"],
     icon: "💉",
-    sortOrder: 3,
+    sortOrder: 4,
   },
   {
-    name: "Veterinarian",
+    name: "Rhino",
+    key: "rhino",
+    color: "#06b6d4",
+    category: "Care",
+    roles: ["veterinarian"],
+    icon: "💉",
+    sortOrder: 5,
+  },
+  {
+    name: "Vet",
+    key: "vet",
     color: "#ef4444",
     category: "Care",
     roles: ["veterinarian"],
     icon: "🏥",
-    sortOrder: 4,
+    sortOrder: 6,
   },
-  // === Sport Category (sortOrder 5-10) ===
+  // === Sport Category (sortOrder 7-12) ===
   {
     name: "Client",
+    key: "client",
     color: "#eab308",
     category: "Sport",
     roles: ["rider", "instructor"],
     icon: "👤",
-    sortOrder: 5,
+    sortOrder: 7,
   },
   {
     name: "Lesson",
+    key: "lesson",
     color: "#22c55e",
     category: "Sport",
     roles: ["instructor", "rider"],
     icon: "📚",
-    sortOrder: 6,
+    sortOrder: 8,
   },
   {
     name: "Lunging",
+    key: "lunging",
     color: "#8b5cf6",
     category: "Sport",
     roles: ["trainer", "rider"],
     icon: "🎯",
-    sortOrder: 7,
+    sortOrder: 9,
   },
   {
     name: "Paddock",
+    key: "paddock",
     color: "#84cc16",
     category: "Sport",
     roles: ["stable-hand"],
     icon: "🏞️",
-    sortOrder: 8,
+    sortOrder: 10,
   },
   {
     name: "Riding",
+    key: "riding",
     color: "#6366f1",
     category: "Sport",
     roles: ["rider"],
     icon: "🏇",
-    sortOrder: 9,
+    sortOrder: 11,
   },
   {
     name: "Show",
+    key: "show",
     color: "#ec4899",
     category: "Sport",
     roles: ["rider", "trainer"],
     icon: "🏆",
-    sortOrder: 10,
+    sortOrder: 12,
   },
-  // === Breeding Category (sortOrder 11-14) ===
+  // === Breeding Category (sortOrder 13-16) ===
   {
     name: "Foaling",
+    key: "foaling",
     color: "#f43f5e",
     category: "Breeding",
     roles: ["veterinarian", "breeder"],
     icon: "🐴",
-    sortOrder: 11,
+    sortOrder: 13,
   },
   {
     name: "Insemination",
+    key: "insemination",
     color: "#d946ef",
     category: "Breeding",
     roles: ["veterinarian", "breeder"],
     icon: "🧬",
-    sortOrder: 12,
+    sortOrder: 14,
   },
   {
     name: "Mare Cycle Check",
+    key: "mareCycleCheck",
     color: "#14b8a6",
     category: "Breeding",
     roles: ["veterinarian", "breeder"],
     icon: "📅",
-    sortOrder: 13,
+    sortOrder: 15,
   },
   {
     name: "Stallion Mount",
+    key: "stallionMount",
     color: "#0ea5e9",
     category: "Breeding",
     roles: ["breeder", "handler"],
     icon: "🐎",
-    sortOrder: 14,
+    sortOrder: 16,
   },
 ];
 
@@ -552,7 +585,13 @@ export async function activityTypesRoutes(fastify: FastifyInstance) {
           createdIds.push(docRef.id);
 
           batch.set(docRef, {
-            ...type,
+            name: type.name,
+            key: type.key, // Translation key for i18n lookup
+            color: type.color,
+            category: type.category,
+            roles: type.roles,
+            icon: type.icon,
+            sortOrder: type.sortOrder,
             stableId,
             isStandard: true,
             isActive: true,

@@ -45,11 +45,13 @@ import {
   seedStandardActivityTypes,
 } from "@/services/activityTypeService";
 import { translateRoles } from "@/lib/activityTranslations";
+import { useTranslatedActivityTypes } from "@/hooks/useTranslatedActivityTypes";
 
 export default function ActivitiesSettingsPage() {
   const { t } = useTranslation(["activities", "common"]);
   const { user } = useAuth();
   const [selectedStableId, setSelectedStableId] = useState<string>("");
+  const translateActivityType = useTranslatedActivityTypes();
 
   // Track which stables have had seeding attempted to prevent infinite loops
   const seedAttemptedRef = useRef<Set<string>>(new Set());
@@ -331,7 +333,7 @@ export default function ActivitiesSettingsPage() {
                                       opacity: 0.85,
                                     }}
                                   >
-                                    {type.name}
+                                    {translateActivityType(type)}
                                   </div>
                                   {type.isStandard && (
                                     <Badge
@@ -579,21 +581,25 @@ export default function ActivitiesSettingsPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Activity Type</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("activities:settings.types.delete.title")}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{deletingType?.name}"?
+              {t("activities:settings.types.delete.description", {
+                name: translateActivityType(deletingType),
+              })}
               {deletingType?.isStandard
-                ? " Standard types will be soft-deleted (marked inactive) and can be restored later."
-                : " This action cannot be undone."}
+                ? ` ${t("activities:settings.types.delete.standardNote")}`
+                : ` ${t("activities:settings.types.delete.customNote")}`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common:buttons.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-red-500 hover:bg-red-600"
             >
-              Delete
+              {t("common:buttons.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

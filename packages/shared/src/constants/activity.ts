@@ -15,6 +15,7 @@ export type ActivityTypeCategory = "Sport" | "Care" | "Breeding";
  */
 export interface StandardActivityType {
   name: string;
+  key: string; // Translation key for i18n lookup (maps to constants:activityTypes.{key})
   color: string;
   category: ActivityTypeCategory;
   roles: string[];
@@ -27,6 +28,7 @@ export interface StandardActivityType {
  */
 export interface CreateActivityTypeData {
   name: string;
+  key?: string; // Translation key for i18n lookup (only for standard types)
   color: string;
   category: ActivityTypeCategory;
   roles: string[];
@@ -46,6 +48,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
   // === Care Category (sortOrder 1-6) ===
   {
     name: "Dentist",
+    key: "dentist",
     color: "#22c55e", // green
     category: "Care",
     roles: ["dentist"],
@@ -54,6 +57,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
   },
   {
     name: "Deworm",
+    key: "deworm",
     color: "#a855f7", // purple
     category: "Care",
     roles: ["veterinarian", "stable-hand"],
@@ -62,6 +66,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
   },
   {
     name: "Farrier",
+    key: "farrier",
     color: "#f97316", // orange
     category: "Care",
     roles: ["farrier"],
@@ -70,6 +75,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
   },
   {
     name: "Influenza",
+    key: "influenza",
     color: "#3b82f6", // blue
     category: "Care",
     roles: ["veterinarian"],
@@ -78,6 +84,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
   },
   {
     name: "Rhino",
+    key: "rhino",
     color: "#06b6d4", // cyan
     category: "Care",
     roles: ["veterinarian"],
@@ -86,6 +93,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
   },
   {
     name: "Vet",
+    key: "vet",
     color: "#ef4444", // red
     category: "Care",
     roles: ["veterinarian"],
@@ -96,6 +104,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
   // === Sport Category (sortOrder 7-12) ===
   {
     name: "Client",
+    key: "client",
     color: "#eab308", // yellow
     category: "Sport",
     roles: ["rider", "instructor"],
@@ -104,6 +113,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
   },
   {
     name: "Lesson",
+    key: "lesson",
     color: "#22c55e", // green
     category: "Sport",
     roles: ["instructor", "rider"],
@@ -112,6 +122,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
   },
   {
     name: "Lunging",
+    key: "lunging",
     color: "#8b5cf6", // purple (violet)
     category: "Sport",
     roles: ["trainer", "rider"],
@@ -120,6 +131,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
   },
   {
     name: "Paddock",
+    key: "paddock",
     color: "#84cc16", // lime
     category: "Sport",
     roles: ["stable-hand"],
@@ -128,6 +140,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
   },
   {
     name: "Riding",
+    key: "riding",
     color: "#6366f1", // indigo
     category: "Sport",
     roles: ["rider"],
@@ -136,6 +149,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
   },
   {
     name: "Show",
+    key: "show",
     color: "#ec4899", // pink
     category: "Sport",
     roles: ["rider", "trainer"],
@@ -146,6 +160,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
   // === Breeding Category (sortOrder 13-16) ===
   {
     name: "Foaling",
+    key: "foaling",
     color: "#f43f5e", // rose
     category: "Breeding",
     roles: ["veterinarian", "breeder"],
@@ -154,6 +169,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
   },
   {
     name: "Insemination",
+    key: "insemination",
     color: "#d946ef", // fuchsia
     category: "Breeding",
     roles: ["veterinarian", "breeder"],
@@ -162,6 +178,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
   },
   {
     name: "Mare Cycle Check",
+    key: "mareCycleCheck",
     color: "#14b8a6", // teal
     category: "Breeding",
     roles: ["veterinarian", "breeder"],
@@ -170,6 +187,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
   },
   {
     name: "Stallion Mount",
+    key: "stallionMount",
     color: "#0ea5e9", // sky
     category: "Breeding",
     roles: ["breeder", "handler"],
@@ -185,6 +203,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
 export function getStandardTypesForSeeding(): CreateActivityTypeData[] {
   return STANDARD_ACTIVITY_TYPES.map((type) => ({
     name: type.name,
+    key: type.key,
     color: type.color,
     category: type.category,
     roles: type.roles,
@@ -204,6 +223,15 @@ export function getStandardTypeByName(
   return STANDARD_ACTIVITY_TYPES.find(
     (type) => type.name.toLowerCase() === name.toLowerCase(),
   );
+}
+
+/**
+ * Get standard type by translation key
+ */
+export function getStandardTypeByKey(
+  key: string,
+): StandardActivityType | undefined {
+  return STANDARD_ACTIVITY_TYPES.find((type) => type.key === key);
 }
 
 /**

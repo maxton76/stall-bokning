@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { CareTableCell } from "./CareTableCell";
 import type { ActivityTypeConfig, Activity } from "@/types/activity";
-import { translateActivityType } from "@/lib/activityTranslations";
+import { useTranslatedActivityTypes } from "@/hooks/useTranslatedActivityTypes";
 
 interface CareTableViewProps {
   horses: Array<{ id: string; name: string; feiRules?: string }>;
@@ -21,6 +21,7 @@ export function CareTableView({
   onCellClick,
 }: CareTableViewProps) {
   const { t } = useTranslation(["activities", "common"]);
+  const translateActivityType = useTranslatedActivityTypes();
 
   const careTypes = activityTypes
     .filter((t) => t.category === "Care")
@@ -74,7 +75,7 @@ export function CareTableView({
                     className="px-2 py-3 text-center text-sm font-medium"
                   >
                     <div className="whitespace-nowrap">
-                      {translateActivityType(type.name)}
+                      {translateActivityType(type)}
                     </div>
                   </th>
                 ))}

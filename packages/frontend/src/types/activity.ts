@@ -39,6 +39,7 @@ export interface ActivityTypeConfig {
   id: string;
   stableId: string;
   name: string;
+  key?: string; // Translation key for i18n lookup (only for standard types)
   color: string; // Hex color (e.g., "#ef4444")
   category: ActivityTypeCategory;
   roles: string[]; // Display only (e.g., ["dentist"], ["rider"])
