@@ -30,6 +30,12 @@ import type {
   HorseFeedingContext,
   HorseMedicationContext,
   HorseBlanketContext,
+  CreateRoutineTemplateInput,
+  UpdateRoutineTemplateInput,
+  CreateRoutineInstanceInput,
+  UpdateStepProgressInput,
+  ListRoutineTemplatesQuery,
+  ListRoutineInstancesQuery,
 } from "@stall-bokning/shared";
 import {
   createActivityHistoryEntries,
@@ -481,26 +487,19 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           });
         }
 
+        const queryData = parsedQuery.data as ListRoutineTemplatesQuery;
         let dbQuery = db
           .collection("routineTemplates")
           .where("organizationId", "==", orgId);
 
-        if (parsedQuery.data.type) {
-          dbQuery = dbQuery.where("type", "==", parsedQuery.data.type) as any;
+        if (queryData.type) {
+          dbQuery = dbQuery.where("type", "==", queryData.type) as any;
         }
-        if (parsedQuery.data.isActive !== undefined) {
-          dbQuery = dbQuery.where(
-            "isActive",
-            "==",
-            parsedQuery.data.isActive,
-          ) as any;
+        if (queryData.isActive !== undefined) {
+          dbQuery = dbQuery.where("isActive", "==", queryData.isActive) as any;
         }
-        if (parsedQuery.data.stableId) {
-          dbQuery = dbQuery.where(
-            "stableId",
-            "==",
-            parsedQuery.data.stableId,
-          ) as any;
+        if (queryData.stableId) {
+          dbQuery = dbQuery.where("stableId", "==", queryData.stableId) as any;
         }
 
         const snapshot = await dbQuery.orderBy("name", "asc").get();
@@ -590,7 +589,7 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const input = parsed.data;
+        const input = parsed.data as CreateRoutineTemplateInput;
 
         // Check organization access
         const hasAccess = await hasOrganizationAccess(
@@ -606,11 +605,14 @@ export async function routinesRoutes(fastify: FastifyInstance) {
         }
 
         // Generate IDs for steps
-        const stepsWithIds: RoutineStep[] = input.steps.map((step, index) => ({
+        const stepsWithIds = input.steps.map((step, index) => ({
           ...step,
           id: uuidv4(),
           order: index + 1,
-        }));
+          requiresConfirmation: step.requiresConfirmation ?? false,
+          allowPartialCompletion: step.allowPartialCompletion ?? false,
+          allowPhotoEvidence: step.allowPhotoEvidence ?? false,
+        })) as RoutineStep[];
 
         const now = Timestamp.now();
         const templateData: Omit<RoutineTemplate, "id"> = {
@@ -696,7 +698,7 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const input = parsed.data;
+        const input = parsed.data as UpdateRoutineTemplateInput;
         const updateData: Record<string, unknown> = {
           ...input,
           updatedAt: Timestamp.now(),
@@ -891,41 +893,38 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           });
         }
 
+        const queryData = parsedQuery.data as ListRoutineInstancesQuery;
         let dbQuery = db
           .collection("routineInstances")
           .where("stableId", "==", stableId);
 
-        if (parsedQuery.data.status) {
-          dbQuery = dbQuery.where(
-            "status",
-            "==",
-            parsedQuery.data.status,
-          ) as any;
+        if (queryData.status) {
+          dbQuery = dbQuery.where("status", "==", queryData.status) as any;
         }
-        if (parsedQuery.data.assignedTo) {
+        if (queryData.assignedTo) {
           dbQuery = dbQuery.where(
             "assignedTo",
             "==",
-            parsedQuery.data.assignedTo,
+            queryData.assignedTo,
           ) as any;
         }
-        if (parsedQuery.data.templateId) {
+        if (queryData.templateId) {
           dbQuery = dbQuery.where(
             "templateId",
             "==",
-            parsedQuery.data.templateId,
+            queryData.templateId,
           ) as any;
         }
-        if (parsedQuery.data.startDate) {
-          const startDate = new Date(parsedQuery.data.startDate);
+        if (queryData.startDate) {
+          const startDate = new Date(queryData.startDate);
           dbQuery = dbQuery.where(
             "scheduledDate",
             ">=",
             Timestamp.fromDate(startDate),
           ) as any;
         }
-        if (parsedQuery.data.endDate) {
-          const endDate = new Date(parsedQuery.data.endDate);
+        if (queryData.endDate) {
+          const endDate = new Date(queryData.endDate);
           endDate.setHours(23, 59, 59, 999);
           dbQuery = dbQuery.where(
             "scheduledDate",
@@ -934,8 +933,8 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           ) as any;
         }
 
-        const limit = parsedQuery.data.limit ?? 50;
-        const offset = parsedQuery.data.offset ?? 0;
+        const limit = queryData.limit ?? 50;
+        const offset = queryData.offset ?? 0;
 
         const snapshot = await dbQuery
           .orderBy("scheduledDate", "desc")
@@ -1071,7 +1070,7 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const input = parsed.data;
+        const input = parsed.data as CreateRoutineInstanceInput;
 
         // Check stable access
         const hasAccess = await hasStableAccess(
@@ -1302,7 +1301,10 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const input = parsed.data;
+        const input = parsed.data as Omit<
+          UpdateStepProgressInput,
+          "instanceId"
+        >;
         const now = Timestamp.now();
 
         // Update step progress

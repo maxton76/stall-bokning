@@ -99,6 +99,8 @@ tasks:
     vars:
       IMAGE: gcr.io/{{.PROJECT_ID}}/api-service:{{.TAG | default "latest"}}
     cmds:
+      - bash ../../scripts/prepare-api-deploy.sh
+      - defer: bash ../../scripts/cleanup-api-deploy.sh
       - echo "Building API container..."
       - gcloud builds submit --tag {{.IMAGE}} --project {{.PROJECT_ID}}
       - echo "Deploying to Cloud Run..."
@@ -116,25 +118,21 @@ tasks:
 
   deploy:functions:
     desc: Deploy all Cloud Functions
-    dir: '{{.FUNCTIONS_DIR}}'
     deps: [env:switch]
     cmds:
-      - echo "Building functions..."
-      - npm run build
       - echo "Deploying all functions..."
+      - defer: bash ./scripts/cleanup-functions-deploy.sh
       - firebase deploy --only functions --project {{.PROJECT_ID}}
       - echo "All functions deployed to {{.ENV}}"
 
   deploy:function:
     desc: Deploy a specific Cloud Function (NAME=functionName)
-    dir: '{{.FUNCTIONS_DIR}}'
     deps: [env:switch]
     requires:
       vars: [NAME]
     cmds:
-      - echo "Building functions..."
-      - npm run build
       - echo "Deploying function {{.NAME}}..."
+      - defer: bash ./scripts/cleanup-functions-deploy.sh
       - firebase deploy --only functions:{{.NAME}} --project {{.PROJECT_ID}}
       - echo "Function {{.NAME}} deployed to {{.ENV}}"
 

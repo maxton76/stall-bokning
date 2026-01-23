@@ -6,16 +6,20 @@ WORKDIR /app
 # Copy shared package first (pre-built)
 COPY shared/ ./shared/
 
-# Copy Docker-specific package files
+# Copy Docker-specific package files (without shared dependency)
 COPY package.docker.json ./package.json
 COPY package-lock.json ./
 
 # Install all dependencies (including dev dependencies)
-RUN npm install
+RUN npm install --legacy-peer-deps
+
+# Copy shared package to node_modules manually
+RUN mkdir -p node_modules/@stall-bokning && \
+    cp -r shared node_modules/@stall-bokning/
 
 # Copy source code
 COPY src/ ./src/
-COPY tsconfig.json ./
+COPY tsconfig.docker.json ./tsconfig.json
 
 # Build TypeScript
 RUN npm run build
@@ -33,7 +37,11 @@ COPY package.docker.json ./package.json
 COPY package-lock.json ./
 
 # Install only production dependencies
-RUN npm install --production
+RUN npm install --production --legacy-peer-deps
+
+# Copy shared package to node_modules
+RUN mkdir -p node_modules/@stall-bokning && \
+    cp -r shared node_modules/@stall-bokning/
 
 # Copy built API application from builder
 COPY --from=builder /app/dist ./dist

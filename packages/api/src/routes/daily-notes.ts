@@ -14,6 +14,7 @@ import type {
   DailyNotes,
   HorseDailyNote,
   DailyAlert,
+  UpdateDailyNotesInput,
 } from "@stall-bokning/shared";
 
 export async function dailyNotesRoutes(fastify: FastifyInstance) {
@@ -200,7 +201,7 @@ export async function dailyNotesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const input = parsed.data;
+        const input = parsed.data as UpdateDailyNotesInput;
         const docId = `${stableId}_${input.date}`;
         const now = Timestamp.now();
 
