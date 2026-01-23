@@ -336,6 +336,15 @@
       ]
     },
     {
+      "collectionGroup": "vaccinationRecords",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "horseId", "order": "ASCENDING" },
+        { "fieldPath": "vaccinationRuleId", "order": "ASCENDING" },
+        { "fieldPath": "vaccinationDate", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "contacts",
       "queryScope": "COLLECTION",
       "fields": [

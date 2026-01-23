@@ -10,7 +10,11 @@ import {
   hasStableAccess,
 } from "../utils/authorization.js";
 import { projectHorseFields } from "../utils/horseProjection.js";
-import type { Horse } from "@stall-bokning/shared";
+import {
+  recalculateHorseVaccinationStatus,
+  calculateAssignmentStatus,
+} from "../utils/vaccinationStatusCalculator.js";
+import type { Horse, HorseVaccinationAssignment } from "@stall-bokning/shared";
 
 /**
  * Check if user has organization membership with stable access
@@ -1756,6 +1760,362 @@ export async function horsesRoutes(fastify: FastifyInstance) {
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to batch unassign member horses",
+        });
+      }
+    },
+  );
+
+  // ============================================================
+  // Multiple Vaccination Rule Assignment Endpoints (New System)
+  // ============================================================
+
+  /**
+   * GET /api/v1/horses/:id/vaccination-rules
+   * Get all vaccination rules assigned to a horse with their individual status
+   */
+  fastify.get(
+    "/:id/vaccination-rules",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const user = (request as AuthenticatedRequest).user!;
+
+        const horseDoc = await db.collection("horses").doc(id).get();
+
+        if (!horseDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Horse not found",
+          });
+        }
+
+        const horse = horseDoc.data()!;
+
+        // Check if user owns the horse or has stable access
+        let hasAccess = false;
+        if (user.role === "system_admin") {
+          hasAccess = true;
+        } else if (horse.ownerId === user.uid) {
+          hasAccess = true;
+        } else if (horse.currentStableId) {
+          hasAccess = await canAccessStable(user.uid, horse.currentStableId);
+        }
+
+        if (!hasAccess) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to access this horse",
+          });
+        }
+
+        const assignments: HorseVaccinationAssignment[] =
+          horse.assignedVaccinationRules || [];
+
+        return {
+          assignments: assignments.map((a) => serializeTimestamps(a)),
+          count: assignments.length,
+          aggregateStatus: horse.vaccinationStatus || "no_rule",
+          nextVaccinationDue: horse.nextVaccinationDue
+            ? serializeTimestamps({ date: horse.nextVaccinationDue }).date
+            : null,
+          lastVaccinationDate: horse.lastVaccinationDate
+            ? serializeTimestamps({ date: horse.lastVaccinationDate }).date
+            : null,
+        };
+      } catch (error) {
+        request.log.error({ error }, "Failed to fetch horse vaccination rules");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to fetch horse vaccination rules",
+        });
+      }
+    },
+  );
+
+  /**
+   * POST /api/v1/horses/:id/vaccination-rules
+   * Assign a vaccination rule to a horse (new multi-rule system)
+   * Body: { ruleId: string }
+   */
+  fastify.post(
+    "/:id/vaccination-rules",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const user = (request as AuthenticatedRequest).user!;
+        const data = request.body as { ruleId: string };
+
+        if (!data.ruleId) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Missing required field: ruleId",
+          });
+        }
+
+        const horseDoc = await db.collection("horses").doc(id).get();
+
+        if (!horseDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Horse not found",
+          });
+        }
+
+        const horse = horseDoc.data()!;
+
+        // Check if user owns the horse
+        if (horse.ownerId !== user.uid && user.role !== "system_admin") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to update this horse",
+          });
+        }
+
+        // Get the vaccination rule details
+        const ruleDoc = await db
+          .collection("vaccinationRules")
+          .doc(data.ruleId)
+          .get();
+
+        if (!ruleDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Vaccination rule not found",
+          });
+        }
+
+        const rule = ruleDoc.data()!;
+
+        // Check if rule is already assigned
+        const existingAssignments: HorseVaccinationAssignment[] =
+          horse.assignedVaccinationRules || [];
+        const alreadyAssigned = existingAssignments.some(
+          (a) => a.ruleId === data.ruleId,
+        );
+
+        if (alreadyAssigned) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "This vaccination rule is already assigned to the horse",
+          });
+        }
+
+        // Parse rule period (intervalMonths might include days portion like "6m 21d")
+        // For simplicity, assume intervalMonths is just months (number)
+        const periodMonths = rule.intervalMonths || 0;
+        const periodDays = rule.intervalDays || 0;
+
+        // Calculate initial status based on existing vaccination records for this rule
+        const statusResult = await calculateAssignmentStatus(
+          id,
+          data.ruleId,
+          periodMonths,
+          periodDays,
+        );
+
+        // Create the new assignment
+        // Use 'any' for Timestamp fields to avoid admin SDK vs client SDK type mismatch
+        const newAssignment = {
+          ruleId: data.ruleId,
+          ruleName: rule.vaccineName,
+          rulePeriodMonths: periodMonths,
+          rulePeriodDays: periodDays,
+          assignedAt: Timestamp.now(),
+          assignedBy: user.uid,
+          status: statusResult.status,
+          lastVaccinationDate: statusResult.lastVaccinationDate ?? undefined,
+          nextDueDate: statusResult.nextDueDate ?? undefined,
+          latestRecordId: statusResult.latestRecordId ?? undefined,
+        } as HorseVaccinationAssignment;
+
+        // Add to assignments array
+        const updatedAssignments = [...existingAssignments, newAssignment];
+
+        // Update horse document with new assignment BEFORE recalculation
+        await db.collection("horses").doc(id).update({
+          assignedVaccinationRules: updatedAssignments,
+          vaccinationRuleCount: updatedAssignments.length,
+          updatedAt: Timestamp.now(),
+          lastModifiedBy: user.uid,
+        });
+
+        // Recalculate aggregate status and update horse
+        const { aggregateStatus, nearestDueDate } =
+          await recalculateHorseVaccinationStatus(id, user.uid);
+
+        return {
+          success: true,
+          assignment: serializeTimestamps(newAssignment),
+          totalAssignments: updatedAssignments.length,
+          aggregateStatus,
+          nextVaccinationDue: nearestDueDate?.toISOString() || null,
+        };
+      } catch (error) {
+        request.log.error(
+          { error },
+          "Failed to assign vaccination rule to horse",
+        );
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to assign vaccination rule to horse",
+        });
+      }
+    },
+  );
+
+  /**
+   * DELETE /api/v1/horses/:horseId/vaccination-rules/:ruleId
+   * Remove a vaccination rule assignment from a horse
+   */
+  fastify.delete(
+    "/:horseId/vaccination-rules/:ruleId",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { horseId, ruleId } = request.params as {
+          horseId: string;
+          ruleId: string;
+        };
+        const user = (request as AuthenticatedRequest).user!;
+
+        const horseDoc = await db.collection("horses").doc(horseId).get();
+
+        if (!horseDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Horse not found",
+          });
+        }
+
+        const horse = horseDoc.data()!;
+
+        // Check if user owns the horse
+        if (horse.ownerId !== user.uid && user.role !== "system_admin") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to update this horse",
+          });
+        }
+
+        // Get current assignments
+        const existingAssignments: HorseVaccinationAssignment[] =
+          horse.assignedVaccinationRules || [];
+
+        // Find and remove the assignment
+        const assignmentIndex = existingAssignments.findIndex(
+          (a) => a.ruleId === ruleId,
+        );
+
+        if (assignmentIndex === -1) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Vaccination rule assignment not found",
+          });
+        }
+
+        // Remove the assignment
+        existingAssignments.splice(assignmentIndex, 1);
+
+        // Update horse document
+        await db.collection("horses").doc(horseId).update({
+          assignedVaccinationRules: existingAssignments,
+          vaccinationRuleCount: existingAssignments.length,
+          updatedAt: Timestamp.now(),
+          lastModifiedBy: user.uid,
+        });
+
+        // Recalculate aggregate status
+        const { aggregateStatus, nearestDueDate } =
+          await recalculateHorseVaccinationStatus(horseId, user.uid);
+
+        return {
+          success: true,
+          remainingAssignments: existingAssignments.length,
+          aggregateStatus,
+          nextVaccinationDue: nearestDueDate?.toISOString() || null,
+        };
+      } catch (error) {
+        request.log.error(
+          { error },
+          "Failed to remove vaccination rule from horse",
+        );
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to remove vaccination rule from horse",
+        });
+      }
+    },
+  );
+
+  /**
+   * POST /api/v1/horses/:id/vaccination-rules/recalculate
+   * Force recalculation of all vaccination rule statuses for a horse
+   */
+  fastify.post(
+    "/:id/vaccination-rules/recalculate",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const user = (request as AuthenticatedRequest).user!;
+
+        const horseDoc = await db.collection("horses").doc(id).get();
+
+        if (!horseDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Horse not found",
+          });
+        }
+
+        const horse = horseDoc.data()!;
+
+        // Check if user owns the horse or has stable access
+        let hasAccess = false;
+        if (user.role === "system_admin") {
+          hasAccess = true;
+        } else if (horse.ownerId === user.uid) {
+          hasAccess = true;
+        } else if (horse.currentStableId) {
+          hasAccess = await canAccessStable(user.uid, horse.currentStableId);
+        }
+
+        if (!hasAccess) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to update this horse",
+          });
+        }
+
+        // Recalculate all assignment statuses
+        const result = await recalculateHorseVaccinationStatus(id, user.uid);
+
+        return {
+          success: true,
+          assignments: result.assignments.map((a) => serializeTimestamps(a)),
+          aggregateStatus: result.aggregateStatus,
+          nextVaccinationDue: result.nearestDueDate?.toISOString() || null,
+          lastVaccinationDate:
+            result.mostRecentVaccinationDate?.toISOString() || null,
+        };
+      } catch (error) {
+        request.log.error(
+          { error },
+          "Failed to recalculate vaccination status",
+        );
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to recalculate vaccination status",
         });
       }
     },
