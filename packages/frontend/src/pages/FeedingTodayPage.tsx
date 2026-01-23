@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -8,8 +8,11 @@ import {
   AlertTriangle,
   User,
   ChevronRight,
+  ChevronDown,
   RefreshCw,
   Info,
+  Loader2,
+  Check,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +20,11 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -27,6 +35,20 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserStables } from "@/hooks/useUserStables";
 import { useFeedingToday } from "@/hooks/useFeedingToday";
+import { useDailyNotes } from "@/hooks/useRoutines";
+import { useToast } from "@/hooks/use-toast";
+import { resolveStepHorses } from "@/utils/routineHorseResolver";
+import {
+  updateRoutineProgress,
+  startRoutineInstance,
+} from "@/services/routineService";
+import { getHorseFeedingsByStable } from "@/services/horseFeedingService";
+import {
+  transformHorseFeedingsToMap,
+  type FeedingInfoForCard,
+} from "@/utils/feedingTransform";
+import { HorseContextCard } from "@/components/routines/HorseContextCard";
+import type { Horse } from "@/types/roles";
 import type {
   FeedingSessionView,
   FeedingSessionStatus,
@@ -47,12 +69,12 @@ export default function FeedingTodayPage() {
 
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
-  const [selectedStableId, setSelectedStableId] = useState<string | null>(null);
+  const [selectedStableId, setSelectedStableId] = useState<string>("");
 
   // Set initial stable when stables load
   useEffect(() => {
     if (stables.length > 0 && !selectedStableId) {
-      setSelectedStableId(stables[0]?.id ?? null);
+      setSelectedStableId(stables[0]?.id ?? "");
     }
   }, [stables, selectedStableId]);
 
@@ -62,6 +84,243 @@ export default function FeedingTodayPage() {
   // Fetch feeding sessions from routine instances
   const { sessions, loading, error, refetch, stats } =
     useFeedingToday(selectedStableId);
+  const { toast } = useToast();
+
+  // Daily notes for horses
+  const { notes: dailyNotes } = useDailyNotes(selectedStableId);
+
+  // Expandable session state
+  const [expandedSessions, setExpandedSessions] = useState<Set<string>>(
+    new Set(),
+  );
+  const [sessionHorses, setSessionHorses] = useState<Record<string, Horse[]>>(
+    {},
+  );
+  const [sessionFeedingData, setSessionFeedingData] = useState<
+    Record<string, Map<string, FeedingInfoForCard>>
+  >({});
+  const [loadingHorses, setLoadingHorses] = useState<Set<string>>(new Set());
+  const [updatingHorses, setUpdatingHorses] = useState<Set<string>>(new Set());
+
+  // Toggle session expansion
+  const toggleSession = useCallback(
+    async (session: FeedingSessionView) => {
+      const key = `${session.instanceId}-${session.stepId}`;
+      const newExpanded = new Set(expandedSessions);
+
+      if (newExpanded.has(key)) {
+        newExpanded.delete(key);
+        setExpandedSessions(newExpanded);
+        return;
+      }
+
+      newExpanded.add(key);
+      setExpandedSessions(newExpanded);
+
+      // Load horses and feeding data if not already loaded
+      if (!sessionHorses[key] && session.instance.organizationId) {
+        setLoadingHorses((prev) => new Set(prev).add(key));
+        try {
+          // Load horses and feeding data in parallel
+          const [horses, feedings] = await Promise.all([
+            resolveStepHorses(
+              session.step,
+              session.instance.stableId,
+              session.instance.organizationId,
+            ),
+            session.step.feedingTimeId
+              ? getHorseFeedingsByStable(session.instance.stableId, {
+                  feedingTimeId: session.step.feedingTimeId,
+                  activeOnly: true,
+                })
+              : Promise.resolve([]),
+          ]);
+          setSessionHorses((prev) => ({ ...prev, [key]: horses }));
+          setSessionFeedingData((prev) => ({
+            ...prev,
+            [key]: transformHorseFeedingsToMap(feedings),
+          }));
+        } catch (err) {
+          console.error("Failed to load horses for session:", err);
+          toast({
+            title: t("common:errors.loadFailed"),
+            variant: "destructive",
+          });
+        } finally {
+          setLoadingHorses((prev) => {
+            const next = new Set(prev);
+            next.delete(key);
+            return next;
+          });
+        }
+      }
+    },
+    [expandedSessions, sessionHorses, t, toast],
+  );
+
+  // Mark a single horse as done
+  const markHorseDone = useCallback(
+    async (session: FeedingSessionView, horseId: string, horseName: string) => {
+      const key = `${session.instanceId}-${session.stepId}-${horseId}`;
+      setUpdatingHorses((prev) => new Set(prev).add(key));
+
+      try {
+        // Ensure routine is started before updating progress
+        if (session.instance.status === "scheduled") {
+          await startRoutineInstance(session.instanceId, true);
+        }
+
+        await updateRoutineProgress(session.instanceId, {
+          stepId: session.stepId,
+          horseUpdates: [
+            {
+              horseId,
+              horseName,
+              completed: true,
+            },
+          ],
+        });
+
+        await refetch();
+        toast({
+          title: t(
+            "feeding:today.horseMarkedComplete",
+            "Häst markerad som klar",
+          ),
+          description: horseName,
+        });
+      } catch (err) {
+        console.error("Failed to mark horse as done:", err);
+        toast({
+          title: t("common:errors.saveFailed"),
+          variant: "destructive",
+        });
+      } finally {
+        setUpdatingHorses((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      }
+    },
+    [refetch, t, toast],
+  );
+
+  // Skip a single horse
+  const skipHorse = useCallback(
+    async (
+      session: FeedingSessionView,
+      horseId: string,
+      horseName: string,
+      reason: string,
+    ) => {
+      const key = `${session.instanceId}-${session.stepId}-${horseId}`;
+      setUpdatingHorses((prev) => new Set(prev).add(key));
+
+      try {
+        // Ensure routine is started before updating progress
+        if (session.instance.status === "scheduled") {
+          await startRoutineInstance(session.instanceId, true);
+        }
+
+        await updateRoutineProgress(session.instanceId, {
+          stepId: session.stepId,
+          horseUpdates: [
+            {
+              horseId,
+              horseName,
+              skipped: true,
+              skipReason: reason,
+            },
+          ],
+        });
+
+        await refetch();
+        toast({
+          title: t("routines:horse.skipped", "Häst hoppades över"),
+          description: horseName,
+        });
+      } catch (err) {
+        console.error("Failed to skip horse:", err);
+        toast({
+          title: t("common:errors.saveFailed"),
+          variant: "destructive",
+        });
+      } finally {
+        setUpdatingHorses((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      }
+    },
+    [refetch, t, toast],
+  );
+
+  // Mark all horses as done
+  const markAllHorsesDone = useCallback(
+    async (session: FeedingSessionView) => {
+      const key = `${session.instanceId}-${session.stepId}`;
+      const horses = sessionHorses[key];
+      if (!horses?.length) return;
+
+      setUpdatingHorses((prev) => new Set(prev).add(`${key}-all`));
+
+      try {
+        // Ensure routine is started before updating progress
+        if (session.instance.status === "scheduled") {
+          await startRoutineInstance(session.instanceId, true);
+        }
+
+        // Get horses that aren't already completed
+        const horsesToMark = horses.filter((horse) => {
+          const progress = session.horseProgress?.[horse.id];
+          return !progress?.completed && !progress?.skipped;
+        });
+
+        if (horsesToMark.length === 0) {
+          toast({
+            title: t(
+              "feeding:today.allHorsesAlreadyComplete",
+              "Alla hästar är redan klara",
+            ),
+          });
+          return;
+        }
+
+        await updateRoutineProgress(session.instanceId, {
+          stepId: session.stepId,
+          horseUpdates: horsesToMark.map((horse) => ({
+            horseId: horse.id,
+            horseName: horse.name,
+            completed: true,
+          })),
+        });
+
+        await refetch();
+        toast({
+          title: t(
+            "feeding:today.allHorsesMarkedComplete",
+            "Alla hästar markerade som klara",
+          ),
+          description: `${horsesToMark.length} ${t("common:labels.horse", "hästar")}`,
+        });
+      } catch (err) {
+        console.error("Failed to mark all horses as done:", err);
+        toast({
+          title: t("common:errors.saveFailed"),
+          variant: "destructive",
+        });
+      } finally {
+        setUpdatingHorses((prev) => {
+          const next = new Set(prev);
+          next.delete(`${key}-all`);
+          return next;
+        });
+      }
+    },
+    [sessionHorses, refetch, t, toast],
+  );
 
   const getStatusColor = (status: FeedingSessionStatus) => {
     switch (status) {
@@ -224,7 +483,7 @@ export default function FeedingTodayPage() {
                 {t("common:labels.stable")}:
               </span>
               <Select
-                value={selectedStableId ?? undefined}
+                value={selectedStableId}
                 onValueChange={setSelectedStableId}
               >
                 <SelectTrigger className="w-48">
@@ -298,7 +557,7 @@ export default function FeedingTodayPage() {
                 {t("common:labels.stable")}:
               </span>
               <Select
-                value={selectedStableId ?? undefined}
+                value={selectedStableId}
                 onValueChange={setSelectedStableId}
               >
                 <SelectTrigger className="w-48">
@@ -346,84 +605,191 @@ export default function FeedingTodayPage() {
 
       {/* Feeding Sessions */}
       <div className="space-y-3">
-        {sessions.map((session) => (
-          <Card
-            key={`${session.instanceId}-${session.stepId}`}
-            className={
-              session.status === "overdue"
-                ? "border-destructive/50"
-                : session.status === "in_progress"
-                  ? "border-primary/50"
-                  : session.status === "active"
-                    ? "border-yellow-500/50"
-                    : ""
-            }
-          >
-            <CardContent className="py-4">
-              <div className="flex items-center gap-4">
-                {getStatusIcon(session.status)}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-medium">{session.name}</h3>
-                    <Badge
-                      className={getStatusColor(session.status)}
-                      variant="secondary"
-                    >
-                      {getStatusLabel(session.status)}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {session.time}
-                    </span>
-                    <span className="text-xs">{session.routineName}</span>
-                    {session.status === "in_progress" &&
-                      session.horsesTotal > 0 && (
-                        <span>
-                          {session.horsesCompleted}/{session.horsesTotal}{" "}
-                          {t("feeding:today.horsesFed", "hästar utfodrade")}
-                        </span>
-                      )}
-                    {session.status === "completed" &&
-                      session.completedByName && (
+        {sessions.map((session) => {
+          const sessionKey = `${session.instanceId}-${session.stepId}`;
+          const isExpanded = expandedSessions.has(sessionKey);
+          const horses = sessionHorses[sessionKey] || [];
+          const isLoadingHorses = loadingHorses.has(sessionKey);
+          const isMarkingAll = updatingHorses.has(`${sessionKey}-all`);
+          const canExpand = session.step.horseContext !== "none";
+
+          return (
+            <Card
+              key={sessionKey}
+              className={
+                session.status === "overdue"
+                  ? "border-destructive/50"
+                  : session.status === "in_progress"
+                    ? "border-primary/50"
+                    : session.status === "active"
+                      ? "border-yellow-500/50"
+                      : ""
+              }
+            >
+              <Collapsible
+                open={isExpanded}
+                onOpenChange={() => canExpand && toggleSession(session)}
+              >
+                <CardContent className="py-4">
+                  <div className="flex items-center gap-4">
+                    {getStatusIcon(session.status)}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-medium">
+                          {t(`routines:categories.${session.step.category}`)}
+                        </h3>
+                        <Badge
+                          className={getStatusColor(session.status)}
+                          variant="secondary"
+                        >
+                          {getStatusLabel(session.status)}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          {session.completedByName}
-                          {session.completedAt && ` (${session.completedAt})`}
+                          <Clock className="h-3 w-3" />
+                          {session.time}
                         </span>
+                        <span className="text-xs">{session.routineName}</span>
+                        {(session.status === "in_progress" ||
+                          session.horsesTotal > 0) && (
+                          <span>
+                            {session.horsesCompleted}/{session.horsesTotal}{" "}
+                            {t("feeding:today.horsesFed", "hästar utfodrade")}
+                          </span>
+                        )}
+                        {session.status === "completed" &&
+                          session.completedByName && (
+                            <span className="flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              {session.completedByName}
+                              {session.completedAt &&
+                                ` (${session.completedAt})`}
+                            </span>
+                          )}
+                      </div>
+                      {session.horsesTotal > 0 && (
+                        <Progress
+                          value={
+                            (session.horsesCompleted / session.horsesTotal) *
+                            100
+                          }
+                          className="h-1 mt-2"
+                        />
                       )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {canExpand && (
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                            <span className="ml-1 text-xs">
+                              {t("feeding:today.showHorses", "Hästar")}
+                            </span>
+                          </Button>
+                        </CollapsibleTrigger>
+                      )}
+                      {session.status !== "completed" && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleContinueSession(session)}
+                        >
+                          {session.status === "in_progress"
+                            ? t("routines:actions.continue", "Fortsätt")
+                            : t("routines:actions.start", "Starta")}
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  {session.status === "in_progress" &&
-                    session.horsesTotal > 0 && (
-                      <Progress
-                        value={
-                          (session.horsesCompleted / session.horsesTotal) * 100
-                        }
-                        className="h-1 mt-2"
-                      />
+                </CardContent>
+
+                <CollapsibleContent>
+                  <div className="border-t px-4 py-3 bg-muted/30">
+                    {isLoadingHorses ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                        <span className="text-sm text-muted-foreground">
+                          {t("common:labels.loading")}
+                        </span>
+                      </div>
+                    ) : horses.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-2">
+                        {t(
+                          "feeding:today.noHorsesInStep",
+                          "Inga hästar i detta steg",
+                        )}
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {/* Mark all button */}
+                        {session.status !== "completed" && (
+                          <div className="flex justify-end">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => markAllHorsesDone(session)}
+                              disabled={isMarkingAll}
+                            >
+                              {isMarkingAll ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              ) : (
+                                <Check className="h-4 w-4 mr-2" />
+                              )}
+                              {t(
+                                "feeding:today.markAllComplete",
+                                "Markera alla klara",
+                              )}
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* Horse list using HorseContextCard */}
+                        <div className="grid gap-3">
+                          {horses.map((horse) => {
+                            const horseKey = `${sessionKey}-${horse.id}`;
+                            const isUpdating = updatingHorses.has(horseKey);
+                            const feedingData = sessionFeedingData[sessionKey];
+                            const feedingInfo = feedingData?.get(horse.id);
+                            const horseProgress =
+                              session.horseProgress?.[horse.id];
+
+                            return (
+                              <HorseContextCard
+                                key={horse.id}
+                                horse={horse}
+                                step={session.step}
+                                feedingInfo={feedingInfo}
+                                progress={horseProgress}
+                                dailyNotes={dailyNotes}
+                                onMarkDone={(notes) =>
+                                  markHorseDone(session, horse.id, horse.name)
+                                }
+                                onSkip={(reason) =>
+                                  skipHorse(
+                                    session,
+                                    horse.id,
+                                    horse.name,
+                                    reason,
+                                  )
+                                }
+                                isSubmitting={isUpdating}
+                                readonly={session.status === "completed"}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
                     )}
-                </div>
-                {(session.status === "upcoming" ||
-                  session.status === "pending" ||
-                  session.status === "active" ||
-                  session.status === "overdue") && (
-                  <Button size="sm" onClick={() => handleStartSession(session)}>
-                    {t("routines:actions.start", "Starta")}
-                  </Button>
-                )}
-                {session.status === "in_progress" && (
-                  <Button
-                    size="sm"
-                    onClick={() => handleContinueSession(session)}
-                  >
-                    {t("routines:actions.continue", "Fortsätt")}
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

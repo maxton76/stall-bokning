@@ -80,7 +80,7 @@ export default function FeedingSchedulePage() {
   const { t, i18n } = useTranslation(["feeding", "common"]);
   const { user } = useAuth();
   const locale = i18n.language === "sv" ? sv : enUS;
-  const [selectedStableId, setSelectedStableId] = useState<string>("all");
+  const [selectedStableId, setSelectedStableId] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -94,96 +94,42 @@ export default function FeedingSchedulePage() {
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
 
-  // Load horses for selected stable(s)
+  // Auto-select first stable when stables load
+  useEffect(() => {
+    const firstStable = stables[0];
+    if (firstStable && !selectedStableId) {
+      setSelectedStableId(firstStable.id);
+    }
+  }, [stables, selectedStableId]);
+
+  // Load horses for selected stable
   const horses = useAsyncData<Horse[]>({
     loadFn: async () => {
       if (!selectedStableId || stables.length === 0) return [];
-
-      // If "all" is selected, get horses from all stables
-      if (selectedStableId === "all") {
-        const allHorses: Horse[] = [];
-        for (const stable of stables) {
-          const stableHorses = await getStableHorses(stable.id);
-          allHorses.push(...stableHorses);
-        }
-        // Remove duplicates by horse ID
-        return Array.from(new Map(allHorses.map((h) => [h.id, h])).values());
-      }
-
       return await getStableHorses(selectedStableId);
     },
   });
 
-  // Load feed types for selected stable(s)
+  // Load feed types for selected stable
   const feedTypes = useAsyncData<FeedType[]>({
     loadFn: async () => {
       if (!selectedStableId || stables.length === 0) return [];
-
-      // If "all" is selected, get feed types from all stables and merge unique ones
-      if (selectedStableId === "all") {
-        const allTypes: FeedType[] = [];
-        const seenNames = new Set<string>();
-
-        for (const stable of stables) {
-          const types = await getFeedTypesByStable(stable.id, true);
-          types.forEach((type) => {
-            if (!seenNames.has(type.name)) {
-              seenNames.add(type.name);
-              allTypes.push(type);
-            }
-          });
-        }
-        return allTypes;
-      }
-
       return await getFeedTypesByStable(selectedStableId, true);
     },
   });
 
-  // Load feeding times for selected stable(s)
+  // Load feeding times for selected stable
   const feedingTimes = useAsyncData<FeedingTime[]>({
     loadFn: async () => {
       if (!selectedStableId || stables.length === 0) return [];
-
-      // If "all" is selected, get feeding times from all stables and merge unique ones
-      if (selectedStableId === "all") {
-        const allTimes: FeedingTime[] = [];
-        const seenNames = new Set<string>();
-
-        for (const stable of stables) {
-          const times = await getFeedingTimesByStable(stable.id, true);
-          times.forEach((time) => {
-            if (!seenNames.has(time.name)) {
-              seenNames.add(time.name);
-              allTimes.push(time);
-            }
-          });
-        }
-        return allTimes;
-      }
-
       return await getFeedingTimesByStable(selectedStableId, true);
     },
   });
 
-  // Load horse feedings for selected stable(s) and date
+  // Load horse feedings for selected stable and date
   const horseFeedings = useAsyncData<HorseFeeding[]>({
     loadFn: async () => {
       if (!selectedStableId || stables.length === 0) return [];
-
-      // If "all" is selected, get feedings from all stables
-      if (selectedStableId === "all") {
-        const allFeedings: HorseFeeding[] = [];
-        for (const stable of stables) {
-          const stableFeedings = await getHorseFeedingsByStable(stable.id, {
-            date: selectedDate,
-            activeOnly: true,
-          });
-          allFeedings.push(...stableFeedings);
-        }
-        return allFeedings;
-      }
-
       return await getHorseFeedingsByStable(selectedStableId, {
         date: selectedDate,
         activeOnly: true,
@@ -254,23 +200,8 @@ export default function FeedingSchedulePage() {
   const feedingCRUD = useCRUD<HorseFeeding>({
     createFn: async (data) => {
       if (!selectedStableId) throw new Error("No stable selected");
-
-      // When "all" is selected, determine the stable from the horse's data
-      let stableIdToUse = selectedStableId;
-      if (selectedStableId === "all") {
-        const feedingData = data as CreateHorseFeedingData;
-        const horse = horses.data?.find((h) => h.id === feedingData.horseId);
-        if (horse && "currentStableId" in horse) {
-          stableIdToUse = (horse as any).currentStableId;
-        } else if (horse && "stableId" in horse) {
-          stableIdToUse = (horse as any).stableId;
-        } else {
-          throw new Error("Could not determine stable for this horse");
-        }
-      }
-
       return await createHorseFeeding(
-        stableIdToUse,
+        selectedStableId,
         data as CreateHorseFeedingData,
       );
     },
@@ -404,9 +335,6 @@ export default function FeedingSchedulePage() {
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">
-                    {t("feeding:schedule.allStables")}
-                  </SelectItem>
                   {stables.map((stable) => (
                     <SelectItem key={stable.id} value={stable.id}>
                       {stable.name}

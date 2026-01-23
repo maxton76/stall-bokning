@@ -498,6 +498,10 @@
       "noVaccinationRuleAssigned": "No vaccination rule assigned to this horse",
       "deleteRecordTitle": "Delete Vaccination Record",
       "deleteRecordConfirm": "Are you sure you want to delete the vaccination record from {{date}}? This action cannot be undone.",
+      "assignSuccess": "Vaccination rule assigned",
+      "assignError": "Failed to assign vaccination rule",
+      "removeSuccess": "Vaccination rule removed",
+      "removeError": "Failed to remove vaccination rule",
       "status": {
         "upToDate": "Up to date",
         "dueSoon": "Due soon",

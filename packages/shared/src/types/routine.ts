@@ -483,6 +483,7 @@ export interface UpdateStepProgressInput {
  */
 export interface UpdateHorseProgressInput {
   horseId: string;
+  horseName?: string; // Optional for backwards compatibility
   completed?: boolean;
   skipped?: boolean;
   skipReason?: string;

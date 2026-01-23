@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   CheckSquare,
-  Clock,
   AlertTriangle,
   Wheat,
   Calendar,
@@ -71,7 +70,7 @@ export default function OverviewPage() {
                 {overviewData.overdueTasks}
               </div>
               <Link
-                to="/tasks/today"
+                to="/activities"
                 className="text-xs text-muted-foreground hover:underline"
               >
                 {t("common:buttons.viewDetails")} →
@@ -145,23 +144,17 @@ export default function OverviewPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <Button asChild variant="outline" className="h-auto py-4 flex-col">
-              <Link to="/tasks/today">
-                <CheckSquare className="h-6 w-6 mb-2" />
-                <span>{t("common:navigation.tasksToday")}</span>
+              <Link to="/activities">
+                <Play className="h-6 w-6 mb-2" />
+                <span>{t("common:navigation.todaysWork")}</span>
               </Link>
             </Button>
             <Button asChild variant="outline" className="h-auto py-4 flex-col">
               <Link to="/feeding/today">
                 <Wheat className="h-6 w-6 mb-2" />
                 <span>{t("common:navigation.feedingToday")}</span>
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="h-auto py-4 flex-col">
-              <Link to="/activities">
-                <Play className="h-6 w-6 mb-2" />
-                <span>{t("common:navigation.todaysWork")}</span>
               </Link>
             </Button>
             <Button asChild variant="outline" className="h-auto py-4 flex-col">
@@ -187,7 +180,7 @@ export default function OverviewPage() {
               <CheckSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>{t("common:overview.emptyState.noTasks")}</p>
               <Button asChild variant="link" className="mt-2">
-                <Link to="/tasks/today">
+                <Link to="/activities">
                   {t("common:buttons.viewAll")}{" "}
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>

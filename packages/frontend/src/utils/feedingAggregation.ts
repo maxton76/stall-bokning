@@ -24,6 +24,17 @@ export type FeedingSessionStatus =
   | "overdue"; // More than 2 hours past scheduled time and not completed
 
 /**
+ * Horse progress info for display
+ */
+export interface HorseProgressView {
+  horseId: string;
+  horseName: string;
+  completed: boolean;
+  skipped: boolean;
+  notes?: string;
+}
+
+/**
  * View model for displaying feeding sessions on FeedingTodayPage
  */
 export interface FeedingSessionView {
@@ -43,6 +54,13 @@ export interface FeedingSessionView {
   // Progress (from stepProgress)
   horsesTotal: number;
   horsesCompleted: number;
+
+  // Horse progress details (if available from stepProgress)
+  horseProgress?: Record<string, HorseProgressView>;
+
+  // Raw data for horse resolution
+  instance: RoutineInstance;
+  step: RoutineStep;
 
   // Completion info
   completedAt?: string;
@@ -234,6 +252,21 @@ export function aggregateFeedingSessions(
       ? formatTimestamp(stepProgress.completedAt)
       : undefined;
 
+    // Build horse progress view from stepProgress.horseProgress
+    let horseProgressView: Record<string, HorseProgressView> | undefined;
+    if (stepProgress?.horseProgress) {
+      horseProgressView = {};
+      for (const [horseId, hp] of Object.entries(stepProgress.horseProgress)) {
+        horseProgressView[horseId] = {
+          horseId,
+          horseName: hp.horseName || "Unknown",
+          completed: hp.completed || false,
+          skipped: hp.skipped || false,
+          notes: hp.notes,
+        };
+      }
+    }
+
     return {
       instanceId: info.instanceId,
       stepId: info.step.id,
@@ -244,6 +277,9 @@ export function aggregateFeedingSessions(
       status,
       horsesTotal: progress.total,
       horsesCompleted: progress.completed,
+      horseProgress: horseProgressView,
+      instance: info.instance,
+      step: info.step,
       completedAt,
       completedBy: undefined, // Could be extracted from instance.completedBy if needed
       completedByName: info.instance.completedByName,

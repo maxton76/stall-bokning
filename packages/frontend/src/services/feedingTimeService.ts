@@ -12,9 +12,6 @@ import { apiClient } from "@/lib/apiClient";
 /**
  * Get all feeding times for a stable
  *
- * Note: If no feeding times exist and the user has management access,
- * default times (morning 07:00, afternoon 13:00, evening 20:00) will be created.
- *
  * @param stableId - Stable ID to fetch times for
  * @param activeOnly - If true, only returns active times (default: true)
  * @returns Promise with array of feeding times

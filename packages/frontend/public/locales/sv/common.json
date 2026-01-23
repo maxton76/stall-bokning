@@ -104,7 +104,8 @@
     "all": "Alla",
     "copy": "Kopia",
     "points": "poäng",
-    "optional": "valfritt"
+    "optional": "valfritt",
+    "of": "av"
   },
   "status": {
     "active": "Aktiv",

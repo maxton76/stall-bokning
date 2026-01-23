@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +16,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDialog } from "@/hooks/useDialog";
 import { VaccinationHistoryTable } from "@/components/VaccinationHistoryTable";
 import { VaccinationRecordDialog } from "@/components/VaccinationRecordDialog";
+import { VaccinationRuleAssignmentSection } from "./VaccinationRuleAssignmentCard";
 import {
   getHorseVaccinationRecords,
   deleteVaccinationRecord,
@@ -118,84 +118,8 @@ export function VaccinationCard({ horse }: VaccinationCardProps) {
         </CardHeader>
 
         <CardContent className="space-y-6 overflow-hidden">
-          {/* Vaccination Status Section */}
-          {horse.vaccinationRuleId && horse.vaccinationRuleName ? (
-            <div className="rounded-lg border p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold">
-                    {t("horses:detail.vaccination.currentVaccinationRule")}
-                  </h3>
-                  <p className="font-medium mt-1">
-                    {horse.vaccinationRuleName}
-                  </p>
-                </div>
-                {horse.vaccinationStatus && (
-                  <Badge
-                    variant={
-                      horse.vaccinationStatus === "current"
-                        ? "default"
-                        : horse.vaccinationStatus === "expiring_soon"
-                          ? "secondary"
-                          : "destructive"
-                    }
-                  >
-                    {horse.vaccinationStatus === "current" &&
-                      t("horses:detail.vaccination.status.upToDate")}
-                    {horse.vaccinationStatus === "expiring_soon" &&
-                      t("horses:detail.vaccination.status.dueSoon")}
-                    {horse.vaccinationStatus === "expired" &&
-                      t("horses:detail.vaccination.status.overdue")}
-                    {horse.vaccinationStatus === "no_records" &&
-                      t("horses:detail.vaccination.status.noRecords")}
-                  </Badge>
-                )}
-              </div>
-
-              {/* Next Due Date */}
-              {horse.nextVaccinationDue && (
-                <div className="flex items-baseline gap-2 pt-2 border-t">
-                  <span className="text-sm text-muted-foreground">
-                    {t("horses:detail.vaccination.nextDue")}
-                  </span>
-                  <span
-                    className={`font-medium ${
-                      horse.vaccinationStatus === "expired"
-                        ? "text-destructive"
-                        : horse.vaccinationStatus === "expiring_soon"
-                          ? "text-amber-600"
-                          : ""
-                    }`}
-                  >
-                    {toDate(horse.nextVaccinationDue) &&
-                      format(toDate(horse.nextVaccinationDue)!, "MMM d, yyyy")}
-                  </span>
-                </div>
-              )}
-
-              {/* Last Vaccination Date */}
-              {horse.lastVaccinationDate &&
-                toDate(horse.lastVaccinationDate) && (
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      {t("horses:detail.vaccination.lastVaccination")}
-                    </span>
-                    <span className="text-sm">
-                      {format(
-                        toDate(horse.lastVaccinationDate)!,
-                        "MMM d, yyyy",
-                      )}
-                    </span>
-                  </div>
-                )}
-            </div>
-          ) : (
-            <div className="rounded-lg border border-dashed p-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                {t("horses:detail.vaccination.noVaccinationRuleAssigned")}
-              </p>
-            </div>
-          )}
+          {/* Vaccination Rule Assignments - New Multi-Rule System */}
+          <VaccinationRuleAssignmentSection horse={horse} showHeader={false} />
 
           {/* Vaccination History Table */}
           <div className="border-t pt-6">

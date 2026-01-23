@@ -375,8 +375,6 @@ export default function MyHorsesPage() {
         onSave={handleSaveHorse}
         allowStableAssignment={stables.length > 0}
         availableStables={stables}
-        onViewVaccinationHistory={handleViewVaccinationHistory}
-        onAddVaccinationRecord={handleAddVaccinationRecord}
       />
 
       <HorseAssignmentDialog

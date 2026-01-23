@@ -436,9 +436,10 @@ export function HorseContextCard({
               {!isDone && !readonly && (
                 <div className="flex gap-2">
                   <Button
+                    variant="outline"
                     onClick={handleMarkDone}
                     disabled={isSubmitting}
-                    className="flex-1"
+                    className="flex-1 border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
                   >
                     <Check className="h-4 w-4 mr-2" />
                     {t("routines:horse.done")}
@@ -465,9 +466,8 @@ export function HorseContextCard({
             <CardContent className="pt-0">
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 {step.showFeeding && feedingInfo && (
-                  <span className="flex items-center gap-1">
-                    <Wheat className="h-4 w-4" />
-                    {feedingInfo.quantity}
+                  <span className="text-amber-700 font-medium">
+                    {feedingInfo.feedType}: {feedingInfo.quantity}
                   </span>
                 )}
                 {step.showMedication && medicationInfo && (
@@ -480,8 +480,10 @@ export function HorseContextCard({
               <div className="flex gap-2 mt-3">
                 <Button
                   size="sm"
+                  variant="outline"
                   onClick={handleMarkDone}
                   disabled={isSubmitting}
+                  className="border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
                 >
                   <Check className="h-4 w-4 mr-1" />
                   {t("routines:horse.done")}

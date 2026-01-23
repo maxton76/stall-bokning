@@ -365,14 +365,16 @@ exports.scanForReminders = (0, scheduler_1.onSchedule)(
         }
       }
       // ========================================================================
-      // HEALTH CARE REMINDERS
+      // HEALTH CARE REMINDERS (Multi-Rule System)
       // ========================================================================
       // Scan for horses with upcoming health care due dates
+      // Uses aggregate nextVaccinationDue for efficient query, then checks per-rule
       const healthReminderDays = [7, 1]; // Days before due
       const maxHealthDays = Math.max(...healthReminderDays);
       const healthWindowEnd = new Date(now);
       healthWindowEnd.setDate(healthWindowEnd.getDate() + maxHealthDays);
       // Paginate horses query to avoid memory issues
+      // Query by aggregate nextVaccinationDue (nearest due date across all rules)
       const horsesSnapshot = await firebase_js_1.db
         .collection("horses")
         .where("status", "==", "active")
@@ -417,83 +419,161 @@ exports.scanForReminders = (0, scheduler_1.onSchedule)(
             totalSkipped++;
             continue;
           }
-          // Calculate days until due
-          const dueDate = horse.nextVaccinationDue.toDate();
-          const daysUntil = Math.ceil(
-            (dueDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000),
-          );
-          // Check each reminder day
+          // Get user info (once per horse, not per rule)
+          const userDoc = await firebase_js_1.db
+            .collection("users")
+            .doc(ownerId)
+            .get();
+          const userEmail = userDoc.exists ? userDoc.data()?.email : undefined;
           const reminderDays = preferences.healthReminders.reminderDays || [
             7, 1,
           ];
-          for (const reminderDay of reminderDays) {
-            // Check if we're on this reminder day
-            if (daysUntil === reminderDay) {
-              // Use transaction to prevent race condition (TOCTOU)
-              const reminderDocId = `health_${horseId}_${reminderDay}`;
-              const reminderRef = firebase_js_1.db
-                .collection("sentReminders")
-                .doc(reminderDocId);
-              const wasReminderSent = await firebase_js_1.db.runTransaction(
-                async (transaction) => {
-                  const sentRemindersDoc = await transaction.get(reminderRef);
-                  if (sentRemindersDoc.exists) {
-                    return false; // Already sent
+          // Process multi-rule assignments (new system)
+          const assignedRules = horse.assignedVaccinationRules || [];
+          if (assignedRules.length > 0) {
+            // New multi-rule system: send reminders per rule
+            for (const assignment of assignedRules) {
+              if (!assignment.nextDueDate) continue;
+              const dueDate = assignment.nextDueDate.toDate();
+              const daysUntil = Math.ceil(
+                (dueDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000),
+              );
+              // Check each reminder day for this rule
+              for (const reminderDay of reminderDays) {
+                if (daysUntil === reminderDay) {
+                  // Use transaction to prevent race condition (TOCTOU)
+                  // Include ruleId in the document ID for per-rule tracking
+                  const reminderDocId = `health_${horseId}_${assignment.ruleId}_${reminderDay}`;
+                  const reminderRef = firebase_js_1.db
+                    .collection("sentReminders")
+                    .doc(reminderDocId);
+                  const wasReminderSent = await firebase_js_1.db.runTransaction(
+                    async (transaction) => {
+                      const sentRemindersDoc =
+                        await transaction.get(reminderRef);
+                      if (sentRemindersDoc.exists) {
+                        return false; // Already sent
+                      }
+                      // Mark as sent within the transaction
+                      transaction.set(reminderRef, {
+                        horseId,
+                        ruleId: assignment.ruleId,
+                        ruleName: assignment.ruleName,
+                        reminderDay,
+                        sentAt: firebase_js_1.Timestamp.now(),
+                        userId: ownerId,
+                      });
+                      return true; // Reminder should be sent
+                    },
+                  );
+                  if (!wasReminderSent) {
+                    continue; // Another instance already sent this reminder
                   }
-                  // Mark as sent within the transaction
-                  transaction.set(reminderRef, {
-                    horseId,
-                    reminderDay,
-                    sentAt: firebase_js_1.Timestamp.now(),
-                    userId: ownerId,
-                  });
-                  return true; // Reminder should be sent
-                },
-              );
-              if (!wasReminderSent) {
-                continue; // Another instance already sent this reminder
+                  // Build notification with rule-specific information
+                  const timeText =
+                    reminderDay === 1 ? "imorgon" : `om ${reminderDay} dagar`;
+                  const title = `Vaccination: ${horse.name}`;
+                  const body = `${assignment.ruleName} för ${horse.name} förfaller ${timeText} (${dueDate.toLocaleDateString("sv-SE")})`;
+                  const actionUrl = `/horses/${horseId}`;
+                  // Queue notification
+                  const channels = preferences.healthReminders.channels || [
+                    "inApp",
+                    "email",
+                  ];
+                  await queueNotification(
+                    ownerId,
+                    userEmail,
+                    channels,
+                    reminderDay === 1 ? "high" : "normal",
+                    title,
+                    body,
+                    "horse_vaccination",
+                    `${horseId}_${assignment.ruleId}`,
+                    actionUrl,
+                  );
+                  totalReminders++;
+                  firebase_functions_1.logger.info(
+                    {
+                      executionId,
+                      horseId,
+                      ruleId: assignment.ruleId,
+                      ruleName: assignment.ruleName,
+                      userId: ownerId,
+                      reminderDay,
+                      daysUntil,
+                    },
+                    "Sent vaccination reminder (per-rule)",
+                  );
+                }
               }
-              // Get user info
-              const userDoc = await firebase_js_1.db
-                .collection("users")
-                .doc(ownerId)
-                .get();
-              const userEmail = userDoc.exists
-                ? userDoc.data()?.email
-                : undefined;
-              // Build notification
-              const timeText =
-                reminderDay === 1 ? "imorgon" : `om ${reminderDay} dagar`;
-              const title = `Hälsovård: ${horse.name}`;
-              const body = `Vaccination för ${horse.name} förfaller ${timeText} (${dueDate.toLocaleDateString("sv-SE")})`;
-              const actionUrl = `/horses/${horseId}`;
-              // Queue notification
-              const channels = preferences.healthReminders.channels || [
-                "inApp",
-                "email",
-              ];
-              await queueNotification(
-                ownerId,
-                userEmail,
-                channels,
-                reminderDay === 1 ? "high" : "normal",
-                title,
-                body,
-                "horse",
-                horseId,
-                actionUrl,
-              );
-              totalReminders++;
-              firebase_functions_1.logger.info(
-                {
-                  executionId,
+            }
+          } else if (horse.nextVaccinationDue) {
+            // Legacy single-rule system (backward compatibility)
+            const dueDate = horse.nextVaccinationDue.toDate();
+            const daysUntil = Math.ceil(
+              (dueDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000),
+            );
+            for (const reminderDay of reminderDays) {
+              if (daysUntil === reminderDay) {
+                // Use transaction to prevent race condition (TOCTOU)
+                const reminderDocId = `health_${horseId}_${reminderDay}`;
+                const reminderRef = firebase_js_1.db
+                  .collection("sentReminders")
+                  .doc(reminderDocId);
+                const wasReminderSent = await firebase_js_1.db.runTransaction(
+                  async (transaction) => {
+                    const sentRemindersDoc = await transaction.get(reminderRef);
+                    if (sentRemindersDoc.exists) {
+                      return false; // Already sent
+                    }
+                    // Mark as sent within the transaction
+                    transaction.set(reminderRef, {
+                      horseId,
+                      reminderDay,
+                      sentAt: firebase_js_1.Timestamp.now(),
+                      userId: ownerId,
+                    });
+                    return true; // Reminder should be sent
+                  },
+                );
+                if (!wasReminderSent) {
+                  continue; // Another instance already sent this reminder
+                }
+                // Build notification
+                const timeText =
+                  reminderDay === 1 ? "imorgon" : `om ${reminderDay} dagar`;
+                const ruleName = horse.vaccinationRuleName || "Vaccination";
+                const title = `Vaccination: ${horse.name}`;
+                const body = `${ruleName} för ${horse.name} förfaller ${timeText} (${dueDate.toLocaleDateString("sv-SE")})`;
+                const actionUrl = `/horses/${horseId}`;
+                // Queue notification
+                const channels = preferences.healthReminders.channels || [
+                  "inApp",
+                  "email",
+                ];
+                await queueNotification(
+                  ownerId,
+                  userEmail,
+                  channels,
+                  reminderDay === 1 ? "high" : "normal",
+                  title,
+                  body,
+                  "horse",
                   horseId,
-                  userId: ownerId,
-                  reminderDay,
-                  daysUntil,
-                },
-                "Sent health care reminder",
-              );
+                  actionUrl,
+                );
+                totalReminders++;
+                firebase_functions_1.logger.info(
+                  {
+                    executionId,
+                    horseId,
+                    userId: ownerId,
+                    reminderDay,
+                    daysUntil,
+                  },
+                  "Sent health care reminder (legacy)",
+                );
+              }
             }
           }
         } catch (error) {

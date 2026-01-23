@@ -4,6 +4,7 @@ import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
+import { recalculateHorseVaccinationStatus } from "../utils/vaccinationStatusCalculator.js";
 
 /**
  * Check if user has organization membership with stable access
@@ -281,21 +282,28 @@ export async function vaccinationRecordsRoutes(fastify: FastifyInstance) {
           .collection("vaccinationRecords")
           .add(recordData);
 
-        // Update horse's nextVaccinationDue if applicable
-        if (data.expiryDate) {
-          const horseRef = db.collection("horses").doc(data.horseId);
-          const horseDoc = await horseRef.get();
+        // Recalculate horse's vaccination status for the new multi-rule system
+        // This handles both the legacy single-rule and new multi-rule systems
+        try {
+          await recalculateHorseVaccinationStatus(data.horseId, user.uid);
+        } catch {
+          // Fallback to legacy update if recalculation fails
+          // (e.g., if horse doesn't have assignedVaccinationRules yet)
+          if (data.expiryDate) {
+            const horseRef = db.collection("horses").doc(data.horseId);
+            const horseDoc = await horseRef.get();
 
-          if (horseDoc.exists) {
-            const currentNext = horseDoc.data()?.nextVaccinationDue;
-            const newExpiry = Timestamp.fromDate(new Date(data.expiryDate));
+            if (horseDoc.exists) {
+              const currentNext = horseDoc.data()?.nextVaccinationDue;
+              const newExpiry = Timestamp.fromDate(new Date(data.expiryDate));
 
-            if (!currentNext || newExpiry.toDate() < currentNext.toDate()) {
-              await horseRef.update({
-                nextVaccinationDue: newExpiry,
-                lastModifiedAt: Timestamp.now(),
-                lastModifiedBy: user.uid,
-              });
+              if (!currentNext || newExpiry.toDate() < currentNext.toDate()) {
+                await horseRef.update({
+                  nextVaccinationDue: newExpiry,
+                  lastModifiedAt: Timestamp.now(),
+                  lastModifiedBy: user.uid,
+                });
+              }
             }
           }
         }
@@ -415,6 +423,13 @@ export async function vaccinationRecordsRoutes(fastify: FastifyInstance) {
 
         await docRef.update(updates);
 
+        // Recalculate horse's vaccination status for the new multi-rule system
+        try {
+          await recalculateHorseVaccinationStatus(record.horseId, user.uid);
+        } catch {
+          // Ignore recalculation errors - record was still updated successfully
+        }
+
         return { id, ...serializeTimestamps({ ...record, ...updates }) };
       } catch (error) {
         request.log.error({ error }, "Failed to update vaccination record");
@@ -467,6 +482,13 @@ export async function vaccinationRecordsRoutes(fastify: FastifyInstance) {
         }
 
         await docRef.delete();
+
+        // Recalculate horse's vaccination status for the new multi-rule system
+        try {
+          await recalculateHorseVaccinationStatus(record.horseId, user.uid);
+        } catch {
+          // Ignore recalculation errors - record was still deleted successfully
+        }
 
         return { success: true, id };
       } catch (error) {

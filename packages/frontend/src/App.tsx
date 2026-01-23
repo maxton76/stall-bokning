@@ -21,15 +21,7 @@ const AccountPage = lazy(() => import("./pages/AccountPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const SchedulePage = lazy(() => import("./pages/SchedulePage"));
 
-// Task pages
-const TasksTodayPage = lazy(() => import("./pages/tasks/TasksTodayPage"));
-const TasksUpcomingPage = lazy(() => import("./pages/tasks/TasksUpcomingPage"));
-const TasksCompletedPage = lazy(
-  () => import("./pages/tasks/TasksCompletedPage"),
-);
-
 // My Page
-const MyTasksPage = lazy(() => import("./pages/my-page/MyTasksPage"));
 const MyStatisticsPage = lazy(() => import("./pages/my-page/MyStatisticsPage"));
 
 // Schedule views
@@ -299,48 +291,24 @@ function App() {
                   }
                 />
 
-                {/* Task routes - daily chores/shifts execution */}
+                {/* Task routes - redirect to activities (tasks consolidated) */}
                 <Route
                   path="/tasks"
-                  element={<Navigate to="/tasks/today" replace />}
+                  element={<Navigate to="/activities" replace />}
                 />
                 <Route
-                  path="/tasks/today"
-                  element={
-                    <Suspense fallback={<InlineLoader />}>
-                      <TasksTodayPage />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/tasks/upcoming"
-                  element={
-                    <Suspense fallback={<InlineLoader />}>
-                      <TasksUpcomingPage />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/tasks/completed"
-                  element={
-                    <Suspense fallback={<InlineLoader />}>
-                      <TasksCompletedPage />
-                    </Suspense>
-                  }
+                  path="/tasks/*"
+                  element={<Navigate to="/activities" replace />}
                 />
 
                 {/* My Page routes - personal aggregation */}
                 <Route
                   path="/my-page"
-                  element={<Navigate to="/my-page/tasks" replace />}
+                  element={<Navigate to="/my-page/availability" replace />}
                 />
                 <Route
                   path="/my-page/tasks"
-                  element={
-                    <Suspense fallback={<InlineLoader />}>
-                      <MyTasksPage />
-                    </Suspense>
-                  }
+                  element={<Navigate to="/activities" replace />}
                 />
                 <Route
                   path="/my-page/availability"

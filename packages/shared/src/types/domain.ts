@@ -1,5 +1,8 @@
 import type { Timestamp } from "firebase/firestore";
-import type { VaccinationStatus } from "./vaccination.js";
+import type {
+  VaccinationStatus,
+  HorseVaccinationAssignment,
+} from "./vaccination.js";
 import type { MembershipStatus } from "./organization.js";
 
 /**
@@ -235,14 +238,22 @@ export interface Horse {
   horseGroupId?: string; // OPTIONAL - horse may be assigned to a group
   horseGroupName?: string; // Cached for display
 
-  // Vaccination Rule Assignment - Only for non-external horses
-  vaccinationRuleId?: string; // OPTIONAL - horse may have vaccination rule
-  vaccinationRuleName?: string; // Cached for display
+  // Vaccination Rule Assignments - Multiple rules per horse
+  // Each rule tracks its own status independently
+  assignedVaccinationRules?: HorseVaccinationAssignment[]; // Array of assigned rules with status
+  vaccinationRuleCount?: number; // Quick count for display/filtering
 
-  // Vaccination Tracking (denormalized for performance)
-  lastVaccinationDate?: Timestamp; // Most recent vaccination
-  nextVaccinationDue?: Timestamp; // When next vaccination is due
-  vaccinationStatus?: VaccinationStatus; // Cached status (updated on record changes)
+  // Aggregate Vaccination Tracking (denormalized for performance)
+  // These represent the "worst" status across all assigned rules
+  lastVaccinationDate?: Timestamp; // Most recent vaccination across all rules
+  nextVaccinationDue?: Timestamp; // Nearest due date across all rules
+  vaccinationStatus?: VaccinationStatus; // Aggregate status (worst status wins)
+
+  // DEPRECATED: Single rule assignment (kept for backward compatibility during migration)
+  // @deprecated Use assignedVaccinationRules instead
+  vaccinationRuleId?: string; // DEPRECATED - use assignedVaccinationRules
+  // @deprecated Use assignedVaccinationRules instead
+  vaccinationRuleName?: string; // DEPRECATED - use assignedVaccinationRules
 
   // Identification
   ueln?: string; // Universal Equine Life Number

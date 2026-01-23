@@ -251,7 +251,13 @@
     "active": "Active",
     "upcoming": "Upcoming",
     "noFeedingSessions": "No feedings today",
-    "noFeedingSessionsDescription": "There are no scheduled routines with feeding steps for today. Create routines in settings or wait for a routine to be scheduled."
+    "noFeedingSessionsDescription": "There are no scheduled routines with feeding steps for today. Create routines in settings or wait for a routine to be scheduled.",
+    "showHorses": "Horses",
+    "noHorsesInStep": "No horses in this step",
+    "markAllComplete": "Mark all complete",
+    "horseMarkedComplete": "Horse marked as complete",
+    "allHorsesMarkedComplete": "All horses marked as complete",
+    "allHorsesAlreadyComplete": "All horses already complete"
   },
   "history": {
     "title": "Feeding History",

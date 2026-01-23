@@ -32,12 +32,19 @@ interface VaccinationRecordDialogProps {
   record?: VaccinationRecord | null;
   onSuccess?: () => void;
   title?: string;
+  preselectedRuleId?: string; // Pre-select a specific rule (for recording from assignment card)
 }
 
 const vaccinationRecordSchema = z.object({
   vaccinationRuleId: z.string().min(1, "Vaccination rule is required"),
-  vaccinationDate: z.string().min(1, "Vaccination date is required"),
-  nextDueDate: z.string().min(1, "Next due date is required"),
+  vaccinationDate: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.coerce.date({ message: "Vaccination date is required" }),
+  ),
+  nextDueDate: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.coerce.date({ message: "Next due date is required" }),
+  ),
   veterinarianName: z.string().optional(),
   vaccineProduct: z.string().optional(),
   batchNumber: z.string().optional(),
@@ -54,6 +61,7 @@ export function VaccinationRecordDialog({
   record,
   onSuccess,
   title,
+  preselectedRuleId,
 }: VaccinationRecordDialogProps) {
   const { user } = useAuth();
   const isEditMode = !!record;
@@ -85,18 +93,16 @@ export function VaccinationRecordDialog({
       schema: vaccinationRecordSchema,
       defaultValues: {
         vaccinationRuleId: "",
-        vaccinationDate: "",
-        nextDueDate: "",
+        vaccinationDate: undefined,
+        nextDueDate: undefined,
         veterinarianName: "",
         vaccineProduct: "",
         batchNumber: "",
         notes: "",
       },
       onSubmit: async (data) => {
-        const vaccinationDate = Timestamp.fromDate(
-          new Date(data.vaccinationDate),
-        );
-        const nextDueDate = Timestamp.fromDate(new Date(data.nextDueDate));
+        const vaccinationDate = Timestamp.fromDate(data.vaccinationDate);
+        const nextDueDate = Timestamp.fromDate(data.nextDueDate);
 
         const selectedRule = availableRules.find(
           (r) => r.id === data.vaccinationRuleId,
@@ -161,7 +167,10 @@ export function VaccinationRecordDialog({
         (r) => r.id === vaccinationRuleId,
       );
       if (selectedRule) {
-        const vDate = new Date(vaccinationDate);
+        const vDate =
+          vaccinationDate instanceof Date
+            ? vaccinationDate
+            : new Date(vaccinationDate);
         let nextDue = vDate;
 
         // Add months if specified
@@ -174,40 +183,47 @@ export function VaccinationRecordDialog({
           nextDue = addDays(nextDue, selectedRule.periodDays);
         }
 
-        const calculatedDate = format(nextDue, "yyyy-MM-dd");
-        setAutoCalculatedDueDate(calculatedDate);
+        const calculatedDateString = format(nextDue, "yyyy-MM-dd");
+        setAutoCalculatedDueDate(calculatedDateString);
 
         // Only auto-set if user hasn't manually edited it or it's empty
-        if (
-          !form.getValues("nextDueDate") ||
-          form.getValues("nextDueDate") === ""
-        ) {
-          form.setValue("nextDueDate", calculatedDate);
+        const currentNextDueDate = form.getValues("nextDueDate");
+        if (!currentNextDueDate) {
+          form.setValue("nextDueDate", nextDue);
         }
       }
     }
   }, [vaccinationRuleId, vaccinationDate, availableRules, form]);
 
-  // Reset form when dialog opens with record data
+  // Reset form when dialog opens with record data or preselected rule
   useEffect(() => {
     if (record) {
       const vaccinationDate = toDate(record.vaccinationDate);
       const nextDueDate = toDate(record.nextDueDate);
       resetForm({
         vaccinationRuleId: record.vaccinationRuleId,
-        vaccinationDate: vaccinationDate
-          ? format(vaccinationDate, "yyyy-MM-dd")
-          : "",
-        nextDueDate: nextDueDate ? format(nextDueDate, "yyyy-MM-dd") : "",
+        vaccinationDate: vaccinationDate || undefined,
+        nextDueDate: nextDueDate || undefined,
         veterinarianName: record.veterinarianName || "",
         vaccineProduct: record.vaccineProduct || "",
         batchNumber: record.batchNumber || "",
         notes: record.notes || "",
       });
+    } else if (preselectedRuleId) {
+      // Pre-select the rule when recording from assignment card
+      resetForm({
+        vaccinationRuleId: preselectedRuleId,
+        vaccinationDate: undefined,
+        nextDueDate: undefined,
+        veterinarianName: "",
+        vaccineProduct: "",
+        batchNumber: "",
+        notes: "",
+      });
     } else {
       resetForm();
     }
-  }, [record, open]);
+  }, [record, open, preselectedRuleId]);
 
   const dialogTitle =
     title ||
@@ -271,11 +287,19 @@ export function VaccinationRecordDialog({
               <Info className="h-4 w-4" />
               <AlertDescription className="text-sm">
                 Auto-calculated based on rule: {autoCalculatedDueDate}
-                {form.getValues("nextDueDate") !== autoCalculatedDueDate && (
-                  <span className="ml-1 text-muted-foreground">
-                    (manually overridden)
-                  </span>
-                )}
+                {(() => {
+                  const currentNextDueDate = form.getValues("nextDueDate");
+                  const currentNextDueDateString = currentNextDueDate
+                    ? format(currentNextDueDate, "yyyy-MM-dd")
+                    : "";
+                  return (
+                    currentNextDueDateString !== autoCalculatedDueDate && (
+                      <span className="ml-1 text-muted-foreground">
+                        (manually overridden)
+                      </span>
+                    )
+                  );
+                })()}
               </AlertDescription>
             </Alert>
           )}

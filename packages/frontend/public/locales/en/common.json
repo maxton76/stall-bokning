@@ -104,7 +104,8 @@
     "all": "All",
     "copy": "Copy",
     "points": "points",
-    "optional": "optional"
+    "optional": "optional",
+    "of": "of"
   },
   "status": {
     "active": "Active",

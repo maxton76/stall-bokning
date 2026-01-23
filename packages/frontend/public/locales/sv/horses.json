@@ -498,6 +498,10 @@
       "noVaccinationRuleAssigned": "Ingen vaccinationsregel tilldelad denna häst",
       "deleteRecordTitle": "Ta bort vaccinationspost",
       "deleteRecordConfirm": "Är du säker på att du vill ta bort vaccinationsposten från {{date}}? Denna åtgärd kan inte ångras.",
+      "assignSuccess": "Vaccinationsregel tilldelad",
+      "assignError": "Kunde inte tilldela vaccinationsregel",
+      "removeSuccess": "Vaccinationsregel borttagen",
+      "removeError": "Kunde inte ta bort vaccinationsregel",
       "status": {
         "upToDate": "Aktuell",
         "dueSoon": "Snart förfallen",

@@ -1906,10 +1906,9 @@ export async function horsesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Parse rule period (intervalMonths might include days portion like "6m 21d")
-        // For simplicity, assume intervalMonths is just months (number)
-        const periodMonths = rule.intervalMonths || 0;
-        const periodDays = rule.intervalDays || 0;
+        // Get rule period from VaccinationRule fields
+        const periodMonths = rule.periodMonths || 0;
+        const periodDays = rule.periodDays || 0;
 
         // Calculate initial status based on existing vaccination records for this rule
         const statusResult = await calculateAssignmentStatus(
@@ -1923,7 +1922,7 @@ export async function horsesRoutes(fastify: FastifyInstance) {
         // Use 'any' for Timestamp fields to avoid admin SDK vs client SDK type mismatch
         const newAssignment = {
           ruleId: data.ruleId,
-          ruleName: rule.vaccineName,
+          ruleName: rule.name,
           rulePeriodMonths: periodMonths,
           rulePeriodDays: periodDays,
           assignedAt: Timestamp.now(),

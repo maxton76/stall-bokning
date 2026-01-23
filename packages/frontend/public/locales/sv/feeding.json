@@ -251,7 +251,13 @@
     "active": "Aktiv",
     "upcoming": "Kommande",
     "noFeedingSessions": "Inga utfodringar idag",
-    "noFeedingSessionsDescription": "Det finns inga schemalagda rutiner med utfodringssteg för idag. Skapa rutiner i inställningarna eller vänta på att en rutin schemaläggs."
+    "noFeedingSessionsDescription": "Det finns inga schemalagda rutiner med utfodringssteg för idag. Skapa rutiner i inställningarna eller vänta på att en rutin schemaläggs.",
+    "showHorses": "Hästar",
+    "noHorsesInStep": "Inga hästar i detta steg",
+    "markAllComplete": "Markera alla klara",
+    "horseMarkedComplete": "Häst markerad som klar",
+    "allHorsesMarkedComplete": "Alla hästar markerade som klara",
+    "allHorsesAlreadyComplete": "Alla hästar är redan klara"
   },
   "history": {
     "title": "Utfodringshistorik",

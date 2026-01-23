@@ -57,6 +57,11 @@ import { DailyNotesModal } from "@/components/routines/DailyNotesModal";
 import { RoutineProgressIndicator } from "@/components/routines/RoutineProgressIndicator";
 import { resolveStepHorses } from "@/utils/routineHorseResolver";
 import { getInstructionsForHorseStep } from "@/utils/instructionsResolver";
+import { getHorseFeedingsByStable } from "@/services/horseFeedingService";
+import {
+  transformHorseFeedingsToMap,
+  type FeedingInfoForCard,
+} from "@/utils/feedingTransform";
 import type { RoutineInstance, RoutineStep, Horse } from "@shared/types";
 import type { Horse as HorseType } from "@/types/roles";
 import { cn } from "@/lib/utils";
@@ -107,6 +112,9 @@ export default function RoutineFlowPage() {
   const [completionNotes, setCompletionNotes] = useState("");
   const [stepHorses, setStepHorses] = useState<HorseType[]>([]);
   const [horsesLoading, setHorsesLoading] = useState(false);
+  const [feedingDataMap, setFeedingDataMap] = useState<
+    Map<string, FeedingInfoForCard>
+  >(new Map());
 
   // Load instance data on mount
   useEffect(() => {
@@ -175,6 +183,38 @@ export default function RoutineFlowPage() {
 
     loadStepHorses();
   }, [currentStep, instance, toast, t]);
+
+  // Load feeding data for current step (when it's a feeding-related step)
+  useEffect(() => {
+    const shouldFetchFeeding =
+      currentStep?.showFeeding || currentStep?.category === "feeding";
+
+    if (!shouldFetchFeeding || !instance?.stableId) {
+      setFeedingDataMap(new Map());
+      return;
+    }
+
+    const fetchFeedingData = async () => {
+      try {
+        const feedings = await getHorseFeedingsByStable(instance.stableId, {
+          feedingTimeId: currentStep.feedingTimeId,
+          activeOnly: true,
+        });
+        setFeedingDataMap(transformHorseFeedingsToMap(feedings));
+      } catch (error) {
+        console.error("Error loading feeding data for step:", error);
+        setFeedingDataMap(new Map());
+      }
+    };
+
+    fetchFeedingData();
+  }, [
+    currentStep?.id,
+    currentStep?.showFeeding,
+    currentStep?.category,
+    currentStep?.feedingTimeId,
+    instance?.stableId,
+  ]);
 
   // Get template data from instance
   // The API returns template.steps when fetching a single instance
@@ -486,6 +526,7 @@ export default function RoutineFlowPage() {
                       key={horse.id}
                       horse={horse}
                       step={currentStep}
+                      feedingInfo={feedingDataMap.get(horse.id)}
                       specialInstructions={instructions}
                       progress={
                         instance.progress.stepProgress[currentStep?.id ?? ""]

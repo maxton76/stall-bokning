@@ -71,6 +71,8 @@ export const queryKeys = {
       [...queryKeys.horses.lists(), filters] as const,
     details: () => [...queryKeys.horses.all, "detail"] as const,
     detail: (id: string) => [...queryKeys.horses.details(), id] as const,
+    vaccinationRules: (horseId: string) =>
+      [...queryKeys.horses.details(), horseId, "vaccinationRules"] as const,
   },
 
   // Horse Groups

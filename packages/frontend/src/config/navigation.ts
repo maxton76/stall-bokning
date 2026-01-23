@@ -18,7 +18,6 @@ import {
   BarChart3,
   ListChecks,
   Play,
-  CheckSquare,
   LayoutDashboard,
   Calendar,
   Bell,
@@ -36,9 +35,8 @@ import type {
  * Structure:
  * - Översikt (Overview) - Today dashboard
  * - Hästar (Horses) - Horse management
- * - Aktiviteter (Activities) - Scheduled events (vet, training, competitions)
+ * - Aktiviteter (Activities) - Scheduled events, tasks, routines (unified daily work)
  * - Anläggningar (Facilities) - Daily use (stalls, paddocks, arenas)
- * - Uppgifter (Tasks) - Daily chores/shifts execution
  * - Utfodring (Feeding) - Feeding management
  * - Schema (Schedule) - Planning & booking views
  * - Min sida (My Page) - Personal aggregation
@@ -130,33 +128,6 @@ export const mainNavigation: NavigationItem[] = [
     ],
   },
   {
-    id: "tasks",
-    labelKey: "common:navigation.tasks",
-    href: "/tasks",
-    icon: CheckSquare,
-    badge: "new",
-    subItems: [
-      {
-        id: "today",
-        labelKey: "common:navigation.tasksToday",
-        href: "/tasks/today",
-        icon: Play,
-      },
-      {
-        id: "upcoming",
-        labelKey: "common:navigation.tasksUpcoming",
-        href: "/tasks/upcoming",
-        icon: Calendar,
-      },
-      {
-        id: "completed",
-        labelKey: "common:navigation.tasksCompleted",
-        href: "/tasks/completed",
-        icon: CheckSquare,
-      },
-    ],
-  },
-  {
     id: "feeding",
     labelKey: "common:navigation.feeding",
     href: "/feeding",
@@ -221,12 +192,6 @@ export const mainNavigation: NavigationItem[] = [
     href: "/my-page",
     icon: UserCircle,
     subItems: [
-      {
-        id: "myTasks",
-        labelKey: "common:navigation.myTasks",
-        href: "/my-page/tasks",
-        icon: CheckSquare,
-      },
       {
         id: "availability",
         labelKey: "common:navigation.myAvailability",

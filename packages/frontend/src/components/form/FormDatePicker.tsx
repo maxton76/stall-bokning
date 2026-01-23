@@ -106,14 +106,10 @@ export function FormDatePicker<T extends FieldValues>({
             onChange={(e) => {
               const value = e.target.value;
               if (!value) {
-                field.onChange(null);
+                field.onChange("");
               } else {
-                // Parse as local date (not UTC) to avoid timezone issues
-                const parts = value.split("-").map(Number);
-                const year = parts[0] ?? 0;
-                const month = parts[1] ?? 1;
-                const day = parts[2] ?? 1;
-                field.onChange(new Date(year, month - 1, day));
+                // Keep the string format for better compatibility with z.coerce.date()
+                field.onChange(value);
               }
             }}
             onBlur={field.onBlur}

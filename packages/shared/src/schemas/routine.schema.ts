@@ -183,6 +183,7 @@ export const startRoutineSchema = z.object({
 
 export const updateHorseProgressSchema = z.object({
   horseId: z.string().min(1, "Horse ID is required"),
+  horseName: z.string().optional(), // Optional for backwards compatibility
   completed: z.boolean().optional(),
   skipped: z.boolean().optional(),
   skipReason: z.string().max(500).optional(),

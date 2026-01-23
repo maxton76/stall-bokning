@@ -18,20 +18,10 @@ import {
   ok,
 } from "../utils/responses.js";
 
-/**
- * Default feeding times to create when stable has none
- */
-const DEFAULT_FEEDING_TIMES = [
-  { name: "morning", time: "07:00", sortOrder: 1 },
-  { name: "afternoon", time: "13:00", sortOrder: 2 },
-  { name: "evening", time: "20:00", sortOrder: 3 },
-];
-
 export async function feedingTimesRoutes(fastify: FastifyInstance) {
   /**
    * GET /api/v1/feeding-times/stable/:stableId
    * Get all feeding times for a stable
-   * Creates default feeding times if none exist
    * Query params: activeOnly (boolean, default: true)
    */
   fastify.get(
@@ -69,38 +59,7 @@ export async function feedingTimesRoutes(fastify: FastifyInstance) {
 
         query = query.orderBy("sortOrder", "asc") as any;
 
-        let snapshot = await query.get();
-
-        // Auto-create default feeding times if none exist
-        if (snapshot.empty && activeOnly === "true") {
-          const canManage = await canManageStable(user.uid, stableId);
-          if (canManage || isSystemAdmin(user.role)) {
-            const batch = db.batch();
-            const now = Timestamp.now();
-
-            for (const defaultTime of DEFAULT_FEEDING_TIMES) {
-              const docRef = db.collection("feedingTimes").doc();
-              batch.set(docRef, {
-                ...defaultTime,
-                stableId,
-                isActive: true,
-                createdBy: user.uid,
-                createdAt: now,
-                updatedAt: now,
-              });
-            }
-
-            await batch.commit();
-
-            request.log.info(
-              { stableId, count: DEFAULT_FEEDING_TIMES.length },
-              "Created default feeding times",
-            );
-
-            // Re-fetch after creating defaults
-            snapshot = await query.get();
-          }
-        }
+        const snapshot = await query.get();
 
         const feedingTimes = snapshot.docs.map((doc) =>
           serializeTimestamps({

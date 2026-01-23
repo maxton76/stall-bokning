@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { format } from "date-fns";
@@ -20,19 +20,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronDown, Calendar, History, Plus, Bell } from "lucide-react";
+import { ChevronDown, Bell } from "lucide-react";
 import { EquipmentListEditor } from "@/components/EquipmentListEditor";
 import { CategoryInstructionsDropdown } from "@/components/CategoryInstructionsDropdown";
 import type { EquipmentItem } from "@stall-bokning/shared";
 import type { RoutineCategory } from "@shared/types";
-import { useVaccinationStatus } from "@/hooks/useVaccinationStatus";
-import type {
-  Horse,
-  HorseColor,
-  HorseUsage,
-  HorseGroup,
-  VaccinationRule,
-} from "@/types/roles";
+import type { Horse, HorseColor, HorseGroup } from "@/types/roles";
 import {
   useTranslatedHorseColors,
   useTranslatedHorseGenders,
@@ -61,9 +54,6 @@ interface HorseFormDialogProps {
   allowStableAssignment?: boolean;
   availableStables?: Array<{ id: string; name: string }>;
   availableGroups?: HorseGroup[];
-  availableRules?: VaccinationRule[];
-  onViewVaccinationHistory?: () => void;
-  onAddVaccinationRecord?: () => void;
 }
 
 const horseSchema = z
@@ -81,7 +71,6 @@ const horseSchema = z
     currentStableId: z.string().optional(),
     usage: z.array(z.string()),
     horseGroupId: z.string().optional(),
-    vaccinationRuleId: z.string().optional(),
     ueln: z.string().optional(),
     chipNumber: z.string().optional(),
     federationNumber: z.string().optional(),
@@ -145,22 +134,14 @@ export function HorseFormDialog({
   allowStableAssignment = false,
   availableStables = [],
   availableGroups = [],
-  availableRules = [],
-  onViewVaccinationHistory,
-  onAddVaccinationRecord,
 }: HorseFormDialogProps) {
   const { t } = useTranslation(["horses", "common"]);
   const isEditMode = !!horse;
-  const [vaccinationSectionOpen, setVaccinationSectionOpen] = useState(false);
 
   // Get translated constants
   const translatedColors = useTranslatedHorseColors();
   const translatedGenders = useTranslatedHorseGenders();
   const translatedUsageOptions = useTranslatedHorseUsage();
-
-  // Get vaccination status for existing horses
-  const { status: vaccinationStatus, loading: vaccinationLoading } =
-    useVaccinationStatus(horse || ({} as Horse));
 
   const { form, handleSubmit, resetForm } = useFormDialog<HorseFormData>({
     schema: horseSchema,
@@ -175,7 +156,6 @@ export function HorseFormDialog({
       currentStableId: "none",
       usage: [],
       horseGroupId: "none",
-      vaccinationRuleId: "none",
       ueln: "",
       chipNumber: "",
       federationNumber: "",
@@ -277,15 +257,6 @@ export function HorseFormDialog({
           const group = availableGroups.find((g) => g.id === data.horseGroupId);
           horseData.horseGroupName = group?.name;
         }
-
-        // Vaccination rule assignment
-        if (data.vaccinationRuleId && data.vaccinationRuleId !== "none") {
-          horseData.vaccinationRuleId = data.vaccinationRuleId;
-          const rule = availableRules.find(
-            (r) => r.id === data.vaccinationRuleId,
-          );
-          horseData.vaccinationRuleName = rule?.name;
-        }
       }
 
       await onSave(horseData);
@@ -323,7 +294,6 @@ export function HorseFormDialog({
         currentStableId: horse.currentStableId || "none",
         usage: horse.usage || [],
         horseGroupId: horse.horseGroupId || "none",
-        vaccinationRuleId: horse.vaccinationRuleId || "none",
         ueln: horse.ueln || "",
         chipNumber: horse.chipNumber || "",
         federationNumber: horse.federationNumber || "",
@@ -383,10 +353,6 @@ export function HorseFormDialog({
   const groupOptions = [
     { value: "none", label: t("horses:options.noGroup") },
     ...availableGroups.map((g) => ({ value: g.id, label: g.name })),
-  ];
-  const ruleOptions = [
-    { value: "none", label: t("horses:options.noVaccinationRule") },
-    ...availableRules.map((r) => ({ value: r.id, label: r.name })),
   ];
 
   return (
@@ -490,154 +456,6 @@ export function HorseFormDialog({
           options={groupOptions}
         />
       )}
-
-      {/* Vaccination Rule - Hidden for external horses */}
-      {!isExternal && availableRules.length > 0 && (
-        <FormSelect
-          name="vaccinationRuleId"
-          label={t("horses:form.labels.vaccinationRule")}
-          form={form}
-          options={ruleOptions}
-        />
-      )}
-
-      {/* Vaccination Records Section - Only show in edit mode */}
-      {isEditMode &&
-        horse &&
-        !isExternal &&
-        (onViewVaccinationHistory || onAddVaccinationRecord) && (
-          <Collapsible
-            open={vaccinationSectionOpen}
-            onOpenChange={setVaccinationSectionOpen}
-          >
-            <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium hover:underline">
-              <span className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                {t("horses:form.sections.vaccinationRecords")}
-              </span>
-              <ChevronDown className="h-4 w-4" />
-            </CollapsibleTrigger>
-
-            <CollapsibleContent className="space-y-4 pt-4 border-t">
-              {/* Vaccination Status Summary */}
-              {!vaccinationLoading && vaccinationStatus && (
-                <div className="space-y-3">
-                  <div>
-                    <Label className="text-sm text-muted-foreground">
-                      {t("horses:vaccination.currentStatus")}
-                    </Label>
-                    <div className="mt-1">
-                      <Badge
-                        variant={
-                          vaccinationStatus.status === "current"
-                            ? "secondary"
-                            : vaccinationStatus.status === "expiring_soon"
-                              ? "outline"
-                              : vaccinationStatus.status === "expired"
-                                ? "destructive"
-                                : "default"
-                        }
-                      >
-                        {vaccinationStatus.message}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Last Vaccination Date */}
-                  {vaccinationStatus.lastVaccinationDate &&
-                    toDate(vaccinationStatus.lastVaccinationDate) && (
-                      <div>
-                        <Label className="text-sm text-muted-foreground">
-                          {t("horses:vaccination.lastVaccination")}
-                        </Label>
-                        <p className="text-sm mt-1">
-                          {format(
-                            toDate(vaccinationStatus.lastVaccinationDate)!,
-                            "MMM d, yyyy",
-                          )}
-                        </p>
-                      </div>
-                    )}
-
-                  {/* Next Due Date */}
-                  {vaccinationStatus.nextDueDate &&
-                    toDate(vaccinationStatus.nextDueDate) && (
-                      <div>
-                        <Label className="text-sm text-muted-foreground">
-                          {t("horses:vaccination.nextDueDate")}
-                        </Label>
-                        <p className="text-sm mt-1">
-                          {format(
-                            toDate(vaccinationStatus.nextDueDate)!,
-                            "MMM d, yyyy",
-                          )}
-                          {vaccinationStatus.daysUntilDue !== undefined && (
-                            <span className="text-muted-foreground ml-2">
-                              (
-                              {vaccinationStatus.daysUntilDue < 0
-                                ? t("horses:vaccination.daysOverdue", {
-                                    count: Math.abs(
-                                      vaccinationStatus.daysUntilDue,
-                                    ),
-                                  })
-                                : t("horses:vaccination.daysRemaining", {
-                                    count: vaccinationStatus.daysUntilDue,
-                                  })}
-                              )
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                    )}
-
-                  {/* Vaccination Rule */}
-                  {vaccinationStatus.vaccinationRuleName && (
-                    <div>
-                      <Label className="text-sm text-muted-foreground">
-                        {t("horses:vaccination.vaccinationRule")}
-                      </Label>
-                      <p className="text-sm mt-1">
-                        {vaccinationStatus.vaccinationRuleName}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {vaccinationLoading && (
-                <p className="text-sm text-muted-foreground">
-                  {t("horses:status.loading")}
-                </p>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-2">
-                {onViewVaccinationHistory && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={onViewVaccinationHistory}
-                  >
-                    <History className="h-4 w-4 mr-2" />
-                    {t("horses:vaccination.viewFullHistory")}
-                  </Button>
-                )}
-                {onAddVaccinationRecord && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={onAddVaccinationRecord}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    {t("horses:vaccination.addRecord")}
-                  </Button>
-                )}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        )}
 
       {/* Expanded Identification Section */}
       <div className="space-y-4">

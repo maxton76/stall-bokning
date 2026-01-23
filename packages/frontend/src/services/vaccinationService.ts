@@ -2,6 +2,8 @@ import { Timestamp } from "firebase/firestore";
 import type {
   VaccinationRecord,
   VaccinationStatusResult,
+  VaccinationStatus,
+  HorseVaccinationAssignment,
 } from "@shared/types/vaccination";
 import type { Horse } from "@/types/roles";
 import type { VaccinationRule } from "@shared/types/organization";
@@ -249,5 +251,106 @@ export async function getExpiringSoon(
   } catch (error) {
     console.error("Error fetching expiring vaccinations:", error);
     throw new Error("Failed to fetch expiring vaccinations");
+  }
+}
+
+// ============================================================================
+// Multiple Vaccination Rule Assignment System (New)
+// ============================================================================
+
+/**
+ * Response type for vaccination rule assignments
+ */
+export interface VaccinationRuleAssignmentsResponse {
+  assignments: HorseVaccinationAssignment[];
+  count: number;
+  aggregateStatus: VaccinationStatus;
+  nextVaccinationDue: string | null;
+  lastVaccinationDate: string | null;
+}
+
+/**
+ * Response type for assigning a vaccination rule
+ */
+export interface AssignVaccinationRuleResponse {
+  success: boolean;
+  assignment: HorseVaccinationAssignment;
+  totalAssignments: number;
+  aggregateStatus: VaccinationStatus;
+  nextVaccinationDue: string | null;
+}
+
+/**
+ * Response type for removing a vaccination rule
+ */
+export interface RemoveVaccinationRuleResponse {
+  success: boolean;
+  remainingAssignments: number;
+  aggregateStatus: VaccinationStatus;
+  nextVaccinationDue: string | null;
+}
+
+/**
+ * Get all vaccination rules assigned to a horse
+ */
+export async function getHorseVaccinationRuleAssignments(
+  horseId: string,
+): Promise<VaccinationRuleAssignmentsResponse> {
+  try {
+    return await apiClient.get<VaccinationRuleAssignmentsResponse>(
+      `/horses/${horseId}/vaccination-rules`,
+    );
+  } catch (error) {
+    console.error("Error fetching horse vaccination rule assignments:", error);
+    throw new Error("Failed to fetch vaccination rule assignments");
+  }
+}
+
+/**
+ * Assign a vaccination rule to a horse
+ */
+export async function assignVaccinationRule(
+  horseId: string,
+  ruleId: string,
+): Promise<AssignVaccinationRuleResponse> {
+  try {
+    return await apiClient.post<AssignVaccinationRuleResponse>(
+      `/horses/${horseId}/vaccination-rules`,
+      { ruleId },
+    );
+  } catch (error) {
+    console.error("Error assigning vaccination rule to horse:", error);
+    throw new Error("Failed to assign vaccination rule");
+  }
+}
+
+/**
+ * Remove a vaccination rule assignment from a horse
+ */
+export async function removeVaccinationRule(
+  horseId: string,
+  ruleId: string,
+): Promise<RemoveVaccinationRuleResponse> {
+  try {
+    return await apiClient.delete<RemoveVaccinationRuleResponse>(
+      `/horses/${horseId}/vaccination-rules/${ruleId}`,
+    );
+  } catch (error) {
+    console.error("Error removing vaccination rule from horse:", error);
+    throw new Error("Failed to remove vaccination rule");
+  }
+}
+
+/**
+ * Force recalculation of vaccination statuses for a horse
+ */
+export async function recalculateVaccinationStatus(
+  horseId: string,
+): Promise<void> {
+  try {
+    await apiClient.post(`/horses/${horseId}/vaccination-rules/recalculate`);
+  } catch (error) {
+    console.error("Error recalculating vaccination status:", error);
+    throw new Error("Failed to recalculate vaccination status");
   }
 }

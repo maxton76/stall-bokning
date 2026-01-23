@@ -82,6 +82,59 @@ async function enrichInstanceWithTemplate(
 }
 
 /**
+ * Batch enrich routine instances with template data
+ * Uses efficient batch fetching to avoid N+1 queries
+ */
+async function enrichInstancesWithTemplates(
+  instances: Array<{ id: string; data: RoutineInstance }>,
+): Promise<any[]> {
+  if (instances.length === 0) return [];
+
+  // Collect unique templateIds
+  const uniqueTemplateIds = [
+    ...new Set(instances.map((inst) => inst.data.templateId)),
+  ];
+
+  // Batch fetch templates using getAll()
+  const templateMap = new Map<string, RoutineTemplate | null>();
+  if (uniqueTemplateIds.length > 0) {
+    const templateRefs = uniqueTemplateIds.map((id) =>
+      db.collection("routineTemplates").doc(id),
+    );
+    const templateDocs = await db.getAll(...templateRefs);
+    templateDocs.forEach((doc, index) => {
+      templateMap.set(
+        uniqueTemplateIds[index],
+        doc.exists ? (doc.data() as RoutineTemplate) : null,
+      );
+    });
+  }
+
+  // Enrich each instance with its template
+  return instances.map(({ id, data }) => {
+    const template = templateMap.get(data.templateId);
+    const { id: _existingId, ...restData } = data;
+    return serializeTimestamps({
+      id,
+      ...restData,
+      template: template
+        ? {
+            name: template.name,
+            description: template.description,
+            type: template.type,
+            icon: template.icon,
+            color: template.color,
+            estimatedDuration: template.estimatedDuration,
+            requiresNotesRead: template.requiresNotesRead,
+            allowSkipSteps: template.allowSkipSteps,
+            steps: template.steps,
+          }
+        : null,
+    });
+  });
+}
+
+/**
  * Resolve horses for a routine step based on its configuration
  */
 async function resolveStepHorses(
@@ -843,12 +896,12 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           .limit(50)
           .get();
 
-        const instances = snapshot.docs.map((doc) =>
-          serializeTimestamps({
-            id: doc.id,
-            ...doc.data(),
-          }),
-        );
+        // Batch enrich with templates for efficient data fetching
+        const rawInstances = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          data: doc.data() as RoutineInstance,
+        }));
+        const instances = await enrichInstancesWithTemplates(rawInstances);
 
         return { instances };
       } catch (error) {
@@ -942,12 +995,12 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           .limit(limit)
           .get();
 
-        const instances = snapshot.docs.map((doc) =>
-          serializeTimestamps({
-            id: doc.id,
-            ...doc.data(),
-          }),
-        );
+        // Batch enrich with templates for efficient data fetching
+        const rawInstances = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          data: doc.data() as RoutineInstance,
+        }));
+        const instances = await enrichInstancesWithTemplates(rawInstances);
 
         return { routineInstances: instances };
       } catch (error) {
