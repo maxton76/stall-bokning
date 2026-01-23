@@ -4,12 +4,7 @@ import { sv, enUS } from "date-fns/locale";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent,
-} from "@/components/ui/collapsible";
-import { ChevronDown, Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import type { AuditLog } from "@shared/types/auditLog";
 
 interface Props {
@@ -86,19 +81,6 @@ export function FeedingHistoryTimeline({ logs, loading }: Props) {
                     )
                   : "—"}
               </p>
-
-              {/* Expandable Change Details */}
-              {log.details?.changes && log.details.changes.length > 0 && (
-                <Collapsible className="mt-3">
-                  <CollapsibleTrigger className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                    <ChevronDown className="h-4 w-4" />
-                    {t("feeding:history.viewDetails", "View details")}
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-2">
-                    <ChangeDetailsList changes={log.details.changes} t={t} />
-                  </CollapsibleContent>
-                </Collapsible>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -193,23 +175,47 @@ function formatChangeDescription(log: AuditLog, t: any): string {
       description += ` ${t("feeding:history.for", "for")} ${horseName}`;
     }
   } else if (log.action === "update") {
-    // For update: "updated Slöhögen - morning (hay, 2 kg)"
-    if (horseName && feedingTime) {
-      description =
-        t("feeding:history.updated", "updated") +
-        ` ${horseName} - ${feedingTime}`;
+    // For update: show inline changes like "changed hay from 3 to 2 kg for Slöhögen - morning"
+    const changes = log.details?.changes;
 
-      // Add feed type and quantity if available
-      const details: string[] = [];
-      if (feedTypeName) details.push(feedTypeName);
-      if (quantity !== null && quantityMeasure)
-        details.push(`${quantity} ${quantityMeasure}`);
+    if (changes && changes.length > 0) {
+      // Format each change as a readable string
+      const changeDescriptions = changes.map((change) => {
+        const fieldLabel = t(
+          `feeding:history.fields.${change.field}`,
+          change.field,
+        );
+        const oldVal = formatFieldValue(change.oldValue);
+        const newVal = formatFieldValue(change.newValue);
+        return `${t("feeding:history.changed", "changed")} ${fieldLabel} ${t("feeding:history.from", "from")} ${oldVal} ${t("feeding:history.to", "to")} ${newVal}`;
+      });
 
-      if (details.length > 0) {
-        description += ` (${details.join(", ")})`;
+      description = changeDescriptions.join(", ");
+
+      // Add horse context
+      if (horseName && feedingTime) {
+        description += ` ${t("feeding:history.for", "for")} ${horseName} - ${feedingTime}`;
+      } else if (horseName) {
+        description += ` ${t("feeding:history.for", "for")} ${horseName}`;
       }
-    } else if (horseName) {
-      description = t("feeding:history.updated", "updated") + ` ${horseName}`;
+    } else {
+      // Fallback if no changes array
+      if (horseName && feedingTime) {
+        description =
+          t("feeding:history.updated", "updated") +
+          ` ${horseName} - ${feedingTime}`;
+
+        const details: string[] = [];
+        if (feedTypeName) details.push(feedTypeName);
+        if (quantity !== null && quantityMeasure)
+          details.push(`${quantity} ${quantityMeasure}`);
+
+        if (details.length > 0) {
+          description += ` (${details.join(", ")})`;
+        }
+      } else if (horseName) {
+        description = t("feeding:history.updated", "updated") + ` ${horseName}`;
+      }
     }
   }
 
@@ -225,37 +231,23 @@ function formatChangeDescription(log: AuditLog, t: any): string {
   return description || "";
 }
 
-function ChangeDetailsList({ changes, t }: { changes: any[]; t: any }) {
-  return (
-    <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 space-y-2">
-      {changes.map((change, idx) => (
-        <div key={idx} className="flex items-center gap-2 text-sm flex-wrap">
-          <span className="font-medium">
-            {t(`feeding:history.fields.${change.field}`, change.field)}:
-          </span>
-          <span className="text-muted-foreground line-through">
-            {formatFieldValue(change.oldValue)}
-          </span>
-          <span>→</span>
-          <span className="font-semibold text-green-700 dark:text-green-400">
-            {formatFieldValue(change.newValue)}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function formatFieldValue(value: any): string {
+function formatFieldValue(value: unknown): string {
   if (value === null || value === undefined) return "—";
   if (typeof value === "boolean") return value ? "Yes" : "No";
   if (typeof value === "number") return value.toString();
   if (value instanceof Date) {
     return value.toLocaleDateString();
   }
-  if (typeof value === "object" && value.seconds) {
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "seconds" in value &&
+    typeof (value as { seconds: number }).seconds === "number"
+  ) {
     // Firestore Timestamp
-    return new Date(value.seconds * 1000).toLocaleDateString();
+    return new Date(
+      (value as { seconds: number }).seconds * 1000,
+    ).toLocaleDateString();
   }
   return String(value);
 }

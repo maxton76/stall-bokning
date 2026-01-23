@@ -31,6 +31,8 @@ import { ActivityFormDialog } from "@/components/ActivityFormDialog";
 import {
   getStableActivities,
   createActivity,
+  updateActivity,
+  deleteActivity,
 } from "@/services/activityService";
 import {
   getStableHorses,
@@ -301,18 +303,43 @@ export default function ActivitiesPlanningPage() {
         throw new Error("Horse not found or not assigned to a stable");
       }
 
-      await createActivity(
-        user.uid,
-        horse.currentStableId,
-        data,
-        horse.currentStableName || "",
-      );
+      if (formDialog.data) {
+        // Update existing activity
+        await updateActivity(formDialog.data.id, user.uid, data);
+      } else {
+        // Create new activity
+        await createActivity(
+          user.uid,
+          horse.currentStableId,
+          data,
+          horse.currentStableName || "",
+        );
+      }
     }
     // Note: tasks and messages are not supported in calendar view
 
     formDialog.closeDialog();
     setInitialFormData({});
     activities.reload();
+  };
+
+  const handleDelete = async () => {
+    if (!formDialog.data) return;
+
+    const entry = formDialog.data;
+    const entryTitle =
+      entry.type === "activity"
+        ? `${entry.horseName || ""} - ${entry.activityType || ""}`
+        : entry.title || "";
+
+    if (
+      confirm(t("activities:messages.confirmDelete", { title: entryTitle }))
+    ) {
+      await deleteActivity(entry.id);
+      formDialog.closeDialog();
+      setInitialFormData({});
+      activities.reload();
+    }
   };
 
   if (stablesLoading) {
@@ -481,6 +508,7 @@ export default function ActivitiesPlanningPage() {
         initialDate={initialFormData.date}
         initialHorseId={initialFormData.horseId}
         onSave={handleSave}
+        onDelete={formDialog.data ? handleDelete : undefined}
         horses={horses.data?.map((h) => ({ id: h.id, name: h.name })) || []}
         stableMembers={[]}
         activityTypes={activityTypes.data || []}

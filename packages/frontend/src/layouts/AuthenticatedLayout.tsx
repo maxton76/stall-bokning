@@ -107,7 +107,6 @@ export default function AuthenticatedLayout() {
         name: "feeding",
         href: "/feeding",
         subItems: [
-          { href: "/feeding/overview" },
           { href: "/feeding/schedule" },
           { href: "/feeding/history" },
           { href: "/feeding/settings" },
@@ -214,12 +213,6 @@ export default function AuthenticatedLayout() {
       href: "/feeding",
       icon: Wheat,
       subItems: [
-        {
-          name: "overview",
-          label: t("common:navigation.feedingOverview"),
-          href: "/feeding/overview",
-          icon: BarChart3,
-        },
         {
           name: "schedule",
           label: t("common:navigation.schedule"),

@@ -11,11 +11,19 @@
         "node_modules",
         ".git",
         "firebase-debug.log",
-        "firebase-debug.*.log"
+        "firebase-debug.*.log",
+        "package.original.json",
+        "package.deploy.json",
+        "package.json.bak",
+        "src"
       ],
       "predeploy": [
+        "bash ./scripts/prepare-functions-deploy.sh",
         "npm --prefix \"$RESOURCE_DIR\" run lint",
         "npm --prefix \"$RESOURCE_DIR\" run build"
+      ],
+      "postdeploy": [
+        "bash ./scripts/cleanup-functions-deploy.sh"
       ]
     }
   ],

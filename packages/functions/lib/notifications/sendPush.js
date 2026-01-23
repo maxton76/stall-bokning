@@ -4,7 +4,7 @@ exports.sendPushNotification = sendPushNotification;
 exports.sendMulticastPush = sendMulticastPush;
 const messaging_1 = require("firebase-admin/messaging");
 const firebase_functions_1 = require("firebase-functions");
-const errors_js_1 = require("../lib/errors.js");
+const shared_1 = require("@stall-bokning/shared");
 /**
  * Send push notification via Firebase Cloud Messaging
  */
@@ -85,7 +85,7 @@ async function sendPushNotification(fcmToken, payload) {
     return { success: true };
   } catch (error) {
     const errorCode = error.code;
-    const errorMessage = (0, errors_js_1.formatErrorMessage)(error);
+    const errorMessage = (0, shared_1.formatErrorMessage)(error);
     // Check for invalid token errors
     const isInvalidToken = [
       "messaging/invalid-registration-token",
@@ -194,7 +194,7 @@ async function sendMulticastPush(fcmTokens, payload) {
       invalidTokens,
     };
   } catch (error) {
-    const errorMessage = (0, errors_js_1.formatErrorMessage)(error);
+    const errorMessage = (0, shared_1.formatErrorMessage)(error);
     firebase_functions_1.logger.error(
       {
         error: errorMessage,

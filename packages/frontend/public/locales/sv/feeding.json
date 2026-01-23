@@ -256,6 +256,9 @@
     "added": "lade till",
     "removed": "tog bort",
     "updated": "uppdaterade",
+    "changed": "ändrade",
+    "from": "från",
+    "to": "till",
     "for": "för",
     "actions": {
       "create": "Skapade",

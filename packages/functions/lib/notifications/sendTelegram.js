@@ -5,8 +5,7 @@ exports.verifyTelegramWebhook = verifyTelegramWebhook;
 exports.getTelegramChatInfo = getTelegramChatInfo;
 const firebase_functions_1 = require("firebase-functions");
 const text_js_1 = require("../lib/text.js");
-const validation_js_1 = require("../lib/validation.js");
-const errors_js_1 = require("../lib/errors.js");
+const shared_1 = require("@stall-bokning/shared");
 /**
  * Get Telegram Bot configuration from environment
  */
@@ -48,7 +47,7 @@ async function sendTelegramMessage(chatId, payload) {
     };
   }
   // Validate chat ID format (must be numeric, can be negative for groups)
-  if (!(0, validation_js_1.isValidChatId)(chatId)) {
+  if (!(0, shared_1.isValidChatId)(chatId)) {
     firebase_functions_1.logger.warn(
       { chatIdLength: chatId.length },
       "Invalid Telegram chat ID format",
@@ -121,7 +120,7 @@ async function sendTelegramMessage(chatId, payload) {
     );
     return { success: true };
   } catch (error) {
-    const errorMessage = (0, errors_js_1.formatErrorMessage)(error);
+    const errorMessage = (0, shared_1.formatErrorMessage)(error);
     firebase_functions_1.logger.error(
       {
         error: errorMessage,
@@ -167,7 +166,7 @@ async function verifyTelegramWebhook(webhookUrl) {
     }
     return { success: true };
   } catch (error) {
-    const errorMessage = (0, errors_js_1.formatErrorMessage)(error);
+    const errorMessage = (0, shared_1.formatErrorMessage)(error);
     return {
       success: false,
       error: errorMessage,
@@ -208,7 +207,7 @@ async function getTelegramChatInfo(chatId) {
       chatInfo: result.result,
     };
   } catch (error) {
-    const errorMessage = (0, errors_js_1.formatErrorMessage)(error);
+    const errorMessage = (0, shared_1.formatErrorMessage)(error);
     return {
       success: false,
       error: errorMessage,

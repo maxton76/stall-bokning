@@ -1,10 +1,12 @@
-import type { UseFormReturn, FieldValues, Path } from 'react-hook-form'
-import { Input } from '@/components/ui/input'
-import { FormField } from './FormField'
+import type { UseFormReturn, FieldValues, Path } from "react-hook-form";
+import { Controller } from "react-hook-form";
+import { Input } from "@/components/ui/input";
+import { FormField } from "./FormField";
 
 /**
  * Form date picker component with integrated label and error display
  * Uses native HTML5 date input for simplicity
+ * Handles conversion between Date objects and YYYY-MM-DD strings
  *
  * @example
  * ```tsx
@@ -17,23 +19,55 @@ import { FormField } from './FormField'
  */
 export interface FormDatePickerProps<T extends FieldValues> {
   /** Field name (must match form schema) */
-  name: Path<T>
+  name: Path<T>;
   /** Field label */
-  label: string
+  label: string;
   /** React Hook Form instance */
-  form: UseFormReturn<T>
+  form: UseFormReturn<T>;
   /** Minimum date (YYYY-MM-DD format) */
-  min?: string
+  min?: string;
   /** Maximum date (YYYY-MM-DD format) */
-  max?: string
+  max?: string;
   /** Whether field is required */
-  required?: boolean
+  required?: boolean;
   /** Whether field is disabled */
-  disabled?: boolean
+  disabled?: boolean;
   /** Helper text */
-  helperText?: string
+  helperText?: string;
   /** Custom class name */
-  className?: string
+  className?: string;
+}
+
+/**
+ * Converts a value to YYYY-MM-DD string format for HTML5 date input
+ * Handles Date objects, ISO strings, and null/undefined values
+ */
+function toDateInputValue(value: unknown): string {
+  if (!value) return "";
+
+  if (value instanceof Date) {
+    if (isNaN(value.getTime())) return "";
+    // Format as YYYY-MM-DD in local timezone
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, "0");
+    const day = String(value.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  if (typeof value === "string") {
+    // Already in correct format or ISO string
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+    // Try parsing as ISO string
+    const date = new Date(value);
+    if (!isNaN(date.getTime())) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  return "";
 }
 
 export function FormDatePicker<T extends FieldValues>({
@@ -47,7 +81,7 @@ export function FormDatePicker<T extends FieldValues>({
   helperText,
   className,
 }: FormDatePickerProps<T>) {
-  const error = form.formState.errors[name]?.message as string | undefined
+  const error = form.formState.errors[name]?.message as string | undefined;
 
   return (
     <FormField
@@ -58,14 +92,35 @@ export function FormDatePicker<T extends FieldValues>({
       helperText={helperText}
       className={className}
     >
-      <Input
-        id={name}
-        type="date"
-        min={min}
-        max={max}
-        disabled={disabled}
-        {...form.register(name)}
+      <Controller
+        name={name}
+        control={form.control}
+        render={({ field }) => (
+          <Input
+            id={name}
+            type="date"
+            min={min}
+            max={max}
+            disabled={disabled}
+            value={toDateInputValue(field.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (!value) {
+                field.onChange(null);
+              } else {
+                // Parse as local date (not UTC) to avoid timezone issues
+                const parts = value.split("-").map(Number);
+                const year = parts[0] ?? 0;
+                const month = parts[1] ?? 1;
+                const day = parts[2] ?? 1;
+                field.onChange(new Date(year, month - 1, day));
+              }
+            }}
+            onBlur={field.onBlur}
+            ref={field.ref}
+          />
+        )}
       />
     </FormField>
-  )
+  );
 }

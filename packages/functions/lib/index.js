@@ -68,8 +68,7 @@ const scheduler_1 = require("firebase-functions/v2/scheduler");
 const firebase_functions_1 = require("firebase-functions");
 const crypto = __importStar(require("crypto"));
 const firebase_js_1 = require("./lib/firebase.js");
-const validation_js_1 = require("./lib/validation.js");
-const errors_js_1 = require("./lib/errors.js");
+const shared_1 = require("@stall-bokning/shared");
 // Re-export scheduled functions
 var generateInstances_js_1 = require("./scheduled/generateInstances.js");
 Object.defineProperty(exports, "generateActivityInstances", {
@@ -123,19 +122,19 @@ Object.defineProperty(exports, "onSchedulePublished", {
 function validateAccrualConfig(config) {
   const rawConfig = config && typeof config === "object" ? config : {};
   return {
-    monthlyAccrualHours: (0, validation_js_1.validateNumber)(
+    monthlyAccrualHours: (0, shared_1.validateNumber)(
       rawConfig.monthlyAccrualHours,
       2.5,
       0,
       10,
     ),
-    maxCarryoverHours: (0, validation_js_1.validateNumber)(
+    maxCarryoverHours: (0, shared_1.validateNumber)(
       rawConfig.maxCarryoverHours,
       40,
       0,
       500,
     ),
-    maxBalanceHours: (0, validation_js_1.validateNumber)(
+    maxBalanceHours: (0, shared_1.validateNumber)(
       rawConfig.maxBalanceHours,
       100,
       0,
@@ -177,37 +176,37 @@ function validateScheduleHours(schedule) {
 function validateTimeBalanceData(data) {
   const rawData = data && typeof data === "object" ? data : {};
   return {
-    carryoverFromPreviousYear: (0, validation_js_1.validateNumber)(
+    carryoverFromPreviousYear: (0, shared_1.validateNumber)(
       rawData.carryoverFromPreviousYear,
       0,
       -1000,
       1000,
     ),
-    buildUpHours: (0, validation_js_1.validateNumber)(
+    buildUpHours: (0, shared_1.validateNumber)(
       rawData.buildUpHours,
       0,
       -1000,
       1000,
     ),
-    corrections: (0, validation_js_1.validateNumber)(
+    corrections: (0, shared_1.validateNumber)(
       rawData.corrections,
       0,
       -1000,
       1000,
     ),
-    approvedLeave: (0, validation_js_1.validateNumber)(
+    approvedLeave: (0, shared_1.validateNumber)(
       rawData.approvedLeave,
       0,
       0,
       10000,
     ),
-    tentativeLeave: (0, validation_js_1.validateNumber)(
+    tentativeLeave: (0, shared_1.validateNumber)(
       rawData.tentativeLeave,
       0,
       0,
       10000,
     ),
-    approvedOvertime: (0, validation_js_1.validateNumber)(
+    approvedOvertime: (0, shared_1.validateNumber)(
       rawData.approvedOvertime,
       0,
       0,
@@ -414,7 +413,7 @@ exports.monthlyTimeAccrual = (0, scheduler_1.onSchedule)(
               {
                 executionId,
                 organizationId,
-                error: (0, errors_js_1.formatErrorMessage)(error),
+                error: (0, shared_1.formatErrorMessage)(error),
               },
               "Error processing user",
             );
@@ -435,7 +434,7 @@ exports.monthlyTimeAccrual = (0, scheduler_1.onSchedule)(
       firebase_functions_1.logger.error(
         {
           executionId,
-          error: (0, errors_js_1.formatErrorMessage)(error),
+          error: (0, shared_1.formatErrorMessage)(error),
         },
         "Monthly accrual failed",
       );

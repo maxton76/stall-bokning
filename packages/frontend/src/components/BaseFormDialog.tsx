@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react'
-import type { UseFormReturn, FieldValues } from 'react-hook-form'
-import { Button } from '@/components/ui/button'
+import { useState, type ReactNode } from "react";
+import type { UseFormReturn, FieldValues } from "react-hook-form";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
+} from "@/components/ui/dialog";
 
 /**
  * Props for BaseFormDialog component
@@ -16,27 +16,31 @@ import {
  */
 export interface BaseFormDialogProps<T extends FieldValues> {
   /** Dialog open state */
-  open: boolean
+  open: boolean;
   /** Dialog close handler */
-  onOpenChange: (open: boolean) => void
+  onOpenChange: (open: boolean) => void;
   /** Dialog title */
-  title: string
+  title: string;
   /** Dialog description (optional) */
-  description?: string
+  description?: string;
   /** Form children (form fields) */
-  children: ReactNode
+  children: ReactNode;
   /** React Hook Form instance */
-  form: UseFormReturn<T>
+  form: UseFormReturn<T>;
   /** Form submit handler */
-  onSubmit: (data: T) => Promise<void>
+  onSubmit: (data: T) => Promise<void>;
   /** Submit button label (default: "Save") */
-  submitLabel?: string
+  submitLabel?: string;
   /** Cancel button label (default: "Cancel") */
-  cancelLabel?: string
+  cancelLabel?: string;
+  /** Delete handler (optional) - shows delete button when provided */
+  onDelete?: () => Promise<void>;
+  /** Delete button label (default: "Delete") */
+  deleteLabel?: string;
   /** Maximum content width class (default: "sm:max-w-[550px]") */
-  maxWidth?: string
+  maxWidth?: string;
   /** Maximum content height class (default: "max-h-[90vh]") */
-  maxHeight?: string
+  maxHeight?: string;
 }
 
 /**
@@ -103,11 +107,25 @@ export function BaseFormDialog<T extends FieldValues>({
   children,
   form,
   onSubmit,
-  submitLabel = 'Save',
-  cancelLabel = 'Cancel',
-  maxWidth = 'sm:max-w-[550px]',
-  maxHeight = 'max-h-[90vh]',
+  submitLabel = "Save",
+  cancelLabel = "Cancel",
+  onDelete,
+  deleteLabel = "Delete",
+  maxWidth = "sm:max-w-[550px]",
+  maxHeight = "max-h-[90vh]",
 }: BaseFormDialogProps<T>) {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!onDelete) return;
+    setIsDeleting(true);
+    try {
+      await onDelete();
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`${maxWidth} ${maxHeight} overflow-y-auto`}>
@@ -119,21 +137,38 @@ export function BaseFormDialog<T extends FieldValues>({
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {children}
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={form.formState.isSubmitting}
-            >
-              {cancelLabel}
-            </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? 'Saving...' : submitLabel}
-            </Button>
+          <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between gap-2">
+            {onDelete ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={form.formState.isSubmitting || isDeleting}
+              >
+                {isDeleting ? "Deleting..." : deleteLabel}
+              </Button>
+            ) : (
+              <div />
+            )}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={form.formState.isSubmitting || isDeleting}
+              >
+                {cancelLabel}
+              </Button>
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting || isDeleting}
+              >
+                {form.formState.isSubmitting ? "Saving..." : submitLabel}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

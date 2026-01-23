@@ -256,6 +256,9 @@
     "added": "added",
     "removed": "removed",
     "updated": "updated",
+    "changed": "changed",
+    "from": "from",
+    "to": "to",
     "for": "for",
     "actions": {
       "create": "Created",

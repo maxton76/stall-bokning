@@ -45,7 +45,6 @@ const ActivitiesSettingsPage = lazy(
 // Feeding pages
 const FeedingSchedulePage = lazy(() => import("./pages/FeedingSchedulePage"));
 const FeedingSettingsPage = lazy(() => import("./pages/FeedingSettingsPage"));
-const FeedingOverviewPage = lazy(() => import("./pages/FeedingOverviewPage"));
 const FeedingHistoryPage = lazy(() => import("./pages/FeedingHistoryPage"));
 
 // Inventory pages
@@ -341,12 +340,12 @@ function App() {
 
                 {/* Feeding routes */}
                 <Route
+                  path="/feeding"
+                  element={<Navigate to="/feeding/schedule" replace />}
+                />
+                <Route
                   path="/feeding/overview"
-                  element={
-                    <Suspense fallback={<InlineLoader />}>
-                      <FeedingOverviewPage />
-                    </Suspense>
-                  }
+                  element={<Navigate to="/feeding/schedule" replace />}
                 />
                 <Route
                   path="/feeding/schedule"

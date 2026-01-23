@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
+import { sv, enUS } from "date-fns/locale";
 import { Calendar as CalendarIcon, Search, Wheat, Filter } from "lucide-react";
 import {
   Card,
@@ -76,8 +77,9 @@ interface FeedingDialogState {
 }
 
 export default function FeedingSchedulePage() {
-  const { t } = useTranslation(["feeding", "common"]);
+  const { t, i18n } = useTranslation(["feeding", "common"]);
   const { user } = useAuth();
+  const locale = i18n.language === "sv" ? sv : enUS;
   const [selectedStableId, setSelectedStableId] = useState<string>("all");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [searchQuery, setSearchQuery] = useState("");
@@ -226,13 +228,13 @@ export default function FeedingSchedulePage() {
     );
   }, [horses.data, searchQuery]);
 
-  // Group feedings by horse and feeding time name (for cross-stable compatibility)
-  const feedingsByHorseAndTimeName = useMemo(() => {
+  // Group feedings by horse and feeding time ID (ensures renamed times still match)
+  const feedingsByHorseAndTimeId = useMemo(() => {
     const map = new Map<string, HorseFeeding[]>();
 
     (horseFeedings.data || []).forEach((feeding) => {
-      // Use feeding time name for matching (works across stables with same-named time slots)
-      const key = `${feeding.horseId}_${feeding.feedingTimeName}`;
+      // Use feeding time ID for matching (handles renamed feeding times correctly)
+      const key = `${feeding.horseId}_${feeding.feedingTimeId}`;
       const existing = map.get(key) || [];
       map.set(key, [...existing, feeding]);
     });
@@ -243,11 +245,9 @@ export default function FeedingSchedulePage() {
   // Get feedings for a specific horse and feeding time
   const getFeedingsForCell = (
     horseId: string,
-    feedingTimeName: string,
+    feedingTimeId: string,
   ): HorseFeeding[] => {
-    return (
-      feedingsByHorseAndTimeName.get(`${horseId}_${feedingTimeName}`) || []
-    );
+    return feedingsByHorseAndTimeId.get(`${horseId}_${feedingTimeId}`) || [];
   };
 
   // CRUD operations
@@ -428,7 +428,7 @@ export default function FeedingSchedulePage() {
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {selectedDate ? (
-                    format(selectedDate, "PPP")
+                    format(selectedDate, "PPP", { locale })
                   ) : (
                     <span>{t("feeding:schedule.pickDate")}</span>
                   )}
@@ -439,6 +439,8 @@ export default function FeedingSchedulePage() {
                   mode="single"
                   selected={selectedDate}
                   onSelect={(date) => date && setSelectedDate(date)}
+                  locale={locale}
+                  weekStartsOn={1}
                   initialFocus
                 />
               </PopoverContent>
@@ -474,7 +476,7 @@ export default function FeedingSchedulePage() {
         <CardHeader>
           <CardTitle>
             {t("feeding:schedule.title", {
-              date: format(selectedDate, "EEEE, MMMM d, yyyy"),
+              date: format(selectedDate, "EEEE, MMMM d, yyyy", { locale }),
             })}
           </CardTitle>
           <CardDescription>{t("feeding:schedule.description")}</CardDescription>
@@ -539,7 +541,7 @@ export default function FeedingSchedulePage() {
                       {sortedFeedingTimes.map((time) => {
                         const cellFeedings = getFeedingsForCell(
                           horse.id,
-                          time.name,
+                          time.id,
                         );
                         return (
                           <TableCell

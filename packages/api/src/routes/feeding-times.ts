@@ -299,6 +299,42 @@ export async function feedingTimesRoutes(fastify: FastifyInstance) {
 
         await docRef.update(updateData);
 
+        // Cascade update: If name changed, update all related HorseFeeding documents
+        if (updates.name && updates.name !== existing.name) {
+          const affectedFeedings = await db
+            .collection("horseFeedings")
+            .where("feedingTimeId", "==", id)
+            .get();
+
+          if (!affectedFeedings.empty) {
+            // Firestore batch limit is 500, chunk if needed
+            const BATCH_LIMIT = 500;
+            const docs = affectedFeedings.docs;
+
+            for (let i = 0; i < docs.length; i += BATCH_LIMIT) {
+              const chunk = docs.slice(i, i + BATCH_LIMIT);
+              const batch = db.batch();
+              chunk.forEach((doc) => {
+                batch.update(doc.ref, {
+                  feedingTimeName: updates.name,
+                  updatedAt: Timestamp.now(),
+                });
+              });
+              await batch.commit();
+            }
+
+            request.log.info(
+              {
+                feedingTimeId: id,
+                oldName: existing.name,
+                newName: updates.name,
+                count: docs.length,
+              },
+              "Cascaded feeding time name update to horse feedings",
+            );
+          }
+        }
+
         return ok(
           reply,
           serializeTimestamps({ id, ...existing, ...updateData }),

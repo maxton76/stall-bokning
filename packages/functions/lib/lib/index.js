@@ -36,8 +36,7 @@ var __exportStar =
   };
 Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./firebase.js"), exports);
-__exportStar(require("./validation.js"), exports);
 __exportStar(require("./text.js"), exports);
-__exportStar(require("./errors.js"), exports);
 __exportStar(require("./smtp.js"), exports);
+// Error and validation utilities now imported from @stall-bokning/shared
 //# sourceMappingURL=index.js.map

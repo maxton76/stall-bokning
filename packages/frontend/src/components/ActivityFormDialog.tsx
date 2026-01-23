@@ -90,6 +90,7 @@ interface ActivityFormDialogProps {
   onSave: (
     data: Omit<FormData, "type"> & { type: "activity" | "task" | "message" },
   ) => Promise<void>;
+  onDelete?: () => Promise<void>; // For deleting existing entries
   horses?: Array<{ id: string; name: string }>;
   stableMembers?: Array<{ id: string; name: string }>;
   activityTypes?: ActivityTypeConfig[];
@@ -105,6 +106,7 @@ export function ActivityFormDialog({
   initialHorseId,
   initialActivityType,
   onSave,
+  onDelete,
   horses = [],
   stableMembers = [],
   activityTypes = [],
@@ -307,6 +309,8 @@ export function ActivityFormDialog({
       submitLabel={
         isEditMode ? t("common:buttons.update") : t("common:buttons.create")
       }
+      onDelete={isEditMode ? onDelete : undefined}
+      deleteLabel={t("common:buttons.delete")}
       maxWidth="sm:max-w-[550px]"
       maxHeight="max-h-[90vh]"
     >

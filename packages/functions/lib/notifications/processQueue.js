@@ -61,7 +61,7 @@ const firestore_1 = require("firebase-functions/v2/firestore");
 const firebase_functions_1 = require("firebase-functions");
 const crypto = __importStar(require("crypto"));
 const firebase_js_1 = require("../lib/firebase.js");
-const errors_js_1 = require("../lib/errors.js");
+const shared_1 = require("@stall-bokning/shared");
 const sendEmail_js_1 = require("./sendEmail.js");
 const sendPush_js_1 = require("./sendPush.js");
 const sendTelegram_js_1 = require("./sendTelegram.js");
@@ -338,7 +338,7 @@ async function processQueueItem(queueItemRef, queueItem, executionId) {
         error = `Unknown channel: ${channel}`;
     }
   } catch (err) {
-    error = (0, errors_js_1.formatErrorMessage)(err);
+    error = (0, shared_1.formatErrorMessage)(err);
     firebase_functions_1.logger.error(
       {
         executionId,

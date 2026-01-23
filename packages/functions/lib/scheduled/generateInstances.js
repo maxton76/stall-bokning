@@ -61,7 +61,7 @@ const scheduler_1 = require("firebase-functions/v2/scheduler");
 const firebase_functions_1 = require("firebase-functions");
 const crypto = __importStar(require("crypto"));
 const firebase_js_1 = require("../lib/firebase.js");
-const errors_js_1 = require("../lib/errors.js");
+const shared_1 = require("@stall-bokning/shared");
 function parseRRule(rrule) {
   const result = {
     freq: "DAILY",
@@ -508,7 +508,7 @@ exports.generateActivityInstances = (0, scheduler_1.onSchedule)(
                     executionId,
                     recurringId,
                     batchCount,
-                    error: (0, errors_js_1.formatErrorMessage)(batchError),
+                    error: (0, shared_1.formatErrorMessage)(batchError),
                   },
                   "Failed to commit batch of activity instances",
                 );
@@ -558,7 +558,7 @@ exports.generateActivityInstances = (0, scheduler_1.onSchedule)(
             {
               executionId,
               recurringId: recurringDoc.id,
-              error: (0, errors_js_1.formatErrorMessage)(error),
+              error: (0, shared_1.formatErrorMessage)(error),
             },
             "Error processing recurring activity",
           );
@@ -578,7 +578,7 @@ exports.generateActivityInstances = (0, scheduler_1.onSchedule)(
       firebase_functions_1.logger.error(
         {
           executionId,
-          error: (0, errors_js_1.formatErrorMessage)(error),
+          error: (0, shared_1.formatErrorMessage)(error),
         },
         "Activity instance generation failed",
       );

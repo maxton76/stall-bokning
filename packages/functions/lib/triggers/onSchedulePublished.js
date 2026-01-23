@@ -67,7 +67,7 @@ const firestore_1 = require("firebase-functions/v2/firestore");
 const firebase_functions_1 = require("firebase-functions");
 const crypto = __importStar(require("crypto"));
 const firebase_js_1 = require("../lib/firebase.js");
-const errors_js_1 = require("../lib/errors.js");
+const shared_1 = require("@stall-bokning/shared");
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
@@ -169,7 +169,7 @@ async function getUserNotificationPreferences(userId) {
     };
   } catch (error) {
     firebase_functions_1.logger.warn(
-      { userId, error: (0, errors_js_1.formatErrorMessage)(error) },
+      { userId, error: (0, shared_1.formatErrorMessage)(error) },
       "Failed to get notification preferences, using defaults",
     );
     return { email: true, push: false, telegram: false };
@@ -365,7 +365,7 @@ async function createSchedulePublishNotifications(
         {
           executionId,
           userId,
-          error: (0, errors_js_1.formatErrorMessage)(error),
+          error: (0, shared_1.formatErrorMessage)(error),
         },
         "Failed to create notification for user",
       );
@@ -489,7 +489,7 @@ exports.onSchedulePublished = (0, firestore_1.onDocumentUpdated)(
         {
           executionId,
           scheduleId,
-          error: (0, errors_js_1.formatErrorMessage)(error),
+          error: (0, shared_1.formatErrorMessage)(error),
         },
         "Failed to create schedule publish notifications",
       );

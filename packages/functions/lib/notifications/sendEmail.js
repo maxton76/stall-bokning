@@ -3,8 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendEmail = sendEmail;
 const firebase_functions_1 = require("firebase-functions");
 const text_js_1 = require("../lib/text.js");
-const validation_js_1 = require("../lib/validation.js");
-const errors_js_1 = require("../lib/errors.js");
+const shared_1 = require("@stall-bokning/shared");
 const smtp_js_1 = require("../lib/smtp.js");
 /**
  * Get the configured email provider
@@ -198,7 +197,7 @@ async function sendViaSendGrid(payload, config, htmlBody) {
     );
     return { success: true };
   } catch (error) {
-    const errorMessage = (0, errors_js_1.formatErrorMessage)(error);
+    const errorMessage = (0, shared_1.formatErrorMessage)(error);
     firebase_functions_1.logger.error(
       {
         error: errorMessage,
@@ -258,7 +257,7 @@ async function sendEmailViaSMTP(payload, htmlBody) {
  */
 async function sendEmail(payload, actionUrl) {
   // Validate email address format
-  if (!(0, validation_js_1.isValidEmail)(payload.to)) {
+  if (!(0, shared_1.isValidEmail)(payload.to)) {
     firebase_functions_1.logger.warn(
       { email: payload.to.substring(0, 30) },
       "Invalid email address format",

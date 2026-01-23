@@ -61,7 +61,7 @@ const scheduler_1 = require("firebase-functions/v2/scheduler");
 const firebase_functions_1 = require("firebase-functions");
 const crypto = __importStar(require("crypto"));
 const firebase_js_1 = require("../lib/firebase.js");
-const errors_js_1 = require("../lib/errors.js");
+const shared_1 = require("@stall-bokning/shared");
 /**
  * Check if current time is within user's quiet hours
  */
@@ -358,7 +358,7 @@ exports.scanForReminders = (0, scheduler_1.onSchedule)(
             {
               executionId,
               instanceId: instanceDoc.id,
-              error: (0, errors_js_1.formatErrorMessage)(error),
+              error: (0, shared_1.formatErrorMessage)(error),
             },
             "Error processing instance reminder",
           );
@@ -502,7 +502,7 @@ exports.scanForReminders = (0, scheduler_1.onSchedule)(
             {
               executionId,
               horseId: horseDoc.id,
-              error: (0, errors_js_1.formatErrorMessage)(error),
+              error: (0, shared_1.formatErrorMessage)(error),
             },
             "Error processing health reminder",
           );
@@ -587,7 +587,7 @@ exports.scanForReminders = (0, scheduler_1.onSchedule)(
             {
               executionId,
               instanceId: instanceDoc.id,
-              error: (0, errors_js_1.formatErrorMessage)(error),
+              error: (0, shared_1.formatErrorMessage)(error),
             },
             "Error processing overdue activity",
           );
@@ -632,7 +632,7 @@ exports.scanForReminders = (0, scheduler_1.onSchedule)(
       firebase_functions_1.logger.error(
         {
           executionId,
-          error: (0, errors_js_1.formatErrorMessage)(error),
+          error: (0, shared_1.formatErrorMessage)(error),
         },
         "Reminder scan failed",
       );
