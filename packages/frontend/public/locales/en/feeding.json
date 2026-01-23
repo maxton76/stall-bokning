@@ -243,6 +243,16 @@
     "completionRate": "Completion Rate",
     "wasteAmount": "Waste Cost"
   },
+  "today": {
+    "subtitle": "Feeding status for today",
+    "progress": "Today's progress",
+    "feedingsCompleted": "feedings completed",
+    "horsesFed": "horses fed",
+    "active": "Active",
+    "upcoming": "Upcoming",
+    "noFeedingSessions": "No feedings today",
+    "noFeedingSessionsDescription": "There are no scheduled routines with feeding steps for today. Create routines in settings or wait for a routine to be scheduled."
+  },
   "history": {
     "title": "Feeding History",
     "description": "View all changes to feeding schedules",

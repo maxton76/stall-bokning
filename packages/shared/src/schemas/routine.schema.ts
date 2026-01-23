@@ -116,6 +116,7 @@ export const createRoutineStepSchema = z.object({
   allowPartialCompletion: z.boolean().optional().default(false),
   allowPhotoEvidence: z.boolean().optional().default(false),
   estimatedMinutes: z.number().int().min(1).max(480).optional(),
+  feedingTimeId: z.string().optional(), // Link to FeedingTime for feeding steps
 });
 
 // ============================================================

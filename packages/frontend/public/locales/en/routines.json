@@ -175,7 +175,11 @@
     "selectGroups": "Select Horse Groups",
     "selectGroupsPlaceholder": "Choose groups for this step...",
     "excludeHorses": "Exclude Horses (Optional)",
-    "excludeHorsesPlaceholder": "Exclude specific horses..."
+    "excludeHorsesPlaceholder": "Exclude specific horses...",
+    "feedingTime": "Feeding Time",
+    "feedingTimePlaceholder": "Select feeding time...",
+    "noFeedingTimeLinked": "No feeding time linked",
+    "feedingTimeHint": "Link to a feeding time to display this step on the feeding page"
   },
   "standardTemplates": {
     "morning": {

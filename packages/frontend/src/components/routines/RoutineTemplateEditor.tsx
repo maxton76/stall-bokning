@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Plus,
@@ -42,7 +42,9 @@ import type {
   RoutineType,
   RoutineCategory,
   RoutineStepHorseContext,
+  FeedingTime,
 } from "@shared/types";
+import { getFeedingTimesByStable } from "@/services/feedingTimeService";
 
 import { cn } from "@/lib/utils";
 
@@ -134,6 +136,29 @@ export function RoutineTemplateEditor({
 
   // Step editor state
   const [expandedStepId, setExpandedStepId] = useState<string | null>(null);
+
+  // Feeding times for feeding step linkage
+  const [feedingTimes, setFeedingTimes] = useState<FeedingTime[]>([]);
+
+  // Fetch feeding times when stableId changes
+  const loadFeedingTimes = useCallback(async () => {
+    if (!stableId || stableId === "__all__") {
+      setFeedingTimes([]);
+      return;
+    }
+
+    try {
+      const times = await getFeedingTimesByStable(stableId, true);
+      setFeedingTimes(times);
+    } catch (err) {
+      console.error("Error loading feeding times:", err);
+      setFeedingTimes([]);
+    }
+  }, [stableId]);
+
+  useEffect(() => {
+    loadFeedingTimes();
+  }, [loadFeedingTimes]);
 
   // Generate unique ID for new steps
   const generateStepId = () =>
@@ -401,6 +426,7 @@ export function RoutineTemplateEditor({
                 canMoveDown={index < steps.length - 1}
                 stableId={stableId}
                 organizationId={organizationId}
+                feedingTimes={feedingTimes}
                 t={t}
               />
             ))}
@@ -436,6 +462,7 @@ interface StepEditorProps {
   canMoveDown: boolean;
   stableId: string;
   organizationId: string;
+  feedingTimes: FeedingTime[];
   t: (key: string) => string;
 }
 
@@ -452,6 +479,7 @@ function StepEditor({
   canMoveDown,
   stableId,
   organizationId,
+  feedingTimes,
   t,
 }: StepEditorProps) {
   return (
@@ -566,6 +594,42 @@ function StepEditor({
                   rows={2}
                 />
               </div>
+
+              {/* FeedingTime selector - only shown for feeding category */}
+              {step.category === "feeding" && feedingTimes.length > 0 && (
+                <div className="col-span-2">
+                  <Label>{t("routines:stepConfig.feedingTime")}</Label>
+                  <Select
+                    value={step.feedingTimeId ?? "__none__"}
+                    onValueChange={(v) =>
+                      onUpdate({
+                        feedingTimeId: v === "__none__" ? undefined : v,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={t(
+                          "routines:stepConfig.feedingTimePlaceholder",
+                        )}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">
+                        {t("routines:stepConfig.noFeedingTimeLinked")}
+                      </SelectItem>
+                      {feedingTimes.map((ft) => (
+                        <SelectItem key={ft.id} value={ft.id}>
+                          {ft.name} ({ft.time})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t("routines:stepConfig.feedingTimeHint")}
+                  </p>
+                </div>
+              )}
 
               <div>
                 <Label>{t("routines:stepConfig.horseContext")}</Label>

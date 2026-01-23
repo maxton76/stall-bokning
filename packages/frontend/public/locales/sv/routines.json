@@ -175,7 +175,11 @@
     "selectGroups": "Välj hästgrupper",
     "selectGroupsPlaceholder": "Välj grupper för detta steg...",
     "excludeHorses": "Exkludera hästar (valfritt)",
-    "excludeHorsesPlaceholder": "Exkludera specifika hästar..."
+    "excludeHorsesPlaceholder": "Exkludera specifika hästar...",
+    "feedingTime": "Utfodringstid",
+    "feedingTimePlaceholder": "Välj utfodringstid...",
+    "noFeedingTimeLinked": "Ingen kopplad utfodringstid",
+    "feedingTimeHint": "Koppla till en utfodringstid för att visa detta steg på utfodringssidan"
   },
   "standardTemplates": {
     "morning": {

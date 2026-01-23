@@ -104,6 +104,9 @@ export interface RoutineStep {
 
   // Time tracking
   estimatedMinutes?: number;
+
+  // Link to FeedingTime for feeding steps (only relevant when category === "feeding")
+  feedingTimeId?: string;
 }
 
 /**
@@ -430,6 +433,7 @@ export interface CreateRoutineStepInput {
   allowPartialCompletion?: boolean;
   allowPhotoEvidence?: boolean;
   estimatedMinutes?: number;
+  feedingTimeId?: string; // Link to FeedingTime for feeding steps
 }
 
 /**

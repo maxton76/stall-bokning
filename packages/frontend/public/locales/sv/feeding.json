@@ -243,6 +243,16 @@
     "completionRate": "Genomförandegrad",
     "wasteAmount": "Svinnskostnad"
   },
+  "today": {
+    "subtitle": "Utfodringsstatus för idag",
+    "progress": "Dagens framsteg",
+    "feedingsCompleted": "utfodringar klara",
+    "horsesFed": "hästar utfodrade",
+    "active": "Aktiv",
+    "upcoming": "Kommande",
+    "noFeedingSessions": "Inga utfodringar idag",
+    "noFeedingSessionsDescription": "Det finns inga schemalagda rutiner med utfodringssteg för idag. Skapa rutiner i inställningarna eller vänta på att en rutin schemaläggs."
+  },
   "history": {
     "title": "Utfodringshistorik",
     "description": "Visa alla ändringar i utfodringsscheman",
