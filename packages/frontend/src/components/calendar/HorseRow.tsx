@@ -4,6 +4,7 @@ import { sv, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import type { ActivityEntry, ActivityTypeConfig } from "@/types/activity";
 import { toDate } from "@/utils/timestampUtils";
+import { useTranslatedActivityTypes } from "@/hooks/useTranslatedActivityTypes";
 
 interface HorseRowProps {
   horse: { id: string; name: string };
@@ -28,6 +29,7 @@ export function HorseRow({
 }: HorseRowProps) {
   const { t, i18n } = useTranslation(["activities", "common"]);
   const locale = i18n.language === "sv" ? sv : enUS;
+  const translateActivityType = useTranslatedActivityTypes();
 
   // Group activities by day
   const activitiesByDay = useMemo(() => {
@@ -72,19 +74,44 @@ export function HorseRow({
     return Array.from({ length: hourCount }, (_, i) => startHour + i);
   }, [activitiesByDay]);
 
+  // Helper to find activity type config by ID, key, or name
+  const findActivityType = (activity: ActivityEntry) => {
+    if (activity.type !== "activity") return undefined;
+
+    // First try matching by activityTypeConfigId
+    if ("activityTypeConfigId" in activity && activity.activityTypeConfigId) {
+      const found = activityTypes.find(
+        (t) => t.id === activity.activityTypeConfigId,
+      );
+      if (found) return found;
+    }
+
+    // Fallback: match by legacy activityType field
+    if ("activityType" in activity && activity.activityType) {
+      const activityTypeLower = activity.activityType.toLowerCase();
+
+      // Try matching against key (case-insensitive)
+      const byKey = activityTypes.find(
+        (t) => t.key?.toLowerCase() === activityTypeLower,
+      );
+      if (byKey) return byKey;
+
+      // Final fallback: match against name (case-insensitive)
+      return activityTypes.find(
+        (t) => t.name.toLowerCase() === activityTypeLower,
+      );
+    }
+
+    return undefined;
+  };
+
   // Calculate compact view indicators (icons + time)
   const getCompactIndicators = (dayActivities: ActivityEntry[]) => {
     if (dayActivities.length === 0) return null;
 
     // Get unique icons from activity types
     const icons = dayActivities
-      .map((a) => {
-        if (a.type === "activity" && "activityTypeConfigId" in a) {
-          return activityTypes.find((t) => t.id === a.activityTypeConfigId)
-            ?.icon;
-        }
-        return undefined;
-      })
+      .map((a) => findActivityType(a)?.icon)
       .filter(Boolean)
       .slice(0, 3);
 
@@ -141,13 +168,10 @@ export function HorseRow({
               onClick={() => onCellClick(horse.id, day)}
             >
               {dayActivities.map((activity) => {
-                const activityType =
-                  activity.type === "activity" &&
-                  "activityTypeConfigId" in activity
-                    ? activityTypes.find(
-                        (t) => t.id === activity.activityTypeConfigId,
-                      )
-                    : undefined;
+                const activityType = findActivityType(activity);
+                const displayName =
+                  translateActivityType(activityType) ||
+                  t("activities:form.entryTypes.activity");
                 return (
                   <div
                     key={activity.id}
@@ -162,8 +186,7 @@ export function HorseRow({
                       onActivityClick(activity);
                     }}
                   >
-                    {activityType?.name ||
-                      t("activities:form.entryTypes.activity")}
+                    {displayName}
                   </div>
                 );
               })}
@@ -216,14 +239,11 @@ export function HorseRow({
                 onClick={() => onCellClick(horse.id, day, hour)}
               >
                 {hourActivities.map((activity) => {
-                  const activityType =
-                    activity.type === "activity" &&
-                    "activityTypeConfigId" in activity
-                      ? activityTypes.find(
-                          (t) => t.id === activity.activityTypeConfigId,
-                        )
-                      : undefined;
+                  const activityType = findActivityType(activity);
                   const activityTime = toDate(activity.date);
+                  const displayName =
+                    translateActivityType(activityType) ||
+                    t("activities:form.entryTypes.activity");
                   return (
                     <div
                       key={activity.id}
@@ -237,10 +257,9 @@ export function HorseRow({
                         e.stopPropagation();
                         onActivityClick(activity);
                       }}
-                      title={`${activityType?.name || t("activities:form.entryTypes.activity")} ${activityTime ? format(activityTime, "HH:mm", { locale }) : ""}`}
+                      title={`${displayName} ${activityTime ? format(activityTime, "HH:mm", { locale }) : ""}`}
                     >
-                      {activityType?.name ||
-                        t("activities:form.entryTypes.activity")}{" "}
+                      {displayName}{" "}
                       {activityTime
                         ? format(activityTime, "HH:mm", { locale })
                         : ""}
