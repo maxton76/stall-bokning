@@ -58,10 +58,104 @@ export function createDateThreshold(daysBack: number): Date {
 }
 
 /**
- * Check if two dates are in the same week
+ * Get ISO week year - handles edge cases where Dec 31 might be week 1 of next year
+ */
+export function getWeekYear(date: Date): number {
+  const week = getWeekNumber(date);
+  const month = date.getMonth();
+
+  // If it's December but week 1, it belongs to next year
+  if (month === 11 && week === 1) {
+    return date.getFullYear() + 1;
+  }
+  // If it's January but week 52/53, it belongs to previous year
+  if (month === 0 && week >= 52) {
+    return date.getFullYear() - 1;
+  }
+  return date.getFullYear();
+}
+
+/**
+ * Check if two dates are in the same week (handles year boundary correctly)
  */
 export function isSameWeek(date1: Date, date2: Date): boolean {
-  return getWeekNumber(date1) === getWeekNumber(date2);
+  return (
+    getWeekNumber(date1) === getWeekNumber(date2) &&
+    getWeekYear(date1) === getWeekYear(date2)
+  );
+}
+
+/**
+ * Parse shift time string to get end time
+ * @example parseShiftEndTime("06:00-09:00") => "09:00"
+ */
+export function parseShiftEndTime(timeRange: string): string {
+  return timeRange.split("-")[1]?.trim() || "";
+}
+
+/**
+ * Get the start of the week (Monday) for a given date
+ */
+export function getWeekStart(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+  return new Date(d.setDate(diff));
+}
+
+/**
+ * Get the start of the month for a given date
+ */
+export function getMonthStart(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+/**
+ * Parse ISO date string or Date to Date object
+ */
+export function parseDate(
+  value: string | Date | { toDate: () => Date },
+): Date | null {
+  if (!value) return null;
+
+  // Handle Firestore Timestamp
+  if (typeof value === "object" && "toDate" in value) {
+    return value.toDate();
+  }
+
+  // Handle Date object
+  if (value instanceof Date) {
+    return value;
+  }
+
+  // Handle ISO string
+  if (typeof value === "string") {
+    const parsed = new Date(value);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  return null;
+}
+
+/**
+ * Get day of week (0-6, where 0 = Sunday)
+ */
+export function getDayOfWeek(date: Date): number {
+  return date.getDay();
+}
+
+/**
+ * Check if a time string falls within a time range
+ * @param time Time to check (HH:MM format)
+ * @param start Start of range (HH:MM format)
+ * @param end End of range (HH:MM format)
+ */
+export function isTimeInRange(
+  time: string,
+  start: string,
+  end: string,
+): boolean {
+  return time >= start && time < end;
 }
 
 /**

@@ -1,11 +1,9 @@
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 import type {
   HorseActivityHistoryEntry,
   HorseActivityHistoryResponse,
   RoutineCategory,
 } from "@shared/types";
-
-const API_URL = import.meta.env.VITE_API_URL;
 
 /**
  * Options for filtering horse activity history
@@ -61,42 +59,34 @@ export async function getHorseActivityHistory(
   horseId: string,
   options?: HorseActivityHistoryOptions,
 ): Promise<HorseActivityHistoryResult> {
-  const params = new URLSearchParams();
+  const params: Record<string, string> = {};
 
   if (options?.category) {
-    params.append("category", options.category);
+    params.category = options.category;
   }
   if (options?.startDate) {
-    const dateStr =
+    params.startDate =
       options.startDate instanceof Date
         ? options.startDate.toISOString()
         : options.startDate;
-    params.append("startDate", dateStr);
   }
   if (options?.endDate) {
-    const dateStr =
+    params.endDate =
       options.endDate instanceof Date
         ? options.endDate.toISOString()
         : options.endDate;
-    params.append("endDate", dateStr);
   }
   if (options?.limit) {
-    params.append("limit", options.limit.toString());
+    params.limit = options.limit.toString();
   }
   if (options?.cursor) {
-    params.append("cursor", options.cursor);
+    params.cursor = options.cursor;
   }
 
-  const queryString = params.toString();
-  const url = `${API_URL}/api/v1/horse-activity-history/horse/${horseId}${
-    queryString ? `?${queryString}` : ""
-  }`;
-
-  const response = await authFetchJSON<HorseActivityHistoryResult>(url, {
-    method: "GET",
-  });
-
-  return response;
+  return await apiClient.get<HorseActivityHistoryResult>(
+    `/horse-activity-history/horse/${horseId}`,
+    Object.keys(params).length > 0 ? params : undefined,
+  );
 }
 
 /**
@@ -114,12 +104,9 @@ export async function getHorseActivityHistory(
 export async function getRoutineActivityHistory(
   routineInstanceId: string,
 ): Promise<RoutineActivityHistoryResult> {
-  const response = await authFetchJSON<RoutineActivityHistoryResult>(
-    `${API_URL}/api/v1/horse-activity-history/routine/${routineInstanceId}`,
-    { method: "GET" },
+  return await apiClient.get<RoutineActivityHistoryResult>(
+    `/horse-activity-history/routine/${routineInstanceId}`,
   );
-
-  return response;
 }
 
 /**
@@ -133,43 +120,35 @@ export async function getStableActivityHistory(
   stableId: string,
   options?: HorseActivityHistoryOptions & { horseId?: string },
 ): Promise<HorseActivityHistoryResult> {
-  const params = new URLSearchParams();
+  const params: Record<string, string> = {};
 
   if (options?.category) {
-    params.append("category", options.category);
+    params.category = options.category;
   }
   if (options?.startDate) {
-    const dateStr =
+    params.startDate =
       options.startDate instanceof Date
         ? options.startDate.toISOString()
         : options.startDate;
-    params.append("startDate", dateStr);
   }
   if (options?.endDate) {
-    const dateStr =
+    params.endDate =
       options.endDate instanceof Date
         ? options.endDate.toISOString()
         : options.endDate;
-    params.append("endDate", dateStr);
   }
   if (options?.horseId) {
-    params.append("horseId", options.horseId);
+    params.horseId = options.horseId;
   }
   if (options?.limit) {
-    params.append("limit", options.limit.toString());
+    params.limit = options.limit.toString();
   }
   if (options?.cursor) {
-    params.append("cursor", options.cursor);
+    params.cursor = options.cursor;
   }
 
-  const queryString = params.toString();
-  const url = `${API_URL}/api/v1/horse-activity-history/stable/${stableId}${
-    queryString ? `?${queryString}` : ""
-  }`;
-
-  const response = await authFetchJSON<HorseActivityHistoryResult>(url, {
-    method: "GET",
-  });
-
-  return response;
+  return await apiClient.get<HorseActivityHistoryResult>(
+    `/horse-activity-history/stable/${stableId}`,
+    Object.keys(params).length > 0 ? params : undefined,
+  );
 }

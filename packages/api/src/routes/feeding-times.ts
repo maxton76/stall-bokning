@@ -9,6 +9,14 @@ import {
   isSystemAdmin,
 } from "../utils/authorization.js";
 import { serializeTimestamps } from "../utils/serialization.js";
+import {
+  badRequest,
+  forbidden,
+  notFound,
+  serverError,
+  created,
+  ok,
+} from "../utils/responses.js";
 
 /**
  * Default feeding times to create when stable has none
@@ -43,10 +51,10 @@ export async function feedingTimesRoutes(fastify: FastifyInstance) {
         if (!isSystemAdmin(user.role)) {
           const hasAccess = await canAccessStable(user.uid, stableId);
           if (!hasAccess) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to access this stable",
-            });
+            return forbidden(
+              reply,
+              "You do not have permission to access this stable",
+            );
           }
         }
 
@@ -104,10 +112,7 @@ export async function feedingTimesRoutes(fastify: FastifyInstance) {
         return { feedingTimes };
       } catch (error) {
         request.log.error({ error }, "Failed to fetch feeding times");
-        return reply.status(500).send({
-          error: "Internal Server Error",
-          message: "Failed to fetch feeding times",
-        });
+        return serverError(reply, error, "fetch feeding times");
       }
     },
   );
@@ -129,10 +134,7 @@ export async function feedingTimesRoutes(fastify: FastifyInstance) {
         const doc = await db.collection("feedingTimes").doc(id).get();
 
         if (!doc.exists) {
-          return reply.status(404).send({
-            error: "Not Found",
-            message: "Feeding time not found",
-          });
+          return notFound(reply, "Feeding time", id);
         }
 
         const feedingTime = doc.data()!;
@@ -144,20 +146,17 @@ export async function feedingTimesRoutes(fastify: FastifyInstance) {
             feedingTime.stableId,
           );
           if (!hasAccess) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to access this feeding time",
-            });
+            return forbidden(
+              reply,
+              "You do not have permission to access this feeding time",
+            );
           }
         }
 
         return serializeTimestamps({ id: doc.id, ...feedingTime });
       } catch (error) {
         request.log.error({ error }, "Failed to fetch feeding time");
-        return reply.status(500).send({
-          error: "Internal Server Error",
-          message: "Failed to fetch feeding time",
-        });
+        return serverError(reply, error, "fetch feeding time");
       }
     },
   );
@@ -177,38 +176,31 @@ export async function feedingTimesRoutes(fastify: FastifyInstance) {
         const data = request.body as any;
 
         if (!data.stableId) {
-          return reply.status(400).send({
-            error: "Bad Request",
-            message: "stableId is required",
-          });
+          return badRequest(reply, "stableId is required");
         }
 
         // Check stable management access
         if (!isSystemAdmin(user.role)) {
           const canManage = await canManageStable(user.uid, data.stableId);
           if (!canManage) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message:
-                "You do not have permission to create feeding times for this stable",
-            });
+            return forbidden(
+              reply,
+              "You do not have permission to create feeding times for this stable",
+            );
           }
         }
 
         // Validate required fields
         if (!data.name || !data.time) {
-          return reply.status(400).send({
-            error: "Bad Request",
-            message: "name and time are required",
-          });
+          return badRequest(reply, "name and time are required");
         }
 
         // Validate time format (HH:mm)
         if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(data.time)) {
-          return reply.status(400).send({
-            error: "Bad Request",
-            message: "time must be in HH:mm format (e.g., '07:00', '13:30')",
-          });
+          return badRequest(
+            reply,
+            "time must be in HH:mm format (e.g., '07:00', '13:30')",
+          );
         }
 
         // Get the next sort order
@@ -241,16 +233,10 @@ export async function feedingTimesRoutes(fastify: FastifyInstance) {
 
         const docRef = await db.collection("feedingTimes").add(feedingTimeData);
 
-        return reply.status(201).send({
-          id: docRef.id,
-          ...serializeTimestamps(feedingTimeData),
-        });
+        return created(reply, docRef.id, serializeTimestamps(feedingTimeData));
       } catch (error) {
         request.log.error({ error }, "Failed to create feeding time");
-        return reply.status(500).send({
-          error: "Internal Server Error",
-          message: "Failed to create feeding time",
-        });
+        return serverError(reply, error, "create feeding time");
       }
     },
   );
@@ -274,10 +260,7 @@ export async function feedingTimesRoutes(fastify: FastifyInstance) {
         const doc = await docRef.get();
 
         if (!doc.exists) {
-          return reply.status(404).send({
-            error: "Not Found",
-            message: "Feeding time not found",
-          });
+          return notFound(reply, "Feeding time", id);
         }
 
         const existing = doc.data()!;
@@ -286,27 +269,24 @@ export async function feedingTimesRoutes(fastify: FastifyInstance) {
         if (!isSystemAdmin(user.role)) {
           const canManage = await canManageStable(user.uid, existing.stableId);
           if (!canManage) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to update this feeding time",
-            });
+            return forbidden(
+              reply,
+              "You do not have permission to update this feeding time",
+            );
           }
         }
 
         // Prevent changing stableId
         if (updates.stableId && updates.stableId !== existing.stableId) {
-          return reply.status(400).send({
-            error: "Bad Request",
-            message: "Cannot change stableId",
-          });
+          return badRequest(reply, "Cannot change stableId");
         }
 
         // Validate time format if provided
         if (updates.time && !/^([01]\d|2[0-3]):([0-5]\d)$/.test(updates.time)) {
-          return reply.status(400).send({
-            error: "Bad Request",
-            message: "time must be in HH:mm format (e.g., '07:00', '13:30')",
-          });
+          return badRequest(
+            reply,
+            "time must be in HH:mm format (e.g., '07:00', '13:30')",
+          );
         }
 
         const updateData = {
@@ -319,13 +299,13 @@ export async function feedingTimesRoutes(fastify: FastifyInstance) {
 
         await docRef.update(updateData);
 
-        return serializeTimestamps({ id, ...existing, ...updateData });
+        return ok(
+          reply,
+          serializeTimestamps({ id, ...existing, ...updateData }),
+        );
       } catch (error) {
         request.log.error({ error }, "Failed to update feeding time");
-        return reply.status(500).send({
-          error: "Internal Server Error",
-          message: "Failed to update feeding time",
-        });
+        return serverError(reply, error, "update feeding time");
       }
     },
   );
@@ -348,10 +328,7 @@ export async function feedingTimesRoutes(fastify: FastifyInstance) {
         const doc = await docRef.get();
 
         if (!doc.exists) {
-          return reply.status(404).send({
-            error: "Not Found",
-            message: "Feeding time not found",
-          });
+          return notFound(reply, "Feeding time", id);
         }
 
         const existing = doc.data()!;
@@ -360,10 +337,10 @@ export async function feedingTimesRoutes(fastify: FastifyInstance) {
         if (!isSystemAdmin(user.role)) {
           const canManage = await canManageStable(user.uid, existing.stableId);
           if (!canManage) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to delete this feeding time",
-            });
+            return forbidden(
+              reply,
+              "You do not have permission to delete this feeding time",
+            );
           }
         }
 
@@ -381,19 +358,16 @@ export async function feedingTimesRoutes(fastify: FastifyInstance) {
             isActive: false,
             updatedAt: Timestamp.now(),
           });
-          return { success: true, id, softDeleted: true };
+          return ok(reply, { success: true, id, softDeleted: true });
         }
 
         // Hard delete if not in use
         await docRef.delete();
 
-        return { success: true, id };
+        return ok(reply, { success: true, id });
       } catch (error) {
         request.log.error({ error }, "Failed to delete feeding time");
-        return reply.status(500).send({
-          error: "Internal Server Error",
-          message: "Failed to delete feeding time",
-        });
+        return serverError(reply, error, "delete feeding time");
       }
     },
   );

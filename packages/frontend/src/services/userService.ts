@@ -1,7 +1,7 @@
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { formatFullName } from "@/lib/nameUtils";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 
 export interface RegisterUserData {
   email: string;
@@ -43,16 +43,13 @@ export async function registerUser(data: RegisterUserData): Promise<string> {
     // - Creating organization
     // - Creating organization member record
     // - Migrating pending invites
-    const response = await authFetchJSON<{
+    const response = await apiClient.post<{
       user: { id: string; email: string; firstName: string; lastName: string };
-    }>(`${import.meta.env.VITE_API_URL}/api/v1/auth/signup`, {
-      method: "POST",
-      body: JSON.stringify({
-        email: data.email,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        systemRole: "member",
-      }),
+    }>("/auth/signup", {
+      email: data.email,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      systemRole: "member",
     });
 
     // Backend creates organization, but doesn't return it

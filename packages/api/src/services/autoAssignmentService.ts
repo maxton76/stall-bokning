@@ -12,7 +12,7 @@ import {
   parseDate,
   getDayOfWeek,
   isTimeInRange,
-} from "../utils/dateHelpers.js";
+} from "@stall-bokning/shared";
 import {
   isSwedishHoliday,
   applyHolidayMultiplier,

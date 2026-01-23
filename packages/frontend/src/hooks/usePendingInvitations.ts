@@ -8,7 +8,7 @@ import {
   acceptInvitation,
   declineInvitation,
   type Invitation,
-} from "@/services/invitationService";
+} from "@/services/inviteService";
 
 interface UsePendingInvitationsResult {
   invitations: Invitation[];

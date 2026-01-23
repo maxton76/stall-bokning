@@ -3,7 +3,7 @@ import type {
   CreateFeedingTimeData,
   UpdateFeedingTimeData,
 } from "@shared/types";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 
 // ============================================================================
 // Public Service API
@@ -23,16 +23,14 @@ export async function getFeedingTimesByStable(
   stableId: string,
   activeOnly = true,
 ): Promise<FeedingTime[]> {
-  const params = new URLSearchParams();
+  const params: Record<string, string> = {};
   if (activeOnly !== undefined) {
-    params.append("activeOnly", String(activeOnly));
+    params.activeOnly = String(activeOnly);
   }
 
-  const queryString = params.toString() ? `?${params.toString()}` : "";
-
-  const response = await authFetchJSON<{ feedingTimes: FeedingTime[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/feeding-times/stable/${stableId}${queryString}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ feedingTimes: FeedingTime[] }>(
+    `/feeding-times/stable/${stableId}`,
+    Object.keys(params).length > 0 ? params : undefined,
   );
 
   return response.feedingTimes;
@@ -48,12 +46,7 @@ export async function getFeedingTimeById(
   id: string,
 ): Promise<FeedingTime | null> {
   try {
-    const response = await authFetchJSON<FeedingTime>(
-      `${import.meta.env.VITE_API_URL}/api/v1/feeding-times/${id}`,
-      { method: "GET" },
-    );
-
-    return response;
+    return await apiClient.get<FeedingTime>(`/feeding-times/${id}`);
   } catch (error) {
     return null;
   }
@@ -70,13 +63,10 @@ export async function createFeedingTime(
   stableId: string,
   data: CreateFeedingTimeData,
 ): Promise<string> {
-  const response = await authFetchJSON<{ id: string }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/feeding-times`,
-    {
-      method: "POST",
-      body: JSON.stringify({ ...data, stableId }),
-    },
-  );
+  const response = await apiClient.post<{ id: string }>("/feeding-times", {
+    ...data,
+    stableId,
+  });
 
   return response.id;
 }
@@ -92,13 +82,7 @@ export async function updateFeedingTime(
   id: string,
   updates: UpdateFeedingTimeData,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/feeding-times/${id}`,
-    {
-      method: "PUT",
-      body: JSON.stringify(updates),
-    },
-  );
+  await apiClient.put(`/feeding-times/${id}`, updates);
 }
 
 /**
@@ -111,8 +95,5 @@ export async function updateFeedingTime(
  * @returns Promise that resolves when deletion is complete
  */
 export async function deleteFeedingTime(id: string): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/feeding-times/${id}`,
-    { method: "DELETE" },
-  );
+  await apiClient.delete(`/feeding-times/${id}`);
 }

@@ -4,7 +4,7 @@ import type {
   CreateReservationData,
   UpdateReservationData,
 } from "@/types/facilityReservation";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 
 /**
  * Create a new reservation with denormalized data
@@ -36,12 +36,9 @@ export async function createReservation(
         : reservationData.endTime,
   };
 
-  const response = await authFetchJSON<{ id: string }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations`,
-    {
-      method: "POST",
-      body: JSON.stringify(fullData),
-    },
+  const response = await apiClient.post<{ id: string }>(
+    "/facility-reservations",
+    fullData,
   );
 
   return response.id;
@@ -54,12 +51,9 @@ export async function getReservation(
   reservationId: string,
 ): Promise<FacilityReservation | null> {
   try {
-    const reservation = await authFetchJSON<FacilityReservation>(
-      `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations/${reservationId}`,
-      { method: "GET" },
+    return await apiClient.get<FacilityReservation>(
+      `/facility-reservations/${reservationId}`,
     );
-
-    return reservation;
   } catch (error: any) {
     if (error.status === 404) {
       return null;
@@ -74,9 +68,9 @@ export async function getReservation(
 export async function getReservationsByFacility(
   facilityId: string,
 ): Promise<FacilityReservation[]> {
-  const response = await authFetchJSON<{ reservations: FacilityReservation[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations?facilityId=${facilityId}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ reservations: FacilityReservation[] }>(
+    "/facility-reservations",
+    { facilityId },
   );
 
   return response.reservations;
@@ -88,9 +82,9 @@ export async function getReservationsByFacility(
 export async function getUserReservations(
   userId: string,
 ): Promise<FacilityReservation[]> {
-  const response = await authFetchJSON<{ reservations: FacilityReservation[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations?userId=${userId}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ reservations: FacilityReservation[] }>(
+    "/facility-reservations",
+    { userId },
   );
 
   return response.reservations;
@@ -102,9 +96,9 @@ export async function getUserReservations(
 export async function getStableReservations(
   stableId: string,
 ): Promise<FacilityReservation[]> {
-  const response = await authFetchJSON<{ reservations: FacilityReservation[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations?stableId=${stableId}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ reservations: FacilityReservation[] }>(
+    "/facility-reservations",
+    { stableId },
   );
 
   return response.reservations;
@@ -118,12 +112,13 @@ export async function getReservationsByDateRange(
   startDate: Timestamp,
   endDate: Timestamp,
 ): Promise<FacilityReservation[]> {
-  const startISO = startDate.toDate().toISOString();
-  const endISO = endDate.toDate().toISOString();
-
-  const response = await authFetchJSON<{ reservations: FacilityReservation[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations?facilityId=${facilityId}&startDate=${startISO}&endDate=${endISO}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ reservations: FacilityReservation[] }>(
+    "/facility-reservations",
+    {
+      facilityId,
+      startDate: startDate.toDate().toISOString(),
+      endDate: endDate.toDate().toISOString(),
+    },
   );
 
   return response.reservations;
@@ -146,13 +141,7 @@ export async function updateReservation(
     apiUpdates.endTime = updates.endTime.toDate().toISOString();
   }
 
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations/${reservationId}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(apiUpdates),
-    },
-  );
+  await apiClient.patch(`/facility-reservations/${reservationId}`, apiUpdates);
 }
 
 /**
@@ -162,10 +151,7 @@ export async function cancelReservation(
   reservationId: string,
   userId: string,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations/${reservationId}/cancel`,
-    { method: "POST" },
-  );
+  await apiClient.post(`/facility-reservations/${reservationId}/cancel`);
 }
 
 /**
@@ -184,13 +170,9 @@ export async function approveReservation(
   reviewerEmail: string,
   reviewNotes?: string,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations/${reservationId}/approve`,
-    {
-      method: "POST",
-      body: JSON.stringify({ reviewNotes }),
-    },
-  );
+  await apiClient.post(`/facility-reservations/${reservationId}/approve`, {
+    reviewNotes,
+  });
 }
 
 /**
@@ -209,23 +191,16 @@ export async function rejectReservation(
   reviewerEmail: string,
   reviewNotes?: string,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations/${reservationId}/reject`,
-    {
-      method: "POST",
-      body: JSON.stringify({ reviewNotes }),
-    },
-  );
+  await apiClient.post(`/facility-reservations/${reservationId}/reject`, {
+    reviewNotes,
+  });
 }
 
 /**
  * Delete reservation
  */
 export async function deleteReservation(reservationId: string): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations/${reservationId}`,
-    { method: "DELETE" },
-  );
+  await apiClient.delete(`/facility-reservations/${reservationId}`);
 }
 
 /**
@@ -237,21 +212,15 @@ export async function checkReservationConflicts(
   endTime: Timestamp,
   excludeReservationId?: string,
 ): Promise<FacilityReservation[]> {
-  const response = await authFetchJSON<{
+  const response = await apiClient.post<{
     conflicts: FacilityReservation[];
     hasConflicts: boolean;
-  }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/facility-reservations/check-conflicts`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        facilityId,
-        startTime: startTime.toDate().toISOString(),
-        endTime: endTime.toDate().toISOString(),
-        excludeReservationId,
-      }),
-    },
-  );
+  }>("/facility-reservations/check-conflicts", {
+    facilityId,
+    startTime: startTime.toDate().toISOString(),
+    endTime: endTime.toDate().toISOString(),
+    excludeReservationId,
+  });
 
   return response.conflicts;
 }

@@ -4,7 +4,7 @@ import type {
   ContactDisplay,
   ContactBadge,
 } from "@shared/types/contact";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 
 // Filter options for contacts
 export interface ContactFilterOptions {
@@ -31,18 +31,10 @@ export async function createContact(
   data: CreateContactData,
   organizationId?: string,
 ): Promise<string> {
-  const contactData = {
+  const response = await apiClient.post<{ id: string }>("/contacts", {
     ...data,
     organizationId,
-  };
-
-  const response = await authFetchJSON<{ id: string }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/contacts`,
-    {
-      method: "POST",
-      body: JSON.stringify(contactData),
-    },
-  );
+  });
 
   return response.id;
 }
@@ -54,12 +46,9 @@ export async function createContact(
  */
 export async function getContact(contactId: string): Promise<Contact | null> {
   try {
-    const response = await authFetchJSON<Contact & { id: string }>(
-      `${import.meta.env.VITE_API_URL}/api/v1/contacts/${contactId}`,
-      { method: "GET" },
+    return await apiClient.get<Contact & { id: string }>(
+      `/contacts/${contactId}`,
     );
-
-    return response;
   } catch (error) {
     return null;
   }
@@ -76,16 +65,14 @@ export async function getUserContacts(
   userId: string,
   organizationId?: string,
 ): Promise<Contact[]> {
-  const params = new URLSearchParams();
+  const params: Record<string, string> = {};
   if (organizationId) {
-    params.append("organizationId", organizationId);
+    params.organizationId = organizationId;
   }
 
-  const queryString = params.toString() ? `?${params.toString()}` : "";
-
-  const response = await authFetchJSON<{ contacts: Contact[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/contacts${queryString}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ contacts: Contact[] }>(
+    "/contacts",
+    Object.keys(params).length > 0 ? params : undefined,
   );
 
   return response.contacts;
@@ -99,15 +86,10 @@ export async function getUserContacts(
 export async function getOrganizationContacts(
   organizationId: string,
 ): Promise<Contact[]> {
-  const params = new URLSearchParams({
+  const response = await apiClient.get<{ contacts: Contact[] }>("/contacts", {
     organizationId,
     accessLevel: "organization",
   });
-
-  const response = await authFetchJSON<{ contacts: Contact[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/contacts?${params.toString()}`,
-    { method: "GET" },
-  );
 
   return response.contacts;
 }
@@ -120,14 +102,9 @@ export async function getOrganizationContacts(
 export async function getUserPersonalContacts(
   userId: string,
 ): Promise<Contact[]> {
-  const params = new URLSearchParams({
+  const response = await apiClient.get<{ contacts: Contact[] }>("/contacts", {
     accessLevel: "user",
   });
-
-  const response = await authFetchJSON<{ contacts: Contact[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/contacts?${params.toString()}`,
-    { method: "GET" },
-  );
 
   return response.contacts;
 }
@@ -144,13 +121,7 @@ export async function updateContact(
   userId: string,
   updates: Partial<Contact>,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/contacts/${contactId}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(updates),
-    },
-  );
+  await apiClient.patch(`/contacts/${contactId}`, updates);
 }
 
 /**
@@ -159,10 +130,7 @@ export async function updateContact(
  * @returns Promise that resolves when delete is complete
  */
 export async function deleteContact(contactId: string): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/contacts/${contactId}`,
-    { method: "DELETE" },
-  );
+  await apiClient.delete(`/contacts/${contactId}`);
 }
 
 /**
@@ -212,28 +180,26 @@ export async function getFilteredContacts(
   userId: string,
   options: ContactFilterOptions = {},
 ): Promise<Contact[]> {
-  const params = new URLSearchParams();
+  const params: Record<string, string> = {};
   if (options.organizationId) {
-    params.append("organizationId", options.organizationId);
+    params.organizationId = options.organizationId;
   }
   if (options.accessLevel) {
-    params.append("accessLevel", options.accessLevel);
+    params.accessLevel = options.accessLevel;
   }
   if (options.badge) {
-    params.append("badge", options.badge);
+    params.badge = options.badge;
   }
   if (options.hasLoginAccess !== undefined) {
-    params.append("hasLoginAccess", options.hasLoginAccess.toString());
+    params.hasLoginAccess = options.hasLoginAccess.toString();
   }
   if (options.search) {
-    params.append("search", options.search);
+    params.search = options.search;
   }
 
-  const queryString = params.toString() ? `?${params.toString()}` : "";
-
-  const response = await authFetchJSON<{ contacts: Contact[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/contacts${queryString}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ contacts: Contact[] }>(
+    "/contacts",
+    Object.keys(params).length > 0 ? params : undefined,
   );
 
   return response.contacts;
@@ -312,16 +278,8 @@ export async function checkDuplicateContacts(
     businessName?: string;
   },
 ): Promise<DuplicateCheckResult> {
-  const response = await authFetchJSON<DuplicateCheckResult>(
-    `${import.meta.env.VITE_API_URL}/api/v1/contacts/check-duplicate`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        organizationId,
-        ...checkData,
-      }),
-    },
+  return await apiClient.post<DuplicateCheckResult>(
+    "/contacts/check-duplicate",
+    { organizationId, ...checkData },
   );
-
-  return response;
 }

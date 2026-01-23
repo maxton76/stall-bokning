@@ -1,8 +1,7 @@
 import { logger } from "firebase-functions";
 
 import { escapeHtml } from "../lib/text.js";
-import { isValidEmail } from "../lib/validation.js";
-import { formatErrorMessage } from "../lib/errors.js";
+import { formatErrorMessage, isValidEmail } from "@stall-bokning/shared";
 import { initializeSMTP, sendViaSMTP, isSMTPInitialized } from "../lib/smtp.js";
 
 /**

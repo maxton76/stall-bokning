@@ -1,11 +1,9 @@
 import type { Horse, UserHorseInventory } from "@/types/roles";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 
 // ============================================================================
 // API-First Service - All writes go through the API
 // ============================================================================
-
-const API_BASE = `${import.meta.env.VITE_API_URL}/api/v1/horses`;
 
 // ============================================================================
 // Helper Functions
@@ -57,12 +55,9 @@ export async function createHorse(
     "id" | "ownerId" | "createdAt" | "updatedAt" | "lastModifiedBy"
   >,
 ): Promise<string> {
-  const response = await authFetchJSON<Horse & { id: string }>(API_BASE, {
-    method: "POST",
-    body: JSON.stringify({
-      ...horseData,
-      isExternal: horseData.isExternal ?? false,
-    }),
+  const response = await apiClient.post<Horse & { id: string }>("/horses", {
+    ...horseData,
+    isExternal: horseData.isExternal ?? false,
   });
 
   return response.id;
@@ -75,7 +70,7 @@ export async function createHorse(
  */
 export async function getHorse(horseId: string): Promise<Horse | null> {
   try {
-    return await authFetchJSON<Horse>(`${API_BASE}/${horseId}`);
+    return await apiClient.get<Horse>(`/horses/${horseId}`);
   } catch (error: any) {
     // Return null if horse not found or access denied
     if (error.status === 404 || error.status === 403) {
@@ -97,10 +92,7 @@ export async function updateHorse(
   _userId: string,
   updates: Partial<Omit<Horse, "id" | "ownerId" | "createdAt">>,
 ): Promise<void> {
-  await authFetchJSON(`${API_BASE}/${horseId}`, {
-    method: "PATCH",
-    body: JSON.stringify(updates),
-  });
+  await apiClient.patch(`/horses/${horseId}`, updates);
 }
 
 /**
@@ -109,9 +101,7 @@ export async function updateHorse(
  * @returns Promise that resolves when deletion is complete
  */
 export async function deleteHorse(horseId: string): Promise<void> {
-  await authFetchJSON(`${API_BASE}/${horseId}`, {
-    method: "DELETE",
-  });
+  await apiClient.delete(`/horses/${horseId}`);
 }
 
 // ============================================================================
@@ -130,13 +120,10 @@ export async function getHorses(
   stableId?: string,
   status: "active" | "inactive" = "active",
 ): Promise<Horse[]> {
-  const params = new URLSearchParams({ scope, status });
-  if (stableId) params.append("stableId", stableId);
-
-  const response = await authFetchJSON<{
+  const response = await apiClient.get<{
     horses: Horse[];
     meta: { scope: string; count: number };
-  }>(`${API_BASE}?${params.toString()}`);
+  }>("/horses", { scope, status, stableId });
 
   return response.horses;
 }
@@ -200,15 +187,11 @@ export async function getUserHorsesAtStable(
   userId: string,
   stableId: string,
 ): Promise<Horse[]> {
-  const params = new URLSearchParams({
+  const response = await apiClient.get<{ horses: Horse[] }>("/horses", {
     ownerId: userId,
-    stableId: stableId,
+    stableId,
     status: "active",
   });
-
-  const response = await authFetchJSON<{ horses: Horse[] }>(
-    `${API_BASE}?${params.toString()}`,
-  );
 
   return response.horses;
 }
@@ -269,12 +252,9 @@ export async function assignHorseToStable(
   stableName: string,
   _userId: string,
 ): Promise<void> {
-  await authFetchJSON(`${API_BASE}/${horseId}/assign-to-stable`, {
-    method: "POST",
-    body: JSON.stringify({
-      stableId,
-      stableName,
-    }),
+  await apiClient.post(`/horses/${horseId}/assign-to-stable`, {
+    stableId,
+    stableName,
   });
 }
 
@@ -288,9 +268,7 @@ export async function unassignHorseFromStable(
   horseId: string,
   _userId: string,
 ): Promise<void> {
-  await authFetchJSON(`${API_BASE}/${horseId}/unassign-from-stable`, {
-    method: "POST",
-  });
+  await apiClient.post(`/horses/${horseId}/unassign-from-stable`);
 }
 
 /**
@@ -309,13 +287,10 @@ export async function transferHorse(
   toStableName: string,
   _userId: string,
 ): Promise<void> {
-  await authFetchJSON(`${API_BASE}/${horseId}/transfer`, {
-    method: "POST",
-    body: JSON.stringify({
-      fromStableId,
-      toStableId,
-      toStableName,
-    }),
+  await apiClient.post(`/horses/${horseId}/transfer`, {
+    fromStableId,
+    toStableId,
+    toStableName,
   });
 }
 
@@ -330,8 +305,8 @@ export async function getHorseOrganizationId(
   horse: Horse,
 ): Promise<string | null> {
   try {
-    const response = await authFetchJSON<{ organizationId: string | null }>(
-      `${API_BASE}/${horse.id}/organization`,
+    const response = await apiClient.get<{ organizationId: string | null }>(
+      `/horses/${horse.id}/organization`,
     );
     return response.organizationId;
   } catch (error: any) {
@@ -365,13 +340,10 @@ export async function unassignMemberHorses(
   userId: string,
   stableId: string,
 ): Promise<number> {
-  const response = await authFetchJSON<{
+  const response = await apiClient.post<{
     success: boolean;
     unassignedCount: number;
-  }>(`${API_BASE}/batch/unassign-member-horses`, {
-    method: "POST",
-    body: JSON.stringify({ userId, stableId }),
-  });
+  }>("/horses/batch/unassign-member-horses", { userId, stableId });
 
   return response.unassignedCount;
 }
@@ -445,12 +417,9 @@ export async function assignHorseToGroup(
   groupName: string,
   _userId: string,
 ): Promise<void> {
-  await authFetchJSON(`${API_BASE}/${horseId}/assign-to-group`, {
-    method: "POST",
-    body: JSON.stringify({
-      groupId,
-      groupName,
-    }),
+  await apiClient.post(`/horses/${horseId}/assign-to-group`, {
+    groupId,
+    groupName,
   });
 }
 
@@ -464,9 +433,7 @@ export async function unassignHorseFromGroup(
   horseId: string,
   _userId: string,
 ): Promise<void> {
-  await authFetchJSON(`${API_BASE}/${horseId}/unassign-from-group`, {
-    method: "POST",
-  });
+  await apiClient.post(`/horses/${horseId}/unassign-from-group`);
 }
 
 /**
@@ -480,13 +447,10 @@ export async function unassignHorsesFromGroup(
   groupId: string,
   _userId: string,
 ): Promise<number> {
-  const response = await authFetchJSON<{
+  const response = await apiClient.post<{
     success: boolean;
     unassignedCount: number;
-  }>(`${API_BASE}/batch/unassign-from-group`, {
-    method: "POST",
-    body: JSON.stringify({ groupId }),
-  });
+  }>("/horses/batch/unassign-from-group", { groupId });
 
   return response.unassignedCount;
 }
@@ -509,12 +473,9 @@ export async function assignVaccinationRuleToHorse(
   ruleName: string,
   _userId: string,
 ): Promise<void> {
-  await authFetchJSON(`${API_BASE}/${horseId}/assign-vaccination-rule`, {
-    method: "POST",
-    body: JSON.stringify({
-      ruleId,
-      ruleName,
-    }),
+  await apiClient.post(`/horses/${horseId}/assign-vaccination-rule`, {
+    ruleId,
+    ruleName,
   });
 }
 
@@ -528,9 +489,7 @@ export async function unassignVaccinationRuleFromHorse(
   horseId: string,
   _userId: string,
 ): Promise<void> {
-  await authFetchJSON(`${API_BASE}/${horseId}/unassign-vaccination-rule`, {
-    method: "POST",
-  });
+  await apiClient.post(`/horses/${horseId}/unassign-vaccination-rule`);
 }
 
 /**
@@ -544,13 +503,10 @@ export async function unassignHorsesFromVaccinationRule(
   ruleId: string,
   _userId: string,
 ): Promise<number> {
-  const response = await authFetchJSON<{
+  const response = await apiClient.post<{
     success: boolean;
     unassignedCount: number;
-  }>(`${API_BASE}/batch/unassign-from-vaccination-rule`, {
-    method: "POST",
-    body: JSON.stringify({ ruleId }),
-  });
+  }>("/horses/batch/unassign-from-vaccination-rule", { ruleId });
 
   return response.unassignedCount;
 }
@@ -591,15 +547,12 @@ export async function moveHorseToExternalLocation(
     }
   }
 
-  await authFetchJSON(`${API_BASE}/${horseId}/move-external`, {
-    method: "POST",
-    body: JSON.stringify({
-      contactId: data.contactId,
-      externalLocation: locationName,
-      moveType: data.moveType,
-      departureDate: data.departureDate.toISOString(),
-      reason: data.reason,
-      removeHorse: data.removeHorse || false,
-    }),
+  await apiClient.post(`/horses/${horseId}/move-external`, {
+    contactId: data.contactId,
+    externalLocation: locationName,
+    moveType: data.moveType,
+    departureDate: data.departureDate.toISOString(),
+    reason: data.reason,
+    removeHorse: data.removeHorse || false,
   });
 }

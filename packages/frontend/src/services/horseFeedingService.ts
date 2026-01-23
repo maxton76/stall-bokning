@@ -3,7 +3,7 @@ import type {
   CreateHorseFeedingData,
   UpdateHorseFeedingData,
 } from "@shared/types";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 
 // ============================================================================
 // Public Service API
@@ -25,27 +25,25 @@ export async function getHorseFeedingsByStable(
     activeOnly?: boolean;
   },
 ): Promise<HorseFeeding[]> {
-  const params = new URLSearchParams();
+  const params: Record<string, string> = {};
   if (options?.date) {
-    params.append("date", options.date.toISOString());
+    params.date = options.date.toISOString();
   }
   if (options?.horseId) {
-    params.append("horseId", options.horseId);
+    params.horseId = options.horseId;
   }
   if (options?.feedingTimeId) {
-    params.append("feedingTimeId", options.feedingTimeId);
+    params.feedingTimeId = options.feedingTimeId;
   }
   if (options?.activeOnly !== undefined) {
-    params.append("activeOnly", String(options.activeOnly));
+    params.activeOnly = String(options.activeOnly);
   } else {
-    params.append("activeOnly", "true");
+    params.activeOnly = "true";
   }
 
-  const queryString = params.toString() ? `?${params.toString()}` : "";
-
-  const response = await authFetchJSON<{ horseFeedings: HorseFeeding[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/horse-feedings/stable/${stableId}${queryString}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ horseFeedings: HorseFeeding[] }>(
+    `/horse-feedings/stable/${stableId}`,
+    params,
   );
 
   return response.horseFeedings;
@@ -62,14 +60,9 @@ export async function getHorseFeedingsByHorse(
   horseId: string,
   activeOnly = true,
 ): Promise<HorseFeeding[]> {
-  const params = new URLSearchParams();
-  params.append("activeOnly", String(activeOnly));
-
-  const queryString = `?${params.toString()}`;
-
-  const response = await authFetchJSON<{ horseFeedings: HorseFeeding[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/horse-feedings/horse/${horseId}${queryString}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ horseFeedings: HorseFeeding[] }>(
+    `/horse-feedings/horse/${horseId}`,
+    { activeOnly: String(activeOnly) },
   );
 
   return response.horseFeedings;
@@ -85,12 +78,7 @@ export async function getHorseFeedingById(
   id: string,
 ): Promise<HorseFeeding | null> {
   try {
-    const response = await authFetchJSON<HorseFeeding>(
-      `${import.meta.env.VITE_API_URL}/api/v1/horse-feedings/${id}`,
-      { method: "GET" },
-    );
-
-    return response;
+    return await apiClient.get<HorseFeeding>(`/horse-feedings/${id}`);
   } catch (error) {
     return null;
   }
@@ -107,13 +95,10 @@ export async function createHorseFeeding(
   stableId: string,
   data: CreateHorseFeedingData,
 ): Promise<string> {
-  const response = await authFetchJSON<{ id: string }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/horse-feedings`,
-    {
-      method: "POST",
-      body: JSON.stringify({ ...data, stableId }),
-    },
-  );
+  const response = await apiClient.post<{ id: string }>("/horse-feedings", {
+    ...data,
+    stableId,
+  });
 
   return response.id;
 }
@@ -129,13 +114,7 @@ export async function updateHorseFeeding(
   id: string,
   updates: UpdateHorseFeedingData,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/horse-feedings/${id}`,
-    {
-      method: "PUT",
-      body: JSON.stringify(updates),
-    },
-  );
+  await apiClient.put(`/horse-feedings/${id}`, updates);
 }
 
 /**
@@ -145,8 +124,5 @@ export async function updateHorseFeeding(
  * @returns Promise that resolves when deletion is complete
  */
 export async function deleteHorseFeeding(id: string): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/horse-feedings/${id}`,
-    { method: "DELETE" },
-  );
+  await apiClient.delete(`/horse-feedings/${id}`);
 }

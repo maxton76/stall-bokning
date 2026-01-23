@@ -1,4 +1,4 @@
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 import type {
   LessonType,
   Lesson,
@@ -7,8 +7,6 @@ import type {
   InstructorAvailability,
   LessonScheduleTemplate,
 } from "@stall-bokning/shared";
-
-const API_BASE = import.meta.env.VITE_API_URL || "";
 
 // ============================================
 // Types
@@ -192,11 +190,11 @@ export async function getLessonTypes(
   organizationId: string,
   includeInactive = false,
 ): Promise<LessonTypesResponse> {
-  const params = new URLSearchParams();
-  if (includeInactive) params.set("includeInactive", "true");
-  const query = params.toString();
-  return authFetchJSON<LessonTypesResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/lesson-types${query ? `?${query}` : ""}`,
+  const params: Record<string, string> = {};
+  if (includeInactive) params.includeInactive = "true";
+  return apiClient.get<LessonTypesResponse>(
+    `/organizations/${organizationId}/lesson-types`,
+    Object.keys(params).length > 0 ? params : undefined,
   );
 }
 
@@ -204,12 +202,9 @@ export async function createLessonType(
   organizationId: string,
   data: CreateLessonTypeData,
 ): Promise<LessonType> {
-  return authFetchJSON<LessonType>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/lesson-types`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
+  return apiClient.post<LessonType>(
+    `/organizations/${organizationId}/lesson-types`,
+    data,
   );
 }
 
@@ -218,12 +213,9 @@ export async function updateLessonType(
   lessonTypeId: string,
   data: Partial<CreateLessonTypeData>,
 ): Promise<LessonType> {
-  return authFetchJSON<LessonType>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/lesson-types/${lessonTypeId}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    },
+  return apiClient.patch<LessonType>(
+    `/organizations/${organizationId}/lesson-types/${lessonTypeId}`,
+    data,
   );
 }
 
@@ -231,11 +223,8 @@ export async function deleteLessonType(
   organizationId: string,
   lessonTypeId: string,
 ): Promise<{ success: boolean }> {
-  return authFetchJSON<{ success: boolean }>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/lesson-types/${lessonTypeId}`,
-    {
-      method: "DELETE",
-    },
+  return apiClient.delete<{ success: boolean }>(
+    `/organizations/${organizationId}/lesson-types/${lessonTypeId}`,
   );
 }
 
@@ -247,11 +236,11 @@ export async function getInstructors(
   organizationId: string,
   includeInactive = false,
 ): Promise<InstructorsResponse> {
-  const params = new URLSearchParams();
-  if (includeInactive) params.set("includeInactive", "true");
-  const query = params.toString();
-  return authFetchJSON<InstructorsResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/instructors${query ? `?${query}` : ""}`,
+  const params: Record<string, string> = {};
+  if (includeInactive) params.includeInactive = "true";
+  return apiClient.get<InstructorsResponse>(
+    `/organizations/${organizationId}/instructors`,
+    Object.keys(params).length > 0 ? params : undefined,
   );
 }
 
@@ -259,12 +248,9 @@ export async function createInstructor(
   organizationId: string,
   data: CreateInstructorData,
 ): Promise<Instructor> {
-  return authFetchJSON<Instructor>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/instructors`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
+  return apiClient.post<Instructor>(
+    `/organizations/${organizationId}/instructors`,
+    data,
   );
 }
 
@@ -273,12 +259,9 @@ export async function updateInstructor(
   instructorId: string,
   data: Partial<CreateInstructorData>,
 ): Promise<Instructor> {
-  return authFetchJSON<Instructor>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/instructors/${instructorId}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    },
+  return apiClient.patch<Instructor>(
+    `/organizations/${organizationId}/instructors/${instructorId}`,
+    data,
   );
 }
 
@@ -286,8 +269,8 @@ export async function getInstructorAvailability(
   organizationId: string,
   instructorId: string,
 ): Promise<InstructorAvailabilityResponse> {
-  return authFetchJSON<InstructorAvailabilityResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/instructors/${instructorId}/availability`,
+  return apiClient.get<InstructorAvailabilityResponse>(
+    `/organizations/${organizationId}/instructors/${instructorId}/availability`,
   );
 }
 
@@ -296,12 +279,9 @@ export async function setInstructorAvailability(
   instructorId: string,
   data: SetAvailabilityData,
 ): Promise<InstructorAvailability> {
-  return authFetchJSON<InstructorAvailability>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/instructors/${instructorId}/availability`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
+  return apiClient.post<InstructorAvailability>(
+    `/organizations/${organizationId}/instructors/${instructorId}/availability`,
+    data,
   );
 }
 
@@ -313,17 +293,17 @@ export async function getLessons(
   organizationId: string,
   filters?: LessonsFilters,
 ): Promise<LessonsResponse> {
-  const params = new URLSearchParams();
-  if (filters?.startDate) params.set("startDate", filters.startDate);
-  if (filters?.endDate) params.set("endDate", filters.endDate);
-  if (filters?.instructorId) params.set("instructorId", filters.instructorId);
-  if (filters?.lessonTypeId) params.set("lessonTypeId", filters.lessonTypeId);
-  if (filters?.status) params.set("status", filters.status);
-  if (filters?.limit) params.set("limit", filters.limit.toString());
-  if (filters?.offset) params.set("offset", filters.offset.toString());
-  const query = params.toString();
-  return authFetchJSON<LessonsResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/lessons${query ? `?${query}` : ""}`,
+  const params: Record<string, string> = {};
+  if (filters?.startDate) params.startDate = filters.startDate;
+  if (filters?.endDate) params.endDate = filters.endDate;
+  if (filters?.instructorId) params.instructorId = filters.instructorId;
+  if (filters?.lessonTypeId) params.lessonTypeId = filters.lessonTypeId;
+  if (filters?.status) params.status = filters.status;
+  if (filters?.limit) params.limit = filters.limit.toString();
+  if (filters?.offset) params.offset = filters.offset.toString();
+  return apiClient.get<LessonsResponse>(
+    `/organizations/${organizationId}/lessons`,
+    Object.keys(params).length > 0 ? params : undefined,
   );
 }
 
@@ -331,8 +311,8 @@ export async function getLesson(
   organizationId: string,
   lessonId: string,
 ): Promise<LessonDetailResponse> {
-  return authFetchJSON<LessonDetailResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/lessons/${lessonId}`,
+  return apiClient.get<LessonDetailResponse>(
+    `/organizations/${organizationId}/lessons/${lessonId}`,
   );
 }
 
@@ -340,12 +320,9 @@ export async function createLesson(
   organizationId: string,
   data: CreateLessonData,
 ): Promise<Lesson> {
-  return authFetchJSON<Lesson>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/lessons`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
+  return apiClient.post<Lesson>(
+    `/organizations/${organizationId}/lessons`,
+    data,
   );
 }
 
@@ -354,12 +331,9 @@ export async function updateLesson(
   lessonId: string,
   data: UpdateLessonData,
 ): Promise<Lesson> {
-  return authFetchJSON<Lesson>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/lessons/${lessonId}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    },
+  return apiClient.patch<Lesson>(
+    `/organizations/${organizationId}/lessons/${lessonId}`,
+    data,
   );
 }
 
@@ -369,12 +343,9 @@ export async function cancelLesson(
   reason?: string,
   notifyParticipants = true,
 ): Promise<{ success: boolean }> {
-  return authFetchJSON<{ success: boolean }>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/lessons/${lessonId}/cancel`,
-    {
-      method: "POST",
-      body: JSON.stringify({ reason, notifyParticipants }),
-    },
+  return apiClient.post<{ success: boolean }>(
+    `/organizations/${organizationId}/lessons/${lessonId}/cancel`,
+    { reason, notifyParticipants },
   );
 }
 
@@ -386,8 +357,8 @@ export async function getLessonBookings(
   organizationId: string,
   lessonId: string,
 ): Promise<BookingsResponse> {
-  return authFetchJSON<BookingsResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/lessons/${lessonId}/bookings`,
+  return apiClient.get<BookingsResponse>(
+    `/organizations/${organizationId}/lessons/${lessonId}/bookings`,
   );
 }
 
@@ -396,12 +367,9 @@ export async function createBooking(
   lessonId: string,
   data: CreateBookingData,
 ): Promise<LessonBooking & { isWaitlisted: boolean }> {
-  return authFetchJSON<LessonBooking & { isWaitlisted: boolean }>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/lessons/${lessonId}/bookings`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
+  return apiClient.post<LessonBooking & { isWaitlisted: boolean }>(
+    `/organizations/${organizationId}/lessons/${lessonId}/bookings`,
+    data,
   );
 }
 
@@ -411,12 +379,9 @@ export async function updateBooking(
   bookingId: string,
   data: UpdateBookingData,
 ): Promise<LessonBooking> {
-  return authFetchJSON<LessonBooking>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/lessons/${lessonId}/bookings/${bookingId}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    },
+  return apiClient.patch<LessonBooking>(
+    `/organizations/${organizationId}/lessons/${lessonId}/bookings/${bookingId}`,
+    data,
   );
 }
 
@@ -426,12 +391,9 @@ export async function cancelBooking(
   bookingId: string,
   reason?: string,
 ): Promise<{ success: boolean }> {
-  return authFetchJSON<{ success: boolean }>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/lessons/${lessonId}/bookings/${bookingId}/cancel`,
-    {
-      method: "POST",
-      body: JSON.stringify({ reason }),
-    },
+  return apiClient.post<{ success: boolean }>(
+    `/organizations/${organizationId}/lessons/${lessonId}/bookings/${bookingId}/cancel`,
+    { reason },
   );
 }
 
@@ -442,8 +404,8 @@ export async function cancelBooking(
 export async function getScheduleTemplates(
   organizationId: string,
 ): Promise<ScheduleTemplatesResponse> {
-  return authFetchJSON<ScheduleTemplatesResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/lesson-schedule-templates`,
+  return apiClient.get<ScheduleTemplatesResponse>(
+    `/organizations/${organizationId}/lesson-schedule-templates`,
   );
 }
 
@@ -451,12 +413,9 @@ export async function createScheduleTemplate(
   organizationId: string,
   data: CreateScheduleTemplateData,
 ): Promise<LessonScheduleTemplate> {
-  return authFetchJSON<LessonScheduleTemplate>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/lesson-schedule-templates`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
+  return apiClient.post<LessonScheduleTemplate>(
+    `/organizations/${organizationId}/lesson-schedule-templates`,
+    data,
   );
 }
 
@@ -465,12 +424,9 @@ export async function generateLessonsFromTemplates(
   startDate: string,
   endDate: string,
 ): Promise<GenerateLessonsResponse> {
-  return authFetchJSON<GenerateLessonsResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/lessons/generate-from-templates`,
-    {
-      method: "POST",
-      body: JSON.stringify({ startDate, endDate }),
-    },
+  return apiClient.post<GenerateLessonsResponse>(
+    `/organizations/${organizationId}/lessons/generate-from-templates`,
+    { startDate, endDate },
   );
 }
 

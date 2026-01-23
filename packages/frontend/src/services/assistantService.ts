@@ -1,11 +1,9 @@
-import { authFetch } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 import type {
   AssistantQuery,
   AssistantResponse,
   AssistantConversation,
 } from "@stall-bokning/shared";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 /**
  * Query the AI assistant
@@ -14,20 +12,10 @@ export async function queryAssistant(
   organizationId: string,
   query: AssistantQuery,
 ): Promise<AssistantResponse & { conversationId: string }> {
-  const response = await authFetch(
-    `${API_BASE}/api/v1/organizations/${organizationId}/assistant/query`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(query),
-    },
+  return apiClient.post<AssistantResponse & { conversationId: string }>(
+    `/organizations/${organizationId}/assistant/query`,
+    query,
   );
-
-  if (!response.ok) {
-    throw new Error("Failed to query assistant");
-  }
-
-  return response.json();
 }
 
 /**
@@ -37,15 +25,9 @@ export async function getConversation(
   organizationId: string,
   conversationId: string,
 ): Promise<AssistantConversation> {
-  const response = await authFetch(
-    `${API_BASE}/api/v1/organizations/${organizationId}/assistant/conversations/${conversationId}`,
+  return apiClient.get<AssistantConversation>(
+    `/organizations/${organizationId}/assistant/conversations/${conversationId}`,
   );
-
-  if (!response.ok) {
-    throw new Error("Failed to get conversation");
-  }
-
-  return response.json();
 }
 
 /**
@@ -62,18 +44,20 @@ export async function listConversations(
     messageCount: number;
   }[];
 }> {
-  const params = new URLSearchParams();
-  if (limit) params.append("limit", limit.toString());
+  const params: Record<string, string> = {};
+  if (limit) params.limit = limit.toString();
 
-  const response = await authFetch(
-    `${API_BASE}/api/v1/organizations/${organizationId}/assistant/conversations?${params}`,
+  return apiClient.get<{
+    conversations: {
+      id: string;
+      title: string;
+      updatedAt: string;
+      messageCount: number;
+    }[];
+  }>(
+    `/organizations/${organizationId}/assistant/conversations`,
+    Object.keys(params).length > 0 ? params : undefined,
   );
-
-  if (!response.ok) {
-    throw new Error("Failed to list conversations");
-  }
-
-  return response.json();
 }
 
 /**
@@ -83,14 +67,9 @@ export async function deleteConversation(
   organizationId: string,
   conversationId: string,
 ): Promise<void> {
-  const response = await authFetch(
-    `${API_BASE}/api/v1/organizations/${organizationId}/assistant/conversations/${conversationId}`,
-    { method: "DELETE" },
+  await apiClient.delete(
+    `/organizations/${organizationId}/assistant/conversations/${conversationId}`,
   );
-
-  if (!response.ok) {
-    throw new Error("Failed to delete conversation");
-  }
 }
 
 /**
@@ -108,13 +87,13 @@ export async function getQuickActions(
     category: string;
   }[];
 }> {
-  const response = await authFetch(
-    `${API_BASE}/api/v1/organizations/${organizationId}/assistant/quick-actions?language=${language}`,
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to get quick actions");
-  }
-
-  return response.json();
+  return apiClient.get<{
+    quickActions: {
+      id: string;
+      label: string;
+      icon: string;
+      query: string;
+      category: string;
+    }[];
+  }>(`/organizations/${organizationId}/assistant/quick-actions`, { language });
 }

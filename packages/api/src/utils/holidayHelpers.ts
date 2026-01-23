@@ -3,7 +3,7 @@
  * Ported from packages/frontend/src/utils/holidayHelpers.ts
  */
 
-import { formatDateString } from "./dateHelpers.js";
+import { formatDateString } from "@stall-bokning/shared";
 
 /**
  * Fixed Swedish holidays (month is 1-indexed)

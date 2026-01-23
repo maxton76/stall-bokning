@@ -1,5 +1,5 @@
 import { Timestamp } from "firebase/firestore";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 import { logger } from "@/utils/logger";
 import type {
   AuditLog,
@@ -15,35 +15,28 @@ import type {
 // API-First Service - All writes go through the API
 // ============================================================================
 
-const API_BASE = `${import.meta.env.VITE_API_URL}/api/v1/audit-logs`;
-
 // ============================================================================
 // Create Operations
 // ============================================================================
 
 /**
  * Create a new audit log entry via API
- * @param logData - Audit log data
- * @returns Promise with created log ID
  */
 export async function createAuditLog(
   logData: CreateAuditLogData,
 ): Promise<string> {
-  const response = await authFetchJSON<{ id: string; logId: string }>(
-    API_BASE,
+  const response = await apiClient.post<{ id: string; logId: string }>(
+    "/audit-logs",
     {
-      method: "POST",
-      body: JSON.stringify({
-        action: logData.action,
-        resource: logData.resource,
-        resourceId: logData.resourceId,
-        resourceName: logData.resourceName,
-        organizationId: logData.organizationId,
-        stableId: logData.stableId,
-        details: logData.details,
-        userEmail: logData.userEmail,
-        userName: logData.userName,
-      }),
+      action: logData.action,
+      resource: logData.resource,
+      resourceId: logData.resourceId,
+      resourceName: logData.resourceName,
+      organizationId: logData.organizationId,
+      stableId: logData.stableId,
+      details: logData.details,
+      userEmail: logData.userEmail,
+      userName: logData.userName,
     },
   );
   return response.id;
@@ -230,36 +223,37 @@ export async function logHorseUpdate(
 
 /**
  * Query audit logs with filters via API
- * @param filters - Filter criteria
- * @returns Promise with array of audit logs
  */
 export async function queryAuditLogs(
   filters: AuditLogFilter,
 ): Promise<AuditLog[]> {
   // Build query params
-  const params = new URLSearchParams();
-  if (filters.limit) params.set("limit", filters.limit.toString());
-  if (filters.resource) params.set("resource", filters.resource);
-  if (filters.action) params.set("action", filters.action);
+  const params: Record<string, string> = {};
+  if (filters.limit) params.limit = filters.limit.toString();
+  if (filters.resource) params.resource = filters.resource;
+  if (filters.action) params.action = filters.action;
 
   // Determine which endpoint to use based on filters
   if (filters.organizationId) {
-    const response = await authFetchJSON<{ auditLogs: AuditLog[] }>(
-      `${API_BASE}/organization/${filters.organizationId}?${params.toString()}`,
+    const response = await apiClient.get<{ auditLogs: AuditLog[] }>(
+      `/audit-logs/organization/${filters.organizationId}`,
+      params,
     );
     return response.auditLogs;
   }
 
   if (filters.userId) {
-    const response = await authFetchJSON<{ auditLogs: AuditLog[] }>(
-      `${API_BASE}/user/${filters.userId}?${params.toString()}`,
+    const response = await apiClient.get<{ auditLogs: AuditLog[] }>(
+      `/audit-logs/user/${filters.userId}`,
+      params,
     );
     return response.auditLogs;
   }
 
   if (filters.resource && filters.resourceId) {
-    const response = await authFetchJSON<{ auditLogs: AuditLog[] }>(
-      `${API_BASE}/resource/${filters.resource}/${filters.resourceId}?${params.toString()}`,
+    const response = await apiClient.get<{ auditLogs: AuditLog[] }>(
+      `/audit-logs/resource/${filters.resource}/${filters.resourceId}`,
+      params,
     );
     return response.auditLogs;
   }

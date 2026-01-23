@@ -24,7 +24,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { queryKeys } from "@/lib/queryClient";
 import { getStable } from "@/services/stableService";
-import { getInvitesByStable, createInvite } from "@/services/invitationService";
+import { getInvitesByStable, createInvite } from "@/services/inviteService";
 import { toDate } from "@/utils/timestampUtils";
 
 export default function StableInvitePage() {

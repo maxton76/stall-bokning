@@ -19,7 +19,7 @@ import {
   startOfMonth,
   endOfMonth,
 } from "date-fns";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 
 /**
  * Create activity (horse-related)
@@ -38,13 +38,7 @@ export async function createActivity(
     status: "pending" as const,
   };
 
-  const response = await authFetchJSON<{ id: string }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/activities`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
-  );
+  const response = await apiClient.post<{ id: string }>("/activities", data);
 
   return response.id;
 }
@@ -66,13 +60,7 @@ export async function createTask(
     status: "pending" as const,
   };
 
-  const response = await authFetchJSON<{ id: string }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/activities`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
-  );
+  const response = await apiClient.post<{ id: string }>("/activities", data);
 
   return response.id;
 }
@@ -94,13 +82,7 @@ export async function createMessage(
     status: "pending" as const,
   };
 
-  const response = await authFetchJSON<{ id: string }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/activities`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
-  );
+  const response = await apiClient.post<{ id: string }>("/activities", data);
 
   return response.id;
 }
@@ -126,11 +108,15 @@ export async function getStableActivities(
     params.append("types", typeFilter.join(","));
   }
 
-  const queryString = params.toString() ? `?${params.toString()}` : "";
+  const paramsObj: Record<string, string | undefined> = {};
+  if (startDate) paramsObj.startDate = startOfDay(startDate).toISOString();
+  if (endDate) paramsObj.endDate = endOfDay(endDate).toISOString();
+  if (typeFilter && typeFilter.length > 0)
+    paramsObj.types = typeFilter.join(",");
 
-  const response = await authFetchJSON<{ activities: ActivityEntry[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/activities/stable/${stableId}${queryString}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ activities: ActivityEntry[] }>(
+    `/activities/stable/${stableId}`,
+    paramsObj,
   );
 
   return response.activities;
@@ -263,10 +249,9 @@ export async function getCareActivities(
   // Return empty if no stables provided
   if (stableIdArray.length === 0) return [];
 
-  // Call API endpoint
-  const response = await authFetchJSON<{ activities: Activity[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/activities/care?stableIds=${stableIdArray.join(",")}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ activities: Activity[] }>(
+    "/activities/care",
+    { stableIds: stableIdArray.join(",") },
   );
 
   return response.activities;
@@ -279,9 +264,9 @@ export async function getMyActivities(
   stableId: string,
   userId: string,
 ): Promise<ActivityEntry[]> {
-  const response = await authFetchJSON<{ activities: ActivityEntry[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/activities/my/${userId}?stableId=${stableId}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ activities: ActivityEntry[] }>(
+    `/activities/my/${userId}`,
+    { stableId },
   );
 
   return response.activities;
@@ -295,23 +280,14 @@ export async function updateActivity(
   userId: string,
   updates: UpdateActivityEntryData,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/activities/${id}`,
-    {
-      method: "PUT",
-      body: JSON.stringify(updates),
-    },
-  );
+  await apiClient.put(`/activities/${id}`, updates);
 }
 
 /**
  * Delete any entry
  */
 export async function deleteActivity(id: string): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/activities/${id}`,
-    { method: "DELETE" },
-  );
+  await apiClient.delete(`/activities/${id}`);
 }
 
 /**
@@ -321,10 +297,7 @@ export async function completeActivity(
   id: string,
   userId: string,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/activities/${id}/complete`,
-    { method: "PATCH" },
-  );
+  await apiClient.patch(`/activities/${id}/complete`, {});
 }
 
 /**
@@ -337,9 +310,9 @@ export async function getHorseActivities(
   horseId: string,
   limitCount: number = 10,
 ): Promise<Activity[]> {
-  const response = await authFetchJSON<{ activities: Activity[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/activities/horse/${horseId}?limit=${limitCount}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ activities: Activity[] }>(
+    `/activities/horse/${horseId}`,
+    { limit: limitCount },
   );
 
   return response.activities;
@@ -354,9 +327,8 @@ export async function getHorseActivities(
 export async function getUnfinishedActivities(
   horseId: string,
 ): Promise<Activity[]> {
-  const response = await authFetchJSON<{ activities: Activity[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/activities/horse/${horseId}/unfinished`,
-    { method: "GET" },
+  const response = await apiClient.get<{ activities: Activity[] }>(
+    `/activities/horse/${horseId}/unfinished`,
   );
 
   return response.activities;

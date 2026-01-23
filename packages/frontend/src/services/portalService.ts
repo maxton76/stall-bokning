@@ -1,4 +1,4 @@
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 import type {
   PortalDashboardData,
   PortalHorseSummary,
@@ -11,15 +11,12 @@ import type {
   UpdatePortalNotificationPreferencesData,
 } from "@stall-bokning/shared";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
-const PORTAL_URL = `${API_BASE}/api/v1/portal`;
-
 // ============================================
 // Dashboard
 // ============================================
 
 export async function getPortalDashboard(): Promise<PortalDashboardData> {
-  return authFetchJSON<PortalDashboardData>(`${PORTAL_URL}/dashboard`);
+  return apiClient.get<PortalDashboardData>("/portal/dashboard");
 }
 
 // ============================================
@@ -45,14 +42,14 @@ export interface PortalHorseDetailResponse {
 }
 
 export async function getPortalHorses(): Promise<PortalHorsesResponse> {
-  return authFetchJSON<PortalHorsesResponse>(`${PORTAL_URL}/my-horses`);
+  return apiClient.get<PortalHorsesResponse>("/portal/my-horses");
 }
 
 export async function getPortalHorseDetail(
   horseId: string,
 ): Promise<PortalHorseDetailResponse> {
-  return authFetchJSON<PortalHorseDetailResponse>(
-    `${PORTAL_URL}/my-horses/${horseId}`,
+  return apiClient.get<PortalHorseDetailResponse>(
+    `/portal/my-horses/${horseId}`,
   );
 }
 
@@ -76,14 +73,14 @@ export interface PortalInvoiceFilters {
 export async function getPortalInvoices(
   filters?: PortalInvoiceFilters,
 ): Promise<PortalInvoicesResponse> {
-  const params = new URLSearchParams();
-  if (filters?.status) params.set("status", filters.status);
-  if (filters?.limit) params.set("limit", filters.limit.toString());
-  if (filters?.offset) params.set("offset", filters.offset.toString());
+  const params: Record<string, string> = {};
+  if (filters?.status) params.status = filters.status;
+  if (filters?.limit) params.limit = filters.limit.toString();
+  if (filters?.offset) params.offset = filters.offset.toString();
 
-  const query = params.toString();
-  return authFetchJSON<PortalInvoicesResponse>(
-    `${PORTAL_URL}/my-invoices${query ? `?${query}` : ""}`,
+  return apiClient.get<PortalInvoicesResponse>(
+    "/portal/my-invoices",
+    Object.keys(params).length > 0 ? params : undefined,
   );
 }
 
@@ -118,8 +115,8 @@ export interface PortalInvoiceDetailResponse {
 export async function getPortalInvoiceDetail(
   invoiceId: string,
 ): Promise<PortalInvoiceDetailResponse> {
-  return authFetchJSON<PortalInvoiceDetailResponse>(
-    `${PORTAL_URL}/my-invoices/${invoiceId}`,
+  return apiClient.get<PortalInvoiceDetailResponse>(
+    `/portal/my-invoices/${invoiceId}`,
   );
 }
 
@@ -176,17 +173,17 @@ export interface PortalActivityFilters {
 export async function getPortalActivities(
   filters?: PortalActivityFilters,
 ): Promise<PortalActivitiesResponse> {
-  const params = new URLSearchParams();
-  if (filters?.horseId) params.set("horseId", filters.horseId);
-  if (filters?.status) params.set("status", filters.status);
-  if (filters?.dateFrom) params.set("dateFrom", filters.dateFrom);
-  if (filters?.dateTo) params.set("dateTo", filters.dateTo);
-  if (filters?.limit) params.set("limit", filters.limit.toString());
-  if (filters?.offset) params.set("offset", filters.offset.toString());
+  const params: Record<string, string> = {};
+  if (filters?.horseId) params.horseId = filters.horseId;
+  if (filters?.status) params.status = filters.status;
+  if (filters?.dateFrom) params.dateFrom = filters.dateFrom;
+  if (filters?.dateTo) params.dateTo = filters.dateTo;
+  if (filters?.limit) params.limit = filters.limit.toString();
+  if (filters?.offset) params.offset = filters.offset.toString();
 
-  const query = params.toString();
-  return authFetchJSON<PortalActivitiesResponse>(
-    `${PORTAL_URL}/my-activities${query ? `?${query}` : ""}`,
+  return apiClient.get<PortalActivitiesResponse>(
+    "/portal/my-activities",
+    Object.keys(params).length > 0 ? params : undefined,
   );
 }
 
@@ -204,37 +201,30 @@ export interface PortalMessagesResponse {
 }
 
 export async function getPortalThreads(): Promise<PortalThreadsResponse> {
-  return authFetchJSON<PortalThreadsResponse>(`${PORTAL_URL}/threads`);
+  return apiClient.get<PortalThreadsResponse>("/portal/threads");
 }
 
 export async function getPortalThreadMessages(
   threadId: string,
 ): Promise<PortalMessagesResponse> {
-  return authFetchJSON<PortalMessagesResponse>(
-    `${PORTAL_URL}/threads/${threadId}/messages`,
+  return apiClient.get<PortalMessagesResponse>(
+    `/portal/threads/${threadId}/messages`,
   );
 }
 
 export async function createPortalThread(
   data: CreatePortalThreadData,
 ): Promise<PortalThread> {
-  return authFetchJSON<PortalThread>(`${PORTAL_URL}/threads`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
+  return apiClient.post<PortalThread>("/portal/threads", data);
 }
 
 export async function sendPortalMessage(
   threadId: string,
   content: string,
 ): Promise<PortalMessage> {
-  return authFetchJSON<PortalMessage>(
-    `${PORTAL_URL}/threads/${threadId}/messages`,
-    {
-      method: "POST",
-      body: JSON.stringify({ content }),
-    },
-  );
+  return apiClient.post<PortalMessage>(`/portal/threads/${threadId}/messages`, {
+    content,
+  });
 }
 
 // ============================================
@@ -259,18 +249,15 @@ export interface PortalProfileResponse {
 }
 
 export async function getPortalProfile(): Promise<PortalProfileResponse> {
-  return authFetchJSON<PortalProfileResponse>(`${PORTAL_URL}/profile`);
+  return apiClient.get<PortalProfileResponse>("/portal/profile");
 }
 
 export async function updatePortalNotificationPreferences(
   data: UpdatePortalNotificationPreferencesData,
 ): Promise<PortalNotificationPreferences> {
-  return authFetchJSON<PortalNotificationPreferences>(
-    `${PORTAL_URL}/notification-preferences`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    },
+  return apiClient.patch<PortalNotificationPreferences>(
+    "/portal/notification-preferences",
+    data,
   );
 }
 

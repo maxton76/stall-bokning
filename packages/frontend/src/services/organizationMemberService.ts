@@ -1,4 +1,4 @@
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 import type {
   OrganizationMember,
   InviteOrganizationMemberData,
@@ -37,29 +37,24 @@ export async function inviteOrganizationMember(
   inviterId: string,
   memberData: InviteOrganizationMemberData,
 ): Promise<any> {
-  return await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/organizations/${organizationId}/members`,
-    {
-      method: "POST",
-      body: JSON.stringify(
-        removeUndefined({
-          email: memberData.email,
-          firstName: memberData.firstName,
-          lastName: memberData.lastName,
-          phoneNumber: memberData.phoneNumber,
-          // Contact type fields
-          contactType: memberData.contactType || "Personal",
-          businessName: memberData.businessName,
-          address: memberData.address,
-          // Role assignment
-          roles: memberData.roles,
-          primaryRole: memberData.primaryRole,
-          showInPlanning: memberData.showInPlanning ?? true,
-          stableAccess: memberData.stableAccess || "all",
-          assignedStableIds: memberData.assignedStableIds || [],
-        }),
-      ),
-    },
+  return await apiClient.post(
+    `/organizations/${organizationId}/members`,
+    removeUndefined({
+      email: memberData.email,
+      firstName: memberData.firstName,
+      lastName: memberData.lastName,
+      phoneNumber: memberData.phoneNumber,
+      // Contact type fields
+      contactType: memberData.contactType || "Personal",
+      businessName: memberData.businessName,
+      address: memberData.address,
+      // Role assignment
+      roles: memberData.roles,
+      primaryRole: memberData.primaryRole,
+      showInPlanning: memberData.showInPlanning ?? true,
+      stableAccess: memberData.stableAccess || "all",
+      assignedStableIds: memberData.assignedStableIds || [],
+    }),
   );
 }
 
@@ -74,12 +69,9 @@ export async function getOrganizationMember(
   organizationId: string,
 ): Promise<OrganizationMember | null> {
   try {
-    const response = await authFetchJSON<OrganizationMember & { id: string }>(
-      `${import.meta.env.VITE_API_URL}/api/v1/organizations/${organizationId}/members/${userId}`,
-      { method: "GET" },
+    return await apiClient.get<OrganizationMember & { id: string }>(
+      `/organizations/${organizationId}/members/${userId}`,
     );
-
-    return response;
   } catch (error) {
     return null;
   }
@@ -93,9 +85,8 @@ export async function getOrganizationMember(
 export async function getOrganizationMembers(
   organizationId: string,
 ): Promise<OrganizationMember[]> {
-  const response = await authFetchJSON<{ members: OrganizationMember[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/organizations/${organizationId}/members`,
-    { method: "GET" },
+  const response = await apiClient.get<{ members: OrganizationMember[] }>(
+    `/organizations/${organizationId}/members`,
   );
 
   return response.members;
@@ -110,9 +101,9 @@ export async function getOrganizationMembers(
 export async function getActiveOrganizationMembers(
   organizationId: string,
 ): Promise<OrganizationMember[]> {
-  const response = await authFetchJSON<{ members: OrganizationMember[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/organizations/${organizationId}/members?status=active`,
-    { method: "GET" },
+  const response = await apiClient.get<{ members: OrganizationMember[] }>(
+    `/organizations/${organizationId}/members`,
+    { status: "active" },
   );
 
   return response.members;
@@ -135,12 +126,9 @@ export async function updateOrganizationMember(
     >
   >,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/organizations/${organizationId}/members/${userId}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(removeUndefined(updates)),
-    },
+  await apiClient.patch(
+    `/organizations/${organizationId}/members/${userId}`,
+    removeUndefined(updates),
   );
 }
 
@@ -160,16 +148,10 @@ export async function updateMemberRoles(
   primaryRole: OrganizationRole,
   currentUserId?: string,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/organizations/${organizationId}/members/${userId}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({
-        roles,
-        primaryRole,
-      }),
-    },
-  );
+  await apiClient.patch(`/organizations/${organizationId}/members/${userId}`, {
+    roles,
+    primaryRole,
+  });
 
   // Note: Audit logging is handled by the backend
 }
@@ -186,12 +168,9 @@ export async function updateMemberStatus(
   organizationId: string,
   status: "active" | "inactive" | "pending",
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/organizations/${organizationId}/members/${userId}/status`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ status }),
-    },
+  await apiClient.patch(
+    `/organizations/${organizationId}/members/${userId}/status`,
+    { status },
   );
 }
 
@@ -205,10 +184,7 @@ export async function removeOrganizationMember(
   userId: string,
   organizationId: string,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/organizations/${organizationId}/members/${userId}`,
-    { method: "DELETE" },
-  );
+  await apiClient.delete(`/organizations/${organizationId}/members/${userId}`);
 }
 
 /**
@@ -219,9 +195,8 @@ export async function removeOrganizationMember(
 export async function getUserOrganizationIds(
   userId: string,
 ): Promise<string[]> {
-  const response = await authFetchJSON<{ organizationIds: string[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/organizations/users/${userId}/organizations`,
-    { method: "GET" },
+  const response = await apiClient.get<{ organizationIds: string[] }>(
+    `/organizations/users/${userId}/organizations`,
   );
 
   return response.organizationIds;

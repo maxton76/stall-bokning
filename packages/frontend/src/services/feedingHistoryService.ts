@@ -1,7 +1,5 @@
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 import type { AuditLog } from "@shared/types/auditLog";
-
-const API_BASE = `${import.meta.env.VITE_API_URL}/api/v1/feeding-history`;
 
 /**
  * Filters for querying feeding history
@@ -25,27 +23,27 @@ export async function getFeedingHistoryByStable(
   stableId: string,
   filters?: FeedingHistoryFilters,
 ): Promise<AuditLog[]> {
-  const params = new URLSearchParams();
+  const params: Record<string, string> = {};
 
   if (filters?.startDate) {
-    params.append("startDate", filters.startDate.toISOString());
+    params.startDate = filters.startDate.toISOString();
   }
   if (filters?.endDate) {
-    params.append("endDate", filters.endDate.toISOString());
+    params.endDate = filters.endDate.toISOString();
   }
   if (filters?.horseId && filters.horseId !== "all") {
-    params.append("horseId", filters.horseId);
+    params.horseId = filters.horseId;
   }
   if (filters?.action && filters.action !== "all") {
-    params.append("action", filters.action);
+    params.action = filters.action;
   }
   if (filters?.limit) {
-    params.append("limit", String(filters.limit));
+    params.limit = String(filters.limit);
   }
 
-  const url = `${API_BASE}/stable/${stableId}${params.toString() ? "?" + params.toString() : ""}`;
-  const response = await authFetchJSON<{ auditLogs: any[]; count: number }>(
-    url,
+  const response = await apiClient.get<{ auditLogs: any[]; count: number }>(
+    `/feeding-history/stable/${stableId}`,
+    Object.keys(params).length > 0 ? params : undefined,
   );
 
   // Convert timestamp strings back to Date objects for frontend use
@@ -78,27 +76,29 @@ export async function getFeedingHistoryByHorse(
   horseId: string,
   filters?: Omit<FeedingHistoryFilters, "horseId">,
 ): Promise<{ auditLogs: AuditLog[]; horseName: string }> {
-  const params = new URLSearchParams();
+  const params: Record<string, string> = {};
 
   if (filters?.startDate) {
-    params.append("startDate", filters.startDate.toISOString());
+    params.startDate = filters.startDate.toISOString();
   }
   if (filters?.endDate) {
-    params.append("endDate", filters.endDate.toISOString());
+    params.endDate = filters.endDate.toISOString();
   }
   if (filters?.action && filters.action !== "all") {
-    params.append("action", filters.action);
+    params.action = filters.action;
   }
   if (filters?.limit) {
-    params.append("limit", String(filters.limit));
+    params.limit = String(filters.limit);
   }
 
-  const url = `${API_BASE}/horse/${horseId}${params.toString() ? "?" + params.toString() : ""}`;
-  const response = await authFetchJSON<{
+  const response = await apiClient.get<{
     auditLogs: any[];
     count: number;
     horseName: string;
-  }>(url);
+  }>(
+    `/feeding-history/horse/${horseId}`,
+    Object.keys(params).length > 0 ? params : undefined,
+  );
 
   // Convert timestamp strings back to Date objects
   const auditLogs = response.auditLogs.map((log) => ({

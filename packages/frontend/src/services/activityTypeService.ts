@@ -3,7 +3,7 @@ import type {
   CreateActivityTypeData,
   UpdateActivityTypeData,
 } from "@/types/activity";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 
 // ============================================================================
 // Public Service API
@@ -22,13 +22,10 @@ export async function createActivityType(
   stableId: string,
   data: CreateActivityTypeData,
 ): Promise<string> {
-  const response = await authFetchJSON<{ id: string }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/activity-types`,
-    {
-      method: "POST",
-      body: JSON.stringify({ ...data, stableId }),
-    },
-  );
+  const response = await apiClient.post<{ id: string }>("/activity-types", {
+    ...data,
+    stableId,
+  });
 
   return response.id;
 }
@@ -44,16 +41,9 @@ export async function getActivityTypesByStable(
   stableId: string,
   activeOnly = true,
 ): Promise<ActivityTypeConfig[]> {
-  const params = new URLSearchParams();
-  if (activeOnly !== undefined) {
-    params.append("activeOnly", String(activeOnly));
-  }
-
-  const queryString = params.toString() ? `?${params.toString()}` : "";
-
-  const response = await authFetchJSON<{ activityTypes: ActivityTypeConfig[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/activity-types/stable/${stableId}${queryString}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ activityTypes: ActivityTypeConfig[] }>(
+    `/activity-types/stable/${stableId}`,
+    { activeOnly },
   );
 
   return response.activityTypes;
@@ -75,13 +65,7 @@ export async function updateActivityType(
   userId: string,
   updates: UpdateActivityTypeData,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/activity-types/${id}`,
-    {
-      method: "PUT",
-      body: JSON.stringify(updates),
-    },
-  );
+  await apiClient.put(`/activity-types/${id}`, updates);
 }
 
 /**
@@ -98,10 +82,7 @@ export async function deleteActivityType(
   id: string,
   userId: string,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/activity-types/${id}`,
-    { method: "DELETE" },
-  );
+  await apiClient.delete(`/activity-types/${id}`);
 }
 
 /**
@@ -114,12 +95,9 @@ export async function getActivityTypeById(
   id: string,
 ): Promise<ActivityTypeConfig | null> {
   try {
-    const response = await authFetchJSON<ActivityTypeConfig & { id: string }>(
-      `${import.meta.env.VITE_API_URL}/api/v1/activity-types/${id}`,
-      { method: "GET" },
+    return await apiClient.get<ActivityTypeConfig & { id: string }>(
+      `/activity-types/${id}`,
     );
-
-    return response;
   } catch (error) {
     return null;
   }
@@ -143,14 +121,11 @@ export async function seedStandardActivityTypes(
   stableId: string,
   _userId: string,
 ): Promise<{ count: number }> {
-  const response = await authFetchJSON<{
+  const response = await apiClient.post<{
     success: boolean;
     count: number;
     message: string;
-  }>(`${import.meta.env.VITE_API_URL}/api/v1/activity-types/seed/${stableId}`, {
-    method: "POST",
-    body: JSON.stringify({}),
-  });
+  }>(`/activity-types/seed/${stableId}`, {});
 
   return { count: response.count };
 }

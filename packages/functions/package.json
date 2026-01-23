@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@google-cloud/secret-manager": "^6.1.1",
+    "@stall-bokning/shared": "*",
     "firebase-admin": "^13.0.2",
     "firebase-functions": "^6.3.0",
     "nodemailer": "^7.0.12"

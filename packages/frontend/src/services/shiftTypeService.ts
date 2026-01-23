@@ -1,11 +1,9 @@
-import type { ShiftType } from '@/types/schedule'
-import { authFetchJSON } from '@/utils/authFetch'
+import type { ShiftType } from "@/types/schedule";
+import { apiClient } from "@/lib/apiClient";
 
 // ============================================================================
 // API-First Service - All writes go through the API
 // ============================================================================
-
-const API_BASE = `${import.meta.env.VITE_API_URL}/api/v1/shift-types`
 
 /**
  * Create a new shift type via API
@@ -16,17 +14,25 @@ const API_BASE = `${import.meta.env.VITE_API_URL}/api/v1/shift-types`
  */
 export async function createShiftType(
   stableId: string,
-  shiftTypeData: Omit<ShiftType, 'id' | 'stableId' | 'createdAt' | 'updatedAt' | 'lastModifiedBy' | 'createdBy'>,
-  _userId: string
+  shiftTypeData: Omit<
+    ShiftType,
+    | "id"
+    | "stableId"
+    | "createdAt"
+    | "updatedAt"
+    | "lastModifiedBy"
+    | "createdBy"
+  >,
+  _userId: string,
 ): Promise<string> {
-  const response = await authFetchJSON<ShiftType & { id: string }>(API_BASE, {
-    method: 'POST',
-    body: JSON.stringify({
+  const response = await apiClient.post<ShiftType & { id: string }>(
+    "/shift-types",
+    {
       stableId,
       ...shiftTypeData,
-    }),
-  })
-  return response.id
+    },
+  );
+  return response.id;
 }
 
 /**
@@ -34,11 +40,13 @@ export async function createShiftType(
  * @param stableId - Stable ID
  * @returns Promise with array of shift types
  */
-export async function getShiftTypesByStable(stableId: string): Promise<ShiftType[]> {
-  const response = await authFetchJSON<{ shiftTypes: ShiftType[] }>(
-    `${API_BASE}/stable/${stableId}`
-  )
-  return response.shiftTypes
+export async function getShiftTypesByStable(
+  stableId: string,
+): Promise<ShiftType[]> {
+  const response = await apiClient.get<{ shiftTypes: ShiftType[] }>(
+    `/shift-types/stable/${stableId}`,
+  );
+  return response.shiftTypes;
 }
 
 /**
@@ -46,15 +54,17 @@ export async function getShiftTypesByStable(stableId: string): Promise<ShiftType
  * @param shiftTypeId - Shift type ID
  * @returns Promise with shift type data or null if not found
  */
-export async function getShiftType(shiftTypeId: string): Promise<ShiftType | null> {
+export async function getShiftType(
+  shiftTypeId: string,
+): Promise<ShiftType | null> {
   try {
-    return await authFetchJSON<ShiftType>(`${API_BASE}/${shiftTypeId}`)
+    return await apiClient.get<ShiftType>(`/shift-types/${shiftTypeId}`);
   } catch (error) {
     // Return null if not found (404)
-    if (error instanceof Error && error.message.includes('404')) {
-      return null
+    if (error instanceof Error && error.message.includes("404")) {
+      return null;
     }
-    throw error
+    throw error;
   }
 }
 
@@ -67,13 +77,15 @@ export async function getShiftType(shiftTypeId: string): Promise<ShiftType | nul
  */
 export async function updateShiftType(
   shiftTypeId: string,
-  updates: Partial<Omit<ShiftType, 'id' | 'stableId' | 'createdAt' | 'lastModifiedBy' | 'createdBy'>>,
-  _userId: string
+  updates: Partial<
+    Omit<
+      ShiftType,
+      "id" | "stableId" | "createdAt" | "lastModifiedBy" | "createdBy"
+    >
+  >,
+  _userId: string,
 ): Promise<void> {
-  await authFetchJSON(`${API_BASE}/${shiftTypeId}`, {
-    method: 'PATCH',
-    body: JSON.stringify(updates),
-  })
+  await apiClient.patch(`/shift-types/${shiftTypeId}`, updates);
 }
 
 /**
@@ -82,7 +94,5 @@ export async function updateShiftType(
  * @returns Promise that resolves when deletion is complete
  */
 export async function deleteShiftType(shiftTypeId: string): Promise<void> {
-  await authFetchJSON(`${API_BASE}/${shiftTypeId}`, {
-    method: 'DELETE',
-  })
+  await apiClient.delete(`/shift-types/${shiftTypeId}`);
 }

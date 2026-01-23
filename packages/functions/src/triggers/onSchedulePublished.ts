@@ -10,7 +10,7 @@ import { logger } from "firebase-functions";
 import * as crypto from "crypto";
 
 import { db, Timestamp } from "../lib/firebase.js";
-import { formatErrorMessage } from "../lib/errors.js";
+import { formatErrorMessage } from "@stall-bokning/shared";
 
 // ============================================================================
 // TYPE DEFINITIONS

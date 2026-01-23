@@ -13,9 +13,7 @@ import type {
   CalendarLeaveStatus,
 } from "@stall-bokning/shared";
 import { format, differenceInDays } from "date-fns";
-import { authFetchJSON } from "@/utils/authFetch";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { apiClient } from "@/lib/apiClient";
 
 /**
  * Convert Timestamp-like object to Date
@@ -148,14 +146,11 @@ export async function createLeaveRequest(data: {
   lastDay: string; // ISO date string YYYY-MM-DD
   note?: string;
 }): Promise<LeaveRequestDisplay> {
-  const response = await authFetchJSON<{ leaveRequest: LeaveRequest }>(
-    `${API_URL}/api/v1/availability/leave-requests`,
+  const response = await apiClient.post<{ leaveRequest: LeaveRequest }>(
+    "/availability/leave-requests",
     {
-      method: "POST",
-      body: JSON.stringify({
-        type: "vacation" as LeaveType,
-        ...data,
-      }),
+      type: "vacation" as LeaveType,
+      ...data,
     },
   );
 
@@ -170,12 +165,9 @@ export async function reportSickLeave(data: {
   firstSickDay: string; // ISO date string YYYY-MM-DD
   note?: string;
 }): Promise<LeaveRequestDisplay> {
-  const response = await authFetchJSON<{ leaveRequest: LeaveRequest }>(
-    `${API_URL}/api/v1/availability/sick-leave`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
+  const response = await apiClient.post<{ leaveRequest: LeaveRequest }>(
+    "/availability/sick-leave",
+    data,
   );
 
   return transformLeaveRequest(response.leaveRequest);
@@ -187,9 +179,9 @@ export async function reportSickLeave(data: {
 export async function getLeaveRequests(
   organizationId: string,
 ): Promise<LeaveRequestDisplay[]> {
-  const response = await authFetchJSON<{ leaveRequests: LeaveRequest[] }>(
-    `${API_URL}/api/v1/availability/leave-requests?organizationId=${organizationId}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ leaveRequests: LeaveRequest[] }>(
+    "/availability/leave-requests",
+    { organizationId },
   );
 
   return response.leaveRequests.map(transformLeaveRequest);
@@ -205,12 +197,9 @@ export async function updateLeaveRequest(
     status?: "cancelled";
   },
 ): Promise<LeaveRequestDisplay> {
-  const response = await authFetchJSON<{ leaveRequest: LeaveRequest }>(
-    `${API_URL}/api/v1/availability/leave-requests/${id}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(updates),
-    },
+  const response = await apiClient.patch<{ leaveRequest: LeaveRequest }>(
+    `/availability/leave-requests/${id}`,
+    updates,
   );
 
   return transformLeaveRequest(response.leaveRequest);
@@ -229,9 +218,7 @@ export async function cancelLeaveRequest(
  * Delete a leave request
  */
 export async function deleteLeaveRequest(id: string): Promise<void> {
-  await authFetchJSON(`${API_URL}/api/v1/availability/leave-requests/${id}`, {
-    method: "DELETE",
-  });
+  await apiClient.delete(`/availability/leave-requests/${id}`);
 }
 
 // ============================================================================
@@ -245,9 +232,9 @@ export async function getWorkSchedule(
   organizationId: string,
 ): Promise<WorkScheduleDisplay | null> {
   try {
-    const response = await authFetchJSON<{ schedule: WorkSchedule | null }>(
-      `${API_URL}/api/v1/availability/schedule?organizationId=${organizationId}`,
-      { method: "GET" },
+    const response = await apiClient.get<{ schedule: WorkSchedule | null }>(
+      "/availability/schedule",
+      { organizationId },
     );
 
     return response.schedule ? transformWorkSchedule(response.schedule) : null;
@@ -272,9 +259,9 @@ export async function getTimeBalance(
     const currentMonth = new Date().getMonth();
     const monthsRemaining = 12 - currentMonth - 1;
 
-    const response = await authFetchJSON<{ balance: TimeBalance | null }>(
-      `${API_URL}/api/v1/availability/balance?organizationId=${organizationId}&year=${currentYear}`,
-      { method: "GET" },
+    const response = await apiClient.get<{ balance: TimeBalance | null }>(
+      "/availability/balance",
+      { organizationId, year: String(currentYear) },
     );
 
     return response.balance
@@ -301,15 +288,15 @@ export async function getOrganizationLeaveRequests(
     endDate?: string;
   },
 ): Promise<LeaveRequestDisplay[]> {
-  const params = new URLSearchParams({ organizationId });
-  if (options?.status) params.append("status", options.status);
-  if (options?.userId) params.append("userId", options.userId);
-  if (options?.startDate) params.append("startDate", options.startDate);
-  if (options?.endDate) params.append("endDate", options.endDate);
+  const params: Record<string, string> = { organizationId };
+  if (options?.status) params.status = options.status;
+  if (options?.userId) params.userId = options.userId;
+  if (options?.startDate) params.startDate = options.startDate;
+  if (options?.endDate) params.endDate = options.endDate;
 
-  const response = await authFetchJSON<{ leaveRequests: LeaveRequest[] }>(
-    `${API_URL}/api/v1/availability/admin/leave-requests?${params.toString()}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ leaveRequests: LeaveRequest[] }>(
+    "/availability/admin/leave-requests",
+    params,
   );
 
   return response.leaveRequests.map(transformLeaveRequest);
@@ -325,12 +312,9 @@ export async function reviewLeaveRequest(
     reviewNote?: string;
   },
 ): Promise<LeaveRequestDisplay> {
-  const response = await authFetchJSON<{ leaveRequest: LeaveRequest }>(
-    `${API_URL}/api/v1/availability/admin/leave-requests/${id}/review`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    },
+  const response = await apiClient.patch<{ leaveRequest: LeaveRequest }>(
+    `/availability/admin/leave-requests/${id}/review`,
+    data,
   );
 
   return transformLeaveRequest(response.leaveRequest);
@@ -348,12 +332,9 @@ export async function setWorkSchedule(
     effectiveUntil?: string; // ISO date string
   },
 ): Promise<WorkScheduleDisplay> {
-  const response = await authFetchJSON<{ schedule: WorkSchedule }>(
-    `${API_URL}/api/v1/availability/admin/schedules/${userId}`,
-    {
-      method: "PUT",
-      body: JSON.stringify(data),
-    },
+  const response = await apiClient.put<{ schedule: WorkSchedule }>(
+    `/availability/admin/schedules/${userId}`,
+    data,
   );
 
   return transformWorkSchedule(response.schedule);
@@ -371,12 +352,9 @@ export async function adjustTimeBalance(
     reason: string;
   },
 ): Promise<TimeBalanceDisplay> {
-  const response = await authFetchJSON<{ balance: TimeBalance }>(
-    `${API_URL}/api/v1/availability/admin/balance/${userId}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    },
+  const response = await apiClient.patch<{ balance: TimeBalance }>(
+    `/availability/admin/balance/${userId}`,
+    data,
   );
 
   return transformTimeBalance(response.balance);
@@ -405,9 +383,9 @@ interface MemberWithSchedule {
 export async function getOrganizationMembersWithSchedules(
   organizationId: string,
 ): Promise<MemberWithSchedule[]> {
-  const response = await authFetchJSON<{ members: MemberWithSchedule[] }>(
-    `${API_URL}/api/v1/availability/admin/members-with-schedules?organizationId=${organizationId}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ members: MemberWithSchedule[] }>(
+    "/availability/admin/members-with-schedules",
+    { organizationId },
   );
 
   return response.members;

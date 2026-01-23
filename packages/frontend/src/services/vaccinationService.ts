@@ -6,7 +6,7 @@ import type {
 import type { Horse } from "@/types/roles";
 import type { VaccinationRule } from "@shared/types/organization";
 import { toDate } from "@/utils/timestampUtils";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 
 /**
  * Vaccination Service
@@ -24,15 +24,10 @@ export async function createVaccinationRecord(
   data: Omit<VaccinationRecord, "id" | "createdAt" | "updatedAt">,
 ): Promise<VaccinationRecord> {
   try {
-    const record = await authFetchJSON<VaccinationRecord>(
-      `${import.meta.env.VITE_API_URL}/api/v1/vaccination-records`,
-      {
-        method: "POST",
-        body: JSON.stringify(data),
-      },
+    return await apiClient.post<VaccinationRecord>(
+      "/vaccination-records",
+      data,
     );
-
-    return record;
   } catch (error) {
     console.error("Error creating vaccination record:", error);
     throw new Error("Failed to create vaccination record");
@@ -47,13 +42,7 @@ export async function updateVaccinationRecord(
   updates: Partial<VaccinationRecord>,
 ): Promise<void> {
   try {
-    await authFetchJSON<VaccinationRecord>(
-      `${import.meta.env.VITE_API_URL}/api/v1/vaccination-records/${id}`,
-      {
-        method: "PUT",
-        body: JSON.stringify(updates),
-      },
-    );
+    await apiClient.put(`/vaccination-records/${id}`, updates);
   } catch (error) {
     console.error("Error updating vaccination record:", error);
     throw new Error("Failed to update vaccination record");
@@ -65,12 +54,7 @@ export async function updateVaccinationRecord(
  */
 export async function deleteVaccinationRecord(id: string): Promise<void> {
   try {
-    await authFetchJSON<{ success: boolean; id: string }>(
-      `${import.meta.env.VITE_API_URL}/api/v1/vaccination-records/${id}`,
-      {
-        method: "DELETE",
-      },
-    );
+    await apiClient.delete(`/vaccination-records/${id}`);
   } catch (error) {
     console.error("Error deleting vaccination record:", error);
     throw new Error("Failed to delete vaccination record");
@@ -84,9 +68,8 @@ export async function getHorseVaccinationRecords(
   horseId: string,
 ): Promise<VaccinationRecord[]> {
   try {
-    const response = await authFetchJSON<{ records: VaccinationRecord[] }>(
-      `${import.meta.env.VITE_API_URL}/api/v1/vaccination-records/horse/${horseId}`,
-      { method: "GET" },
+    const response = await apiClient.get<{ records: VaccinationRecord[] }>(
+      `/vaccination-records/horse/${horseId}`,
     );
 
     return response.records;
@@ -103,9 +86,8 @@ export async function getOrganizationVaccinationRecords(
   organizationId: string,
 ): Promise<VaccinationRecord[]> {
   try {
-    const response = await authFetchJSON<{ records: VaccinationRecord[] }>(
-      `${import.meta.env.VITE_API_URL}/api/v1/vaccination-records/organization/${organizationId}`,
-      { method: "GET" },
+    const response = await apiClient.get<{ records: VaccinationRecord[] }>(
+      `/vaccination-records/organization/${organizationId}`,
     );
 
     return response.records;
@@ -242,10 +224,7 @@ export async function updateHorseVaccinationCache(
   horseId: string,
 ): Promise<void> {
   try {
-    await authFetchJSON<{ success: boolean; status: string }>(
-      `${import.meta.env.VITE_API_URL}/api/v1/vaccination-records/horse/${horseId}/update-cache`,
-      { method: "POST" },
-    );
+    await apiClient.post(`/vaccination-records/horse/${horseId}/update-cache`);
   } catch (error) {
     console.error("Error updating horse vaccination cache:", error);
     // Don't throw - cache update failures shouldn't block operations
@@ -261,9 +240,9 @@ export async function getExpiringSoon(
   days: number = 30,
 ): Promise<Horse[]> {
   try {
-    const response = await authFetchJSON<{ horses: Horse[] }>(
-      `${import.meta.env.VITE_API_URL}/api/v1/horses/expiring-vaccinations?days=${days}`,
-      { method: "GET" },
+    const response = await apiClient.get<{ horses: Horse[] }>(
+      "/horses/expiring-vaccinations",
+      { days: days.toString() },
     );
 
     return response.horses;

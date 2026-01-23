@@ -2,7 +2,7 @@ import { User as FirebaseUser } from "firebase/auth";
 import { User as FirestoreUser } from "@/types/roles";
 import { AppUser } from "@/types/auth";
 import { formatFullName, getInitials } from "@/lib/nameUtils";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 import { logger } from "@/utils/logger";
 
 // In-memory cache to avoid repeated API reads
@@ -28,9 +28,8 @@ export async function fetchUserProfile(
   }
 
   try {
-    const response = await authFetchJSON<FirestoreUser & { id: string }>(
-      `${import.meta.env.VITE_API_URL}/api/v1/auth/me`,
-      { method: "GET" },
+    const response = await apiClient.get<FirestoreUser & { id: string }>(
+      "/auth/me",
     );
 
     if (response) {

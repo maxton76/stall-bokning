@@ -1,8 +1,8 @@
 /**
- * Validation Utilities for Cloud Functions
+ * Validation Utilities
  *
- * Provides common validation helpers used across multiple
- * Cloud Functions for input sanitization and bounds checking.
+ * Provides common validation helpers for input sanitization and bounds checking.
+ * Consolidated from packages/functions/src/lib/validation.ts
  */
 
 /**

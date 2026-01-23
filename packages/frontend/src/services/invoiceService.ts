@@ -7,7 +7,7 @@ import type {
   PaymentMethod,
   ContactInvoiceSummary,
 } from "@stall-bokning/shared";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 
 // ============================================================================
 // Invoice CRUD Operations
@@ -23,22 +23,20 @@ export async function getOrganizationInvoices(
   organizationId: string,
   options?: { status?: InvoiceStatus; contactId?: string; limit?: number },
 ): Promise<Invoice[]> {
-  const params = new URLSearchParams();
+  const params: Record<string, string> = {};
   if (options?.status) {
-    params.append("status", options.status);
+    params.status = options.status;
   }
   if (options?.contactId) {
-    params.append("contactId", options.contactId);
+    params.contactId = options.contactId;
   }
   if (options?.limit) {
-    params.append("limit", options.limit.toString());
+    params.limit = options.limit.toString();
   }
 
-  const queryString = params.toString() ? `?${params.toString()}` : "";
-
-  const response = await authFetchJSON<{ invoices: Invoice[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/invoices/organization/${organizationId}${queryString}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ invoices: Invoice[] }>(
+    `/invoices/organization/${organizationId}`,
+    Object.keys(params).length > 0 ? params : undefined,
   );
 
   return response.invoices;
@@ -51,11 +49,7 @@ export async function getOrganizationInvoices(
  */
 export async function getInvoice(invoiceId: string): Promise<Invoice | null> {
   try {
-    const response = await authFetchJSON<Invoice>(
-      `${import.meta.env.VITE_API_URL}/api/v1/invoices/${invoiceId}`,
-      { method: "GET" },
-    );
-    return response;
+    return await apiClient.get<Invoice>(`/invoices/${invoiceId}`);
   } catch {
     return null;
   }
@@ -71,15 +65,10 @@ export async function createInvoice(
   organizationId: string,
   data: CreateInvoiceData,
 ): Promise<Invoice> {
-  const response = await authFetchJSON<Invoice>(
-    `${import.meta.env.VITE_API_URL}/api/v1/invoices`,
-    {
-      method: "POST",
-      body: JSON.stringify({ organizationId, ...data }),
-    },
-  );
-
-  return response;
+  return await apiClient.post<Invoice>("/invoices", {
+    organizationId,
+    ...data,
+  });
 }
 
 /**
@@ -92,15 +81,7 @@ export async function updateInvoice(
   invoiceId: string,
   updates: UpdateInvoiceData,
 ): Promise<Invoice> {
-  const response = await authFetchJSON<Invoice>(
-    `${import.meta.env.VITE_API_URL}/api/v1/invoices/${invoiceId}`,
-    {
-      method: "PUT",
-      body: JSON.stringify(updates),
-    },
-  );
-
-  return response;
+  return await apiClient.put<Invoice>(`/invoices/${invoiceId}`, updates);
 }
 
 /**
@@ -109,10 +90,7 @@ export async function updateInvoice(
  * @returns Promise that resolves when deleted
  */
 export async function deleteInvoice(invoiceId: string): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/invoices/${invoiceId}`,
-    { method: "DELETE" },
-  );
+  await apiClient.delete(`/invoices/${invoiceId}`);
 }
 
 // ============================================================================
@@ -127,12 +105,9 @@ export async function deleteInvoice(invoiceId: string): Promise<void> {
 export async function sendInvoice(
   invoiceId: string,
 ): Promise<{ success: boolean; message: string }> {
-  const response = await authFetchJSON<{ success: boolean; message: string }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/invoices/${invoiceId}/send`,
-    { method: "POST" },
+  return await apiClient.post<{ success: boolean; message: string }>(
+    `/invoices/${invoiceId}/send`,
   );
-
-  return response;
 }
 
 /**
@@ -143,12 +118,9 @@ export async function sendInvoice(
 export async function cancelInvoice(
   invoiceId: string,
 ): Promise<{ success: boolean; message: string }> {
-  const response = await authFetchJSON<{ success: boolean; message: string }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/invoices/${invoiceId}/cancel`,
-    { method: "POST" },
+  return await apiClient.post<{ success: boolean; message: string }>(
+    `/invoices/${invoiceId}/cancel`,
   );
-
-  return response;
 }
 
 /**
@@ -174,7 +146,7 @@ export async function recordPayment(
     status: InvoiceStatus;
   };
 }> {
-  const response = await authFetchJSON<{
+  return await apiClient.post<{
     success: boolean;
     payment: {
       id: string;
@@ -187,12 +159,7 @@ export async function recordPayment(
       amountDue: number;
       status: InvoiceStatus;
     };
-  }>(`${import.meta.env.VITE_API_URL}/api/v1/invoices/${invoiceId}/payment`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-
-  return response;
+  }>(`/invoices/${invoiceId}/payment`, data);
 }
 
 // ============================================================================
@@ -209,12 +176,10 @@ export async function getContactInvoices(
   contactId: string,
   limit = 20,
 ): Promise<ContactInvoiceSummary> {
-  const response = await authFetchJSON<ContactInvoiceSummary>(
-    `${import.meta.env.VITE_API_URL}/api/v1/invoices/contact/${contactId}?limit=${limit}`,
-    { method: "GET" },
+  return await apiClient.get<ContactInvoiceSummary>(
+    `/invoices/contact/${contactId}`,
+    { limit: limit.toString() },
   );
-
-  return response;
 }
 
 // ============================================================================
@@ -232,17 +197,12 @@ export async function getOverdueInvoices(organizationId: string): Promise<{
   currency: string;
   invoices: (Invoice & { daysOverdue: number })[];
 }> {
-  const response = await authFetchJSON<{
+  return await apiClient.get<{
     count: number;
     totalOverdue: number;
     currency: string;
     invoices: (Invoice & { daysOverdue: number })[];
-  }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/invoices/organization/${organizationId}/overdue`,
-    { method: "GET" },
-  );
-
-  return response;
+  }>(`/invoices/organization/${organizationId}/overdue`);
 }
 
 // ============================================================================

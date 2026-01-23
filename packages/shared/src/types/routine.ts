@@ -347,6 +347,11 @@ export interface HorseDailyNote {
 export type NotePriority = "info" | "warning" | "critical";
 
 /**
+ * Blanket action for horse step progress
+ */
+export type BlanketAction = "on" | "off" | "unchanged";
+
+/**
  * Category for horse daily notes
  */
 export type DailyNoteCategory =
@@ -376,6 +381,17 @@ export interface DailyAlert {
 // ============================================================
 // API Input Types
 // ============================================================
+
+/**
+ * Input for creating a routine instance
+ */
+export interface CreateRoutineInstanceInput {
+  templateId: string;
+  stableId: string;
+  scheduledDate: string; // ISO date string
+  scheduledStartTime?: string; // Optional - defaults to template's defaultStartTime
+  assignedTo?: string;
+}
 
 /**
  * Input for creating a routine template
@@ -515,6 +531,28 @@ export interface CreateAlertInput {
   priority: NotePriority;
   affectedHorseIds?: string[];
   expiresAt?: Date | string;
+}
+
+/**
+ * Query parameters for listing routine templates
+ */
+export interface ListRoutineTemplatesQuery {
+  type?: RoutineType;
+  isActive?: boolean;
+  stableId?: string;
+}
+
+/**
+ * Query parameters for listing routine instances
+ */
+export interface ListRoutineInstancesQuery {
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string; // YYYY-MM-DD
+  status?: RoutineInstanceStatus;
+  assignedTo?: string;
+  templateId?: string;
+  limit?: number;
+  offset?: number;
 }
 
 // ============================================================

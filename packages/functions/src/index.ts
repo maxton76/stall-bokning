@@ -3,8 +3,7 @@ import { logger } from "firebase-functions";
 import * as crypto from "crypto";
 
 import { db, Timestamp } from "./lib/firebase.js";
-import { validateNumber } from "./lib/validation.js";
-import { formatErrorMessage } from "./lib/errors.js";
+import { formatErrorMessage, validateNumber } from "@stall-bokning/shared";
 
 // Re-export scheduled functions
 export { generateActivityInstances } from "./scheduled/generateInstances.js";

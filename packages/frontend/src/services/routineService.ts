@@ -1,4 +1,4 @@
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 import type {
   RoutineTemplate,
   RoutineInstance,
@@ -19,8 +19,6 @@ interface CreateRoutineInstanceInput {
   assignedTo?: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL;
-
 // ==================== Routine Templates ====================
 
 /**
@@ -31,14 +29,13 @@ export async function getRoutineTemplates(
   stableId?: string,
   activeOnly: boolean = true,
 ): Promise<RoutineTemplate[]> {
-  const params = new URLSearchParams();
-  params.append("organizationId", organizationId);
-  if (stableId) params.append("stableId", stableId);
-  if (activeOnly) params.append("activeOnly", "true");
+  const params: Record<string, string> = { organizationId };
+  if (stableId) params.stableId = stableId;
+  if (activeOnly) params.activeOnly = "true";
 
-  const response = await authFetchJSON<{ templates: RoutineTemplate[] }>(
-    `${API_URL}/api/v1/routines/templates?${params.toString()}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ templates: RoutineTemplate[] }>(
+    "/routines/templates",
+    params,
   );
 
   return response.templates;
@@ -50,9 +47,8 @@ export async function getRoutineTemplates(
 export async function getRoutineTemplate(
   templateId: string,
 ): Promise<RoutineTemplate> {
-  const response = await authFetchJSON<{ template: RoutineTemplate }>(
-    `${API_URL}/api/v1/routines/templates/${templateId}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ template: RoutineTemplate }>(
+    `/routines/templates/${templateId}`,
   );
 
   return response.template;
@@ -64,12 +60,9 @@ export async function getRoutineTemplate(
 export async function createRoutineTemplate(
   data: CreateRoutineTemplateInput,
 ): Promise<string> {
-  const response = await authFetchJSON<{ id: string }>(
-    `${API_URL}/api/v1/routines/templates`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
+  const response = await apiClient.post<{ id: string }>(
+    "/routines/templates",
+    data,
   );
 
   return response.id;
@@ -82,19 +75,14 @@ export async function updateRoutineTemplate(
   templateId: string,
   data: UpdateRoutineTemplateInput,
 ): Promise<void> {
-  await authFetchJSON(`${API_URL}/api/v1/routines/templates/${templateId}`, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
+  await apiClient.put(`/routines/templates/${templateId}`, data);
 }
 
 /**
  * Delete a routine template
  */
 export async function deleteRoutineTemplate(templateId: string): Promise<void> {
-  await authFetchJSON(`${API_URL}/api/v1/routines/templates/${templateId}`, {
-    method: "DELETE",
-  });
+  await apiClient.delete(`/routines/templates/${templateId}`);
 }
 
 // ==================== Routine Instances ====================
@@ -105,10 +93,7 @@ export async function deleteRoutineTemplate(templateId: string): Promise<void> {
 export async function getRoutineInstance(
   instanceId: string,
 ): Promise<RoutineInstance> {
-  return authFetchJSON<RoutineInstance>(
-    `${API_URL}/api/v1/routines/instances/${instanceId}`,
-    { method: "GET" },
-  );
+  return apiClient.get<RoutineInstance>(`/routines/instances/${instanceId}`);
 }
 
 /**
@@ -118,18 +103,17 @@ export async function getRoutineInstances(
   stableId: string,
   date?: Date,
 ): Promise<RoutineInstance[]> {
-  const params = new URLSearchParams();
-  params.append("stableId", stableId);
+  const params: Record<string, string> = { stableId };
   if (date) {
     const dateStr = date.toISOString().split("T")[0];
     if (dateStr) {
-      params.append("date", dateStr);
+      params.date = dateStr;
     }
   }
 
-  const response = await authFetchJSON<{ instances: RoutineInstance[] }>(
-    `${API_URL}/api/v1/routines/instances?${params.toString()}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ instances: RoutineInstance[] }>(
+    "/routines/instances",
+    params,
   );
 
   return response.instances;
@@ -141,12 +125,9 @@ export async function getRoutineInstances(
 export async function createRoutineInstance(
   data: CreateRoutineInstanceInput,
 ): Promise<string> {
-  const response = await authFetchJSON<{ id: string }>(
-    `${API_URL}/api/v1/routines/instances`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
+  const response = await apiClient.post<{ id: string }>(
+    "/routines/instances",
+    data,
   );
 
   return response.id;
@@ -159,15 +140,9 @@ export async function startRoutineInstance(
   instanceId: string,
   dailyNotesAcknowledged: boolean = true,
 ): Promise<RoutineInstance> {
-  const response = await authFetchJSON<{ instance: RoutineInstance }>(
-    `${API_URL}/api/v1/routines/instances/${instanceId}/start`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        instanceId,
-        dailyNotesAcknowledged,
-      }),
-    },
+  const response = await apiClient.post<{ instance: RoutineInstance }>(
+    `/routines/instances/${instanceId}/start`,
+    { instanceId, dailyNotesAcknowledged },
   );
 
   return response.instance;
@@ -180,15 +155,9 @@ export async function updateRoutineProgress(
   instanceId: string,
   update: Omit<UpdateStepProgressInput, "instanceId">,
 ): Promise<RoutineInstance> {
-  const response = await authFetchJSON<{ instance: RoutineInstance }>(
-    `${API_URL}/api/v1/routines/instances/${instanceId}/progress`,
-    {
-      method: "PUT",
-      body: JSON.stringify({
-        ...update,
-        instanceId,
-      }),
-    },
+  const response = await apiClient.put<{ instance: RoutineInstance }>(
+    `/routines/instances/${instanceId}/progress`,
+    { ...update, instanceId },
   );
 
   return response.instance;
@@ -201,12 +170,9 @@ export async function completeRoutineInstance(
   instanceId: string,
   notes?: string,
 ): Promise<RoutineInstance> {
-  const response = await authFetchJSON<{ instance: RoutineInstance }>(
-    `${API_URL}/api/v1/routines/instances/${instanceId}/complete`,
-    {
-      method: "POST",
-      body: JSON.stringify({ notes }),
-    },
+  const response = await apiClient.post<{ instance: RoutineInstance }>(
+    `/routines/instances/${instanceId}/complete`,
+    { notes },
   );
 
   return response.instance;
@@ -219,12 +185,9 @@ export async function cancelRoutineInstance(
   instanceId: string,
   reason?: string,
 ): Promise<RoutineInstance> {
-  const response = await authFetchJSON<{ instance: RoutineInstance }>(
-    `${API_URL}/api/v1/routines/instances/${instanceId}/cancel`,
-    {
-      method: "POST",
-      body: JSON.stringify({ reason }),
-    },
+  const response = await apiClient.post<{ instance: RoutineInstance }>(
+    `/routines/instances/${instanceId}/cancel`,
+    { reason },
   );
 
   return response.instance;
@@ -236,11 +199,8 @@ export async function cancelRoutineInstance(
 export async function restartRoutineInstance(
   instanceId: string,
 ): Promise<RoutineInstance> {
-  const response = await authFetchJSON<{ instance: RoutineInstance }>(
-    `${API_URL}/api/v1/routines/instances/${instanceId}/restart`,
-    {
-      method: "POST",
-    },
+  const response = await apiClient.post<{ instance: RoutineInstance }>(
+    `/routines/instances/${instanceId}/restart`,
   );
 
   return response.instance;
@@ -280,9 +240,9 @@ export async function getDailyNotes(
     : new Date().toISOString().split("T")[0];
 
   try {
-    const response = await authFetchJSON<{ notes: DailyNotes }>(
-      `${API_URL}/api/v1/daily-notes/${stableId}?date=${dateStr}`,
-      { method: "GET" },
+    const response = await apiClient.get<{ notes: DailyNotes }>(
+      `/daily-notes/${stableId}`,
+      { date: dateStr },
     );
 
     return response.notes;
@@ -306,15 +266,9 @@ export async function updateDailyNotes(
     weatherNotes?: string;
   },
 ): Promise<DailyNotes> {
-  const response = await authFetchJSON<{ notes: DailyNotes }>(
-    `${API_URL}/api/v1/daily-notes/${stableId}`,
-    {
-      method: "PUT",
-      body: JSON.stringify({
-        date: date.toISOString().split("T")[0],
-        ...notes,
-      }),
-    },
+  const response = await apiClient.put<{ notes: DailyNotes }>(
+    `/daily-notes/${stableId}`,
+    { date: date.toISOString().split("T")[0], ...notes },
   );
 
   return response.notes;
@@ -332,12 +286,9 @@ export async function addHorseNote(
     category?: string;
   },
 ): Promise<DailyNotes> {
-  const response = await authFetchJSON<{ notes: DailyNotes }>(
-    `${API_URL}/api/v1/daily-notes/${stableId}/horse-notes`,
-    {
-      method: "POST",
-      body: JSON.stringify(horseNote),
-    },
+  const response = await apiClient.post<{ notes: DailyNotes }>(
+    `/daily-notes/${stableId}/horse-notes`,
+    horseNote,
   );
 
   return response.notes;
@@ -350,9 +301,8 @@ export async function removeHorseNote(
   stableId: string,
   horseId: string,
 ): Promise<DailyNotes> {
-  const response = await authFetchJSON<{ notes: DailyNotes }>(
-    `${API_URL}/api/v1/daily-notes/${stableId}/horse-notes/${horseId}`,
-    { method: "DELETE" },
+  const response = await apiClient.delete<{ notes: DailyNotes }>(
+    `/daily-notes/${stableId}/horse-notes/${horseId}`,
   );
 
   return response.notes;
@@ -370,12 +320,9 @@ export async function addDailyAlert(
     affectedHorses?: string[];
   },
 ): Promise<DailyNotes> {
-  const response = await authFetchJSON<{ notes: DailyNotes }>(
-    `${API_URL}/api/v1/daily-notes/${stableId}/alerts`,
-    {
-      method: "POST",
-      body: JSON.stringify(alert),
-    },
+  const response = await apiClient.post<{ notes: DailyNotes }>(
+    `/daily-notes/${stableId}/alerts`,
+    alert,
   );
 
   return response.notes;
@@ -388,9 +335,8 @@ export async function removeDailyAlert(
   stableId: string,
   alertId: string,
 ): Promise<DailyNotes> {
-  const response = await authFetchJSON<{ notes: DailyNotes }>(
-    `${API_URL}/api/v1/daily-notes/${stableId}/alerts/${alertId}`,
-    { method: "DELETE" },
+  const response = await apiClient.delete<{ notes: DailyNotes }>(
+    `/daily-notes/${stableId}/alerts/${alertId}`,
   );
 
   return response.notes;

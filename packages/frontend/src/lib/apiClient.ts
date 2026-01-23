@@ -1,9 +1,23 @@
 /**
- * API Client Utilities
+ * API Client
  *
- * Provides centralized API URL construction and request helpers.
- * Use these utilities instead of manually constructing URLs with VITE_API_URL.
+ * Centralized HTTP client for API communication.
+ * Eliminates repeated `${import.meta.env.VITE_API_URL}/api/v1/...` patterns.
+ *
+ * @example
+ * ```typescript
+ * // URL builders (existing)
+ * apiV1('/horses') // => 'https://api.example.com/api/v1/horses'
+ *
+ * // HTTP methods (new)
+ * const horse = await apiClient.get<Horse>('/horses/123');
+ * await apiClient.post('/horses', { name: 'Spirit' });
+ * await apiClient.patch('/horses/123', { name: 'Updated' });
+ * await apiClient.delete('/horses/123');
+ * ```
  */
+
+import { authFetch, authFetchJSON } from "@/utils/authFetch";
 
 /**
  * Base API URL from environment
@@ -12,13 +26,6 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 /**
  * Construct a full API URL from a path
- *
- * @param path - API path (should start with /)
- * @returns Full API URL
- *
- * @example
- * api('/api/v1/horses') // => 'https://api.example.com/api/v1/horses'
- * api('/api/v1/horses/123') // => 'https://api.example.com/api/v1/horses/123'
  */
 export function api(path: string): string {
   if (!path.startsWith("/")) {
@@ -29,13 +36,6 @@ export function api(path: string): string {
 
 /**
  * API v1 URL builder for the most common case
- *
- * @param endpoint - Endpoint path (without /api/v1 prefix)
- * @returns Full API URL
- *
- * @example
- * apiV1('/horses') // => 'https://api.example.com/api/v1/horses'
- * apiV1('/horses/123') // => 'https://api.example.com/api/v1/horses/123'
  */
 export function apiV1(endpoint: string): string {
   const path = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
@@ -44,14 +44,6 @@ export function apiV1(endpoint: string): string {
 
 /**
  * Build a URL with query parameters
- *
- * @param baseUrl - Base URL
- * @param params - Query parameters object
- * @returns URL with query string
- *
- * @example
- * withParams('/api/v1/horses', { stableId: '123', active: true })
- * // => '/api/v1/horses?stableId=123&active=true'
  */
 export function withParams(
   baseUrl: string,
@@ -71,14 +63,6 @@ export function withParams(
 
 /**
  * Construct API v1 URL with query parameters
- *
- * @param endpoint - Endpoint path (without /api/v1 prefix)
- * @param params - Query parameters object
- * @returns Full API URL with query string
- *
- * @example
- * apiV1WithParams('/horses', { stableId: '123', active: true })
- * // => 'https://api.example.com/api/v1/horses?stableId=123&active=true'
  */
 export function apiV1WithParams(
   endpoint: string,
@@ -86,3 +70,143 @@ export function apiV1WithParams(
 ): string {
   return withParams(apiV1(endpoint), params);
 }
+
+// =============================================================================
+// HTTP Client Methods
+// =============================================================================
+
+type QueryParams = Record<string, string | number | boolean | undefined>;
+
+/**
+ * Centralized API client with typed HTTP methods
+ *
+ * @example
+ * ```typescript
+ * // GET request
+ * const horses = await apiClient.get<Horse[]>('/horses', { stableId: '123' });
+ *
+ * // POST request
+ * const id = await apiClient.post<{ id: string }>('/horses', horseData);
+ *
+ * // PATCH request
+ * await apiClient.patch('/horses/123', { name: 'Updated' });
+ *
+ * // DELETE request
+ * await apiClient.delete('/horses/123');
+ * ```
+ */
+export const apiClient = {
+  /**
+   * GET request with automatic JSON parsing
+   * @param path - API path (e.g., '/horses', '/users/me')
+   * @param params - Optional query parameters
+   */
+  async get<T>(path: string, params?: QueryParams): Promise<T> {
+    const url = params ? apiV1WithParams(path, params) : apiV1(path);
+    return authFetchJSON<T>(url, { method: "GET" });
+  },
+
+  /**
+   * POST request with automatic JSON parsing
+   * @param path - API path
+   * @param body - Request body (will be JSON stringified)
+   */
+  async post<T>(path: string, body?: unknown): Promise<T> {
+    return authFetchJSON<T>(apiV1(path), {
+      method: "POST",
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  },
+
+  /**
+   * PUT request with automatic JSON parsing
+   * @param path - API path
+   * @param body - Request body (will be JSON stringified)
+   */
+  async put<T>(path: string, body: unknown): Promise<T> {
+    return authFetchJSON<T>(apiV1(path), {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+  },
+
+  /**
+   * PATCH request with automatic JSON parsing
+   * @param path - API path
+   * @param body - Request body (will be JSON stringified)
+   */
+  async patch<T>(path: string, body: unknown): Promise<T> {
+    return authFetchJSON<T>(apiV1(path), {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+  },
+
+  /**
+   * DELETE request with automatic JSON parsing
+   * @param path - API path
+   * @param params - Optional query parameters
+   */
+  async delete<T = void>(path: string, params?: QueryParams): Promise<T> {
+    const url = params ? apiV1WithParams(path, params) : apiV1(path);
+    return authFetchJSON<T>(url, { method: "DELETE" });
+  },
+
+  /**
+   * Raw fetch for cases needing Response object (e.g., file downloads)
+   * @param path - API path
+   * @param options - Fetch options
+   */
+  async raw(path: string, options?: RequestInit): Promise<Response> {
+    return authFetch(apiV1(path), options);
+  },
+};
+
+/**
+ * Public API client for unauthenticated endpoints
+ * (e.g., invite details lookup by token)
+ */
+export const publicApiClient = {
+  /**
+   * GET request without authentication
+   */
+  async get<T>(path: string, params?: QueryParams): Promise<T> {
+    const url = params ? apiV1WithParams(path, params) : apiV1(path);
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(
+        error.message || `Request failed with status ${response.status}`,
+      );
+    }
+
+    return response.json();
+  },
+
+  /**
+   * POST request without authentication
+   */
+  async post<T>(path: string, body?: unknown): Promise<T> {
+    const response = await fetch(apiV1(path), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(
+        error.message || `Request failed with status ${response.status}`,
+      );
+    }
+
+    return response.json();
+  },
+};
+
+export type ApiClient = typeof apiClient;
+export type PublicApiClient = typeof publicApiClient;

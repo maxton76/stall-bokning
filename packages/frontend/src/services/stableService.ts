@@ -1,11 +1,9 @@
 import type { Stable } from "@/types/roles";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 
 // ============================================================================
 // API-First Service - All writes go through the API
 // ============================================================================
-
-const API_BASE = `${import.meta.env.VITE_API_URL}/api/v1/stables`;
 
 // ============================================================================
 // Types
@@ -66,16 +64,13 @@ export async function createStable(
   _userId: string,
   data: CreateStableData,
 ): Promise<string> {
-  const response = await authFetchJSON<Stable & { id: string }>(API_BASE, {
-    method: "POST",
-    body: JSON.stringify({
-      name: data.name,
-      description: data.description,
-      address: data.address,
-      facilityNumber: data.facilityNumber,
-      organizationId: data.organizationId,
-      ownerEmail: data.ownerEmail,
-    }),
+  const response = await apiClient.post<Stable & { id: string }>("/stables", {
+    name: data.name,
+    description: data.description,
+    address: data.address,
+    facilityNumber: data.facilityNumber,
+    organizationId: data.organizationId,
+    ownerEmail: data.ownerEmail,
   });
 
   return response.id;
@@ -89,7 +84,7 @@ export async function createStable(
  */
 export async function getStable(stableId: string): Promise<Stable | null> {
   try {
-    return await authFetchJSON<Stable>(`${API_BASE}/${stableId}`);
+    return await apiClient.get<Stable>(`/stables/${stableId}`);
   } catch (error) {
     // Return null if not found (404)
     if (error instanceof Error && error.message.includes("404")) {
@@ -112,10 +107,7 @@ export async function updateStable(
   _userId: string,
   updates: UpdateStableData,
 ): Promise<void> {
-  await authFetchJSON(`${API_BASE}/${stableId}`, {
-    method: "PATCH",
-    body: JSON.stringify(updates),
-  });
+  await apiClient.patch(`/stables/${stableId}`, updates);
 }
 
 /**
@@ -125,9 +117,7 @@ export async function updateStable(
  * @returns Promise that resolves when deletion is complete
  */
 export async function deleteStable(stableId: string): Promise<void> {
-  await authFetchJSON(`${API_BASE}/${stableId}`, {
-    method: "DELETE",
-  });
+  await apiClient.delete(`/stables/${stableId}`);
 }
 
 // ============================================================================
@@ -155,10 +145,7 @@ export async function linkStableToOrganization(
   organizationId: string,
   _userId: string,
 ): Promise<void> {
-  await authFetchJSON(`${API_BASE}/${stableId}`, {
-    method: "PATCH",
-    body: JSON.stringify({ organizationId }),
-  });
+  await apiClient.patch(`/stables/${stableId}`, { organizationId });
 }
 
 /**
@@ -179,10 +166,7 @@ export async function unlinkStableFromOrganization(
   stableId: string,
   _userId: string,
 ): Promise<void> {
-  await authFetchJSON(`${API_BASE}/${stableId}`, {
-    method: "PATCH",
-    body: JSON.stringify({ organizationId: null }),
-  });
+  await apiClient.patch(`/stables/${stableId}`, { organizationId: null });
 }
 
 /**
@@ -222,9 +206,8 @@ export async function getOrganizationStableCount(
 export async function getStablesByOrganization(
   organizationId: string,
 ): Promise<Stable[]> {
-  const response = await authFetchJSON<{ stables: Stable[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/organizations/${organizationId}/stables`,
-    { method: "GET" },
+  const response = await apiClient.get<{ stables: Stable[] }>(
+    `/organizations/${organizationId}/stables`,
   );
 
   return response.stables;
@@ -242,10 +225,9 @@ export async function getStablesByOrganization(
  * ```
  */
 export async function getStablesByOwner(_userId: string): Promise<Stable[]> {
-  const response = await authFetchJSON<{ stables: Stable[] }>(
-    `${API_BASE}?ownedOnly=true`,
-    { method: "GET" },
-  );
+  const response = await apiClient.get<{ stables: Stable[] }>("/stables", {
+    ownedOnly: true,
+  });
 
   return response.stables;
 }
@@ -271,9 +253,9 @@ export async function getStablesByOwner(_userId: string): Promise<Stable[]> {
 export async function getActiveMembersWithUserDetails(
   stableId: string,
 ): Promise<any[]> {
-  const response = await authFetchJSON<{ members: any[] }>(
-    `${API_BASE}/${stableId}/members?includeUserDetails=true`,
-    { method: "GET" },
+  const response = await apiClient.get<{ members: any[] }>(
+    `/stables/${stableId}/members`,
+    { includeUserDetails: true },
   );
 
   return response.members;
@@ -296,7 +278,5 @@ export async function deleteStableMember(
   stableId: string,
   memberId: string,
 ): Promise<void> {
-  await authFetchJSON(`${API_BASE}/${stableId}/members/${memberId}`, {
-    method: "DELETE",
-  });
+  await apiClient.delete(`/stables/${stableId}/members/${memberId}`);
 }

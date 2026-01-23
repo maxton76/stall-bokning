@@ -1,4 +1,4 @@
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 import type {
   OrganizationStripeSettings,
   PaymentIntent,
@@ -10,8 +10,6 @@ import type {
   CreatePaymentIntentData,
   CreateRefundData,
 } from "@stall-bokning/shared";
-
-const API_BASE = import.meta.env.VITE_API_URL || "";
 
 // ============================================
 // Types
@@ -101,8 +99,8 @@ export interface UpdateStripeSettingsData {
 export async function getStripeSettings(
   organizationId: string,
 ): Promise<StripeSettingsResponse> {
-  return authFetchJSON<StripeSettingsResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/payments/settings`,
+  return apiClient.get<StripeSettingsResponse>(
+    `/organizations/${organizationId}/payments/settings`,
   );
 }
 
@@ -111,12 +109,9 @@ export async function connectStripeAccount(
   returnUrl: string,
   refreshUrl: string,
 ): Promise<ConnectAccountResponse> {
-  return authFetchJSON<ConnectAccountResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/payments/connect`,
-    {
-      method: "POST",
-      body: JSON.stringify({ returnUrl, refreshUrl }),
-    },
+  return apiClient.post<ConnectAccountResponse>(
+    `/organizations/${organizationId}/payments/connect`,
+    { returnUrl, refreshUrl },
   );
 }
 
@@ -124,12 +119,9 @@ export async function updateStripeSettings(
   organizationId: string,
   data: UpdateStripeSettingsData,
 ): Promise<StripeSettingsResponse> {
-  return authFetchJSON<StripeSettingsResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/payments/settings`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    },
+  return apiClient.patch<StripeSettingsResponse>(
+    `/organizations/${organizationId}/payments/settings`,
+    data,
   );
 }
 
@@ -141,12 +133,9 @@ export async function createCheckoutSession(
   organizationId: string,
   data: CreateCheckoutSessionData,
 ): Promise<CheckoutSessionResponse> {
-  return authFetchJSON<CheckoutSessionResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/payments/checkout`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
+  return apiClient.post<CheckoutSessionResponse>(
+    `/organizations/${organizationId}/payments/checkout`,
+    data,
   );
 }
 
@@ -154,8 +143,8 @@ export async function getCheckoutSession(
   organizationId: string,
   sessionId: string,
 ): Promise<CheckoutSession> {
-  return authFetchJSON<CheckoutSession>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/payments/checkout/${sessionId}`,
+  return apiClient.get<CheckoutSession>(
+    `/organizations/${organizationId}/payments/checkout/${sessionId}`,
   );
 }
 
@@ -167,12 +156,9 @@ export async function createPaymentIntent(
   organizationId: string,
   data: CreatePaymentIntentData,
 ): Promise<PaymentIntentResponse> {
-  return authFetchJSON<PaymentIntentResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/payments/intents`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
+  return apiClient.post<PaymentIntentResponse>(
+    `/organizations/${organizationId}/payments/intents`,
+    data,
   );
 }
 
@@ -186,16 +172,16 @@ export async function getPaymentIntents(
     offset?: number;
   },
 ): Promise<PaymentIntentsListResponse> {
-  const params = new URLSearchParams();
-  if (filters?.contactId) params.set("contactId", filters.contactId);
-  if (filters?.invoiceId) params.set("invoiceId", filters.invoiceId);
-  if (filters?.status) params.set("status", filters.status);
-  if (filters?.limit) params.set("limit", filters.limit.toString());
-  if (filters?.offset) params.set("offset", filters.offset.toString());
-  const query = params.toString();
+  const params: Record<string, string> = {};
+  if (filters?.contactId) params.contactId = filters.contactId;
+  if (filters?.invoiceId) params.invoiceId = filters.invoiceId;
+  if (filters?.status) params.status = filters.status;
+  if (filters?.limit) params.limit = filters.limit.toString();
+  if (filters?.offset) params.offset = filters.offset.toString();
 
-  return authFetchJSON<PaymentIntentsListResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/payments/intents${query ? `?${query}` : ""}`,
+  return apiClient.get<PaymentIntentsListResponse>(
+    `/organizations/${organizationId}/payments/intents`,
+    Object.keys(params).length > 0 ? params : undefined,
   );
 }
 
@@ -203,8 +189,8 @@ export async function getPaymentIntent(
   organizationId: string,
   intentId: string,
 ): Promise<PaymentIntent> {
-  return authFetchJSON<PaymentIntent>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/payments/intents/${intentId}`,
+  return apiClient.get<PaymentIntent>(
+    `/organizations/${organizationId}/payments/intents/${intentId}`,
   );
 }
 
@@ -216,12 +202,9 @@ export async function createRefund(
   organizationId: string,
   data: CreateRefundData,
 ): Promise<RefundResponse> {
-  return authFetchJSON<RefundResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/payments/refunds`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
+  return apiClient.post<RefundResponse>(
+    `/organizations/${organizationId}/payments/refunds`,
+    data,
   );
 }
 
@@ -233,8 +216,8 @@ export async function getPaymentMethods(
   organizationId: string,
   contactId: string,
 ): Promise<PaymentMethodsResponse> {
-  return authFetchJSON<PaymentMethodsResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/contacts/${contactId}/payment-methods`,
+  return apiClient.get<PaymentMethodsResponse>(
+    `/organizations/${organizationId}/contacts/${contactId}/payment-methods`,
   );
 }
 
@@ -244,12 +227,9 @@ export async function savePaymentMethod(
   paymentMethodId: string,
   setAsDefault?: boolean,
 ): Promise<SavePaymentMethodResponse> {
-  return authFetchJSON<SavePaymentMethodResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/payments/methods`,
-    {
-      method: "POST",
-      body: JSON.stringify({ contactId, paymentMethodId, setAsDefault }),
-    },
+  return apiClient.post<SavePaymentMethodResponse>(
+    `/organizations/${organizationId}/payments/methods`,
+    { contactId, paymentMethodId, setAsDefault },
   );
 }
 
@@ -258,11 +238,9 @@ export async function deletePaymentMethod(
   methodId: string,
   contactId: string,
 ): Promise<{ success: boolean }> {
-  return authFetchJSON<{ success: boolean }>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/payments/methods/${methodId}?contactId=${contactId}`,
-    {
-      method: "DELETE",
-    },
+  return apiClient.delete<{ success: boolean }>(
+    `/organizations/${organizationId}/payments/methods/${methodId}`,
+    { contactId },
   );
 }
 
@@ -274,8 +252,8 @@ export async function getPrepaidAccount(
   organizationId: string,
   contactId: string,
 ): Promise<PrepaidAccountResponse> {
-  return authFetchJSON<PrepaidAccountResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/contacts/${contactId}/prepaid`,
+  return apiClient.get<PrepaidAccountResponse>(
+    `/organizations/${organizationId}/contacts/${contactId}/prepaid`,
   );
 }
 
@@ -285,12 +263,9 @@ export async function depositToPrepaid(
   amount: number,
   currency?: string,
 ): Promise<DepositResponse> {
-  return authFetchJSON<DepositResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/contacts/${contactId}/prepaid/deposit`,
-    {
-      method: "POST",
-      body: JSON.stringify({ amount, currency }),
-    },
+  return apiClient.post<DepositResponse>(
+    `/organizations/${organizationId}/contacts/${contactId}/prepaid/deposit`,
+    { amount, currency },
   );
 }
 
@@ -300,13 +275,13 @@ export async function getPrepaidTransactions(
   limit?: number,
   offset?: number,
 ): Promise<PrepaidTransactionsResponse> {
-  const params = new URLSearchParams();
-  if (limit) params.set("limit", limit.toString());
-  if (offset) params.set("offset", offset.toString());
-  const query = params.toString();
+  const params: Record<string, string> = {};
+  if (limit) params.limit = limit.toString();
+  if (offset) params.offset = offset.toString();
 
-  return authFetchJSON<PrepaidTransactionsResponse>(
-    `${API_BASE}/api/v1/organizations/${organizationId}/contacts/${contactId}/prepaid/transactions${query ? `?${query}` : ""}`,
+  return apiClient.get<PrepaidTransactionsResponse>(
+    `/organizations/${organizationId}/contacts/${contactId}/prepaid/transactions`,
+    Object.keys(params).length > 0 ? params : undefined,
   );
 }
 

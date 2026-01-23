@@ -11,7 +11,7 @@ import type {
   CreateAdjustmentData,
   CreateWasteData,
 } from "@stall-bokning/shared";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 
 // ============================================================================
 // Inventory CRUD Operations
@@ -27,16 +27,14 @@ export async function getStableInventory(
   stableId: string,
   status?: InventoryStatus,
 ): Promise<FeedInventory[]> {
-  const params = new URLSearchParams();
+  const params: Record<string, string> = {};
   if (status) {
-    params.append("status", status);
+    params.status = status;
   }
 
-  const queryString = params.toString() ? `?${params.toString()}` : "";
-
-  const response = await authFetchJSON<{ inventory: FeedInventory[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/inventory/stable/${stableId}${queryString}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ inventory: FeedInventory[] }>(
+    `/inventory/stable/${stableId}`,
+    Object.keys(params).length > 0 ? params : undefined,
   );
 
   return response.inventory;
@@ -51,11 +49,7 @@ export async function getInventoryItem(
   inventoryId: string,
 ): Promise<FeedInventory | null> {
   try {
-    const response = await authFetchJSON<FeedInventory>(
-      `${import.meta.env.VITE_API_URL}/api/v1/inventory/${inventoryId}`,
-      { method: "GET" },
-    );
-    return response;
+    return await apiClient.get<FeedInventory>(`/inventory/${inventoryId}`);
   } catch {
     return null;
   }
@@ -69,15 +63,7 @@ export async function getInventoryItem(
 export async function createInventoryItem(
   data: CreateFeedInventoryData & { stableId: string },
 ): Promise<{ id: string }> {
-  const response = await authFetchJSON<{ id: string }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/inventory`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
-  );
-
-  return response;
+  return await apiClient.post<{ id: string }>("/inventory", data);
 }
 
 /**
@@ -90,15 +76,10 @@ export async function updateInventoryItem(
   inventoryId: string,
   updates: UpdateFeedInventoryData,
 ): Promise<FeedInventory> {
-  const response = await authFetchJSON<FeedInventory>(
-    `${import.meta.env.VITE_API_URL}/api/v1/inventory/${inventoryId}`,
-    {
-      method: "PUT",
-      body: JSON.stringify(updates),
-    },
+  return await apiClient.put<FeedInventory>(
+    `/inventory/${inventoryId}`,
+    updates,
   );
-
-  return response;
 }
 
 /**
@@ -107,10 +88,7 @@ export async function updateInventoryItem(
  * @returns Promise that resolves when deleted
  */
 export async function deleteInventoryItem(inventoryId: string): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/inventory/${inventoryId}`,
-    { method: "DELETE" },
-  );
+  await apiClient.delete(`/inventory/${inventoryId}`);
 }
 
 // ============================================================================
@@ -131,19 +109,11 @@ export async function recordRestock(
   transaction: InventoryTransaction;
   inventory: FeedInventory;
 }> {
-  const response = await authFetchJSON<{
+  return await apiClient.post<{
     success: boolean;
     transaction: InventoryTransaction;
     inventory: FeedInventory;
-  }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/inventory/${inventoryId}/restock`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
-  );
-
-  return response;
+  }>(`/inventory/${inventoryId}/restock`, data);
 }
 
 /**
@@ -160,16 +130,11 @@ export async function recordUsage(
   transaction: InventoryTransaction;
   inventory: FeedInventory;
 }> {
-  const response = await authFetchJSON<{
+  return await apiClient.post<{
     success: boolean;
     transaction: InventoryTransaction;
     inventory: FeedInventory;
-  }>(`${import.meta.env.VITE_API_URL}/api/v1/inventory/${inventoryId}/usage`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-
-  return response;
+  }>(`/inventory/${inventoryId}/usage`, data);
 }
 
 /**
@@ -186,19 +151,11 @@ export async function recordAdjustment(
   transaction: InventoryTransaction;
   inventory: FeedInventory;
 }> {
-  const response = await authFetchJSON<{
+  return await apiClient.post<{
     success: boolean;
     transaction: InventoryTransaction;
     inventory: FeedInventory;
-  }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/inventory/${inventoryId}/adjustment`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
-  );
-
-  return response;
+  }>(`/inventory/${inventoryId}/adjustment`, data);
 }
 
 /**
@@ -211,21 +168,19 @@ export async function getInventoryTransactions(
   inventoryId: string,
   options?: { limit?: number; type?: string },
 ): Promise<InventoryTransaction[]> {
-  const params = new URLSearchParams();
+  const params: Record<string, string> = {};
   if (options?.limit) {
-    params.append("limit", options.limit.toString());
+    params.limit = options.limit.toString();
   }
   if (options?.type) {
-    params.append("type", options.type);
+    params.type = options.type;
   }
 
-  const queryString = params.toString() ? `?${params.toString()}` : "";
-
-  const response = await authFetchJSON<{
+  const response = await apiClient.get<{
     transactions: InventoryTransaction[];
   }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/inventory/${inventoryId}/transactions${queryString}`,
-    { method: "GET" },
+    `/inventory/${inventoryId}/transactions`,
+    Object.keys(params).length > 0 ? params : undefined,
   );
 
   return response.transactions;
@@ -245,13 +200,9 @@ export async function getInventoryAlerts(
   stableId: string,
   includeResolved = false,
 ): Promise<InventoryAlert[]> {
-  const params = new URLSearchParams({
-    includeResolved: includeResolved.toString(),
-  });
-
-  const response = await authFetchJSON<{ alerts: InventoryAlert[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/inventory/stable/${stableId}/alerts?${params.toString()}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ alerts: InventoryAlert[] }>(
+    `/inventory/stable/${stableId}/alerts`,
+    { includeResolved: includeResolved.toString() },
   );
 
   return response.alerts;
@@ -263,10 +214,7 @@ export async function getInventoryAlerts(
  * @returns Promise that resolves when acknowledged
  */
 export async function acknowledgeAlert(alertId: string): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/inventory/alerts/${alertId}/acknowledge`,
-    { method: "PUT" },
-  );
+  await apiClient.put(`/inventory/alerts/${alertId}/acknowledge`, {});
 }
 
 // ============================================================================
@@ -281,10 +229,7 @@ export async function acknowledgeAlert(alertId: string): Promise<void> {
 export async function getInventorySummary(
   stableId: string,
 ): Promise<InventorySummary> {
-  const response = await authFetchJSON<InventorySummary>(
-    `${import.meta.env.VITE_API_URL}/api/v1/inventory/stable/${stableId}/summary`,
-    { method: "GET" },
+  return await apiClient.get<InventorySummary>(
+    `/inventory/stable/${stableId}/summary`,
   );
-
-  return response;
 }

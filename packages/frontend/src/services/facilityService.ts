@@ -3,7 +3,7 @@ import type {
   CreateFacilityData,
   UpdateFacilityData,
 } from "@/types/facility";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 
 /**
  * Create a new facility
@@ -13,16 +13,10 @@ export async function createFacility(
   facilityData: CreateFacilityData,
   userId: string,
 ): Promise<string> {
-  const response = await authFetchJSON<{ id: string }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/facilities`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        stableId,
-        ...facilityData,
-      }),
-    },
-  );
+  const response = await apiClient.post<{ id: string }>("/facilities", {
+    stableId,
+    ...facilityData,
+  });
 
   return response.id;
 }
@@ -34,12 +28,7 @@ export async function getFacility(
   facilityId: string,
 ): Promise<Facility | null> {
   try {
-    const facility = await authFetchJSON<Facility>(
-      `${import.meta.env.VITE_API_URL}/api/v1/facilities/${facilityId}`,
-      { method: "GET" },
-    );
-
-    return facility;
+    return await apiClient.get<Facility>(`/facilities/${facilityId}`);
   } catch (error: any) {
     if (error.status === 404) {
       return null;
@@ -54,9 +43,9 @@ export async function getFacility(
 export async function getFacilitiesByStable(
   stableId: string,
 ): Promise<Facility[]> {
-  const response = await authFetchJSON<{ facilities: Facility[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/facilities?stableId=${stableId}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ facilities: Facility[] }>(
+    "/facilities",
+    { stableId },
   );
 
   return response.facilities;
@@ -68,9 +57,9 @@ export async function getFacilitiesByStable(
 export async function getActiveFacilities(
   stableId: string,
 ): Promise<Facility[]> {
-  const response = await authFetchJSON<{ facilities: Facility[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/facilities?stableId=${stableId}&status=active`,
-    { method: "GET" },
+  const response = await apiClient.get<{ facilities: Facility[] }>(
+    "/facilities",
+    { stableId, status: "active" },
   );
 
   return response.facilities;
@@ -84,13 +73,7 @@ export async function updateFacility(
   updates: UpdateFacilityData,
   userId: string,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/facilities/${facilityId}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(updates),
-    },
-  );
+  await apiClient.patch(`/facilities/${facilityId}`, updates);
 }
 
 /**
@@ -100,21 +83,12 @@ export async function deleteFacility(
   facilityId: string,
   userId: string,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/facilities/${facilityId}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ status: "inactive" }),
-    },
-  );
+  await apiClient.patch(`/facilities/${facilityId}`, { status: "inactive" });
 }
 
 /**
  * Hard delete facility
  */
 export async function hardDeleteFacility(facilityId: string): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/facilities/${facilityId}`,
-    { method: "DELETE" },
-  );
+  await apiClient.delete(`/facilities/${facilityId}`);
 }

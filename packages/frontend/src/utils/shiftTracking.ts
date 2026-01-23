@@ -1,5 +1,5 @@
 import { Timestamp } from "firebase/firestore";
-import { getWeekNumber } from "./dateHelpers";
+import { getWeekNumber } from "@stall-bokning/shared";
 import { toDate } from "./timestampUtils";
 
 /**

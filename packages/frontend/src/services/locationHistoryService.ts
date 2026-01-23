@@ -1,7 +1,7 @@
 import { Timestamp } from "firebase/firestore";
 import type { LocationHistory } from "@/types/roles";
 import { toDate } from "@/utils/timestampUtils";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 
 // ============================================================================
 // Create Operations
@@ -35,12 +35,9 @@ export async function createLocationHistoryEntry(
     departureDate: null,
   };
 
-  const response = await authFetchJSON<{ id: string }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/location-history/horse/${horseId}`,
-    {
-      method: "POST",
-      body: JSON.stringify(entryData),
-    },
+  const response = await apiClient.post<{ id: string }>(
+    `/location-history/horse/${horseId}`,
+    entryData,
   );
 
   return response.id;
@@ -79,12 +76,9 @@ export async function createExternalLocationHistoryEntry(
     ...(moveReason && { externalMoveReason: moveReason }),
   };
 
-  const response = await authFetchJSON<{ id: string }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/location-history/horse/${horseId}`,
-    {
-      method: "POST",
-      body: JSON.stringify(entryData),
-    },
+  const response = await apiClient.post<{ id: string }>(
+    `/location-history/horse/${horseId}`,
+    entryData,
   );
 
   return response.id;
@@ -133,16 +127,12 @@ export async function closeLocationHistoryEntry(
   }
 
   // Close the entry via API
-
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/location-history/${horseId}/${currentLocation.id}/close`,
+  await apiClient.put(
+    `/location-history/${horseId}/${currentLocation.id}/close`,
     {
-      method: "PUT",
-      body: JSON.stringify({
-        departureDate: departureDate
-          ? toDate(departureDate)?.toISOString()
-          : new Date().toISOString(),
-      }),
+      departureDate: departureDate
+        ? toDate(departureDate)?.toISOString()
+        : new Date().toISOString(),
     },
   );
 }
@@ -159,9 +149,8 @@ export async function closeLocationHistoryEntry(
 export async function getHorseLocationHistory(
   horseId: string,
 ): Promise<LocationHistory[]> {
-  const response = await authFetchJSON<{ history: LocationHistory[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/location-history/horse/${horseId}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ history: LocationHistory[] }>(
+    `/location-history/horse/${horseId}`,
   );
 
   return response.history;
@@ -175,12 +164,9 @@ export async function getHorseLocationHistory(
 export async function getCurrentLocation(
   horseId: string,
 ): Promise<LocationHistory | null> {
-  const response = await authFetchJSON<{
+  const response = await apiClient.get<{
     currentLocation: LocationHistory | null;
-  }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/location-history/horse/${horseId}/current`,
-    { method: "GET" },
-  );
+  }>(`/location-history/horse/${horseId}/current`);
 
   return response.currentLocation;
 }
@@ -200,9 +186,8 @@ export async function getUserHorseLocationHistory(
     return [];
   }
 
-  const response = await authFetchJSON<{ history: LocationHistory[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/location-history/user/${userId}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ history: LocationHistory[] }>(
+    `/location-history/user/${userId}`,
   );
 
   return response.history;

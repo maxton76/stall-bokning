@@ -6,7 +6,10 @@ import type {
 } from "@/types/schedule";
 import type { RoutineTemplate } from "@shared/types";
 import { Timestamp } from "firebase/firestore";
-import { parseShiftStartTime, createDateThreshold } from "@/utils/dateHelpers";
+import {
+  parseShiftStartTime,
+  createDateThreshold,
+} from "@stall-bokning/shared";
 import {
   isSwedishHoliday,
   applyHolidayMultiplier,
@@ -17,7 +20,7 @@ import {
   type MemberTrackingState,
 } from "@/utils/shiftTracking";
 import { toDate } from "@/utils/timestampUtils";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 
 // ============= Schedules =============
 
@@ -38,12 +41,9 @@ export async function createSchedule(
     // - selectedRoutineTemplates and daysOfWeek are only used to generate shifts locally
   };
 
-  const response = await authFetchJSON<{ id: string }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/schedules`,
-    {
-      method: "POST",
-      body: JSON.stringify(scheduleData),
-    },
+  const response = await apiClient.post<{ id: string }>(
+    "/schedules",
+    scheduleData,
   );
 
   return response.id;
@@ -53,13 +53,7 @@ export async function publishSchedule(
   scheduleId: string,
   userId: string,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/schedules/${scheduleId}/publish`,
-    {
-      method: "PUT",
-      body: JSON.stringify({ userId }),
-    },
-  );
+  await apiClient.put(`/schedules/${scheduleId}/publish`, { userId });
 }
 
 // ============= Auto-Assignment =============
@@ -143,15 +137,9 @@ export async function calculateHistoricalPoints(
   const threshold = createDateThreshold(memoryHorizonDays);
 
   // Get all published schedules for this stable within the memory horizon
-  const params = new URLSearchParams({
-    stableId,
-    status: "published",
-    endDate: threshold.toISOString(),
-  });
-
-  const scheduleResponse = await authFetchJSON<{ schedules: Schedule[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/schedules/stable/${stableId}?${params.toString()}`,
-    { method: "GET" },
+  const scheduleResponse = await apiClient.get<{ schedules: Schedule[] }>(
+    `/schedules/stable/${stableId}`,
+    { stableId, status: "published", endDate: threshold.toISOString() },
   );
 
   const scheduleIds = scheduleResponse.schedules
@@ -164,16 +152,11 @@ export async function calculateHistoricalPoints(
 
   // Get all completed shifts from those schedules
   for (const scheduleId of scheduleIds) {
-    const shiftParams = new URLSearchParams({
+    const shiftResponse = await apiClient.get<{ shifts: Shift[] }>("/shifts", {
       scheduleId,
       status: "assigned",
       startDate: threshold.toISOString(),
     });
-
-    const shiftResponse = await authFetchJSON<{ shifts: Shift[] }>(
-      `${import.meta.env.VITE_API_URL}/api/v1/shifts?${shiftParams.toString()}`,
-      { method: "GET" },
-    );
 
     // Sum up points per member
     shiftResponse.shifts.forEach((shift) => {
@@ -204,15 +187,9 @@ export async function autoAssignShifts(
     ? Object.fromEntries(historicalPoints.entries())
     : undefined;
 
-  const response = await authFetchJSON<{ assignedCount: number }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/schedules/${scheduleId}/auto-assign`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        members,
-        historicalPoints: historicalPointsObj,
-      }),
-    },
+  const response = await apiClient.post<{ assignedCount: number }>(
+    `/schedules/${scheduleId}/auto-assign`,
+    { members, historicalPoints: historicalPointsObj },
   );
 
   return response.assignedCount;
@@ -222,12 +199,9 @@ export async function getSchedule(
   scheduleId: string,
 ): Promise<Schedule | null> {
   try {
-    const response = await authFetchJSON<Schedule & { id: string }>(
-      `${import.meta.env.VITE_API_URL}/api/v1/schedules/${scheduleId}`,
-      { method: "GET" },
+    return await apiClient.get<Schedule & { id: string }>(
+      `/schedules/${scheduleId}`,
     );
-
-    return response;
   } catch (error) {
     return null;
   }
@@ -236,9 +210,8 @@ export async function getSchedule(
 export async function getSchedulesByStable(
   stableId: string,
 ): Promise<Schedule[]> {
-  const response = await authFetchJSON<{ schedules: Schedule[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/schedules/stable/${stableId}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ schedules: Schedule[] }>(
+    `/schedules/stable/${stableId}`,
   );
 
   return response.schedules;
@@ -247,9 +220,8 @@ export async function getSchedulesByStable(
 export async function getAllSchedulesForUser(
   userId: string,
 ): Promise<Schedule[]> {
-  const response = await authFetchJSON<{ schedules: Schedule[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/schedules/user/${userId}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ schedules: Schedule[] }>(
+    `/schedules/user/${userId}`,
   );
 
   return response.schedules;
@@ -272,24 +244,18 @@ export async function createShifts(
           : new Date(shift.date).toISOString(),
   }));
 
-  await authFetchJSON(`${import.meta.env.VITE_API_URL}/api/v1/shifts/batch`, {
-    method: "POST",
-    body: JSON.stringify({
-      scheduleId: shifts[0]?.scheduleId,
-      shifts: shiftsData,
-    }),
+  await apiClient.post("/shifts/batch", {
+    scheduleId: shifts[0]?.scheduleId,
+    shifts: shiftsData,
   });
 }
 
 export async function getShiftsBySchedule(
   scheduleId: string,
 ): Promise<Shift[]> {
-  const params = new URLSearchParams({ scheduleId });
-
-  const response = await authFetchJSON<{ shifts: Shift[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/shifts?${params.toString()}`,
-    { method: "GET" },
-  );
+  const response = await apiClient.get<{ shifts: Shift[] }>("/shifts", {
+    scheduleId,
+  });
 
   return response.shifts;
 }
@@ -299,31 +265,19 @@ export async function getShiftsByDateRange(
   startDate: Date,
   endDate: Date,
 ): Promise<Shift[]> {
-  const params = new URLSearchParams({
+  const response = await apiClient.get<{ shifts: Shift[] }>("/shifts", {
     stableId,
     startDate: startDate.toISOString(),
     endDate: endDate.toISOString(),
   });
 
-  const response = await authFetchJSON<{ shifts: Shift[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/shifts?${params.toString()}`,
-    { method: "GET" },
-  );
-
   return response.shifts;
 }
 
 export async function getUnassignedShifts(stableId?: string): Promise<Shift[]> {
-  const params = new URLSearchParams();
-  if (stableId) {
-    params.append("stableId", stableId);
-  }
-
-  const queryString = params.toString() ? `?${params.toString()}` : "";
-
-  const response = await authFetchJSON<{ shifts: Shift[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/shifts/unassigned${queryString}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ shifts: Shift[] }>(
+    "/shifts/unassigned",
+    stableId ? { stableId } : undefined,
   );
 
   return response.shifts;
@@ -336,40 +290,23 @@ export async function assignShift(
   userEmail: string,
   assignerId?: string,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}/assign`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({
-        userId,
-        userName,
-        userEmail,
-        assignerId,
-      }),
-    },
-  );
+  await apiClient.patch(`/shifts/${shiftId}/assign`, {
+    userId,
+    userName,
+    userEmail,
+    assignerId,
+  });
 }
 
 export async function unassignShift(
   shiftId: string,
   unassignerId?: string,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}/unassign`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({
-        unassignerId,
-      }),
-    },
-  );
+  await apiClient.patch(`/shifts/${shiftId}/unassign`, { unassignerId });
 }
 
 export async function deleteShift(shiftId: string): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}`,
-    { method: "DELETE" },
-  );
+  await apiClient.delete(`/shifts/${shiftId}`);
 }
 
 // ============= Shift Completion =============
@@ -381,13 +318,7 @@ export async function completeShift(
   shiftId: string,
   notes?: string,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}/complete`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ notes }),
-    },
-  );
+  await apiClient.patch(`/shifts/${shiftId}/complete`, { notes });
 }
 
 /**
@@ -397,13 +328,7 @@ export async function cancelShift(
   shiftId: string,
   reason: string,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}/cancel`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ reason }),
-    },
-  );
+  await apiClient.patch(`/shifts/${shiftId}/cancel`, { reason });
 }
 
 /**
@@ -413,13 +338,7 @@ export async function markShiftMissed(
   shiftId: string,
   reason?: string,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}/missed`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ reason }),
-    },
-  );
+  await apiClient.patch(`/shifts/${shiftId}/missed`, { reason });
 }
 
 /**
@@ -429,13 +348,9 @@ export async function startShiftWithRoutine(
   shiftId: string,
   routineInstanceId: string,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}/start-routine`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ routineInstanceId }),
-    },
-  );
+  await apiClient.patch(`/shifts/${shiftId}/start-routine`, {
+    routineInstanceId,
+  });
 }
 
 /**
@@ -443,11 +358,7 @@ export async function startShiftWithRoutine(
  */
 export async function getShift(shiftId: string): Promise<Shift | null> {
   try {
-    const response = await authFetchJSON<Shift>(
-      `${import.meta.env.VITE_API_URL}/api/v1/shifts/${shiftId}`,
-      { method: "GET" },
-    );
-    return response;
+    return await apiClient.get<Shift>(`/shifts/${shiftId}`);
   } catch (error) {
     return null;
   }
@@ -456,10 +367,7 @@ export async function getShift(shiftId: string): Promise<Shift | null> {
 export async function deleteScheduleAndShifts(
   scheduleId: string,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/schedules/${scheduleId}`,
-    { method: "DELETE" },
-  );
+  await apiClient.delete(`/schedules/${scheduleId}`);
 }
 
 // ============= Helper Functions =============
@@ -569,11 +477,10 @@ export function generateShifts(
 export async function getPublishedShiftsForStables(
   stableIds: string[],
 ): Promise<Shift[]> {
-  const response = await authFetchJSON<{ shifts: Shift[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/shifts?` +
-      `stableIds=${stableIds.join(",")}&status=published`,
-    { method: "GET" },
-  );
+  const response = await apiClient.get<{ shifts: Shift[] }>("/shifts", {
+    stableIds: stableIds.join(","),
+    status: "published",
+  });
 
   return response.shifts;
 }

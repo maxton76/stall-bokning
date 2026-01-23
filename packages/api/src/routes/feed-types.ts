@@ -9,6 +9,14 @@ import {
   isSystemAdmin,
 } from "../utils/authorization.js";
 import { serializeTimestamps } from "../utils/serialization.js";
+import {
+  badRequest,
+  forbidden,
+  notFound,
+  serverError,
+  created,
+  ok,
+} from "../utils/responses.js";
 
 export async function feedTypesRoutes(fastify: FastifyInstance) {
   /**
@@ -33,10 +41,10 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
         if (!isSystemAdmin(user.role)) {
           const hasAccess = await canAccessStable(user.uid, stableId);
           if (!hasAccess) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to access this stable",
-            });
+            return forbidden(
+              reply,
+              "You do not have permission to access this stable",
+            );
           }
         }
 
@@ -63,10 +71,7 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
         return { feedTypes };
       } catch (error) {
         request.log.error({ error }, "Failed to fetch feed types");
-        return reply.status(500).send({
-          error: "Internal Server Error",
-          message: "Failed to fetch feed types",
-        });
+        return serverError(reply, error, "fetch feed types");
       }
     },
   );
@@ -88,10 +93,7 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
         const doc = await db.collection("feedTypes").doc(id).get();
 
         if (!doc.exists) {
-          return reply.status(404).send({
-            error: "Not Found",
-            message: "Feed type not found",
-          });
+          return notFound(reply, "Feed type", id);
         }
 
         const feedType = doc.data()!;
@@ -100,20 +102,17 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
         if (!isSystemAdmin(user.role)) {
           const hasAccess = await canAccessStable(user.uid, feedType.stableId);
           if (!hasAccess) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to access this feed type",
-            });
+            return forbidden(
+              reply,
+              "You do not have permission to access this feed type",
+            );
           }
         }
 
         return serializeTimestamps({ id: doc.id, ...feedType });
       } catch (error) {
         request.log.error({ error }, "Failed to fetch feed type");
-        return reply.status(500).send({
-          error: "Internal Server Error",
-          message: "Failed to fetch feed type",
-        });
+        return serverError(reply, error, "fetch feed type");
       }
     },
   );
@@ -133,21 +132,17 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
         const data = request.body as any;
 
         if (!data.stableId) {
-          return reply.status(400).send({
-            error: "Bad Request",
-            message: "stableId is required",
-          });
+          return badRequest(reply, "stableId is required");
         }
 
         // Check stable management access
         if (!isSystemAdmin(user.role)) {
           const canManage = await canManageStable(user.uid, data.stableId);
           if (!canManage) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message:
-                "You do not have permission to create feed types for this stable",
-            });
+            return forbidden(
+              reply,
+              "You do not have permission to create feed types for this stable",
+            );
           }
         }
 
@@ -159,11 +154,10 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
           !data.quantityMeasure ||
           data.defaultQuantity === undefined
         ) {
-          return reply.status(400).send({
-            error: "Bad Request",
-            message:
-              "name, brand, category, quantityMeasure, and defaultQuantity are required",
-          });
+          return badRequest(
+            reply,
+            "name, brand, category, quantityMeasure, and defaultQuantity are required",
+          );
         }
 
         const feedTypeData = {
@@ -182,16 +176,10 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
 
         const docRef = await db.collection("feedTypes").add(feedTypeData);
 
-        return reply.status(201).send({
-          id: docRef.id,
-          ...serializeTimestamps(feedTypeData),
-        });
+        return created(reply, docRef.id, serializeTimestamps(feedTypeData));
       } catch (error) {
         request.log.error({ error }, "Failed to create feed type");
-        return reply.status(500).send({
-          error: "Internal Server Error",
-          message: "Failed to create feed type",
-        });
+        return serverError(reply, error, "create feed type");
       }
     },
   );
@@ -215,10 +203,7 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
         const doc = await docRef.get();
 
         if (!doc.exists) {
-          return reply.status(404).send({
-            error: "Not Found",
-            message: "Feed type not found",
-          });
+          return notFound(reply, "Feed type", id);
         }
 
         const existing = doc.data()!;
@@ -227,19 +212,16 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
         if (!isSystemAdmin(user.role)) {
           const canManage = await canManageStable(user.uid, existing.stableId);
           if (!canManage) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to update this feed type",
-            });
+            return forbidden(
+              reply,
+              "You do not have permission to update this feed type",
+            );
           }
         }
 
         // Prevent changing stableId
         if (updates.stableId && updates.stableId !== existing.stableId) {
-          return reply.status(400).send({
-            error: "Bad Request",
-            message: "Cannot change stableId",
-          });
+          return badRequest(reply, "Cannot change stableId");
         }
 
         const updateData = {
@@ -252,13 +234,13 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
 
         await docRef.update(updateData);
 
-        return serializeTimestamps({ id, ...existing, ...updateData });
+        return ok(
+          reply,
+          serializeTimestamps({ id, ...existing, ...updateData }),
+        );
       } catch (error) {
         request.log.error({ error }, "Failed to update feed type");
-        return reply.status(500).send({
-          error: "Internal Server Error",
-          message: "Failed to update feed type",
-        });
+        return serverError(reply, error, "update feed type");
       }
     },
   );
@@ -281,10 +263,7 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
         const doc = await docRef.get();
 
         if (!doc.exists) {
-          return reply.status(404).send({
-            error: "Not Found",
-            message: "Feed type not found",
-          });
+          return notFound(reply, "Feed type", id);
         }
 
         const existing = doc.data()!;
@@ -293,10 +272,10 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
         if (!isSystemAdmin(user.role)) {
           const canManage = await canManageStable(user.uid, existing.stableId);
           if (!canManage) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to delete this feed type",
-            });
+            return forbidden(
+              reply,
+              "You do not have permission to delete this feed type",
+            );
           }
         }
 
@@ -314,19 +293,16 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
             isActive: false,
             updatedAt: Timestamp.now(),
           });
-          return { success: true, id, softDeleted: true };
+          return ok(reply, { success: true, id, softDeleted: true });
         }
 
         // Hard delete if not in use
         await docRef.delete();
 
-        return { success: true, id };
+        return ok(reply, { success: true, id });
       } catch (error) {
         request.log.error({ error }, "Failed to delete feed type");
-        return reply.status(500).send({
-          error: "Internal Server Error",
-          message: "Failed to delete feed type",
-        });
+        return serverError(reply, error, "delete feed type");
       }
     },
   );

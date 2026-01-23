@@ -3,7 +3,7 @@ import type {
   CreateFeedTypeData,
   UpdateFeedTypeData,
 } from "@shared/types";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 
 // ============================================================================
 // Public Service API
@@ -20,16 +20,14 @@ export async function getFeedTypesByStable(
   stableId: string,
   activeOnly = true,
 ): Promise<FeedType[]> {
-  const params = new URLSearchParams();
+  const params: Record<string, string> = {};
   if (activeOnly !== undefined) {
-    params.append("activeOnly", String(activeOnly));
+    params.activeOnly = String(activeOnly);
   }
 
-  const queryString = params.toString() ? `?${params.toString()}` : "";
-
-  const response = await authFetchJSON<{ feedTypes: FeedType[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/feed-types/stable/${stableId}${queryString}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ feedTypes: FeedType[] }>(
+    `/feed-types/stable/${stableId}`,
+    Object.keys(params).length > 0 ? params : undefined,
   );
 
   return response.feedTypes;
@@ -43,12 +41,7 @@ export async function getFeedTypesByStable(
  */
 export async function getFeedTypeById(id: string): Promise<FeedType | null> {
   try {
-    const response = await authFetchJSON<FeedType>(
-      `${import.meta.env.VITE_API_URL}/api/v1/feed-types/${id}`,
-      { method: "GET" },
-    );
-
-    return response;
+    return await apiClient.get<FeedType>(`/feed-types/${id}`);
   } catch (error) {
     return null;
   }
@@ -65,13 +58,10 @@ export async function createFeedType(
   stableId: string,
   data: CreateFeedTypeData,
 ): Promise<string> {
-  const response = await authFetchJSON<{ id: string }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/feed-types`,
-    {
-      method: "POST",
-      body: JSON.stringify({ ...data, stableId }),
-    },
-  );
+  const response = await apiClient.post<{ id: string }>("/feed-types", {
+    ...data,
+    stableId,
+  });
 
   return response.id;
 }
@@ -87,13 +77,7 @@ export async function updateFeedType(
   id: string,
   updates: UpdateFeedTypeData,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/feed-types/${id}`,
-    {
-      method: "PUT",
-      body: JSON.stringify(updates),
-    },
-  );
+  await apiClient.put(`/feed-types/${id}`, updates);
 }
 
 /**
@@ -106,8 +90,5 @@ export async function updateFeedType(
  * @returns Promise that resolves when deletion is complete
  */
 export async function deleteFeedType(id: string): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/feed-types/${id}`,
-    { method: "DELETE" },
-  );
+  await apiClient.delete(`/feed-types/${id}`);
 }

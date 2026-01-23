@@ -1,7 +1,7 @@
 import { getMessaging } from "firebase-admin/messaging";
 import { logger } from "firebase-functions";
 
-import { formatErrorMessage } from "../lib/errors.js";
+import { formatErrorMessage } from "@stall-bokning/shared";
 
 /**
  * Push notification payload

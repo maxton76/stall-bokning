@@ -3,7 +3,7 @@ import type {
   CreateOrganizationData,
 } from "../../../shared/src/types/organization";
 import { removeUndefined } from "@/utils/firestoreHelpers";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 
 // ============================================================================
 // CRUD Operations
@@ -20,12 +20,9 @@ export async function createOrganization(
   userId: string,
   organizationData: CreateOrganizationData,
 ): Promise<string> {
-  const response = await authFetchJSON<{ id: string }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/organizations`,
-    {
-      method: "POST",
-      body: JSON.stringify(organizationData),
-    },
+  const response = await apiClient.post<{ id: string }>(
+    "/organizations",
+    organizationData,
   );
 
   return response.id;
@@ -41,12 +38,9 @@ export async function getOrganization(
   organizationId: string,
 ): Promise<Organization | null> {
   try {
-    const organization = await authFetchJSON<Organization>(
-      `${import.meta.env.VITE_API_URL}/api/v1/organizations/${organizationId}`,
-      { method: "GET" },
+    return await apiClient.get<Organization>(
+      `/organizations/${organizationId}`,
     );
-
-    return organization;
   } catch (error: any) {
     // Return null if organization not found or access denied
     if (error.status === 404 || error.status === 403) {
@@ -65,9 +59,8 @@ export async function getOrganization(
 export async function getUserOrganizations(
   userId: string,
 ): Promise<Organization[]> {
-  const response = await authFetchJSON<{ organizations: Organization[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/organizations`,
-    { method: "GET" },
+  const response = await apiClient.get<{ organizations: Organization[] }>(
+    "/organizations",
   );
   return response.organizations;
 }
@@ -87,12 +80,9 @@ export async function updateOrganization(
     Omit<Organization, "id" | "ownerId" | "createdAt" | "stats">
   >,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/organizations/${organizationId}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(removeUndefined(updates)),
-    },
+  await apiClient.patch(
+    `/organizations/${organizationId}`,
+    removeUndefined(updates),
   );
 }
 
@@ -105,10 +95,7 @@ export async function updateOrganization(
 export async function deleteOrganization(
   organizationId: string,
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/organizations/${organizationId}`,
-    { method: "DELETE" },
-  );
+  await apiClient.delete(`/organizations/${organizationId}`);
 }
 
 /**
@@ -122,11 +109,5 @@ export async function updateOrganizationStats(
   organizationId: string,
   stats: { stableCount?: number; totalMemberCount?: number },
 ): Promise<void> {
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/organizations/${organizationId}/stats`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(stats),
-    },
-  );
+  await apiClient.patch(`/organizations/${organizationId}/stats`, stats);
 }

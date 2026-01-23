@@ -1,5 +1,5 @@
 import type { VaccinationRule } from "@/types/roles";
-import { authFetchJSON } from "@/utils/authFetch";
+import { apiClient } from "@/lib/apiClient";
 
 // ============================================================================
 // Type Guards & Helpers
@@ -85,9 +85,9 @@ export function canDeleteVaccinationRule(
  * Get all system-wide vaccination rules (FEI, KNHS)
  */
 export async function getSystemVaccinationRules(): Promise<VaccinationRule[]> {
-  const response = await authFetchJSON<{ rules: VaccinationRule[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/vaccination-rules?scope=system`,
-    { method: "GET" },
+  const response = await apiClient.get<{ rules: VaccinationRule[] }>(
+    "/vaccination-rules",
+    { scope: "system" },
   );
 
   return response.rules;
@@ -99,9 +99,9 @@ export async function getSystemVaccinationRules(): Promise<VaccinationRule[]> {
 export async function getOrganizationVaccinationRules(
   organizationId: string,
 ): Promise<VaccinationRule[]> {
-  const response = await authFetchJSON<{ rules: VaccinationRule[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/vaccination-rules?scope=organization&organizationId=${organizationId}`,
-    { method: "GET" },
+  const response = await apiClient.get<{ rules: VaccinationRule[] }>(
+    "/vaccination-rules",
+    { scope: "organization", organizationId },
   );
 
   return response.rules;
@@ -113,9 +113,9 @@ export async function getOrganizationVaccinationRules(
 export async function getUserVaccinationRules(
   userId: string,
 ): Promise<VaccinationRule[]> {
-  const response = await authFetchJSON<{ rules: VaccinationRule[] }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/vaccination-rules?scope=user`,
-    { method: "GET" },
+  const response = await apiClient.get<{ rules: VaccinationRule[] }>(
+    "/vaccination-rules",
+    { scope: "user" },
   );
 
   return response.rules;
@@ -167,12 +167,7 @@ export async function getVaccinationRule(
   ruleId: string,
 ): Promise<VaccinationRule | null> {
   try {
-    const response = await authFetchJSON<VaccinationRule>(
-      `${import.meta.env.VITE_API_URL}/api/v1/vaccination-rules/${ruleId}`,
-      { method: "GET" },
-    );
-
-    return response;
+    return await apiClient.get<VaccinationRule>(`/vaccination-rules/${ruleId}`);
   } catch (error) {
     return null;
   }
@@ -214,12 +209,9 @@ export async function createVaccinationRule(
     data.organizationId = scopeId;
   }
 
-  const response = await authFetchJSON<{ id: string }>(
-    `${import.meta.env.VITE_API_URL}/api/v1/vaccination-rules`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
+  const response = await apiClient.post<{ id: string }>(
+    "/vaccination-rules",
+    data,
   );
 
   return response.id;
@@ -260,13 +252,7 @@ export async function updateVaccinationRule(
   if (updates.periodMonths) data.intervalMonths = updates.periodMonths;
   if (updates.description !== undefined) data.description = updates.description;
 
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/vaccination-rules/${ruleId}`,
-    {
-      method: "PUT",
-      body: JSON.stringify(data),
-    },
-  );
+  await apiClient.put(`/vaccination-rules/${ruleId}`, data);
 }
 
 /**
@@ -284,10 +270,5 @@ export async function deleteVaccinationRule(ruleId: string): Promise<void> {
     throw new Error("Cannot delete system vaccination rules");
   }
 
-  await authFetchJSON(
-    `${import.meta.env.VITE_API_URL}/api/v1/vaccination-rules/${ruleId}`,
-    {
-      method: "DELETE",
-    },
-  );
+  await apiClient.delete(`/vaccination-rules/${ruleId}`);
 }
