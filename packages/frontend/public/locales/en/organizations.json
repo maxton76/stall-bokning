@@ -58,7 +58,12 @@
     "emptyState": "No members yet. Invite users to get started.",
     "allStables": "All Stables",
     "assigned": "Assigned",
-    "confirmRemove": "Are you sure you want to remove {{email}} from this organization?"
+    "confirmRemove": "Are you sure you want to remove {{email}} from this organization?",
+    "editTitle": "Edit Member",
+    "editDescription": "Update member information and roles",
+    "updateSuccess": "Member Updated",
+    "memberUpdated": "Member information has been updated",
+    "updateError": "Failed to update member"
   },
   "invite": {
     "title": "Invite User to Organization",

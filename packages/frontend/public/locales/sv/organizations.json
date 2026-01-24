@@ -58,7 +58,12 @@
     "emptyState": "Inga medlemmar ännu. Bjud in användare för att komma igång.",
     "allStables": "Alla stall",
     "assigned": "Tilldelade",
-    "confirmRemove": "Är du säker på att du vill ta bort {{email}} från denna organisation?"
+    "confirmRemove": "Är du säker på att du vill ta bort {{email}} från denna organisation?",
+    "editTitle": "Redigera medlem",
+    "editDescription": "Uppdatera medlemsinformation och roller",
+    "updateSuccess": "Medlem uppdaterad",
+    "memberUpdated": "Medlemsinformationen har uppdaterats",
+    "updateError": "Kunde inte uppdatera medlem"
   },
   "invite": {
     "title": "Bjud in användare till organisation",

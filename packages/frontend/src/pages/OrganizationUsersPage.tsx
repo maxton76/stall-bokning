@@ -35,11 +35,13 @@ import { useDialog } from "@/hooks/useDialog";
 import { useCRUD } from "@/hooks/useCRUD";
 import { useToast } from "@/hooks/use-toast";
 import { InviteUserDialog } from "@/components/InviteUserDialog";
+import { EditMemberDialog } from "@/components/EditMemberDialog";
 import { getOrganization } from "@/services/organizationService";
 import {
   getOrganizationMembers,
   removeOrganizationMember,
   inviteOrganizationMember,
+  updateOrganizationMember,
 } from "@/services/organizationMemberService";
 import {
   getOrganizationInvites,
@@ -63,7 +65,11 @@ export default function OrganizationUsersPage() {
   const [processingInviteId, setProcessingInviteId] = useState<string | null>(
     null,
   );
+  const [editingMember, setEditingMember] = useState<OrganizationMember | null>(
+    null,
+  );
   const inviteDialog = useDialog();
+  const editDialog = useDialog();
 
   // Security: Validate URL organizationId matches user's current organization context
   // This prevents URL manipulation attacks where users try to access other organizations
@@ -202,6 +208,47 @@ export default function OrganizationUsersPage() {
       });
     } finally {
       setProcessingInviteId(null);
+    }
+  };
+
+  // Handle edit member
+  const handleEditMember = (member: OrganizationMember) => {
+    setEditingMember(member);
+    editDialog.openDialog();
+  };
+
+  // Handle update member
+  const handleUpdateMember = async (userId: string, data: any) => {
+    try {
+      if (!organizationId) throw new Error("Missing organizationId");
+
+      await updateOrganizationMember(userId, organizationId, {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phoneNumber: data.phoneNumber,
+        roles: data.roles,
+        primaryRole: data.primaryRole,
+        showInPlanning: data.showInPlanning,
+        stableAccess: data.stableAccess,
+        assignedStableIds: data.assignedStableIds,
+      });
+
+      editDialog.closeDialog();
+      setEditingMember(null);
+
+      toast({
+        title: t("organizations:members.updateSuccess"),
+        description: t("organizations:members.memberUpdated"),
+      });
+
+      members.reload();
+    } catch (error: any) {
+      toast({
+        title: t("common:labels.error"),
+        description: t("organizations:members.updateError"),
+        variant: "destructive",
+      });
+      throw error;
     }
   };
 
@@ -529,9 +576,7 @@ export default function OrganizationUsersPage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => {
-                              /* TODO: Open edit dialog */
-                            }}
+                            onClick={() => handleEditMember(member)}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -570,6 +615,21 @@ export default function OrganizationUsersPage() {
           open ? inviteDialog.openDialog() : inviteDialog.closeDialog()
         }
         onSave={handleInviteUser}
+      />
+
+      {/* Edit Member Dialog */}
+      <EditMemberDialog
+        open={editDialog.open}
+        onOpenChange={(open) => {
+          if (open) {
+            editDialog.openDialog();
+          } else {
+            editDialog.closeDialog();
+            setEditingMember(null);
+          }
+        }}
+        member={editingMember}
+        onSave={handleUpdateMember}
       />
     </div>
   );
