@@ -1,47 +1,56 @@
-import { useEffect } from 'react'
-import { useAsyncData } from '@/hooks/useAsyncData'
-import { getUserStablesData } from '@/lib/firestoreQueries'
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
+import { getUserStablesData } from "@/lib/firestoreQueries";
 
 /**
  * Stable data interface
  */
 interface Stable {
-  id: string
-  name: string
-  address?: string
-  ownerId?: string
-  createdAt?: any
+  id: string;
+  name: string;
+  address?: string;
+  ownerId?: string;
+  createdAt?: any;
 }
 
 /**
- * User stables hook with optimized data loading
- * Encapsulates logic for loading user's owned and member stables
+ * Hook for fetching user's stables with cold-start awareness.
  *
- * Uses shared Firestore query utilities and useAsyncData for consistent patterns
+ * Uses TanStack Query for automatic caching, retries, and cold-start handling.
+ * Pair with QueryBoundary for consistent loading/error states.
  *
  * @param userId - ID of the user whose stables to load
- * @returns Stables array and loading state
+ * @returns Stables array, loading state, and query object for QueryBoundary
  *
  * @example
  * ```tsx
- * const { stables, loading } = useUserStables(user?.uid)
+ * // Basic usage
+ * const { stables, loading } = useUserStables(user?.uid);
+ *
+ * // With QueryBoundary for cold-start handling
+ * const { stables, query } = useUserStables(user?.uid);
+ * <QueryBoundary query={query}>
+ *   {(data) => <StableList stables={data} />}
+ * </QueryBoundary>
  * ```
  */
 export function useUserStables(userId: string | undefined) {
-  const stablesData = useAsyncData<Stable[]>({
-    loadFn: async () => {
-      if (!userId) return []
-      return getUserStablesData(userId)
+  const query = useApiQuery<Stable[]>(
+    queryKeys.userStables.byUser(userId || ""),
+    async () => {
+      if (!userId) return [];
+      return getUserStablesData(userId);
     },
-    errorMessage: 'Failed to load stables'
-  })
+    { enabled: !!userId },
+  );
 
-  useEffect(() => {
-    stablesData.load()
-  }, [userId])
-
+  // Legacy API compatibility - return stables and loading alongside query
   return {
-    stables: stablesData.data || [],
-    loading: stablesData.loading
-  }
+    stables: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+    // Full query object for QueryBoundary
+    query,
+  };
 }

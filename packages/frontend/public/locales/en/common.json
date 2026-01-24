@@ -220,8 +220,15 @@
   "search": {
     "placeholder": "Search..."
   },
+  "loading": {
+    "default": "Loading...",
+    "takingLonger": "This is taking longer than usual",
+    "serverStarting": "The server may be starting up, please wait..."
+  },
   "errors": {
-    "generic": "An error occurred. Please try again."
+    "generic": "An error occurred. Please try again.",
+    "loadFailed": "Failed to load data",
+    "connectionFailed": "Could not connect to the server"
   },
   "dashboard": {
     "title": "Dashboard",

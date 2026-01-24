@@ -69,6 +69,7 @@ export const queryKeys = {
     lists: () => [...queryKeys.horses.all, "list"] as const,
     list: (filters: Record<string, any>) =>
       [...queryKeys.horses.lists(), filters] as const,
+    my: () => [...queryKeys.horses.all, "my"] as const,
     details: () => [...queryKeys.horses.all, "detail"] as const,
     detail: (id: string) => [...queryKeys.horses.details(), id] as const,
     vaccinationRules: (horseId: string) =>
@@ -121,6 +122,11 @@ export const queryKeys = {
     lists: () => [...queryKeys.activities.all, "list"] as const,
     list: (filters: Record<string, any>) =>
       [...queryKeys.activities.lists(), filters] as const,
+    byPeriod: (stableId: string, date: string, periodType: string) =>
+      [
+        ...queryKeys.activities.lists(),
+        { stableId, date, periodType },
+      ] as const,
     details: () => [...queryKeys.activities.all, "detail"] as const,
     detail: (id: string) => [...queryKeys.activities.details(), id] as const,
   },
@@ -244,6 +250,44 @@ export const queryKeys = {
     lists: () => [...queryKeys.timeBalances.all, "list"] as const,
     byUser: (organizationId: string, year?: number) =>
       [...queryKeys.timeBalances.lists(), organizationId, year] as const,
+  },
+
+  // Routines
+  routines: {
+    all: ["routines"] as const,
+    templates: (organizationId?: string, stableId?: string) =>
+      [
+        ...queryKeys.routines.all,
+        "templates",
+        { organizationId, stableId },
+      ] as const,
+    instances: (stableId?: string, date?: Date) =>
+      [
+        ...queryKeys.routines.all,
+        "instances",
+        { stableId, date: date?.toISOString().split("T")[0] },
+      ] as const,
+    dailyNotes: (stableId?: string, date?: Date) =>
+      [
+        ...queryKeys.routines.all,
+        "dailyNotes",
+        { stableId, date: date?.toISOString().split("T")[0] },
+      ] as const,
+  },
+
+  // Feeding
+  feeding: {
+    all: ["feeding"] as const,
+    today: (stableId: string, date?: string) =>
+      [...queryKeys.feeding.all, "today", { stableId, date }] as const,
+    schedule: (stableId: string) =>
+      [...queryKeys.feeding.all, "schedule", stableId] as const,
+  },
+
+  // User Stables
+  userStables: {
+    all: ["userStables"] as const,
+    byUser: (userId: string) => [...queryKeys.userStables.all, userId] as const,
   },
 };
 
@@ -400,6 +444,50 @@ export const cacheInvalidation = {
     lists: () =>
       queryClient.invalidateQueries({
         queryKey: queryKeys.timeBalances.lists(),
+      }),
+  },
+
+  /**
+   * Invalidate all routine queries
+   */
+  routines: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.routines.all }),
+    templates: (organizationId?: string, stableId?: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.routines.templates(organizationId, stableId),
+      }),
+    instances: (stableId?: string, date?: Date) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.routines.instances(stableId, date),
+      }),
+    dailyNotes: (stableId?: string, date?: Date) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.routines.dailyNotes(stableId, date),
+      }),
+  },
+
+  /**
+   * Invalidate all feeding queries
+   */
+  feeding: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.feeding.all }),
+    today: (stableId: string, date?: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.feeding.today(stableId, date),
+      }),
+  },
+
+  /**
+   * Invalidate user stables queries
+   */
+  userStables: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.userStables.all }),
+    byUser: (userId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.userStables.byUser(userId),
       }),
   },
 };

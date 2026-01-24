@@ -5,7 +5,9 @@
  * Aggregates feeding steps from routine instances and links them to FeedingTimes.
  */
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useMemo } from "react";
+import { useApiQuery } from "./useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
 import { getRoutineInstances } from "@/services/routineService";
 import { getFeedingTimesByStable } from "@/services/feedingTimeService";
 import {
@@ -15,6 +17,12 @@ import {
 } from "@/utils/feedingAggregation";
 import type { RoutineInstance } from "@shared/types";
 import type { FeedingTime } from "@shared/types";
+import type { UseQueryResult } from "@tanstack/react-query";
+
+interface FeedingTodayData {
+  instances: RoutineInstance[];
+  feedingTimes: FeedingTime[];
+}
 
 interface UseFeedingTodayResult {
   /** Feeding sessions aggregated from routine instances */
@@ -37,10 +45,15 @@ interface UseFeedingTodayResult {
     totalHorses: number;
     horsesCompleted: number;
   };
+  /** Query object for QueryBoundary */
+  query: UseQueryResult<FeedingTodayData, Error>;
 }
 
 /**
- * Hook for fetching today's feeding sessions from routine instances
+ * Hook for fetching today's feeding sessions from routine instances.
+ *
+ * Uses TanStack Query for automatic caching, retries, and cold-start handling.
+ * Pair with QueryBoundary for consistent loading/error states.
  *
  * @param stableId - Stable ID to fetch feeding sessions for
  * @param date - Optional date (defaults to today)
@@ -50,17 +63,19 @@ interface UseFeedingTodayResult {
  * ```tsx
  * function FeedingTodayPage() {
  *   const { currentStable } = useOrganizationContext();
- *   const { sessions, loading, stats } = useFeedingToday(currentStable?.id);
- *
- *   if (loading) return <Spinner />;
+ *   const { sessions, stats, query } = useFeedingToday(currentStable?.id);
  *
  *   return (
- *     <div>
- *       <Progress value={stats.progressPercent} />
- *       {sessions.map(session => (
- *         <FeedingSessionCard key={`${session.instanceId}-${session.stepId}`} session={session} />
- *       ))}
- *     </div>
+ *     <QueryBoundary query={query} loadingFallback={<FeedingSkeleton />}>
+ *       {() => (
+ *         <div>
+ *           <Progress value={stats.progressPercent} />
+ *           {sessions.map(session => (
+ *             <FeedingSessionCard key={`${session.instanceId}-${session.stepId}`} session={session} />
+ *           ))}
+ *         </div>
+ *       )}
+ *     </QueryBoundary>
  *   );
  * }
  * ```
@@ -69,45 +84,32 @@ export function useFeedingToday(
   stableId: string | null | undefined,
   date?: Date,
 ): UseFeedingTodayResult {
-  const [instances, setInstances] = useState<RoutineInstance[]>([]);
-  const [feedingTimes, setFeedingTimes] = useState<FeedingTime[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  // Format date for query key (YYYY-MM-DD or undefined for today)
+  const dateString = date?.toISOString().split("T")[0];
 
-  // Fetch routine instances and feeding times
-  const loadData = useCallback(async () => {
-    if (!stableId) {
-      setInstances([]);
-      setFeedingTimes([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
+  // Fetch routine instances and feeding times with useApiQuery
+  const query = useApiQuery<FeedingTodayData>(
+    queryKeys.feeding.today(stableId || "", dateString),
+    async () => {
+      if (!stableId) {
+        return { instances: [], feedingTimes: [] };
+      }
 
       // Fetch in parallel
       const targetDate = date || new Date();
-      const [instancesData, feedingTimesData] = await Promise.all([
+      const [instances, feedingTimes] = await Promise.all([
         getRoutineInstances(stableId, targetDate),
         getFeedingTimesByStable(stableId, true), // active only
       ]);
 
-      setInstances(instancesData);
-      setFeedingTimes(feedingTimesData);
-    } catch (err) {
-      console.error("Error loading feeding data:", err);
-      setError(err as Error);
-    } finally {
-      setLoading(false);
-    }
-  }, [stableId, date]);
+      return { instances, feedingTimes };
+    },
+    { enabled: !!stableId },
+  );
 
-  // Load data on mount and when dependencies change
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  // Extract raw data from query
+  const instances = query.data?.instances ?? [];
+  const feedingTimes = query.data?.feedingTimes ?? [];
 
   // Aggregate feeding sessions from instances
   const sessions = useMemo(() => {
@@ -141,13 +143,19 @@ export function useFeedingToday(
     };
   }, [sessions]);
 
+  // Wrap refetch to return void for legacy compatibility
+  const refetch = async () => {
+    await query.refetch();
+  };
+
   return {
     sessions,
-    loading,
-    error,
-    refetch: loadData,
+    loading: query.isLoading,
+    error: query.error,
+    refetch,
     instances,
     feedingTimes,
     stats,
+    query,
   };
 }

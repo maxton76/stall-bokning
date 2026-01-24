@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryBoundary } from "@/components/ui/QueryBoundary";
 import {
   Collapsible,
   CollapsibleContent,
@@ -82,8 +83,14 @@ export default function FeedingTodayPage() {
   const selectedStable = stables.find((s) => s.id === selectedStableId);
 
   // Fetch feeding sessions from routine instances
-  const { sessions, loading, error, refetch, stats } =
-    useFeedingToday(selectedStableId);
+  const {
+    sessions,
+    loading,
+    error,
+    refetch,
+    stats,
+    query: feedingQuery,
+  } = useFeedingToday(selectedStableId);
   const { toast } = useToast();
 
   // Daily notes for horses
@@ -383,6 +390,27 @@ export default function FeedingTodayPage() {
     navigate(`/routines/flow/${session.instanceId}?step=${session.stepId}`);
   };
 
+  // Skeleton component for loading state
+  const FeedingSkeleton = () => (
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Wheat className="h-8 w-8" />
+            {t("common:navigation.feedingToday")}
+          </h1>
+        </div>
+        <Skeleton className="h-5 w-48" />
+      </div>
+      <Skeleton className="h-24 w-full" />
+      <div className="space-y-3">
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
+      </div>
+    </div>
+  );
+
   // Loading stables
   if (stablesLoading) {
     return (
@@ -415,382 +443,377 @@ export default function FeedingTodayPage() {
     );
   }
 
-  // Loading feeding data
-  if (loading) {
-    return (
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-              <Wheat className="h-8 w-8" />
-              {t("common:navigation.feedingToday")}
-            </h1>
-          </div>
-          <Skeleton className="h-5 w-48" />
-        </div>
-        <Skeleton className="h-24 w-full" />
-        <div className="space-y-3">
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-20 w-full" />
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="container mx-auto p-6 space-y-6">
-        <Alert variant="destructive">
-          <AlertDescription>
-            {t("common:errors.loadFailed")}: {error.message}
-          </AlertDescription>
-        </Alert>
-        <Button onClick={refetch}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          {t("common:buttons.retry")}
-        </Button>
-      </div>
-    );
-  }
-
-  // No feeding sessions
-  if (sessions.length === 0) {
-    return (
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-              <Wheat className="h-8 w-8" />
-              {t("common:navigation.feedingToday")}
-            </h1>
-            <div className="flex gap-2">
-              <Button onClick={refetch} variant="outline" size="icon">
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-              <Button asChild variant="outline">
-                <Link to="/feeding/schedule">
-                  {t("common:navigation.schedule")}
-                  <ChevronRight className="ml-1 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          </div>
-          {stables.length > 1 && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                {t("common:labels.stable")}:
-              </span>
-              <Select
-                value={selectedStableId}
-                onValueChange={setSelectedStableId}
-              >
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {stables.map((stable) => (
-                    <SelectItem key={stable.id} value={stable.id}>
-                      {stable.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-        </div>
-
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Wheat className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">
-              {t("feeding:today.noFeedingSessions", "Inga utfodringar idag")}
-            </h3>
-            <p className="text-muted-foreground text-center max-w-md mb-4">
-              {t(
-                "feeding:today.noFeedingSessionsDescription",
-                "Det finns inga schemalagda rutiner med utfodringssteg för idag. Skapa rutiner i inställningarna eller vänta på att en rutin schemaläggs.",
-              )}
-            </p>
-            <div className="flex gap-2">
-              <Button asChild variant="outline">
-                <Link to="/routines">{t("routines:title")}</Link>
-              </Button>
-              <Button asChild>
-                <Link to="/settings/routines">
-                  {t("routines:manageRoutines")}
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
+  // Use QueryBoundary for feeding data (handles loading, error, and success states)
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Wheat className="h-8 w-8" />
-            {t("common:navigation.feedingToday")}
-          </h1>
-          <div className="flex gap-2">
-            <Button onClick={refetch} variant="outline" size="icon">
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-            <Button asChild variant="outline">
-              <Link to="/feeding/schedule">
-                {t("common:navigation.schedule")}
-                <ChevronRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          {stables.length > 1 ? (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                {t("common:labels.stable")}:
-              </span>
-              <Select
-                value={selectedStableId}
-                onValueChange={setSelectedStableId}
-              >
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {stables.map((stable) => (
-                    <SelectItem key={stable.id} value={stable.id}>
-                      {stable.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : (
-            <p className="text-muted-foreground">
-              {t("feeding:today.subtitle", "Utfodringsstatus för idag")} -{" "}
-              {selectedStable?.name}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Progress Overview */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg">
-            {t("feeding:today.progress", "Dagens framsteg")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>
-                {stats.completedSessions} {t("common:labels.of")}{" "}
-                {stats.totalSessions}{" "}
-                {t("feeding:today.feedingsCompleted", "utfodringar klara")}
-              </span>
-              <span>{stats.progressPercent}%</span>
-            </div>
-            <Progress value={stats.progressPercent} className="h-2" />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Feeding Sessions */}
-      <div className="space-y-3">
-        {sessions.map((session) => {
-          const sessionKey = `${session.instanceId}-${session.stepId}`;
-          const isExpanded = expandedSessions.has(sessionKey);
-          const horses = sessionHorses[sessionKey] || [];
-          const isLoadingHorses = loadingHorses.has(sessionKey);
-          const isMarkingAll = updatingHorses.has(`${sessionKey}-all`);
-          const canExpand = session.step.horseContext !== "none";
-
+    <QueryBoundary query={feedingQuery} loadingFallback={<FeedingSkeleton />}>
+      {() => {
+        // No feeding sessions - empty state
+        if (sessions.length === 0) {
           return (
-            <Card
-              key={sessionKey}
-              className={
-                session.status === "overdue"
-                  ? "border-destructive/50"
-                  : session.status === "in_progress"
-                    ? "border-primary/50"
-                    : session.status === "active"
-                      ? "border-yellow-500/50"
-                      : ""
-              }
-            >
-              <Collapsible
-                open={isExpanded}
-                onOpenChange={() => canExpand && toggleSession(session)}
-              >
-                <CardContent className="py-4">
-                  <div className="flex items-center gap-4">
-                    {getStatusIcon(session.status)}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-medium">
-                          {t(`routines:categories.${session.step.category}`)}
-                        </h3>
-                        <Badge
-                          className={getStatusColor(session.status)}
-                          variant="secondary"
-                        >
-                          {getStatusLabel(session.status)}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {session.time}
-                        </span>
-                        <span className="text-xs">{session.routineName}</span>
-                        {(session.status === "in_progress" ||
-                          session.horsesTotal > 0) && (
-                          <span>
-                            {session.horsesCompleted}/{session.horsesTotal}{" "}
-                            {t("feeding:today.horsesFed", "hästar utfodrade")}
-                          </span>
-                        )}
-                        {session.status === "completed" &&
-                          session.completedByName && (
-                            <span className="flex items-center gap-1">
-                              <User className="h-3 w-3" />
-                              {session.completedByName}
-                              {session.completedAt &&
-                                ` (${session.completedAt})`}
-                            </span>
-                          )}
-                      </div>
-                      {session.horsesTotal > 0 && (
-                        <Progress
-                          value={
-                            (session.horsesCompleted / session.horsesTotal) *
-                            100
-                          }
-                          className="h-1 mt-2"
-                        />
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {canExpand && (
-                        <CollapsibleTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            {isExpanded ? (
-                              <ChevronDown className="h-4 w-4" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4" />
-                            )}
-                            <span className="ml-1 text-xs">
-                              {t("feeding:today.showHorses", "Hästar")}
-                            </span>
-                          </Button>
-                        </CollapsibleTrigger>
-                      )}
-                      {session.status !== "completed" && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleContinueSession(session)}
-                        >
-                          {session.status === "in_progress"
-                            ? t("routines:actions.continue", "Fortsätt")
-                            : t("routines:actions.start", "Starta")}
-                        </Button>
-                      )}
-                    </div>
+            <div className="container mx-auto p-6 space-y-6">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+                    <Wheat className="h-8 w-8" />
+                    {t("common:navigation.feedingToday")}
+                  </h1>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => refetch()}
+                      variant="outline"
+                      size="icon"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                    <Button asChild variant="outline">
+                      <Link to="/feeding/schedule">
+                        {t("common:navigation.schedule")}
+                        <ChevronRight className="ml-1 h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+                {stables.length > 1 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      {t("common:labels.stable")}:
+                    </span>
+                    <Select
+                      value={selectedStableId}
+                      onValueChange={setSelectedStableId}
+                    >
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {stables.map((stable) => (
+                          <SelectItem key={stable.id} value={stable.id}>
+                            {stable.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Wheat className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">
+                    {t(
+                      "feeding:today.noFeedingSessions",
+                      "Inga utfodringar idag",
+                    )}
+                  </h3>
+                  <p className="text-muted-foreground text-center max-w-md mb-4">
+                    {t(
+                      "feeding:today.noFeedingSessionsDescription",
+                      "Det finns inga schemalagda rutiner med utfodringssteg för idag. Skapa rutiner i inställningarna eller vänta på att en rutin schemaläggs.",
+                    )}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button asChild variant="outline">
+                      <Link to="/routines">{t("routines:title")}</Link>
+                    </Button>
+                    <Button asChild>
+                      <Link to="/settings/routines">
+                        {t("routines:manageRoutines")}
+                      </Link>
+                    </Button>
                   </div>
                 </CardContent>
-
-                <CollapsibleContent>
-                  <div className="border-t px-4 py-3 bg-muted/30">
-                    {isLoadingHorses ? (
-                      <div className="flex items-center justify-center py-4">
-                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                        <span className="text-sm text-muted-foreground">
-                          {t("common:labels.loading")}
-                        </span>
-                      </div>
-                    ) : horses.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-2">
-                        {t(
-                          "feeding:today.noHorsesInStep",
-                          "Inga hästar i detta steg",
-                        )}
-                      </p>
-                    ) : (
-                      <div className="space-y-3">
-                        {/* Mark all button */}
-                        {session.status !== "completed" && (
-                          <div className="flex justify-end">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => markAllHorsesDone(session)}
-                              disabled={isMarkingAll}
-                            >
-                              {isMarkingAll ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                              ) : (
-                                <Check className="h-4 w-4 mr-2" />
-                              )}
-                              {t(
-                                "feeding:today.markAllComplete",
-                                "Markera alla klara",
-                              )}
-                            </Button>
-                          </div>
-                        )}
-
-                        {/* Horse list using HorseContextCard */}
-                        <div className="grid gap-3">
-                          {horses.map((horse) => {
-                            const horseKey = `${sessionKey}-${horse.id}`;
-                            const isUpdating = updatingHorses.has(horseKey);
-                            const feedingData = sessionFeedingData[sessionKey];
-                            const feedingInfo = feedingData?.get(horse.id);
-                            const horseProgress =
-                              session.horseProgress?.[horse.id];
-
-                            return (
-                              <HorseContextCard
-                                key={horse.id}
-                                horse={horse}
-                                step={session.step}
-                                feedingInfo={feedingInfo}
-                                progress={horseProgress}
-                                dailyNotes={dailyNotes}
-                                onMarkDone={(notes) =>
-                                  markHorseDone(session, horse.id, horse.name)
-                                }
-                                onSkip={(reason) =>
-                                  skipHorse(
-                                    session,
-                                    horse.id,
-                                    horse.name,
-                                    reason,
-                                  )
-                                }
-                                isSubmitting={isUpdating}
-                                readonly={session.status === "completed"}
-                              />
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            </Card>
+              </Card>
+            </div>
           );
-        })}
-      </div>
-    </div>
+        }
+
+        // Main content - sessions available
+        return (
+          <div className="container mx-auto p-6 space-y-6">
+            {/* Header */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+                  <Wheat className="h-8 w-8" />
+                  {t("common:navigation.feedingToday")}
+                </h1>
+                <div className="flex gap-2">
+                  <Button onClick={refetch} variant="outline" size="icon">
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link to="/feeding/schedule">
+                      {t("common:navigation.schedule")}
+                      <ChevronRight className="ml-1 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                {stables.length > 1 ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      {t("common:labels.stable")}:
+                    </span>
+                    <Select
+                      value={selectedStableId}
+                      onValueChange={setSelectedStableId}
+                    >
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {stables.map((stable) => (
+                          <SelectItem key={stable.id} value={stable.id}>
+                            {stable.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">
+                    {t("feeding:today.subtitle", "Utfodringsstatus för idag")} -{" "}
+                    {selectedStable?.name}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Progress Overview */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">
+                  {t("feeding:today.progress", "Dagens framsteg")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>
+                      {stats.completedSessions} {t("common:labels.of")}{" "}
+                      {stats.totalSessions}{" "}
+                      {t(
+                        "feeding:today.feedingsCompleted",
+                        "utfodringar klara",
+                      )}
+                    </span>
+                    <span>{stats.progressPercent}%</span>
+                  </div>
+                  <Progress value={stats.progressPercent} className="h-2" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Feeding Sessions */}
+            <div className="space-y-3">
+              {sessions.map((session) => {
+                const sessionKey = `${session.instanceId}-${session.stepId}`;
+                const isExpanded = expandedSessions.has(sessionKey);
+                const horses = sessionHorses[sessionKey] || [];
+                const isLoadingHorses = loadingHorses.has(sessionKey);
+                const isMarkingAll = updatingHorses.has(`${sessionKey}-all`);
+                const canExpand = session.step.horseContext !== "none";
+
+                return (
+                  <Card
+                    key={sessionKey}
+                    className={
+                      session.status === "overdue"
+                        ? "border-destructive/50"
+                        : session.status === "in_progress"
+                          ? "border-primary/50"
+                          : session.status === "active"
+                            ? "border-yellow-500/50"
+                            : ""
+                    }
+                  >
+                    <Collapsible
+                      open={isExpanded}
+                      onOpenChange={() => canExpand && toggleSession(session)}
+                    >
+                      <CardContent className="py-4">
+                        <div className="flex items-center gap-4">
+                          {getStatusIcon(session.status)}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-medium">
+                                {t(
+                                  `routines:categories.${session.step.category}`,
+                                )}
+                              </h3>
+                              <Badge
+                                className={getStatusColor(session.status)}
+                                variant="secondary"
+                              >
+                                {getStatusLabel(session.status)}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {session.time}
+                              </span>
+                              <span className="text-xs">
+                                {session.routineName}
+                              </span>
+                              {(session.status === "in_progress" ||
+                                session.horsesTotal > 0) && (
+                                <span>
+                                  {session.horsesCompleted}/
+                                  {session.horsesTotal}{" "}
+                                  {t(
+                                    "feeding:today.horsesFed",
+                                    "hästar utfodrade",
+                                  )}
+                                </span>
+                              )}
+                              {session.status === "completed" &&
+                                session.completedByName && (
+                                  <span className="flex items-center gap-1">
+                                    <User className="h-3 w-3" />
+                                    {session.completedByName}
+                                    {session.completedAt &&
+                                      ` (${session.completedAt})`}
+                                  </span>
+                                )}
+                            </div>
+                            {session.horsesTotal > 0 && (
+                              <Progress
+                                value={
+                                  (session.horsesCompleted /
+                                    session.horsesTotal) *
+                                  100
+                                }
+                                className="h-1 mt-2"
+                              />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {canExpand && (
+                              <CollapsibleTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronRight className="h-4 w-4" />
+                                  )}
+                                  <span className="ml-1 text-xs">
+                                    {t("feeding:today.showHorses", "Hästar")}
+                                  </span>
+                                </Button>
+                              </CollapsibleTrigger>
+                            )}
+                            {session.status !== "completed" && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleContinueSession(session)}
+                              >
+                                {session.status === "in_progress"
+                                  ? t("routines:actions.continue", "Fortsätt")
+                                  : t("routines:actions.start", "Starta")}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+
+                      <CollapsibleContent>
+                        <div className="border-t px-4 py-3 bg-muted/30">
+                          {isLoadingHorses ? (
+                            <div className="flex items-center justify-center py-4">
+                              <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                              <span className="text-sm text-muted-foreground">
+                                {t("common:labels.loading")}
+                              </span>
+                            </div>
+                          ) : horses.length === 0 ? (
+                            <p className="text-sm text-muted-foreground py-2">
+                              {t(
+                                "feeding:today.noHorsesInStep",
+                                "Inga hästar i detta steg",
+                              )}
+                            </p>
+                          ) : (
+                            <div className="space-y-3">
+                              {/* Mark all button */}
+                              {session.status !== "completed" && (
+                                <div className="flex justify-end">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => markAllHorsesDone(session)}
+                                    disabled={isMarkingAll}
+                                  >
+                                    {isMarkingAll ? (
+                                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                    ) : (
+                                      <Check className="h-4 w-4 mr-2" />
+                                    )}
+                                    {t(
+                                      "feeding:today.markAllComplete",
+                                      "Markera alla klara",
+                                    )}
+                                  </Button>
+                                </div>
+                              )}
+
+                              {/* Horse list using HorseContextCard */}
+                              <div className="grid gap-3">
+                                {horses.map((horse) => {
+                                  const horseKey = `${sessionKey}-${horse.id}`;
+                                  const isUpdating =
+                                    updatingHorses.has(horseKey);
+                                  const feedingData =
+                                    sessionFeedingData[sessionKey];
+                                  const feedingInfo = feedingData?.get(
+                                    horse.id,
+                                  );
+                                  const horseProgress =
+                                    session.horseProgress?.[horse.id];
+
+                                  return (
+                                    <HorseContextCard
+                                      key={horse.id}
+                                      horse={horse}
+                                      step={session.step}
+                                      feedingInfo={feedingInfo}
+                                      progress={horseProgress}
+                                      dailyNotes={dailyNotes}
+                                      onMarkDone={(notes) =>
+                                        markHorseDone(
+                                          session,
+                                          horse.id,
+                                          horse.name,
+                                        )
+                                      }
+                                      onSkip={(reason) =>
+                                        skipHorse(
+                                          session,
+                                          horse.id,
+                                          horse.name,
+                                          reason,
+                                        )
+                                      }
+                                      isSubmitting={isUpdating}
+                                      readonly={session.status === "completed"}
+                                    />
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }}
+    </QueryBoundary>
   );
 }

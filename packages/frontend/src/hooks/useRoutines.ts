@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type {
   RoutineTemplate,
   RoutineInstance,
@@ -22,119 +22,328 @@ import {
   updateRoutineTemplate,
   deleteRoutineTemplate,
 } from "@/services/routineService";
+import { useApiQuery } from "./useApiQuery";
+import { useApiMutation } from "./useApiMutation";
+import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 
 /**
  * Hook for managing routine templates
+ *
+ * Uses TanStack Query for automatic caching, retries, and cold-start handling.
+ * Pair with QueryBoundary for consistent loading/error states.
+ *
+ * @example
+ * ```tsx
+ * const { data, isLoading, error, refetch } = useRoutineTemplates(orgId, stableId);
+ *
+ * // With QueryBoundary
+ * <QueryBoundary query={useRoutineTemplates(orgId, stableId)}>
+ *   {(templates) => <TemplateList templates={templates} />}
+ * </QueryBoundary>
+ * ```
  */
 export function useRoutineTemplates(
   organizationId: string | undefined,
   stableId?: string,
 ) {
-  const [templates, setTemplates] = useState<RoutineTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const query = useApiQuery<RoutineTemplate[]>(
+    queryKeys.routines.templates(organizationId, stableId),
+    () => getRoutineTemplates(organizationId!, stableId),
+    { enabled: !!organizationId },
+  );
 
-  const loadTemplates = useCallback(async () => {
-    if (!organizationId) {
-      setTemplates([]);
-      setLoading(false);
-      return;
-    }
+  const createMutation = useApiMutation(
+    (data: CreateRoutineTemplateInput) => createRoutineTemplate(data),
+    {
+      successMessage: "Rutinmall skapad",
+      onSuccess: () => {
+        cacheInvalidation.routines.templates(organizationId, stableId);
+      },
+    },
+  );
 
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getRoutineTemplates(organizationId, stableId);
-      setTemplates(data);
-    } catch (err) {
-      setError(err as Error);
-      console.error("Error loading routine templates:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [organizationId, stableId]);
+  const updateMutation = useApiMutation(
+    ({ id, data }: { id: string; data: UpdateRoutineTemplateInput }) =>
+      updateRoutineTemplate(id, data),
+    {
+      successMessage: "Rutinmall uppdaterad",
+      onSuccess: () => {
+        cacheInvalidation.routines.templates(organizationId, stableId);
+      },
+    },
+  );
 
-  useEffect(() => {
-    loadTemplates();
-  }, [loadTemplates]);
+  const deleteMutation = useApiMutation(
+    (id: string) => deleteRoutineTemplate(id),
+    {
+      successMessage: "Rutinmall borttagen",
+      onSuccess: () => {
+        cacheInvalidation.routines.templates(organizationId, stableId);
+      },
+    },
+  );
 
-  const create = async (data: CreateRoutineTemplateInput) => {
-    const id = await createRoutineTemplate(data);
-    await loadTemplates();
-    return id;
-  };
-
-  const update = async (id: string, data: UpdateRoutineTemplateInput) => {
-    await updateRoutineTemplate(id, data);
-    await loadTemplates();
-  };
-
-  const remove = async (id: string) => {
-    await deleteRoutineTemplate(id);
-    await loadTemplates();
-  };
-
+  // Legacy API compatibility
   return {
-    templates,
-    loading,
-    error,
-    refetch: loadTemplates,
-    create,
-    update,
-    remove,
+    // Query state
+    templates: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+    // Full query object for QueryBoundary
+    query,
+    // Mutation functions (legacy API)
+    create: async (data: CreateRoutineTemplateInput) => {
+      const result = await createMutation.mutateAsync(data);
+      return result;
+    },
+    update: async (id: string, data: UpdateRoutineTemplateInput) => {
+      await updateMutation.mutateAsync({ id, data });
+    },
+    remove: async (id: string) => {
+      await deleteMutation.mutateAsync(id);
+    },
+    // Mutation objects for more control
+    createMutation,
+    updateMutation,
+    deleteMutation,
   };
 }
 
 /**
  * Hook for managing routine instances for a specific date
+ *
+ * Uses TanStack Query for automatic caching, retries, and cold-start handling.
+ * Pair with QueryBoundary for consistent loading/error states.
+ *
+ * @example
+ * ```tsx
+ * const { data, isLoading, refetch } = useRoutineInstances(stableId, new Date());
+ *
+ * // With QueryBoundary
+ * <QueryBoundary query={useRoutineInstances(stableId, date)}>
+ *   {(instances) => <InstanceList instances={instances} />}
+ * </QueryBoundary>
+ * ```
  */
 export function useRoutineInstances(stableId: string | undefined, date?: Date) {
-  const [instances, setInstances] = useState<RoutineInstance[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const query = useApiQuery<RoutineInstance[]>(
+    queryKeys.routines.instances(stableId, date),
+    () => getRoutineInstances(stableId!, date),
+    { enabled: !!stableId },
+  );
 
-  const loadInstances = useCallback(async () => {
-    if (!stableId) {
-      setInstances([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getRoutineInstances(stableId, date);
-      setInstances(data);
-    } catch (err) {
-      setError(err as Error);
-      console.error("Error loading routine instances:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [stableId, date]);
-
-  useEffect(() => {
-    loadInstances();
-  }, [loadInstances]);
-
-  const createInstance = async (templateId: string, scheduledDate: Date) => {
-    if (!stableId) throw new Error("No stable selected");
-
-    const id = await createRoutineInstance({
+  const createMutation = useApiMutation(
+    ({
       templateId,
-      stableId,
-      scheduledDate: scheduledDate.toISOString(),
-    });
-    await loadInstances();
-    return id;
-  };
+      scheduledDate,
+    }: {
+      templateId: string;
+      scheduledDate: Date;
+    }) =>
+      createRoutineInstance({
+        templateId,
+        stableId: stableId!,
+        scheduledDate: scheduledDate.toISOString(),
+      }),
+    {
+      onSuccess: () => {
+        cacheInvalidation.routines.instances(stableId, date);
+      },
+    },
+  );
 
+  // Legacy API compatibility
   return {
-    instances,
-    loading,
-    error,
-    refetch: loadInstances,
-    createInstance,
+    // Query state
+    instances: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+    // Full query object for QueryBoundary
+    query,
+    // Mutation function (legacy API)
+    createInstance: async (templateId: string, scheduledDate: Date) => {
+      if (!stableId) throw new Error("No stable selected");
+      const result = await createMutation.mutateAsync({
+        templateId,
+        scheduledDate,
+      });
+      return result;
+    },
+    // Mutation object for more control
+    createMutation,
+  };
+}
+
+/**
+ * Hook for managing routine instances across multiple stables.
+ *
+ * Fetches routine instances from all provided stables in parallel
+ * and returns a combined list.
+ *
+ * @example
+ * ```tsx
+ * const { instances, loading, query } = useRoutineInstancesMultiStable(stables, new Date());
+ *
+ * <QueryBoundary query={query}>
+ *   {(instances) => <InstanceList instances={instances} />}
+ * </QueryBoundary>
+ * ```
+ */
+export function useRoutineInstancesMultiStable(
+  stables: Array<{ id: string }>,
+  date?: Date,
+) {
+  const stableIds = stables.map((s) => s.id);
+  const stableIdsKey = stableIds.sort().join(",");
+  const dateString = date?.toISOString().split("T")[0];
+
+  const query = useApiQuery<RoutineInstance[]>(
+    [
+      ...queryKeys.routines.all,
+      "instances",
+      "multi",
+      { stableIdsKey, dateString },
+    ] as const,
+    async () => {
+      if (stables.length === 0) return [];
+      const allInstances = await Promise.all(
+        stables.map((stable) => getRoutineInstances(stable.id, date)),
+      );
+      return allInstances.flat();
+    },
+    { enabled: stables.length > 0 },
+  );
+
+  const createMutation = useApiMutation(
+    ({
+      stableId,
+      templateId,
+      scheduledDate,
+    }: {
+      stableId: string;
+      templateId: string;
+      scheduledDate: Date;
+    }) =>
+      createRoutineInstance({
+        templateId,
+        stableId,
+        scheduledDate: scheduledDate.toISOString(),
+      }),
+    {
+      onSuccess: () => {
+        // Invalidate the multi-stable query
+        query.refetch();
+      },
+    },
+  );
+
+  // Legacy API compatibility
+  return {
+    instances: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+    query,
+    createInstance: async (
+      stableId: string,
+      templateId: string,
+      scheduledDate: Date,
+    ) => {
+      const result = await createMutation.mutateAsync({
+        stableId,
+        templateId,
+        scheduledDate,
+      });
+      return result;
+    },
+    createMutation,
+  };
+}
+
+/**
+ * Combined hook for fetching routine instances, handling both single and multi-stable cases.
+ *
+ * @param selectedStableId - Selected stable ID ("all" for all stables, or specific stable ID)
+ * @param stables - Array of all available stables
+ * @param date - Date for fetching instances
+ * @returns Query result with routine instances array
+ */
+export function useRoutineInstancesForStable(
+  selectedStableId: string,
+  stables: Array<{ id: string }>,
+  date?: Date,
+) {
+  const isAllStables = selectedStableId === "all";
+  const stableIds = stables.map((s) => s.id);
+  const stableIdsKey = stableIds.sort().join(",");
+  const dateString = date?.toISOString().split("T")[0];
+
+  const query = useApiQuery<RoutineInstance[]>(
+    isAllStables
+      ? ([
+          ...queryKeys.routines.all,
+          "instances",
+          "multi",
+          { stableIdsKey, dateString },
+        ] as const)
+      : queryKeys.routines.instances(selectedStableId, date),
+    async () => {
+      if (stables.length === 0) return [];
+      if (isAllStables) {
+        const allInstances = await Promise.all(
+          stables.map((stable) => getRoutineInstances(stable.id, date)),
+        );
+        return allInstances.flat();
+      }
+      return getRoutineInstances(selectedStableId, date);
+    },
+    { enabled: stables.length > 0 && !!selectedStableId },
+  );
+
+  const createMutation = useApiMutation(
+    ({
+      stableId,
+      templateId,
+      scheduledDate,
+    }: {
+      stableId: string;
+      templateId: string;
+      scheduledDate: Date;
+    }) =>
+      createRoutineInstance({
+        templateId,
+        stableId,
+        scheduledDate: scheduledDate.toISOString(),
+      }),
+    {
+      onSuccess: () => {
+        query.refetch();
+      },
+    },
+  );
+
+  // Legacy API compatibility
+  return {
+    instances: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+    query,
+    createInstance: async (
+      stableId: string,
+      templateId: string,
+      scheduledDate: Date,
+    ) => {
+      const result = await createMutation.mutateAsync({
+        stableId,
+        templateId,
+        scheduledDate,
+      });
+      return result;
+    },
+    createMutation,
   };
 }
 
@@ -376,56 +585,41 @@ export function useRoutineFlow(instanceId: string | undefined) {
 
 /**
  * Hook for daily notes
+ *
+ * Uses TanStack Query for caching with local state for acknowledgment.
  */
 export function useDailyNotes(stableId: string | undefined, date?: Date) {
-  const [notes, setNotes] = useState<DailyNotes | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
 
-  const loadNotes = useCallback(async () => {
-    if (!stableId) {
-      setNotes(null);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getDailyNotes(stableId, date);
-      setNotes(data);
-    } catch (err) {
-      setError(err as Error);
-      console.error("Error loading daily notes:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [stableId, date]);
-
-  useEffect(() => {
-    loadNotes();
-    setAcknowledged(false); // Reset acknowledgment when date changes
-  }, [loadNotes]);
+  const query = useApiQuery<DailyNotes | null>(
+    queryKeys.routines.dailyNotes(stableId, date),
+    () => getDailyNotes(stableId!, date),
+    { enabled: !!stableId },
+  );
 
   const acknowledge = useCallback(() => {
     setAcknowledged(true);
   }, []);
 
+  const notes = query.data ?? null;
   const hasAlerts = notes?.alerts && notes.alerts.length > 0;
-
   const hasCriticalAlerts =
     notes?.alerts?.some((a) => a.priority === "critical") ?? false;
-
   const hasHorseNotes = notes?.horseNotes && notes.horseNotes.length > 0;
 
+  // Legacy API compatibility
   return {
+    // Query state
     notes,
-    loading,
-    error,
-    refetch: loadNotes,
+    loading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+    // Full query object for QueryBoundary
+    query,
+    // Local state
     acknowledged,
     acknowledge,
+    // Computed values
     hasAlerts,
     hasCriticalAlerts,
     hasHorseNotes,

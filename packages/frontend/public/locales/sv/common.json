@@ -177,8 +177,15 @@
   "search": {
     "placeholder": "Sök..."
   },
+  "loading": {
+    "default": "Laddar...",
+    "takingLonger": "Det tar längre tid än vanligt",
+    "serverStarting": "Servern kanske startar upp, vänligen vänta..."
+  },
   "errors": {
-    "generic": "Ett fel uppstod. Försök igen."
+    "generic": "Ett fel uppstod. Försök igen.",
+    "loadFailed": "Kunde inte ladda data",
+    "connectionFailed": "Kunde inte ansluta till servern"
   },
   "weekdays": {
     "monday": "Måndag",

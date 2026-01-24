@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -24,11 +24,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { QueryBoundary } from "@/components/ui/QueryBoundary";
 import type { Horse } from "@/types/roles";
 import type { VaccinationRecord } from "@shared/types/vaccination";
 import type { FilterConfig } from "@shared/types/filters";
 import {
-  getMyHorses,
   createHorse,
   updateHorse,
   deleteHorse,
@@ -41,10 +41,10 @@ import {
 } from "@/services/vaccinationService";
 import { queryKeys } from "@/lib/queryClient";
 import { useDialog } from "@/hooks/useDialog";
-import { useAsyncData } from "@/hooks/useAsyncData";
 import { useCRUD } from "@/hooks/useCRUD";
 import { useHorseFilters } from "@/hooks/useHorseFilters";
 import { useUserStables } from "@/hooks/useUserStables";
+import { useMyHorses } from "@/hooks/useHorses";
 
 export default function MyHorsesPage() {
   const { t } = useTranslation(["horses", "common"]);
@@ -54,10 +54,12 @@ export default function MyHorsesPage() {
   const queryClient = useQueryClient();
 
   // Data loading with custom hooks
-  const horses = useAsyncData<Horse[]>({
-    loadFn: () => getMyHorses(), // Only owned horses with full data access
-    errorMessage: t("horses:messages.loadError"),
-  });
+  const {
+    horses: horsesData,
+    loading: horsesLoading,
+    reload: reloadHorses,
+    query: horsesQuery,
+  } = useMyHorses();
   const { stables } = useUserStables(user?.uid);
 
   // Filtering with unified hook
@@ -70,7 +72,7 @@ export default function MyHorsesPage() {
     clearAllFilters,
     getActiveFilterBadges,
   } = useHorseFilters({
-    horses: horses.data || [],
+    horses: horsesData,
     initialFilters: { status: "active" },
     t,
   });
@@ -133,7 +135,7 @@ export default function MyHorsesPage() {
       ),
     deleteFn: (id) => deleteHorse(id),
     onSuccess: async () => {
-      await horses.reload();
+      await reloadHorses();
     },
     successMessages: {
       create: t("horses:messages.addSuccess"),
@@ -141,13 +143,6 @@ export default function MyHorsesPage() {
       delete: t("horses:messages.deleteSuccess"),
     },
   });
-
-  // Load data on mount
-  useEffect(() => {
-    if (user) {
-      horses.load();
-    }
-  }, [user]);
 
   // CRUD Handlers
   const handleCreateHorse = () => {
@@ -199,7 +194,7 @@ export default function MyHorsesPage() {
 
     try {
       await assignHorseToStable(horseId, stableId, stableName, user.uid);
-      horses.reload();
+      reloadHorses();
       assignmentDialog.closeDialog();
     } catch (error) {
       console.error("Error assigning horse:", error);
@@ -217,7 +212,7 @@ export default function MyHorsesPage() {
 
     try {
       await unassignHorseFromStable(horse.id, user.uid);
-      horses.reload();
+      reloadHorses();
     } catch (error) {
       console.error("Error unassigning horse:", error);
     }
@@ -259,7 +254,7 @@ export default function MyHorsesPage() {
       }
 
       // Reload horses to update vaccination status
-      await horses.reload();
+      await reloadHorses();
     } catch (error) {
       console.error("Error deleting vaccination record:", error);
     }
@@ -278,7 +273,7 @@ export default function MyHorsesPage() {
     }
 
     // Reload horses to update vaccination status
-    await horses.reload();
+    await reloadHorses();
   };
 
   // Navigation Handler
@@ -296,132 +291,141 @@ export default function MyHorsesPage() {
     t,
   });
 
-  if (horses.loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  // Loading skeleton
+  const HorsesSkeleton = () => (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+  );
 
   return (
-    <div className="container mx-auto p-2 sm:p-6 space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            {t("horses:page.title")}
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground mt-1">
-            {t("horses:page.description")}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <HorseExportButton horses={filteredHorses} />
-          <Button onClick={handleCreateHorse} className="flex-1 sm:flex-none">
-            <Plus className="mr-2 h-4 w-4" />
-            {t("horses:actions.addHorse")}
-          </Button>
-        </div>
-      </div>
-
-      {/* Filter Toolbar */}
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          {/* Filter Popover */}
-          <HorseFilterPopover
-            filters={filters}
-            onFiltersChange={setFilters}
-            config={filterConfig}
-            stables={stables as any}
-            activeFilterCount={activeFilterCount}
-            onClearAll={clearAllFilters}
-          />
-
-          {/* Search Input */}
-          <div className="relative flex-1 sm:max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={t("horses:filters.searchPlaceholder")}
-              value={filters.searchQuery}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, searchQuery: e.target.value }))
-              }
-              className="pl-9"
-            />
+    <QueryBoundary query={horsesQuery} loadingFallback={<HorsesSkeleton />}>
+      {() => (
+        <div className="container mx-auto p-2 sm:p-6 space-y-4 sm:space-y-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                {t("horses:page.title")}
+              </h1>
+              <p className="text-sm sm:text-base text-muted-foreground mt-1">
+                {t("horses:page.description")}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <HorseExportButton horses={filteredHorses} />
+              <Button
+                onClick={handleCreateHorse}
+                className="flex-1 sm:flex-none"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                {t("horses:actions.addHorse")}
+              </Button>
+            </div>
           </div>
-        </div>
 
-        {hasActiveFilters && (
-          <HorseFilterBadges
-            badges={getActiveFilterBadges()}
-            onClearAll={clearAllFilters}
+          {/* Filter Toolbar */}
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              {/* Filter Popover */}
+              <HorseFilterPopover
+                filters={filters}
+                onFiltersChange={setFilters}
+                config={filterConfig}
+                stables={stables as any}
+                activeFilterCount={activeFilterCount}
+                onClearAll={clearAllFilters}
+              />
+
+              {/* Search Input */}
+              <div className="relative flex-1 sm:max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={t("horses:filters.searchPlaceholder")}
+                  value={filters.searchQuery}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      searchQuery: e.target.value,
+                    }))
+                  }
+                  className="pl-9"
+                />
+              </div>
+            </div>
+
+            {hasActiveFilters && (
+              <HorseFilterBadges
+                badges={getActiveFilterBadges()}
+                onClearAll={clearAllFilters}
+              />
+            )}
+          </div>
+
+          {/* Horse Table */}
+          <HorseTable
+            data={filteredHorses}
+            columns={columns}
+            onRowClick={handleViewDetails}
           />
-        )}
-      </div>
 
-      {/* Horse Table */}
-      <HorseTable
-        data={filteredHorses}
-        columns={columns}
-        onRowClick={handleViewDetails}
-      />
+          {/* Dialogs */}
+          <HorseFormDialog
+            open={formDialog.open}
+            onOpenChange={(open) => !open && formDialog.closeDialog()}
+            horse={formDialog.data}
+            onSave={handleSaveHorse}
+            allowStableAssignment={stables.length > 0}
+            availableStables={stables}
+          />
 
-      {/* Dialogs */}
-      <HorseFormDialog
-        open={formDialog.open}
-        onOpenChange={(open) => !open && formDialog.closeDialog()}
-        horse={formDialog.data}
-        onSave={handleSaveHorse}
-        allowStableAssignment={stables.length > 0}
-        availableStables={stables}
-      />
+          <HorseAssignmentDialog
+            open={assignmentDialog.open}
+            onOpenChange={(open) => !open && assignmentDialog.closeDialog()}
+            horse={assignmentDialog.data}
+            availableStables={stables}
+            onAssign={handleAssign}
+          />
 
-      <HorseAssignmentDialog
-        open={assignmentDialog.open}
-        onOpenChange={(open) => !open && assignmentDialog.closeDialog()}
-        horse={assignmentDialog.data}
-        availableStables={stables}
-        onAssign={handleAssign}
-      />
-
-      {/* Vaccination Record Dialog */}
-      {selectedHorseForVaccination && (
-        <VaccinationRecordDialog
-          open={vaccinationRecordDialog.open}
-          onOpenChange={(open) =>
-            !open && vaccinationRecordDialog.closeDialog()
-          }
-          horse={selectedHorseForVaccination}
-          organizationId={currentOrganizationId || ""}
-          record={vaccinationRecordDialog.data}
-          onSuccess={handleVaccinationRecordSuccess}
-        />
-      )}
-
-      {/* Vaccination History Dialog */}
-      {selectedHorseForVaccination && (
-        <Dialog
-          open={vaccinationHistoryOpen}
-          onOpenChange={setVaccinationHistoryOpen}
-        >
-          <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {t("horses:vaccination.viewFullHistory")} -{" "}
-                {selectedHorseForVaccination.name}
-              </DialogTitle>
-            </DialogHeader>
-            <VaccinationHistoryTable
-              records={vaccinationRecords}
-              onEdit={handleEditVaccinationRecord}
-              onDelete={handleDeleteVaccinationRecord}
-              onAdd={() => vaccinationRecordDialog.openDialog()}
-              loading={loadingVaccinationRecords}
+          {/* Vaccination Record Dialog */}
+          {selectedHorseForVaccination && (
+            <VaccinationRecordDialog
+              open={vaccinationRecordDialog.open}
+              onOpenChange={(open) =>
+                !open && vaccinationRecordDialog.closeDialog()
+              }
+              horse={selectedHorseForVaccination}
+              organizationId={currentOrganizationId || ""}
+              record={vaccinationRecordDialog.data}
+              onSuccess={handleVaccinationRecordSuccess}
             />
-          </DialogContent>
-        </Dialog>
+          )}
+
+          {/* Vaccination History Dialog */}
+          {selectedHorseForVaccination && (
+            <Dialog
+              open={vaccinationHistoryOpen}
+              onOpenChange={setVaccinationHistoryOpen}
+            >
+              <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>
+                    {t("horses:vaccination.viewFullHistory")} -{" "}
+                    {selectedHorseForVaccination.name}
+                  </DialogTitle>
+                </DialogHeader>
+                <VaccinationHistoryTable
+                  records={vaccinationRecords}
+                  onEdit={handleEditVaccinationRecord}
+                  onDelete={handleDeleteVaccinationRecord}
+                  onAdd={() => vaccinationRecordDialog.openDialog()}
+                  loading={loadingVaccinationRecords}
+                />
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       )}
-    </div>
+    </QueryBoundary>
   );
 }

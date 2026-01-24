@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -37,12 +37,16 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganizationContext } from "@/contexts/OrganizationContext";
 import { useDialog } from "@/hooks/useDialog";
-import { useAsyncData } from "@/hooks/useAsyncData";
 import { useCRUD } from "@/hooks/useCRUD";
 import { useUserStables } from "@/hooks/useUserStables";
 import { useActivityFilters } from "@/hooks/useActivityFilters";
 import { useActivityTypes } from "@/hooks/useActivityTypes";
-import { useRoutineTemplates } from "@/hooks/useRoutines";
+import {
+  useRoutineTemplates,
+  useRoutineInstancesForStable,
+} from "@/hooks/useRoutines";
+import { useActivitiesForPeriod } from "@/hooks/useActivities";
+import { useMyHorses } from "@/hooks/useHorses";
 import { ActivityFormDialog } from "@/components/ActivityFormDialog";
 import { ActivityFilterPopover } from "@/components/activities/ActivityFilterPopover";
 import { AssigneeAvatar } from "@/components/activities/AssigneeAvatar";
@@ -51,8 +55,6 @@ import { Timestamp } from "firebase/firestore";
 import { cn } from "@/lib/utils";
 import { toDate } from "@/utils/timestampUtils";
 import {
-  getActivitiesByPeriod,
-  getActivitiesByPeriodMultiStable,
   createActivity,
   createTask,
   createMessage,
@@ -60,10 +62,8 @@ import {
   deleteActivity,
   completeActivity,
 } from "@/services/activityService";
-import { getUserHorses } from "@/services/horseService";
 import {
   restartRoutineInstance,
-  getRoutineInstances,
   createRoutineInstance,
 } from "@/services/routineService";
 import type {
@@ -211,70 +211,25 @@ export default function TodayPage() {
     selectedStableId === "all" ? stables[0]?.id : selectedStableId;
   const stableIdForQuery = activeStableId || undefined;
 
-  // Load activities for selected stable and period
-  const activities = useAsyncData<ActivityEntry[]>({
-    loadFn: async () => {
-      if (!selectedStableId || stables.length === 0) return [];
-      if (selectedStableId === "all") {
-        const stableIds = stables.map((s) => s.id);
-        return await getActivitiesByPeriodMultiStable(
-          stableIds,
-          currentDate,
-          periodType,
-        );
-      }
-      return await getActivitiesByPeriod(
-        selectedStableId,
-        currentDate,
-        periodType,
-      );
-    },
-  });
+  // Load activities for selected stable and period using new hook
+  const {
+    activities: activitiesData,
+    loading: activitiesLoading,
+    refetch: reloadActivities,
+  } = useActivitiesForPeriod(
+    selectedStableId,
+    stables,
+    currentDate,
+    periodType,
+  );
 
-  // Load routine instances for selected stable or all stables
-  const [allRoutineInstances, setAllRoutineInstances] = useState<
-    RoutineInstance[]
-  >([]);
-  const [routinesLoading, setRoutinesLoading] = useState(false);
-
-  useEffect(() => {
-    const loadRoutineInstances = async () => {
-      if (!selectedStableId || stables.length === 0) {
-        setAllRoutineInstances([]);
-        return;
-      }
-
-      setRoutinesLoading(true);
-      try {
-        if (selectedStableId === "all") {
-          // Fetch routine instances for all stables
-          const allInstances = await Promise.all(
-            stables.map((stable) =>
-              getRoutineInstances(stable.id, currentDate),
-            ),
-          );
-          // Flatten the array of arrays
-          setAllRoutineInstances(allInstances.flat());
-        } else {
-          // Fetch for single stable
-          const instances = await getRoutineInstances(
-            selectedStableId,
-            currentDate,
-          );
-          setAllRoutineInstances(instances);
-        }
-      } catch (error) {
-        console.error("Error loading routine instances:", error);
-        setAllRoutineInstances([]);
-      } finally {
-        setRoutinesLoading(false);
-      }
-    };
-
-    loadRoutineInstances();
-  }, [selectedStableId, currentDate, stables]);
-
-  const routineInstances = allRoutineInstances;
+  // Load routine instances for selected stable or all stables using new hook
+  const {
+    instances: routineInstances,
+    loading: routinesLoading,
+    refetch: reloadRoutines,
+    createInstance: createRoutineInstanceHook,
+  } = useRoutineInstancesForStable(selectedStableId, stables, currentDate);
 
   // Function to create a new routine instance
   const createInstance = async (templateId: string, scheduledDate: Date) => {
@@ -282,25 +237,11 @@ export default function TodayPage() {
       selectedStableId === "all" ? stableIdForQuery : selectedStableId;
     if (!targetStableId) throw new Error("No stable selected");
 
-    const id = await createRoutineInstance({
+    const id = await createRoutineInstanceHook(
+      targetStableId,
       templateId,
-      stableId: targetStableId,
-      scheduledDate: scheduledDate.toISOString(),
-    });
-
-    // Reload instances after creation
-    const instances =
-      selectedStableId === "all"
-        ? (
-            await Promise.all(
-              stables.map((stable) =>
-                getRoutineInstances(stable.id, currentDate),
-              ),
-            )
-          ).flat()
-        : await getRoutineInstances(targetStableId, currentDate);
-
-    setAllRoutineInstances(instances);
+      scheduledDate,
+    );
     return id;
   };
 
@@ -335,33 +276,17 @@ export default function TodayPage() {
   }, [routineInstances]);
 
   // Load horses for activity form
-  const horses = useAsyncData<Horse[]>({
-    loadFn: async () => {
-      if (!user) return [];
-      return await getUserHorses(user.uid);
-    },
-  });
+  const { horses: horsesData, loading: horsesLoading } = useMyHorses();
 
   // Load activity types for selected stable
   const activityTypes = useActivityTypes(selectedStableId, true);
 
-  // Reload activities when stable, period type, date, or stables list changes
-  useEffect(() => {
-    if (selectedStableId && stables.length > 0) {
-      activities.load();
-    }
-  }, [selectedStableId, currentDate, periodType, stables]);
-
-  // Load horses on mount
-  useEffect(() => {
-    if (user) {
-      horses.load();
-    }
-  }, [user]);
+  // Note: Activities and horses are now loaded automatically by their hooks
+  // No need for manual useEffect - TanStack Query handles refetching on dependency changes
 
   // Filter and group activities
   const { filteredActivities, groupedActivities, temporalSections } =
-    useActivityFilters(activities.data || [], filters, user?.uid, periodType);
+    useActivityFilters(activitiesData, filters, user?.uid, periodType);
 
   // Dialog state
   const formDialog = useDialog<ActivityEntry>();
@@ -399,7 +324,7 @@ export default function TodayPage() {
       await deleteActivity(id);
     },
     onSuccess: async () => {
-      await activities.reload();
+      await reloadActivities();
     },
     successMessages: {
       create: t("activities:messages.createSuccess"),
@@ -436,11 +361,6 @@ export default function TodayPage() {
     setCompletingIds((prev) => new Set(prev).add(entry.id));
 
     try {
-      const optimisticActivities = (activities.data || []).map((a) =>
-        a.id === entry.id ? { ...a, status: "completed" as const } : a,
-      );
-      activities.setData?.(optimisticActivities);
-
       await completeActivity(entry.id, user.uid);
 
       toast({
@@ -448,10 +368,10 @@ export default function TodayPage() {
         description: t("activities:actionList.entryCompleted"),
       });
 
-      await activities.reload();
+      await reloadActivities();
     } catch (error) {
       console.error("Failed to complete:", error);
-      await activities.reload();
+      await reloadActivities();
       toast({
         title: t("common:messages.error"),
         description: t("activities:messages.completeError"),
@@ -496,7 +416,7 @@ export default function TodayPage() {
         description: instance.templateName,
       });
       // Refresh the routine instances
-      window.location.reload();
+      await reloadRoutines();
     } catch (error) {
       console.error("Failed to restart routine:", error);
       toast({
@@ -791,9 +711,9 @@ export default function TodayPage() {
                 temporalSections={temporalSections}
                 groupedActivities={groupedActivities}
                 filters={filters}
-                loading={activities.loading}
+                loading={activitiesLoading}
                 activityTypes={activityTypes.data || []}
-                horses={horses.data || []}
+                horses={horsesData}
                 completingIds={completingIds}
                 onEdit={handleEditEntry}
                 onDelete={handleDeleteEntry}
@@ -809,9 +729,9 @@ export default function TodayPage() {
                 temporalSections={temporalSections}
                 groupedActivities={groupedActivities}
                 filters={filters}
-                loading={activities.loading}
+                loading={activitiesLoading}
                 activityTypes={activityTypes.data || []}
-                horses={horses.data || []}
+                horses={horsesData}
                 completingIds={completingIds}
                 onEdit={handleEditEntry}
                 onDelete={handleDeleteEntry}
@@ -949,7 +869,7 @@ export default function TodayPage() {
         onOpenChange={formDialog.closeDialog}
         entry={formDialog.data || undefined}
         onSave={handleSaveEntry}
-        horses={horses.data?.map((h) => ({ id: h.id, name: h.name })) || []}
+        horses={horsesData.map((h) => ({ id: h.id, name: h.name }))}
         stableMembers={stableMembers}
         activityTypes={activityTypes.data || []}
         routineTemplates={templates}

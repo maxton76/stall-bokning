@@ -1,10 +1,11 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { AuthProvider } from "./contexts/AuthContext";
 import { OrganizationProvider } from "./contexts/OrganizationContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import AuthenticatedLayout from "./layouts/AuthenticatedLayout";
+import { prewarmApi } from "./services/apiWarmup";
 
 // Lazy-load public pages
 const LandingPage = lazy(() => import("./pages/LandingPage"));
@@ -179,6 +180,12 @@ function InlineLoader() {
 }
 
 function App() {
+  // Pre-warm API on app load to trigger Cloud Run instance startup
+  // This helps reduce cold start delays when users navigate to API-dependent pages
+  useEffect(() => {
+    prewarmApi();
+  }, []);
+
   return (
     <AuthProvider>
       <OrganizationProvider>
