@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 import {
   Plus,
   Pencil,
@@ -54,6 +55,8 @@ import {
   completeActivity,
 } from "@/services/activityService";
 import { getUserHorses } from "@/services/horseService";
+import { getActiveMembersWithUserDetails } from "@/services/stableService";
+import { formatFullName } from "@/lib/nameUtils";
 import type {
   ActivityEntry,
   ActivityFilters,
@@ -394,12 +397,28 @@ export default function ActivitiesActionListPage() {
     }
   };
 
-  // Get stable members for assignment dropdown
-  const stableMembers = useMemo(() => {
-    // This would typically come from a stable members service
-    // For now, return empty array
-    return [];
-  }, [selectedStableId]);
+  // Fetch stable members for assignment dropdown
+  const { data: stableMembers = [] } = useQuery({
+    queryKey: ["stableMembers", selectedStableId, "withUsers"],
+    queryFn: async () => {
+      if (!selectedStableId || selectedStableId === "all") return [];
+      const membersData =
+        await getActiveMembersWithUserDetails(selectedStableId);
+      return membersData.map((member: any) => ({
+        id: member.userId,
+        name:
+          member.displayName ||
+          formatFullName({
+            firstName: member.firstName,
+            lastName: member.lastName,
+            email: member.email,
+          }),
+        roles: member.roles || [],
+      }));
+    },
+    enabled: !!selectedStableId && selectedStableId !== "all",
+    staleTime: 5 * 60 * 1000,
+  });
 
   if (stablesLoading) {
     return (
@@ -687,6 +706,7 @@ export default function ActivitiesActionListPage() {
         horses={horses.data?.map((h) => ({ id: h.id, name: h.name })) || []}
         stableMembers={stableMembers}
         activityTypes={activityTypes.data || []}
+        currentUserId={user?.uid}
       />
     </div>
   );

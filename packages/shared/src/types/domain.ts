@@ -210,7 +210,16 @@ export interface Horse {
   ownershipType: HorseOwnershipType; // member | contact | external
   ownerContactId?: string; // Contact ID if ownershipType === 'contact'
   ownerContactName?: string; // Cached contact name for display
-  ownerOrganizationId?: string; // External organization ID if ownershipType === 'external'
+
+  // Owner's organization (for ownership vs placement tracking)
+  // This is the owner's personal organization where the horse "lives" conceptually
+  ownerOrganizationId?: string; // Owner's personal organization ID (or external org if ownershipType === 'external')
+
+  // Placement tracking (separate from ownership)
+  // Where the horse is physically located - can change without changing ownership
+  placementOrganizationId?: string; // Business org where horse is placed
+  placementStableId?: string; // Specific stable within that org (may differ from currentStableId during transition)
+  placementDate?: Timestamp; // When horse was placed (for history visibility cutoff)
 
   // External horse flag - if true, horse is not part of the stable
   isExternal: boolean; // Default: false

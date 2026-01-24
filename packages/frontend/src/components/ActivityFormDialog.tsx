@@ -92,10 +92,11 @@ interface ActivityFormDialogProps {
   ) => Promise<void>;
   onDelete?: () => Promise<void>; // For deleting existing entries
   horses?: Array<{ id: string; name: string }>;
-  stableMembers?: Array<{ id: string; name: string }>;
+  stableMembers?: Array<{ id: string; name: string; roles?: string[] }>;
   activityTypes?: ActivityTypeConfig[];
   routineTemplates?: RoutineTemplate[];
   onCreateRoutine?: (templateId: string, dates: Date[]) => Promise<void>;
+  currentUserId?: string; // For default assignment
 }
 
 export function ActivityFormDialog({
@@ -112,6 +113,7 @@ export function ActivityFormDialog({
   activityTypes = [],
   routineTemplates = [],
   onCreateRoutine,
+  currentUserId,
 }: ActivityFormDialogProps) {
   const { t } = useTranslation(["activities", "routines", "common"]);
   const translateActivityType = useTranslatedActivityTypes();
@@ -236,7 +238,7 @@ export function ActivityFormDialog({
         activityTypeConfigId: selectedActivityType?.id || "",
         activityTypeColor: selectedActivityType?.color || "",
         note: "",
-        assignedTo: "",
+        assignedTo: currentUserId || "", // Default to logged-in user
       } as any);
     }
   }, [
@@ -247,6 +249,7 @@ export function ActivityFormDialog({
     resetForm,
     open,
     activityTypes,
+    currentUserId,
   ]);
 
   // Update form type when radio selection changes
@@ -289,6 +292,29 @@ export function ActivityFormDialog({
 
     return capitalizedRoles.join(" / ");
   };
+
+  // Sort members: preferred roles first for activities, then others
+  const sortedMembers = useMemo(() => {
+    const selectedConfigId = form.watch("activityTypeConfigId");
+    const activityType = activityTypes.find((at) => at.id === selectedConfigId);
+    const preferredRoles = activityType?.roles || [];
+
+    // For tasks or when no preferred roles, return as-is
+    if (preferredRoles.length === 0 || selectedType !== "activity") {
+      return stableMembers;
+    }
+
+    // Sort: members with matching roles first
+    return [...stableMembers].sort((a, b) => {
+      const aHasRole =
+        a.roles?.some((r) => preferredRoles.includes(r)) ?? false;
+      const bHasRole =
+        b.roles?.some((r) => preferredRoles.includes(r)) ?? false;
+      if (aHasRole && !bHasRole) return -1;
+      if (!aHasRole && bHasRole) return 1;
+      return 0;
+    });
+  }, [stableMembers, form, activityTypes, selectedType]);
 
   return (
     <BaseFormDialog
@@ -649,7 +675,7 @@ export function ActivityFormDialog({
           name="assignedTo"
           label={getAssignmentLabel()}
           form={form as any}
-          options={stableMembers.map((m) => ({ value: m.id, label: m.name }))}
+          options={sortedMembers.map((m) => ({ value: m.id, label: m.name }))}
           placeholder={t("activities:form.placeholders.unassigned")}
         />
       )}

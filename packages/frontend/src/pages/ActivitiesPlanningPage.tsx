@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   startOfWeek,
   addWeeks,
@@ -39,6 +40,8 @@ import {
   getAllAccessibleHorses,
 } from "@/services/horseService";
 import { getRoutineInstances } from "@/services/routineService";
+import { getActiveMembersWithUserDetails } from "@/services/stableService";
+import { formatFullName } from "@/lib/nameUtils";
 import { getActivityTypesByStable } from "@/services/activityTypeService";
 import type { ActivityEntry, ActivityTypeConfig } from "@/types/activity";
 import type { Horse } from "@/types/roles";
@@ -199,6 +202,29 @@ export default function ActivitiesPlanningPage() {
 
   const activityTypes = useAsyncData<ActivityTypeConfig[]>({
     loadFn: () => loadActivityTypes(horses.data),
+  });
+
+  // Fetch stable members for assignment dropdown
+  const { data: stableMembers = [] } = useQuery({
+    queryKey: ["stableMembers", selectedStableId, "withUsers"],
+    queryFn: async () => {
+      if (!selectedStableId || selectedStableId === "all") return [];
+      const membersData =
+        await getActiveMembersWithUserDetails(selectedStableId);
+      return membersData.map((member: any) => ({
+        id: member.userId,
+        name:
+          member.displayName ||
+          formatFullName({
+            firstName: member.firstName,
+            lastName: member.lastName,
+            email: member.email,
+          }),
+        roles: member.roles || [],
+      }));
+    },
+    enabled: !!selectedStableId && selectedStableId !== "all",
+    staleTime: 5 * 60 * 1000,
   });
 
   // Reload activity types when stable or horses change
@@ -510,8 +536,9 @@ export default function ActivitiesPlanningPage() {
         onSave={handleSave}
         onDelete={formDialog.data ? handleDelete : undefined}
         horses={horses.data?.map((h) => ({ id: h.id, name: h.name })) || []}
-        stableMembers={[]}
+        stableMembers={stableMembers}
         activityTypes={activityTypes.data || []}
+        currentUserId={user?.uid}
       />
     </div>
   );

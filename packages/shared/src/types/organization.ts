@@ -32,6 +32,13 @@ export type ContactType = "Personal" | "Business";
 export type SubscriptionTier = "free" | "professional" | "enterprise";
 
 /**
+ * Organization type - determines feature availability and behavior
+ * - personal: Auto-created for each user, single owner, limited features (free tier)
+ * - business: Created by stable_owner users, multiple members, full features
+ */
+export type OrganizationType = "personal" | "business";
+
+/**
  * Membership status
  */
 export type MembershipStatus = "active" | "inactive" | "pending";
@@ -44,11 +51,19 @@ export type StableAccessLevel = "all" | "specific";
 /**
  * Organization entity - contains multiple stables
  * Represents the top-level organizational unit
+ *
+ * Two types:
+ * - personal: Auto-created for each user, 1 implicit stable, limited features
+ * - business: Created by stable_owner users, multiple stables, full features
  */
 export interface Organization {
   id: string;
   name: string;
   description?: string;
+
+  // Organization Type (determines feature availability)
+  // Defaults to 'personal' for auto-created orgs, 'business' for orgs with multiple stables
+  organizationType?: OrganizationType;
 
   // Contact Information
   contactType: ContactType;
@@ -64,6 +79,10 @@ export interface Organization {
 
   // Contact Integration
   stableContactId?: string; // Contact representing the stable/organization itself (badge: 'stable')
+
+  // Implicit Stable (for personal organizations)
+  // Auto-created "My Horses" stable that is always present
+  implicitStableId?: string;
 
   // Subscription
   subscriptionTier: SubscriptionTier;

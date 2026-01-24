@@ -2,44 +2,65 @@
 
 ## Overview
 
-The StallBokning system implements a three-tier role hierarchy to support:
-1. **Service Providers** - System administrators managing the entire platform
-2. **Stable Owners** - Users who own and manage one or more stables
-3. **Stable Members** - Users who are members of one or more stables
+The StallBokning system implements a comprehensive role-based access control (RBAC) system with:
+
+1. **System Roles** - Platform-wide permissions via Firebase custom claims
+2. **Organization Roles** - Professional roles within organizations (10 specialized roles)
+3. **Stable Access** - Granular access to specific stables within an organization
 
 ## Role Architecture
 
 ### System Roles (Platform Level)
 
-Stored in `users.systemRole`:
+Stored in `users.systemRole` and Firebase custom claims:
 
-| Role | Description | Permissions |
-|------|-------------|-------------|
-| `system_admin` | Service provider/platform administrator | Full access to all resources across all stables |
-| `stable_owner` | Designated user who can create and own stables | Can create stables, own multiple stables, full control of owned stables |
-| `member` | Regular user (default) | Can only join stables as member, cannot create stables |
+| Role | Description | Key Permissions |
+|------|-------------|-----------------|
+| `system_admin` | Platform administrator (service provider) | Full access to all resources, user management, platform configuration |
+| `stable_owner` | Can create and own organizations | Create organizations, manage stables, full control of owned resources |
+| `member` | Regular user (default) | Join organizations as member, participate in activities |
 
-**Hierarchy**:
 ```
-System Admin (service providers)
-    ↓
-Stable Owner (can own multiple stables)
-    ↓
-Stable A, Stable B, Stable C...
-    ↓
-Members (of each stable)
+System Admin (platform operators)
+    │
+    ▼
+Stable Owner (organization creators)
+    │
+    ├── Organization A
+    │   ├── Stable 1
+    │   └── Stable 2
+    │
+    └── Organization B
+        └── Stable 3
 ```
 
-### Stable-Level Roles
+### Organization Roles (Professional Roles)
 
-Stored in `stableMembers.role` (for members only, owner tracked separately):
+Stored in `organizationMembers.roles[]` (array) with `primaryRole` for display:
 
-| Role | Description | Permissions |
-|------|-------------|-------------|
-| `manager` | Delegated management rights by owner | Can manage schedules, shifts, and invite members |
-| `member` | Regular stable member | Can view schedules, book shifts, view own bookings |
+| Role | Description | Typical Permissions |
+|------|-------------|---------------------|
+| `administrator` | Full organization access | Manage members, settings, all stables |
+| `veterinarian` | Animal health services | Access health records, create medical entries |
+| `dentist` | Equine dental services | Access dental records, schedule appointments |
+| `farrier` | Hoof care services | Access hoof records, schedule visits |
+| `customer` | Horse owner/client | View own horses, basic stable access |
+| `groom` | Daily care staff | Execute tasks, update horse status |
+| `saddle_maker` | Tack and saddle services | Access equipment records |
+| `horse_owner` | External horse owner | Manage owned horses, limited stable access |
+| `rider` | Professional rider | Access assigned horses, competition data |
+| `inseminator` | Breeding services | Access breeding records, schedule services |
 
-**Note**: Stable owners are NOT in the stableMembers collection. They are tracked via `stables.ownerId`.
+**Multi-Role Support**: Users can have multiple roles within an organization. For example, a user might be both a `veterinarian` and a `horse_owner`.
+
+### Stable Access Control
+
+Organization members have configurable stable access:
+
+| Access Level | Description |
+|--------------|-------------|
+| `all` | Access to all stables in the organization |
+| `specific` | Access only to stables listed in `assignedStableIds[]` |
 
 ## Database Collections
 
@@ -47,103 +68,186 @@ Stored in `stableMembers.role` (for members only, owner tracked separately):
 
 ```typescript
 interface User {
-  uid: string                    // Firebase Auth UID
-  email: string
-  displayName?: string
-  systemRole: 'system_admin' | 'stable_owner' | 'member'  // Platform-level role
-  createdAt: Timestamp
-  updatedAt: Timestamp
+  uid: string;                    // Firebase Auth UID
+  email: string;
+  firstName: string;
+  lastName: string;
+  systemRole: 'system_admin' | 'stable_owner' | 'member';
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 ```
 
 **Security Rules**:
-- Any authenticated user can read their own document
-- System admins can read all user documents
-- Only the user or system admin can update their document
-- Only system admins can delete users
+- Users can read/update their own document
+- System admins can read all users
+- System roles can only be changed by system admins
 
-### 2. stableMembers Collection (NEW)
-
-```typescript
-interface StableMember {
-  id: string                     // Auto-generated ID (format: userId_stableId)
-  stableId: string              // Reference to stable
-  userId: string                // Reference to user (NOT the owner)
-  role: 'manager' | 'member'    // Only managers and members (owner tracked separately)
-  status: 'active' | 'inactive' | 'pending'
-  joinedAt: Timestamp
-  invitedBy?: string            // userId who sent invite
-  inviteAcceptedAt?: Timestamp
-}
-```
-
-**Indexes Required**:
-- `stableId` (for querying all members of a stable)
-- `userId` (for querying all stables a user belongs to)
-- Composite: `stableId + userId` (for checking membership)
-
-**Security Rules**:
-- Stable owners and managers can read all members of their stable
-- Users can read their own memberships
-- Only stable owners can create/update/delete memberships
-- System admins have full access
-
-### 3. stables Collection (UPDATED)
+### 2. organizations Collection
 
 ```typescript
-interface Stable {
-  id: string
-  name: string
-  description?: string
-  address?: string
-  ownerId: string               // Reference to stable_owner user
-  ownerEmail?: string           // Cached for display
-  createdAt: Timestamp
-  updatedAt: Timestamp
-}
-```
+interface Organization {
+  id: string;
+  name: string;
+  description?: string;
 
-**Security Rules**:
-- Members can read stables they belong to
-- Owners can update their stables
-- Owners can delete their stables (with confirmation)
-- System admins have full access
+  // Contact Information
+  contactType: 'Personal' | 'Business';
+  primaryEmail: string;
+  phoneNumber?: string;
 
-### 4. horses Collection (NEW)
+  // Timezone
+  timezone: string;
 
-```typescript
-interface Horse {
-  id: string                    // Auto-generated ID
-  name: string
-  breed?: string
-  age?: number
-  color?: string
-  ownerId: string              // Reference to user who owns this horse
-  ownerEmail?: string          // Cached for display
-  stableId: string             // Which stable this horse belongs to
-  status: 'active' | 'inactive'
-  notes?: string
-  createdAt: Timestamp
-  updatedAt: Timestamp
+  // Ownership
+  ownerId: string;              // User with stable_owner systemRole
+  ownerEmail: string;           // Cached for display
+
+  // Subscription
+  subscriptionTier: 'free' | 'professional' | 'enterprise';
+
+  // Statistics (denormalized)
+  stats: {
+    stableCount: number;
+    totalMemberCount: number;
+  };
+
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 ```
 
 **Key Points**:
-- Both stable owners AND members can add horses
-- Each horse has an `ownerId` (the person who owns the horse)
-- Each horse belongs to a `stableId`
-- Stable owners can add horses for themselves
-- Members can add horses for themselves
-- Users can only edit/delete their own horses
-- Stable owners can view all horses in their stable
-- Members can view all horses in stables they belong to
+- Owner is ALSO an organizationMember with `administrator` role
+- Owner tracked in both `ownerId` field AND `organizationMembers`
+- Statistics are denormalized for performance
 
-**Security Rules**:
-- Users can create horses in stables they have access to
-- Users can only update/delete their own horses
-- Stable owners can view all horses in their stables
-- Members can view all horses in their stables
-- System admins have full access
+### 3. organizationMembers Collection
+
+```typescript
+interface OrganizationMember {
+  id: string;                   // Format: {userId}_{organizationId}
+  organizationId: string;
+  userId: string;
+
+  // Cached user information
+  userEmail: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+
+  // Multi-role support
+  roles: OrganizationRole[];    // Array of roles
+  primaryRole: OrganizationRole; // Main role for display
+
+  // Status
+  status: 'active' | 'inactive' | 'pending';
+
+  // Planning visibility
+  showInPlanning: boolean;      // Controls visibility in activity planning
+
+  // Stable access control
+  stableAccess: 'all' | 'specific';
+  assignedStableIds?: string[]; // Only if stableAccess === 'specific'
+
+  // Shift constraints (optional)
+  availability?: MemberAvailability;
+  limits?: MemberLimits;
+  stats?: MemberStats;
+
+  // Metadata
+  joinedAt: Timestamp;
+  invitedBy: string;
+  inviteAcceptedAt?: Timestamp;
+}
+```
+
+**Indexes Required**:
+- `organizationId` - Query all members of an organization
+- `userId` - Query all organizations a user belongs to
+- `organizationId + status` - Query active members
+
+### 4. stables Collection
+
+```typescript
+interface Stable {
+  id: string;
+  name: string;
+  description?: string;
+  address?: string;
+  facilityNumber?: string;      // Jordbruksverket registration
+
+  ownerId: string;              // Must be stable_owner systemRole
+  ownerEmail?: string;
+  organizationId?: string;      // Link to parent organization
+
+  // Points system configuration
+  pointsSystem?: PointsSystemConfig;
+
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
+
+### 5. horses Collection
+
+```typescript
+interface Horse {
+  id: string;
+  name: string;
+
+  // Ownership (immutable - who owns the horse)
+  ownerId: string;              // User who owns this horse
+  ownerName?: string;
+  ownerEmail?: string;
+  ownershipType: 'member' | 'contact' | 'external';
+  ownerContactId?: string;      // If ownershipType === 'contact'
+
+  // Current Stable Assignment (mutable - where horse is placed)
+  currentStableId?: string;     // Current stable location
+  currentStableName?: string;
+  assignedAt?: Timestamp;
+
+  // Status
+  status: 'active' | 'inactive';
+  isExternal: boolean;          // If horse is outside the system
+
+  // ... additional fields
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
+
+### 6. contacts Collection
+
+```typescript
+interface Contact {
+  id: string;
+  contactType: 'Personal' | 'Business';
+
+  // Access control
+  accessLevel: 'organization' | 'user';
+  organizationId?: string;      // If accessLevel === 'organization'
+  userId?: string;              // If accessLevel === 'user'
+
+  // Linking
+  linkedMemberId?: string;      // Format: {userId}_{organizationId}
+  linkedUserId?: string;        // Firebase Auth UID
+
+  // Badge
+  badge?: 'primary' | 'stable' | 'member' | 'external';
+  source: 'manual' | 'invite' | 'import' | 'sync';
+  hasLoginAccess: boolean;
+
+  // Contact details...
+  email: string;
+  phoneNumber: string;
+  address: ContactAddress;
+
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
 
 ## Permission Matrix
 
@@ -152,78 +256,79 @@ interface Horse {
 | Operation | system_admin | stable_owner | member |
 |-----------|--------------|--------------|--------|
 | View all users | ✅ | ❌ | ❌ |
-| Promote user to stable_owner | ✅ | ❌ | ❌ |
+| Promote to stable_owner | ✅ | ❌ | ❌ |
 | Delete any user | ✅ | ❌ | ❌ |
-| View all stables | ✅ | ❌ | ❌ |
-| Access any stable data | ✅ | ❌ | ❌ |
-| Create new stable | ✅ | ✅ | ❌ |
+| View all organizations | ✅ | ❌ | ❌ |
+| Create organization | ✅ | ✅ | ❌ |
+
+### Organization Operations
+
+| Operation | administrator | Other roles |
+|-----------|---------------|-------------|
+| Update org settings | ✅ | ❌ |
+| Manage members | ✅ | ❌ |
+| Invite members | ✅ | ❌ |
+| Remove members | ✅ | ❌ |
+| Change member roles | ✅ | ❌ |
+| Create stables | ✅ | ❌ |
+| View org details | ✅ | ✅ (if member) |
 
 ### Stable Operations
 
-| Operation | owner | manager | member |
-|-----------|-------|---------|--------|
-| View stable details | ✅ | ✅ | ✅ |
+| Operation | administrator | manager* | Other roles |
+|-----------|---------------|----------|-------------|
 | Update stable settings | ✅ | ❌ | ❌ |
 | Delete stable | ✅ | ❌ | ❌ |
-| View all members | ✅ | ✅ | ✅ |
-| Invite members | ✅ | ✅ | ❌ |
-| Remove members | ✅ | ❌ | ❌ |
-| Change member roles | ✅ | ❌ | ❌ |
+| View stable | ✅ | ✅ | ✅ (if has access) |
 | Create schedules | ✅ | ✅ | ❌ |
 | Edit schedules | ✅ | ✅ | ❌ |
-| Delete schedules | ✅ | ❌ | ❌ |
 | View schedules | ✅ | ✅ | ✅ |
-| Book shifts | ✅ | ✅ | ✅ |
-| Cancel own bookings | ✅ | ✅ | ✅ |
-| Cancel others' bookings | ✅ | ✅ | ❌ |
 
-### Horse Operations
+*Note: The `manager` role here refers to `stableMembers.role` which is being deprecated in favor of `organizationMembers.roles[]`.
 
-| Operation | stable owner | member (own horse) | member (other's horse) |
-|-----------|--------------|-------------------|----------------------|
-| Add horse to stable | ✅ | ✅ | ❌ |
-| View all horses in stable | ✅ | ✅ | ✅ |
-| Edit horse details | ✅ (own horses) | ✅ (own horses) | ❌ |
-| Delete horse | ✅ (own horses) | ✅ (own horses) | ❌ |
-| View horse owner info | ✅ | ✅ | ✅ |
-| Assign horse to shift | ✅ (own horses) | ✅ (own horses) | ❌ |
+### Horse Operations (RBAC Field-Level Access)
 
-## Implementation Plan
+The system implements **field-level RBAC** for horse data with 5 access levels:
 
-### Phase 1: Database Migration
-1. Create `stableMembers` collection
-2. Migrate existing stable owners to stableMembers
-3. Update security rules
-4. Create required indexes
+| Access Level | Roles | Fields Visible |
+|--------------|-------|----------------|
+| Level 1: public | All stable members | Basic info (name, breed, color, status) |
+| Level 2: basic_care | groom, rider | Care instructions, equipment |
+| Level 3: professional | veterinarian, dentist, farrier, inseminator | Medical data, identification |
+| Level 4: management | administrator | Owner info, notes |
+| Level 5: owner | Horse owner | Full access to all fields |
 
-### Phase 2: Backend Updates
-1. Update stable creation to create owner membership
-2. Update invite system to create pending memberships
-3. Add membership management endpoints
-4. Add role checking utilities
+**Key Rules**:
+- Horse owners ALWAYS get full access regardless of organization role
+- Multi-role users get highest applicable access level
+- Health records filtered by professional specialty
 
-### Phase 3: Frontend Updates
-1. Add membership management UI
-2. Update permission checks throughout app
-3. Add role-based UI visibility
-4. Update member invitation flow
+## Contact Visibility Model
 
-### Phase 4: Testing & Deployment
-1. Test all permission scenarios
-2. Test multi-stable memberships
-3. Deploy to staging
-4. Production deployment
+Contacts have two access levels:
 
-## Helper Functions
+| Type | Storage | Visibility |
+|------|---------|------------|
+| Private | `accessLevel: 'user'`, `userId: string` | Only creator can see |
+| Organization | `accessLevel: 'organization'`, `organizationId: string` | All org members can see |
 
-### Firestore Security Rules
+**Query Patterns**:
+
+```typescript
+// Get private contacts
+db.collection('contacts')
+  .where('userId', '==', currentUserId)
+  .where('accessLevel', '==', 'user')
+
+// Get organization contacts
+db.collection('contacts')
+  .where('organizationId', '==', orgId)
+  .where('accessLevel', '==', 'organization')
+```
+
+## Security Rules Helpers
 
 ```javascript
-// Helper to get user data
-function getUserData() {
-  return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-}
-
 // Check if user is authenticated
 function isAuthenticated() {
   return request.auth != null;
@@ -231,167 +336,68 @@ function isAuthenticated() {
 
 // Check if user is system admin
 function isSystemAdmin() {
-  return isAuthenticated() && getUserData().systemRole == 'system_admin';
-}
-
-// Check if user has stable_owner system role
-function hasStableOwnerRole() {
-  return isAuthenticated() && getUserData().systemRole == 'stable_owner';
-}
-
-// Check if user is owner of specific stable
-function isStableOwner(stableId) {
   return isAuthenticated() &&
-         get(/databases/$(database)/documents/stables/$(stableId)).data.ownerId == request.auth.uid;
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.systemRole == 'system_admin';
 }
 
-// Check if user is member of specific stable (manager or member)
-function isStableMember(stableId) {
+// Check if user is organization member
+function isOrganizationMember(orgId) {
   return isAuthenticated() &&
-         exists(/databases/$(database)/documents/stableMembers/$(request.auth.uid + '_' + stableId)) &&
-         get(/databases/$(database)/documents/stableMembers/$(request.auth.uid + '_' + stableId)).data.status == 'active';
+         exists(/databases/$(database)/documents/organizationMembers/$(request.auth.uid + '_' + orgId)) &&
+         get(/databases/$(database)/documents/organizationMembers/$(request.auth.uid + '_' + orgId)).data.status == 'active';
 }
 
-// Check if user has specific role in stable (manager or member)
-function hasStableRole(stableId, role) {
+// Check if user is organization admin
+function isOrganizationAdmin(orgId) {
   return isAuthenticated() &&
-         exists(/databases/$(database)/documents/stableMembers/$(request.auth.uid + '_' + stableId)) &&
-         get(/databases/$(database)/documents/stableMembers/$(request.auth.uid + '_' + stableId)).data.role == role;
+         exists(/databases/$(database)/documents/organizationMembers/$(request.auth.uid + '_' + orgId)) &&
+         'administrator' in get(/databases/$(database)/documents/organizationMembers/$(request.auth.uid + '_' + orgId)).data.roles;
 }
 
-// Check if user can access stable (owner, member, or admin)
+// Check if user has specific role in organization
+function hasOrganizationRole(orgId, role) {
+  return isAuthenticated() &&
+         exists(/databases/$(database)/documents/organizationMembers/$(request.auth.uid + '_' + orgId)) &&
+         role in get(/databases/$(database)/documents/organizationMembers/$(request.auth.uid + '_' + orgId)).data.roles;
+}
+
+// Check if user can access stable
 function canAccessStable(stableId) {
-  return isSystemAdmin() || isStableOwner(stableId) || isStableMember(stableId);
+  let stable = get(/databases/$(database)/documents/stables/$(stableId)).data;
+  let orgId = stable.organizationId;
+
+  return isSystemAdmin() ||
+         (isOrganizationMember(orgId) &&
+          (getMemberStableAccess(orgId) == 'all' ||
+           stableId in getMemberAssignedStables(orgId)));
 }
 ```
 
-### Frontend Utilities
+## Migration Notes
 
-```typescript
-// Get user's system role
-async function getUserSystemRole(userId: string): Promise<'system_admin' | 'stable_owner' | 'member'> {
-  const userDoc = await getDoc(doc(db, 'users', userId))
-  if (!userDoc.exists()) return 'member'
-  return userDoc.data().systemRole || 'member'
-}
+### Deprecated: stableMembers Collection
 
-// Check if user is owner of specific stable
-async function isUserStableOwner(userId: string, stableId: string): Promise<boolean> {
-  const stableDoc = await getDoc(doc(db, 'stables', stableId))
-  if (!stableDoc.exists()) return false
-  return stableDoc.data().ownerId === userId
-}
+The `stableMembers` collection is deprecated. Migration path:
 
-// Get user's role in specific stable (for members only)
-async function getUserStableMemberRole(userId: string, stableId: string): Promise<'manager' | 'member' | null> {
-  const memberDoc = await getDoc(doc(db, 'stableMembers', `${userId}_${stableId}`))
-  if (!memberDoc.exists()) return null
-  return memberDoc.data().role
-}
+| Old Field | New Location |
+|-----------|--------------|
+| `stableMembers.role` | `organizationMembers.roles[]` |
+| `stableMembers.stableId` | `organizationMembers.assignedStableIds[]` |
+| `stableMembers.status` | `organizationMembers.status` |
 
-// Get all stables user owns
-async function getUserOwnedStables(userId: string): Promise<Stable[]> {
-  const q = query(
-    collection(db, 'stables'),
-    where('ownerId', '==', userId)
-  )
-  const snapshot = await getDocs(q)
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Stable))
-}
+### Frontend Pages Still Using stableMembers
 
-// Get all stables user is member of
-async function getUserMemberStables(userId: string): Promise<StableMember[]> {
-  const q = query(
-    collection(db, 'stableMembers'),
-    where('userId', '==', userId),
-    where('status', '==', 'active')
-  )
-  const snapshot = await getDocs(q)
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as StableMember))
-}
+The following pages need migration to `organizationMembers`:
+- `ActivityFormDialog.tsx`
+- `ActivitiesPlanningPage.tsx`
+- `ActivitiesActionListPage.tsx`
+- `TodayPage.tsx`
+- `ScheduleEditorPage.tsx`
+- `RoutineScheduler.tsx`
 
-// Get all stables user has access to (owned + member)
-async function getAllUserStables(userId: string) {
-  const [ownedStables, memberStables] = await Promise.all([
-    getUserOwnedStables(userId),
-    getUserMemberStables(userId)
-  ])
+## Related Documentation
 
-  return {
-    owned: ownedStables,
-    member: memberStables
-  }
-}
-
-// Check if user can perform action in stable
-async function canPerformAction(
-  userId: string,
-  stableId: string,
-  action: string
-): Promise<boolean> {
-  const systemRole = await getUserSystemRole(userId)
-
-  // System admins can do everything
-  if (systemRole === 'system_admin') return true
-
-  // Check if user is owner of this stable
-  const isOwner = await isUserStableOwner(userId, stableId)
-  if (isOwner) return true
-
-  // Check member role
-  const memberRole = await getUserStableMemberRole(userId, stableId)
-
-  const permissions = {
-    manager: ['view_stable', 'manage_schedules', 'manage_shifts', 'invite_members', 'view_members'],
-    member: ['view_stable', 'view_schedules', 'book_shifts', 'view_own_bookings']
-  }
-
-  if (!memberRole) return false
-  return permissions[memberRole].includes(action)
-}
-```
-
-## Migration Script
-
-```typescript
-// Migrate existing stable owners to stableMembers collection
-async function migrateStableOwners() {
-  const stablesSnapshot = await getDocs(collection(db, 'stables'))
-
-  for (const stableDoc of stablesSnapshot.docs) {
-    const stable = stableDoc.data()
-
-    if (stable.ownerId) {
-      // Create owner membership
-      await setDoc(doc(db, 'stableMembers', `${stable.ownerId}_${stableDoc.id}`), {
-        stableId: stableDoc.id,
-        userId: stable.ownerId,
-        role: 'owner',
-        status: 'active',
-        joinedAt: stable.createdAt || Timestamp.now()
-      })
-
-      console.log(`Created owner membership for stable ${stableDoc.id}`)
-    }
-  }
-}
-```
-
-## Security Considerations
-
-1. **Document IDs**: Use `${userId}_${stableId}` format for stableMembers to ensure unique memberships and easy lookups
-2. **Indexes**: Create composite indexes for efficient queries
-3. **Validation**: Always validate roles on backend before granting access
-4. **Audit Trail**: Consider adding audit logging for role changes
-5. **Cascade Deletes**: When deleting a stable, delete all associated stableMembers
-6. **Owner Protection**: Ensure at least one owner exists per stable
-
-## Next Steps
-
-1. Review and approve this design
-2. Implement database migration script
-3. Update Firestore security rules
-4. Implement backend services
-5. Update frontend components
-6. Test thoroughly in development
-7. Deploy to production
+- [ROLE_SYSTEM_OVERVIEW.md](./ROLE_SYSTEM_OVERVIEW.md) - Visual hierarchy and user journeys
+- [DATA_MODEL_EVOLUTION.md](./DATA_MODEL_EVOLUTION.md) - Future data model changes
+- [RBAC.md](./RBAC.md) - Field-level access control for horses
+- [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) - Complete database schema

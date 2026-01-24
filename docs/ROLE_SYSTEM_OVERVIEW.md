@@ -3,254 +3,483 @@
 ## System Hierarchy
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│ LEVEL 1: SYSTEM ADMINISTRATORS (Service Providers)             │
-│ Role: system_admin                                              │
-│ Can: Manage platform, promote users, access all data           │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ LEVEL 2: STABLE OWNERS                                          │
-│ Role: stable_owner                                              │
-│ Can: Create multiple stables, own horses, full stable control  │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-            ┌─────────────────┼─────────────────┐
-            ▼                 ▼                 ▼
-    ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-    │  Stable A    │  │  Stable B    │  │  Stable C    │
-    │              │  │              │  │              │
-    │  Owner's     │  │  Owner's     │  │  Owner's     │
-    │  Horses 🐴   │  │  Horses 🐴   │  │  Horses 🐴   │
-    └──────────────┘  └──────────────┘  └──────────────┘
-            │                 │                 │
-            └─────────────────┴─────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ LEVEL 3: STABLE MEMBERS                                         │
-│ Role: member (system) + manager/member (per-stable)            │
-│ Can: Join stables, add own horses, book shifts                 │
-│                                                                 │
-│ Member Types:                                                   │
-│ • Manager - Can manage schedules & invite members              │
-│ • Member  - Can view schedules & book shifts                   │
-│                                                                 │
-│ Each Member's Horses 🐴🐴                                       │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│ LEVEL 0: SYSTEM LEVEL                                                   │
+│ systemRole: 'system_admin' | 'stable_owner' | 'member'                 │
+│                                                                         │
+│ • system_admin: Platform operators (full access)                        │
+│ • stable_owner: Can create organizations                                │
+│ • member: Regular users (default on signup)                             │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│ LEVEL 1: ORGANIZATIONS                                                  │
+│ organizationMembers.roles[]: 10 professional roles                      │
+│                                                                         │
+│ Roles: administrator, veterinarian, dentist, farrier, customer,        │
+│        groom, saddle_maker, horse_owner, rider, inseminator            │
+│                                                                         │
+│ Note: Owner is also a member with 'administrator' role                  │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│ LEVEL 2: STABLES                                                        │
+│ organizationMembers.stableAccess: 'all' | 'specific'                   │
+│ organizationMembers.assignedStableIds[]: Specific stable access        │
+│                                                                         │
+│ Each organization can have multiple stables                             │
+│ Members access stables based on their stableAccess setting              │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│ LEVEL 3: HORSES                                                         │
+│ horse.ownerId + RBAC field-level access                                │
+│                                                                         │
+│ Access levels based on role:                                            │
+│ L1 (public) → L2 (basic_care) → L3 (professional) →                    │
+│ L4 (management) → L5 (owner)                                            │
+│                                                                         │
+│ Horse owners ALWAYS get full access                                     │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Data Model
+## Data Model Overview
 
-### Collections
+### Core Collections
 
 ```
 users/
   {userId}
-    - uid: string
-    - email: string
-    - systemRole: 'system_admin' | 'stable_owner' | 'member'
-    - createdAt: timestamp
+    ├── uid: string (Firebase Auth UID)
+    ├── email: string
+    ├── firstName: string
+    ├── lastName: string
+    ├── systemRole: 'system_admin' | 'stable_owner' | 'member'
+    ├── createdAt: Timestamp
+    └── updatedAt: Timestamp
+
+organizations/
+  {organizationId}
+    ├── id: string
+    ├── name: string
+    ├── contactType: 'Personal' | 'Business'
+    ├── primaryEmail: string
+    ├── ownerId: string → references users/{userId}
+    ├── ownerEmail: string (cached)
+    ├── subscriptionTier: 'free' | 'professional' | 'enterprise'
+    ├── stats: { stableCount, totalMemberCount }
+    ├── createdAt: Timestamp
+    └── updatedAt: Timestamp
+
+organizationMembers/
+  {userId}_{organizationId}
+    ├── id: string
+    ├── organizationId: string
+    ├── userId: string
+    ├── userEmail: string (cached)
+    ├── firstName: string (cached)
+    ├── lastName: string (cached)
+    ├── roles: OrganizationRole[] (multi-role)
+    ├── primaryRole: OrganizationRole
+    ├── status: 'active' | 'inactive' | 'pending'
+    ├── stableAccess: 'all' | 'specific'
+    ├── assignedStableIds?: string[]
+    ├── showInPlanning: boolean
+    ├── availability?: MemberAvailability
+    ├── limits?: MemberLimits
+    ├── stats?: MemberStats
+    ├── joinedAt: Timestamp
+    └── invitedBy: string
 
 stables/
   {stableId}
-    - name: string
-    - ownerId: string → references user (must be stable_owner)
-    - address: string
-    - createdAt: timestamp
-
-stableMembers/
-  {userId}_{stableId}
-    - userId: string → references user
-    - stableId: string → references stable
-    - role: 'manager' | 'member'
-    - status: 'active' | 'pending' | 'inactive'
-    - joinedAt: timestamp
+    ├── id: string
+    ├── name: string
+    ├── organizationId: string
+    ├── ownerId: string
+    ├── address?: string
+    ├── facilityNumber?: string
+    ├── createdAt: Timestamp
+    └── updatedAt: Timestamp
 
 horses/
   {horseId}
-    - name: string
-    - ownerId: string → references user (owner or member)
-    - stableId: string → references stable
-    - breed: string
-    - age: number
-    - status: 'active' | 'inactive'
-    - createdAt: timestamp
+    ├── id: string
+    ├── name: string
+    ├── ownerId: string (user who owns)
+    ├── ownershipType: 'member' | 'contact' | 'external'
+    ├── currentStableId?: string (where placed)
+    ├── status: 'active' | 'inactive'
+    ├── ... (additional fields)
+    ├── createdAt: Timestamp
+    └── updatedAt: Timestamp
+
+contacts/
+  {contactId}
+    ├── id: string
+    ├── contactType: 'Personal' | 'Business'
+    ├── accessLevel: 'organization' | 'user'
+    ├── organizationId?: string (org contacts)
+    ├── userId?: string (private contacts)
+    ├── badge?: 'primary' | 'stable' | 'member' | 'external'
+    ├── email: string
+    ├── ... (additional fields)
+    └── createdAt: Timestamp
 ```
 
 ## User Journey Examples
 
-### Example 1: System Admin (You - Service Provider)
-```
-✅ Create system_admin account
-✅ Promote users to stable_owner
-✅ View all stables, horses, members
-✅ Access all data for support/management
-```
+### Example 1: Platform Administrator (Service Provider)
 
-### Example 2: Stable Owner (Anna)
 ```
-1. System admin promotes Anna to stable_owner
-2. Anna creates "Green Valley Stables"
-   → Anna becomes ownerId of this stable
-3. Anna adds her horses to Green Valley Stables
-   → Horse1: ownerId=Anna, stableId=GreenValley
-   → Horse2: ownerId=Anna, stableId=GreenValley
-4. Anna creates another stable "Sunset Stables"
-   → Anna is now ownerId of TWO stables
-5. Anna adds horses to Sunset Stables
-6. Anna invites Erik as manager to Green Valley
-7. Anna invites Maria as member to Green Valley
+┌──────────────────────────────────────────────────────────────────┐
+│ USER: Platform Admin                                              │
+│ systemRole: 'system_admin'                                       │
+└──────────────────────────────────────────────────────────────────┘
+                              │
+┌──────────────────────────────────────────────────────────────────┐
+│ CAN DO:                                                          │
+│ ✅ View all users across the platform                            │
+│ ✅ Promote users to stable_owner                                 │
+│ ✅ View all organizations and stables                            │
+│ ✅ Access all data for support/management                        │
+│ ✅ Configure platform settings                                   │
+│ ❌ Cannot create organizations (must be stable_owner)            │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-### Example 3: Member (Erik - Manager Role)
+### Example 2: Stable Owner Creating an Organization
+
 ```
-1. Erik registers (default: systemRole=member)
-2. Anna invites Erik to Green Valley Stables as manager
-3. Erik accepts → stableMembers record created
-   → userId=Erik, stableId=GreenValley, role=manager
-4. Erik can now:
-   ✅ Add his own horses to Green Valley
-      → Horse3: ownerId=Erik, stableId=GreenValley
-   ✅ Manage schedules
-   ✅ Invite other members
-   ❌ Cannot change stable settings (only Anna can)
-   ❌ Cannot edit Anna's horses (only own horses)
+1. User Registration
+   ┌─────────────────────────────────────────────────────────────────┐
+   │ Anna registers → systemRole: 'member' (default)                │
+   └─────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+2. Promotion to Stable Owner
+   ┌─────────────────────────────────────────────────────────────────┐
+   │ System Admin promotes Anna → systemRole: 'stable_owner'        │
+   └─────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+3. Organization Creation
+   ┌─────────────────────────────────────────────────────────────────┐
+   │ Anna creates "Green Valley Stables" organization               │
+   │                                                                 │
+   │ Result:                                                         │
+   │ • organizations/gv123: { ownerId: anna, name: "Green Valley" } │
+   │ • organizationMembers/anna_gv123: { roles: ['administrator'] } │
+   └─────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+4. Stable Creation
+   ┌─────────────────────────────────────────────────────────────────┐
+   │ Anna adds stables to her organization:                         │
+   │ • stables/s1: "Main Barn" (organizationId: gv123)             │
+   │ • stables/s2: "Training Arena" (organizationId: gv123)        │
+   └─────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+5. Member Invitations
+   ┌─────────────────────────────────────────────────────────────────┐
+   │ Anna invites Erik as groom:                                    │
+   │ • organizationMembers/erik_gv123: {                            │
+   │     roles: ['groom'],                                          │
+   │     primaryRole: 'groom',                                      │
+   │     stableAccess: 'all'                                        │
+   │   }                                                            │
+   │                                                                 │
+   │ Anna invites Dr. Lisa as veterinarian:                         │
+   │ • organizationMembers/lisa_gv123: {                            │
+   │     roles: ['veterinarian'],                                   │
+   │     stableAccess: 'specific',                                  │
+   │     assignedStableIds: ['s1']                                  │
+   │   }                                                            │
+   └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Example 4: Member (Maria - Member Role)
+### Example 3: Multi-Role Member
+
 ```
-1. Maria registers (default: systemRole=member)
-2. Anna invites Maria to Green Valley Stables as member
-3. Maria accepts → stableMembers record created
-   → userId=Maria, stableId=GreenValley, role=member
-4. Maria can:
-   ✅ Add her own horses to Green Valley
-      → Horse4: ownerId=Maria, stableId=GreenValley
-   ✅ View all horses in Green Valley (Anna's, Erik's, her own)
-   ✅ View schedules
-   ✅ Book shifts for her horses
-   ❌ Cannot manage schedules (only owners & managers)
-   ❌ Cannot edit Erik's or Anna's horses
-5. Erik invites Maria to Sunset Stables as member
-6. Maria now belongs to TWO stables with her horses
+┌──────────────────────────────────────────────────────────────────┐
+│ USER: Maria                                                       │
+│ systemRole: 'member'                                             │
+│                                                                   │
+│ Organization Memberships:                                         │
+│                                                                   │
+│ organizationMembers/maria_gv123 (Green Valley):                  │
+│   roles: ['veterinarian', 'horse_owner']                         │
+│   primaryRole: 'veterinarian'                                    │
+│   stableAccess: 'all'                                            │
+│                                                                   │
+│ organizationMembers/maria_ss456 (Sunset Stables):                │
+│   roles: ['customer']                                            │
+│   primaryRole: 'customer'                                        │
+│   stableAccess: 'specific'                                       │
+│   assignedStableIds: ['stable789']                               │
+└──────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ PERMISSIONS:                                                      │
+│                                                                   │
+│ At Green Valley (veterinarian + horse_owner):                     │
+│ ✅ Access all stables                                             │
+│ ✅ View horse health records (veterinarian)                       │
+│ ✅ Add health entries (veterinarian)                              │
+│ ✅ Full access to own horses (horse_owner)                        │
+│ ❌ Cannot manage members (not administrator)                      │
+│                                                                   │
+│ At Sunset Stables (customer):                                     │
+│ ✅ Access only stable789                                          │
+│ ✅ View own horses                                                 │
+│ ✅ Basic stable information                                       │
+│ ❌ Cannot view other horses' health records                       │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-## Key Permissions
+### Example 4: Horse Ownership vs. Placement
 
-### Creating Stables
-- ❌ Regular members CANNOT create stables
-- ✅ Only stable_owner role can create stables
-- ✅ System admins can create stables
-- 💡 Service providers control who becomes stable_owner
+```
+HORSE LIFECYCLE
+===============
 
-### Adding Horses
-- ✅ Stable owners can add horses to their own stables
-- ✅ Members (manager or member role) can add horses to stables they belong to
-- ✅ Each horse is owned by one user (ownerId)
-- ❌ Users can only edit/delete their own horses
-- ✅ Everyone in stable can VIEW all horses
+1. Horse Created (Ownership)
+   ┌─────────────────────────────────────────────────────────────────┐
+   │ Anna creates horse "Star" in her personal capacity             │
+   │                                                                 │
+   │ horses/star123: {                                              │
+   │   name: "Star",                                                │
+   │   ownerId: "anna",                      ← OWNERSHIP (immutable)│
+   │   ownershipType: "member",                                     │
+   │   currentStableId: null                 ← Not placed yet       │
+   │ }                                                              │
+   └─────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+2. Horse Placed at Stable
+   ┌─────────────────────────────────────────────────────────────────┐
+   │ Anna places Star at Green Valley Main Barn                     │
+   │                                                                 │
+   │ horses/star123: {                                              │
+   │   ownerId: "anna",                      ← Still Anna's horse   │
+   │   currentStableId: "s1",                ← PLACEMENT (mutable)  │
+   │   currentStableName: "Main Barn",                              │
+   │   assignedAt: Timestamp                                        │
+   │ }                                                              │
+   └─────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+3. Horse Moved to Another Stable
+   ┌─────────────────────────────────────────────────────────────────┐
+   │ Star moved to Training Arena                                   │
+   │                                                                 │
+   │ horses/star123: {                                              │
+   │   ownerId: "anna",                      ← Ownership unchanged  │
+   │   currentStableId: "s2",                ← New placement        │
+   │   currentStableName: "Training Arena",                         │
+   │   assignedAt: Timestamp (updated)                              │
+   │ }                                                              │
+   │                                                                 │
+   │ horses/star123/locationHistory/h1: {                           │
+   │   stableId: "s1",                                              │
+   │   arrivalDate: ...,                                            │
+   │   departureDate: ...                                           │
+   │ }                                                              │
+   └─────────────────────────────────────────────────────────────────┘
+```
 
-### Managing Stables
-| Action | stable_owner | manager | member |
-|--------|--------------|---------|--------|
-| Update stable settings | ✅ (own) | ❌ | ❌ |
-| Create schedules | ✅ | ✅ | ❌ |
-| Invite members | ✅ | ✅ | ❌ |
-| Remove members | ✅ | ❌ | ❌ |
+## Access Level Diagram
 
-### Managing Horses
-| Action | Owner | Other users |
-|--------|-------|-------------|
-| Edit horse | ✅ | ❌ |
-| Delete horse | ✅ | ❌ |
-| View horse | ✅ | ✅ (if in same stable) |
-| Book shifts for horse | ✅ | ❌ |
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ HORSE DATA ACCESS LEVELS (RBAC)                                        │
+└─────────────────────────────────────────────────────────────────────────┘
 
-## Security Rules Summary
+Level 1: PUBLIC (All stable members)
+├── name, breed, color, gender
+├── status (active/inactive)
+├── currentStableId, currentStableName
+└── age, dateOfBirth
 
-### Stable Creation
+Level 2: BASIC_CARE (groom, rider)
+├── All Level 1 fields
+├── specialInstructions
+├── equipment[]
+├── hasSpecialInstructions
+└── usage[]
+
+Level 3: PROFESSIONAL (veterinarian, dentist, farrier, inseminator)
+├── All Level 2 fields
+├── ueln, chipNumber
+├── federationNumber, feiPassNumber
+├── sire, dam, damsire
+├── withersHeight, studbook, breeder
+└── Health records (filtered by specialty)
+
+Level 4: MANAGEMENT (administrator)
+├── All Level 3 fields
+├── ownerId, ownerName, ownerEmail
+├── ownershipType, ownerContactId
+├── notes
+└── All health records
+
+Level 5: OWNER (horse owner)
+├── ALL FIELDS
+└── Always full access regardless of org role
+```
+
+## Contact Visibility Model
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ CONTACT ACCESS PATTERNS                                                 │
+└─────────────────────────────────────────────────────────────────────────┘
+
+PRIVATE CONTACT (only creator sees)
+┌──────────────────────────────────────────────────────────────────┐
+│ contacts/c1: {                                                    │
+│   contactType: "Personal",                                        │
+│   accessLevel: "user",         ← Private                         │
+│   userId: "anna",              ← Only Anna sees this             │
+│   organizationId: null,                                           │
+│   firstName: "My Personal Vet",                                   │
+│   ...                                                             │
+│ }                                                                 │
+└──────────────────────────────────────────────────────────────────┘
+
+ORGANIZATION CONTACT (all org members see)
+┌──────────────────────────────────────────────────────────────────┐
+│ contacts/c2: {                                                    │
+│   contactType: "Business",                                        │
+│   accessLevel: "organization", ← Shared                          │
+│   organizationId: "gv123",     ← All GV members see this         │
+│   userId: "anna",              ← Created by Anna (audit)         │
+│   businessName: "Equine Supply Co",                               │
+│   badge: "external",                                              │
+│   ...                                                             │
+│ }                                                                 │
+└──────────────────────────────────────────────────────────────────┘
+
+MEMBER-LINKED CONTACT (auto-created on invite)
+┌──────────────────────────────────────────────────────────────────┐
+│ contacts/c3: {                                                    │
+│   contactType: "Personal",                                        │
+│   accessLevel: "organization",                                    │
+│   organizationId: "gv123",                                        │
+│   linkedMemberId: "erik_gv123", ← Linked to member               │
+│   linkedUserId: "erik",                                           │
+│   badge: "member",                                                │
+│   hasLoginAccess: true,                                           │
+│   source: "invite",                                               │
+│   ...                                                             │
+│ }                                                                 │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+## Key Permissions Summary
+
+### Organization Role Permissions
+
+| Capability | administrator | veterinarian | groom | customer | horse_owner |
+|------------|---------------|--------------|-------|----------|-------------|
+| Manage members | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Invite members | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Create stables | ✅ | ❌ | ❌ | ❌ | ❌ |
+| View all horses | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Access health data | ✅ | ✅ | ❌ | ❌ | Own only |
+| Create activities | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Execute tasks | ✅ | ✅ | ✅ | ❌ | ❌ |
+
+### Horse Field Access by Role
+
+| Field Category | administrator | veterinarian | groom | customer | Owner |
+|----------------|---------------|--------------|-------|----------|-------|
+| Basic (name, breed) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Care (instructions) | ✅ | ✅ | ✅ | ❌ | ✅ |
+| Medical (health) | ✅ | ✅ | ❌ | ❌ | ✅ |
+| Ownership (owner info) | ✅ | ❌ | ❌ | ❌ | ✅ |
+
+## Security Rules Overview
+
 ```javascript
-// Only stable_owner or system_admin can create stables
-allow create: if isSystemAdmin() || hasStableOwnerRole();
+// Organization access
+match /organizations/{orgId} {
+  allow read: if isOrganizationMember(orgId);
+  allow write: if isOrganizationAdmin(orgId);
+}
+
+// Member management
+match /organizationMembers/{memberId} {
+  allow read: if resource.data.userId == request.auth.uid ||
+                 isOrganizationAdmin(resource.data.organizationId);
+  allow write: if isOrganizationAdmin(resource.data.organizationId);
+}
+
+// Stable access
+match /stables/{stableId} {
+  allow read: if canAccessStable(stableId);
+  allow write: if isOrganizationAdmin(resource.data.organizationId);
+}
+
+// Horse access (field-level RBAC enforced on backend)
+match /horses/{horseId} {
+  allow read: if resource.data.ownerId == request.auth.uid ||
+                 canAccessStable(resource.data.currentStableId);
+  allow write: if resource.data.ownerId == request.auth.uid ||
+                  isOrganizationAdmin(getOrgForStable(resource.data.currentStableId));
+}
+
+// Contact visibility
+match /contacts/{contactId} {
+  // Private contacts
+  allow read: if resource.data.accessLevel == 'user' &&
+                 resource.data.userId == request.auth.uid;
+  // Organization contacts
+  allow read: if resource.data.accessLevel == 'organization' &&
+                 isOrganizationMember(resource.data.organizationId);
+}
 ```
 
-### Horse Management
-```javascript
-// Anyone in stable can add horses
-allow create: if canAccessStable(request.resource.data.stableId);
+## Migration Notes
 
-// Only horse owner can update/delete
-allow update, delete: if resource.data.ownerId == request.auth.uid;
+### Deprecated: stableMembers Collection
 
-// Anyone in stable can view horses
-allow read: if canAccessStable(resource.data.stableId);
-```
+The `stableMembers` collection is deprecated in favor of `organizationMembers`.
 
-### Member Management
-```javascript
-// Only stable owner can add/remove members
-allow write: if isStableOwner(stableId);
+**Migration Mapping**:
+| Old (stableMembers) | New (organizationMembers) |
+|---------------------|---------------------------|
+| `role: 'manager'` | `roles: ['administrator']` or custom mapping |
+| `role: 'member'` | `roles: ['customer']` or `['groom']` |
+| `stableId` | `assignedStableIds: [stableId]` |
+| `status` | `status` (same) |
 
-// Users can read their own memberships
-allow read: if resource.data.userId == request.auth.uid;
-```
+### Frontend Pages Requiring Migration
 
-## Migration Strategy
+Six pages still reference the deprecated `stableMembers`:
+1. `ActivityFormDialog.tsx`
+2. `ActivitiesPlanningPage.tsx`
+3. `ActivitiesActionListPage.tsx`
+4. `TodayPage.tsx`
+5. `ScheduleEditorPage.tsx`
+6. `RoutineScheduler.tsx`
 
-### Phase 1: Set System Roles
-```typescript
-// 1. Set all existing users to default 'member'
-// 2. Promote specific users to 'stable_owner'
-// 3. Set service provider accounts to 'system_admin'
-```
+## Future Evolution
 
-### Phase 2: Maintain Stable Ownership
-```typescript
-// stables.ownerId already exists
-// Just verify owners have stable_owner systemRole
-```
+See [DATA_MODEL_EVOLUTION.md](./DATA_MODEL_EVOLUTION.md) for planned changes:
+- Personal vs Business organization types
+- Horse placement tracking (separate from ownership)
+- Enhanced contact visibility controls
+- Organization upgrade path (personal → business)
 
-### Phase 3: Create stableMembers
-```typescript
-// Create stableMembers records for all current members
-// (except owners - they're tracked in stables.ownerId)
-```
+## Related Documentation
 
-### Phase 4: Add Horses Support
-```typescript
-// Create horses collection
-// Allow users to add horses to their stables
-```
-
-## Business Logic
-
-### User Lifecycle
-1. **Registration**: User created with `systemRole: 'member'`
-2. **Promotion**: Admin promotes user to `stable_owner` (if applicable)
-3. **Stable Creation**: User with `stable_owner` role creates stable
-4. **Member Invitation**: Owner/manager invites members to stable
-5. **Horse Addition**: Any stable member adds their horses
-6. **Shift Booking**: Members book shifts for their horses
-
-### Constraints
-- ✅ One stable = one owner (but owner can have multiple stables)
-- ✅ One horse = one owner (per stable)
-- ✅ Users can be members of multiple stables
-- ✅ Users can own horses in multiple stables
-- ❌ Regular members cannot create stables (must be stable_owner)
-- ❌ Users cannot edit horses they don't own
-
-## Next Steps
-
-1. ✅ Design complete
-2. ⏳ Implement updated firestore.rules
-3. ⏳ Create TypeScript interfaces
-4. ⏳ Implement helper functions
-5. ⏳ Create admin UI for promoting users
-6. ⏳ Update stable creation to check systemRole
-7. ⏳ Implement horse management UI
-8. ⏳ Migration script
-9. ⏳ Testing
-10. ⏳ Deployment
+- [ROLE_MANAGEMENT.md](./ROLE_MANAGEMENT.md) - Detailed role definitions and permissions
+- [RBAC.md](./RBAC.md) - Field-level access control implementation
+- [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) - Complete database schema
+- [DATA_MODEL_EVOLUTION.md](./DATA_MODEL_EVOLUTION.md) - Future data model changes
