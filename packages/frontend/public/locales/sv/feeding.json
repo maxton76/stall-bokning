@@ -81,8 +81,11 @@
       "updateSuccess": "Fodertyp har uppdaterats",
       "deleteSuccess": "Fodertyp har tagits bort",
       "createError": "Kunde inte skapa fodertyp",
-      "updateError": "Kunde inte uppdatera fodertyp"
-    }
+      "updateError": "Kunde inte uppdatera fodertyp",
+      "reactivateSuccess": "Fodertyp har återaktiverats"
+    },
+    "inactive": "Inaktiv",
+    "reactivate": "Återaktivera"
   },
   "feedingTimes": {
     "title": "Utfodringstider",
@@ -119,8 +122,11 @@
       "updateSuccess": "Utfodringstid har uppdaterats",
       "deleteSuccess": "Utfodringstid har tagits bort",
       "createError": "Kunde inte skapa utfodringstid",
-      "updateError": "Kunde inte uppdatera utfodringstid"
-    }
+      "updateError": "Kunde inte uppdatera utfodringstid",
+      "reactivateSuccess": "Utfodringstid har återaktiverats"
+    },
+    "inactive": "Inaktiv",
+    "reactivate": "Återaktivera"
   },
   "horseFeeding": {
     "title": "Hästutfodring",

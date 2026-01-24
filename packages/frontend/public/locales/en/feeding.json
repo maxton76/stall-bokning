@@ -81,8 +81,11 @@
       "updateSuccess": "Feed type updated successfully",
       "deleteSuccess": "Feed type deleted successfully",
       "createError": "Failed to create feed type",
-      "updateError": "Failed to update feed type"
-    }
+      "updateError": "Failed to update feed type",
+      "reactivateSuccess": "Feed type reactivated successfully"
+    },
+    "inactive": "Inactive",
+    "reactivate": "Reactivate"
   },
   "feedingTimes": {
     "title": "Feeding Times",
@@ -119,8 +122,11 @@
       "updateSuccess": "Feeding time updated successfully",
       "deleteSuccess": "Feeding time deleted successfully",
       "createError": "Failed to create feeding time",
-      "updateError": "Failed to update feeding time"
-    }
+      "updateError": "Failed to update feeding time",
+      "reactivateSuccess": "Feeding time reactivated successfully"
+    },
+    "inactive": "Inactive",
+    "reactivate": "Reactivate"
   },
   "horseFeeding": {
     "title": "Horse Feeding",

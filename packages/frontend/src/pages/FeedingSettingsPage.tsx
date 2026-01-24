@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Settings, Plus, Pencil, Trash2, Wheat, Clock } from "lucide-react";
+import {
+  Settings,
+  Plus,
+  Pencil,
+  Trash2,
+  Wheat,
+  Clock,
+  RotateCcw,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -9,6 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -194,6 +203,17 @@ export default function FeedingSettingsPage() {
     feedingTimeDialog.closeDialog();
   };
 
+  // Reactivate handlers
+  const handleReactivateFeedType = async (type: FeedType) => {
+    await updateFeedType(type.id, { isActive: true });
+    await feedTypes.reload();
+  };
+
+  const handleReactivateFeedingTime = async (time: FeedingTime) => {
+    await updateFeedingTime(time.id, { isActive: true });
+    await feedingTimes.reload();
+  };
+
   // Delete confirmation
   const confirmDelete = async () => {
     if (!deletingItem) return;
@@ -313,8 +333,20 @@ export default function FeedingSettingsPage() {
               </TableHeader>
               <TableBody>
                 {(feedTypes.data || []).map((type) => (
-                  <TableRow key={type.id}>
-                    <TableCell className="font-medium">{type.name}</TableCell>
+                  <TableRow
+                    key={type.id}
+                    className={!type.isActive ? "opacity-60" : ""}
+                  >
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {type.name}
+                        {!type.isActive && (
+                          <Badge variant="secondary" className="text-xs">
+                            {t("feeding:feedTypes.inactive")}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       {t(`feeding:categories.${type.category}`)}
                     </TableCell>
@@ -336,20 +368,33 @@ export default function FeedingSettingsPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleEditFeedType(type)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDeleteFeedType(type)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
+                        {type.isActive ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEditFeedType(type)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteFeedType(type)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleReactivateFeedType(type)}
+                          >
+                            <RotateCcw className="h-4 w-4 mr-1" />
+                            {t("feeding:feedTypes.reactivate")}
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -409,25 +454,50 @@ export default function FeedingSettingsPage() {
               </TableHeader>
               <TableBody>
                 {sortedFeedingTimes.map((time) => (
-                  <TableRow key={time.id}>
-                    <TableCell className="font-medium">{time.name}</TableCell>
+                  <TableRow
+                    key={time.id}
+                    className={!time.isActive ? "opacity-60" : ""}
+                  >
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {time.name}
+                        {!time.isActive && (
+                          <Badge variant="secondary" className="text-xs">
+                            {t("feeding:feedingTimes.inactive")}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>{time.time}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleEditFeedingTime(time)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDeleteFeedingTime(time)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
+                        {time.isActive ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEditFeedingTime(time)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteFeedingTime(time)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleReactivateFeedingTime(time)}
+                          >
+                            <RotateCcw className="h-4 w-4 mr-1" />
+                            {t("feeding:feedingTimes.reactivate")}
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
