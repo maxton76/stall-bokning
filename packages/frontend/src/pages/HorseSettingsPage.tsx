@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Plus, Pencil, Trash2 } from "lucide-react";
@@ -12,9 +11,10 @@ import {
 } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserStables } from "@/hooks/useUserStables";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { useDialog } from "@/hooks/useDialog";
 import { useCRUD } from "@/hooks/useCRUD";
+import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import {
   createHorseGroup,
   getOrganizationHorseGroups,
@@ -48,61 +48,52 @@ export default function HorseSettingsPage() {
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
 
   // Load user's organization
-  const organizations = useAsyncData({
-    loadFn: async () => {
-      if (!user?.uid) return [];
-      return await getUserOrganizations(user.uid);
+  const organizationsQuery = useApiQuery(
+    queryKeys.organizations.list(user?.uid || ""),
+    () => getUserOrganizations(user!.uid),
+    {
+      enabled: !!user?.uid,
+      staleTime: 5 * 60 * 1000,
     },
-  });
+  );
+  const organizationsData = organizationsQuery.data ?? [];
 
   // Get first organization's ID (user should only have one organization)
-  const organizationId = organizations.data?.[0]?.id;
+  const organizationId = organizationsData[0]?.id;
 
   // Use stableId from URL (vaccination rules are stable-specific)
   const stableId = stableIdFromParams;
 
-  // Load organizations when user changes
-  useEffect(() => {
-    if (user?.uid) {
-      organizations.load();
-    }
-  }, [user?.uid]);
-
   // Horse Groups state - now organization-wide
   const groupDialog = useDialog<HorseGroup>();
-  const groups = useAsyncData<HorseGroup[]>({
-    loadFn: async () => {
-      if (!organizationId) return [];
-      return await getOrganizationHorseGroups(organizationId);
+  const groupsQuery = useApiQuery<HorseGroup[]>(
+    queryKeys.horseGroups.byOrganization(organizationId || ""),
+    () => getOrganizationHorseGroups(organizationId!),
+    {
+      enabled: !!organizationId,
+      staleTime: 5 * 60 * 1000,
     },
-  });
+  );
+  const groupsData = groupsQuery.data ?? [];
+  const groupsLoading = groupsQuery.isLoading;
 
   // Vaccination Rules state (includes system + organization + user rules)
   const ruleDialog = useDialog<VaccinationRule>();
-  const rules = useAsyncData<VaccinationRule[]>({
-    loadFn: async () => {
-      return await getAllAvailableVaccinationRules(user?.uid, organizationId);
+  const rulesQuery = useApiQuery<VaccinationRule[]>(
+    queryKeys.vaccinationRules.list(organizationId || null),
+    () => getAllAvailableVaccinationRules(user?.uid, organizationId),
+    {
+      enabled: !!user?.uid || !!organizationId,
+      staleTime: 5 * 60 * 1000,
     },
-  });
+  );
+  const rulesData = rulesQuery.data ?? [];
+  const rulesLoading = rulesQuery.isLoading;
 
   // Group rules by scope
-  const systemRules = rules.data?.filter(isSystemRule) || [];
-  const orgRules = rules.data?.filter(isOrganizationRule) || [];
-  const userRules = rules.data?.filter(isUserRule) || [];
-
-  // Load data when organizationId or stableId changes
-  useEffect(() => {
-    if (organizationId) {
-      groups.load();
-    }
-  }, [organizationId]);
-
-  useEffect(() => {
-    // Load rules when user or organizationId changes
-    if (user?.uid || organizationId) {
-      rules.load();
-    }
-  }, [user?.uid, organizationId]);
+  const systemRules = rulesData.filter(isSystemRule);
+  const orgRules = rulesData.filter(isOrganizationRule);
+  const userRules = rulesData.filter(isUserRule);
 
   // Horse Groups CRUD
   const {
@@ -134,7 +125,7 @@ export default function HorseSettingsPage() {
       await deleteHorseGroup(groupId);
     },
     onSuccess: async () => {
-      await groups.reload();
+      await cacheInvalidation.horseGroups.all();
     },
     successMessages: {
       create: t("horses:settings.groups.messages.createSuccess"),
@@ -181,7 +172,7 @@ export default function HorseSettingsPage() {
       await deleteVaccinationRule(ruleId);
     },
     onSuccess: async () => {
-      await rules.reload();
+      await cacheInvalidation.vaccinationRules.all();
     },
     successMessages: {
       create: t("horses:settings.vaccinationRules.messages.createSuccess"),
@@ -276,17 +267,17 @@ export default function HorseSettingsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {groups.loading ? (
+            {groupsLoading ? (
               <p className="text-sm text-muted-foreground">
                 {t("horses:settings.loading.groups")}
               </p>
-            ) : !groups.data || groups.data.length === 0 ? (
+            ) : groupsData.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 {t("horses:settings.groups.noGroups")}
               </p>
             ) : (
               <div className="space-y-2">
-                {groups.data.map((group) => (
+                {groupsData.map((group) => (
                   <div
                     key={group.id}
                     className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
@@ -358,17 +349,17 @@ export default function HorseSettingsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {rules.loading ? (
+            {rulesLoading ? (
               <p className="text-sm text-muted-foreground">
                 {t("horses:settings.loading.rules")}
               </p>
-            ) : !rules.data || rules.data.length === 0 ? (
+            ) : rulesData.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 {t("horses:settings.vaccinationRules.noRules")}
               </p>
             ) : (
               <div className="space-y-2">
-                {rules.data.map((rule) => {
+                {rulesData.map((rule) => {
                   const isStandard = isSystemRule(rule);
                   return (
                     <div

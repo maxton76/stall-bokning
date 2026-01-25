@@ -42,6 +42,10 @@ import { useUserStables } from "@/hooks/useUserStables";
 import { useActivityFilters } from "@/hooks/useActivityFilters";
 import { useActivityTypes } from "@/hooks/useActivityTypes";
 import {
+  useStablePlanningMembers,
+  formatMembersForSelection,
+} from "@/hooks/useOrganizationMembers";
+import {
   useRoutineTemplates,
   useRoutineInstancesForStable,
 } from "@/hooks/useRoutines";
@@ -451,9 +455,17 @@ export default function TodayPage() {
     }
   };
 
-  const stableMembers = useMemo(() => {
-    return [];
-  }, [selectedStableId]);
+  // Fetch organization members for assignment dropdown (filtered by stable access)
+  const { data: organizationMembers = [] } = useStablePlanningMembers(
+    currentOrganizationId,
+    selectedStableId,
+  );
+
+  // Format members for the ActivityFormDialog
+  const stableMembers = useMemo(
+    () => formatMembersForSelection(organizationMembers),
+    [organizationMembers],
+  );
 
   if (stablesLoading) {
     return (

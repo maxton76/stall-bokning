@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { sv, enUS } from "date-fns/locale";
@@ -48,7 +48,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   getOrganizationInvoices,
@@ -91,58 +92,61 @@ export default function InvoicesPage() {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
-  // Data
-  const invoices = useAsyncData<Invoice[]>({
-    loadFn: async () => {
-      if (!selectedOrganization) return [];
-      return getOrganizationInvoices(
-        selectedOrganization,
+  // Data - Invoices with status filter
+  const invoicesQuery = useApiQuery<Invoice[]>(
+    queryKeys.invoices.byOrganization(
+      selectedOrganization || "",
+      statusFilter !== "all" ? { status: statusFilter } : undefined,
+    ),
+    () =>
+      getOrganizationInvoices(
+        selectedOrganization!,
         statusFilter !== "all" ? { status: statusFilter } : undefined,
-      );
+      ),
+    {
+      enabled: !!selectedOrganization,
+      staleTime: 5 * 60 * 1000,
     },
-  });
+  );
+  const invoicesData = invoicesQuery.data;
+  const invoicesLoading = invoicesQuery.isLoading;
 
-  const overdueData = useAsyncData<{
+  // Data - Overdue invoices
+  const overdueQuery = useApiQuery<{
     count: number;
     totalOverdue: number;
     currency: string;
     invoices: (Invoice & { daysOverdue: number })[];
-  }>({
-    loadFn: async () => {
-      if (!selectedOrganization)
-        return { count: 0, totalOverdue: 0, currency: "SEK", invoices: [] };
-      return getOverdueInvoices(selectedOrganization);
+  }>(
+    queryKeys.invoices.overdue(selectedOrganization || ""),
+    () => getOverdueInvoices(selectedOrganization!),
+    {
+      enabled: !!selectedOrganization,
+      staleTime: 5 * 60 * 1000,
     },
-  });
-
-  // Load data when organization changes
-  useEffect(() => {
-    if (selectedOrganization) {
-      invoices.load();
-      overdueData.load();
-    }
-  }, [selectedOrganization, statusFilter]);
+  );
+  const overdueData = overdueQuery.data;
 
   // Filtered invoices
   const filteredInvoices = useMemo(() => {
-    if (!invoices.data) return [];
-    if (!searchQuery) return invoices.data;
+    if (!invoicesData) return [];
+    if (!searchQuery) return invoicesData;
 
     const query = searchQuery.toLowerCase();
-    return invoices.data.filter(
+    return invoicesData.filter(
       (invoice) =>
         invoice.invoiceNumber.toLowerCase().includes(query) ||
         invoice.contactName.toLowerCase().includes(query),
     );
-  }, [invoices.data, searchQuery]);
+  }, [invoicesData, searchQuery]);
 
   // Summary calculations
   const summary = useMemo(() => {
-    if (!invoices.data) {
+    if (!invoicesData) {
       return { totalInvoiced: 0, totalPaid: 0, totalOutstanding: 0, count: 0 };
     }
 
-    return invoices.data.reduce(
+    return invoicesData.reduce(
       (acc, inv) => {
         if (!["cancelled", "void"].includes(inv.status)) {
           acc.totalInvoiced += inv.total;
@@ -154,14 +158,14 @@ export default function InvoicesPage() {
       },
       { totalInvoiced: 0, totalPaid: 0, totalOutstanding: 0, count: 0 },
     );
-  }, [invoices.data]);
+  }, [invoicesData]);
 
   // Actions
   const handleSend = async (invoice: Invoice) => {
     try {
       await sendInvoice(invoice.id);
       toast({ title: t("invoices:messages.sendSuccess") });
-      invoices.load();
+      await cacheInvalidation.invoices.byOrganization(selectedOrganization!);
     } catch {
       toast({ title: t("invoices:errors.sendFailed"), variant: "destructive" });
     }
@@ -171,8 +175,7 @@ export default function InvoicesPage() {
     try {
       await cancelInvoice(invoice.id);
       toast({ title: t("invoices:messages.cancelSuccess") });
-      invoices.load();
-      overdueData.load();
+      await cacheInvalidation.invoices.all();
     } catch {
       toast({ title: t("common:errors.generic"), variant: "destructive" });
     }
@@ -182,7 +185,7 @@ export default function InvoicesPage() {
     try {
       await deleteInvoice(invoice.id);
       toast({ title: t("invoices:messages.deleteSuccess") });
-      invoices.load();
+      await cacheInvalidation.invoices.byOrganization(selectedOrganization!);
     } catch {
       toast({ title: t("common:errors.generic"), variant: "destructive" });
     }
@@ -198,9 +201,8 @@ export default function InvoicesPage() {
     setDetailDialogOpen(true);
   };
 
-  const handleRefresh = () => {
-    invoices.load();
-    overdueData.load();
+  const handleRefresh = async () => {
+    await cacheInvalidation.invoices.all();
   };
 
   if (!selectedOrganization) {
@@ -241,7 +243,7 @@ export default function InvoicesPage() {
               {t("invoices:summary.totalInvoiced")}
             </CardDescription>
             <CardTitle className="text-2xl">
-              {invoices.isLoading ? (
+              {invoicesLoading ? (
                 <Skeleton className="h-8 w-24" />
               ) : (
                 formatCurrency(summary.totalInvoiced)
@@ -254,7 +256,7 @@ export default function InvoicesPage() {
           <CardHeader className="pb-2">
             <CardDescription>{t("invoices:summary.totalPaid")}</CardDescription>
             <CardTitle className="text-2xl text-green-600">
-              {invoices.isLoading ? (
+              {invoicesLoading ? (
                 <Skeleton className="h-8 w-24" />
               ) : (
                 formatCurrency(summary.totalPaid)
@@ -269,7 +271,7 @@ export default function InvoicesPage() {
               {t("invoices:summary.totalOutstanding")}
             </CardDescription>
             <CardTitle className="text-2xl text-amber-600">
-              {invoices.isLoading ? (
+              {invoicesLoading ? (
                 <Skeleton className="h-8 w-24" />
               ) : (
                 formatCurrency(summary.totalOutstanding)
@@ -280,14 +282,14 @@ export default function InvoicesPage() {
 
         <Card
           className={cn(
-            overdueData.data?.count &&
-              overdueData.data.count > 0 &&
+            overdueData?.count &&
+              overdueData.count > 0 &&
               "border-red-200 bg-red-50",
           )}
         >
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
-              {overdueData.data?.count && overdueData.data.count > 0 && (
+              {overdueData?.count && overdueData.count > 0 && (
                 <AlertTriangle className="h-4 w-4 text-red-600" />
               )}
               <CardDescription>
@@ -295,15 +297,15 @@ export default function InvoicesPage() {
               </CardDescription>
             </div>
             <CardTitle className="text-2xl text-red-600">
-              {overdueData.isLoading ? (
+              {overdueQuery.isLoading ? (
                 <Skeleton className="h-8 w-24" />
               ) : (
-                formatCurrency(overdueData.data?.totalOverdue || 0)
+                formatCurrency(overdueData?.totalOverdue || 0)
               )}
             </CardTitle>
-            {overdueData.data?.count && overdueData.data.count > 0 && (
+            {overdueData?.count && overdueData.count > 0 && (
               <p className="text-xs text-muted-foreground">
-                {overdueData.data.count}{" "}
+                {overdueData.count}{" "}
                 {t("invoices:summary.overdueCount").toLowerCase()}
               </p>
             )}
@@ -365,7 +367,7 @@ export default function InvoicesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoices.isLoading ? (
+              {invoicesLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
                     <TableCell>

@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Loader2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,9 +11,10 @@ import {
 } from "@/components/ui/breadcrumb";
 import { QueryBoundary } from "@/components/ui/QueryBoundary";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { useDialog } from "@/hooks/useDialog";
 import { useHorse } from "@/hooks/useHorses";
+import { queryKeys } from "@/lib/queryClient";
 import { updateHorse } from "@/services/horseService";
 import { getOrganizationHorseGroups } from "@/services/horseGroupService";
 import { HorseFormDialog } from "@/components/HorseFormDialog";
@@ -42,23 +42,18 @@ export default function HorseDetailPage() {
   } = useHorse(horseId);
 
   // Horse groups for the form
-  const horseGroups = useAsyncData<HorseGroup[]>({
-    loadFn: async () => {
-      if (!horseData?.currentStableId) return [];
-      return getOrganizationHorseGroups(horseData.currentStableId);
+  const horseGroupsQuery = useApiQuery<HorseGroup[]>(
+    queryKeys.horseGroups.byOrganization(horseData?.currentStableId || ""),
+    () => getOrganizationHorseGroups(horseData!.currentStableId!),
+    {
+      enabled: !!horseData?.currentStableId,
+      staleTime: 5 * 60 * 1000,
     },
-    errorMessage: "Failed to load horse groups",
-  });
+  );
+  const horseGroupsData = horseGroupsQuery.data ?? [];
 
   // Dialog state for edit
   const formDialog = useDialog<Horse>();
-
-  // Load horse groups when horse data is available
-  useEffect(() => {
-    if (horseData?.currentStableId) {
-      horseGroups.load();
-    }
-  }, [horseData?.currentStableId]);
 
   // Handle edit
   const handleEdit = () => {
@@ -192,7 +187,7 @@ export default function HorseDetailPage() {
             onSave={handleSave}
             allowStableAssignment={true}
             availableStables={[]}
-            availableGroups={horseGroups.data || []}
+            availableGroups={horseGroupsData}
           />
         </div>
       )}

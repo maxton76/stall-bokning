@@ -1,7 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Save } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  Sparkles,
+  Users,
+  Building,
+  Contact,
+  Shield,
+  BarChart3,
+  Check,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,13 +28,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import {
   getOrganization,
   updateOrganization,
+  upgradeOrganization,
 } from "@/services/organizationService";
 import { useToast } from "@/hooks/use-toast";
+import type { Organization } from "@stall-bokning/shared";
 
 const organizationSettingsSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
@@ -37,25 +51,34 @@ const organizationSettingsSchema = z.object({
 
 type OrganizationSettingsFormData = z.infer<typeof organizationSettingsSchema>;
 
+// Feature icons mapping
+const featureIcons: Record<string, React.ElementType> = {
+  users: Users,
+  building: Building,
+  contact: Contact,
+  shield: Shield,
+  chart: BarChart3,
+};
+
 export default function OrganizationSettingsPage() {
   const { t } = useTranslation(["organizations", "common", "settings"]);
   const { organizationId } = useParams<{ organizationId: string }>();
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
 
   // Organization data
-  const organization = useAsyncData({
-    loadFn: async () => {
-      if (!organizationId) return null;
-      return await getOrganization(organizationId);
+  const organizationQuery = useApiQuery<Organization | null>(
+    queryKeys.organizations.detail(organizationId || ""),
+    () => getOrganization(organizationId!),
+    {
+      enabled: !!organizationId,
+      staleTime: 5 * 60 * 1000,
     },
-  });
-
-  // Load organization when organizationId changes
-  useEffect(() => {
-    organization.load();
-  }, [organizationId]);
+  );
+  const organizationData = organizationQuery.data ?? null;
+  const organizationLoading = organizationQuery.isLoading;
 
   const {
     register,
@@ -74,14 +97,14 @@ export default function OrganizationSettingsPage() {
       phoneNumber: "",
       timezone: "Europe/Stockholm",
     },
-    values: organization.data
+    values: organizationData
       ? {
-          name: organization.data.name,
-          description: organization.data.description || "",
-          contactType: organization.data.contactType,
-          primaryEmail: organization.data.primaryEmail,
-          phoneNumber: organization.data.phoneNumber || "",
-          timezone: organization.data.timezone,
+          name: organizationData.name,
+          description: organizationData.description || "",
+          contactType: organizationData.contactType,
+          primaryEmail: organizationData.primaryEmail,
+          phoneNumber: organizationData.phoneNumber || "",
+          timezone: organizationData.timezone,
         }
       : undefined,
   });
@@ -94,7 +117,7 @@ export default function OrganizationSettingsPage() {
     setLoading(true);
     try {
       await updateOrganization(organizationId, user.uid, data);
-      await organization.reload();
+      await cacheInvalidation.organizations.all();
       toast({
         title: t("organizations:messages.updateSuccess"),
         description: t("organizations:messages.updateSuccess"),
@@ -111,7 +134,63 @@ export default function OrganizationSettingsPage() {
     }
   };
 
-  if (organization.loading || !organization.data) {
+  const handleUpgrade = async () => {
+    if (!organizationId || !user) return;
+
+    setUpgrading(true);
+    try {
+      await upgradeOrganization(organizationId);
+      await cacheInvalidation.organizations.all();
+      toast({
+        title: t("organizations:upgrade.success"),
+        description: t("organizations:upgrade.successDescription"),
+      });
+    } catch (error: any) {
+      console.error("Failed to upgrade organization:", error);
+      toast({
+        title: t("common:messages.error"),
+        description:
+          error.message || t("organizations:upgrade.errorDescription"),
+        variant: "destructive",
+      });
+    } finally {
+      setUpgrading(false);
+    }
+  };
+
+  // Check if organization is personal type
+  const isPersonalOrg = organizationData?.organizationType === "personal";
+
+  // Upgrade benefits for personal organizations
+  const upgradeBenefits = [
+    {
+      feature: "members",
+      description: t("organizations:upgrade.benefits.members"),
+      icon: "users",
+    },
+    {
+      feature: "stables",
+      description: t("organizations:upgrade.benefits.stables"),
+      icon: "building",
+    },
+    {
+      feature: "contacts",
+      description: t("organizations:upgrade.benefits.contacts"),
+      icon: "contact",
+    },
+    {
+      feature: "roles",
+      description: t("organizations:upgrade.benefits.roles"),
+      icon: "shield",
+    },
+    {
+      feature: "analytics",
+      description: t("organizations:upgrade.benefits.analytics"),
+      icon: "chart",
+    },
+  ];
+
+  if (organizationLoading || !organizationData) {
     return (
       <div className="container mx-auto p-6">
         <p className="text-muted-foreground">{t("common:labels.loading")}</p>
@@ -153,6 +232,12 @@ export default function OrganizationSettingsPage() {
           <TabsTrigger value="subscription">
             {t("organizations:menu.subscription")}
           </TabsTrigger>
+          {isPersonalOrg && (
+            <TabsTrigger value="upgrade" className="gap-1">
+              <Sparkles className="h-3 w-3" />
+              {t("organizations:upgrade.tabTitle")}
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* General Settings */}
@@ -301,7 +386,7 @@ export default function OrganizationSettingsPage() {
             <CardContent>
               <p className="text-sm text-muted-foreground">
                 {t("common:navigation.stables")}:{" "}
-                {organization.data.stats.stableCount}
+                {organizationData.stats.stableCount}
               </p>
               <p className="text-xs text-muted-foreground mt-2">
                 Coming soon...
@@ -326,7 +411,7 @@ export default function OrganizationSettingsPage() {
                     {t("organizations:subscription.currentPlan")}
                   </span>
                   <span className="text-sm text-muted-foreground capitalize">
-                    {organization.data.subscriptionTier}
+                    {organizationData.subscriptionTier}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -334,16 +419,92 @@ export default function OrganizationSettingsPage() {
                     {t("organizations:menu.members")}
                   </span>
                   <span className="text-sm text-muted-foreground">
-                    {organization.data.stats.totalMemberCount}
+                    {organizationData.stats.totalMemberCount}
                   </span>
                 </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">
+                    {t("organizations:upgrade.organizationType")}
+                  </span>
+                  <Badge
+                    variant={isPersonalOrg ? "secondary" : "default"}
+                    className="capitalize"
+                  >
+                    {organizationData.organizationType || "personal"}
+                  </Badge>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-4">
-                Coming soon...
-              </p>
+              {isPersonalOrg && (
+                <p className="text-xs text-muted-foreground mt-4">
+                  {t("organizations:upgrade.personalLimitations")}
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Upgrade Tab (for personal organizations only) */}
+        {isPersonalOrg && (
+          <TabsContent value="upgrade">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  {t("organizations:upgrade.title")}
+                </CardTitle>
+                <CardDescription>
+                  {t("organizations:upgrade.description")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Benefits List */}
+                <div className="space-y-4">
+                  <h4 className="font-medium">
+                    {t("organizations:upgrade.benefitsTitle")}
+                  </h4>
+                  <div className="grid gap-3">
+                    {upgradeBenefits.map((benefit) => {
+                      const IconComponent =
+                        featureIcons[benefit.icon] || Shield;
+                      return (
+                        <div
+                          key={benefit.feature}
+                          className="flex items-start gap-3 p-3 rounded-lg bg-muted/50"
+                        >
+                          <div className="flex-shrink-0 p-2 bg-primary/10 rounded-md">
+                            <IconComponent className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm">{benefit.description}</p>
+                          </div>
+                          <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Upgrade Button */}
+                <div className="flex flex-col items-center gap-4 pt-4 border-t">
+                  <p className="text-sm text-muted-foreground text-center">
+                    {t("organizations:upgrade.upgradeNote")}
+                  </p>
+                  <Button
+                    onClick={handleUpgrade}
+                    disabled={upgrading}
+                    size="lg"
+                    className="gap-2"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    {upgrading
+                      ? t("common:labels.loading")
+                      : t("organizations:upgrade.upgradeButton")}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import {
@@ -11,6 +11,8 @@ import {
   MapPin,
   Filter,
   ChevronRight,
+  Lock,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,18 +50,35 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/PageHeader";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { useDialog } from "@/hooks/useDialog";
-import { getOrganizationContacts } from "@/services/contactService";
-import type { Contact, ContactBadge } from "@stall-bokning/shared";
+import { useAuth } from "@/contexts/AuthContext";
+import { queryKeys } from "@/lib/queryClient";
+import {
+  getOrganizationContacts,
+  getUserPersonalContacts,
+} from "@/services/contactService";
+import { getOrganization } from "@/services/organizationService";
+import type {
+  Contact,
+  ContactBadge,
+  Organization,
+} from "@stall-bokning/shared";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type ContactFilterType = "all" | "Personal" | "Business";
 type BadgeFilterType = "all" | ContactBadge;
+type AccessLevelFilter = "all" | "user" | "organization";
 
 interface ContactsFilters {
   type: ContactFilterType;
   badge: BadgeFilterType;
   hasLoginAccess: boolean | null;
+  accessLevel: AccessLevelFilter;
 }
 
 function ContactBadgeComponent({ badge }: { badge?: ContactBadge }) {
@@ -129,6 +148,7 @@ export default function ContactsPage() {
   const { t } = useTranslation(["contacts", "common"]);
   const navigate = useNavigate();
   const { currentOrganization } = useOrganization();
+  const { user } = useAuth();
   const createDialog = useDialog();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -136,52 +156,105 @@ export default function ContactsPage() {
     type: "all",
     badge: "all",
     hasLoginAccess: null,
+    accessLevel: "all",
   });
 
-  // Contacts data
-  const contacts = useAsyncData<Contact[]>({
-    loadFn: async () => {
-      if (!currentOrganization) return [];
-      return getOrganizationContacts(currentOrganization);
+  // Fetch organization data to check type
+  const organizationQuery = useApiQuery<Organization | null>(
+    queryKeys.organizations.detail(currentOrganization || ""),
+    () => getOrganization(currentOrganization!),
+    {
+      enabled: !!currentOrganization,
+      staleTime: 5 * 60 * 1000,
     },
-  });
+  );
+  const organizationData = organizationQuery.data ?? null;
 
-  // Load contacts when organization changes
-  useEffect(() => {
-    if (currentOrganization) {
-      contacts.load();
-    }
-  }, [currentOrganization]);
+  // Check if organization is personal (cannot create org-level contacts)
+  const isPersonalOrg = organizationData?.organizationType === "personal";
+
+  // Contacts data - fetch both user-level and organization-level
+  const contactsQuery = useApiQuery<Contact[]>(
+    queryKeys.contacts.list({
+      organizationId: currentOrganization,
+      userId: user?.uid,
+      isPersonalOrg,
+    }),
+    async () => {
+      if (!user) return [];
+
+      const results: Contact[] = [];
+
+      // Always fetch user's personal contacts
+      const personalContacts = await getUserPersonalContacts(user.uid);
+      results.push(...personalContacts);
+
+      // Fetch organization contacts only if we have an org and it's not personal
+      if (currentOrganization && !isPersonalOrg) {
+        const orgContacts = await getOrganizationContacts(currentOrganization);
+        results.push(...orgContacts);
+      }
+
+      // Deduplicate by ID
+      const unique = results.filter(
+        (contact, index, self) =>
+          index === self.findIndex((c) => c.id === contact.id),
+      );
+
+      return unique;
+    },
+    {
+      enabled: !!user,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
+  const contactsData = contactsQuery.data ?? [];
+  const contactsLoading = contactsQuery.isLoading;
 
   // Filter contacts
-  const filteredContacts = (contacts.data || []).filter((contact) => {
-    // Search filter
-    const searchLower = searchQuery.toLowerCase();
-    const name =
-      contact.contactType === "Business"
-        ? contact.businessName
-        : `${contact.firstName} ${contact.lastName}`;
-    const matchesSearch =
-      !searchQuery ||
-      name.toLowerCase().includes(searchLower) ||
-      contact.email.toLowerCase().includes(searchLower) ||
-      contact.phoneNumber?.includes(searchQuery);
+  const filteredContacts = useMemo(
+    () =>
+      contactsData.filter((contact) => {
+        // Search filter
+        const searchLower = searchQuery.toLowerCase();
+        const name =
+          contact.contactType === "Business"
+            ? contact.businessName
+            : `${contact.firstName} ${contact.lastName}`;
+        const matchesSearch =
+          !searchQuery ||
+          name.toLowerCase().includes(searchLower) ||
+          contact.email.toLowerCase().includes(searchLower) ||
+          contact.phoneNumber?.includes(searchQuery);
 
-    // Type filter
-    const matchesType =
-      filters.type === "all" || contact.contactType === filters.type;
+        // Type filter
+        const matchesType =
+          filters.type === "all" || contact.contactType === filters.type;
 
-    // Badge filter
-    const matchesBadge =
-      filters.badge === "all" || contact.badge === filters.badge;
+        // Badge filter
+        const matchesBadge =
+          filters.badge === "all" || contact.badge === filters.badge;
 
-    // Login access filter
-    const matchesAccess =
-      filters.hasLoginAccess === null ||
-      contact.hasLoginAccess === filters.hasLoginAccess;
+        // Login access filter
+        const matchesLoginAccess =
+          filters.hasLoginAccess === null ||
+          contact.hasLoginAccess === filters.hasLoginAccess;
 
-    return matchesSearch && matchesType && matchesBadge && matchesAccess;
-  });
+        // Access level filter (private vs organization)
+        const matchesAccessLevel =
+          filters.accessLevel === "all" ||
+          contact.accessLevel === filters.accessLevel;
+
+        return (
+          matchesSearch &&
+          matchesType &&
+          matchesBadge &&
+          matchesLoginAccess &&
+          matchesAccessLevel
+        );
+      }),
+    [contactsData, searchQuery, filters],
+  );
 
   // Get display name for a contact
   const getContactName = (contact: Contact): string => {
@@ -206,7 +279,8 @@ export default function ContactsPage() {
   const activeFilterCount =
     (filters.type !== "all" ? 1 : 0) +
     (filters.badge !== "all" ? 1 : 0) +
-    (filters.hasLoginAccess !== null ? 1 : 0);
+    (filters.hasLoginAccess !== null ? 1 : 0) +
+    (filters.accessLevel !== "all" ? 1 : 0);
 
   return (
     <div className="space-y-6">
@@ -266,6 +340,40 @@ export default function ContactsPage() {
                 </SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Visibility filter - only show for business orgs */}
+            {!isPersonalOrg && (
+              <Select
+                value={filters.accessLevel}
+                onValueChange={(value) =>
+                  setFilters({
+                    ...filters,
+                    accessLevel: value as AccessLevelFilter,
+                  })
+                }
+              >
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder={t("contacts:filters.visibility")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">
+                    {t("contacts:filters.allVisibility")}
+                  </SelectItem>
+                  <SelectItem value="user">
+                    <div className="flex items-center gap-2">
+                      <Lock className="h-3 w-3" />
+                      {t("contacts:filters.private")}
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="organization">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-3 w-3" />
+                      {t("contacts:filters.shared")}
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            )}
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -354,7 +462,7 @@ export default function ContactsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {contacts.isLoading ? (
+                {contactsLoading ? (
                   <>
                     <ContactRowSkeleton />
                     <ContactRowSkeleton />
@@ -430,7 +538,29 @@ export default function ContactsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <ContactBadgeComponent badge={contact.badge} />
+                        <div className="flex items-center gap-2">
+                          <ContactBadgeComponent badge={contact.badge} />
+                          {!isPersonalOrg &&
+                            (contact.accessLevel === "user" ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Lock className="h-3 w-3 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {t("contacts:visibility.private")}
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Users className="h-3 w-3 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {t("contacts:visibility.shared")}
+                                </TooltipContent>
+                              </Tooltip>
+                            ))}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -443,28 +573,42 @@ export default function ContactsPage() {
           </div>
 
           {/* Summary Stats */}
-          {!contacts.isLoading && filteredContacts.length > 0 && (
-            <div className="mt-4 flex gap-4 text-sm text-muted-foreground">
+          {!contactsLoading && filteredContacts.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
               <span>
-                {t("contacts:stats.total")}: {contacts.data?.length || 0}
+                {t("contacts:stats.total")}: {contactsData?.length || 0}
               </span>
               <span>•</span>
               <span>
                 {t("contacts:stats.personal")}:{" "}
-                {contacts.data?.filter((c) => c.contactType === "Personal")
+                {contactsData?.filter((c) => c.contactType === "Personal")
                   .length || 0}
               </span>
               <span>•</span>
               <span>
                 {t("contacts:stats.business")}:{" "}
-                {contacts.data?.filter((c) => c.contactType === "Business")
+                {contactsData?.filter((c) => c.contactType === "Business")
                   .length || 0}
               </span>
-              <span>•</span>
-              <span>
-                {t("contacts:stats.withAccess")}:{" "}
-                {contacts.data?.filter((c) => c.hasLoginAccess).length || 0}
-              </span>
+              {!isPersonalOrg && (
+                <>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">
+                    <Lock className="h-3 w-3" />
+                    {t("contacts:stats.private")}:{" "}
+                    {contactsData?.filter((c) => c.accessLevel === "user")
+                      .length || 0}
+                  </span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    {t("contacts:stats.shared")}:{" "}
+                    {contactsData?.filter(
+                      (c) => c.accessLevel === "organization",
+                    ).length || 0}
+                  </span>
+                </>
+              )}
             </div>
           )}
         </CardContent>

@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
 import { getActivityTypesByStable } from "@/services/activityTypeService";
 import type { ActivityTypeConfig } from "@/types/activity";
 
@@ -40,23 +40,23 @@ export function useActivityTypes(
   // "all" is a special value meaning multiple stables - can't load types for that
   const isValidStableId = stableId && stableId !== "all";
 
-  const activityTypes = useAsyncData<ActivityTypeConfig[]>({
-    loadFn: async () => {
-      if (!isValidStableId) return [];
-      return await getActivityTypesByStable(stableId, activeOnly);
+  const activityTypesQuery = useApiQuery<ActivityTypeConfig[]>(
+    queryKeys.activityTypes.byStable(stableId || "", activeOnly),
+    () => getActivityTypesByStable(stableId!, activeOnly),
+    {
+      enabled: !!isValidStableId,
+      staleTime: 5 * 60 * 1000,
     },
-    errorMessage: "Failed to load activity types. Please try again.",
-  });
+  );
 
-  // Auto-reload when stable or filter changes
-  useEffect(() => {
-    if (isValidStableId) {
-      activityTypes.load();
-    } else {
-      // Clear data when no stable selected or "all" selected
-      activityTypes.reset();
-    }
-  }, [stableId, activeOnly]);
-
-  return activityTypes;
+  // Return object that matches the expected interface (compatible with useAsyncData)
+  return {
+    data: activityTypesQuery.data || [],
+    loading: activityTypesQuery.isLoading,
+    isLoading: activityTypesQuery.isLoading,
+    error: activityTypesQuery.error,
+    load: activityTypesQuery.refetch,
+    reload: activityTypesQuery.refetch,
+    reset: () => {}, // No-op since query handles this
+  };
 }

@@ -33,9 +33,10 @@ import {
 import { ActivityTypeFormDialog } from "@/components/ActivityTypeFormDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserStables } from "@/hooks/useUserStables";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { useCRUD } from "@/hooks/useCRUD";
 import { useDialog } from "@/hooks/useDialog";
+import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import type { ActivityTypeConfig } from "@/types/activity";
 import {
   getActivityTypesByStable,
@@ -73,20 +74,17 @@ export default function ActivitiesSettingsPage() {
     }
   }, [stables, selectedStableId]);
 
-  // Load activity types for selected stable
-  const activityTypes = useAsyncData<ActivityTypeConfig[]>({
-    loadFn: async () => {
-      if (!selectedStableId) return [];
-      return await getActivityTypesByStable(selectedStableId, false); // Include inactive
+  // Load activity types for selected stable using TanStack Query
+  const activityTypesQuery = useApiQuery<ActivityTypeConfig[]>(
+    queryKeys.activityTypes.byStable(selectedStableId || "", false),
+    () => getActivityTypesByStable(selectedStableId, false), // Include inactive
+    {
+      enabled: !!selectedStableId,
+      staleTime: 5 * 60 * 1000,
     },
-  });
-
-  // Reload types when stable changes
-  useEffect(() => {
-    if (selectedStableId) {
-      activityTypes.load();
-    }
-  }, [selectedStableId]);
+  );
+  const activityTypesData = activityTypesQuery.data ?? [];
+  const activityTypesLoading = activityTypesQuery.isLoading;
 
   // Seed standard types if none exist (only attempt once per stable to prevent infinite loops)
   useEffect(() => {
@@ -98,8 +96,8 @@ export default function ActivitiesSettingsPage() {
 
       if (
         selectedStableId &&
-        activityTypes.data &&
-        activityTypes.data.length === 0 &&
+        !activityTypesLoading &&
+        activityTypesData.length === 0 &&
         user
       ) {
         // Mark as attempted BEFORE the async call to prevent race conditions
@@ -107,7 +105,8 @@ export default function ActivitiesSettingsPage() {
 
         try {
           await seedStandardActivityTypes(selectedStableId, user.uid);
-          activityTypes.load();
+          // Invalidate cache to trigger refetch
+          await cacheInvalidation.activityTypes.byStable(selectedStableId);
         } catch (error) {
           console.error("Failed to seed activity types:", error);
           // Note: We keep the stable in seedAttemptedRef to prevent infinite retries
@@ -116,7 +115,7 @@ export default function ActivitiesSettingsPage() {
       }
     };
     seedIfNeeded();
-  }, [selectedStableId, activityTypes.data, user]);
+  }, [selectedStableId, activityTypesData, activityTypesLoading, user]);
 
   // Notification settings
   const [notificationSettings, setNotificationSettings] = useState({
@@ -138,7 +137,7 @@ export default function ActivitiesSettingsPage() {
   const { create, update, remove } = useCRUD<ActivityTypeConfig>({
     createFn: async (data: any) => {
       if (!user || !selectedStableId) throw new Error("Missing required data");
-      const nextSortOrder = (activityTypes.data || []).length + 1;
+      const nextSortOrder = activityTypesData.length + 1;
       return await createActivityType(user.uid, selectedStableId, {
         ...data,
         isStandard: false,
@@ -155,7 +154,8 @@ export default function ActivitiesSettingsPage() {
       await deleteActivityType(id, user.uid);
     },
     onSuccess: async () => {
-      await activityTypes.reload();
+      // Invalidate activity types cache to trigger refetch
+      await cacheInvalidation.activityTypes.byStable(selectedStableId);
     },
     successMessages: {
       create: t("activities:types.messages.createSuccess"),
@@ -203,7 +203,7 @@ export default function ActivitiesSettingsPage() {
   };
 
   // Group types by category
-  const groupedTypes = (activityTypes.data || []).reduce(
+  const groupedTypes = activityTypesData.reduce(
     (acc, type) => {
       if (!acc[type.category]) acc[type.category] = [];
       acc[type.category]!.push(type);
@@ -272,13 +272,13 @@ export default function ActivitiesSettingsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {activityTypes.loading ? (
+            {activityTypesLoading ? (
               <div className="text-center py-8">
                 <p className="text-muted-foreground">
                   {t("activities:settings.types.loading")}
                 </p>
               </div>
-            ) : (activityTypes.data || []).length === 0 ? (
+            ) : activityTypesData.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-muted-foreground">
                   {t("activities:settings.types.noTypes")}

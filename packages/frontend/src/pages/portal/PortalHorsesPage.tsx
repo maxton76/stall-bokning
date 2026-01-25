@@ -1,10 +1,9 @@
-import { useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { ChevronRight, Search, Rabbit } from "lucide-react";
 // Note: Horse icon doesn't exist in lucide-react, using Rabbit as placeholder
 const Horse = Rabbit;
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Card,
@@ -16,7 +15,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
 import {
   getPortalHorses,
   type PortalHorsesResponse,
@@ -26,24 +26,26 @@ export default function PortalHorsesPage() {
   const { t } = useTranslation(["portal", "common"]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const horses = useAsyncData<PortalHorsesResponse>({
-    loadFn: getPortalHorses,
-  });
-
-  useEffect(() => {
-    horses.load();
-  }, []);
+  const horsesQuery = useApiQuery<PortalHorsesResponse>(
+    queryKeys.portal.horses(),
+    getPortalHorses,
+    { staleTime: 5 * 60 * 1000 },
+  );
+  const horsesData = horsesQuery.data;
+  const horsesLoading = horsesQuery.isLoading;
 
   // Filter horses by search
-  const filteredHorses = horses.data?.horses.filter((horse) => {
-    if (!searchQuery) return true;
+  const filteredHorses = useMemo(() => {
+    if (!horsesData?.horses) return [];
+    if (!searchQuery) return horsesData.horses;
     const query = searchQuery.toLowerCase();
-    return (
-      horse.name?.toLowerCase().includes(query) ||
-      horse.breed?.toLowerCase().includes(query) ||
-      horse.registrationNumber?.toLowerCase().includes(query)
+    return horsesData.horses.filter(
+      (horse) =>
+        horse.name?.toLowerCase().includes(query) ||
+        horse.breed?.toLowerCase().includes(query) ||
+        horse.registrationNumber?.toLowerCase().includes(query),
     );
-  });
+  }, [horsesData?.horses, searchQuery]);
 
   return (
     <div className="container mx-auto space-y-6 p-6">
@@ -67,7 +69,7 @@ export default function PortalHorsesPage() {
       </div>
 
       {/* Horses Grid */}
-      {horses.isLoading ? (
+      {horsesLoading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i}>
@@ -84,7 +86,7 @@ export default function PortalHorsesPage() {
             </Card>
           ))}
         </div>
-      ) : filteredHorses?.length === 0 ? (
+      ) : filteredHorses.length === 0 ? (
         <Card>
           <CardContent className="flex h-64 flex-col items-center justify-center gap-4">
             <Horse className="h-12 w-12 text-muted-foreground" />
@@ -97,7 +99,7 @@ export default function PortalHorsesPage() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredHorses?.map((horse) => (
+          {filteredHorses.map((horse) => (
             <Link key={horse.id} to={`/portal/horses/${horse.id}`}>
               <Card className="transition-colors hover:bg-muted/50">
                 <CardContent className="p-6">

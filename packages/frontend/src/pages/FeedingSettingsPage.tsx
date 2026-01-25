@@ -36,13 +36,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { FeedTypeFormDialog } from "@/components/FeedTypeFormDialog";
 import { FeedingTimeFormDialog } from "@/components/FeedingTimeFormDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserStables } from "@/hooks/useUserStables";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useFeedTypesQuery } from "@/hooks/useFeedTypesQuery";
+import { useFeedingTimesQuery } from "@/hooks/useFeedingTimesQuery";
 import { useCRUD } from "@/hooks/useCRUD";
 import { useDialog } from "@/hooks/useDialog";
+import { cacheInvalidation } from "@/lib/queryClient";
 import type {
   FeedType,
   FeedingTime,
@@ -50,7 +60,6 @@ import type {
   CreateFeedingTimeData,
 } from "@shared/types";
 import {
-  getFeedTypesByStable,
   createFeedType,
   updateFeedType,
   deleteFeedType,
@@ -79,6 +88,10 @@ export default function FeedingSettingsPage() {
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
 
+  // Get the selected stable's organizationId
+  const selectedStable = stables.find((s) => s.id === selectedStableId);
+  const organizationId = selectedStable?.organizationId;
+
   // Auto-select first stable
   useEffect(() => {
     if (stables.length > 0 && !selectedStableId && stables[0]) {
@@ -86,35 +99,19 @@ export default function FeedingSettingsPage() {
     }
   }, [stables, selectedStableId]);
 
-  // Load feed types for selected stable
-  const feedTypes = useAsyncData<FeedType[]>({
-    loadFn: async () => {
-      if (!selectedStableId) return [];
-      return await getFeedTypesByStable(selectedStableId, false); // Include inactive
-    },
-  });
+  // Load feed types for the organization (shared across all stables) - include inactive
+  const { feedTypes: feedTypesData, loading: feedTypesLoading } =
+    useFeedTypesQuery(organizationId, true);
 
-  // Load feeding times for selected stable
-  const feedingTimes = useAsyncData<FeedingTime[]>({
-    loadFn: async () => {
-      if (!selectedStableId) return [];
-      return await getFeedingTimesByStable(selectedStableId, false); // Include inactive
-    },
-  });
-
-  // Reload data when stable changes
-  useEffect(() => {
-    if (selectedStableId) {
-      feedTypes.load();
-      feedingTimes.load();
-    }
-  }, [selectedStableId]);
+  // Load feeding times for selected stable - include inactive
+  const { feedingTimes: feedingTimesData, loading: feedingTimesLoading } =
+    useFeedingTimesQuery(selectedStableId, true);
 
   // Feed Types CRUD operations
   const feedTypeCRUD = useCRUD<FeedType>({
     createFn: async (data) => {
-      if (!selectedStableId) throw new Error("No stable selected");
-      return await createFeedType(selectedStableId, data as CreateFeedTypeData);
+      if (!organizationId) throw new Error("No organization found");
+      return await createFeedType(organizationId, data as CreateFeedTypeData);
     },
     updateFn: async (id, data) => {
       await updateFeedType(id, data);
@@ -123,7 +120,7 @@ export default function FeedingSettingsPage() {
       await deleteFeedType(id);
     },
     onSuccess: async () => {
-      await feedTypes.reload();
+      await cacheInvalidation.feedTypes.all();
     },
     successMessages: {
       create: t("feeding:feedTypes.messages.createSuccess"),
@@ -148,7 +145,7 @@ export default function FeedingSettingsPage() {
       await deleteFeedingTime(id);
     },
     onSuccess: async () => {
-      await feedingTimes.reload();
+      await cacheInvalidation.feedingTimes.all();
     },
     successMessages: {
       create: t("feeding:feedingTimes.messages.createSuccess"),
@@ -206,12 +203,12 @@ export default function FeedingSettingsPage() {
   // Reactivate handlers
   const handleReactivateFeedType = async (type: FeedType) => {
     await updateFeedType(type.id, { isActive: true });
-    await feedTypes.reload();
+    await cacheInvalidation.feedTypes.all();
   };
 
   const handleReactivateFeedingTime = async (time: FeedingTime) => {
     await updateFeedingTime(time.id, { isActive: true });
-    await feedingTimes.reload();
+    await cacheInvalidation.feedingTimes.all();
   };
 
   // Delete confirmation
@@ -229,7 +226,7 @@ export default function FeedingSettingsPage() {
   };
 
   // Sort feeding times by time (HH:mm format)
-  const sortedFeedingTimes = [...(feedingTimes.data || [])].sort((a, b) =>
+  const sortedFeedingTimes = [...feedingTimesData].sort((a, b) =>
     a.time.localeCompare(b.time),
   );
 
@@ -263,16 +260,44 @@ export default function FeedingSettingsPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Settings className="h-8 w-8 text-primary" />
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            {t("feeding:page.settingsTitle")}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {t("feeding:page.settingsDescription")}
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Settings className="h-8 w-8 text-primary" />
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {t("feeding:page.settingsTitle")}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {t("feeding:page.settingsDescription")}
+            </p>
+          </div>
         </div>
+
+        {/* Stable Selector */}
+        {stables.length > 1 && (
+          <div className="flex items-center gap-2">
+            <Label htmlFor="stable-select" className="text-sm font-medium">
+              {t("feeding:labels.stable")}
+            </Label>
+            <Select
+              value={selectedStableId}
+              onValueChange={setSelectedStableId}
+            >
+              <SelectTrigger id="stable-select" className="w-[200px]">
+                <SelectValue
+                  placeholder={t("feeding:placeholders.selectStable")}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {stables.map((stable) => (
+                  <SelectItem key={stable.id} value={stable.id}>
+                    {stable.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {/* Feed Types Card */}
@@ -295,13 +320,13 @@ export default function FeedingSettingsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {feedTypes.loading ? (
+          {feedTypesLoading ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
                 {t("feeding:feedTypes.loading")}
               </p>
             </div>
-          ) : (feedTypes.data || []).length === 0 ? (
+          ) : feedTypesData.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
                 {t("feeding:feedTypes.noFeedTypes")}
@@ -332,7 +357,7 @@ export default function FeedingSettingsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(feedTypes.data || []).map((type) => (
+                {feedTypesData.map((type) => (
                   <TableRow
                     key={type.id}
                     className={!type.isActive ? "opacity-60" : ""}
@@ -425,7 +450,7 @@ export default function FeedingSettingsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {feedingTimes.loading ? (
+          {feedingTimesLoading ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
                 {t("feeding:feedingTimes.loading")}

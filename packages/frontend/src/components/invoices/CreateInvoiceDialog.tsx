@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,7 +32,8 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
 import { createInvoice, formatCurrency } from "@/services/invoiceService";
 import { getOrganizationContacts } from "@/services/contactService";
 import type { Contact, InvoiceItemType } from "@stall-bokning/shared";
@@ -91,17 +92,16 @@ export function CreateInvoiceDialog({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const contacts = useAsyncData<Contact[]>({
-    loadFn: async () => {
-      return getOrganizationContacts(organizationId);
+  const contactsQuery = useApiQuery<Contact[]>(
+    queryKeys.contacts.byOrganization(organizationId),
+    () => getOrganizationContacts(organizationId),
+    {
+      enabled: open && !!organizationId,
+      staleTime: 5 * 60 * 1000,
     },
-  });
-
-  useEffect(() => {
-    if (open) {
-      contacts.load();
-    }
-  }, [open, organizationId]);
+  );
+  const contactsData = contactsQuery.data;
+  const contactsLoading = contactsQuery.isLoading;
 
   const form = useForm<CreateInvoiceFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -206,13 +206,13 @@ export function CreateInvoiceDialog({
                 <Select
                   value={form.watch("contactId")}
                   onValueChange={(value) => form.setValue("contactId", value)}
-                  disabled={contacts.isLoading}
+                  disabled={contactsLoading}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={t("common:labels.select")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {contacts.data?.map((contact) => (
+                    {contactsData?.map((contact) => (
                       <SelectItem key={contact.id} value={contact.id}>
                         {contact.contactType === "Business"
                           ? contact.businessName

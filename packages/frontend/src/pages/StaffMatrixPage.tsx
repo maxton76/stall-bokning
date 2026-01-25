@@ -1,7 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  addDays,
   addWeeks,
   startOfWeek,
   endOfWeek,
@@ -16,7 +15,6 @@ import {
   RefreshCw,
   AlertTriangle,
   CheckCircle2,
-  Download,
   Eye,
   EyeOff,
 } from "lucide-react";
@@ -36,7 +34,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { getStaffAvailabilityMatrix } from "@/services/availabilityService";
 import { StaffMatrixGrid } from "@/components/availability/StaffMatrixGrid";
@@ -98,33 +97,32 @@ export default function StaffMatrixPage() {
   );
 
   // Data
-  const matrixData = useAsyncData<StaffAvailabilityMatrix>({
-    loadFn: async () => {
-      if (!selectedOrganization) {
-        throw new Error("No organization selected");
-      }
-      return getStaffAvailabilityMatrix(
-        selectedOrganization,
+  const startDateStr = format(dateRange.start, "yyyy-MM-dd");
+  const endDateStr = format(dateRange.end, "yyyy-MM-dd");
+  const matrixQuery = useApiQuery<StaffAvailabilityMatrix>(
+    queryKeys.staffAvailability.matrix(
+      selectedOrganization || "",
+      startDateStr,
+      endDateStr,
+    ),
+    () =>
+      getStaffAvailabilityMatrix(
+        selectedOrganization!,
         dateRange.start,
         dateRange.end,
-      );
+      ),
+    {
+      enabled: !!selectedOrganization,
+      staleTime: 5 * 60 * 1000,
     },
-  });
-
-  // Load data when organization or date range changes
-  useEffect(() => {
-    if (selectedOrganization) {
-      matrixData.load();
-    }
-  }, [
-    selectedOrganization,
-    dateRange.start.getTime(),
-    dateRange.end.getTime(),
-  ]);
+  );
+  const matrixData = matrixQuery.data;
+  const matrixLoading = matrixQuery.isLoading;
+  const matrixError = matrixQuery.error;
 
   // Calculate summary stats
   const stats = useMemo(() => {
-    if (!matrixData.data) {
+    if (!matrixData) {
       return {
         totalStaff: 0,
         availableToday: 0,
@@ -135,22 +133,20 @@ export default function StaffMatrixPage() {
     }
 
     const today = format(new Date(), "yyyy-MM-dd");
-    const todaySummary = matrixData.data.teamSummary.find(
-      (d) => d.date === today,
-    );
+    const todaySummary = matrixData.teamSummary.find((d) => d.date === today);
 
     return {
-      totalStaff: matrixData.data.staffAvailability.length,
+      totalStaff: matrixData.staffAvailability.length,
       availableToday: todaySummary?.availableStaff || 0,
       onLeaveToday:
         (todaySummary?.totalStaff || 0) - (todaySummary?.availableStaff || 0),
-      shortageDays: matrixData.data.shortageCount,
-      averageCoverage: matrixData.data.averageDailyAvailability,
+      shortageDays: matrixData.shortageCount,
+      averageCoverage: matrixData.averageDailyAvailability,
     };
-  }, [matrixData.data]);
+  }, [matrixData]);
 
   const handleRefresh = () => {
-    matrixData.load();
+    matrixQuery.refetch();
   };
 
   if (!selectedOrganization) {
@@ -201,13 +197,10 @@ export default function StaffMatrixPage() {
             variant="outline"
             size="sm"
             onClick={handleRefresh}
-            disabled={matrixData.isLoading}
+            disabled={matrixLoading}
           >
             <RefreshCw
-              className={cn(
-                "mr-2 h-4 w-4",
-                matrixData.isLoading && "animate-spin",
-              )}
+              className={cn("mr-2 h-4 w-4", matrixLoading && "animate-spin")}
             />
             {t("availability:staffMatrix.refreshData")}
           </Button>
@@ -223,7 +216,7 @@ export default function StaffMatrixPage() {
               {t("availability:staffMatrix.summary.totalStaff")}
             </CardDescription>
             <CardTitle className="text-2xl">
-              {matrixData.isLoading ? (
+              {matrixLoading ? (
                 <Skeleton className="h-8 w-12" />
               ) : (
                 stats.totalStaff
@@ -239,7 +232,7 @@ export default function StaffMatrixPage() {
               {t("availability:staffMatrix.summary.availableToday")}
             </CardDescription>
             <CardTitle className="text-2xl text-green-600">
-              {matrixData.isLoading ? (
+              {matrixLoading ? (
                 <Skeleton className="h-8 w-12" />
               ) : (
                 stats.availableToday
@@ -255,7 +248,7 @@ export default function StaffMatrixPage() {
               {t("availability:staffMatrix.summary.onLeaveToday")}
             </CardDescription>
             <CardTitle className="text-2xl text-amber-600">
-              {matrixData.isLoading ? (
+              {matrixLoading ? (
                 <Skeleton className="h-8 w-12" />
               ) : (
                 stats.onLeaveToday
@@ -288,7 +281,7 @@ export default function StaffMatrixPage() {
                 stats.shortageDays > 0 ? "text-red-600" : "",
               )}
             >
-              {matrixData.isLoading ? (
+              {matrixLoading ? (
                 <Skeleton className="h-8 w-12" />
               ) : (
                 stats.shortageDays
@@ -312,7 +305,7 @@ export default function StaffMatrixPage() {
                     : "text-red-600",
               )}
             >
-              {matrixData.isLoading ? (
+              {matrixLoading ? (
                 <Skeleton className="h-8 w-16" />
               ) : (
                 `${stats.averageCoverage}%`
@@ -364,7 +357,7 @@ export default function StaffMatrixPage() {
       {/* Matrix Grid */}
       <Card>
         <CardContent className="p-4">
-          {matrixData.isLoading ? (
+          {matrixLoading ? (
             <div className="space-y-4">
               <div className="flex gap-2">
                 <Skeleton className="h-10 w-[200px]" />
@@ -381,7 +374,7 @@ export default function StaffMatrixPage() {
                 </div>
               ))}
             </div>
-          ) : matrixData.error ? (
+          ) : matrixError ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
               <h3 className="text-lg font-medium">
@@ -396,11 +389,8 @@ export default function StaffMatrixPage() {
                 {t("common:actions.retry")}
               </Button>
             </div>
-          ) : matrixData.data ? (
-            <StaffMatrixGrid
-              matrix={matrixData.data}
-              showDetails={showDetails}
-            />
+          ) : matrixData ? (
+            <StaffMatrixGrid matrix={matrixData} showDetails={showDetails} />
           ) : null}
         </CardContent>
       </Card>

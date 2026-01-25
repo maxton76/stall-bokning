@@ -69,6 +69,8 @@ export const queryKeys = {
     lists: () => [...queryKeys.horses.all, "list"] as const,
     list: (filters: Record<string, any>) =>
       [...queryKeys.horses.lists(), filters] as const,
+    byStable: (stableId: string) =>
+      [...queryKeys.horses.lists(), { stableId }] as const,
     my: () => [...queryKeys.horses.all, "my"] as const,
     details: () => [...queryKeys.horses.all, "detail"] as const,
     detail: (id: string) => [...queryKeys.horses.details(), id] as const,
@@ -82,6 +84,8 @@ export const queryKeys = {
     lists: () => [...queryKeys.horseGroups.all, "list"] as const,
     list: (stableId: string) =>
       [...queryKeys.horseGroups.lists(), stableId] as const,
+    byOrganization: (organizationId: string) =>
+      [...queryKeys.horseGroups.lists(), { organizationId }] as const,
     details: () => [...queryKeys.horseGroups.all, "detail"] as const,
     detail: (id: string) => [...queryKeys.horseGroups.details(), id] as const,
   },
@@ -116,6 +120,14 @@ export const queryKeys = {
       [...queryKeys.organizationMembers.details(), id] as const,
   },
 
+  // Organization Invites
+  organizationInvites: {
+    all: ["organizationInvites"] as const,
+    lists: () => [...queryKeys.organizationInvites.all, "list"] as const,
+    list: (organizationId: string) =>
+      [...queryKeys.organizationInvites.lists(), organizationId] as const,
+  },
+
   // Activities
   activities: {
     all: ["activities"] as const,
@@ -127,6 +139,22 @@ export const queryKeys = {
         ...queryKeys.activities.lists(),
         { stableId, date, periodType },
       ] as const,
+    byPeriodMultiStable: (
+      stableIds: string[],
+      date: string,
+      periodType: string,
+    ) =>
+      [
+        ...queryKeys.activities.lists(),
+        "multi",
+        { stableIds: stableIds.sort().join(","), date, periodType },
+      ] as const,
+    care: (stableId: string | string[]) =>
+      [
+        ...queryKeys.activities.lists(),
+        "care",
+        Array.isArray(stableId) ? stableId.sort().join(",") : stableId,
+      ] as const,
     details: () => [...queryKeys.activities.all, "detail"] as const,
     detail: (id: string) => [...queryKeys.activities.details(), id] as const,
   },
@@ -137,6 +165,12 @@ export const queryKeys = {
     lists: () => [...queryKeys.activityTypes.all, "list"] as const,
     list: (organizationId: string) =>
       [...queryKeys.activityTypes.lists(), organizationId] as const,
+    byStable: (stableId: string, activeOnly?: boolean) =>
+      [
+        ...queryKeys.activityTypes.lists(),
+        "stable",
+        { stableId, activeOnly },
+      ] as const,
     details: () => [...queryKeys.activityTypes.all, "detail"] as const,
     detail: (id: string) => [...queryKeys.activityTypes.details(), id] as const,
   },
@@ -147,6 +181,8 @@ export const queryKeys = {
     lists: () => [...queryKeys.contacts.all, "list"] as const,
     list: (filters: Record<string, any>) =>
       [...queryKeys.contacts.lists(), filters] as const,
+    byOrganization: (organizationId: string) =>
+      [...queryKeys.contacts.lists(), { organizationId }] as const,
     details: () => [...queryKeys.contacts.all, "detail"] as const,
     detail: (id: string) => [...queryKeys.contacts.details(), id] as const,
   },
@@ -198,6 +234,12 @@ export const queryKeys = {
     lists: () => [...queryKeys.facilityReservations.all, "list"] as const,
     list: (filters: Record<string, any>) =>
       [...queryKeys.facilityReservations.lists(), filters] as const,
+    byStable: (stableId: string) =>
+      [...queryKeys.facilityReservations.lists(), { stableId }] as const,
+    byFacility: (facilityId: string) =>
+      [...queryKeys.facilityReservations.lists(), { facilityId }] as const,
+    byUser: (userId: string) =>
+      [...queryKeys.facilityReservations.lists(), { userId }] as const,
     conflicts: (facilityId: string, startTime: Date, endTime: Date) =>
       [
         ...queryKeys.facilityReservations.all,
@@ -284,10 +326,156 @@ export const queryKeys = {
       [...queryKeys.feeding.all, "schedule", stableId] as const,
   },
 
+  // Feed Types
+  feedTypes: {
+    all: ["feedTypes"] as const,
+    lists: () => [...queryKeys.feedTypes.all, "list"] as const,
+    byOrganization: (organizationId: string, includeInactive?: boolean) =>
+      [
+        ...queryKeys.feedTypes.lists(),
+        { organizationId, includeInactive },
+      ] as const,
+    details: () => [...queryKeys.feedTypes.all, "detail"] as const,
+    detail: (id: string) => [...queryKeys.feedTypes.details(), id] as const,
+  },
+
+  // Feeding Times
+  feedingTimes: {
+    all: ["feedingTimes"] as const,
+    lists: () => [...queryKeys.feedingTimes.all, "list"] as const,
+    byStable: (stableId: string, includeInactive?: boolean) =>
+      [
+        ...queryKeys.feedingTimes.lists(),
+        { stableId, includeInactive },
+      ] as const,
+    details: () => [...queryKeys.feedingTimes.all, "detail"] as const,
+    detail: (id: string) => [...queryKeys.feedingTimes.details(), id] as const,
+  },
+
+  // Horse Feedings (feeding assignments per horse)
+  horseFeedings: {
+    all: ["horseFeedings"] as const,
+    lists: () => [...queryKeys.horseFeedings.all, "list"] as const,
+    byStable: (stableId: string, date?: string, activeOnly?: boolean) =>
+      [
+        ...queryKeys.horseFeedings.lists(),
+        { stableId, date, activeOnly },
+      ] as const,
+    details: () => [...queryKeys.horseFeedings.all, "detail"] as const,
+    detail: (id: string) => [...queryKeys.horseFeedings.details(), id] as const,
+  },
+
+  // Feed Analytics
+  feedAnalytics: {
+    all: ["feedAnalytics"] as const,
+    byStable: (stableId: string, period: string, referenceDate?: string) =>
+      [
+        ...queryKeys.feedAnalytics.all,
+        { stableId, period, referenceDate },
+      ] as const,
+  },
+
+  // Inventory
+  inventory: {
+    all: ["inventory"] as const,
+    lists: () => [...queryKeys.inventory.all, "list"] as const,
+    byStable: (stableId: string, status?: string) =>
+      [...queryKeys.inventory.lists(), { stableId, status }] as const,
+    summary: (stableId: string) =>
+      [...queryKeys.inventory.all, "summary", stableId] as const,
+    transactions: (itemId: string) =>
+      [...queryKeys.inventory.all, "transactions", itemId] as const,
+    details: () => [...queryKeys.inventory.all, "detail"] as const,
+    detail: (id: string) => [...queryKeys.inventory.details(), id] as const,
+  },
+
+  // Invoices
+  invoices: {
+    all: ["invoices"] as const,
+    lists: () => [...queryKeys.invoices.all, "list"] as const,
+    byOrganization: (organizationId: string, filters?: { status?: string }) =>
+      [...queryKeys.invoices.lists(), { organizationId, ...filters }] as const,
+    overdue: (organizationId: string) =>
+      [...queryKeys.invoices.all, "overdue", organizationId] as const,
+    details: () => [...queryKeys.invoices.all, "detail"] as const,
+    detail: (id: string) => [...queryKeys.invoices.details(), id] as const,
+  },
+
+  // Staff Availability
+  staffAvailability: {
+    all: ["staffAvailability"] as const,
+    matrix: (organizationId: string, startDate: string, endDate: string) =>
+      [
+        ...queryKeys.staffAvailability.all,
+        "matrix",
+        { organizationId, startDate, endDate },
+      ] as const,
+  },
+
+  // Invitations
+  invitations: {
+    all: ["invitations"] as const,
+    lists: () => [...queryKeys.invitations.all, "list"] as const,
+    pending: (userId: string) =>
+      [...queryKeys.invitations.lists(), "pending", userId] as const,
+  },
+
+  // Lessons
+  lessons: {
+    all: ["lessons"] as const,
+    lists: () => [...queryKeys.lessons.all, "list"] as const,
+    byStable: (stableId: string) =>
+      [...queryKeys.lessons.lists(), stableId] as const,
+    byOrganization: (
+      organizationId: string,
+      startDate?: string,
+      endDate?: string,
+    ) =>
+      [
+        ...queryKeys.lessons.lists(),
+        { organizationId, startDate, endDate },
+      ] as const,
+    details: () => [...queryKeys.lessons.all, "detail"] as const,
+    detail: (id: string) => [...queryKeys.lessons.details(), id] as const,
+  },
+
+  // Lesson Types
+  lessonTypes: {
+    all: ["lessonTypes"] as const,
+    lists: () => [...queryKeys.lessonTypes.all, "list"] as const,
+    byOrganization: (organizationId: string) =>
+      [...queryKeys.lessonTypes.lists(), organizationId] as const,
+  },
+
+  // Instructors
+  instructors: {
+    all: ["instructors"] as const,
+    lists: () => [...queryKeys.instructors.all, "list"] as const,
+    byOrganization: (organizationId: string) =>
+      [...queryKeys.instructors.lists(), organizationId] as const,
+  },
+
   // User Stables
   userStables: {
     all: ["userStables"] as const,
     byUser: (userId: string) => [...queryKeys.userStables.all, userId] as const,
+  },
+
+  // Portal
+  portal: {
+    all: ["portal"] as const,
+    dashboard: () => [...queryKeys.portal.all, "dashboard"] as const,
+    horses: () => [...queryKeys.portal.all, "horses"] as const,
+    horseDetail: (horseId: string) =>
+      [...queryKeys.portal.all, "horse", horseId] as const,
+    invoices: (status?: string) =>
+      [...queryKeys.portal.all, "invoices", { status }] as const,
+    invoiceDetail: (invoiceId: string) =>
+      [...queryKeys.portal.all, "invoice", invoiceId] as const,
+    threads: () => [...queryKeys.portal.all, "threads"] as const,
+    threadMessages: (threadId: string) =>
+      [...queryKeys.portal.all, "thread", threadId, "messages"] as const,
+    profile: () => [...queryKeys.portal.all, "profile"] as const,
   },
 };
 
@@ -338,6 +526,42 @@ export const cacheInvalidation = {
   },
 
   /**
+   * Invalidate all organization member queries
+   */
+  organizationMembers: {
+    all: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.organizationMembers.all,
+      }),
+    lists: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.organizationMembers.lists(),
+      }),
+    list: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.organizationMembers.list(organizationId),
+      }),
+  },
+
+  /**
+   * Invalidate all organization invite queries
+   */
+  organizationInvites: {
+    all: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.organizationInvites.all,
+      }),
+    lists: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.organizationInvites.lists(),
+      }),
+    list: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.organizationInvites.list(organizationId),
+      }),
+  },
+
+  /**
    * Invalidate all activity-related queries
    */
   activities: {
@@ -372,6 +596,28 @@ export const cacheInvalidation = {
     detail: (id: string) =>
       queryClient.invalidateQueries({
         queryKey: queryKeys.vaccinations.detail(id),
+      }),
+  },
+
+  /**
+   * Invalidate all vaccination rule queries
+   */
+  vaccinationRules: {
+    all: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.vaccinationRules.all,
+      }),
+    lists: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.vaccinationRules.lists(),
+      }),
+    list: (organizationId: string | null) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.vaccinationRules.list(organizationId),
+      }),
+    detail: (id: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.vaccinationRules.detail(id),
       }),
   },
 
@@ -489,5 +735,299 @@ export const cacheInvalidation = {
       queryClient.invalidateQueries({
         queryKey: queryKeys.userStables.byUser(userId),
       }),
+  },
+
+  /**
+   * Invalidate all activity type queries
+   */
+  activityTypes: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.activityTypes.all }),
+    lists: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.activityTypes.lists(),
+      }),
+    byStable: (stableId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.activityTypes.byStable(stableId),
+      }),
+    detail: (id: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.activityTypes.detail(id),
+      }),
+  },
+
+  /**
+   * Invalidate all feed type queries
+   */
+  feedTypes: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.feedTypes.all }),
+    lists: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.feedTypes.lists() }),
+    byOrganization: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.feedTypes.byOrganization(organizationId),
+      }),
+    detail: (id: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.feedTypes.detail(id),
+      }),
+  },
+
+  /**
+   * Invalidate all feeding time queries
+   */
+  feedingTimes: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.feedingTimes.all }),
+    lists: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.feedingTimes.lists(),
+      }),
+    byStable: (stableId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.feedingTimes.byStable(stableId),
+      }),
+    detail: (id: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.feedingTimes.detail(id),
+      }),
+  },
+
+  /**
+   * Invalidate all horse feeding queries
+   */
+  horseFeedings: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.horseFeedings.all }),
+    lists: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.horseFeedings.lists(),
+      }),
+    byStable: (stableId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.horseFeedings.byStable(stableId),
+      }),
+    detail: (id: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.horseFeedings.detail(id),
+      }),
+  },
+
+  /**
+   * Invalidate all feed analytics queries
+   */
+  feedAnalytics: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.feedAnalytics.all }),
+    byStable: (stableId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.feedAnalytics.byStable(stableId, "", ""),
+      }),
+  },
+
+  /**
+   * Invalidate all contact queries
+   */
+  contacts: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.all }),
+    lists: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.lists() }),
+    byOrganization: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.contacts.byOrganization(organizationId),
+      }),
+    detail: (id: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.contacts.detail(id),
+      }),
+  },
+
+  /**
+   * Invalidate all horse group queries
+   */
+  horseGroups: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.horseGroups.all }),
+    lists: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.horseGroups.lists(),
+      }),
+    list: (stableId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.horseGroups.list(stableId),
+      }),
+    byOrganization: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.horseGroups.byOrganization(organizationId),
+      }),
+    detail: (id: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.horseGroups.detail(id),
+      }),
+  },
+
+  /**
+   * Invalidate all inventory queries
+   */
+  inventory: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all }),
+    lists: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() }),
+    byStable: (stableId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.inventory.byStable(stableId),
+      }),
+    transactions: (itemId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.inventory.transactions(itemId),
+      }),
+    detail: (id: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.inventory.detail(id),
+      }),
+  },
+
+  /**
+   * Invalidate all invoice queries
+   */
+  invoices: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all }),
+    lists: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.lists() }),
+    byOrganization: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.invoices.byOrganization(organizationId),
+      }),
+    overdue: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.invoices.overdue(organizationId),
+      }),
+    detail: (id: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.invoices.detail(id),
+      }),
+  },
+
+  /**
+   * Invalidate all staff availability queries
+   */
+  staffAvailability: {
+    all: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.staffAvailability.all,
+      }),
+    matrix: (organizationId: string, startDate: string, endDate: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.staffAvailability.matrix(
+          organizationId,
+          startDate,
+          endDate,
+        ),
+      }),
+  },
+
+  /**
+   * Invalidate all invitation queries
+   */
+  invitations: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.invitations.all }),
+    lists: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.invitations.lists(),
+      }),
+    pending: (userId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.invitations.pending(userId),
+      }),
+  },
+
+  /**
+   * Invalidate all lesson queries
+   */
+  lessons: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.lessons.all }),
+    lists: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.lessons.lists() }),
+    byStable: (stableId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.lessons.byStable(stableId),
+      }),
+    byOrganization: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.lessons.byOrganization(organizationId),
+      }),
+    detail: (id: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.lessons.detail(id),
+      }),
+  },
+
+  /**
+   * Invalidate all lesson type queries
+   */
+  lessonTypes: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.lessonTypes.all }),
+    lists: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.lessonTypes.lists(),
+      }),
+    byOrganization: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.lessonTypes.byOrganization(organizationId),
+      }),
+  },
+
+  /**
+   * Invalidate all instructor queries
+   */
+  instructors: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.instructors.all }),
+    lists: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.instructors.lists(),
+      }),
+    byOrganization: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.instructors.byOrganization(organizationId),
+      }),
+  },
+
+  /**
+   * Invalidate all portal queries
+   */
+  portal: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.portal.all }),
+    dashboard: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.portal.dashboard() }),
+    horses: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.portal.horses() }),
+    horseDetail: (horseId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.portal.horseDetail(horseId),
+      }),
+    invoices: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.portal.invoices() }),
+    invoiceDetail: (invoiceId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.portal.invoiceDetail(invoiceId),
+      }),
+    threads: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.portal.threads() }),
+    threadMessages: (threadId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.portal.threadMessages(threadId),
+      }),
+    profile: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.portal.profile() }),
   },
 };

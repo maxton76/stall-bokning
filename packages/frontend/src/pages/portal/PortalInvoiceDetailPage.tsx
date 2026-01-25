@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
@@ -32,7 +31,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
 import {
   getPortalInvoiceDetail,
   formatCurrency,
@@ -46,20 +46,16 @@ export default function PortalInvoiceDetailPage() {
   const { t, i18n } = useTranslation(["portal", "invoices", "common"]);
   const locale = i18n.language === "sv" ? sv : enUS;
 
-  const invoice = useAsyncData<PortalInvoiceDetailResponse>({
-    loadFn: async () => {
-      if (!invoiceId) throw new Error("No invoice ID");
-      return getPortalInvoiceDetail(invoiceId);
-    },
-  });
+  const invoiceQuery = useApiQuery<PortalInvoiceDetailResponse>(
+    queryKeys.portal.invoiceDetail(invoiceId || ""),
+    () => getPortalInvoiceDetail(invoiceId!),
+    { enabled: !!invoiceId, staleTime: 5 * 60 * 1000 },
+  );
+  const invoiceDataResponse = invoiceQuery.data;
+  const invoiceLoading = invoiceQuery.isLoading;
+  const invoiceError = invoiceQuery.error;
 
-  useEffect(() => {
-    if (invoiceId) {
-      invoice.load();
-    }
-  }, [invoiceId]);
-
-  if (invoice.isLoading) {
+  if (invoiceLoading) {
     return (
       <div className="container mx-auto space-y-6 p-6">
         <div className="flex items-center gap-4">
@@ -79,7 +75,7 @@ export default function PortalInvoiceDetailPage() {
     );
   }
 
-  if (invoice.error || !invoice.data) {
+  if (invoiceError || !invoiceDataResponse) {
     return (
       <div className="container mx-auto p-6">
         <Card>
@@ -97,7 +93,7 @@ export default function PortalInvoiceDetailPage() {
     );
   }
 
-  const { invoice: invoiceData, payments } = invoice.data;
+  const { invoice: invoiceData, payments } = invoiceDataResponse;
 
   return (
     <div className="container mx-auto space-y-6 p-6">

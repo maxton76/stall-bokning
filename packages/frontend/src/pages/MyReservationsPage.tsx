@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { format, isFuture, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { Calendar, ArrowRight, MoreVertical, Warehouse } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,8 +45,9 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserStables } from "@/hooks/useUserStables";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { useToast } from "@/hooks/use-toast";
+import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import {
   getUserReservations,
   cancelReservation,
@@ -77,39 +78,35 @@ export default function MyReservationsPage() {
   }, [stables, selectedStableId]);
 
   // Load user's reservations
-  const reservations = useAsyncData<FacilityReservation[]>({
-    loadFn: async () => {
-      if (!user?.uid) return [];
-      return await getUserReservations(user.uid);
+  const reservationsQuery = useApiQuery<FacilityReservation[]>(
+    queryKeys.facilityReservations.byUser(user?.uid || ""),
+    () => getUserReservations(user!.uid),
+    {
+      enabled: !!user?.uid,
+      staleTime: 2 * 60 * 1000,
+      refetchOnWindowFocus: true,
     },
-  });
+  );
+  const reservationsData = reservationsQuery.data ?? [];
+  const reservationsLoading = reservationsQuery.isLoading;
 
   // Load facilities for selected stable
-  const facilities = useAsyncData<Facility[]>({
-    loadFn: async () => {
-      if (!selectedStableId) return [];
-      return await getActiveFacilities(selectedStableId);
+  const facilitiesQuery = useApiQuery<Facility[]>(
+    queryKeys.facilities.list({ stableId: selectedStableId, active: true }),
+    () => getActiveFacilities(selectedStableId),
+    {
+      enabled: !!selectedStableId,
+      staleTime: 5 * 60 * 1000,
     },
-  });
-
-  // Reload data when user or stable changes
-  useEffect(() => {
-    if (user?.uid) {
-      reservations.load();
-    }
-  }, [user?.uid]);
-
-  useEffect(() => {
-    if (selectedStableId) {
-      facilities.load();
-    }
-  }, [selectedStableId]);
+  );
+  const facilitiesData = facilitiesQuery.data ?? [];
+  const facilitiesLoading = facilitiesQuery.isLoading;
 
   // Filter reservations for selected stable and sort by date
   const filteredReservations = useMemo(() => {
-    if (!reservations.data) return [];
+    if (!reservationsData) return [];
 
-    return reservations.data
+    return reservationsData
       .filter((r) => {
         // Only show reservations for selected stable
         if (selectedStableId && r.stableId !== selectedStableId) return false;
@@ -129,7 +126,7 @@ export default function MyReservationsPage() {
         if (!dateA || !dateB) return 0;
         return dateA.getTime() - dateB.getTime();
       });
-  }, [reservations.data, selectedStableId]);
+  }, [reservationsData, selectedStableId]);
 
   // Get translated facility type label
   const getFacilityTypeLabel = (type: string): string => {
@@ -169,7 +166,7 @@ export default function MyReservationsPage() {
         title: t("myReservations.toast.cancelled"),
         description: t("myReservations.toast.cancelledDescription"),
       });
-      reservations.reload();
+      await cacheInvalidation.facilityReservations.all();
     } catch (error) {
       console.error("Failed to cancel reservation:", error);
       toast({
@@ -184,7 +181,7 @@ export default function MyReservationsPage() {
     }
   };
 
-  if (stablesLoading || reservations.loading) {
+  if (stablesLoading || reservationsLoading) {
     return (
       <div className="container mx-auto p-6">
         <p className="text-muted-foreground">{t("common:labels.loading")}</p>
@@ -245,13 +242,13 @@ export default function MyReservationsPage() {
         <h2 className="text-xl font-semibold mb-4">
           {t("myReservations.availableFacilities")}
         </h2>
-        {facilities.loading ? (
+        {facilitiesLoading ? (
           <p className="text-muted-foreground">
             {t("myReservations.loadingFacilities")}
           </p>
-        ) : facilities.data && facilities.data.length > 0 ? (
+        ) : facilitiesData && facilitiesData.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {facilities.data.map((facility) => (
+            {facilitiesData.map((facility) => (
               <Card
                 key={facility.id}
                 className="hover:shadow-md transition-shadow"

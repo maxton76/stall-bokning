@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
 import { getUserOrganizations } from "@/services/organizationService";
 import type { Organization } from "@shared/types/organization";
 
@@ -19,9 +20,16 @@ export default function OrganizationsPage() {
   const { t } = useTranslation(["organizations", "common"]);
   const { user } = useAuth();
 
-  const { data: organizations, loading } = useAsyncData<Organization[]>({
-    loadFn: async () => (user ? await getUserOrganizations(user.uid) : []),
-  });
+  const organizationsQuery = useApiQuery<Organization[]>(
+    queryKeys.organizations.list(user?.uid || ""),
+    () => getUserOrganizations(user!.uid),
+    {
+      enabled: !!user?.uid,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
+  const organizations = organizationsQuery.data ?? [];
+  const loading = organizationsQuery.isLoading;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -48,7 +56,7 @@ export default function OrganizationsPage() {
         <p className="text-muted-foreground">
           {t("organizations:dropdown.loading")}
         </p>
-      ) : organizations && organizations.length === 0 ? (
+      ) : organizations.length === 0 ? (
         <Card>
           <CardContent className="pt-6 text-center py-12">
             <Building2 className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -68,7 +76,7 @@ export default function OrganizationsPage() {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {organizations?.map((org) => (
+          {organizations.map((org) => (
             <Card key={org.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-start justify-between">

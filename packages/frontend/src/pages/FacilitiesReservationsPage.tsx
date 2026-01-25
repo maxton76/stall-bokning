@@ -20,9 +20,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { useDialog } from "@/hooks/useDialog";
 import { useUserStables } from "@/hooks/useUserStables";
+import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import {
   getStableReservations,
   createReservation,
@@ -77,44 +78,47 @@ export default function FacilitiesReservationsPage() {
     }
   }, [stables, selectedStableId]);
 
-  // Load facilities and reservations for selected stable
-  const facilities = useAsyncData<Facility[]>({
-    loadFn: async () => {
-      if (!selectedStableId) return [];
-      return await getFacilitiesByStable(selectedStableId);
+  // Load facilities for selected stable
+  const facilitiesQuery = useApiQuery<Facility[]>(
+    queryKeys.facilities.list({ stableId: selectedStableId }),
+    () => getFacilitiesByStable(selectedStableId),
+    {
+      enabled: !!selectedStableId,
+      staleTime: 5 * 60 * 1000,
     },
-  });
+  );
+  const facilitiesData = facilitiesQuery.data ?? [];
+  const facilitiesLoading = facilitiesQuery.isLoading;
 
-  const reservations = useAsyncData<FacilityReservation[]>({
-    loadFn: async () => {
-      if (!selectedStableId) return [];
-      return await getStableReservations(selectedStableId);
+  // Load reservations for selected stable
+  const reservationsQuery = useApiQuery<FacilityReservation[]>(
+    queryKeys.facilityReservations.byStable(selectedStableId),
+    () => getStableReservations(selectedStableId),
+    {
+      enabled: !!selectedStableId,
+      staleTime: 2 * 60 * 1000,
+      refetchOnWindowFocus: true,
     },
-  });
+  );
+  const reservationsData = reservationsQuery.data ?? [];
+  const reservationsLoading = reservationsQuery.isLoading;
 
-  const horses = useAsyncData<Horse[]>({
-    loadFn: async () => {
-      if (!selectedStableId || !user?.uid) return [];
-      return await getUserHorsesAtStable(user.uid, selectedStableId);
+  // Load horses for selected stable (for reservation form)
+  const horsesQuery = useApiQuery<Horse[]>(
+    queryKeys.horses.list({ stableId: selectedStableId, userId: user?.uid }),
+    () => getUserHorsesAtStable(user!.uid, selectedStableId),
+    {
+      enabled: !!selectedStableId && !!user?.uid,
+      staleTime: 5 * 60 * 1000,
     },
-  });
-
-  // Reload data when stable changes
-  useEffect(() => {
-    if (selectedStableId) {
-      facilities.load();
-      reservations.load();
-      if (user?.uid) {
-        horses.load();
-      }
-    }
-  }, [selectedStableId, user?.uid]);
+  );
+  const horsesData = horsesQuery.data ?? [];
 
   // Filter reservations
   const filteredReservations = useMemo(() => {
-    if (!reservations.data) return [];
+    if (!reservationsData) return [];
 
-    return reservations.data.filter((reservation) => {
+    return reservationsData.filter((reservation) => {
       // Filter by facility type
       if (
         selectedFacilityType !== "all" &&
@@ -130,24 +134,24 @@ export default function FacilitiesReservationsPage() {
 
       return true;
     });
-  }, [reservations.data, selectedFacilityType, selectedStatus]);
+  }, [reservationsData, selectedFacilityType, selectedStatus]);
 
   // Calculate stats
   const stats = useMemo(() => {
-    if (!reservations.data) return { total: 0, upcoming: 0, completed: 0 };
+    if (!reservationsData) return { total: 0, upcoming: 0, completed: 0 };
 
     const now = new Date();
 
     return {
-      total: reservations.data.length,
-      upcoming: reservations.data.filter((r) => {
+      total: reservationsData.length,
+      upcoming: reservationsData.filter((r) => {
         const startTime = toDate(r.startTime);
         return r.status === "confirmed" && startTime && startTime > now;
       }).length,
-      completed: reservations.data.filter((r) => r.status === "completed")
+      completed: reservationsData.filter((r) => r.status === "completed")
         .length,
     };
-  }, [reservations.data]);
+  }, [reservationsData]);
 
   // Get reservations for selected date
   const reservationsForSelectedDate = useMemo(() => {
@@ -219,7 +223,7 @@ export default function FacilitiesReservationsPage() {
         description: t("facilities:reservation.messages.updateSuccess"),
       });
 
-      reservations.reload();
+      await cacheInvalidation.facilityReservations.all();
     } catch (error) {
       console.error("Failed to reschedule reservation:", error);
       toast({
@@ -227,7 +231,7 @@ export default function FacilitiesReservationsPage() {
         description: t("common:messages.saveFailed"),
         variant: "destructive",
       });
-      reservations.reload(); // Reload to revert the optimistic update
+      await cacheInvalidation.facilityReservations.all(); // Reload to revert the optimistic update
     }
   };
 
@@ -251,7 +255,7 @@ export default function FacilitiesReservationsPage() {
         description: t("facilities:reservation.messages.updateSuccess"),
       });
 
-      reservations.reload();
+      await cacheInvalidation.facilityReservations.all();
     } catch (error) {
       console.error("Failed to update reservation duration:", error);
       toast({
@@ -259,7 +263,7 @@ export default function FacilitiesReservationsPage() {
         description: t("common:messages.saveFailed"),
         variant: "destructive",
       });
-      reservations.reload(); // Reload to revert the optimistic update
+      await cacheInvalidation.facilityReservations.all(); // Reload to revert the optimistic update
     }
   };
 
@@ -275,7 +279,7 @@ export default function FacilitiesReservationsPage() {
       }
 
       // Get facility details for denormalized data
-      const facility = facilities.data?.find((f) => f.id === data.facilityId);
+      const facility = facilitiesData?.find((f) => f.id === data.facilityId);
       if (!facility) {
         toast({
           title: t("common:messages.error"),
@@ -335,7 +339,7 @@ export default function FacilitiesReservationsPage() {
       }
 
       reservationDialog.closeDialog();
-      reservations.reload();
+      await cacheInvalidation.facilityReservations.all();
     } catch (error) {
       console.error("Failed to save reservation:", error);
       toast({
@@ -363,7 +367,7 @@ export default function FacilitiesReservationsPage() {
         description: t("facilities:reservation.messages.cancelSuccess"),
       });
       reservationDialog.closeDialog();
-      reservations.reload();
+      await cacheInvalidation.facilityReservations.all();
     } catch (error) {
       console.error("Failed to cancel reservation:", error);
       toast({
@@ -375,7 +379,7 @@ export default function FacilitiesReservationsPage() {
     }
   };
 
-  if (facilities.loading || reservations.loading) {
+  if (facilitiesLoading || reservationsLoading) {
     return (
       <div className="container mx-auto p-6">
         <p className="text-muted-foreground">{t("common:labels.loading")}</p>
@@ -504,7 +508,7 @@ export default function FacilitiesReservationsPage() {
                   <SelectItem value="all">
                     {t("facilities:page.title")}
                   </SelectItem>
-                  {facilities.data?.map((facility) => (
+                  {facilitiesData?.map((facility) => (
                     <SelectItem key={facility.id} value={facility.id}>
                       {facility.name}
                     </SelectItem>
@@ -672,7 +676,7 @@ export default function FacilitiesReservationsPage() {
       {/* Timeline View */}
       {viewType === "timeline" && (
         <FacilityCalendarView
-          facilities={facilities.data || []}
+          facilities={facilitiesData || []}
           reservations={filteredReservations}
           selectedFacilityId={selectedFacility}
           onEventClick={handleReservationClick}
@@ -687,8 +691,8 @@ export default function FacilitiesReservationsPage() {
         open={reservationDialog.open}
         onOpenChange={reservationDialog.closeDialog}
         reservation={reservationDialog.data || undefined}
-        facilities={facilities.data || []}
-        horses={horses.data || []}
+        facilities={facilitiesData || []}
+        horses={horsesData || []}
         onSave={handleSaveReservation}
         onDelete={handleDeleteReservation}
         initialValues={dialogInitialValues}

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { format, startOfWeek, endOfWeek, addDays, isSameDay } from "date-fns";
 import { sv, enUS } from "date-fns/locale";
@@ -34,8 +34,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import {
   getLessons,
   getLessonTypes,
@@ -78,42 +79,52 @@ export default function LessonsPage() {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
 
-  const lessons = useAsyncData<LessonsResponse>({
-    loadFn: async () => {
-      if (!organizationId) throw new Error("No organization");
-      return getLessons(organizationId, {
+  // Data loading with TanStack Query
+  const lessonsQuery = useApiQuery<LessonsResponse>(
+    queryKeys.lessons.byOrganization(
+      organizationId || "",
+      weekStart.toISOString(),
+      weekEnd.toISOString(),
+    ),
+    () =>
+      getLessons(organizationId!, {
         startDate: weekStart.toISOString(),
         endDate: weekEnd.toISOString(),
         limit: 100,
-      });
+      }),
+    {
+      enabled: !!organizationId,
+      staleTime: 2 * 60 * 1000,
     },
-  });
+  );
+  const lessonsData = lessonsQuery.data ?? null;
+  const lessonsLoading = lessonsQuery.isLoading;
 
-  const lessonTypes = useAsyncData<LessonTypesResponse>({
-    loadFn: async () => {
-      if (!organizationId) throw new Error("No organization");
-      return getLessonTypes(organizationId);
+  const lessonTypesQuery = useApiQuery<LessonTypesResponse>(
+    queryKeys.lessonTypes.byOrganization(organizationId || ""),
+    () => getLessonTypes(organizationId!),
+    {
+      enabled: !!organizationId,
+      staleTime: 5 * 60 * 1000,
     },
-  });
+  );
+  const lessonTypesData = lessonTypesQuery.data ?? null;
+  const lessonTypesLoading = lessonTypesQuery.isLoading;
 
-  const instructors = useAsyncData<InstructorsResponse>({
-    loadFn: async () => {
-      if (!organizationId) throw new Error("No organization");
-      return getInstructors(organizationId);
+  const instructorsQuery = useApiQuery<InstructorsResponse>(
+    queryKeys.instructors.byOrganization(organizationId || ""),
+    () => getInstructors(organizationId!),
+    {
+      enabled: !!organizationId,
+      staleTime: 5 * 60 * 1000,
     },
-  });
-
-  useEffect(() => {
-    if (organizationId) {
-      lessons.load();
-      lessonTypes.load();
-      instructors.load();
-    }
-  }, [organizationId, weekStart.toISOString()]);
+  );
+  const instructorsData = instructorsQuery.data ?? null;
+  const instructorsLoading = instructorsQuery.isLoading;
 
   // Group lessons by day for calendar view
   const lessonsByDay = useMemo(() => {
-    if (!lessons.data?.lessons) return {};
+    if (!lessonsData?.lessons) return {};
 
     const grouped: Record<string, Lesson[]> = {};
     for (let i = 0; i < 7; i++) {
@@ -122,7 +133,7 @@ export default function LessonsPage() {
       grouped[dateKey] = [];
     }
 
-    lessons.data.lessons.forEach((lesson) => {
+    lessonsData.lessons.forEach((lesson) => {
       const lessonDate = new Date(lesson.startTime as unknown as string);
       const dateKey = format(lessonDate, "yyyy-MM-dd");
       if (grouped[dateKey]) {
@@ -143,13 +154,13 @@ export default function LessonsPage() {
     });
 
     return grouped;
-  }, [lessons.data?.lessons, weekStart]);
+  }, [lessonsData?.lessons, weekStart]);
 
   // Filter lessons for list view
   const filteredLessons = useMemo(() => {
-    if (!lessons.data?.lessons) return [];
+    if (!lessonsData?.lessons) return [];
 
-    return lessons.data.lessons.filter((lesson) => {
+    return lessonsData.lessons.filter((lesson) => {
       if (statusFilter !== "all" && lesson.status !== statusFilter)
         return false;
       if (typeFilter !== "all" && lesson.lessonTypeId !== typeFilter)
@@ -170,7 +181,7 @@ export default function LessonsPage() {
       return true;
     });
   }, [
-    lessons.data?.lessons,
+    lessonsData?.lessons,
     statusFilter,
     typeFilter,
     instructorFilter,
@@ -194,16 +205,16 @@ export default function LessonsPage() {
     setDetailDialogOpen(true);
   };
 
-  const handleLessonCreated = () => {
+  const handleLessonCreated = async () => {
     setCreateDialogOpen(false);
-    lessons.load();
+    await cacheInvalidation.lessons.all();
     toast({ title: t("lessons:messages.created") });
   };
 
-  const handleLessonUpdated = () => {
+  const handleLessonUpdated = async () => {
     setDetailDialogOpen(false);
     setSelectedLesson(null);
-    lessons.load();
+    await cacheInvalidation.lessons.all();
   };
 
   if (!organizationId) {
@@ -308,7 +319,7 @@ export default function LessonsPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-2">
-                    {lessons.isLoading ? (
+                    {lessonsLoading ? (
                       <div className="space-y-2">
                         <Skeleton className="h-12 w-full" />
                         <Skeleton className="h-12 w-full" />
@@ -323,7 +334,7 @@ export default function LessonsPage() {
                           const startTime = new Date(
                             lesson.startTime as unknown as string,
                           );
-                          const lessonType = lessonTypes.data?.lessonTypes.find(
+                          const lessonType = lessonTypesData?.lessonTypes.find(
                             (lt) => lt.id === lesson.lessonTypeId,
                           );
 
@@ -412,7 +423,7 @@ export default function LessonsPage() {
                 <SelectItem value="all">
                   {t("lessons:list.filters.allTypes")}
                 </SelectItem>
-                {lessonTypes.data?.lessonTypes.map((type) => (
+                {lessonTypesData?.lessonTypes.map((type) => (
                   <SelectItem key={type.id} value={type.id}>
                     {type.name}
                   </SelectItem>
@@ -432,7 +443,7 @@ export default function LessonsPage() {
                 <SelectItem value="all">
                   {t("lessons:list.filters.allInstructors")}
                 </SelectItem>
-                {instructors.data?.instructors.map((instructor) => (
+                {instructorsData?.instructors.map((instructor) => (
                   <SelectItem key={instructor.id} value={instructor.id}>
                     {instructor.name}
                   </SelectItem>
@@ -444,7 +455,7 @@ export default function LessonsPage() {
           {/* Lessons List */}
           <Card>
             <CardContent className="p-0">
-              {lessons.isLoading ? (
+              {lessonsLoading ? (
                 <div className="space-y-2 p-4">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Skeleton key={i} className="h-16 w-full" />
@@ -479,7 +490,7 @@ export default function LessonsPage() {
                               className="h-10 w-1 rounded-full"
                               style={{
                                 backgroundColor:
-                                  lessonTypes.data?.lessonTypes.find(
+                                  lessonTypesData?.lessonTypes.find(
                                     (lt) => lt.id === lesson.lessonTypeId,
                                   )?.color || "#3b82f6",
                               }}
@@ -529,27 +540,29 @@ export default function LessonsPage() {
         {/* Lesson Types Tab */}
         <TabsContent value="types">
           <LessonTypesTab
-            lessonTypes={lessonTypes.data?.lessonTypes || []}
-            isLoading={lessonTypes.isLoading}
-            onRefresh={() => lessonTypes.load()}
+            lessonTypes={lessonTypesData?.lessonTypes || []}
+            isLoading={lessonTypesLoading}
+            onRefresh={async () => await cacheInvalidation.lessonTypes.all()}
           />
         </TabsContent>
 
         {/* Instructors Tab */}
         <TabsContent value="instructors">
           <InstructorsTab
-            instructors={instructors.data?.instructors || []}
-            isLoading={instructors.isLoading}
-            onRefresh={() => instructors.load()}
+            instructors={instructorsData?.instructors || []}
+            isLoading={instructorsLoading}
+            onRefresh={async () => await cacheInvalidation.instructors.all()}
           />
         </TabsContent>
 
         {/* Schedule Templates Tab */}
         <TabsContent value="templates">
           <ScheduleTemplatesTab
-            lessonTypes={lessonTypes.data?.lessonTypes || []}
-            instructors={instructors.data?.instructors || []}
-            onLessonsGenerated={() => lessons.load()}
+            lessonTypes={lessonTypesData?.lessonTypes || []}
+            instructors={instructorsData?.instructors || []}
+            onLessonsGenerated={async () =>
+              await cacheInvalidation.lessons.all()
+            }
           />
         </TabsContent>
       </Tabs>
@@ -558,8 +571,8 @@ export default function LessonsPage() {
       <CreateLessonDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        lessonTypes={lessonTypes.data?.lessonTypes || []}
-        instructors={instructors.data?.instructors || []}
+        lessonTypes={lessonTypesData?.lessonTypes || []}
+        instructors={instructorsData?.instructors || []}
         onSuccess={handleLessonCreated}
       />
 
@@ -568,7 +581,7 @@ export default function LessonsPage() {
           open={detailDialogOpen}
           onOpenChange={setDetailDialogOpen}
           lesson={selectedLesson}
-          lessonType={lessonTypes.data?.lessonTypes.find(
+          lessonType={lessonTypesData?.lessonTypes.find(
             (lt) => lt.id === selectedLesson.lessonTypeId,
           )}
           onUpdate={handleLessonUpdated}

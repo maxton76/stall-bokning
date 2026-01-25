@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Plus, Pencil, Trash2, Search, RefreshCw, X, Mail } from "lucide-react";
@@ -30,7 +30,8 @@ import {
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import { useDialog } from "@/hooks/useDialog";
 import { useCRUD } from "@/hooks/useCRUD";
 import { useToast } from "@/hooks/use-toast";
@@ -87,36 +88,45 @@ export default function OrganizationUsersPage() {
   }, [organizationId, currentOrganizationId, navigate]);
 
   // Organization data
-  const organization = useAsyncData<Organization | null>({
-    loadFn: async () => {
-      if (!organizationId) return null;
-      return await getOrganization(organizationId);
+  const organizationQuery = useApiQuery<Organization | null>(
+    queryKeys.organizations.detail(organizationId || ""),
+    () => getOrganization(organizationId!),
+    {
+      enabled: !!organizationId,
+      staleTime: 5 * 60 * 1000,
     },
-  });
+  );
+  const organizationData = organizationQuery.data ?? null;
+  const organizationLoading = organizationQuery.isLoading;
 
   // Members data
-  const members = useAsyncData<OrganizationMember[]>({
-    loadFn: async () => {
-      if (!organizationId) return [];
-      return await getOrganizationMembers(organizationId);
+  const membersQuery = useApiQuery<OrganizationMember[]>(
+    queryKeys.organizationMembers.list(organizationId || ""),
+    () => getOrganizationMembers(organizationId!),
+    {
+      enabled: !!organizationId,
+      staleTime: 2 * 60 * 1000,
+      refetchOnWindowFocus: true,
     },
-  });
+  );
+  const membersData = membersQuery.data ?? [];
+  const membersLoading = membersQuery.isLoading;
 
   // Pending invites data
-  const invites = useAsyncData<OrganizationInvite[]>({
-    loadFn: async () => {
-      if (!organizationId) return [];
-      const response = await getOrganizationInvites(organizationId);
+  const invitesQuery = useApiQuery<OrganizationInvite[]>(
+    queryKeys.organizationInvites.list(organizationId || ""),
+    async () => {
+      const response = await getOrganizationInvites(organizationId!);
       return response.invites || [];
     },
-  });
-
-  // Load data when organizationId changes
-  useEffect(() => {
-    organization.load();
-    members.load();
-    invites.load();
-  }, [organizationId]);
+    {
+      enabled: !!organizationId,
+      staleTime: 2 * 60 * 1000,
+      refetchOnWindowFocus: true,
+    },
+  );
+  const invitesData = invitesQuery.data ?? [];
+  const invitesLoading = invitesQuery.isLoading;
 
   // CRUD operations
   const { remove: handleRemoveMember } = useCRUD({
@@ -125,8 +135,8 @@ export default function OrganizationUsersPage() {
         throw new Error("Missing organizationId or user");
       await removeOrganizationMember(userId, organizationId);
     },
-    onSuccess: () => {
-      members.load();
+    onSuccess: async () => {
+      await cacheInvalidation.organizationMembers.list(organizationId!);
     },
   });
 
@@ -168,8 +178,8 @@ export default function OrganizationUsersPage() {
         }),
       });
 
-      members.reload();
-      invites.reload();
+      await cacheInvalidation.organizationMembers.list(organizationId!);
+      await cacheInvalidation.organizationInvites.list(organizationId!);
     } catch (error: any) {
       if (error.response?.status === 409) {
         toast({
@@ -199,7 +209,7 @@ export default function OrganizationUsersPage() {
         title: t("organizations:invite.resent"),
         description: t("organizations:invite.resentDescription", { email }),
       });
-      invites.reload();
+      await cacheInvalidation.organizationInvites.list(organizationId!);
     } catch (error) {
       toast({
         title: t("common:labels.error"),
@@ -241,7 +251,7 @@ export default function OrganizationUsersPage() {
         description: t("organizations:members.memberUpdated"),
       });
 
-      members.reload();
+      await cacheInvalidation.organizationMembers.list(organizationId!);
     } catch (error: any) {
       toast({
         title: t("common:labels.error"),
@@ -264,7 +274,7 @@ export default function OrganizationUsersPage() {
         title: t("organizations:invite.cancelled"),
         description: t("organizations:invite.cancelledDescription", { email }),
       });
-      invites.reload();
+      await cacheInvalidation.organizationInvites.list(organizationId!);
     } catch (error) {
       toast({
         title: t("common:labels.error"),
@@ -277,18 +287,21 @@ export default function OrganizationUsersPage() {
   };
 
   // Filter members based on search query
-  const filteredMembers =
-    members.data?.filter((member: OrganizationMember) => {
-      const query = searchQuery.toLowerCase();
-      return (
-        member.firstName?.toLowerCase().includes(query) ||
-        member.lastName?.toLowerCase().includes(query) ||
-        member.userEmail.toLowerCase().includes(query) ||
-        member.roles.some((role) => role.toLowerCase().includes(query))
-      );
-    }) || [];
+  const filteredMembers = useMemo(
+    () =>
+      membersData.filter((member: OrganizationMember) => {
+        const query = searchQuery.toLowerCase();
+        return (
+          member.firstName?.toLowerCase().includes(query) ||
+          member.lastName?.toLowerCase().includes(query) ||
+          member.userEmail.toLowerCase().includes(query) ||
+          member.roles.some((role) => role.toLowerCase().includes(query))
+        );
+      }),
+    [membersData, searchQuery],
+  );
 
-  if (organization.loading || !organization.data) {
+  if (organizationLoading || !organizationData) {
     return (
       <div className="container mx-auto p-6">
         <p className="text-muted-foreground">{t("common:labels.loading")}</p>
@@ -300,7 +313,7 @@ export default function OrganizationUsersPage() {
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <PageHeader
-        title={`${organization.data.name} - ${t("organizations:members.title")}`}
+        title={`${organizationData.name} - ${t("organizations:members.title")}`}
         description={t("organizations:members.description")}
         backLink={
           organizationId
@@ -335,19 +348,19 @@ export default function OrganizationUsersPage() {
       </Card>
 
       {/* Pending Invitations Table */}
-      {(invites.data?.length ?? 0) > 0 && (
+      {(invitesData?.length ?? 0) > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Mail className="h-5 w-5" />
-              {t("organizations:invites.title")} ({invites.data?.length || 0})
+              {t("organizations:invites.title")} ({invitesData?.length || 0})
             </CardTitle>
             <CardDescription>
               {t("organizations:invites.description")}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {invites.loading ? (
+            {invitesLoading ? (
               <p className="text-sm text-muted-foreground">
                 {t("common:labels.loading")}
               </p>
@@ -374,7 +387,7 @@ export default function OrganizationUsersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {invites.data?.map((invite) => (
+                    {invitesData?.map((invite) => (
                       <TableRow key={invite.id}>
                         <TableCell className="font-medium">
                           {invite.email}
@@ -497,7 +510,7 @@ export default function OrganizationUsersPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {members.loading ? (
+          {membersLoading ? (
             <p className="text-sm text-muted-foreground">
               {t("common:labels.loading")}
             </p>

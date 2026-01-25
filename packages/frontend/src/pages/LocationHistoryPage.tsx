@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocationHistory } from "@/hooks/useLocationHistory";
-import { useAsyncData } from "@/hooks/useAsyncData";
-import { getUserHorses } from "@/services/horseService";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
+import { getMyHorses } from "@/services/horseService";
 import {
   Card,
   CardContent,
@@ -42,9 +43,12 @@ export default function LocationHistoryPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
   // Load user's horses for the dropdown
-  const { data: horses = [], loading: horsesLoading } = useAsyncData({
-    loadFn: () => getUserHorses(user!.uid),
+  const horsesQuery = useApiQuery(queryKeys.horses.my(), () => getMyHorses(), {
+    enabled: !!user?.uid,
+    staleTime: 5 * 60 * 1000,
   });
+  const horses = horsesQuery.data ?? [];
+  const horsesLoading = horsesQuery.isLoading;
 
   // Load location history
   const { history, loading, error } = useLocationHistory(selectedHorseId);
@@ -125,7 +129,7 @@ export default function LocationHistoryPage() {
                   <SelectItem value="all">
                     {t("location:history.allHorses")}
                   </SelectItem>
-                  {horses?.map((horse) => (
+                  {horses.map((horse) => (
                     <SelectItem key={horse.id} value={horse.id}>
                       {horse.name}
                     </SelectItem>

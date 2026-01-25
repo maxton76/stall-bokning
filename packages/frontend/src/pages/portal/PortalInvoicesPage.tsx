@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
@@ -37,7 +37,8 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
 import {
   getPortalInvoices,
   formatCurrency,
@@ -62,39 +63,40 @@ export default function PortalInvoicesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const invoices = useAsyncData<PortalInvoicesResponse>({
-    loadFn: async () => {
-      return getPortalInvoices({
+  const invoicesQuery = useApiQuery<PortalInvoicesResponse>(
+    queryKeys.portal.invoices(
+      statusFilter !== "all" ? statusFilter : undefined,
+    ),
+    () =>
+      getPortalInvoices({
         status: statusFilter !== "all" ? statusFilter : undefined,
         limit: 50,
-      });
-    },
-  });
-
-  useEffect(() => {
-    invoices.load();
-  }, [statusFilter]);
+      }),
+    { staleTime: 5 * 60 * 1000 },
+  );
+  const invoicesData = invoicesQuery.data;
+  const invoicesLoading = invoicesQuery.isLoading;
 
   // Filter invoices by search
   const filteredInvoices = useMemo(() => {
-    if (!invoices.data?.invoices) return [];
-    if (!searchQuery) return invoices.data.invoices;
+    if (!invoicesData?.invoices) return [];
+    if (!searchQuery) return invoicesData.invoices;
 
     const query = searchQuery.toLowerCase();
-    return invoices.data.invoices.filter(
+    return invoicesData.invoices.filter(
       (invoice) =>
         invoice.invoiceNumber.toLowerCase().includes(query) ||
         invoice.horsesIncluded?.some((h) => h.toLowerCase().includes(query)),
     );
-  }, [invoices.data?.invoices, searchQuery]);
+  }, [invoicesData?.invoices, searchQuery]);
 
   // Summary calculations
   const summary = useMemo(() => {
-    if (!invoices.data?.invoices) {
+    if (!invoicesData?.invoices) {
       return { totalDue: 0, overdueCount: 0 };
     }
 
-    return invoices.data.invoices.reduce(
+    return invoicesData.invoices.reduce(
       (acc, inv) => {
         if (!["paid", "cancelled"].includes(inv.status)) {
           acc.totalDue += inv.amountDue;
@@ -104,7 +106,7 @@ export default function PortalInvoicesPage() {
       },
       { totalDue: 0, overdueCount: 0 },
     );
-  }, [invoices.data?.invoices]);
+  }, [invoicesData?.invoices]);
 
   return (
     <div className="container mx-auto space-y-6 p-6">
@@ -122,7 +124,7 @@ export default function PortalInvoicesPage() {
           <CardHeader className="pb-2">
             <CardDescription>{t("portal:invoices.totalDue")}</CardDescription>
             <CardTitle className="text-2xl text-amber-600">
-              {invoices.isLoading ? (
+              {invoicesLoading ? (
                 <Skeleton className="h-8 w-24" />
               ) : (
                 formatCurrency(summary.totalDue)
@@ -142,7 +144,7 @@ export default function PortalInvoicesPage() {
               <CardDescription>{t("portal:invoices.overdue")}</CardDescription>
             </div>
             <CardTitle className="text-2xl text-red-600">
-              {invoices.isLoading ? (
+              {invoicesLoading ? (
                 <Skeleton className="h-8 w-12" />
               ) : (
                 summary.overdueCount
@@ -199,7 +201,7 @@ export default function PortalInvoicesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoices.isLoading ? (
+              {invoicesLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
                     {Array.from({ length: 7 }).map((_, j) => (

@@ -1,5 +1,5 @@
-import { useNavigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import {
   Building2,
   Plus,
@@ -9,10 +9,10 @@ import {
   Shield,
   CreditCard,
   Settings2,
-  ChevronDown
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+  ChevronDown,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,49 +21,59 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { DropdownEmptyState, DropdownLoadingState } from '@/components/ui/dropdown-states'
-import { useAuth } from '@/contexts/AuthContext'
-import { useOrganizationContext } from '@/contexts/OrganizationContext'
-import { useAsyncData } from '@/hooks/useAsyncData'
-import { getUserOrganizations } from '@/services/organizationService'
+} from "@/components/ui/dropdown-menu";
+import {
+  DropdownEmptyState,
+  DropdownLoadingState,
+} from "@/components/ui/dropdown-states";
+import { useAuth } from "@/contexts/AuthContext";
+import { useOrganizationContext } from "@/contexts/OrganizationContext";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
+import { getUserOrganizations } from "@/services/organizationService";
 
 export function OrganizationsDropdown() {
-  const navigate = useNavigate()
-  const { user } = useAuth()
-  const { currentOrganizationId, setCurrentOrganizationId } = useOrganizationContext()
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { currentOrganizationId, setCurrentOrganizationId } =
+    useOrganizationContext();
 
-  const organizations = useAsyncData<any[]>({
-    loadFn: async () => {
-      if (!user) return []
-      return await getUserOrganizations(user.uid)
-    }
-  })
-
-  // Load organizations when user changes
-  useEffect(() => {
-    organizations.load()
-  }, [user])
+  const organizationsQuery = useApiQuery<any[]>(
+    queryKeys.organizations.list(user?.uid || ""),
+    () => getUserOrganizations(user!.uid),
+    {
+      enabled: !!user,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
+  const organizationsData = organizationsQuery.data;
+  const organizationsLoading = organizationsQuery.isLoading;
 
   // Auto-select organization if user only has one
   useEffect(() => {
-    if (organizations.data && organizations.data.length === 1 && !currentOrganizationId) {
-      setCurrentOrganizationId(organizations.data[0].id)
+    if (
+      organizationsData &&
+      organizationsData.length === 1 &&
+      !currentOrganizationId
+    ) {
+      setCurrentOrganizationId(organizationsData[0].id);
     }
-  }, [organizations.data, currentOrganizationId, setCurrentOrganizationId])
+  }, [organizationsData, currentOrganizationId, setCurrentOrganizationId]);
 
   // Find current organization name for display
-  const currentOrganization = organizations.data?.find((org: any) => org.id === currentOrganizationId)
-  const displayName = currentOrganization?.name || 'Organizations'
+  const currentOrganization = organizationsData?.find(
+    (org: any) => org.id === currentOrganizationId,
+  );
+  const displayName = currentOrganization?.name || "Organizations";
 
   const handleOrganizationClick = (orgId: string) => {
-    setCurrentOrganizationId(orgId)
+    setCurrentOrganizationId(orgId);
     // Don't navigate - just set as active so the menu appears
-  }
+  };
 
   // Don't show dropdown if user only has one organization
-  if (organizations.data && organizations.data.length <= 1) {
-    return null
+  if (organizationsData && organizationsData.length <= 1) {
+    return null;
   }
 
   return (
@@ -85,7 +95,7 @@ export function OrganizationsDropdown() {
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => navigate('/organizations/create')}
+            onClick={() => navigate("/organizations/create")}
           >
             <Plus className="h-4 w-4 mr-1" />
             Create
@@ -94,22 +104,24 @@ export function OrganizationsDropdown() {
 
         <DropdownMenuSeparator />
 
-        {organizations.loading ? (
+        {organizationsLoading ? (
           <DropdownLoadingState message="Loading organizations..." />
         ) : (
           <>
             {/* Organizations List */}
-            {organizations.data && organizations.data.length > 0 ? (
+            {organizationsData && organizationsData.length > 0 ? (
               <>
                 <DropdownMenuGroup>
                   <DropdownMenuLabel className="text-xs text-muted-foreground">
                     Select Organization
                   </DropdownMenuLabel>
-                  {organizations.data.map((org: any) => (
+                  {organizationsData.map((org: any) => (
                     <DropdownMenuItem
                       key={org.id}
                       onClick={() => handleOrganizationClick(org.id)}
-                      className={currentOrganizationId === org.id ? 'bg-accent' : ''}
+                      className={
+                        currentOrganizationId === org.id ? "bg-accent" : ""
+                      }
                     >
                       <Building2 className="mr-2 h-4 w-4" />
                       <span className="flex-1">{org.name}</span>
@@ -131,37 +143,61 @@ export function OrganizationsDropdown() {
                         Organization Menu
                       </DropdownMenuLabel>
                       <DropdownMenuItem
-                        onClick={() => navigate(`/organizations/${currentOrganizationId}/users`)}
+                        onClick={() =>
+                          navigate(
+                            `/organizations/${currentOrganizationId}/users`,
+                          )
+                        }
                       >
                         <Users className="mr-2 h-4 w-4" />
                         Members
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => navigate(`/organizations/${currentOrganizationId}/integrations`)}
+                        onClick={() =>
+                          navigate(
+                            `/organizations/${currentOrganizationId}/integrations`,
+                          )
+                        }
                       >
                         <Plug className="mr-2 h-4 w-4" />
                         Integrations
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => navigate(`/organizations/${currentOrganizationId}/manure`)}
+                        onClick={() =>
+                          navigate(
+                            `/organizations/${currentOrganizationId}/manure`,
+                          )
+                        }
                       >
                         <Tractor className="mr-2 h-4 w-4" />
                         Manure
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => navigate(`/organizations/${currentOrganizationId}/permissions`)}
+                        onClick={() =>
+                          navigate(
+                            `/organizations/${currentOrganizationId}/permissions`,
+                          )
+                        }
                       >
                         <Shield className="mr-2 h-4 w-4" />
                         Permissions
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => navigate(`/organizations/${currentOrganizationId}/subscription`)}
+                        onClick={() =>
+                          navigate(
+                            `/organizations/${currentOrganizationId}/subscription`,
+                          )
+                        }
                       >
                         <CreditCard className="mr-2 h-4 w-4" />
                         Subscription
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => navigate(`/organizations/${currentOrganizationId}/settings`)}
+                        onClick={() =>
+                          navigate(
+                            `/organizations/${currentOrganizationId}/settings`,
+                          )
+                        }
                       >
                         <Settings2 className="mr-2 h-4 w-4" />
                         Settings
@@ -179,7 +215,7 @@ export function OrganizationsDropdown() {
                 action={{
                   label: "Create Your First Organization",
                   icon: Plus,
-                  onClick: () => navigate('/organizations/create')
+                  onClick: () => navigate("/organizations/create"),
                 }}
               />
             )}
@@ -187,11 +223,11 @@ export function OrganizationsDropdown() {
         )}
 
         {/* Footer */}
-        <DropdownMenuItem onClick={() => navigate('/organizations')}>
+        <DropdownMenuItem onClick={() => navigate("/organizations")}>
           <Building2 className="mr-2 h-4 w-4" />
           View All Organizations
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

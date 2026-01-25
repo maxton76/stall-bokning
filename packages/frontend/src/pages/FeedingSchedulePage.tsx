@@ -47,9 +47,12 @@ import { FeedingCellPopover } from "@/components/FeedingCellPopover";
 import { HorseFeedingFormDialog } from "@/components/HorseFeedingFormDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserStables } from "@/hooks/useUserStables";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { useFeedTypesQuery } from "@/hooks/useFeedTypesQuery";
+import { useFeedingTimesQuery } from "@/hooks/useFeedingTimesQuery";
 import { useCRUD } from "@/hooks/useCRUD";
 import { useDialog } from "@/hooks/useDialog";
+import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import type {
   FeedType,
   FeedingTime,
@@ -58,8 +61,6 @@ import type {
 } from "@shared/types";
 import type { Horse } from "@/types/roles";
 import { getStableHorses } from "@/services/horseService";
-import { getFeedTypesByStable } from "@/services/feedTypeService";
-import { getFeedingTimesByStable } from "@/services/feedingTimeService";
 import {
   getHorseFeedingsByStable,
   createHorseFeeding,
@@ -94,6 +95,10 @@ export default function FeedingSchedulePage() {
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
 
+  // Get the selected stable's organizationId
+  const selectedStable = stables.find((s) => s.id === selectedStableId);
+  const organizationId = selectedStable?.organizationId;
+
   // Auto-select first stable when stables load
   useEffect(() => {
     const firstStable = stables[0];
@@ -102,83 +107,69 @@ export default function FeedingSchedulePage() {
     }
   }, [stables, selectedStableId]);
 
-  // Load horses for selected stable
-  const horses = useAsyncData<Horse[]>({
-    loadFn: async () => {
-      if (!selectedStableId || stables.length === 0) return [];
-      return await getStableHorses(selectedStableId);
-    },
-  });
+  // Date string for query key
+  const dateString = selectedDate.toISOString().split("T")[0] ?? "";
 
-  // Load feed types for selected stable
-  const feedTypes = useAsyncData<FeedType[]>({
-    loadFn: async () => {
-      if (!selectedStableId || stables.length === 0) return [];
-      return await getFeedTypesByStable(selectedStableId, true);
+  // Load horses for selected stable
+  const horsesQuery = useApiQuery<Horse[]>(
+    queryKeys.horses.list({ stableId: selectedStableId, context: "feeding" }),
+    () => getStableHorses(selectedStableId!),
+    {
+      enabled: !!selectedStableId && stables.length > 0,
+      staleTime: 5 * 60 * 1000,
     },
-  });
+  );
+  const horsesData = horsesQuery.data ?? [];
+  const horsesLoading = horsesQuery.isLoading;
+
+  // Load feed types for the organization (shared across all stables)
+  const { feedTypes: feedTypesData, loading: feedTypesLoading } =
+    useFeedTypesQuery(organizationId, false);
 
   // Load feeding times for selected stable
-  const feedingTimes = useAsyncData<FeedingTime[]>({
-    loadFn: async () => {
-      if (!selectedStableId || stables.length === 0) return [];
-      return await getFeedingTimesByStable(selectedStableId, true);
-    },
-  });
+  const { feedingTimes: feedingTimesData, loading: feedingTimesLoading } =
+    useFeedingTimesQuery(selectedStableId || undefined, false);
 
   // Load horse feedings for selected stable and date
-  const horseFeedings = useAsyncData<HorseFeeding[]>({
-    loadFn: async () => {
-      if (!selectedStableId || stables.length === 0) return [];
-      return await getHorseFeedingsByStable(selectedStableId, {
+  const horseFeedingsQuery = useApiQuery<HorseFeeding[]>(
+    queryKeys.horseFeedings.byStable(selectedStableId || "", dateString, true),
+    () =>
+      getHorseFeedingsByStable(selectedStableId!, {
         date: selectedDate,
         activeOnly: true,
-      });
+      }),
+    {
+      enabled: !!selectedStableId && stables.length > 0,
+      staleTime: 2 * 60 * 1000,
+      refetchOnWindowFocus: true,
     },
-  });
-
-  // Reload data when stable changes or stables list loads
-  useEffect(() => {
-    if (selectedStableId && stables.length > 0) {
-      horses.load();
-      feedTypes.load();
-      feedingTimes.load();
-      horseFeedings.load();
-    }
-  }, [selectedStableId, stables]);
-
-  // Reload feedings when date changes
-  useEffect(() => {
-    if (selectedStableId && stables.length > 0) {
-      horseFeedings.load();
-    }
-  }, [selectedDate]);
+  );
+  const horseFeedingsData = horseFeedingsQuery.data ?? [];
+  const horseFeedingsLoading = horseFeedingsQuery.isLoading;
 
   // Sort feeding times by sortOrder
   const sortedFeedingTimes = useMemo(() => {
-    return [...(feedingTimes.data || [])].sort(
-      (a, b) => a.sortOrder - b.sortOrder,
-    );
-  }, [feedingTimes.data]);
+    return [...feedingTimesData].sort((a, b) => a.sortOrder - b.sortOrder);
+  }, [feedingTimesData]);
 
   // Filter horses by search query
   const filteredHorses = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
-    if (!query) return horses.data || [];
+    if (!query) return horsesData;
 
-    return (horses.data || []).filter(
+    return horsesData.filter(
       (horse) =>
         horse.name.toLowerCase().includes(query) ||
         horse.ueln?.toLowerCase().includes(query) ||
         horse.chipNumber?.toLowerCase().includes(query),
     );
-  }, [horses.data, searchQuery]);
+  }, [horsesData, searchQuery]);
 
   // Group feedings by horse and feeding time ID (ensures renamed times still match)
   const feedingsByHorseAndTimeId = useMemo(() => {
     const map = new Map<string, HorseFeeding[]>();
 
-    (horseFeedings.data || []).forEach((feeding) => {
+    horseFeedingsData.forEach((feeding) => {
       // Use feeding time ID for matching (handles renamed feeding times correctly)
       const key = `${feeding.horseId}_${feeding.feedingTimeId}`;
       const existing = map.get(key) || [];
@@ -186,7 +177,7 @@ export default function FeedingSchedulePage() {
     });
 
     return map;
-  }, [horseFeedings.data]);
+  }, [horseFeedingsData]);
 
   // Get feedings for a specific horse and feeding time
   const getFeedingsForCell = (
@@ -212,7 +203,7 @@ export default function FeedingSchedulePage() {
       await deleteHorseFeeding(id);
     },
     onSuccess: async () => {
-      await horseFeedings.reload();
+      await cacheInvalidation.horseFeedings.all();
     },
     successMessages: {
       create: t("feeding:horseFeeding.messages.createSuccess"),
@@ -296,10 +287,10 @@ export default function FeedingSchedulePage() {
   }
 
   const isLoading =
-    horses.loading ||
-    feedTypes.loading ||
-    feedingTimes.loading ||
-    horseFeedings.loading;
+    horsesLoading ||
+    feedTypesLoading ||
+    feedingTimesLoading ||
+    horseFeedingsLoading;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -571,8 +562,8 @@ export default function FeedingSchedulePage() {
           horseFeeding={feedingDialog.data.existingFeeding}
           horseId={feedingDialog.data.horseId}
           horseName={feedingDialog.data.horseName}
-          feedTypes={feedTypes.data || []}
-          feedingTimes={feedingTimes.data || []}
+          feedTypes={feedTypesData}
+          feedingTimes={feedingTimesData}
           onSave={handleSaveFeeding}
           defaultFeedingTimeId={feedingDialog.data.feedingTimeId}
         />

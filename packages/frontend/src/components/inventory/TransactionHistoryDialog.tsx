@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { sv, enUS } from "date-fns/locale";
@@ -18,7 +17,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
 import { getInventoryTransactions } from "@/services/inventoryService";
 import type {
   FeedInventory,
@@ -69,18 +69,16 @@ export function TransactionHistoryDialog({
   const { t, i18n } = useTranslation(["inventory", "common"]);
   const locale = i18n.language === "sv" ? sv : enUS;
 
-  const transactions = useAsyncData<InventoryTransaction[]>({
-    loadFn: async () => {
-      if (!item?.id) return [];
-      return getInventoryTransactions(item.id, { limit: 50 });
+  const transactionsQuery = useApiQuery<InventoryTransaction[]>(
+    queryKeys.inventory.transactions(item?.id || ""),
+    () => getInventoryTransactions(item!.id, { limit: 50 }),
+    {
+      enabled: open && !!item?.id,
+      staleTime: 5 * 60 * 1000,
     },
-  });
-
-  useEffect(() => {
-    if (open && item?.id) {
-      transactions.load();
-    }
-  }, [open, item?.id]);
+  );
+  const transactionsData = transactionsQuery.data;
+  const transactionsLoading = transactionsQuery.isLoading;
 
   const formatQuantity = (quantity: number, unit: string) => {
     const sign = quantity > 0 ? "+" : "";
@@ -100,20 +98,20 @@ export function TransactionHistoryDialog({
         </DialogHeader>
 
         <ScrollArea className="h-[400px] pr-4">
-          {transactions.isLoading ? (
+          {transactionsLoading ? (
             <div className="divide-y">
               <TransactionSkeleton />
               <TransactionSkeleton />
               <TransactionSkeleton />
               <TransactionSkeleton />
             </div>
-          ) : !transactions.data || transactions.data.length === 0 ? (
+          ) : !transactionsData || transactionsData.length === 0 ? (
             <div className="flex h-32 items-center justify-center text-muted-foreground">
               {t("inventory:transactions.empty")}
             </div>
           ) : (
             <div className="divide-y">
-              {transactions.data.map((transaction) => (
+              {transactionsData.map((transaction) => (
                 <div
                   key={transaction.id}
                   className="flex items-start gap-3 py-3"

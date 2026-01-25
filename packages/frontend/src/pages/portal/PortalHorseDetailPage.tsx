@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
@@ -25,7 +24,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
 import {
   getPortalHorseDetail,
   getActivityStatusVariant,
@@ -37,20 +37,16 @@ export default function PortalHorseDetailPage() {
   const { t, i18n } = useTranslation(["portal", "common", "horses"]);
   const locale = i18n.language === "sv" ? sv : enUS;
 
-  const horse = useAsyncData<PortalHorseDetailResponse>({
-    loadFn: async () => {
-      if (!horseId) throw new Error("No horse ID");
-      return getPortalHorseDetail(horseId);
-    },
-  });
+  const horseQuery = useApiQuery<PortalHorseDetailResponse>(
+    queryKeys.portal.horseDetail(horseId || ""),
+    () => getPortalHorseDetail(horseId!),
+    { enabled: !!horseId, staleTime: 5 * 60 * 1000 },
+  );
+  const horseData = horseQuery.data;
+  const horseLoading = horseQuery.isLoading;
+  const horseError = horseQuery.error;
 
-  useEffect(() => {
-    if (horseId) {
-      horse.load();
-    }
-  }, [horseId]);
-
-  if (horse.isLoading) {
+  if (horseLoading) {
     return (
       <div className="container mx-auto space-y-6 p-6">
         <div className="flex items-center gap-4">
@@ -81,7 +77,7 @@ export default function PortalHorseDetailPage() {
     );
   }
 
-  if (horse.error || !horse.data) {
+  if (horseError || !horseData) {
     return (
       <div className="container mx-auto p-6">
         <Card>
@@ -99,7 +95,7 @@ export default function PortalHorseDetailPage() {
     );
   }
 
-  const { horse: horseData, activities, healthSummary } = horse.data;
+  const { horse: horseDetails, activities, healthSummary } = horseData;
 
   return (
     <div className="container mx-auto space-y-6 p-6">
@@ -111,10 +107,10 @@ export default function PortalHorseDetailPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold">{horseData.name}</h1>
+          <h1 className="text-2xl font-bold">{horseDetails.name}</h1>
           <p className="text-muted-foreground">
-            {horseData.breed}
-            {horseData.color && ` • ${horseData.color}`}
+            {horseDetails.breed}
+            {horseDetails.color && ` • ${horseDetails.color}`}
           </p>
         </div>
       </div>
@@ -125,17 +121,20 @@ export default function PortalHorseDetailPage() {
           <CardContent className="p-6">
             <div className="flex flex-col items-center gap-4">
               <Avatar className="h-32 w-32">
-                <AvatarImage src={horseData.photoUrl} alt={horseData.name} />
+                <AvatarImage
+                  src={horseDetails.photoUrl}
+                  alt={horseDetails.name}
+                />
                 <AvatarFallback className="text-3xl">
-                  {horseData.name?.charAt(0) || "H"}
+                  {horseDetails.name?.charAt(0) || "H"}
                 </AvatarFallback>
               </Avatar>
 
               <div className="text-center">
-                <h2 className="text-xl font-semibold">{horseData.name}</h2>
-                {horseData.ownershipType !== "owner" && (
+                <h2 className="text-xl font-semibold">{horseDetails.name}</h2>
+                {horseDetails.ownershipType !== "owner" && (
                   <Badge variant="secondary" className="mt-1">
-                    {t(`portal:horses.ownership.${horseData.ownershipType}`)}
+                    {t(`portal:horses.ownership.${horseDetails.ownershipType}`)}
                   </Badge>
                 )}
               </div>
@@ -143,45 +142,46 @@ export default function PortalHorseDetailPage() {
               <Separator />
 
               <div className="w-full space-y-3 text-sm">
-                {horseData.registrationNumber && (
+                {horseDetails.registrationNumber && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">
                       {t("horses:fields.registrationNumber")}
                     </span>
                     <span className="font-medium">
-                      {horseData.registrationNumber}
+                      {horseDetails.registrationNumber}
                     </span>
                   </div>
                 )}
-                {horseData.age && (
+                {horseDetails.age && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">
                       {t("horses:fields.age")}
                     </span>
                     <span className="font-medium">
-                      {t("portal:horses.age", { age: horseData.age })}
+                      {t("portal:horses.age", { age: horseDetails.age })}
                     </span>
                   </div>
                 )}
-                {horseData.gender && (
+                {horseDetails.gender && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">
                       {t("horses:fields.gender")}
                     </span>
                     <span className="font-medium">
-                      {t(`horses:gender.${horseData.gender}`)}
+                      {t(`horses:gender.${horseDetails.gender}`)}
                     </span>
                   </div>
                 )}
-                {horseData.stableName && (
+                {horseDetails.stableName && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">
                       {t("horses:fields.stable")}
                     </span>
                     <span className="font-medium flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
-                      {horseData.stableName}
-                      {horseData.stallNumber && ` (${horseData.stallNumber})`}
+                      {horseDetails.stableName}
+                      {horseDetails.stallNumber &&
+                        ` (${horseDetails.stallNumber})`}
                     </span>
                   </div>
                 )}

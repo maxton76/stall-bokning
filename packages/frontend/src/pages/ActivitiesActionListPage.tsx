@@ -1,17 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
   Pencil,
   Trash2,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   MoreVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -30,13 +29,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { useDialog } from "@/hooks/useDialog";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { useCRUD } from "@/hooks/useCRUD";
 import { useUserStables } from "@/hooks/useUserStables";
 import { useActivityFilters } from "@/hooks/useActivityFilters";
-import { useActivityTypes } from "@/hooks/useActivityTypes";
-import { useActivityTypeConfig } from "@/hooks/useActivityTypeConfig";
+import { useActivitiesByPeriod } from "@/hooks/useActivitiesQuery";
+import { useActivityTypesQuery } from "@/hooks/useActivityTypesQuery";
+import {
+  useStablePlanningMembers,
+  formatMembersForSelection,
+} from "@/hooks/useOrganizationMembers";
 import { ActivityFormDialog } from "@/components/ActivityFormDialog";
 import { ActivityFilterPopover } from "@/components/activities/ActivityFilterPopover";
 import { AssigneeAvatar } from "@/components/activities/AssigneeAvatar";
@@ -44,9 +48,8 @@ import { SpecialInstructionsPopover } from "@/components/activities/SpecialInstr
 import { Timestamp } from "firebase/firestore";
 import { cn } from "@/lib/utils";
 import { toDate } from "@/utils/timestampUtils";
+import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import {
-  getActivitiesByPeriod,
-  getActivitiesByPeriodMultiStable,
   createActivity,
   createTask,
   createMessage,
@@ -55,8 +58,6 @@ import {
   completeActivity,
 } from "@/services/activityService";
 import { getUserHorses } from "@/services/horseService";
-import { getActiveMembersWithUserDetails } from "@/services/stableService";
-import { formatFullName } from "@/lib/nameUtils";
 import type {
   ActivityEntry,
   ActivityFilters,
@@ -85,6 +86,7 @@ import {
 export default function ActivitiesActionListPage() {
   const { t } = useTranslation(["activities", "common"]);
   const { user } = useAuth();
+  const { currentOrganization } = useOrganization();
 
   const PERIOD_TYPES: Array<{ value: PeriodType; label: string }> = [
     { value: "day", label: t("activities:actionList.period.day") },
@@ -200,61 +202,31 @@ export default function ActivitiesActionListPage() {
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
 
-  // Load activities for selected stable and period
-  const activities = useAsyncData<ActivityEntry[]>({
-    loadFn: async () => {
-      if (!selectedStableId || stables.length === 0) return [];
+  // Load activities for selected stable and period using TanStack Query
+  const {
+    activities: activitiesData,
+    loading: activitiesLoading,
+    query: activitiesQuery,
+  } = useActivitiesByPeriod(selectedStableId, stables, currentDate, periodType);
 
-      // If "all" is selected, fetch from all stables
-      if (selectedStableId === "all") {
-        const stableIds = stables.map((s) => s.id);
-        return await getActivitiesByPeriodMultiStable(
-          stableIds,
-          currentDate,
-          periodType,
-        );
-      }
+  // Load horses for activity form using TanStack Query
+  const { data: horsesData = [], isLoading: horsesLoading } = useApiQuery<
+    Horse[]
+  >(queryKeys.horses.my(), () => getUserHorses(user!.uid), { enabled: !!user });
 
-      // Otherwise fetch from specific stable
-      return await getActivitiesByPeriod(
-        selectedStableId,
-        currentDate,
-        periodType,
-      );
-    },
-  });
-
-  // Load horses for activity form
-  const horses = useAsyncData<Horse[]>({
-    loadFn: async () => {
-      if (!user) return [];
-      return await getUserHorses(user.uid);
-    },
-  });
-
-  // Load activity types for selected stable (auto-reloads on stable change)
-  const activityTypes = useActivityTypes(selectedStableId, true);
-
-  // Reload activities when stable, period type, date, or stables list changes
-  useEffect(() => {
-    if (selectedStableId && stables.length > 0) {
-      activities.load();
-    }
-  }, [selectedStableId, currentDate, periodType, stables]);
-
-  // Load horses on mount
-  useEffect(() => {
-    if (user) {
-      horses.load();
-    }
-  }, [user]);
+  // Load activity types for selected stable using TanStack Query
+  const { activityTypes: activityTypesData, loading: activityTypesLoading } =
+    useActivityTypesQuery(selectedStableId === "all" ? null : selectedStableId);
 
   // Filter and group activities
   const { filteredActivities, groupedActivities, temporalSections } =
-    useActivityFilters(activities.data || [], filters, user?.uid, periodType);
+    useActivityFilters(activitiesData, filters, user?.uid, periodType);
 
   // Dialog state
   const formDialog = useDialog<ActivityEntry>();
+
+  // Get query client for cache operations
+  const queryClient = useQueryClient();
 
   // CRUD operations
   const { create, update, remove } = useCRUD<ActivityEntry>({
@@ -263,7 +235,7 @@ export default function ActivitiesActionListPage() {
 
       if (data.type === "activity") {
         // For activities, use the horse's stable (not the selected stable filter)
-        const horse = horses.data?.find((h) => h.id === data.horseId);
+        const horse = horsesData.find((h) => h.id === data.horseId);
         if (!horse) throw new Error("Horse not found");
         if (!horse.currentStableId)
           throw new Error("Horse is not assigned to a stable");
@@ -309,7 +281,8 @@ export default function ActivitiesActionListPage() {
       await deleteActivity(id);
     },
     onSuccess: async () => {
-      await activities.reload();
+      // Invalidate activities cache to trigger refetch
+      await cacheInvalidation.activities.lists();
     },
     successMessages: {
       create: t("activities:messages.createSuccess"),
@@ -345,12 +318,31 @@ export default function ActivitiesActionListPage() {
 
     setCompletingIds((prev) => new Set(prev).add(entry.id));
 
+    // Get the current query key for optimistic updates
+    const isAllStables = selectedStableId === "all";
+    const stableIds = stables.map((s) => s.id);
+    const dateString = currentDate.toISOString().split("T")[0] ?? "";
+    const currentQueryKey = isAllStables
+      ? queryKeys.activities.byPeriodMultiStable(
+          stableIds,
+          dateString,
+          periodType,
+        )
+      : queryKeys.activities.byPeriod(
+          selectedStableId || "",
+          dateString,
+          periodType,
+        );
+
     try {
-      // Optimistic update
-      const optimisticActivities = (activities.data || []).map((a) =>
-        a.id === entry.id ? { ...a, status: "completed" as const } : a,
+      // Optimistic update using TanStack Query
+      queryClient.setQueryData<ActivityEntry[]>(
+        currentQueryKey,
+        (old) =>
+          old?.map((a) =>
+            a.id === entry.id ? { ...a, status: "completed" as const } : a,
+          ) ?? [],
       );
-      activities.setData?.(optimisticActivities);
 
       await completeActivity(entry.id, user.uid);
 
@@ -359,10 +351,12 @@ export default function ActivitiesActionListPage() {
         description: t("activities:actionList.entryCompleted"),
       });
 
-      await activities.reload();
+      // Invalidate to ensure fresh data from server
+      await cacheInvalidation.activities.lists();
     } catch (error) {
       console.error("Failed to complete:", error);
-      await activities.reload();
+      // Rollback by invalidating cache (triggers refetch)
+      await cacheInvalidation.activities.lists();
       toast({
         title: t("common:messages.error"),
         description: t("activities:messages.completeError"),
@@ -397,28 +391,17 @@ export default function ActivitiesActionListPage() {
     }
   };
 
-  // Fetch stable members for assignment dropdown
-  const { data: stableMembers = [] } = useQuery({
-    queryKey: ["stableMembers", selectedStableId, "withUsers"],
-    queryFn: async () => {
-      if (!selectedStableId || selectedStableId === "all") return [];
-      const membersData =
-        await getActiveMembersWithUserDetails(selectedStableId);
-      return membersData.map((member: any) => ({
-        id: member.userId,
-        name:
-          member.displayName ||
-          formatFullName({
-            firstName: member.firstName,
-            lastName: member.lastName,
-            email: member.email,
-          }),
-        roles: member.roles || [],
-      }));
-    },
-    enabled: !!selectedStableId && selectedStableId !== "all",
-    staleTime: 5 * 60 * 1000,
-  });
+  // Fetch organization members for assignment dropdown (filtered by stable access)
+  const { data: organizationMembers = [] } = useStablePlanningMembers(
+    currentOrganization,
+    selectedStableId,
+  );
+
+  // Format members for the ActivityFormDialog
+  const stableMembers = useMemo(
+    () => formatMembersForSelection(organizationMembers),
+    [organizationMembers],
+  );
 
   if (stablesLoading) {
     return (
@@ -553,7 +536,7 @@ export default function ActivitiesActionListPage() {
           <div className="border-b"></div>
 
           {/* Activities List */}
-          {activities.loading ? (
+          {activitiesLoading ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
                 {t("activities:actionList.loading")}
@@ -587,8 +570,8 @@ export default function ActivitiesActionListPage() {
                         onDelete={() => handleDeleteEntry(entry)}
                         onComplete={() => handleCompleteEntry(entry)}
                         isCompleting={completingIds.has(entry.id)}
-                        activityTypes={activityTypes.data || []}
-                        horses={horses.data || []}
+                        activityTypes={activityTypesData}
+                        horses={horsesData}
                         t={t}
                       />
                     ))}
@@ -615,8 +598,8 @@ export default function ActivitiesActionListPage() {
                         onDelete={() => handleDeleteEntry(entry)}
                         onComplete={() => handleCompleteEntry(entry)}
                         isCompleting={completingIds.has(entry.id)}
-                        activityTypes={activityTypes.data || []}
-                        horses={horses.data || []}
+                        activityTypes={activityTypesData}
+                        horses={horsesData}
                         t={t}
                       />
                     ))}
@@ -643,8 +626,8 @@ export default function ActivitiesActionListPage() {
                         onDelete={() => handleDeleteEntry(entry)}
                         onComplete={() => handleCompleteEntry(entry)}
                         isCompleting={completingIds.has(entry.id)}
-                        activityTypes={activityTypes.data || []}
-                        horses={horses.data || []}
+                        activityTypes={activityTypesData}
+                        horses={horsesData}
                         t={t}
                       />
                     ))}
@@ -663,8 +646,8 @@ export default function ActivitiesActionListPage() {
                   onDelete={() => handleDeleteEntry(entry)}
                   onComplete={() => handleCompleteEntry(entry)}
                   isCompleting={completingIds.has(entry.id)}
-                  activityTypes={activityTypes.data || []}
-                  horses={horses.data || []}
+                  activityTypes={activityTypesData}
+                  horses={horsesData}
                   t={t}
                 />
               ))}
@@ -684,8 +667,8 @@ export default function ActivitiesActionListPage() {
                         onDelete={() => handleDeleteEntry(entry)}
                         onComplete={() => handleCompleteEntry(entry)}
                         isCompleting={completingIds.has(entry.id)}
-                        activityTypes={activityTypes.data || []}
-                        horses={horses.data || []}
+                        activityTypes={activityTypesData}
+                        horses={horsesData}
                         t={t}
                       />
                     ))}
@@ -703,9 +686,9 @@ export default function ActivitiesActionListPage() {
         onOpenChange={formDialog.closeDialog}
         entry={formDialog.data || undefined}
         onSave={handleSaveEntry}
-        horses={horses.data?.map((h) => ({ id: h.id, name: h.name })) || []}
+        horses={horsesData.map((h) => ({ id: h.id, name: h.name }))}
         stableMembers={stableMembers}
-        activityTypes={activityTypes.data || []}
+        activityTypes={activityTypesData}
         currentUserId={user?.uid}
       />
     </div>

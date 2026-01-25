@@ -21,10 +21,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { useDialog } from "@/hooks/useDialog";
 import { useCRUD } from "@/hooks/useCRUD";
 import { useUserStables } from "@/hooks/useUserStables";
+import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import {
   getFacilitiesByStable,
   createFacility,
@@ -69,19 +70,16 @@ export default function ManageFacilitiesPage() {
   }, [stables, selectedStableId]);
 
   // Load facilities for selected stable
-  const facilities = useAsyncData<Facility[]>({
-    loadFn: async () => {
-      if (!selectedStableId) return [];
-      return await getFacilitiesByStable(selectedStableId);
+  const facilitiesQuery = useApiQuery<Facility[]>(
+    queryKeys.facilities.list({ stableId: selectedStableId }),
+    () => getFacilitiesByStable(selectedStableId),
+    {
+      enabled: !!selectedStableId,
+      staleTime: 5 * 60 * 1000,
     },
-  });
-
-  // Reload facilities when stable changes
-  useEffect(() => {
-    if (selectedStableId) {
-      facilities.load();
-    }
-  }, [selectedStableId]);
+  );
+  const facilitiesData = facilitiesQuery.data ?? [];
+  const facilitiesLoading = facilitiesQuery.isLoading;
 
   // CRUD operations
   const { create, update, remove } = useCRUD<Facility>({
@@ -102,7 +100,7 @@ export default function ManageFacilitiesPage() {
       await deleteFacility(id, user.uid);
     },
     onSuccess: async () => {
-      await facilities.reload();
+      await cacheInvalidation.facilities.all();
     },
     successMessages: {
       create: t("facilities:messages.createSuccess"),
@@ -113,18 +111,18 @@ export default function ManageFacilitiesPage() {
 
   // Filter facilities by search query
   const filteredFacilities = useMemo(() => {
-    if (!facilities.data) return [];
+    if (facilitiesData.length === 0) return [];
 
-    if (!searchQuery.trim()) return facilities.data;
+    if (!searchQuery.trim()) return facilitiesData;
 
     const query = searchQuery.toLowerCase();
 
-    return facilities.data.filter(
+    return facilitiesData.filter(
       (facility) =>
         facility.name.toLowerCase().includes(query) ||
         getFacilityTypeLabel(facility.type).toLowerCase().includes(query),
     );
-  }, [facilities.data, searchQuery]);
+  }, [facilitiesData, searchQuery]);
 
   const handleAddFacility = () => {
     facilityDialog.openDialog();

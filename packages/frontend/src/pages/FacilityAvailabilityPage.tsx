@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import {
   format,
   startOfWeek,
@@ -23,9 +23,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { useDialog } from "@/hooks/useDialog";
 import { useToast } from "@/hooks/use-toast";
+import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import { getFacility } from "@/services/facilityService";
 import {
   getReservationsByFacility,
@@ -44,7 +45,6 @@ import { getWeekNumber } from "@stall-bokning/shared";
 export default function FacilityAvailabilityPage() {
   const { t } = useTranslation(["facilities", "common", "constants"]);
   const { facilityId } = useParams<{ facilityId: string }>();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -62,43 +62,43 @@ export default function FacilityAvailabilityPage() {
   const reservationDialog = useDialog<FacilityReservation>();
 
   // Load facility details
-  const facility = useAsyncData<Facility | null>({
-    loadFn: async () => {
-      if (!facilityId) return null;
-      return await getFacility(facilityId);
+  const facilityQuery = useApiQuery<Facility | null>(
+    queryKeys.facilities.detail(facilityId || ""),
+    () => getFacility(facilityId!),
+    {
+      enabled: !!facilityId,
+      staleTime: 5 * 60 * 1000,
     },
-  });
+  );
+  const facilityData = facilityQuery.data ?? null;
+  const facilityLoading = facilityQuery.isLoading;
 
   // Load reservations for this facility
-  const reservations = useAsyncData<FacilityReservation[]>({
-    loadFn: async () => {
-      if (!facilityId) return [];
-      return await getReservationsByFacility(facilityId);
+  const reservationsQuery = useApiQuery<FacilityReservation[]>(
+    queryKeys.facilityReservations.byFacility(facilityId || ""),
+    () => getReservationsByFacility(facilityId!),
+    {
+      enabled: !!facilityId,
+      staleTime: 2 * 60 * 1000,
+      refetchOnWindowFocus: true,
     },
-  });
+  );
+  const reservationsData = reservationsQuery.data ?? [];
+  const reservationsLoading = reservationsQuery.isLoading;
 
   // Load user's horses at the stable
-  const horses = useAsyncData<Horse[]>({
-    loadFn: async () => {
-      if (!facility.data?.stableId || !user?.uid) return [];
-      return await getUserHorsesAtStable(user.uid, facility.data.stableId);
+  const horsesQuery = useApiQuery<Horse[]>(
+    queryKeys.horses.list({
+      stableId: facilityData?.stableId,
+      userId: user?.uid,
+    }),
+    () => getUserHorsesAtStable(user!.uid, facilityData!.stableId),
+    {
+      enabled: !!facilityData?.stableId && !!user?.uid,
+      staleTime: 5 * 60 * 1000,
     },
-  });
-
-  // Load data when facilityId changes
-  useEffect(() => {
-    if (facilityId) {
-      facility.load();
-      reservations.load();
-    }
-  }, [facilityId]);
-
-  // Load horses when facility data is available
-  useEffect(() => {
-    if (facility.data?.stableId && user?.uid) {
-      horses.load();
-    }
-  }, [facility.data?.stableId, user?.uid]);
+  );
+  const horsesData = horsesQuery.data ?? [];
 
   // Navigation handlers
   const handleNavigate = (direction: "prev" | "next" | "today") => {
@@ -170,14 +170,14 @@ export default function FacilityAvailabilityPage() {
     if (!user) return;
 
     // Check if user owns the reservation
-    const reservation = reservations.data?.find((r) => r.id === reservationId);
+    const reservation = reservationsData?.find((r) => r.id === reservationId);
     if (!reservation || reservation.userId !== user.uid) {
       toast({
         title: t("common:messages.error"),
         description: t("common:messages.error"),
         variant: "destructive",
       });
-      reservations.reload();
+      await cacheInvalidation.facilityReservations.all();
       return;
     }
 
@@ -194,7 +194,7 @@ export default function FacilityAvailabilityPage() {
         description: t("facilities:reservation.messages.updateSuccess"),
       });
 
-      reservations.reload();
+      await cacheInvalidation.facilityReservations.all();
     } catch (error) {
       console.error(`Failed to ${action} reservation:`, error);
       toast({
@@ -202,7 +202,7 @@ export default function FacilityAvailabilityPage() {
         description: t("common:messages.saveFailed"),
         variant: "destructive",
       });
-      reservations.reload();
+      await cacheInvalidation.facilityReservations.all();
     }
   };
 
@@ -221,7 +221,7 @@ export default function FacilityAvailabilityPage() {
 
   const handleSaveReservation = async (data: any) => {
     try {
-      if (!user || !facility.data) {
+      if (!user || !facilityData) {
         toast({
           title: t("common:messages.error"),
           description: t("common:messages.loadingFailed"),
@@ -251,10 +251,10 @@ export default function FacilityAvailabilityPage() {
       };
 
       const denormalizedData = {
-        facilityName: facility.data.name,
-        facilityType: facility.data.type,
-        stableId: facility.data.stableId,
-        stableName: facility.data.stableName,
+        facilityName: facilityData.name,
+        facilityType: facilityData.type,
+        stableId: facilityData.stableId,
+        stableName: facilityData.stableName,
         userEmail: user.email || "",
         userFullName: user.displayName || undefined,
       };
@@ -280,7 +280,7 @@ export default function FacilityAvailabilityPage() {
       }
 
       reservationDialog.closeDialog();
-      reservations.reload();
+      await cacheInvalidation.facilityReservations.all();
     } catch (error) {
       console.error("Failed to save reservation:", error);
       toast({
@@ -308,7 +308,7 @@ export default function FacilityAvailabilityPage() {
         description: t("facilities:reservation.messages.cancelSuccess"),
       });
       reservationDialog.closeDialog();
-      reservations.reload();
+      await cacheInvalidation.facilityReservations.all();
     } catch (error) {
       console.error("Failed to cancel reservation:", error);
       toast({
@@ -326,7 +326,7 @@ export default function FacilityAvailabilityPage() {
     [currentDate],
   );
 
-  if (facility.loading || reservations.loading) {
+  if (facilityLoading || reservationsLoading) {
     return (
       <div className="container mx-auto p-6">
         <p className="text-muted-foreground">{t("common:labels.loading")}</p>
@@ -334,7 +334,7 @@ export default function FacilityAvailabilityPage() {
     );
   }
 
-  if (!facility.data) {
+  if (!facilityData) {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center gap-4 mb-6">
@@ -429,18 +429,18 @@ export default function FacilityAvailabilityPage() {
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <Info className="h-4 w-4 text-muted-foreground" />
-              <span className="font-semibold">{facility.data.name}</span>
+              <span className="font-semibold">{facilityData.name}</span>
             </div>
             <Badge variant="secondary">
-              {getFacilityTypeLabel(facility.data.type)}
+              {getFacilityTypeLabel(facilityData.type)}
             </Badge>
             <span className="text-sm text-muted-foreground">
               {t("facilities:availability.availableFrom")}:{" "}
-              {facility.data.availableFrom} - {facility.data.availableTo}
+              {facilityData.availableFrom} - {facilityData.availableTo}
             </span>
             <span className="text-sm text-muted-foreground">
               {t("facilities:bookingRules.maxHorsesPerReservation")}:{" "}
-              {facility.data.maxHorsesPerReservation}
+              {facilityData.maxHorsesPerReservation}
             </span>
           </div>
         </CardContent>
@@ -448,19 +448,19 @@ export default function FacilityAvailabilityPage() {
 
       {/* Calendar View */}
       <FacilityCalendarView
-        facilities={facility.data ? [facility.data] : []}
-        reservations={reservations.data || []}
+        facilities={facilityData ? [facilityData] : []}
+        reservations={reservationsData || []}
         selectedFacilityId={facilityId}
         onEventClick={handleReservationClick}
         onDateSelect={handleTimelineSelect}
         onEventDrop={handleEventDrop}
         onEventResize={handleEventResize}
         calendarConfig={{
-          slotMinTime: facility.data?.availableFrom
-            ? `${facility.data.availableFrom}:00`
+          slotMinTime: facilityData?.availableFrom
+            ? `${facilityData.availableFrom}:00`
             : "06:00:00",
-          slotMaxTime: facility.data?.availableTo
-            ? `${facility.data.availableTo}:00`
+          slotMaxTime: facilityData?.availableTo
+            ? `${facilityData.availableTo}:00`
             : "22:00:00",
         }}
         viewOptions={{
@@ -475,8 +475,8 @@ export default function FacilityAvailabilityPage() {
         open={reservationDialog.open}
         onOpenChange={reservationDialog.closeDialog}
         reservation={reservationDialog.data || undefined}
-        facilities={facility.data ? [facility.data] : []}
-        horses={horses.data || []}
+        facilities={facilityData ? [facilityData] : []}
+        horses={horsesData || []}
         onSave={handleSaveReservation}
         onDelete={handleDeleteReservation}
         initialValues={dialogInitialValues}

@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -38,8 +37,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/PageHeader";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { useDialog } from "@/hooks/useDialog";
+import { queryKeys } from "@/lib/queryClient";
 import { getContact } from "@/services/contactService";
 import type { Contact, ContactBadge } from "@stall-bokning/shared";
 
@@ -140,20 +140,17 @@ export default function ContactDetailPage() {
   const { currentOrganization } = useOrganization();
   const editDialog = useDialog();
 
-  // Contact data
-  const contact = useAsyncData<Contact | null>({
-    loadFn: async () => {
-      if (!contactId) return null;
-      return await getContact(contactId);
+  // Contact data with TanStack Query
+  const contactQuery = useApiQuery<Contact | null>(
+    queryKeys.contacts.detail(contactId || ""),
+    () => getContact(contactId!),
+    {
+      enabled: !!contactId,
+      staleTime: 5 * 60 * 1000,
     },
-  });
-
-  // Load data
-  useEffect(() => {
-    if (contactId) {
-      contact.load();
-    }
-  }, [contactId]);
+  );
+  const contactData = contactQuery.data ?? null;
+  const contactLoading = contactQuery.isLoading;
 
   const getContactName = (c: Contact): string => {
     if (c.contactType === "Business") {
@@ -174,11 +171,11 @@ export default function ContactDetailPage() {
     return parts.join(", ");
   };
 
-  if (contact.isLoading) {
+  if (contactLoading) {
     return <ContactDetailSkeleton />;
   }
 
-  if (!contact.data) {
+  if (!contactData) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <User className="h-12 w-12 text-muted-foreground mb-4" />
@@ -196,7 +193,7 @@ export default function ContactDetailPage() {
     );
   }
 
-  const c = contact.data;
+  const c = contactData;
 
   return (
     <div className="space-y-6">

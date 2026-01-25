@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiQuery } from "@/hooks/useApiQuery";
@@ -19,31 +20,50 @@ interface UsePendingInvitationsResult {
 }
 
 /**
- * Hook to manage pending stable invitations
- * Provides accept/decline functionality with toast notifications
- * Auto-loads on mount and when user email changes
+ * Hook to manage pending stable invitations using TanStack Query.
  *
- * Uses TanStack Query for caching, auto-refetching, and optimized data management
+ * Provides accept/decline functionality with toast notifications.
+ * Auto-loads when user email is available and auto-refreshes on window focus.
+ *
+ * Migrated from useAsyncData to TanStack Query for:
+ * - Automatic cache invalidation
+ * - Background refetching
+ * - Optimistic updates
+ *
+ * @example
+ * ```tsx
+ * const { invitations, loading, accept, decline } = usePendingInvitationsQuery();
+ *
+ * // Accept an invitation
+ * await accept(inviteId, stableId);
+ *
+ * // Decline an invitation
+ * await decline(inviteId);
+ * ```
  */
-export function usePendingInvitations(): UsePendingInvitationsResult {
+export function usePendingInvitationsQuery(): UsePendingInvitationsResult {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const invitationsQuery = useApiQuery<Invitation[]>(
+  const query = useApiQuery<Invitation[]>(
     queryKeys.invitations.pending(user?.uid || ""),
-    () => getPendingInvitations(user!.email!),
+    async () => {
+      if (!user?.email) return [];
+      return getPendingInvitations(user.email);
+    },
     {
       enabled: !!user?.email,
-      staleTime: 2 * 60 * 1000,
+      staleTime: 2 * 60 * 1000, // Invitations should refresh often
+      refetchOnWindowFocus: true,
     },
   );
-  const invitationsData = invitationsQuery.data || [];
 
   const accept = async (inviteId: string, stableId: string) => {
     if (!user?.uid || !user?.email) return;
 
     try {
-      const invitations = invitationsData;
+      const invitations = query.data || [];
       const invite = invitations.find((i) => i.id === inviteId);
 
       if (!invite) throw new Error(i18n.t("invites:errors.notFound"));
@@ -62,16 +82,21 @@ export function usePendingInvitations(): UsePendingInvitationsResult {
         );
       }
 
-      // stableName is now guaranteed by API (enriched for legacy data)
       const stableName = invite.stableName;
       if (!stableName) {
         throw new Error(i18n.t("invites:errors.stableNotFound"));
       }
 
-      // Validate user has firstName/lastName from AuthContext
+      // Validate user has firstName/lastName
       if (!user.firstName || !user.lastName) {
         throw new Error(i18n.t("invites:errors.profileIncomplete"));
       }
+
+      // Optimistic update - remove the invitation from the list
+      queryClient.setQueryData<Invitation[]>(
+        queryKeys.invitations.pending(user.uid),
+        (old) => old?.filter((i) => i.id !== inviteId) ?? [],
+      );
 
       await acceptInvitation(
         inviteId,
@@ -92,9 +117,18 @@ export function usePendingInvitations(): UsePendingInvitationsResult {
         }),
       });
 
-      await cacheInvalidation.invitations.pending(user.uid);
+      // Invalidate related caches
+      await Promise.all([
+        cacheInvalidation.invitations.pending(user.uid),
+        cacheInvalidation.userStables.byUser(user.uid),
+        cacheInvalidation.stables.lists(),
+      ]);
     } catch (error) {
       console.error("Error accepting invitation:", error);
+
+      // Rollback optimistic update on error
+      await cacheInvalidation.invitations.pending(user.uid);
+
       const errorMessage =
         error instanceof Error
           ? error.message
@@ -112,14 +146,27 @@ export function usePendingInvitations(): UsePendingInvitationsResult {
     if (!user?.uid) return;
 
     try {
+      // Optimistic update - remove the invitation from the list
+      queryClient.setQueryData<Invitation[]>(
+        queryKeys.invitations.pending(user.uid),
+        (old) => old?.filter((i) => i.id !== inviteId) ?? [],
+      );
+
       await declineInvitation(inviteId, user.uid);
+
       toast({
         title: i18n.t("invites:messages.declined"),
         description: i18n.t("invites:messages.declinedDescription"),
       });
+
+      // Invalidate to ensure consistency
       await cacheInvalidation.invitations.pending(user.uid);
     } catch (error) {
       console.error("Error declining invitation:", error);
+
+      // Rollback optimistic update on error
+      await cacheInvalidation.invitations.pending(user.uid);
+
       toast({
         title: i18n.t("errors:titles.error"),
         description: i18n.t("invites:errors.declineFailed"),
@@ -129,12 +176,12 @@ export function usePendingInvitations(): UsePendingInvitationsResult {
   };
 
   return {
-    invitations: invitationsData,
-    loading: invitationsQuery.isLoading,
+    invitations: query.data || [],
+    loading: query.isLoading,
     accept,
     decline,
     refresh: async () => {
-      await cacheInvalidation.invitations.pending(user!.uid);
+      await query.refetch();
     },
   };
 }

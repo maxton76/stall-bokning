@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   startOfWeek,
   addWeeks,
@@ -22,9 +22,15 @@ import {
 } from "@/components/ui/select";
 import { Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { useUserStables } from "@/hooks/useUserStables";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { useDialog } from "@/hooks/useDialog";
+import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
+import {
+  useStablePlanningMembers,
+  formatMembersForSelection,
+} from "@/hooks/useOrganizationMembers";
 import { CalendarHeader } from "@/components/calendar/CalendarHeader";
 import { WeekDaysHeader } from "@/components/calendar/WeekDaysHeader";
 import { HorseRow } from "@/components/calendar/HorseRow";
@@ -40,9 +46,8 @@ import {
   getAllAccessibleHorses,
 } from "@/services/horseService";
 import { getRoutineInstances } from "@/services/routineService";
-import { getActiveMembersWithUserDetails } from "@/services/stableService";
-import { formatFullName } from "@/lib/nameUtils";
 import { getActivityTypesByStable } from "@/services/activityTypeService";
+// Note: formatFullName removed - member formatting now handled by formatMembersForSelection
 import type { ActivityEntry, ActivityTypeConfig } from "@/types/activity";
 import type { Horse } from "@/types/roles";
 import type { RoutineInstance } from "@shared/types";
@@ -50,6 +55,7 @@ import type { RoutineInstance } from "@shared/types";
 export default function ActivitiesPlanningPage() {
   const { t } = useTranslation(["activities", "common"]);
   const { user } = useAuth();
+  const { currentOrganization } = useOrganization();
   const navigate = useNavigate();
   const [selectedStableId, setSelectedStableId] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"day" | "week">("week");
@@ -80,8 +86,12 @@ export default function ActivitiesPlanningPage() {
   }, [weekDays]);
 
   // Load horses FIRST - activities depend on horses
-  const horses = useAsyncData<Horse[]>({
-    loadFn: async () => {
+  const horsesQuery = useApiQuery<Horse[]>(
+    queryKeys.horses.list({
+      stableId: selectedStableId,
+      status: "active",
+    }),
+    async () => {
       if (!user || stables.length === 0) return [];
 
       // If "all" is selected, fetch horses from all stables
@@ -91,59 +101,80 @@ export default function ActivitiesPlanningPage() {
 
       return await getStableHorses(selectedStableId, "active");
     },
-  });
+    {
+      enabled: !!user && stables.length > 0,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
+  const horsesData = horsesQuery.data ?? [];
+  const horsesLoading = horsesQuery.isLoading;
 
   // Load activities for week - based on horses' stables (not useUserStables)
-  // This ensures we fetch activities from all stables where we can see horses
-  // Note: We pass horsesData as a parameter to avoid stale closure issues
-  const loadActivities = async (horsesData: Horse[] | null) => {
-    // Early return if no horses data
-    if (!horsesData || horsesData.length === 0) return [];
+  // Get unique stable IDs from horses for multi-stable queries
+  const horseStableIds = useMemo(() => {
+    if (selectedStableId !== "all") return [];
+    return [
+      ...new Set(
+        horsesData
+          .map((h) => h.currentStableId)
+          .filter((id): id is string => !!id),
+      ),
+    ];
+  }, [horsesData, selectedStableId]);
 
-    // If "all" is selected, fetch from all stables that have horses we can see
-    if (selectedStableId === "all") {
-      // Get unique stable IDs from horses we can see
-      const horseStableIds = [
-        ...new Set(
-          horsesData
-            .map((h) => h.currentStableId)
-            .filter((id): id is string => !!id),
-        ),
-      ];
+  const activitiesQuery = useApiQuery<ActivityEntry[]>(
+    queryKeys.activities.list({
+      stableId: selectedStableId,
+      horseStableIds:
+        selectedStableId === "all"
+          ? horseStableIds.sort().join(",")
+          : undefined,
+      startDate: dateRange.start.toISOString(),
+      endDate: dateRange.end.toISOString(),
+    }),
+    async () => {
+      // Early return if no horses data
+      if (horsesData.length === 0) return [];
 
-      // No stables to fetch from (horses might not have currentStableId set)
-      if (horseStableIds.length === 0) {
-        return [];
+      // If "all" is selected, fetch from all stables that have horses we can see
+      if (selectedStableId === "all") {
+        if (horseStableIds.length === 0) return [];
+
+        const promises = horseStableIds.map((stableId) =>
+          getStableActivities(stableId, dateRange.start, dateRange.end),
+        );
+        const results = await Promise.all(promises);
+        const allActivities = results.flat();
+
+        // Sort by date
+        return allActivities.sort((a, b) => {
+          const dateA = a.date?.toDate?.() || new Date(a.date as any);
+          const dateB = b.date?.toDate?.() || new Date(b.date as any);
+          return dateA.getTime() - dateB.getTime();
+        });
       }
 
-      const promises = horseStableIds.map((stableId) =>
-        getStableActivities(stableId, dateRange.start, dateRange.end),
+      return await getStableActivities(
+        selectedStableId,
+        dateRange.start,
+        dateRange.end,
       );
-      const results = await Promise.all(promises);
-      const allActivities = results.flat();
-
-      // Sort by date
-      return allActivities.sort((a, b) => {
-        const dateA = a.date?.toDate?.() || new Date(a.date as any);
-        const dateB = b.date?.toDate?.() || new Date(b.date as any);
-        return dateA.getTime() - dateB.getTime();
-      });
-    }
-
-    return await getStableActivities(
-      selectedStableId,
-      dateRange.start,
-      dateRange.end,
-    );
-  };
-
-  const activities = useAsyncData<ActivityEntry[]>({
-    loadFn: () => loadActivities(horses.data),
-  });
+    },
+    {
+      enabled:
+        horsesData.length > 0 ||
+        (selectedStableId !== "all" && !!selectedStableId),
+      staleTime: 2 * 60 * 1000,
+      refetchOnWindowFocus: true,
+    },
+  );
+  const activitiesData = activitiesQuery.data ?? [];
+  const activitiesLoading = activitiesQuery.isLoading;
 
   // Load routine instances for week
-  const routines = useAsyncData<RoutineInstance[]>({
-    loadFn: async () => {
+  const routinesQuery = useApiQuery<RoutineInstance[]>(
+    ["routines", "instances", selectedStableId, currentWeekStart.toISOString()],
+    async () => {
       if (stables.length === 0) return [];
 
       // If "all" is selected, fetch from all stables
@@ -158,108 +189,71 @@ export default function ActivitiesPlanningPage() {
       // Single stable
       return await getRoutineInstances(selectedStableId, currentWeekStart);
     },
-  });
+    {
+      enabled: stables.length > 0,
+      staleTime: 2 * 60 * 1000,
+    },
+  );
+  const routinesData = routinesQuery.data ?? [];
 
   // Filter routines by selected stable
   const filteredRoutineInstances = useMemo(() => {
-    if (!routines.data) return [];
+    if (routinesData.length === 0) return [];
 
     if (selectedStableId === "all") {
-      return routines.data;
+      return routinesData;
     }
 
-    return routines.data.filter((i) => i.stableId === selectedStableId);
-  }, [routines.data, selectedStableId]);
+    return routinesData.filter((i) => i.stableId === selectedStableId);
+  }, [routinesData, selectedStableId]);
 
   // Load activity types - based on horse stables for "all" view
-  const loadActivityTypes = async (horsesData: Horse[] | null) => {
-    if (selectedStableId === "all") {
-      // Get unique stable IDs from horses
-      if (!horsesData || horsesData.length === 0) return [];
+  const activityTypesQuery = useApiQuery<ActivityTypeConfig[]>(
+    queryKeys.activityTypes.byStable(
+      selectedStableId === "all"
+        ? horseStableIds.sort().join(",")
+        : selectedStableId || "",
+      true,
+    ),
+    async () => {
+      if (selectedStableId === "all") {
+        // Get unique stable IDs from horses
+        if (horsesData.length === 0) return [];
+        if (horseStableIds.length === 0) return [];
 
-      const horseStableIds = [
-        ...new Set(
-          horsesData
-            .map((h) => h.currentStableId)
-            .filter((id): id is string => !!id),
-        ),
-      ];
-
-      if (horseStableIds.length === 0) return [];
-
-      // Fetch activity types from all stables
-      const promises = horseStableIds.map((stableId) =>
-        getActivityTypesByStable(stableId, true),
-      );
-      const results = await Promise.all(promises);
-      return results.flat();
-    }
-
-    // Single stable
-    if (!selectedStableId) return [];
-    return await getActivityTypesByStable(selectedStableId, true);
-  };
-
-  const activityTypes = useAsyncData<ActivityTypeConfig[]>({
-    loadFn: () => loadActivityTypes(horses.data),
-  });
-
-  // Fetch stable members for assignment dropdown
-  const { data: stableMembers = [] } = useQuery({
-    queryKey: ["stableMembers", selectedStableId, "withUsers"],
-    queryFn: async () => {
-      if (!selectedStableId || selectedStableId === "all") return [];
-      const membersData =
-        await getActiveMembersWithUserDetails(selectedStableId);
-      return membersData.map((member: any) => ({
-        id: member.userId,
-        name:
-          member.displayName ||
-          formatFullName({
-            firstName: member.firstName,
-            lastName: member.lastName,
-            email: member.email,
-          }),
-        roles: member.roles || [],
-      }));
-    },
-    enabled: !!selectedStableId && selectedStableId !== "all",
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // Reload activity types when stable or horses change
-  useEffect(() => {
-    if (selectedStableId === "all") {
-      if (horses.data && horses.data.length > 0) {
-        activityTypes.load();
+        // Fetch activity types from all stables
+        const promises = horseStableIds.map((stableId) =>
+          getActivityTypesByStable(stableId, true),
+        );
+        const results = await Promise.all(promises);
+        return results.flat();
       }
-    } else if (selectedStableId) {
-      activityTypes.load();
-    }
-  }, [selectedStableId, horses.data]);
 
-  // Reload activities when stable, horses, or date range changes
-  // Activities depend on horses data to know which stables to query
-  useEffect(() => {
-    if (horses.data && horses.data.length > 0) {
-      activities.load();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedStableId, horses.data, dateRange.start, dateRange.end]);
+      // Single stable
+      if (!selectedStableId) return [];
+      return await getActivityTypesByStable(selectedStableId, true);
+    },
+    {
+      enabled:
+        selectedStableId === "all"
+          ? horseStableIds.length > 0
+          : !!selectedStableId,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
+  const activityTypesData = activityTypesQuery.data ?? [];
 
-  // Reload routines when stable, stables list, or week changes
-  useEffect(() => {
-    if (stables.length > 0) {
-      routines.load();
-    }
-  }, [selectedStableId, stables, currentWeekStart]);
+  // Fetch organization members for assignment dropdown (filtered by stable access)
+  const { data: organizationMembers = [] } = useStablePlanningMembers(
+    currentOrganization,
+    selectedStableId,
+  );
 
-  // Reload horses when stable or stables list changes
-  useEffect(() => {
-    if (user && stables.length > 0) {
-      horses.load();
-    }
-  }, [selectedStableId, stables, user]);
+  // Format members for the ActivityFormDialog
+  const stableMembers = useMemo(
+    () => formatMembersForSelection(organizationMembers),
+    [organizationMembers],
+  );
 
   // Navigation handlers
   const handleNavigate = (direction: "prev" | "next" | "today") => {
@@ -324,7 +318,7 @@ export default function ActivitiesPlanningPage() {
 
     if (data.type === "activity") {
       // Find the horse to get its stable
-      const horse = horses.data?.find((h) => h.id === data.horseId);
+      const horse = horsesData.find((h) => h.id === data.horseId);
       if (!horse || !horse.currentStableId) {
         throw new Error("Horse not found or not assigned to a stable");
       }
@@ -346,7 +340,8 @@ export default function ActivitiesPlanningPage() {
 
     formDialog.closeDialog();
     setInitialFormData({});
-    activities.reload();
+    // Invalidate activities cache to trigger refetch
+    await cacheInvalidation.activities.lists();
   };
 
   const handleDelete = async () => {
@@ -364,7 +359,8 @@ export default function ActivitiesPlanningPage() {
       await deleteActivity(entry.id);
       formDialog.closeDialog();
       setInitialFormData({});
-      activities.reload();
+      // Invalidate activities cache to trigger refetch
+      await cacheInvalidation.activities.lists();
     }
   };
 
@@ -495,22 +491,22 @@ export default function ActivitiesPlanningPage() {
             </div>
 
             {/* Horse Rows */}
-            {horses.loading ? (
+            {horsesLoading ? (
               <div className="p-8 text-center text-muted-foreground">
                 {t("activities:planning.loadingHorses")}
               </div>
-            ) : horses.data && horses.data.length > 0 ? (
-              horses.data.map((horse) => (
+            ) : horsesData.length > 0 ? (
+              horsesData.map((horse) => (
                 <HorseRow
                   key={horse.id}
                   horse={horse}
                   weekDays={weekDays}
-                  activities={activities.data || []}
+                  activities={activitiesData}
                   expanded={expandedHorses.has(horse.id)}
                   onToggleExpand={() => handleToggleHorse(horse.id)}
                   onActivityClick={handleActivityClick}
                   onCellClick={handleCellClick}
-                  activityTypes={activityTypes.data || []}
+                  activityTypes={activityTypesData}
                 />
               ))
             ) : (
@@ -535,9 +531,9 @@ export default function ActivitiesPlanningPage() {
         initialHorseId={initialFormData.horseId}
         onSave={handleSave}
         onDelete={formDialog.data ? handleDelete : undefined}
-        horses={horses.data?.map((h) => ({ id: h.id, name: h.name })) || []}
+        horses={horsesData.map((h) => ({ id: h.id, name: h.name }))}
         stableMembers={stableMembers}
-        activityTypes={activityTypes.data || []}
+        activityTypes={activityTypesData}
         currentUserId={user?.uid}
       />
     </div>

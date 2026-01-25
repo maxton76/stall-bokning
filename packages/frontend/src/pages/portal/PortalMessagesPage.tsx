@@ -33,7 +33,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import {
   getPortalThreads,
   getPortalThreadMessages,
@@ -61,31 +62,26 @@ export default function PortalMessagesPage() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const threads = useAsyncData<PortalThreadsResponse>({
-    loadFn: getPortalThreads,
-  });
+  const threadsQuery = useApiQuery<PortalThreadsResponse>(
+    queryKeys.portal.threads(),
+    getPortalThreads,
+    { staleTime: 2 * 60 * 1000 },
+  );
+  const threadsData = threadsQuery.data;
+  const threadsLoading = threadsQuery.isLoading;
 
-  const messages = useAsyncData<PortalMessagesResponse>({
-    loadFn: async () => {
-      if (!selectedThread) throw new Error("No thread selected");
-      return getPortalThreadMessages(selectedThread.id);
-    },
-  });
-
-  useEffect(() => {
-    threads.load();
-  }, []);
-
-  useEffect(() => {
-    if (selectedThread) {
-      messages.load();
-    }
-  }, [selectedThread?.id]);
+  const messagesQuery = useApiQuery<PortalMessagesResponse>(
+    queryKeys.portal.threadMessages(selectedThread?.id || ""),
+    () => getPortalThreadMessages(selectedThread!.id),
+    { enabled: !!selectedThread, staleTime: 2 * 60 * 1000 },
+  );
+  const messagesData = messagesQuery.data;
+  const messagesLoading = messagesQuery.isLoading;
 
   useEffect(() => {
     // Scroll to bottom when messages load
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.data?.messages]);
+  }, [messagesData?.messages]);
 
   const handleCreateThread = async () => {
     if (!newSubject.trim() || !newMessage.trim()) return;
@@ -99,7 +95,7 @@ export default function PortalMessagesPage() {
       setNewThreadDialogOpen(false);
       setNewSubject("");
       setNewMessage("");
-      await threads.load();
+      await cacheInvalidation.portal.threads();
       setSelectedThread(thread);
       toast({ title: t("portal:messages.threadCreated") });
     } catch {
@@ -119,8 +115,8 @@ export default function PortalMessagesPage() {
     try {
       await sendPortalMessage(selectedThread.id, replyMessage);
       setReplyMessage("");
-      await messages.load();
-      await threads.load();
+      await cacheInvalidation.portal.threadMessages(selectedThread.id);
+      await cacheInvalidation.portal.threads();
     } catch {
       toast({
         title: t("common:errors.generic"),
@@ -218,13 +214,13 @@ export default function PortalMessagesPage() {
           </CardHeader>
           <CardContent className="p-0">
             <ScrollArea className="h-[500px]">
-              {threads.isLoading ? (
+              {threadsLoading ? (
                 <div className="space-y-2 p-4">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Skeleton key={i} className="h-16 w-full" />
                   ))}
                 </div>
-              ) : threads.data?.threads.length === 0 ? (
+              ) : threadsData?.threads.length === 0 ? (
                 <div className="flex h-64 flex-col items-center justify-center gap-2 p-4">
                   <MessageSquare className="h-8 w-8 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">
@@ -233,7 +229,7 @@ export default function PortalMessagesPage() {
                 </div>
               ) : (
                 <div className="divide-y">
-                  {threads.data?.threads.map((thread) => (
+                  {threadsData?.threads.map((thread) => (
                     <button
                       key={thread.id}
                       onClick={() => setSelectedThread(thread)}
@@ -310,7 +306,7 @@ export default function PortalMessagesPage() {
               </CardHeader>
               <CardContent className="p-0">
                 <ScrollArea className="h-[350px] p-4">
-                  {messages.isLoading ? (
+                  {messagesLoading ? (
                     <div className="space-y-4">
                       {Array.from({ length: 3 }).map((_, i) => (
                         <Skeleton key={i} className="h-20 w-3/4" />
@@ -318,7 +314,7 @@ export default function PortalMessagesPage() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {messages.data?.messages.map((message) => (
+                      {messagesData?.messages.map((message) => (
                         <div
                           key={message.id}
                           className={cn(

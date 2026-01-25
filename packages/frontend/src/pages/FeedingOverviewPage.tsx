@@ -35,8 +35,9 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { useUserStables } from "@/hooks/useUserStables";
+import { queryKeys } from "@/lib/queryClient";
 import {
   getFeedAnalytics,
   type AnalyticsPeriod,
@@ -106,15 +107,33 @@ export default function FeedingOverviewPage() {
   const [period, setPeriod] = useState<AnalyticsPeriod>("monthly");
   const [referenceDate, setReferenceDate] = useState(new Date());
 
+  // Get organization ID from selected stable
+  const selectedStable = stables.find((s) => s.id === selectedStableId);
+  const organizationId = selectedStable?.organizationId;
+
+  // Reference date string for query key
+  const referenceDateString = referenceDate.toISOString().split("T")[0] ?? "";
+
   // Analytics data
-  const analytics = useAsyncData<FeedAnalytics>({
-    loadFn: async () => {
-      if (!selectedStableId) {
-        throw new Error("No stable selected");
-      }
-      return getFeedAnalytics(selectedStableId, period, referenceDate);
+  const analyticsQuery = useApiQuery<FeedAnalytics>(
+    queryKeys.feedAnalytics.byStable(
+      selectedStableId || "",
+      period,
+      referenceDateString,
+    ),
+    () =>
+      getFeedAnalytics(
+        selectedStableId!,
+        organizationId!,
+        period,
+        referenceDate,
+      ),
+    {
+      enabled: !!selectedStableId && !!organizationId,
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: true,
     },
-  });
+  );
 
   // Auto-select first stable
   useEffect(() => {
@@ -122,14 +141,6 @@ export default function FeedingOverviewPage() {
       setSelectedStableId(stables[0].id);
     }
   }, [stables, selectedStableId]);
-
-  // Load analytics when stable or period changes
-  useEffect(() => {
-    if (selectedStableId) {
-      void analytics.load();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedStableId, period, referenceDate]);
 
   // Calculate date range for display
   const dateRange = useMemo(() => {
@@ -252,11 +263,14 @@ export default function FeedingOverviewPage() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => analytics.load()}
-              disabled={analytics.isLoading}
+              onClick={() => analyticsQuery.refetch()}
+              disabled={analyticsQuery.isLoading}
             >
               <RefreshCw
-                className={cn("h-4 w-4", analytics.isLoading && "animate-spin")}
+                className={cn(
+                  "h-4 w-4",
+                  analyticsQuery.isLoading && "animate-spin",
+                )}
               />
             </Button>
           </div>
@@ -270,43 +284,45 @@ export default function FeedingOverviewPage() {
             <SummaryCard
               title={t("feeding:analytics.totalCost")}
               value={
-                analytics.data ? formatCurrency(analytics.data.totalCost) : "-"
+                analyticsQuery.data
+                  ? formatCurrency(analyticsQuery.data.totalCost)
+                  : "-"
               }
               subtitle={t("feeding:analytics.forPeriod")}
               icon={DollarSign}
               variant="default"
-              isLoading={analytics.isLoading}
+              isLoading={analyticsQuery.isLoading}
             />
             <SummaryCard
               title={t("feeding:analytics.dailyAverage")}
               value={
-                analytics.data
-                  ? formatCurrency(analytics.data.averageDailyCost)
+                analyticsQuery.data
+                  ? formatCurrency(analyticsQuery.data.averageDailyCost)
                   : "-"
               }
               subtitle={t("feeding:analytics.perDay")}
               icon={TrendingUp}
               variant="success"
-              isLoading={analytics.isLoading}
+              isLoading={analyticsQuery.isLoading}
             />
             <SummaryCard
               title={t("feeding:analytics.feedTypesUsed")}
-              value={analytics.data?.feedTypeBreakdown.length ?? "-"}
+              value={analyticsQuery.data?.feedTypeBreakdown.length ?? "-"}
               subtitle={t("feeding:analytics.activeFeedTypes")}
               icon={Package}
-              isLoading={analytics.isLoading}
+              isLoading={analyticsQuery.isLoading}
             />
             <SummaryCard
               title={t("feeding:analytics.horsesTracked")}
-              value={analytics.data?.horseBreakdown.length ?? "-"}
+              value={analyticsQuery.data?.horseBreakdown.length ?? "-"}
               subtitle={t("feeding:analytics.withFeedings")}
               icon={Users}
-              isLoading={analytics.isLoading}
+              isLoading={analyticsQuery.isLoading}
             />
           </div>
 
           {/* Charts and Tables */}
-          {analytics.isLoading ? (
+          {analyticsQuery.isLoading ? (
             <div className="grid gap-6 lg:grid-cols-2">
               <Card>
                 <CardHeader>
@@ -325,7 +341,7 @@ export default function FeedingOverviewPage() {
                 </CardContent>
               </Card>
             </div>
-          ) : analytics.error ? (
+          ) : analyticsQuery.error ? (
             <Card>
               <CardContent className="flex h-64 flex-col items-center justify-center">
                 <BarChart3 className="mb-4 h-12 w-12 text-muted-foreground" />
@@ -335,22 +351,22 @@ export default function FeedingOverviewPage() {
                 <Button
                   variant="outline"
                   className="mt-4"
-                  onClick={() => analytics.load()}
+                  onClick={() => analyticsQuery.refetch()}
                 >
                   <RefreshCw className="mr-2 h-4 w-4" />
                   {t("common:actions.retry")}
                 </Button>
               </CardContent>
             </Card>
-          ) : analytics.data ? (
+          ) : analyticsQuery.data ? (
             <div className="grid gap-6 lg:grid-cols-2">
-              <FeedingCostChart analytics={analytics.data} />
-              <FeedConsumptionTable analytics={analytics.data} />
+              <FeedingCostChart analytics={analyticsQuery.data} />
+              <FeedConsumptionTable analytics={analyticsQuery.data} />
             </div>
           ) : null}
 
           {/* Period Info */}
-          {analytics.data && (
+          {analyticsQuery.data && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">
@@ -373,7 +389,7 @@ export default function FeedingOverviewPage() {
                       {t("feeding:analytics.totalFeedings")}
                     </p>
                     <p className="font-medium">
-                      {analytics.data.horseBreakdown.reduce(
+                      {analyticsQuery.data.horseBreakdown.reduce(
                         (sum, h) => sum + h.totalFeedings,
                         0,
                       )}
@@ -384,7 +400,7 @@ export default function FeedingOverviewPage() {
                       {t("feeding:analytics.completionRate")}
                     </p>
                     <p className="font-medium">
-                      {analytics.data.feedingCompletionRate}%
+                      {analyticsQuery.data.feedingCompletionRate}%
                     </p>
                   </div>
                   <div>
@@ -392,7 +408,7 @@ export default function FeedingOverviewPage() {
                       {t("feeding:analytics.wasteAmount")}
                     </p>
                     <p className="font-medium">
-                      {formatCurrency(analytics.data.wasteCost)}
+                      {formatCurrency(analyticsQuery.data.wasteCost)}
                     </p>
                   </div>
                 </div>

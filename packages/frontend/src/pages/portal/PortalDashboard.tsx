@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
@@ -25,7 +24,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
 import {
   getPortalDashboard,
   formatCurrency,
@@ -38,19 +38,20 @@ export default function PortalDashboard() {
   const { t, i18n } = useTranslation(["portal", "common"]);
   const locale = i18n.language === "sv" ? sv : enUS;
 
-  const dashboard = useAsyncData<PortalDashboardData>({
-    loadFn: getPortalDashboard,
-  });
+  const dashboardQuery = useApiQuery<PortalDashboardData>(
+    queryKeys.portal.dashboard(),
+    getPortalDashboard,
+    { staleTime: 5 * 60 * 1000 },
+  );
+  const dashboardData = dashboardQuery.data;
+  const dashboardLoading = dashboardQuery.isLoading;
+  const dashboardError = dashboardQuery.error;
 
-  useEffect(() => {
-    dashboard.load();
-  }, []);
-
-  if (dashboard.isLoading) {
+  if (dashboardLoading) {
     return <PortalDashboardSkeleton />;
   }
 
-  if (dashboard.error) {
+  if (dashboardError) {
     return (
       <div className="container mx-auto p-6">
         <Card>
@@ -64,7 +65,7 @@ export default function PortalDashboard() {
     );
   }
 
-  const data = dashboard.data;
+  const data = dashboardData;
   if (!data) return null;
 
   return (

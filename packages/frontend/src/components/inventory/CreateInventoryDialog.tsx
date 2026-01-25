@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,9 +23,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
 import { createInventoryItem } from "@/services/inventoryService";
-import { getFeedTypesByStable } from "@/services/feedTypeService";
+import { getFeedTypesByOrganization } from "@/services/feedTypeService";
 import type { FeedType } from "@stall-bokning/shared";
 
 const createInventorySchema = z.object({
@@ -49,6 +50,7 @@ interface CreateInventoryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   stableId: string;
+  organizationId: string;
   onSuccess: () => void;
 }
 
@@ -58,23 +60,23 @@ export function CreateInventoryDialog({
   open,
   onOpenChange,
   stableId,
+  organizationId,
   onSuccess,
 }: CreateInventoryDialogProps) {
   const { t } = useTranslation(["inventory", "common"]);
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const feedTypes = useAsyncData<FeedType[]>({
-    loadFn: async () => {
-      return getFeedTypesByStable(stableId);
+  const feedTypesQuery = useApiQuery<FeedType[]>(
+    queryKeys.feedTypes.byOrganization(organizationId),
+    () => getFeedTypesByOrganization(organizationId),
+    {
+      enabled: open && !!organizationId,
+      staleTime: 5 * 60 * 1000,
     },
-  });
-
-  useEffect(() => {
-    if (open) {
-      feedTypes.load();
-    }
-  }, [open, stableId]);
+  );
+  const feedTypesData = feedTypesQuery.data;
+  const feedTypesLoading = feedTypesQuery.isLoading;
 
   const form = useForm<CreateInventoryFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -151,13 +153,13 @@ export function CreateInventoryDialog({
             <Select
               value={form.watch("feedTypeId")}
               onValueChange={(value) => form.setValue("feedTypeId", value)}
-              disabled={feedTypes.isLoading}
+              disabled={feedTypesLoading}
             >
               <SelectTrigger>
                 <SelectValue placeholder={t("common:labels.select")} />
               </SelectTrigger>
               <SelectContent>
-                {feedTypes.data?.map((feedType) => (
+                {feedTypesData?.map((feedType) => (
                   <SelectItem key={feedType.id} value={feedType.id}>
                     {feedType.name}
                     {feedType.category && (

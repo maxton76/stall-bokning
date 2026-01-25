@@ -14,7 +14,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
 import {
   getPortalProfile,
   updatePortalNotificationPreferences,
@@ -36,33 +37,33 @@ export default function PortalProfilePage() {
     pushEnabled: false,
   });
 
-  const profile = useAsyncData<PortalProfileResponse>({
-    loadFn: getPortalProfile,
-  });
+  const profileQuery = useApiQuery<PortalProfileResponse>(
+    queryKeys.portal.profile(),
+    getPortalProfile,
+    { staleTime: 5 * 60 * 1000 },
+  );
+  const profileData = profileQuery.data;
+  const profileLoading = profileQuery.isLoading;
 
   useEffect(() => {
-    profile.load();
-  }, []);
-
-  useEffect(() => {
-    if (profile.data?.notificationPreferences) {
+    if (profileData?.notificationPreferences) {
       setPreferences({
-        emailEnabled: profile.data.notificationPreferences.emailEnabled ?? true,
+        emailEnabled: profileData.notificationPreferences.emailEnabled ?? true,
         emailOnInvoice:
-          profile.data.notificationPreferences.emailOnInvoice ?? true,
+          profileData.notificationPreferences.emailOnInvoice ?? true,
         emailOnPaymentConfirmation:
-          profile.data.notificationPreferences.emailOnPaymentConfirmation ??
+          profileData.notificationPreferences.emailOnPaymentConfirmation ??
           true,
         emailOnActivityReminder:
-          profile.data.notificationPreferences.emailOnActivityReminder ?? true,
+          profileData.notificationPreferences.emailOnActivityReminder ?? true,
         emailOnHealthUpdate:
-          profile.data.notificationPreferences.emailOnHealthUpdate ?? true,
+          profileData.notificationPreferences.emailOnHealthUpdate ?? true,
         emailOnMessage:
-          profile.data.notificationPreferences.emailOnMessage ?? true,
-        pushEnabled: profile.data.notificationPreferences.pushEnabled ?? false,
+          profileData.notificationPreferences.emailOnMessage ?? true,
+        pushEnabled: profileData.notificationPreferences.pushEnabled ?? false,
       });
     }
-  }, [profile.data]);
+  }, [profileData]);
 
   const handleSavePreferences = async () => {
     setSaving(true);
@@ -81,7 +82,7 @@ export default function PortalProfilePage() {
     }
   };
 
-  if (profile.isLoading) {
+  if (profileLoading) {
     return (
       <div className="container mx-auto space-y-6 p-6">
         <Skeleton className="h-8 w-48" />
@@ -101,7 +102,7 @@ export default function PortalProfilePage() {
     );
   }
 
-  const contact = profile.data?.contact;
+  const contact = profileData?.contact;
 
   return (
     <div className="container mx-auto space-y-6 p-6">
@@ -160,7 +161,7 @@ export default function PortalProfilePage() {
               </Label>
               <p className="font-medium flex items-center gap-2">
                 <Building className="h-4 w-4 text-muted-foreground" />
-                {profile.data?.organization.name || "-"}
+                {profileData?.organization.name || "-"}
               </p>
             </div>
           </div>

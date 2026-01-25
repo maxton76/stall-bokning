@@ -1,18 +1,11 @@
-import { useEffect } from "react";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import {
   getUserOwnedStables,
   getUserOrganizationMemberships,
   getOrganizationStables,
 } from "@/lib/firestoreQueries";
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  doc,
-  getDoc,
-} from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export interface StableListItem {
@@ -44,8 +37,9 @@ interface GroupedStables {
 export function useStablesGrouped(
   userId: string | undefined,
 ): UseStablesGroupedResult {
-  const stablesData = useAsyncData<GroupedStables>({
-    loadFn: async () => {
+  const stablesQuery = useApiQuery<GroupedStables>(
+    queryKeys.userStables.byUser(userId || ""),
+    async () => {
       if (!userId) {
         return { myStables: [], managedStables: [] };
       }
@@ -115,17 +109,16 @@ export function useStablesGrouped(
         ],
       };
     },
-    errorMessage: "Failed to load stables",
-  });
-
-  useEffect(() => {
-    stablesData.load();
-  }, [userId]);
+    {
+      enabled: !!userId,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
 
   return {
-    myStables: stablesData.data?.myStables || [],
-    managedStables: stablesData.data?.managedStables || [],
-    loading: stablesData.loading,
-    refresh: stablesData.reload,
+    myStables: stablesQuery.data?.myStables || [],
+    managedStables: stablesQuery.data?.managedStables || [],
+    loading: stablesQuery.isLoading,
+    refresh: () => cacheInvalidation.userStables.byUser(userId!),
   };
 }

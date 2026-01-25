@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -31,7 +30,8 @@ import { getRoutineTemplates } from "@/services/routineService";
 import type { Horse } from "@/types/roles";
 import type { RoutineTemplate } from "@shared/types";
 import { useToast } from "@/hooks/use-toast";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Stable {
@@ -56,48 +56,40 @@ export default function StableDetailPage() {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Data loading with custom hooks
-  const stable = useAsyncData<Stable | null>({
-    loadFn: async () => {
-      if (!stableId) return null;
-      return (await getStable(stableId)) as Stable | null;
+  // Data loading with TanStack Query
+  const stableQuery = useApiQuery<Stable | null>(
+    queryKeys.stables.detail(stableId || ""),
+    () => getStable(stableId!) as Promise<Stable | null>,
+    {
+      enabled: !!stableId,
+      staleTime: 5 * 60 * 1000,
     },
-    errorMessage: "Failed to load stable data. Please try again.",
-  });
+  );
+  const stableData = stableQuery.data ?? null;
+  const stableLoading = stableQuery.isLoading;
 
-  const routines = useAsyncData<RoutineTemplate[]>({
-    loadFn: async () => {
-      if (!stable.data?.organizationId) return [];
-      return await getRoutineTemplates(
-        stable.data.organizationId,
-        stableId!,
-        true,
-      );
+  const routinesQuery = useApiQuery<RoutineTemplate[]>(
+    queryKeys.routines.templates(stableData?.organizationId, stableId),
+    () => getRoutineTemplates(stableData!.organizationId!, stableId!, true),
+    {
+      enabled: !!stableData?.organizationId && !!stableId,
+      staleTime: 5 * 60 * 1000,
     },
-    errorMessage: "Failed to load routines. Please try again.",
-  });
+  );
+  const routinesData = routinesQuery.data ?? [];
+  const routinesLoading = routinesQuery.isLoading;
 
-  const horses = useAsyncData<Horse[]>({
-    loadFn: () => getStableHorses(stableId!),
-    errorMessage: "Failed to load horses. Please try again.",
-  });
+  const horsesQuery = useApiQuery<Horse[]>(
+    queryKeys.horses.byStable(stableId || ""),
+    () => getStableHorses(stableId!),
+    {
+      enabled: !!stableId,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
+  const horsesData = horsesQuery.data ?? [];
 
-  // Load data on mount
-  useEffect(() => {
-    if (stableId) {
-      stable.load();
-      horses.load();
-    }
-  }, [stableId]);
-
-  // Load routines when stable data is available (need organizationId)
-  useEffect(() => {
-    if (stable.data?.organizationId) {
-      routines.load();
-    }
-  }, [stable.data?.organizationId]);
-
-  if (stable.loading || !stable.data) {
+  if (stableLoading || !stableData) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -118,16 +110,16 @@ export default function StableDetailPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
-              {stable.data.name}
+              {stableData.name}
             </h1>
-            {stable.data.description && (
+            {stableData.description && (
               <p className="text-muted-foreground mt-1">
-                {stable.data.description}
+                {stableData.description}
               </p>
             )}
-            {stable.data.address && (
+            {stableData.address && (
               <p className="text-sm text-muted-foreground mt-1">
-                {stable.data.address}
+                {stableData.address}
               </p>
             )}
           </div>
@@ -157,9 +149,7 @@ export default function StableDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {routines.data?.length || 0}
-            </div>
+            <div className="text-2xl font-bold">{routinesData.length || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -170,7 +160,7 @@ export default function StableDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="text-sm font-medium">
-              {stable.data.ownerEmail || t("common:labels.noData")}
+              {stableData.ownerEmail || t("common:labels.noData")}
             </div>
           </CardContent>
         </Card>
@@ -195,14 +185,14 @@ export default function StableDetailPage() {
             <HorseIcon className="mr-2 h-4 w-4" />
             {t("common:navigation.horses")}
             <Badge variant="secondary" className="ml-2">
-              {horses.data?.length || 0}
+              {horsesData.length || 0}
             </Badge>
           </TabsTrigger>
           <TabsTrigger value="routines">
             <ClipboardList className="mr-2 h-4 w-4" />
             {t("routines:title")}
             <Badge variant="secondary" className="ml-2">
-              {routines.data?.length || 0}
+              {routinesData.length || 0}
             </Badge>
           </TabsTrigger>
           <TabsTrigger value="stats">
@@ -218,12 +208,12 @@ export default function StableDetailPage() {
               {t("stables:members.title")}
             </h2>
             <p className="text-sm text-muted-foreground">
-              {horses.data?.length || 0}{" "}
+              {horsesData.length || 0}{" "}
               {t("common:navigation.horses").toLowerCase()}
             </p>
           </div>
 
-          {!horses.data || horses.data.length === 0 ? (
+          {horsesData.length === 0 ? (
             <EmptyState
               icon={HorseIcon}
               title={t("horses:emptyState.title")}
@@ -231,7 +221,7 @@ export default function StableDetailPage() {
             />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {horses.data.map((horse) => (
+              {horsesData.map((horse) => (
                 <HorseCard
                   key={horse.id}
                   horse={horse}
@@ -256,7 +246,7 @@ export default function StableDetailPage() {
             </Link>
           </div>
 
-          {routines.loading ? (
+          {routinesLoading ? (
             <Card>
               <CardContent className="p-6">
                 <p className="text-muted-foreground text-center">
@@ -264,7 +254,7 @@ export default function StableDetailPage() {
                 </p>
               </CardContent>
             </Card>
-          ) : !routines.data || routines.data.length === 0 ? (
+          ) : routinesData.length === 0 ? (
             <EmptyState
               icon={ClipboardList}
               title={t("routines:emptyState.title")}
@@ -276,7 +266,7 @@ export default function StableDetailPage() {
             />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {routines.data.map((routine) => (
+              {routinesData.map((routine) => (
                 <Card key={routine.id}>
                   <CardHeader>
                     <div className="flex items-start justify-between">

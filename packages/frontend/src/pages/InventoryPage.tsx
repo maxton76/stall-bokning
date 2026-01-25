@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Package,
@@ -58,10 +58,11 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAsyncData } from "@/hooks/useAsyncData";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { useDialog } from "@/hooks/useDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useUserStables } from "@/hooks/useUserStables";
+import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import {
   getStableInventory,
   getInventorySummary,
@@ -182,6 +183,10 @@ export default function InventoryPage() {
 
   // State
   const [selectedStableId, setSelectedStableId] = useState<string | null>(null);
+
+  // Get the selected stable's organizationId
+  const selectedStable = stables.find((s) => s.id === selectedStableId);
+  const organizationId = selectedStable?.organizationId;
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -193,21 +198,28 @@ export default function InventoryPage() {
   const historyDialog = useDialog<FeedInventory>();
   const [deleteItem, setDeleteItem] = useState<FeedInventory | null>(null);
 
-  // Data
-  const inventory = useAsyncData<FeedInventory[]>({
-    loadFn: async () => {
-      if (!selectedStableId) return [];
-      const status = statusFilter === "all" ? undefined : statusFilter;
-      return getStableInventory(selectedStableId, status);
+  // Data loading with TanStack Query
+  const status = statusFilter === "all" ? undefined : statusFilter;
+  const inventoryQuery = useApiQuery<FeedInventory[]>(
+    queryKeys.inventory.byStable(selectedStableId || "", status),
+    () => getStableInventory(selectedStableId!, status),
+    {
+      enabled: !!selectedStableId,
+      staleTime: 5 * 60 * 1000,
     },
-  });
+  );
+  const inventoryData = inventoryQuery.data ?? [];
+  const inventoryLoading = inventoryQuery.isLoading;
 
-  const summary = useAsyncData<ISummary>({
-    loadFn: async () => {
-      if (!selectedStableId) return null as any;
-      return getInventorySummary(selectedStableId);
+  const summaryQuery = useApiQuery<ISummary>(
+    queryKeys.inventory.summary(selectedStableId || ""),
+    () => getInventorySummary(selectedStableId!),
+    {
+      enabled: !!selectedStableId,
+      staleTime: 5 * 60 * 1000,
     },
-  });
+  );
+  const summaryData = summaryQuery.data ?? null;
 
   // Auto-select first stable
   useEffect(() => {
@@ -216,24 +228,20 @@ export default function InventoryPage() {
     }
   }, [stables, selectedStableId]);
 
-  // Load data when stable or filter changes
-  useEffect(() => {
-    if (selectedStableId) {
-      inventory.load();
-      summary.load();
-    }
-  }, [selectedStableId, statusFilter]);
-
   // Filter inventory by search
-  const filteredInventory = (inventory.data || []).filter((item) => {
-    if (!searchQuery) return true;
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      item.feedTypeName.toLowerCase().includes(searchLower) ||
-      item.storageLocation?.toLowerCase().includes(searchLower) ||
-      item.supplierName?.toLowerCase().includes(searchLower)
-    );
-  });
+  const filteredInventory = useMemo(
+    () =>
+      inventoryData.filter((item) => {
+        if (!searchQuery) return true;
+        const searchLower = searchQuery.toLowerCase();
+        return (
+          item.feedTypeName.toLowerCase().includes(searchLower) ||
+          item.storageLocation?.toLowerCase().includes(searchLower) ||
+          item.supplierName?.toLowerCase().includes(searchLower)
+        );
+      }),
+    [inventoryData, searchQuery],
+  );
 
   // Handle delete
   const handleDelete = async (item: FeedInventory) => {
@@ -242,8 +250,7 @@ export default function InventoryPage() {
       toast({
         title: t("inventory:messages.deleteSuccess"),
       });
-      inventory.load();
-      summary.load();
+      await cacheInvalidation.inventory.all();
     } catch {
       toast({
         title: t("inventory:errors.deleteFailed"),
@@ -255,9 +262,8 @@ export default function InventoryPage() {
   };
 
   // Handle successful operations
-  const handleOperationSuccess = () => {
-    inventory.load();
-    summary.load();
+  const handleOperationSuccess = async () => {
+    await cacheInvalidation.inventory.all();
   };
 
   // Format currency
@@ -309,44 +315,41 @@ export default function InventoryPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <SummaryCard
               title={t("inventory:summary.totalItems")}
-              value={summary.data?.totalItems ?? "-"}
+              value={summaryData?.totalItems ?? "-"}
               icon={Package}
             />
             <SummaryCard
               title={t("inventory:summary.lowStockItems")}
-              value={summary.data?.lowStockCount ?? "-"}
+              value={summaryData?.lowStockCount ?? "-"}
               icon={AlertTriangle}
-              variant={summary.data?.lowStockCount ? "warning" : "default"}
+              variant={summaryData?.lowStockCount ? "warning" : "default"}
             />
             <SummaryCard
               title={t("inventory:summary.outOfStockItems")}
-              value={summary.data?.outOfStockCount ?? "-"}
+              value={summaryData?.outOfStockCount ?? "-"}
               icon={AlertTriangle}
-              variant={summary.data?.outOfStockCount ? "error" : "default"}
+              variant={summaryData?.outOfStockCount ? "error" : "default"}
             />
             <SummaryCard
               title={t("inventory:summary.expiringSoon")}
-              value={summary.data?.expiringSoonCount ?? "-"}
+              value={summaryData?.expiringSoonCount ?? "-"}
               icon={AlertTriangle}
-              variant={summary.data?.expiringSoonCount ? "warning" : "default"}
+              variant={summaryData?.expiringSoonCount ? "warning" : "default"}
             />
             <SummaryCard
               title={t("inventory:summary.totalValue")}
-              value={
-                summary.data ? formatCurrency(summary.data.totalValue) : "-"
-              }
+              value={summaryData ? formatCurrency(summaryData.totalValue) : "-"}
               icon={Package}
               variant="success"
             />
           </div>
 
           {/* Alerts Card */}
-          {summary.data?.alerts && summary.data.alerts.length > 0 && (
+          {summaryData?.alerts && summaryData.alerts.length > 0 && (
             <InventoryAlertsCard
-              alerts={summary.data.alerts}
-              onAcknowledge={() => {
-                inventory.load();
-                summary.load();
+              alerts={summaryData.alerts}
+              onAcknowledge={async () => {
+                await cacheInvalidation.inventory.all();
               }}
             />
           )}
@@ -365,15 +368,14 @@ export default function InventoryPage() {
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => {
-                      inventory.load();
-                      summary.load();
+                    onClick={async () => {
+                      await cacheInvalidation.inventory.all();
                     }}
                   >
                     <RefreshCw
                       className={cn(
                         "h-4 w-4",
-                        inventory.isLoading && "animate-spin",
+                        inventoryLoading && "animate-spin",
                       )}
                     />
                   </Button>
@@ -443,7 +445,7 @@ export default function InventoryPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {inventory.isLoading ? (
+                    {inventoryLoading ? (
                       <>
                         <InventoryRowSkeleton />
                         <InventoryRowSkeleton />
@@ -596,6 +598,7 @@ export default function InventoryPage() {
             open={createDialog.open}
             onOpenChange={() => createDialog.closeDialog()}
             stableId={selectedStableId}
+            organizationId={organizationId || ""}
             onSuccess={handleOperationSuccess}
           />
 
