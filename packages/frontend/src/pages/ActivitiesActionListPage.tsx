@@ -98,6 +98,7 @@ export default function ActivitiesActionListPage() {
   const [periodType, setPeriodType] = useState<PeriodType>("day");
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [selectedStableId, setSelectedStableId] = useState<string>("all");
+  const [hasInitializedDefault, setHasInitializedDefault] = useState(false);
   const [filters, setFilters] = useState<ActivityFilters>({
     groupBy: "none",
     forMe: false,
@@ -204,18 +205,32 @@ export default function ActivitiesActionListPage() {
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
   const { preferences, isLoading: preferencesLoading } = useUserPreferences();
 
-  // Set default stable from user preferences when loaded
+  // Set default stable from user preferences when loaded (only once)
   useEffect(() => {
-    if (preferences?.defaultStableId && selectedStableId === "all") {
-      // Verify the default stable is in the user's stables list
-      const hasAccess = stables.some(
-        (s) => s.id === preferences.defaultStableId,
-      );
-      if (hasAccess) {
-        setSelectedStableId(preferences.defaultStableId);
+    // Only initialize once, after both stables and preferences are loaded
+    if (
+      !hasInitializedDefault &&
+      !stablesLoading &&
+      !preferencesLoading &&
+      stables.length > 0
+    ) {
+      if (preferences?.defaultStableId) {
+        const hasAccess = stables.some(
+          (s) => s.id === preferences.defaultStableId,
+        );
+        if (hasAccess) {
+          setSelectedStableId(preferences.defaultStableId);
+        }
       }
+      setHasInitializedDefault(true);
     }
-  }, [preferences?.defaultStableId, stables, selectedStableId]);
+  }, [
+    hasInitializedDefault,
+    stablesLoading,
+    preferencesLoading,
+    stables,
+    preferences?.defaultStableId,
+  ]);
 
   // Load activities for selected stable and period using TanStack Query
   const {
