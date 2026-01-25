@@ -207,6 +207,15 @@ export default function ActivitiesActionListPage() {
 
   // Set default stable from user preferences when loaded (only once)
   useEffect(() => {
+    console.log("[DefaultStable] Effect running:", {
+      hasInitializedDefault,
+      stablesLoading,
+      preferencesLoading,
+      stablesCount: stables.length,
+      defaultStableId: preferences?.defaultStableId,
+      preferences,
+    });
+
     // Only initialize once, after both stables and preferences are loaded
     if (
       !hasInitializedDefault &&
@@ -214,13 +223,26 @@ export default function ActivitiesActionListPage() {
       !preferencesLoading &&
       stables.length > 0
     ) {
+      console.log("[DefaultStable] Conditions met, checking defaultStableId");
       if (preferences?.defaultStableId) {
         const hasAccess = stables.some(
           (s) => s.id === preferences.defaultStableId,
         );
+        console.log(
+          "[DefaultStable] hasAccess:",
+          hasAccess,
+          "stables:",
+          stables.map((s) => s.id),
+        );
         if (hasAccess) {
+          console.log(
+            "[DefaultStable] Setting selectedStableId to:",
+            preferences.defaultStableId,
+          );
           setSelectedStableId(preferences.defaultStableId);
         }
+      } else {
+        console.log("[DefaultStable] No defaultStableId in preferences");
       }
       setHasInitializedDefault(true);
     }
