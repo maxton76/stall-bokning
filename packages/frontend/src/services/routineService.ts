@@ -155,6 +155,35 @@ export async function getScheduledRoutineInstances(
 }
 
 /**
+ * Get today's routine instances assigned to a specific user
+ * Filters to today only and only shows routines assigned to the user
+ */
+export async function getTodaysUserRoutineInstances(
+  stableId: string,
+  userId: string,
+): Promise<RoutineInstance[]> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().split("T")[0];
+
+  const params: Record<string, string> = {
+    startDate: todayStr!,
+    endDate: todayStr!, // Only today
+    assignedTo: userId, // Only user's routines
+    limit: "50",
+  };
+
+  const response = await apiClient.get<{
+    routineInstances: RoutineInstance[];
+  }>(`/routines/instances/stable/${stableId}`, params);
+
+  // Filter client-side for actionable statuses
+  return response.routineInstances.filter((instance) =>
+    ACTIONABLE_ROUTINE_STATUSES.includes(instance.status),
+  );
+}
+
+/**
  * Create a new routine instance from a template
  */
 export async function createRoutineInstance(

@@ -40,7 +40,7 @@ import {
   getStableHorses,
   getAllAccessibleHorses,
 } from "@/services/horseService";
-import { getScheduledRoutineInstances } from "@/services/routineService";
+import { getTodaysUserRoutineInstances } from "@/services/routineService";
 import { ScheduledRoutinesCard } from "@/components/routines";
 import { getActivityTypesByStable } from "@/services/activityTypeService";
 // Note: formatFullName removed - member formatting now handled by formatMembersForSelection
@@ -166,26 +166,26 @@ export default function ActivitiesPlanningPage() {
   const activitiesData = activitiesQuery.data ?? [];
   const activitiesLoading = activitiesQuery.isLoading;
 
-  // Load scheduled/actionable routine instances (status: scheduled, started, in_progress)
+  // Load today's routine instances assigned to the current user
   const routinesQuery = useApiQuery<RoutineInstance[]>(
-    ["routines", "scheduled", selectedStableId],
+    ["routines", "today", selectedStableId, user?.uid],
     async () => {
-      if (stables.length === 0) return [];
+      if (stables.length === 0 || !user?.uid) return [];
 
       // If "all" is selected, fetch from all stables
       if (selectedStableId === "all") {
         const promises = stables.map((stable) =>
-          getScheduledRoutineInstances(stable.id),
+          getTodaysUserRoutineInstances(stable.id, user.uid),
         );
         const results = await Promise.all(promises);
         return results.flat();
       }
 
       // Single stable
-      return await getScheduledRoutineInstances(selectedStableId);
+      return await getTodaysUserRoutineInstances(selectedStableId, user.uid);
     },
     {
-      enabled: stables.length > 0,
+      enabled: stables.length > 0 && !!user?.uid,
       staleTime: 2 * 60 * 1000,
     },
   );

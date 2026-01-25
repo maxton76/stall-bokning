@@ -297,9 +297,9 @@
     "customRange": "Custom range"
   },
   "scheduledRoutines": {
-    "title": "Scheduled Routines",
-    "noRoutines": "No scheduled routines",
-    "noRoutinesDescription": "All routines are completed or there are no upcoming routines.",
+    "title": "Today's Routines",
+    "noRoutines": "No routines for today",
+    "noRoutinesDescription": "You have no assigned routines for today.",
     "horsesCount_one": "{{count}} horse",
     "horsesCount_other": "{{count}} horses",
     "moreHorses": "+{{count}} more",

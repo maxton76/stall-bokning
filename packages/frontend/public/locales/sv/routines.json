@@ -297,9 +297,9 @@
     "customRange": "Anpassat intervall"
   },
   "scheduledRoutines": {
-    "title": "Schemalagda rutiner",
-    "noRoutines": "Inga schemalagda rutiner",
-    "noRoutinesDescription": "Alla rutiner är slutförda eller det finns inga kommande rutiner.",
+    "title": "Dagens rutiner",
+    "noRoutines": "Inga rutiner för idag",
+    "noRoutinesDescription": "Du har inga tilldelade rutiner för idag.",
     "horsesCount_one": "{{count}} häst",
     "horsesCount_other": "{{count}} hästar",
     "moreHorses": "+{{count}} till",
