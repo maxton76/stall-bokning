@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -34,6 +34,7 @@ import { useDialog } from "@/hooks/useDialog";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { useCRUD } from "@/hooks/useCRUD";
 import { useUserStables } from "@/hooks/useUserStables";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { useActivityFilters } from "@/hooks/useActivityFilters";
 import { useActivitiesByPeriod } from "@/hooks/useActivitiesQuery";
 import { useActivityTypesQuery } from "@/hooks/useActivityTypesQuery";
@@ -199,8 +200,22 @@ export default function ActivitiesActionListPage() {
   const isNextDisabled = currentDate >= oneYearAhead;
   const isPreviousDisabled = currentDate <= oneYearBehind;
 
-  // Load user's stables
+  // Load user's stables and preferences
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
+  const { preferences, isLoading: preferencesLoading } = useUserPreferences();
+
+  // Set default stable from user preferences when loaded
+  useEffect(() => {
+    if (preferences?.defaultStableId && selectedStableId === "all") {
+      // Verify the default stable is in the user's stables list
+      const hasAccess = stables.some(
+        (s) => s.id === preferences.defaultStableId,
+      );
+      if (hasAccess) {
+        setSelectedStableId(preferences.defaultStableId);
+      }
+    }
+  }, [preferences?.defaultStableId, stables, selectedStableId]);
 
   // Load activities for selected stable and period using TanStack Query
   const {
@@ -403,7 +418,7 @@ export default function ActivitiesActionListPage() {
     [organizationMembers],
   );
 
-  if (stablesLoading) {
+  if (stablesLoading || preferencesLoading) {
     return (
       <div className="container mx-auto p-6">
         <p className="text-muted-foreground">
