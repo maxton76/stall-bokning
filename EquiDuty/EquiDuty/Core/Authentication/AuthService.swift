@@ -1,0 +1,408 @@
+//
+//  AuthService.swift
+//  EquiDuty
+//
+//  Firebase authentication service
+//  Note: Requires Firebase SDK integration via Swift Package Manager
+//
+
+import Foundation
+import FirebaseAuth
+import FirebaseCore
+import GoogleSignIn
+
+/// Authentication state
+enum AuthState: Equatable {
+    case unknown
+    case signedOut
+    case signedIn(User)
+
+    static func == (lhs: AuthState, rhs: AuthState) -> Bool {
+        switch (lhs, rhs) {
+        case (.unknown, .unknown):
+            return true
+        case (.signedOut, .signedOut):
+            return true
+        case (.signedIn(let user1), .signedIn(let user2)):
+            return user1.uid == user2.uid
+        default:
+            return false
+        }
+    }
+}
+
+/// Authentication service handling Firebase Auth
+@MainActor
+@Observable
+final class AuthService {
+    static let shared = AuthService()
+
+    // MARK: - Published State
+
+    private(set) var authState: AuthState = .unknown
+    private(set) var currentUser: User?
+    private(set) var organizations: [Organization] = []
+    private(set) var isLoading = false
+    private(set) var error: Error?
+
+    // MARK: - Selected Context
+
+    var selectedOrganization: Organization? {
+        didSet {
+            if let org = selectedOrganization {
+                UserDefaults.standard.set(org.id, forKey: "selectedOrganizationId")
+            }
+        }
+    }
+
+    var selectedStable: Stable? {
+        didSet {
+            if let stable = selectedStable {
+                UserDefaults.standard.set(stable.id, forKey: "selectedStableId")
+            }
+        }
+    }
+
+    // MARK: - Private
+
+    private let keychain = KeychainManager.shared
+    private nonisolated(unsafe) var authStateListener: AuthStateDidChangeListenerHandle?
+
+    private init() {
+        // Delay setup until Firebase is configured
+        Task { @MainActor in
+            setupAuthStateListener()
+            setupTokenProvider()
+
+            // Fallback: If auth state is still unknown after 3 seconds, check manually
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            if authState == .unknown {
+                if Auth.auth().currentUser == nil {
+                    authState = .signedOut
+                }
+            }
+        }
+    }
+
+    deinit {
+        if let listener = authStateListener {
+            Auth.auth().removeStateDidChangeListener(listener)
+        }
+    }
+
+    // MARK: - Setup
+
+    private func setupAuthStateListener() {
+        authStateListener = Auth.auth().addStateDidChangeListener { [weak self] (_, firebaseUser) in
+            Task {
+                await self?.onAuthStateChanged(firebaseUser: firebaseUser)
+            }
+        }
+    }
+
+    private func onAuthStateChanged(firebaseUser: FirebaseAuth.User?) async {
+        if let firebaseUser = firebaseUser {
+            await handleSignedIn(firebaseUser)
+        } else {
+            handleSignedOut()
+        }
+    }
+
+    private func setupTokenProvider() {
+        APIClient.shared.tokenProvider = { [weak self] in
+            await self?.getIdToken()
+        }
+    }
+
+    // MARK: - Token Management
+
+    /// Get current ID token (refreshes if needed)
+    func getIdToken() async -> String? {
+        guard let firebaseUser = Auth.auth().currentUser else {
+            return nil
+        }
+
+        do {
+            let token = try await firebaseUser.getIDToken()
+            try? keychain.saveToken(token)
+            return token
+        } catch {
+            print("Failed to get ID token: \(error)")
+            return keychain.getToken()
+        }
+    }
+
+    // MARK: - Auth State Handling
+
+    private func handleSignedIn(_ firebaseUser: FirebaseAuth.User) async {
+        do {
+            isLoading = true
+            error = nil
+
+            // Save user ID to keychain
+            try? keychain.saveUserId(firebaseUser.uid)
+
+            // Fetch user profile from /auth/me
+            let user: User = try await APIClient.shared.get(APIEndpoints.authMe)
+            self.currentUser = user
+            self.authState = .signedIn(user)
+
+            // Fetch organizations from /organizations
+            do {
+                let orgsResponse: OrganizationsResponse = try await APIClient.shared.get(APIEndpoints.organizations)
+                self.organizations = orgsResponse.organizations
+                print("✅ Fetched \(orgsResponse.organizations.count) organizations")
+                for org in orgsResponse.organizations {
+                    print("   - \(org.name) (id: \(org.id))")
+                }
+            } catch {
+                print("❌ Failed to fetch organizations: \(error)")
+                self.organizations = []
+            }
+
+            // Restore selected organization
+            restoreSelectedContext()
+
+            isLoading = false
+        } catch {
+            print("Failed to fetch user profile: \(error)")
+            self.error = error
+            isLoading = false
+
+            // Still set as signed in with basic info
+            let basicUser = User(
+                uid: firebaseUser.uid,
+                email: firebaseUser.email ?? "",
+                firstName: firebaseUser.displayName?.components(separatedBy: " ").first ?? "",
+                lastName: firebaseUser.displayName?.components(separatedBy: " ").last ?? "",
+                systemRole: .member,
+                createdAt: Date(),
+                updatedAt: Date()
+            )
+            self.currentUser = basicUser
+            self.authState = .signedIn(basicUser)
+        }
+    }
+
+    private func handleSignedOut() {
+        currentUser = nil
+        organizations = []
+        selectedOrganization = nil
+        selectedStable = nil
+        authState = .signedOut
+        keychain.clearAll()
+    }
+
+    private func restoreSelectedContext() {
+        // Restore selected organization
+        if let savedOrgId = UserDefaults.standard.string(forKey: "selectedOrganizationId"),
+           let org = organizations.first(where: { $0.id == savedOrgId }) {
+            selectedOrganization = org
+        } else {
+            selectedOrganization = organizations.first
+        }
+
+        // Fetch stables for the selected organization
+        if let orgId = selectedOrganization?.id {
+            Task {
+                await fetchAndRestoreStable(organizationId: orgId)
+            }
+        }
+    }
+
+    /// Fetch stables for an organization and restore/select one
+    private func fetchAndRestoreStable(organizationId: String) async {
+        print("🔍 Fetching stables for organization: \(organizationId)")
+        do {
+            let response: StablesResponse = try await APIClient.shared.get(
+                APIEndpoints.stables(organizationId: organizationId)
+            )
+            print("✅ Fetched \(response.stables.count) stables")
+            for stable in response.stables {
+                print("   - \(stable.name) (id: \(stable.id))")
+            }
+
+            // Restore saved stable or select first
+            if let savedStableId = UserDefaults.standard.string(forKey: "selectedStableId"),
+               let stable = response.stables.first(where: { $0.id == savedStableId }) {
+                selectedStable = stable
+                print("✅ Restored selected stable: \(stable.name)")
+            } else if let firstStable = response.stables.first {
+                selectedStable = firstStable
+                print("✅ Auto-selected first stable: \(firstStable.name)")
+            } else {
+                print("⚠️ No stables found for organization")
+            }
+        } catch {
+            print("❌ Failed to fetch stables: \(error)")
+        }
+    }
+
+    // MARK: - Sign In Methods
+
+    /// Sign in with email and password
+    func signIn(email: String, password: String) async throws {
+        isLoading = true
+        error = nil
+
+        do {
+            let result = try await Auth.auth().signIn(withEmail: email, password: password)
+            await handleSignedIn(result.user)
+        } catch {
+            self.error = error
+            isLoading = false
+            throw AuthError.signInFailed(error)
+        }
+    }
+
+    /// Sign in with Google
+    func signInWithGoogle() async throws {
+        isLoading = true
+        error = nil
+
+        do {
+            // Get the client ID from Firebase config
+            guard let clientID = FirebaseApp.app()?.options.clientID else {
+                throw AuthError.configurationError("Missing Firebase client ID")
+            }
+
+            // Create Google Sign In configuration
+            let config = GIDConfiguration(clientID: clientID)
+            GIDSignIn.sharedInstance.configuration = config
+
+            // Get the presenting view controller
+            guard let windowScene = await UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let rootViewController = await windowScene.windows.first?.rootViewController else {
+                throw AuthError.configurationError("No root view controller found")
+            }
+
+            // Perform Google Sign-In
+            let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController)
+
+            guard let idToken = result.user.idToken?.tokenString else {
+                throw AuthError.signInFailed(NSError(domain: "GoogleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "No ID token"]))
+            }
+
+            // Create Firebase credential
+            let credential = GoogleAuthProvider.credential(
+                withIDToken: idToken,
+                accessToken: result.user.accessToken.tokenString
+            )
+
+            // Sign in to Firebase with Google credential
+            let authResult = try await Auth.auth().signIn(with: credential)
+            await handleSignedIn(authResult.user)
+
+        } catch {
+            self.error = error
+            isLoading = false
+
+            // Check if user cancelled
+            if (error as NSError).code == GIDSignInError.canceled.rawValue {
+                throw AuthError.cancelled
+            }
+            throw AuthError.signInFailed(error)
+        }
+    }
+
+    // MARK: - Sign Up
+
+    /// Create new account with email and password
+    func signUp(email: String, password: String, firstName: String, lastName: String) async throws {
+        isLoading = true
+        error = nil
+
+        do {
+            // Create Firebase Auth user
+            let result = try await Auth.auth().createUser(withEmail: email, password: password)
+
+            // Update display name
+            let changeRequest = result.user.createProfileChangeRequest()
+            changeRequest.displayName = "\(firstName) \(lastName)"
+            try await changeRequest.commitChanges()
+
+            // The auth state listener will handle the rest
+        } catch {
+            self.error = error
+            isLoading = false
+            throw AuthError.signUpFailed(error)
+        }
+    }
+
+    // MARK: - Password Reset
+
+    /// Send password reset email
+    func sendPasswordReset(email: String) async throws {
+        do {
+            try await Auth.auth().sendPasswordReset(withEmail: email)
+        } catch {
+            throw AuthError.passwordResetFailed(error)
+        }
+    }
+
+    // MARK: - Sign Out
+
+    /// Sign out current user
+    func signOut() throws {
+        do {
+            try Auth.auth().signOut()
+            handleSignedOut()
+        } catch {
+            throw AuthError.signOutFailed(error)
+        }
+    }
+
+    // MARK: - Refresh User Data
+
+    /// Refresh user data from API
+    func refreshUserData() async throws {
+        guard case .signedIn = authState else { return }
+
+        // Fetch user profile from /auth/me
+        let user: User = try await APIClient.shared.get(APIEndpoints.authMe)
+        self.currentUser = user
+
+        // Fetch organizations from /organizations
+        do {
+            let orgsResponse: OrganizationsResponse = try await APIClient.shared.get(APIEndpoints.organizations)
+            self.organizations = orgsResponse.organizations
+        } catch {
+            print("Failed to refresh organizations: \(error)")
+        }
+
+        restoreSelectedContext()
+    }
+}
+
+/// Authentication errors
+enum AuthError: Error, LocalizedError {
+    case signInFailed(Error)
+    case signUpFailed(Error)
+    case signOutFailed(Error)
+    case passwordResetFailed(Error)
+    case configurationError(String)
+    case cancelled
+    case userNotFound
+    case invalidCredentials
+
+    var errorDescription: String? {
+        switch self {
+        case .signInFailed(let error):
+            return String(localized: "error.auth.sign_in_failed \(error.localizedDescription)")
+        case .signUpFailed(let error):
+            return String(localized: "error.auth.sign_up_failed \(error.localizedDescription)")
+        case .signOutFailed(let error):
+            return String(localized: "error.auth.sign_out_failed \(error.localizedDescription)")
+        case .passwordResetFailed(let error):
+            return String(localized: "error.auth.password_reset_failed \(error.localizedDescription)")
+        case .configurationError(let message):
+            return String(localized: "error.auth.configuration \(message)")
+        case .cancelled:
+            return nil  // User cancelled, no error message needed
+        case .userNotFound:
+            return String(localized: "error.auth.user_not_found")
+        case .invalidCredentials:
+            return String(localized: "error.auth.invalid_credentials")
+        }
+    }
+}

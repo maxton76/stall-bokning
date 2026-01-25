@@ -1,0 +1,416 @@
+//
+//  SettingsView.swift
+//  EquiDuty
+//
+//  Settings and account management
+//
+
+import SwiftUI
+
+struct SettingsView: View {
+    @State private var authService = AuthService.shared
+
+    var body: some View {
+        NavigationStack {
+            List {
+                // Account section
+                Section {
+                    if let user = authService.currentUser {
+                        NavigationLink(value: AppDestination.account) {
+                            HStack(spacing: 12) {
+                                // Avatar
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.accentColor.opacity(0.2))
+                                        .frame(width: 50, height: 50)
+
+                                    Text(user.initials)
+                                        .font(.headline)
+                                        .foregroundStyle(Color.accentColor)
+                                }
+
+                                VStack(alignment: .leading) {
+                                    Text(user.fullName)
+                                        .font(.headline)
+
+                                    Text(user.email)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                }
+
+                // Organization section
+                Section(String(localized: "settings.organization")) {
+                    NavigationLink(value: AppDestination.organizationSelection) {
+                        HStack {
+                            Label(String(localized: "settings.organization.select"), systemImage: "building.2")
+                            Spacer()
+                            if let org = authService.selectedOrganization {
+                                Text(org.name)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
+                    NavigationLink(value: AppDestination.stableSelection) {
+                        HStack {
+                            Label(String(localized: "settings.stable.select"), systemImage: "house")
+                            Spacer()
+                            if let stable = authService.selectedStable {
+                                Text(stable.name)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+
+                // Preferences section
+                Section(String(localized: "settings.preferences")) {
+                    NavigationLink(value: AppDestination.notificationSettings) {
+                        Label(String(localized: "settings.notifications"), systemImage: "bell")
+                    }
+
+                    NavigationLink(value: AppDestination.languageSettings) {
+                        HStack {
+                            Label(String(localized: "settings.language"), systemImage: "globe")
+                            Spacer()
+                            Text(currentLanguage)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                // Support section
+                Section(String(localized: "settings.support")) {
+                    Link(destination: URL(string: "https://equiduty.com/help")!) {
+                        Label(String(localized: "settings.help"), systemImage: "questionmark.circle")
+                    }
+
+                    Link(destination: URL(string: "mailto:support@equiduty.com")!) {
+                        Label(String(localized: "settings.contact"), systemImage: "envelope")
+                    }
+
+                    Link(destination: URL(string: "https://equiduty.com/privacy")!) {
+                        Label(String(localized: "settings.privacy"), systemImage: "hand.raised")
+                    }
+
+                    Link(destination: URL(string: "https://equiduty.com/terms")!) {
+                        Label(String(localized: "settings.terms"), systemImage: "doc.text")
+                    }
+                }
+
+                // About section
+                Section(String(localized: "settings.about")) {
+                    HStack {
+                        Text(String(localized: "settings.version"))
+                        Spacer()
+                        Text(appVersion)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    HStack {
+                        Text(String(localized: "settings.build"))
+                        Spacer()
+                        Text(buildNumber)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                // Sign out
+                Section {
+                    Button(role: .destructive) {
+                        signOut()
+                    } label: {
+                        Label(String(localized: "settings.sign_out"), systemImage: "rectangle.portrait.and.arrow.right")
+                    }
+                }
+            }
+            .navigationTitle(String(localized: "settings.title"))
+            .withAppNavigationDestinations()
+        }
+    }
+
+    // MARK: - Computed Properties
+
+    private var currentLanguage: String {
+        let languageCode = Locale.current.language.languageCode?.identifier ?? "en"
+        return Locale.current.localizedString(forLanguageCode: languageCode) ?? languageCode
+    }
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+    }
+
+    private var buildNumber: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+    }
+
+    // MARK: - Actions
+
+    private func signOut() {
+        try? authService.signOut()
+    }
+}
+
+// MARK: - Account View
+
+struct AccountView: View {
+    @State private var authService = AuthService.shared
+
+    var body: some View {
+        List {
+            if let user = authService.currentUser {
+                Section(String(localized: "account.profile")) {
+                    HStack {
+                        Text(String(localized: "account.name"))
+                        Spacer()
+                        Text(user.fullName)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    HStack {
+                        Text(String(localized: "account.email"))
+                        Spacer()
+                        Text(user.email)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    HStack {
+                        Text(String(localized: "account.role"))
+                        Spacer()
+                        Text(user.systemRole.displayName)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Section {
+                    Button(String(localized: "account.change_password")) {
+                        // TODO: Implement password change
+                    }
+                }
+
+                Section {
+                    Button(role: .destructive) {
+                        // TODO: Implement account deletion
+                    } label: {
+                        Text(String(localized: "account.delete"))
+                    }
+                }
+            }
+        }
+        .navigationTitle(String(localized: "account.title"))
+    }
+}
+
+// MARK: - Notification Settings View
+
+struct NotificationSettingsView: View {
+    @AppStorage("notifications_enabled") private var notificationsEnabled = true
+    @AppStorage("notifications_routines") private var routineNotifications = true
+    @AppStorage("notifications_feeding") private var feedingNotifications = true
+    @AppStorage("notifications_activities") private var activityNotifications = true
+
+    var body: some View {
+        List {
+            Section {
+                Toggle(String(localized: "notifications.enabled"), isOn: $notificationsEnabled)
+            }
+
+            Section(String(localized: "notifications.categories")) {
+                Toggle(String(localized: "notifications.routines"), isOn: $routineNotifications)
+                    .disabled(!notificationsEnabled)
+
+                Toggle(String(localized: "notifications.feeding"), isOn: $feedingNotifications)
+                    .disabled(!notificationsEnabled)
+
+                Toggle(String(localized: "notifications.activities"), isOn: $activityNotifications)
+                    .disabled(!notificationsEnabled)
+            }
+        }
+        .navigationTitle(String(localized: "notifications.title"))
+    }
+}
+
+// MARK: - Language Settings View
+
+private struct Language: Identifiable {
+    let id: String
+    let code: String
+    let name: String
+
+    init(code: String, name: String) {
+        self.id = code
+        self.code = code
+        self.name = name
+    }
+}
+
+struct LanguageSettingsView: View {
+    private let languages = [
+        Language(code: "sv", name: "Svenska"),
+        Language(code: "en", name: "English")
+    ]
+
+    @State private var selectedLanguage = Locale.current.language.languageCode?.identifier ?? "sv"
+
+    var body: some View {
+        List {
+            ForEach(languages) { language in
+                Button {
+                    selectedLanguage = language.code
+                    // Note: Changing app language requires app restart
+                } label: {
+                    HStack {
+                        Text(language.name)
+                            .foregroundStyle(.primary)
+
+                        Spacer()
+
+                        if selectedLanguage == language.code {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(Color.accentColor)
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle(String(localized: "language.title"))
+    }
+}
+
+// MARK: - Stable Selection View
+
+struct StableSelectionView: View {
+    @State private var authService = AuthService.shared
+    @State private var stables: [Stable] = []
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        List {
+            if isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+            } else if let errorMessage {
+                VStack(spacing: 8) {
+                    Text(errorMessage)
+                        .foregroundStyle(.secondary)
+                    Button(String(localized: "common.retry")) {
+                        loadStables()
+                    }
+                }
+            } else if stables.isEmpty {
+                Text(String(localized: "stable.selection.empty"))
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(stables) { stable in
+                    Button {
+                        authService.selectedStable = stable
+                        dismiss()
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(stable.name)
+                                    .foregroundStyle(.primary)
+
+                                if let address = stable.address {
+                                    Text(address)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+
+                            Spacer()
+
+                            if authService.selectedStable?.id == stable.id {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle(String(localized: "stable.selection.title"))
+        .onAppear {
+            loadStables()
+        }
+    }
+
+    private func loadStables() {
+        guard let orgId = authService.selectedOrganization?.id else {
+            stables = []
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        Task {
+            do {
+                let response: StablesResponse = try await APIClient.shared.get(
+                    APIEndpoints.stables(organizationId: orgId)
+                )
+                stables = response.stables
+                isLoading = false
+            } catch {
+                errorMessage = error.localizedDescription
+                isLoading = false
+            }
+        }
+    }
+}
+
+// MARK: - Organization Selection View
+
+struct OrganizationSelectionView: View {
+    @State private var authService = AuthService.shared
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        List {
+            if authService.organizations.isEmpty {
+                Text(String(localized: "organization.selection.empty"))
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(authService.organizations) { org in
+                    Button {
+                        authService.selectedOrganization = org
+                        authService.selectedStable = nil
+                        dismiss()
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(org.name)
+                                    .foregroundStyle(.primary)
+
+                                Text(org.type.rawValue.capitalized)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            if authService.selectedOrganization?.id == org.id {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle(String(localized: "organization.selection.title"))
+    }
+}
+
+#Preview {
+    SettingsView()
+}
