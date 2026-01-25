@@ -328,7 +328,17 @@
     "exceedsWarning": "Total ägarandel blir {{total}}%, vilket överstiger 100%",
     "since": "Sedan",
     "ended": "Avslutad",
-    "legacyOwner": "Ursprunglig ägare (Legacy)"
+    "legacyOwner": "Ursprunglig ägare (Legacy)",
+    "visibilitySettings": "Historiksynlighet",
+    "visibilityHelp": "Styr vilken historisk data placeringsanläggningen kan se. Begränsad åtkomst visar endast aktiviteter från placeringsdatumet och framåt.",
+    "fullHistory": "Dela full historik med placeringsanläggningen",
+    "fullHistoryEnabled": "Placeringsanläggningen kan se alla aktiviteter och historik",
+    "fullHistoryDisabled": "Placeringsanläggningen kan endast se historik från placeringsdatumet",
+    "placedOn": "Placerad den",
+    "visibilityUpdated": "Synlighet uppdaterad",
+    "visibilityFullDesc": "Placeringsanläggningen kan nu se full historik",
+    "visibilityLimitedDesc": "Placeringsanläggningen kan endast se historik från placeringsdatumet",
+    "visibilityError": "Kunde inte uppdatera synlighetsinställningar"
   },
   "media": {
     "title": "Media & Dokument",

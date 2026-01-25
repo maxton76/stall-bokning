@@ -266,9 +266,42 @@ export async function horsesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const horseData = {
+        // Find owner's personal organization to set ownerOrganizationId
+        let ownerOrganizationId: string | undefined;
+        try {
+          // First, try to find a personal organization
+          const personalOrgsSnapshot = await db
+            .collection("organizations")
+            .where("ownerId", "==", user.uid)
+            .where("organizationType", "==", "personal")
+            .limit(1)
+            .get();
+
+          if (!personalOrgsSnapshot.empty) {
+            ownerOrganizationId = personalOrgsSnapshot.docs[0].id;
+          } else {
+            // Fall back to any organization owned by the user
+            const anyOrgSnapshot = await db
+              .collection("organizations")
+              .where("ownerId", "==", user.uid)
+              .limit(1)
+              .get();
+
+            if (!anyOrgSnapshot.empty) {
+              ownerOrganizationId = anyOrgSnapshot.docs[0].id;
+            }
+          }
+        } catch (orgError) {
+          request.log.warn(
+            { error: orgError },
+            "Failed to find owner organization for horse",
+          );
+        }
+
+        const horseData: Record<string, unknown> = {
           ...data,
           ownerId: user.uid,
+          ownerOrganizationId: ownerOrganizationId || null,
           isExternal: data.isExternal ?? false,
           status: data.status || "active",
           hasSpecialInstructions: !!(
@@ -288,6 +321,34 @@ export async function horsesRoutes(fastify: FastifyInstance) {
           delete horseData.currentStableName;
           delete horseData.assignedAt;
           delete horseData.usage;
+          delete horseData.placementOrganizationId;
+          delete horseData.placementStableId;
+          delete horseData.placementDate;
+        }
+
+        // Handle placement if horse is being assigned to a stable owned by different org
+        if (data.currentStableId && !data.isExternal && ownerOrganizationId) {
+          try {
+            const stableDoc = await db
+              .collection("stables")
+              .doc(data.currentStableId)
+              .get();
+
+            if (stableDoc.exists) {
+              const stableOrgId = stableDoc.data()?.organizationId;
+              // If stable belongs to a different organization, set placement fields
+              if (stableOrgId && stableOrgId !== ownerOrganizationId) {
+                horseData.placementOrganizationId = stableOrgId;
+                horseData.placementStableId = data.currentStableId;
+                horseData.placementDate = Timestamp.now();
+              }
+            }
+          } catch (stableError) {
+            request.log.warn(
+              { error: stableError },
+              "Failed to determine placement organization for horse",
+            );
+          }
         }
 
         const docRef = await db.collection("horses").add(horseData);
@@ -1054,6 +1115,34 @@ export async function horsesRoutes(fastify: FastifyInstance) {
           }
         }
 
+        // Determine if this is a placement change (new stable belongs to different org)
+        let placementUpdate: Record<string, unknown> = {};
+        const toStableDoc = await db
+          .collection("stables")
+          .doc(data.toStableId)
+          .get();
+
+        if (toStableDoc.exists) {
+          const toStableOrgId = toStableDoc.data()?.organizationId;
+          const ownerOrgId = horse.ownerOrganizationId;
+
+          if (toStableOrgId && ownerOrgId && toStableOrgId !== ownerOrgId) {
+            // Horse is being placed at a different organization's stable
+            placementUpdate = {
+              placementOrganizationId: toStableOrgId,
+              placementStableId: data.toStableId,
+              placementDate: Timestamp.now(), // New placement date for history visibility cutoff
+            };
+          } else if (toStableOrgId === ownerOrgId) {
+            // Horse is returning to owner's organization - clear placement
+            placementUpdate = {
+              placementOrganizationId: null,
+              placementStableId: null,
+              placementDate: null,
+            };
+          }
+        }
+
         // Update horse
         batch.update(db.collection("horses").doc(id), {
           currentStableId: data.toStableId,
@@ -1061,6 +1150,7 @@ export async function horsesRoutes(fastify: FastifyInstance) {
           assignedAt: Timestamp.now(),
           lastModifiedAt: Timestamp.now(),
           lastModifiedBy: user.uid,
+          ...placementUpdate,
         });
 
         // Create new location history entry

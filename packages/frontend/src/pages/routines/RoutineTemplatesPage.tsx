@@ -174,7 +174,7 @@ export default function RoutineTemplatesPage() {
   if (stablesLoading) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">{t("common:loading")}</p>
+        <p className="text-muted-foreground">{t("common:loading.default")}</p>
       </div>
     );
   }
@@ -235,7 +235,7 @@ export default function RoutineTemplatesPage() {
 
       {/* Templates Grid */}
       {loading ? (
-        <p className="text-muted-foreground">{t("common:loading")}</p>
+        <p className="text-muted-foreground">{t("common:loading.default")}</p>
       ) : templates.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">

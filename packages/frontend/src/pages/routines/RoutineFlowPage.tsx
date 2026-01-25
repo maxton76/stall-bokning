@@ -354,7 +354,7 @@ export default function RoutineFlowPage() {
   if (loading || !instance) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">{t("common:loading")}</p>
+        <p className="text-muted-foreground">{t("common:loading.default")}</p>
       </div>
     );
   }
@@ -507,7 +507,9 @@ export default function RoutineFlowPage() {
             <div className="space-y-4">
               {horsesLoading ? (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground">{t("common:loading")}</p>
+                  <p className="text-muted-foreground">
+                    {t("common:loading.default")}
+                  </p>
                 </div>
               ) : stepHorses.length === 0 ? (
                 <div className="text-center py-8">
@@ -915,7 +917,7 @@ function CompletedRoutineView({
                   {historyLoading && step.horseContext !== "none" && (
                     <CardContent className="pt-2">
                       <p className="text-sm text-muted-foreground">
-                        {t("common:loading")}
+                        {t("common:loading.default")}
                       </p>
                     </CardContent>
                   )}

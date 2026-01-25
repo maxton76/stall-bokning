@@ -486,7 +486,7 @@ export function RoutineScheduler({
               }
             >
               {isSubmitting
-                ? t("common:loading")
+                ? t("common:loading.default")
                 : t("routines:scheduling.createSchedule")}
             </Button>
           </DialogFooter>

@@ -110,6 +110,55 @@ export async function getUserPersonalContacts(
 }
 
 /**
+ * Get all contacts accessible to the current user
+ * Combines:
+ * - User's private contacts (accessLevel: 'user')
+ * - Organization contacts from user's organizations (accessLevel: 'organization')
+ * @param userId - User ID
+ * @param organizationId - Optional organization ID to include org contacts
+ * @returns Promise with array of contacts (deduplicated)
+ */
+export async function getMyContacts(
+  userId: string,
+  organizationId?: string,
+): Promise<Contact[]> {
+  // Fetch both user-level and organization-level contacts in parallel
+  const [privateContacts, orgContacts] = await Promise.all([
+    getUserPersonalContacts(userId),
+    organizationId
+      ? getOrganizationContacts(organizationId)
+      : Promise.resolve([]),
+  ]);
+
+  // Combine and deduplicate by ID
+  const allContacts = [...privateContacts, ...orgContacts];
+  const uniqueContacts = allContacts.filter(
+    (contact, index, self) =>
+      index === self.findIndex((c) => c.id === contact.id),
+  );
+
+  return uniqueContacts;
+}
+
+/**
+ * Check if a contact is owned by the user (private contact)
+ * @param contact - Contact object
+ * @returns boolean indicating if this is a private contact
+ */
+export function isPrivateContact(contact: Contact): boolean {
+  return contact.accessLevel === "user";
+}
+
+/**
+ * Check if a contact is shared with the organization
+ * @param contact - Contact object
+ * @returns boolean indicating if this is an organization contact
+ */
+export function isOrganizationContact(contact: Contact): boolean {
+  return contact.accessLevel === "organization";
+}
+
+/**
  * Update contact
  * @param contactId - Contact ID
  * @param userId - ID of user performing the update

@@ -97,7 +97,7 @@ export default function RoutineAnalyticsPage() {
   if (stablesLoading) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">{t("common:loading")}</p>
+        <p className="text-muted-foreground">{t("common:loading.default")}</p>
       </div>
     );
   }
@@ -188,7 +188,7 @@ export default function RoutineAnalyticsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <p className="text-muted-foreground">{t("common:loading")}</p>
+          <p className="text-muted-foreground">{t("common:loading.default")}</p>
         </div>
       ) : !analytics ? (
         <Card>

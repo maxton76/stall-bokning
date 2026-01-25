@@ -141,7 +141,7 @@ export default function RoutinesPage() {
   if (stablesLoading) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">{t("common:loading")}</p>
+        <p className="text-muted-foreground">{t("common:loading.default")}</p>
       </div>
     );
   }
@@ -325,7 +325,9 @@ export default function RoutinesPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-muted-foreground py-4">{t("common:loading")}</p>
+            <p className="text-muted-foreground py-4">
+              {t("common:loading.default")}
+            </p>
           ) : groupedInstances.scheduled.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">

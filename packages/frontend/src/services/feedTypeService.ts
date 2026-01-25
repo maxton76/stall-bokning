@@ -10,14 +10,14 @@ import { apiClient } from "@/lib/apiClient";
 // ============================================================================
 
 /**
- * Get all feed types for a stable
+ * Get all feed types for an organization
  *
- * @param stableId - Stable ID to fetch types for
+ * @param organizationId - Organization ID to fetch feed types for
  * @param activeOnly - If true, only returns active types (default: true)
  * @returns Promise with array of feed types
  */
-export async function getFeedTypesByStable(
-  stableId: string,
+export async function getFeedTypesByOrganization(
+  organizationId: string,
   activeOnly = true,
 ): Promise<FeedType[]> {
   const params: Record<string, string> = {};
@@ -26,7 +26,7 @@ export async function getFeedTypesByStable(
   }
 
   const response = await apiClient.get<{ feedTypes: FeedType[] }>(
-    `/feed-types/stable/${stableId}`,
+    `/feed-types/organization/${organizationId}`,
     Object.keys(params).length > 0 ? params : undefined,
   );
 
@@ -48,19 +48,19 @@ export async function getFeedTypeById(id: string): Promise<FeedType | null> {
 }
 
 /**
- * Create a new feed type for a stable
+ * Create a new feed type for an organization
  *
- * @param stableId - Stable ID that owns this type
+ * @param organizationId - Organization ID that owns this feed type
  * @param data - Feed type data
  * @returns Promise with created document ID
  */
 export async function createFeedType(
-  stableId: string,
+  organizationId: string,
   data: CreateFeedTypeData,
 ): Promise<string> {
   const response = await apiClient.post<{ id: string }>("/feed-types", {
     ...data,
-    stableId,
+    organizationId,
   });
 
   return response.id;

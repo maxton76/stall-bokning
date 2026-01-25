@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +22,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Users,
   Plus,
   Pencil,
@@ -28,12 +35,17 @@ import {
   AlertTriangle,
   Mail,
   Phone,
+  Eye,
+  HelpCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDialog } from "@/hooks/useDialog";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/contexts/AuthContext";
 import { authFetch } from "@/lib/authFetch";
+import { updateHorse } from "@/services/horseService";
+import { useToast } from "@/hooks/use-toast";
 import type { Horse } from "@/types/roles";
 import type { HorseOwnership, OwnershipRole } from "@shared/types/ownership";
 import { toDate } from "@/utils/timestampUtils";
@@ -59,11 +71,62 @@ const ROLE_LABELS: Record<OwnershipRole, { en: string; sv: string }> = {
 
 export function OwnershipCard({ horse }: OwnershipCardProps) {
   const { t, i18n } = useTranslation(["horses", "common"]);
+  const { user } = useAuth();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Check if current user is the owner
+  const isOwner =
+    (horse as any)._isOwner || horse.ownerId === user?.uid || false;
+
+  // Check if horse is placed at another org
+  const isPlaced = !!horse.placementOrganizationId;
 
   // Dialog states
   const ownershipDialog = useDialog<HorseOwnership>();
   const deleteDialog = useDialog<HorseOwnership>();
+
+  // History visibility state
+  const [updatingVisibility, setUpdatingVisibility] = useState(false);
+
+  // Handle history visibility toggle
+  const handleHistoryVisibilityChange = async (fullAccess: boolean) => {
+    if (!user) return;
+
+    setUpdatingVisibility(true);
+    try {
+      await updateHorse(horse.id, user.uid, {
+        historyVisibility: fullAccess ? "full" : "from_placement",
+      } as any);
+
+      toast({
+        title: t("horses:ownership.visibilityUpdated", "Visibility updated"),
+        description: fullAccess
+          ? t(
+              "horses:ownership.visibilityFullDesc",
+              "Placement stable can now view full history",
+            )
+          : t(
+              "horses:ownership.visibilityLimitedDesc",
+              "Placement stable can only view history from placement date",
+            ),
+      });
+
+      // Invalidate horse query to refresh data
+      queryClient.invalidateQueries({ queryKey: ["horse", horse.id] });
+    } catch (error) {
+      toast({
+        title: t("common:messages.error", "Error"),
+        description: t(
+          "horses:ownership.visibilityError",
+          "Failed to update visibility settings",
+        ),
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingVisibility(false);
+    }
+  };
 
   // Fetch ownership records
   const {
@@ -334,6 +397,71 @@ export function OwnershipCard({ horse }: OwnershipCardProps) {
                 {horse.ownerEmail && (
                   <p className="text-sm text-muted-foreground">
                     {horse.ownerEmail}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* History Visibility Settings (only for owners with placed horses) */}
+          {isOwner && isPlaced && (
+            <div className="border-t pt-4 mt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Eye className="h-4 w-4 text-muted-foreground" />
+                <h4 className="text-sm font-medium">
+                  {t(
+                    "horses:ownership.visibilitySettings",
+                    "History Visibility",
+                  )}
+                </h4>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-xs">
+                      {t(
+                        "horses:ownership.visibilityHelp",
+                        "Controls what historical data the placement stable can see. Limited access only shows activities from the placement date forward.",
+                      )}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+
+              <div className="rounded-lg border p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="history-visibility" className="text-sm">
+                      {t(
+                        "horses:ownership.fullHistory",
+                        "Share full history with placement stable",
+                      )}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {horse.historyVisibility === "full"
+                        ? t(
+                            "horses:ownership.fullHistoryEnabled",
+                            "Placement stable can view all activities and history",
+                          )
+                        : t(
+                            "horses:ownership.fullHistoryDisabled",
+                            "Placement stable can only view history from placement date",
+                          )}
+                    </p>
+                  </div>
+                  <Switch
+                    id="history-visibility"
+                    checked={horse.historyVisibility === "full"}
+                    onCheckedChange={handleHistoryVisibilityChange}
+                    disabled={updatingVisibility}
+                  />
+                </div>
+
+                {horse.placementDate && (
+                  <p className="text-xs text-muted-foreground">
+                    {t("horses:ownership.placedOn", "Placed on")}{" "}
+                    {format(toDate(horse.placementDate)!, "PP")}
                   </p>
                 )}
               </div>

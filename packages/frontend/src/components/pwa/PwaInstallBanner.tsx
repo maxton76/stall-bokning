@@ -77,7 +77,9 @@ export function PwaInstallBanner({ className }: PwaInstallBannerProps) {
             className="whitespace-nowrap"
           >
             {installing ? (
-              <span className="animate-pulse">{t("common:loading")}</span>
+              <span className="animate-pulse">
+                {t("common:loading.default")}
+              </span>
             ) : (
               <>
                 <Download className="h-4 w-4 mr-2" />

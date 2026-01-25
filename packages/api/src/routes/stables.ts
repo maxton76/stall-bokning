@@ -7,6 +7,7 @@ import {
   requireStableOwnership,
 } from "../middleware/auth.js";
 import type { AuthenticatedRequest, Stable } from "../types/index.js";
+import { canCreateStable, getMaxStables } from "@stall-bokning/shared";
 
 const createStableSchema = z.object({
   name: z.string().min(1).max(200),
@@ -191,6 +192,46 @@ export async function stablesRoutes(fastify: FastifyInstance) {
         }
 
         const user = (request as AuthenticatedRequest).user!;
+
+        // Feature gate: Check if organization can create more stables
+        if (validation.data.organizationId) {
+          const orgDoc = await db
+            .collection("organizations")
+            .doc(validation.data.organizationId)
+            .get();
+
+          if (orgDoc.exists) {
+            const org = orgDoc.data()!;
+
+            // Check if user has permission to create stables for this org
+            const memberId = `${user.uid}_${validation.data.organizationId}`;
+            const memberDoc = await db
+              .collection("organizationMembers")
+              .doc(memberId)
+              .get();
+
+            if (!memberDoc.exists || memberDoc.data()?.status !== "active") {
+              return reply.status(403).send({
+                error: "Forbidden",
+                message: "You do not have access to this organization",
+              });
+            }
+
+            // Check stable creation limits
+            if (!canCreateStable(org as any)) {
+              const maxStables = getMaxStables(org as any);
+              return reply.status(403).send({
+                error: "Forbidden",
+                message:
+                  org.organizationType === "personal"
+                    ? "Personal organizations cannot create additional stables. Upgrade to a business organization to create multiple stables."
+                    : `You have reached the maximum number of stables (${maxStables}) for your subscription tier. Please upgrade to create more stables.`,
+                code: "STABLE_LIMIT_REACHED",
+              });
+            }
+          }
+        }
+
         const stableData: Stable = {
           ...validation.data,
           ownerId: user.uid,
@@ -200,6 +241,23 @@ export async function stablesRoutes(fastify: FastifyInstance) {
 
         const docRef = await db.collection("stables").add(stableData);
         const doc = await docRef.get();
+
+        // Update organization stableCount if linked to an organization
+        if (validation.data.organizationId) {
+          const currentCount = await db
+            .collection("stables")
+            .where("organizationId", "==", validation.data.organizationId)
+            .count()
+            .get();
+
+          await db
+            .collection("organizations")
+            .doc(validation.data.organizationId)
+            .update({
+              "stats.stableCount": currentCount.data().count,
+              updatedAt: new Date(),
+            });
+        }
 
         return reply.status(201).send({
           id: doc.id,

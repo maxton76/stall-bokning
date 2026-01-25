@@ -328,7 +328,17 @@
     "exceedsWarning": "Total ownership will be {{total}}%, which exceeds 100%",
     "since": "Since",
     "ended": "Ended",
-    "legacyOwner": "Original Owner (Legacy)"
+    "legacyOwner": "Original Owner (Legacy)",
+    "visibilitySettings": "History Visibility",
+    "visibilityHelp": "Controls what historical data the placement stable can see. Limited access only shows activities from the placement date forward.",
+    "fullHistory": "Share full history with placement stable",
+    "fullHistoryEnabled": "Placement stable can view all activities and history",
+    "fullHistoryDisabled": "Placement stable can only view history from placement date",
+    "placedOn": "Placed on",
+    "visibilityUpdated": "Visibility updated",
+    "visibilityFullDesc": "Placement stable can now view full history",
+    "visibilityLimitedDesc": "Placement stable can only view history from placement date",
+    "visibilityError": "Failed to update visibility settings"
   },
   "media": {
     "title": "Media & Documents",

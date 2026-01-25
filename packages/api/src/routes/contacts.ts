@@ -101,6 +101,20 @@ export async function contactsRoutes(fastify: FastifyInstance) {
               message: "You do not have access to this organization",
             });
           }
+
+          // Check if organization is personal - personal orgs cannot create org-level contacts
+          const orgDoc = await db
+            .collection("organizations")
+            .doc(data.organizationId)
+            .get();
+
+          if (orgDoc.exists && orgDoc.data()?.organizationType === "personal") {
+            return reply.status(400).send({
+              error: "Bad Request",
+              message:
+                "Personal organizations cannot create organization-level contacts. Use personal (user-level) contacts instead.",
+            });
+          }
         }
 
         const baseData = {

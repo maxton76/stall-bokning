@@ -111,3 +111,17 @@ export async function updateOrganizationStats(
 ): Promise<void> {
   await apiClient.patch(`/organizations/${organizationId}/stats`, stats);
 }
+
+/**
+ * Upgrade an organization from personal to business
+ * @param organizationId - Organization ID
+ * @returns Promise with the upgraded organization data
+ */
+export async function upgradeOrganization(
+  organizationId: string,
+): Promise<Organization> {
+  return await apiClient.post<Organization>(
+    `/organizations/${organizationId}/upgrade`,
+    {},
+  );
+}

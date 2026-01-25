@@ -343,6 +343,26 @@
       "emptyState": "No billing history available during trial period"
     }
   },
+  "upgrade": {
+    "tabTitle": "Upgrade",
+    "title": "Upgrade to Business Organization",
+    "description": "Unlock powerful features to manage your team and stables more efficiently",
+    "organizationType": "Organization Type",
+    "personalLimitations": "Personal organizations have limited features. Upgrade to invite members and share resources.",
+    "benefitsTitle": "What's included in Business",
+    "benefits": {
+      "members": "Invite team members to help manage your stables",
+      "stables": "Create multiple stables to organize your horses",
+      "contacts": "Share contacts with your entire organization",
+      "roles": "Assign roles and permissions to team members",
+      "analytics": "View detailed analytics and reports"
+    },
+    "upgradeNote": "Upgrading is free and permanent. Your organization will be converted to a business organization.",
+    "upgradeButton": "Upgrade to Business",
+    "success": "Upgrade successful!",
+    "successDescription": "Your organization has been upgraded to a business organization. You can now invite members and create multiple stables.",
+    "errorDescription": "Failed to upgrade organization. Please try again."
+  },
   "messages": {
     "createSuccess": "Organization created successfully",
     "updateSuccess": "Organization updated successfully",

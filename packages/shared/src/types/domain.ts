@@ -221,6 +221,10 @@ export interface Horse {
   placementStableId?: string; // Specific stable within that org (may differ from currentStableId during transition)
   placementDate?: Timestamp; // When horse was placed (for history visibility cutoff)
 
+  // History visibility for placement organizations
+  // Controls what historical data the placement org can see
+  historyVisibility?: "full" | "from_placement"; // Default: 'from_placement'
+
   // External horse flag - if true, horse is not part of the stable
   isExternal: boolean; // Default: false
 

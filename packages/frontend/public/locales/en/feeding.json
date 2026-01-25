@@ -33,6 +33,12 @@
     "settingsTitle": "Feeding Settings",
     "settingsDescription": "Configure feed types and feeding times for your stable"
   },
+  "labels": {
+    "stable": "Stable"
+  },
+  "placeholders": {
+    "selectStable": "Select a stable"
+  },
   "feedTypes": {
     "title": "Feed Types",
     "description": "Manage the types of feed available at your stable",

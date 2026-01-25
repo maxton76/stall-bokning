@@ -561,6 +561,8 @@ export interface HorseAccessContext {
   organizationRoles: string[];
   stableAccess: "all" | "specific";
   accessLevel: HorseAccessLevel;
+  accessSource?: "ownership" | "placement" | "stable"; // How user gained access
+  placementDate?: Date; // For history visibility filtering
 }
 
 /**
@@ -603,7 +605,13 @@ export function determineAccessLevel(
 
 /**
  * Get user's access context for a specific horse
- * Determines what level of data the user can see based on ownership and role
+ * Determines what level of data the user can see based on ownership, placement, and role
+ *
+ * Access hierarchy:
+ * 1. Horse owner (ownerId) → full access (Level 5: owner)
+ * 2. Owner's organization member → full access based on role
+ * 3. Placement organization member → access from placementDate onwards
+ * 4. Current stable member → access based on role
  *
  * @param horseId - The horse's ID
  * @param userId - The user's ID
@@ -637,12 +645,89 @@ export async function getHorseAccessContext(
         organizationRoles: [],
         stableAccess: "all",
         accessLevel: "owner",
+        accessSource: "ownership",
       };
     }
 
-    // Check stable access for non-owners
+    // Check if user is a member of the owner's organization
+    if (horse.ownerOrganizationId) {
+      const ownerOrgMemberDoc = await db
+        .collection("organizationMembers")
+        .doc(`${userId}_${horse.ownerOrganizationId}`)
+        .get();
+
+      if (ownerOrgMemberDoc.exists) {
+        const ownerOrgMember = ownerOrgMemberDoc.data();
+        if (ownerOrgMember?.status === "active") {
+          // User is member of owner's organization - full access based on role
+          const ownerOrgDoc = await db
+            .collection("organizations")
+            .doc(horse.ownerOrganizationId)
+            .get();
+          const isOrgOwner =
+            ownerOrgDoc.exists && ownerOrgDoc.data()?.ownerId === userId;
+
+          const accessLevel = determineAccessLevel(
+            ownerOrgMember.roles || [],
+            systemRole,
+            isOrgOwner,
+          );
+
+          return {
+            userId,
+            systemRole,
+            isOwner: false,
+            organizationRoles: ownerOrgMember.roles || [],
+            stableAccess: ownerOrgMember.stableAccess || "all",
+            accessLevel,
+            accessSource: "ownership",
+          };
+        }
+      }
+    }
+
+    // Check if user is a member of the placement organization
+    if (horse.placementOrganizationId) {
+      const placementOrgMemberDoc = await db
+        .collection("organizationMembers")
+        .doc(`${userId}_${horse.placementOrganizationId}`)
+        .get();
+
+      if (placementOrgMemberDoc.exists) {
+        const placementOrgMember = placementOrgMemberDoc.data();
+        if (placementOrgMember?.status === "active") {
+          // User is member of placement organization - access from placementDate
+          const placementOrgDoc = await db
+            .collection("organizations")
+            .doc(horse.placementOrganizationId)
+            .get();
+          const isOrgOwner =
+            placementOrgDoc.exists &&
+            placementOrgDoc.data()?.ownerId === userId;
+
+          const accessLevel = determineAccessLevel(
+            placementOrgMember.roles || [],
+            systemRole,
+            isOrgOwner,
+          );
+
+          return {
+            userId,
+            systemRole,
+            isOwner: false,
+            organizationRoles: placementOrgMember.roles || [],
+            stableAccess: placementOrgMember.stableAccess || "all",
+            accessLevel,
+            accessSource: "placement",
+            placementDate: horse.placementDate?.toDate(),
+          };
+        }
+      }
+    }
+
+    // Fall back to stable access for non-owners (legacy behavior)
     if (!horse.currentStableId) {
-      // Unassigned horses are owner-only
+      // Unassigned horses are owner-only (or org member)
       return null;
     }
 
@@ -679,6 +764,7 @@ export async function getHorseAccessContext(
       organizationRoles: orgMember.roles || [],
       stableAccess: orgMember.stableAccess,
       accessLevel,
+      accessSource: "stable",
     };
   } catch (error) {
     console.error("Error getting horse access context:", error);

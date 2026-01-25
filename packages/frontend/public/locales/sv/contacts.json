@@ -18,12 +18,20 @@
     "allTypes": "Alla typer",
     "personal": "Privatperson",
     "business": "Företag",
+    "visibility": "Synlighet",
+    "allVisibility": "Alla",
+    "private": "Privat",
+    "shared": "Delad",
     "more": "Fler filter",
     "byBadge": "Filtrera på märke",
     "allBadges": "Alla märken",
     "byAccess": "Filtrera på åtkomst",
     "withAccess": "Med inloggningsåtkomst",
     "withoutAccess": "Utan inloggningsåtkomst"
+  },
+  "visibility": {
+    "private": "Privat kontakt",
+    "shared": "Delad med organisation"
   },
   "type": {
     "personal": "Privatperson",
@@ -48,7 +56,9 @@
     "total": "Totalt",
     "personal": "Privatpersoner",
     "business": "Företag",
-    "withAccess": "Med åtkomst"
+    "withAccess": "Med åtkomst",
+    "private": "Privata",
+    "shared": "Delade"
   },
   "detail": {
     "info": "Kontaktinformation",

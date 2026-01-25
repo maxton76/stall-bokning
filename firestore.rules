@@ -463,6 +463,18 @@ service cloud.firestore {
     // ============================================================================
 
     match /organizations/{organizationId} {
+      // Helper: Validate organizationType field
+      function isValidOrganizationType(data) {
+        return !data.keys().hasAny(['organizationType']) ||
+               data.organizationType in ['personal', 'business'];
+      }
+
+      // Helper: Check if organizationType is being changed (not allowed)
+      function isOrganizationTypeUnchanged() {
+        return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['organizationType']) ||
+               resource.data.organizationType == null; // Allow setting if previously unset
+      }
+
       // LIST: Users can list organizations they own (for stable access resolution)
       // The query must filter by ownerId == request.auth.uid
       allow list: if isAuthenticated();
@@ -476,20 +488,24 @@ service cloud.firestore {
 
       // CREATE: Only users with stable_owner role or system admins can create organizations
       // User must become the ownerId
+      // organizationType must be valid if provided
       allow create: if isAuthenticated() && (
         isSystemAdmin() ||
         hasStableOwnerRole()
       ) &&
-      request.resource.data.ownerId == request.auth.uid;
+      request.resource.data.ownerId == request.auth.uid &&
+      isValidOrganizationType(request.resource.data);
 
       // UPDATE: Organization owner or administrators
       // Prevent ownerId changes
+      // organizationType cannot be changed once set (upgrade uses special endpoint)
       allow update: if isAuthenticated() && (
         isSystemAdmin() ||
         isOrganizationOwner(organizationId) ||
         isOrganizationAdministrator(organizationId)
       ) &&
-      request.resource.data.ownerId == resource.data.ownerId; // ownerId immutable
+      request.resource.data.ownerId == resource.data.ownerId && // ownerId immutable
+      isOrganizationTypeUnchanged(); // organizationType immutable (use upgrade endpoint)
 
       // DELETE: Only organization owner or system_admin
       allow delete: if isSystemAdmin() || isOrganizationOwner(organizationId);
@@ -994,6 +1010,12 @@ service cloud.firestore {
     // ============================================================================
 
     match /contacts/{contactId} {
+      // Helper: Check if organization is a business org (not personal)
+      function isBusinessOrganization(orgId) {
+        return exists(/databases/$(database)/documents/organizations/$(orgId)) &&
+               get(/databases/$(database)/documents/organizations/$(orgId)).data.organizationType == 'business';
+      }
+
       // LIST: Blocked - use API /api/v1/contacts for centralized authorization
       allow list: if false;
 
@@ -1011,13 +1033,14 @@ service cloud.firestore {
       );
 
       // CREATE: Create if:
-      // 1. Creating organization contact and user is org owner/admin
+      // 1. Creating organization contact and user is org owner/admin AND org is business type
       // 2. Creating user contact for themselves
+      // NOTE: Personal orgs cannot create org-level contacts - they must use user-level
       allow create: if isAuthenticated() && (
         isSystemAdmin() ||
         (request.resource.data.accessLevel == 'organization' &&
          request.resource.data.organizationId != null &&
-         exists(/databases/$(database)/documents/organizations/$(request.resource.data.organizationId)) &&
+         isBusinessOrganization(request.resource.data.organizationId) &&
          (isOrganizationOwner(request.resource.data.organizationId) ||
           isOrganizationAdministrator(request.resource.data.organizationId)) &&
          request.resource.data.createdBy == request.auth.uid) ||

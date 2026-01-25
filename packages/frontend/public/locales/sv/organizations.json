@@ -343,6 +343,26 @@
       "emptyState": "Ingen faktureringshistorik tillgänglig under provperioden"
     }
   },
+  "upgrade": {
+    "tabTitle": "Uppgradera",
+    "title": "Uppgradera till företagsorganisation",
+    "description": "Lås upp kraftfulla funktioner för att hantera ditt team och stall mer effektivt",
+    "organizationType": "Organisationstyp",
+    "personalLimitations": "Personliga organisationer har begränsade funktioner. Uppgradera för att bjuda in medlemmar och dela resurser.",
+    "benefitsTitle": "Vad ingår i företagsorganisation",
+    "benefits": {
+      "members": "Bjud in teammedlemmar för att hjälpa till med stallhanteringen",
+      "stables": "Skapa flera stall för att organisera dina hästar",
+      "contacts": "Dela kontakter med hela organisationen",
+      "roles": "Tilldela roller och behörigheter till teammedlemmar",
+      "analytics": "Visa detaljerad statistik och rapporter"
+    },
+    "upgradeNote": "Uppgradering är kostnadsfri och permanent. Din organisation kommer att konverteras till en företagsorganisation.",
+    "upgradeButton": "Uppgradera till företag",
+    "success": "Uppgraderingen lyckades!",
+    "successDescription": "Din organisation har uppgraderats till en företagsorganisation. Du kan nu bjuda in medlemmar och skapa flera stall.",
+    "errorDescription": "Det gick inte att uppgradera organisationen. Försök igen."
+  },
   "messages": {
     "createSuccess": "Organisation har skapats",
     "updateSuccess": "Organisation har uppdaterats",

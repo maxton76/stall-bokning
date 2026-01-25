@@ -21,11 +21,11 @@ export type QuantityMeasure =
 
 /**
  * Feed type definition (e.g., "Müsli Plus", "Hay")
- * Stable-scoped configuration
+ * Organization-scoped configuration - shared across all stables in the organization
  */
 export interface FeedType {
   id: string;
-  stableId: string;
+  organizationId: string;
   name: string;
   brand: string;
   category: FeedCategory;

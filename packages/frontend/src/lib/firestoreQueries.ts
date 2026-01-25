@@ -89,6 +89,7 @@ interface StableData {
   name: any;
   address: any;
   ownerId: any;
+  organizationId: any;
   createdAt: any;
 }
 
@@ -113,6 +114,7 @@ export async function getUserStablesData(
     name: doc.data().name,
     address: doc.data().address,
     ownerId: doc.data().ownerId,
+    organizationId: doc.data().organizationId,
     createdAt: doc.data().createdAt,
   }));
 
@@ -126,6 +128,7 @@ export async function getUserStablesData(
           name: data.name,
           address: data.address,
           ownerId: data.ownerId,
+          organizationId: data.organizationId,
           createdAt: data.createdAt,
         };
       }

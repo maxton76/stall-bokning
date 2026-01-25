@@ -4,8 +4,8 @@ import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import {
-  canAccessStable,
-  canManageStable,
+  canAccessOrganization,
+  canManageOrganization,
   isSystemAdmin,
 } from "../utils/authorization.js";
 import { serializeTimestamps } from "../utils/serialization.js";
@@ -20,30 +20,33 @@ import {
 
 export async function feedTypesRoutes(fastify: FastifyInstance) {
   /**
-   * GET /api/v1/feed-types/stable/:stableId
-   * Get all feed types for a stable
+   * GET /api/v1/feed-types/organization/:organizationId
+   * Get all feed types for an organization
    * Query params: activeOnly (boolean, default: true)
    */
   fastify.get(
-    "/stable/:stableId",
+    "/organization/:organizationId",
     {
       preHandler: [authenticate],
     },
     async (request, reply) => {
       try {
         const user = (request as AuthenticatedRequest).user!;
-        const { stableId } = request.params as { stableId: string };
+        const { organizationId } = request.params as { organizationId: string };
         const { activeOnly = "true" } = request.query as {
           activeOnly?: string;
         };
 
-        // Check stable access
+        // Check organization access
         if (!isSystemAdmin(user.role)) {
-          const hasAccess = await canAccessStable(user.uid, stableId);
+          const hasAccess = await canAccessOrganization(
+            user.uid,
+            organizationId,
+          );
           if (!hasAccess) {
             return forbidden(
               reply,
-              "You do not have permission to access this stable",
+              "You do not have permission to access this organization",
             );
           }
         }
@@ -51,7 +54,7 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
         // Build query
         let query = db
           .collection("feedTypes")
-          .where("stableId", "==", stableId);
+          .where("organizationId", "==", organizationId);
 
         if (activeOnly === "true") {
           query = query.where("isActive", "==", true) as any;
@@ -98,9 +101,12 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
 
         const feedType = doc.data()!;
 
-        // Check stable access
+        // Check organization access
         if (!isSystemAdmin(user.role)) {
-          const hasAccess = await canAccessStable(user.uid, feedType.stableId);
+          const hasAccess = await canAccessOrganization(
+            user.uid,
+            feedType.organizationId,
+          );
           if (!hasAccess) {
             return forbidden(
               reply,
@@ -131,17 +137,20 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
         const user = (request as AuthenticatedRequest).user!;
         const data = request.body as any;
 
-        if (!data.stableId) {
-          return badRequest(reply, "stableId is required");
+        if (!data.organizationId) {
+          return badRequest(reply, "organizationId is required");
         }
 
-        // Check stable management access
+        // Check organization management access
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageStable(user.uid, data.stableId);
+          const canManage = await canManageOrganization(
+            user.uid,
+            data.organizationId,
+          );
           if (!canManage) {
             return forbidden(
               reply,
-              "You do not have permission to create feed types for this stable",
+              "You do not have permission to create feed types for this organization",
             );
           }
         }
@@ -161,7 +170,7 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
         }
 
         const feedTypeData = {
-          stableId: data.stableId,
+          organizationId: data.organizationId,
           name: data.name,
           brand: data.brand,
           category: data.category,
@@ -208,9 +217,12 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
 
         const existing = doc.data()!;
 
-        // Check stable management access
+        // Check organization management access
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageStable(user.uid, existing.stableId);
+          const canManage = await canManageOrganization(
+            user.uid,
+            existing.organizationId,
+          );
           if (!canManage) {
             return forbidden(
               reply,
@@ -219,16 +231,19 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
           }
         }
 
-        // Prevent changing stableId
-        if (updates.stableId && updates.stableId !== existing.stableId) {
-          return badRequest(reply, "Cannot change stableId");
+        // Prevent changing organizationId
+        if (
+          updates.organizationId &&
+          updates.organizationId !== existing.organizationId
+        ) {
+          return badRequest(reply, "Cannot change organizationId");
         }
 
         const updateData = {
           ...updates,
           updatedAt: Timestamp.now(),
         };
-        delete updateData.stableId; // Ensure stableId is not updated
+        delete updateData.organizationId; // Ensure organizationId is not updated
         delete updateData.createdBy; // Ensure createdBy is not updated
         delete updateData.createdAt; // Ensure createdAt is not updated
 
@@ -268,9 +283,12 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
 
         const existing = doc.data()!;
 
-        // Check stable management access
+        // Check organization management access
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageStable(user.uid, existing.stableId);
+          const canManage = await canManageOrganization(
+            user.uid,
+            existing.organizationId,
+          );
           if (!canManage) {
             return forbidden(
               reply,

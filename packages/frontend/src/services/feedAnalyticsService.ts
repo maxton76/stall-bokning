@@ -5,7 +5,7 @@ import type {
   FeedInventory,
 } from "@stall-bokning/shared";
 import { getHorseFeedingsByStable } from "./horseFeedingService";
-import { getFeedTypesByStable } from "./feedTypeService";
+import { getFeedTypesByOrganization } from "./feedTypeService";
 import { getStableInventory } from "./inventoryService";
 import {
   format,
@@ -27,6 +27,7 @@ export type AnalyticsPeriod = "weekly" | "monthly";
  */
 export async function getFeedAnalytics(
   stableId: string,
+  organizationId: string,
   period: AnalyticsPeriod,
   referenceDate: Date = new Date(),
 ): Promise<FeedAnalytics> {
@@ -45,7 +46,7 @@ export async function getFeedAnalytics(
   // Fetch data in parallel
   const [horseFeedings, feedTypes, inventory] = await Promise.all([
     getHorseFeedingsByStable(stableId, { activeOnly: true }),
-    getFeedTypesByStable(stableId, true),
+    getFeedTypesByOrganization(organizationId, true),
     getStableInventory(stableId).catch(() => [] as FeedInventory[]),
   ]);
 
@@ -245,6 +246,7 @@ export interface CostTrendData {
 
 export async function getFeedCostTrend(
   stableId: string,
+  organizationId: string,
   months: number = 6,
 ): Promise<CostTrendData[]> {
   const trends: CostTrendData[] = [];
@@ -254,6 +256,7 @@ export async function getFeedCostTrend(
     const referenceDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const analytics = await getFeedAnalytics(
       stableId,
+      organizationId,
       "monthly",
       referenceDate,
     );

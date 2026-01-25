@@ -717,6 +717,18 @@ function App() {
 
                 {/* Settings routes for configuration */}
                 <Route
+                  path="/settings/account"
+                  element={
+                    <Suspense fallback={<InlineLoader />}>
+                      <AccountPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/settings/notifications"
+                  element={<Navigate to="/settings" replace />}
+                />
+                <Route
                   path="/settings/routines"
                   element={
                     <Suspense fallback={<InlineLoader />}>

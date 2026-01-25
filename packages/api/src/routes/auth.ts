@@ -70,20 +70,45 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
         // NEW: Auto-create personal organization for user
         let organizationId: string | undefined;
+        let implicitStableId: string | undefined;
         try {
-          const orgRef = await db.collection("organizations").add({
-            name: `${firstName}'s Organization`,
+          // Create the organization first
+          const orgRef = db.collection("organizations").doc();
+          organizationId = orgRef.id;
+
+          // Create implicit stable for personal organization ("My Horses")
+          const implicitStableRef = db.collection("stables").doc();
+          implicitStableId = implicitStableRef.id;
+
+          const implicitStableData = {
+            id: implicitStableId,
+            name: "Mina hästar", // "My Horses" in Swedish
+            description: "Automatiskt skapad stall för personlig användning",
             ownerId: user.uid,
             ownerEmail: email.toLowerCase(),
+            organizationId,
+            isImplicit: true, // Flag to identify implicit stables
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+          };
+
+          await implicitStableRef.set(implicitStableData);
+
+          // Now create the organization with reference to implicit stable
+          await orgRef.set({
+            name: `${firstName}s organisation`,
+            ownerId: user.uid,
+            ownerEmail: email.toLowerCase(),
+            organizationType: "personal" as const,
             subscriptionTier: "free" as const,
+            implicitStableId, // Link to the implicit stable
             stats: {
-              stableCount: 0,
+              stableCount: 1, // Implicit stable counts
               totalMemberCount: 1,
             },
             createdAt: Timestamp.now(),
             updatedAt: Timestamp.now(),
           });
-          organizationId = orgRef.id;
 
           // Create organizationMember record for owner
           const memberId = `${user.uid}_${organizationId}`;
@@ -110,8 +135,8 @@ export default async function authRoutes(fastify: FastifyInstance) {
             });
 
           request.log.info(
-            { userId: user.uid, organizationId },
-            "Created personal organization on signup",
+            { userId: user.uid, organizationId, implicitStableId },
+            "Created personal organization with implicit stable on signup",
           );
         } catch (orgError) {
           // Log error but don't fail signup

@@ -118,7 +118,7 @@ export function HorseGroupMultiSelect({
           className={cn("w-full justify-between", className)}
         >
           <span className="truncate">
-            {loading ? t("common:loading") : getDisplayText()}
+            {loading ? t("common:loading.default") : getDisplayText()}
           </span>
           <div className="flex items-center gap-1 ml-2">
             {selectedGroups.length > 0 && (

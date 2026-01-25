@@ -168,6 +168,77 @@ export async function getAllAccessibleHorses(
 }
 
 /**
+ * Get horses owned by the current user (via ownerOrganizationId)
+ * Alias for getMyHorses for semantic clarity
+ * @param status - Filter by status (default: 'active')
+ * @returns Promise with array of owned horses
+ */
+export async function getOwnedHorses(
+  status: "active" | "inactive" = "active",
+): Promise<Horse[]> {
+  return getMyHorses(undefined, status);
+}
+
+/**
+ * Get horses placed at the user's organization (not owned by them)
+ * These are horses with placementOrganizationId matching user's org
+ * @param status - Filter by status (default: 'active')
+ * @returns Promise with array of placed horses
+ */
+export async function getPlacedHorses(
+  status: "active" | "inactive" = "active",
+): Promise<Horse[]> {
+  const allHorses = await getAllAccessibleHorses(status);
+  // Filter to horses that have placement data (not owned by user)
+  return allHorses.filter((horse) => {
+    const horseWithMeta = horse as Horse & {
+      _isOwner?: boolean;
+      _accessSource?: string;
+    };
+    return (
+      horseWithMeta._isOwner === false ||
+      horseWithMeta._accessSource === "placement"
+    );
+  });
+}
+
+/**
+ * Check if a horse is owned by the current user
+ * Uses the _isOwner metadata from API response
+ * @param horse - Horse object with metadata
+ * @returns boolean indicating if user owns the horse
+ */
+export function isHorseOwner(horse: Horse): boolean {
+  const horseWithMeta = horse as Horse & { _isOwner?: boolean };
+  return horseWithMeta._isOwner === true;
+}
+
+/**
+ * Get the access level for a horse
+ * Uses the _accessLevel metadata from API response
+ * @param horse - Horse object with metadata
+ * @returns Access level string or undefined
+ */
+export function getHorseAccessLevel(
+  horse: Horse,
+):
+  | "public"
+  | "basic_care"
+  | "professional"
+  | "management"
+  | "owner"
+  | undefined {
+  const horseWithMeta = horse as Horse & { _accessLevel?: string };
+  return horseWithMeta._accessLevel as
+    | "public"
+    | "basic_care"
+    | "professional"
+    | "management"
+    | "owner"
+    | undefined;
+}
+
+/**
  * @deprecated Use getMyHorses() instead
  * Get all horses owned by a user OR in user's stables via API
  * @param _userId - User ID (uses authenticated user from token)

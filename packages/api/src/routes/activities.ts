@@ -7,32 +7,103 @@ import { serializeTimestamps } from "../utils/serialization.js";
 import { hasStableAccess } from "../utils/authorization.js";
 
 /**
- * Check if user has access to a horse
+ * Result of horse access check including visibility constraints
+ */
+interface HorseAccessResult {
+  hasAccess: boolean;
+  isOwner: boolean;
+  historyCutoffDate?: Timestamp; // If set, only show activities after this date
+}
+
+/**
+ * Check if user has access to a horse and determine history visibility
+ */
+async function getHorseAccessInfo(
+  horseId: string,
+  userId: string,
+  userRole: string,
+): Promise<HorseAccessResult> {
+  if (userRole === "system_admin") {
+    return { hasAccess: true, isOwner: true };
+  }
+
+  const horseDoc = await db.collection("horses").doc(horseId).get();
+  if (!horseDoc.exists) {
+    return { hasAccess: false, isOwner: false };
+  }
+
+  const horse = horseDoc.data()!;
+
+  // Check direct ownership
+  if (horse.ownerId === userId) {
+    return { hasAccess: true, isOwner: true };
+  }
+
+  // Check owner organization membership
+  if (horse.ownerOrganizationId) {
+    const ownerMemberId = `${userId}_${horse.ownerOrganizationId}`;
+    const ownerMemberDoc = await db
+      .collection("organizationMembers")
+      .doc(ownerMemberId)
+      .get();
+    if (ownerMemberDoc.exists && ownerMemberDoc.data()?.status === "active") {
+      // User is member of owner's org - full access
+      return { hasAccess: true, isOwner: true };
+    }
+  }
+
+  // Check placement organization membership
+  if (horse.placementOrganizationId) {
+    const placementMemberId = `${userId}_${horse.placementOrganizationId}`;
+    const placementMemberDoc = await db
+      .collection("organizationMembers")
+      .doc(placementMemberId)
+      .get();
+    if (
+      placementMemberDoc.exists &&
+      placementMemberDoc.data()?.status === "active"
+    ) {
+      // User is member of placement org - check historyVisibility
+      if (horse.historyVisibility === "full") {
+        return { hasAccess: true, isOwner: false };
+      }
+      // Default: 'from_placement' - only show activities after placement date
+      return {
+        hasAccess: true,
+        isOwner: false,
+        historyCutoffDate: horse.placementDate,
+      };
+    }
+  }
+
+  // Check stable membership via organization (legacy path)
+  if (horse.currentStableId) {
+    if (await hasStableAccess(horse.currentStableId, userId, userRole)) {
+      // Stable access without org membership - check historyVisibility
+      if (horse.historyVisibility === "full") {
+        return { hasAccess: true, isOwner: false };
+      }
+      return {
+        hasAccess: true,
+        isOwner: false,
+        historyCutoffDate: horse.placementDate || horse.assignedAt,
+      };
+    }
+  }
+
+  return { hasAccess: false, isOwner: false };
+}
+
+/**
+ * Check if user has access to a horse (backward compatibility wrapper)
  */
 async function hasHorseAccess(
   horseId: string,
   userId: string,
   userRole: string,
 ): Promise<boolean> {
-  if (userRole === "system_admin") return true;
-
-  const horseDoc = await db.collection("horses").doc(horseId).get();
-  if (!horseDoc.exists) return false;
-
-  const horse = horseDoc.data()!;
-
-  // Check ownership
-  if (horse.ownerId === userId) return true;
-
-  // Check stable membership via organization
-  if (horse.currentStableId) {
-    // Use shared hasStableAccess which checks ownership and org membership
-    if (await hasStableAccess(horse.currentStableId, userId, userRole)) {
-      return true;
-    }
-  }
-
-  return false;
+  const result = await getHorseAccessInfo(horseId, userId, userRole);
+  return result.hasAccess;
 }
 
 /**
@@ -62,6 +133,7 @@ export async function activitiesRoutes(fastify: FastifyInstance) {
   /**
    * GET /api/v1/activities/horse/:horseId
    * Get activities for a specific horse
+   * Respects historyVisibility settings for placement org members
    */
   fastify.get(
     "/horse/:horseId",
@@ -74,9 +146,13 @@ export async function activitiesRoutes(fastify: FastifyInstance) {
         const { limit: limitParam } = request.query as { limit?: string };
         const user = (request as AuthenticatedRequest).user!;
 
-        // Check access
-        const hasAccess = await hasHorseAccess(horseId, user.uid, user.role);
-        if (!hasAccess) {
+        // Check access and get visibility constraints
+        const accessInfo = await getHorseAccessInfo(
+          horseId,
+          user.uid,
+          user.role,
+        );
+        if (!accessInfo.hasAccess) {
           return reply.status(403).send({
             error: "Forbidden",
             message: "You do not have permission to access this horse",
@@ -92,11 +168,18 @@ export async function activitiesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Query activities
-        const snapshot = await db
+        // Build query with optional history cutoff
+        let query = db
           .collection("activities")
           .where("type", "==", "activity")
-          .where("horseId", "==", horseId)
+          .where("horseId", "==", horseId);
+
+        // Apply history cutoff if user is not owner
+        if (accessInfo.historyCutoffDate) {
+          query = query.where("date", ">=", accessInfo.historyCutoffDate);
+        }
+
+        const snapshot = await query
           .orderBy("date", "desc")
           .limit(limitCount)
           .get();
@@ -122,6 +205,7 @@ export async function activitiesRoutes(fastify: FastifyInstance) {
   /**
    * GET /api/v1/activities/horse/:horseId/unfinished
    * Get unfinished activities for a specific horse (past due but not completed)
+   * Respects historyVisibility settings for placement org members
    */
   fastify.get(
     "/horse/:horseId/unfinished",
@@ -133,9 +217,13 @@ export async function activitiesRoutes(fastify: FastifyInstance) {
         const { horseId } = request.params as { horseId: string };
         const user = (request as AuthenticatedRequest).user!;
 
-        // Check access
-        const hasAccess = await hasHorseAccess(horseId, user.uid, user.role);
-        if (!hasAccess) {
+        // Check access and get visibility constraints
+        const accessInfo = await getHorseAccessInfo(
+          horseId,
+          user.uid,
+          user.role,
+        );
+        if (!accessInfo.hasAccess) {
           return reply.status(403).send({
             error: "Forbidden",
             message: "You do not have permission to access this horse",
@@ -155,12 +243,27 @@ export async function activitiesRoutes(fastify: FastifyInstance) {
           .orderBy("date", "asc")
           .get();
 
-        const activities = snapshot.docs.map((doc) =>
+        // Filter by history cutoff if applicable (Firestore doesn't support multiple inequality filters)
+        let activities = snapshot.docs.map((doc) =>
           serializeTimestamps({
             id: doc.id,
             ...doc.data(),
           }),
         );
+
+        // Apply history cutoff filter in memory if needed
+        if (accessInfo.historyCutoffDate) {
+          const cutoffMs = accessInfo.historyCutoffDate.toMillis();
+          activities = activities.filter((activity: any) => {
+            const activityDate =
+              activity.date instanceof Date
+                ? activity.date.getTime()
+                : typeof activity.date === "string"
+                  ? new Date(activity.date).getTime()
+                  : activity.date;
+            return activityDate >= cutoffMs;
+          });
+        }
 
         return { activities };
       } catch (error) {

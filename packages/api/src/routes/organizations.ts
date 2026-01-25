@@ -15,6 +15,7 @@ import {
   sendSignupInviteEmail,
 } from "../services/emailService.js";
 import { serializeTimestamps } from "../utils/serialization.js";
+import { canInviteMembers } from "@stall-bokning/shared";
 
 // Zod schemas for validation
 const organizationRoleSchema = z.enum([
@@ -213,10 +214,16 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
         const userDoc = await db.collection("users").doc(user.uid).get();
         const userData = userDoc.data();
 
+        // Determine organization type:
+        // - stable_owner or system_admin creating via explicit endpoint → 'business'
+        // Note: 'personal' orgs are auto-created during signup, not via this endpoint
+        const organizationType = "business" as const;
+
         const organizationData = {
           ...validation.data,
           ownerId: user.uid,
           ownerEmail: userData?.email || user.email,
+          organizationType,
           subscriptionTier: "free" as const,
           stats: {
             stableCount: 0,
@@ -457,6 +464,113 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
   );
 
   // ========================================================================
+  // ORGANIZATION UPGRADE ROUTE
+  // ========================================================================
+
+  // Upgrade organization from personal to business
+  // POST /api/v1/organizations/:id/upgrade
+  fastify.post(
+    "/:id/upgrade",
+    {
+      preHandler: [authenticate, requireRole(["stable_owner", "system_admin"])],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const user = (request as AuthenticatedRequest).user!;
+
+        const orgRef = db.collection("organizations").doc(id);
+        const orgDoc = await orgRef.get();
+
+        if (!orgDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Organization not found",
+          });
+        }
+
+        const org = orgDoc.data()!;
+
+        // Only owner can upgrade their organization
+        if (org.ownerId !== user.uid && user.role !== "system_admin") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "Only the organization owner can upgrade",
+          });
+        }
+
+        // Check if already a business organization
+        if (org.organizationType === "business") {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Organization is already a business organization",
+          });
+        }
+
+        // Start a batch for atomic operations
+        const batch = db.batch();
+
+        // Update organization type
+        batch.update(orgRef, {
+          organizationType: "business",
+          upgradedAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        // Handle implicit stable if it exists
+        if (org.implicitStableId) {
+          const stableRef = db.collection("stables").doc(org.implicitStableId);
+          const stableDoc = await stableRef.get();
+
+          if (stableDoc.exists) {
+            const stableData = stableDoc.data()!;
+            // Rename implicit stable to a proper business stable name
+            // If it's still named "My Horses", rename to organization name
+            const newName =
+              stableData.name === "My Horses" ||
+              stableData.name === "Mina hästar"
+                ? `${org.name} Stable`
+                : stableData.name;
+
+            batch.update(stableRef, {
+              name: newName,
+              isImplicit: false,
+              updatedAt: FieldValue.serverTimestamp(),
+            });
+          }
+
+          // Remove implicitStableId from organization
+          batch.update(orgRef, {
+            implicitStableId: FieldValue.delete(),
+          });
+        }
+
+        await batch.commit();
+
+        // Get updated organization
+        const updatedDoc = await orgRef.get();
+
+        request.log.info(
+          { organizationId: id, userId: user.uid },
+          "Organization upgraded from personal to business",
+        );
+
+        return {
+          id: updatedDoc.id,
+          ...updatedDoc.data(),
+          message: "Organization successfully upgraded to business",
+        };
+      } catch (error) {
+        request.log.error({ error }, "Failed to upgrade organization");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to upgrade organization",
+        });
+      }
+    },
+  );
+
+  // ========================================================================
   // MEMBER MANAGEMENT ROUTES
   // ========================================================================
 
@@ -569,6 +683,16 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
         }
 
         const org = orgDoc.data()!;
+
+        // Feature gate: Check if organization can invite members
+        if (!canInviteMembers(org as any)) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message:
+              "Personal organizations cannot invite members. Upgrade to a business organization to invite team members.",
+            code: "PERSONAL_ORG_LIMIT",
+          });
+        }
 
         // Check permissions: owner, administrator, or system_admin
         const userMemberId = `${user.uid}_${organizationId}`;

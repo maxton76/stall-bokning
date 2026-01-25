@@ -18,12 +18,20 @@
     "allTypes": "All Types",
     "personal": "Personal",
     "business": "Business",
+    "visibility": "Visibility",
+    "allVisibility": "All",
+    "private": "Private",
+    "shared": "Shared",
     "more": "More Filters",
     "byBadge": "Filter by Badge",
     "allBadges": "All Badges",
     "byAccess": "Filter by Access",
     "withAccess": "With Login Access",
     "withoutAccess": "Without Login Access"
+  },
+  "visibility": {
+    "private": "Private contact",
+    "shared": "Shared with organization"
   },
   "type": {
     "personal": "Personal",
@@ -49,6 +57,8 @@
     "personal": "Personal",
     "business": "Business",
     "withAccess": "With Access",
+    "private": "Private",
+    "shared": "Shared",
     "totalInvoices": "Total Invoices",
     "totalInvoiced": "Total Invoiced",
     "totalPaid": "Total Paid",

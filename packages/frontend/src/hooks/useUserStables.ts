@@ -10,6 +10,7 @@ interface Stable {
   name: string;
   address?: string;
   ownerId?: string;
+  organizationId?: string;
   createdAt?: any;
 }
 
