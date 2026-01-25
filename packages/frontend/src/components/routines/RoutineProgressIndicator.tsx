@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Check, Circle, Clock, SkipForward } from "lucide-react";
+import { StepCounter } from "./StepCounter";
 import { Progress } from "@/components/ui/progress";
 import {
   Tooltip,
@@ -53,8 +54,7 @@ export function RoutineProgressIndicator({
         </div>
         <Progress value={progressPercent} className="h-2" />
         <p className="text-sm text-muted-foreground text-center">
-          {t("routines:flow.step")} {currentStepIndex + 1}{" "}
-          {t("routines:flow.of")} {steps.length}
+          <StepCounter current={currentStepIndex} total={steps.length} />
         </p>
       </div>
     );
@@ -214,14 +214,13 @@ export function RoutineProgressCompact({
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
             <span className="text-sm font-medium text-primary">
-              {currentStepIndex + 1}
+              {Math.min(currentStepIndex + 1, steps.length)}
             </span>
           </div>
           <div>
             <p className="text-sm font-medium">{currentStep?.name}</p>
             <p className="text-xs text-muted-foreground">
-              {t("routines:flow.step")} {currentStepIndex + 1}{" "}
-              {t("routines:flow.of")} {steps.length}
+              <StepCounter current={currentStepIndex} total={steps.length} />
             </p>
           </div>
         </div>

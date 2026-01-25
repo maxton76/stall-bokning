@@ -1,77 +1,66 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Calendar, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  AlertCircle,
+  Check,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
-import { useOrganizationContext } from "@/contexts/OrganizationContext";
+import { useUserStables } from "@/hooks/useUserStables";
+import {
+  useWeekScheduledRoutines,
+  type ScheduleSlot,
+  type DaySchedule,
+} from "@/hooks/useScheduledRoutines";
 import { format, addWeeks, subWeeks, startOfWeek, addDays } from "date-fns";
 import { sv } from "date-fns/locale";
-
-interface ScheduleSlot {
-  id: string;
-  title: string;
-  time: string;
-  assignee?: string;
-  type: "feeding" | "cleaning" | "routine" | "other";
-}
-
-interface DaySchedule {
-  date: Date;
-  slots: ScheduleSlot[];
-}
 
 /**
  * Schedule Week Page - Weekly calendar view
  *
  * Shows the weekly schedule with:
  * - Day columns for the week
- * - Shift slots and assignments
+ * - Actual routine instances from the database
  * - Booking actions
  */
 export default function ScheduleWeekPage() {
   const { t } = useTranslation(["common"]);
   const { user } = useAuth();
-  const { currentOrganization } = useOrganizationContext();
+  const navigate = useNavigate();
 
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 }),
   );
+  const [selectedStableId, setSelectedStableId] = useState<string>("");
 
-  // Generate week days
-  const weekDays: DaySchedule[] = Array.from({ length: 7 }, (_, i) => ({
-    date: addDays(currentWeekStart, i),
-    slots: [
-      {
-        id: `${i}-1`,
-        title: "Morgonfoder",
-        time: "07:00",
-        assignee: i < 2 ? "Anna S." : undefined,
-        type: "feeding",
-      },
-      {
-        id: `${i}-2`,
-        title: "Mockning",
-        time: "09:00",
-        assignee: i % 2 === 0 ? "Erik J." : undefined,
-        type: "cleaning",
-      },
-      {
-        id: `${i}-3`,
-        title: "Eftermiddagsfoder",
-        time: "14:00",
-        type: "feeding",
-      },
-      {
-        id: `${i}-4`,
-        title: "Kvällsfoder",
-        time: "18:00",
-        type: "feeding",
-      },
-    ],
-  }));
+  // Load user's stables
+  const { stables, loading: stablesLoading } = useUserStables(user?.uid);
+
+  // Auto-select first stable if none selected
+  const activeStableId = selectedStableId || stables[0]?.id;
+
+  // Fetch real routine data
+  const {
+    data: weekSchedule,
+    isLoading,
+    isError,
+    error,
+  } = useWeekScheduledRoutines(activeStableId, currentWeekStart);
 
   const goToPreviousWeek = () => {
     setCurrentWeekStart(subWeeks(currentWeekStart, 1));
@@ -88,13 +77,49 @@ export default function ScheduleWeekPage() {
   const getSlotTypeColor = (type: ScheduleSlot["type"]) => {
     switch (type) {
       case "feeding":
-        return "bg-amber-100 text-amber-800 border-amber-200";
+        return "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800";
       case "cleaning":
-        return "bg-green-100 text-green-800 border-green-200";
+        return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800";
       case "routine":
-        return "bg-blue-100 text-blue-800 border-blue-200";
+        return "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800";
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700";
+    }
+  };
+
+  const getStatusBadgeVariant = (
+    status: ScheduleSlot["status"],
+  ): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status) {
+      case "completed":
+        return "default";
+      case "in_progress":
+      case "started":
+        return "secondary";
+      case "cancelled":
+      case "missed":
+        return "destructive";
+      default:
+        return "outline";
+    }
+  };
+
+  const getStatusText = (status: ScheduleSlot["status"]) => {
+    switch (status) {
+      case "completed":
+        return "Klar";
+      case "in_progress":
+        return "Pågår";
+      case "started":
+        return "Startad";
+      case "scheduled":
+        return "Schemalagd";
+      case "cancelled":
+        return "Avbruten";
+      case "missed":
+        return "Missad";
+      default:
+        return status;
     }
   };
 
@@ -106,6 +131,86 @@ export default function ScheduleWeekPage() {
       date.getFullYear() === today.getFullYear()
     );
   };
+
+  const handleSlotClick = (slot: ScheduleSlot) => {
+    // Navigate to routine flow page
+    navigate(`/routines/${slot.id}`);
+  };
+
+  const handleBookSlot = (day: DaySchedule) => {
+    // Navigate to create routine page with pre-selected date
+    navigate(`/routines/create?date=${day.dateStr}`);
+  };
+
+  // Loading state
+  if (stablesLoading || isLoading) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        {/* Header Skeleton */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <Skeleton className="h-9 w-48" />
+            <Skeleton className="h-4 w-64 mt-2" />
+          </div>
+        </div>
+
+        {/* Week Grid Skeleton */}
+        <div className="grid grid-cols-7 gap-2">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="p-3 pb-2">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-8 w-8 mt-1" />
+              </CardHeader>
+              <CardContent className="p-2 space-y-1.5">
+                <Skeleton className="h-16" />
+                <Skeleton className="h-16" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // No stables state
+  if (stables.length === 0) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <h3 className="text-lg font-semibold mb-2">Inga stall</h3>
+            <p className="text-muted-foreground">
+              Du behöver vara medlem i ett stall för att se schemat.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Error state
+  if (isError) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Kunde inte ladda schemat: {error?.message || "Okänt fel"}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  // Use real data or empty state
+  const weekDays =
+    weekSchedule?.days ||
+    Array.from({ length: 7 }, (_, i) => ({
+      date: addDays(currentWeekStart, i),
+      dateStr: format(addDays(currentWeekStart, i), "yyyy-MM-dd"),
+      slots: [],
+    }));
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -120,6 +225,21 @@ export default function ScheduleWeekPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Stable selector */}
+          {stables.length > 1 && (
+            <Select value={activeStableId} onValueChange={setSelectedStableId}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Välj stall" />
+              </SelectTrigger>
+              <SelectContent>
+                {stables.map((stable) => (
+                  <SelectItem key={stable.id} value={stable.id}>
+                    {stable.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Button variant="outline" size="sm" asChild>
             <Link to="/schedule/month">
               {t("common:navigation.scheduleMonth")}
@@ -132,6 +252,39 @@ export default function ScheduleWeekPage() {
           </Button>
         </div>
       </div>
+
+      {/* Stats Summary */}
+      {weekSchedule && weekSchedule.totalRoutines > 0 && (
+        <div className="flex gap-4 text-sm text-muted-foreground">
+          <span>
+            Totalt:{" "}
+            <strong className="text-foreground">
+              {weekSchedule.totalRoutines}
+            </strong>{" "}
+            rutiner
+          </span>
+          <span>
+            Klara:{" "}
+            <strong className="text-green-600">
+              {weekSchedule.completedRoutines}
+            </strong>
+          </span>
+          <span>
+            Tilldelade:{" "}
+            <strong className="text-blue-600">
+              {weekSchedule.assignedRoutines}
+            </strong>
+          </span>
+          {weekSchedule.unassignedRoutines > 0 && (
+            <span>
+              Otilldelade:{" "}
+              <strong className="text-amber-600">
+                {weekSchedule.unassignedRoutines}
+              </strong>
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Week Navigation */}
       <div className="flex items-center justify-between">
@@ -156,8 +309,10 @@ export default function ScheduleWeekPage() {
       <div className="grid grid-cols-7 gap-2 overflow-x-auto">
         {weekDays.map((day) => (
           <Card
-            key={day.date.toISOString()}
-            className={isToday(day.date) ? "border-primary" : ""}
+            key={day.dateStr}
+            className={
+              isToday(day.date) ? "border-primary ring-1 ring-primary" : ""
+            }
           >
             <CardHeader className="p-3 pb-2">
               <CardTitle
@@ -174,35 +329,85 @@ export default function ScheduleWeekPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-2 space-y-1.5">
-              {day.slots.map((slot) => (
-                <div
-                  key={slot.id}
-                  className={`p-2 rounded-md border text-xs ${getSlotTypeColor(slot.type)}`}
-                >
-                  <div className="font-medium truncate">{slot.title}</div>
-                  <div className="text-[10px] opacity-75">{slot.time}</div>
-                  {slot.assignee ? (
-                    <Badge
-                      variant="secondary"
-                      className="mt-1 text-[10px] py-0"
-                    >
-                      {slot.assignee}
-                    </Badge>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mt-1 h-5 text-[10px] p-0 hover:bg-transparent"
-                    >
-                      <Plus className="h-3 w-3 mr-0.5" />
-                      Boka
-                    </Button>
-                  )}
+              {day.slots.length === 0 ? (
+                <div className="text-xs text-muted-foreground text-center py-4">
+                  Inga rutiner
                 </div>
-              ))}
+              ) : (
+                day.slots.map((slot) => (
+                  <div
+                    key={slot.id}
+                    onClick={() => handleSlotClick(slot)}
+                    className={`p-2 rounded-md border text-xs cursor-pointer transition-colors hover:opacity-80 ${getSlotTypeColor(slot.type)}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="font-medium truncate flex-1">
+                        {slot.title}
+                      </div>
+                      {slot.status === "completed" && (
+                        <Check className="h-3 w-3 text-green-600 ml-1 flex-shrink-0" />
+                      )}
+                    </div>
+                    <div className="text-[10px] opacity-75">{slot.time}</div>
+                    {slot.progress.stepsTotal > 0 &&
+                      slot.status !== "completed" &&
+                      slot.status !== "scheduled" && (
+                        <div className="text-[10px] opacity-75 mt-0.5">
+                          {slot.progress.stepsCompleted}/
+                          {slot.progress.stepsTotal} steg
+                        </div>
+                      )}
+                    {slot.assignee ? (
+                      <Badge
+                        variant="secondary"
+                        className="mt-1 text-[10px] py-0"
+                      >
+                        {slot.assignee}
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="mt-1 text-[10px] py-0 border-dashed"
+                      >
+                        Ej tilldelad
+                      </Badge>
+                    )}
+                  </div>
+                ))
+              )}
+              {/* Add routine button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full h-7 text-[10px] text-muted-foreground hover:text-foreground"
+                onClick={() => handleBookSlot(day)}
+              >
+                <Plus className="h-3 w-3 mr-0.5" />
+                Lägg till
+              </Button>
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded bg-amber-100 border border-amber-200" />
+          <span>Utfodring</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded bg-green-100 border border-green-200" />
+          <span>Mockning</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded bg-blue-100 border border-blue-200" />
+          <span>Rutin</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Check className="h-3 w-3 text-green-600" />
+          <span>Klar</span>
+        </div>
       </div>
     </div>
   );

@@ -1737,4 +1737,230 @@ export async function routinesRoutes(fastify: FastifyInstance) {
       }
     },
   );
+
+  /**
+   * POST /api/v1/routines/instances/:id/assign
+   * Assign a routine instance to a member
+   */
+  fastify.post(
+    "/instances/:id/assign",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const user = (request as AuthenticatedRequest).user!;
+        const { assignedTo, assignedToName } = request.body as {
+          assignedTo: string;
+          assignedToName: string;
+        };
+
+        if (!assignedTo || !assignedToName) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "assignedTo and assignedToName are required",
+          });
+        }
+
+        const doc = await db.collection("routineInstances").doc(id).get();
+        if (!doc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Routine instance not found",
+          });
+        }
+
+        const data = doc.data() as RoutineInstance;
+        const hasAccess = await hasStableAccess(
+          data.stableId,
+          user.uid,
+          user.role,
+        );
+        if (!hasAccess) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to assign this routine",
+          });
+        }
+
+        // Only allow assignment for scheduled or unassigned routines
+        if (data.status !== "scheduled") {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: `Cannot assign routine with status: ${data.status}`,
+          });
+        }
+
+        const now = Timestamp.now();
+        await db.collection("routineInstances").doc(id).update({
+          assignedTo,
+          assignedToName,
+          assignmentType: "manual",
+          assignedAt: now,
+          assignedBy: user.uid,
+          updatedAt: now,
+          updatedBy: user.uid,
+        });
+
+        const updated = await db.collection("routineInstances").doc(id).get();
+        const enriched = await enrichInstanceWithTemplate(
+          updated.id,
+          updated.data() as RoutineInstance,
+        );
+
+        return {
+          instance: enriched,
+        };
+      } catch (error) {
+        request.log.error({ error }, "Failed to assign routine");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to assign routine",
+        });
+      }
+    },
+  );
+
+  /**
+   * POST /api/v1/routines/instances/bulk
+   * Create multiple routine instances at once
+   */
+  fastify.post(
+    "/instances/bulk",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+        const {
+          templateId,
+          stableId,
+          startDate,
+          endDate,
+          repeatDays,
+          scheduledStartTime,
+          assignmentMode,
+        } = request.body as {
+          templateId: string;
+          stableId: string;
+          startDate: string;
+          endDate: string;
+          repeatDays?: number[]; // 0=Sunday, 1=Monday, etc.
+          scheduledStartTime?: string;
+          assignmentMode: "auto" | "manual" | "unassigned";
+        };
+
+        // Validate input
+        if (!templateId || !stableId || !startDate || !endDate) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message:
+              "templateId, stableId, startDate, and endDate are required",
+          });
+        }
+
+        // Check stable access
+        const hasAccess = await hasStableAccess(stableId, user.uid, user.role);
+        if (!hasAccess) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message:
+              "You do not have permission to create routines in this stable",
+          });
+        }
+
+        // Get the template
+        const templateDoc = await db
+          .collection("routineTemplates")
+          .doc(templateId)
+          .get();
+        if (!templateDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Routine template not found",
+          });
+        }
+
+        const template = templateDoc.data() as RoutineTemplate;
+
+        // Generate dates between start and end
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const dates: Date[] = [];
+
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          const dayOfWeek = d.getDay();
+          // If repeatDays is specified, only include those days
+          if (
+            !repeatDays ||
+            repeatDays.length === 0 ||
+            repeatDays.includes(dayOfWeek)
+          ) {
+            dates.push(new Date(d));
+          }
+        }
+
+        // Create instances
+        const batch = db.batch();
+        const createdIds: string[] = [];
+        const now = Timestamp.now();
+
+        for (const date of dates) {
+          // Initialize progress for all steps
+          const stepProgress: Record<string, StepProgress> = {};
+          template.steps.forEach((step) => {
+            stepProgress[step.id] = {
+              stepId: step.id,
+              status: "pending",
+            };
+          });
+
+          const initialProgress: RoutineProgress = {
+            stepsCompleted: 0,
+            stepsTotal: template.steps.length,
+            percentComplete: 0,
+            stepProgress,
+          };
+
+          const instanceData: Omit<RoutineInstance, "id"> = {
+            templateId,
+            templateName: template.name,
+            organizationId: template.organizationId,
+            stableId,
+            scheduledDate: Timestamp.fromDate(date),
+            scheduledStartTime: scheduledStartTime || template.defaultStartTime,
+            estimatedDuration: template.estimatedDuration,
+            assignmentType: assignmentMode === "auto" ? "auto" : "manual",
+            status: "scheduled",
+            progress: initialProgress,
+            pointsValue: template.pointsValue,
+            dailyNotesAcknowledged: false,
+            createdAt: now,
+            createdBy: user.uid,
+            updatedAt: now,
+          };
+
+          const docRef = db.collection("routineInstances").doc();
+          batch.set(docRef, instanceData);
+          createdIds.push(docRef.id);
+        }
+
+        await batch.commit();
+
+        return reply.status(201).send({
+          success: true,
+          createdCount: createdIds.length,
+          instanceIds: createdIds,
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to bulk create routine instances");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to create routine instances",
+        });
+      }
+    },
+  );
 }

@@ -25,7 +25,8 @@ final class RoutineService: RoutineServiceProtocol {
     func getRoutineInstances(stableId: String, date: Date) async throws -> [RoutineInstance] {
         let dateString = dateFormatter.string(from: date)
         let params: [String: String] = [
-            "date": dateString
+            "startDate": dateString,
+            "endDate": dateString
         ]
 
         let response: RoutineInstancesResponse = try await apiClient.get(

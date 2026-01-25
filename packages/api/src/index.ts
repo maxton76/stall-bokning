@@ -45,6 +45,7 @@ import { assistantRoutes } from "./routes/assistant.js";
 import { routinesRoutes } from "./routes/routines.js";
 import { dailyNotesRoutes } from "./routes/daily-notes.js";
 import { horseActivityHistoryRoutes } from "./routes/horse-activity-history.js";
+import { fairnessRoutes } from "./routes/fairness.js";
 
 const PORT = Number(process.env.PORT) || 8080;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -177,6 +178,7 @@ await fastify.register(dailyNotesRoutes, { prefix: "/api/v1/daily-notes" });
 await fastify.register(horseActivityHistoryRoutes, {
   prefix: "/api/v1/horse-activity-history",
 });
+await fastify.register(fairnessRoutes, { prefix: "/api/v1/fairness" });
 
 // 404 handler
 fastify.setNotFoundHandler((request, reply) => {

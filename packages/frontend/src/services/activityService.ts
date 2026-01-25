@@ -18,6 +18,7 @@ import {
   endOfWeek,
   startOfMonth,
   endOfMonth,
+  isSameDay,
 } from "date-fns";
 import { apiClient } from "@/lib/apiClient";
 
@@ -88,6 +89,14 @@ export async function createMessage(
 }
 
 /**
+ * Options for fetching stable activities
+ */
+interface GetStableActivitiesOptions {
+  /** Include non-completed activities with dates before startDate */
+  includeOverdue?: boolean;
+}
+
+/**
  * Get all entries for a stable with optional date range filtering
  */
 export async function getStableActivities(
@@ -95,24 +104,14 @@ export async function getStableActivities(
   startDate?: Date,
   endDate?: Date,
   typeFilter?: EntryType[],
+  options?: GetStableActivitiesOptions,
 ): Promise<ActivityEntry[]> {
-  // Build query parameters
-  const params = new URLSearchParams();
-  if (startDate) {
-    params.append("startDate", startOfDay(startDate).toISOString());
-  }
-  if (endDate) {
-    params.append("endDate", endOfDay(endDate).toISOString());
-  }
-  if (typeFilter && typeFilter.length > 0) {
-    params.append("types", typeFilter.join(","));
-  }
-
   const paramsObj: Record<string, string | undefined> = {};
   if (startDate) paramsObj.startDate = startOfDay(startDate).toISOString();
   if (endDate) paramsObj.endDate = endOfDay(endDate).toISOString();
   if (typeFilter && typeFilter.length > 0)
     paramsObj.types = typeFilter.join(",");
+  if (options?.includeOverdue) paramsObj.includeOverdue = "true";
 
   const response = await apiClient.get<{ activities: ActivityEntry[] }>(
     `/activities/stable/${stableId}`,
@@ -158,6 +157,8 @@ export async function getActivitiesByDateTab(
  * @param referenceDate - The date to calculate the period from
  * @param periodType - The type of period ('day' | 'week' | 'month')
  * @returns Promise with array of activity entries for the period
+ *
+ * Note: When viewing today in day mode, automatically includes overdue activities
  */
 export async function getActivitiesByPeriod(
   stableId: string,
@@ -184,8 +185,15 @@ export async function getActivitiesByPeriod(
       break;
   }
 
+  // Auto-include overdue activities when viewing today in day mode
+  const isViewingToday =
+    periodType === "day" && isSameDay(referenceDate, new Date());
+  const options: GetStableActivitiesOptions | undefined = isViewingToday
+    ? { includeOverdue: true }
+    : undefined;
+
   // Use getStableActivities which now calls the API
-  return getStableActivities(stableId, startDate, endDate);
+  return getStableActivities(stableId, startDate, endDate, undefined, options);
 }
 
 /**

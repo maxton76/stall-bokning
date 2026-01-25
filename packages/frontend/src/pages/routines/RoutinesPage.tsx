@@ -48,6 +48,7 @@ import {
   ROUTINE_STATUS_COLORS,
   ROUTINE_STATUS_ICONS,
 } from "@/constants/routineStyles";
+import { StepCounter } from "@/components/routines";
 
 export default function RoutinesPage() {
   const navigate = useNavigate();
@@ -449,10 +450,10 @@ function RoutineCard({ instance, onStart, t, readonly }: RoutineCardProps) {
             {instance.scheduledStartTime}
           </span>
           {progress.stepsTotal > 0 && (
-            <span>
-              {t("routines:flow.step")} {progress.stepsCompleted + 1}{" "}
-              {t("routines:flow.of")} {progress.stepsTotal}
-            </span>
+            <StepCounter
+              current={progress.stepsCompleted}
+              total={progress.stepsTotal}
+            />
           )}
         </div>
       </div>

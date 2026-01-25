@@ -1,12 +1,21 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
-import { useOrganizationContext } from "@/contexts/OrganizationContext";
+import { useUserStables } from "@/hooks/useUserStables";
+import { useScheduledRoutines } from "@/hooks/useScheduledRoutines";
 import {
   format,
   addMonths,
@@ -20,21 +29,42 @@ import {
   isSameDay,
 } from "date-fns";
 import { sv } from "date-fns/locale";
+import type { RoutineInstance } from "@shared/types";
 
 /**
  * Schedule Month Page - Monthly calendar view
  *
  * Shows the monthly schedule with:
- * - Calendar grid
- * - Day summaries
- * - Navigation
+ * - Calendar grid with real routine data
+ * - Day summaries showing routine counts
+ * - Navigation between months
  */
 export default function ScheduleMonthPage() {
   const { t } = useTranslation(["common"]);
   const { user } = useAuth();
-  const { currentOrganization } = useOrganizationContext();
+  const navigate = useNavigate();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedStableId, setSelectedStableId] = useState<string>("");
+
+  // Load user's stables
+  const { stables, loading: stablesLoading } = useUserStables(user?.uid);
+
+  // Auto-select first stable if none selected
+  const activeStableId = selectedStableId || stables[0]?.id;
+
+  // Calculate date range for the visible calendar (including overflow days)
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(currentMonth);
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+
+  // Fetch routine instances for the visible date range
+  const { data: routineInstances, isLoading } = useScheduledRoutines(
+    activeStableId,
+    calendarStart,
+    calendarEnd,
+  );
 
   const goToPreviousMonth = () => {
     setCurrentMonth(subMonths(currentMonth, 1));
@@ -48,31 +78,101 @@ export default function ScheduleMonthPage() {
     setCurrentMonth(new Date());
   };
 
-  // Generate calendar days
-  const monthStart = startOfMonth(currentMonth);
-  const monthEnd = endOfMonth(currentMonth);
-  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
-  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
-
-  const calendarDays: Date[] = [];
-  let day = calendarStart;
-  while (day <= calendarEnd) {
-    calendarDays.push(day);
-    day = addDays(day, 1);
-  }
+  // Generate calendar days array
+  const calendarDays: Date[] = useMemo(() => {
+    const days: Date[] = [];
+    let day = calendarStart;
+    while (day <= calendarEnd) {
+      days.push(day);
+      day = addDays(day, 1);
+    }
+    return days;
+  }, [calendarStart, calendarEnd]);
 
   const today = new Date();
 
-  // Placeholder data for tasks per day
+  // Group routine instances by date
+  const routinesByDate = useMemo(() => {
+    const grouped = new Map<string, RoutineInstance[]>();
+
+    if (!routineInstances) return grouped;
+
+    for (const instance of routineInstances) {
+      // scheduledDate can be string (from JSON), Date, or Firestore Timestamp
+      const scheduledDate = instance.scheduledDate as unknown;
+      let dateStr: string | undefined;
+
+      if (typeof scheduledDate === "string") {
+        dateStr = scheduledDate.split("T")[0];
+      } else if (
+        scheduledDate &&
+        typeof (scheduledDate as any).toDate === "function"
+      ) {
+        dateStr = format((scheduledDate as any).toDate(), "yyyy-MM-dd");
+      } else if (scheduledDate instanceof Date) {
+        dateStr = format(scheduledDate, "yyyy-MM-dd");
+      }
+
+      if (!dateStr) {
+        continue;
+      }
+
+      const existing = grouped.get(dateStr) || [];
+      existing.push(instance);
+      grouped.set(dateStr, existing);
+    }
+
+    return grouped;
+  }, [routineInstances]);
+
+  // Get tasks for a specific day
   const getTasksForDay = (date: Date) => {
-    // Random tasks for demo
-    const seed = date.getDate();
-    return {
-      total: (seed % 5) + 2,
-      completed: seed % 3,
-      myShifts: seed % 2,
-    };
+    const dateStr = format(date, "yyyy-MM-dd");
+    const instances = routinesByDate.get(dateStr) || [];
+
+    const total = instances.length;
+    const completed = instances.filter((i) => i.status === "completed").length;
+    const myShifts = instances.filter((i) => i.assignedTo === user?.uid).length;
+
+    return { total, completed, myShifts };
   };
+
+  const handleDayClick = (date: Date) => {
+    // Navigate to week view with this day selected
+    const weekStart = startOfWeek(date, { weekStartsOn: 1 });
+    navigate(`/schedule/week?date=${format(weekStart, "yyyy-MM-dd")}`);
+  };
+
+  // Loading state
+  if (stablesLoading) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <Skeleton className="h-9 w-48" />
+            <Skeleton className="h-4 w-64 mt-2" />
+          </div>
+        </div>
+        <Skeleton className="h-[400px]" />
+      </div>
+    );
+  }
+
+  // No stables state
+  if (stables.length === 0) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <h3 className="text-lg font-semibold mb-2">Inga stall</h3>
+            <p className="text-muted-foreground">
+              Du behöver vara medlem i ett stall för att se månadsöversikten.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -87,6 +187,21 @@ export default function ScheduleMonthPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Stable selector */}
+          {stables.length > 1 && (
+            <Select value={activeStableId} onValueChange={setSelectedStableId}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Välj stall" />
+              </SelectTrigger>
+              <SelectContent>
+                {stables.map((stable) => (
+                  <SelectItem key={stable.id} value={stable.id}>
+                    {stable.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Button variant="outline" size="sm" asChild>
             <Link to="/schedule/week">
               {t("common:navigation.scheduleWeek")}
@@ -113,9 +228,14 @@ export default function ScheduleMonthPage() {
             {t("common:time.today")}
           </Button>
         </div>
-        <h2 className="text-lg font-semibold">
-          {format(currentMonth, "MMMM yyyy", { locale: sv })}
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold">
+            {format(currentMonth, "MMMM yyyy", { locale: sv })}
+          </h2>
+          {isLoading && (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          )}
+        </div>
       </div>
 
       {/* Calendar Grid */}
@@ -143,6 +263,7 @@ export default function ScheduleMonthPage() {
               return (
                 <div
                   key={date.toISOString()}
+                  onClick={() => handleDayClick(date)}
                   className={`
                     min-h-[80px] p-2 rounded-md border transition-colors cursor-pointer
                     ${isCurrentMonth ? "bg-background" : "bg-muted/30 text-muted-foreground"}
@@ -158,7 +279,7 @@ export default function ScheduleMonthPage() {
                   >
                     {format(date, "d")}
                   </div>
-                  {isCurrentMonth && (
+                  {isCurrentMonth && tasks.total > 0 && (
                     <div className="space-y-0.5">
                       {tasks.myShifts > 0 && (
                         <Badge
@@ -168,11 +289,14 @@ export default function ScheduleMonthPage() {
                           {tasks.myShifts} mina pass
                         </Badge>
                       )}
-                      {tasks.total > 0 && (
-                        <div className="text-[10px] text-muted-foreground">
-                          {tasks.completed}/{tasks.total} klara
-                        </div>
-                      )}
+                      <div className="text-[10px] text-muted-foreground">
+                        {tasks.completed}/{tasks.total} klara
+                      </div>
+                    </div>
+                  )}
+                  {isCurrentMonth && tasks.total === 0 && (
+                    <div className="text-[10px] text-muted-foreground/50">
+                      Inga
                     </div>
                   )}
                 </div>

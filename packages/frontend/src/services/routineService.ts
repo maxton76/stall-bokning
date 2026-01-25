@@ -198,6 +198,52 @@ export async function createRoutineInstance(
 }
 
 /**
+ * Bulk create routine instances
+ */
+export interface BulkCreateRoutineInstancesInput {
+  templateId: string;
+  stableId: string;
+  startDate: string; // "YYYY-MM-DD"
+  endDate: string; // "YYYY-MM-DD"
+  repeatDays?: number[]; // 0=Sunday, 1=Monday, etc.
+  scheduledStartTime?: string;
+  assignmentMode: "auto" | "manual" | "unassigned";
+}
+
+export interface BulkCreateRoutineInstancesResponse {
+  success: boolean;
+  createdCount: number;
+  instanceIds: string[];
+}
+
+export async function bulkCreateRoutineInstances(
+  data: BulkCreateRoutineInstancesInput,
+): Promise<BulkCreateRoutineInstancesResponse> {
+  const response = await apiClient.post<BulkCreateRoutineInstancesResponse>(
+    "/routines/instances/bulk",
+    data,
+  );
+
+  return response;
+}
+
+/**
+ * Assign a routine instance to a user
+ */
+export async function assignRoutineInstance(
+  instanceId: string,
+  assignedTo: string,
+  assignedToName: string,
+): Promise<RoutineInstance> {
+  const response = await apiClient.post<{ instance: RoutineInstance }>(
+    `/routines/instances/${instanceId}/assign`,
+    { assignedTo, assignedToName },
+  );
+
+  return response.instance;
+}
+
+/**
  * Start a routine instance
  */
 export async function startRoutineInstance(

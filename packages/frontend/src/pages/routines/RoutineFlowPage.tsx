@@ -54,7 +54,7 @@ import { getRoutineInstance } from "@/services/routineService";
 import { completeShift } from "@/services/scheduleService";
 import { HorseContextCard } from "@/components/routines/HorseContextCard";
 import { DailyNotesModal } from "@/components/routines/DailyNotesModal";
-import { RoutineProgressIndicator } from "@/components/routines/RoutineProgressIndicator";
+import { RoutineProgressIndicator, StepCounter } from "@/components/routines";
 import { resolveStepHorses } from "@/utils/routineHorseResolver";
 import { getInstructionsForHorseStep } from "@/utils/instructionsResolver";
 import { getHorseFeedingsByStable } from "@/services/horseFeedingService";
@@ -465,8 +465,7 @@ export default function RoutineFlowPage() {
           <div>
             <h1 className="text-xl font-semibold">{template?.name}</h1>
             <p className="text-sm text-muted-foreground">
-              {t("routines:flow.step")} {currentStepIndex + 1}{" "}
-              {t("routines:flow.of")} {totalSteps}
+              <StepCounter current={currentStepIndex} total={totalSteps} />
             </p>
           </div>
         </div>

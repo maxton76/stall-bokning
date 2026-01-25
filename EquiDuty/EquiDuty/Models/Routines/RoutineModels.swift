@@ -96,7 +96,7 @@ enum RoutineStepHorseContext: String, Codable {
 }
 
 /// Filter for which horses to include in a step
-struct RoutineStepHorseFilter: Codable, Equatable {
+struct RoutineStepHorseFilter: Codable, Equatable, Hashable {
     var horseIds: [String]?
     var groupIds: [String]?
     var locationIds: [String]?
@@ -104,7 +104,7 @@ struct RoutineStepHorseFilter: Codable, Equatable {
 }
 
 /// Individual step within a routine template
-struct RoutineStep: Codable, Identifiable, Equatable {
+struct RoutineStep: Codable, Identifiable, Equatable, Hashable {
     let id: String
     var order: Int
     var name: String
@@ -281,6 +281,19 @@ struct RoutineProgress: Codable, Equatable, Hashable {
     }
 }
 
+/// Embedded template data returned with routine instances
+struct EmbeddedRoutineTemplate: Codable, Equatable, Hashable {
+    var name: String
+    var description: String?
+    var type: RoutineType
+    var icon: String?
+    var color: String?
+    var estimatedDuration: Int
+    var requiresNotesRead: Bool
+    var allowSkipSteps: Bool
+    var steps: [RoutineStep]
+}
+
 /// Routine Instance - Materialized routine for a specific date
 struct RoutineInstance: Codable, Identifiable, Equatable, Hashable {
     let id: String
@@ -289,6 +302,9 @@ struct RoutineInstance: Codable, Identifiable, Equatable, Hashable {
     let organizationId: String
     let stableId: String
     var stableName: String?
+
+    // Embedded template (returned by API for convenience)
+    var template: EmbeddedRoutineTemplate?
 
     // Scheduling
     var scheduledDate: Date

@@ -279,6 +279,11 @@ export async function activitiesRoutes(fastify: FastifyInstance) {
   /**
    * GET /api/v1/activities/stable/:stableId
    * Get activities for a stable with optional date range and type filtering
+   * Query params:
+   *   - startDate: ISO date string for range start
+   *   - endDate: ISO date string for range end
+   *   - types: comma-separated list of entry types
+   *   - includeOverdue: "true" to include non-completed activities before startDate
    */
   fastify.get(
     "/stable/:stableId",
@@ -288,10 +293,11 @@ export async function activitiesRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       try {
         const { stableId } = request.params as { stableId: string };
-        const { startDate, endDate, types } = request.query as {
+        const { startDate, endDate, types, includeOverdue } = request.query as {
           startDate?: string;
           endDate?: string;
           types?: string;
+          includeOverdue?: string;
         };
         const user = (request as AuthenticatedRequest).user!;
 
@@ -304,7 +310,7 @@ export async function activitiesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Build query
+        // Build query for main date range
         let q = db.collection("activities").where("stableId", "==", stableId);
 
         // Date range filtering
@@ -332,6 +338,28 @@ export async function activitiesRoutes(fastify: FastifyInstance) {
             ...doc.data(),
           }),
         );
+
+        // Fetch overdue activities if requested
+        if (includeOverdue === "true" && startDate) {
+          const overdueQuery = db
+            .collection("activities")
+            .where("stableId", "==", stableId)
+            .where("status", "!=", "completed")
+            .where("date", "<", Timestamp.fromDate(new Date(startDate)))
+            .orderBy("status", "asc")
+            .orderBy("date", "asc");
+
+          const overdueSnapshot = await overdueQuery.get();
+          const overdueActivities = overdueSnapshot.docs.map((doc) =>
+            serializeTimestamps({
+              id: doc.id,
+              ...doc.data(),
+            }),
+          );
+
+          // Merge overdue activities first, then regular activities
+          activities = [...overdueActivities, ...activities];
+        }
 
         // Filter by types if specified
         if (types) {
