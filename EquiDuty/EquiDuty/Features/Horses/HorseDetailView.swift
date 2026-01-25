@@ -68,9 +68,9 @@ struct HorseDetailView: View {
                         case .info:
                             HorseInfoSection(horse: horse)
                         case .health:
-                            HorseHealthSection(horse: horse)
+                            HorseHealthTabView(horse: horse)
                         case .team:
-                            HorseTeamSection(horse: horse)
+                            HorseTeamTabView(horse: horse)
                         }
                     }
                     .padding(.bottom, 20)
@@ -181,19 +181,36 @@ struct HorseInfoSection: View {
                 if let age = horse.age {
                     InfoRow(label: String(localized: "horse.age"), value: "\(age) \(String(localized: "common.years"))")
                 }
+                if let dob = horse.dateOfBirth {
+                    InfoRow(
+                        label: String(localized: "horse.date_of_birth"),
+                        value: dob.formatted(date: .abbreviated, time: .omitted)
+                    )
+                }
                 if let height = horse.withersHeight {
                     InfoRow(label: String(localized: "horse.height"), value: "\(height) cm")
+                }
+                if let usage = horse.usage, !usage.isEmpty {
+                    HStack {
+                        Text(String(localized: "horse.usage"))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        HStack(spacing: 4) {
+                            ForEach(usage, id: \.self) { u in
+                                UsageBadge(usage: u)
+                            }
+                        }
+                    }
+                    .font(.body)
                 }
             }
 
             // Identification
-            InfoCard(title: String(localized: "horse.info.identification")) {
-                if let ueln = horse.ueln {
-                    InfoRow(label: "UELN", value: ueln)
-                }
-                if let chip = horse.chipNumber {
-                    InfoRow(label: String(localized: "horse.chip"), value: chip)
-                }
+            IdentificationCard(horse: horse)
+
+            // Pedigree (if any data available)
+            if horse.sire != nil || horse.dam != nil || horse.breeder != nil {
+                PedigreeCard(horse: horse)
             }
 
             // Special instructions
@@ -236,101 +253,182 @@ struct HorseInfoSection: View {
     }
 }
 
-// MARK: - Health Section
+// MARK: - Usage Badge
 
-struct HorseHealthSection: View {
-    let horse: Horse
+struct UsageBadge: View {
+    let usage: HorseUsage
 
     var body: some View {
-        VStack(spacing: 16) {
-            // Vaccination status
-            InfoCard(title: String(localized: "horse.vaccination")) {
-                if let status = horse.vaccinationStatus {
-                    HStack {
-                        VaccinationBadge(status: status)
-                        Spacer()
-                    }
-                }
+        Text(usage.displayName)
+            .font(.caption2)
+            .foregroundStyle(color)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(color.opacity(0.15))
+            .clipShape(Capsule())
+    }
 
-                if let lastDate = horse.lastVaccinationDate {
-                    InfoRow(
-                        label: String(localized: "horse.vaccination.last"),
-                        value: lastDate.formatted(date: .abbreviated, time: .omitted)
-                    )
-                }
-
-                if let nextDate = horse.nextVaccinationDue {
-                    InfoRow(
-                        label: String(localized: "horse.vaccination.next"),
-                        value: nextDate.formatted(date: .abbreviated, time: .omitted)
-                    )
-                }
-            }
-
-            // Placeholder for health records
-            InfoCard(title: String(localized: "horse.health_records")) {
-                EmptyStateView(
-                    icon: "heart.text.square",
-                    title: String(localized: "horse.health_records.empty"),
-                    message: String(localized: "horse.health_records.empty.message")
-                )
-            }
+    private var color: Color {
+        switch usage {
+        case .care: return .green
+        case .sport: return .blue
+        case .breeding: return .purple
         }
-        .padding(.horizontal)
     }
 }
 
-// MARK: - Team Section
+// MARK: - Identification Card
 
-struct HorseTeamSection: View {
+struct IdentificationCard: View {
     let horse: Horse
 
     var body: some View {
-        VStack(spacing: 16) {
-            // Owner
-            InfoCard(title: String(localized: "horse.owner")) {
+        InfoCard(title: String(localized: "horse.info.identification")) {
+            if let ueln = horse.ueln, !ueln.isEmpty {
+                CopyableInfoRow(label: "UELN", value: ueln)
+            }
+            if let chip = horse.chipNumber, !chip.isEmpty {
+                CopyableInfoRow(label: String(localized: "horse.chip"), value: chip)
+            }
+            if let federation = horse.federationNumber, !federation.isEmpty {
+                CopyableInfoRow(label: String(localized: "horse.federation_number"), value: federation)
+            }
+            if let fei = horse.feiPassNumber, !fei.isEmpty {
                 HStack {
-                    Image(systemName: "person.fill")
-                        .foregroundStyle(.secondary)
-
-                    VStack(alignment: .leading) {
-                        Text(horse.ownerName ?? String(localized: "common.unknown"))
-                            .font(.body)
-                        if let email = horse.ownerEmail {
-                            Text(email)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    Spacer()
+                    CopyableInfoRow(label: String(localized: "horse.fei_pass"), value: fei)
                 }
-            }
-
-            // Stable
-            if let stableName = horse.currentStableName {
-                InfoCard(title: String(localized: "horse.stable")) {
+                if let expiryDate = horse.feiExpiryDate {
                     HStack {
-                        Image(systemName: "building.2.fill")
-                            .foregroundStyle(.secondary)
-                        Text(stableName)
                         Spacer()
+                        FEIExpiryBadge(expiryDate: expiryDate)
                     }
                 }
             }
 
-            // Team members placeholder
-            InfoCard(title: String(localized: "horse.team")) {
-                EmptyStateView(
-                    icon: "person.3",
-                    title: String(localized: "horse.team.empty"),
-                    message: String(localized: "horse.team.empty.message")
-                )
+            // Show empty state if no identification
+            if horse.ueln == nil && horse.chipNumber == nil &&
+               horse.federationNumber == nil && horse.feiPassNumber == nil {
+                Text(String(localized: "horse.identification.empty"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
         }
-        .padding(.horizontal)
     }
 }
+
+// MARK: - Copyable Info Row
+
+struct CopyableInfoRow: View {
+    let label: String
+    let value: String
+
+    @State private var showCopied = false
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(value)
+                .font(.body.monospaced())
+
+            Button {
+                UIPasteboard.general.string = value
+                showCopied = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    showCopied = false
+                }
+            } label: {
+                Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
+                    .font(.caption)
+                    .foregroundStyle(showCopied ? .green : .secondary)
+            }
+            .buttonStyle(.plain)
+        }
+        .font(.body)
+    }
+}
+
+// MARK: - FEI Expiry Badge
+
+struct FEIExpiryBadge: View {
+    let expiryDate: Date
+
+    private var daysUntilExpiry: Int {
+        Calendar.current.dateComponents([.day], from: Date(), to: expiryDate).day ?? 0
+    }
+
+    private var status: ExpiryStatus {
+        if daysUntilExpiry < 0 {
+            return .expired
+        } else if daysUntilExpiry <= 30 {
+            return .expiringSoon
+        } else {
+            return .valid
+        }
+    }
+
+    enum ExpiryStatus {
+        case valid, expiringSoon, expired
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: status == .valid ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                .font(.caption2)
+
+            switch status {
+            case .expired:
+                Text(String(localized: "horse.fei.expired"))
+            case .expiringSoon:
+                Text(String(localized: "horse.fei.expires_soon \(expiryDate.formatted(date: .abbreviated, time: .omitted))"))
+            case .valid:
+                Text(String(localized: "horse.fei.valid_until \(expiryDate.formatted(date: .abbreviated, time: .omitted))"))
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(statusColor)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 2)
+        .background(statusColor.opacity(0.15))
+        .clipShape(Capsule())
+    }
+
+    private var statusColor: Color {
+        switch status {
+        case .valid: return .green
+        case .expiringSoon: return .orange
+        case .expired: return .red
+        }
+    }
+}
+
+// MARK: - Pedigree Card
+
+struct PedigreeCard: View {
+    let horse: Horse
+
+    var body: some View {
+        InfoCard(title: String(localized: "horse.pedigree")) {
+            if let sire = horse.sire, !sire.isEmpty {
+                InfoRow(label: String(localized: "horse.pedigree.sire"), value: sire)
+            }
+            if let dam = horse.dam, !dam.isEmpty {
+                InfoRow(label: String(localized: "horse.pedigree.dam"), value: dam)
+            }
+            if let damsire = horse.damsire, !damsire.isEmpty {
+                InfoRow(label: String(localized: "horse.pedigree.damsire"), value: damsire)
+            }
+            if let breeder = horse.breeder, !breeder.isEmpty {
+                InfoRow(label: String(localized: "horse.pedigree.breeder"), value: breeder)
+            }
+            if let studbook = horse.studbook, !studbook.isEmpty {
+                InfoRow(label: String(localized: "horse.pedigree.studbook"), value: studbook)
+            }
+        }
+    }
+}
+
 
 // MARK: - Info Card
 

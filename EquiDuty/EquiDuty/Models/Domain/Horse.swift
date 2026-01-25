@@ -112,6 +112,55 @@ struct EquipmentItem: Codable, Identifiable, Equatable {
     var notes: String?
 }
 
+/// Internal structure to decode team from API (object format)
+private struct HorseTeamObject: Codable {
+    var defaultRider: HorseTeamMember?
+    var defaultGroom: HorseTeamMember?
+    var defaultFarrier: HorseTeamMember?
+    var defaultVet: HorseTeamMember?
+    var defaultTrainer: HorseTeamMember?
+    var defaultDentist: HorseTeamMember?
+    var additionalContacts: [HorseTeamMember]?
+
+    /// Flatten the team object into an array of team members
+    func toArray() -> [HorseTeamMember] {
+        var members: [HorseTeamMember] = []
+
+        // Add default role members (mark as primary)
+        if var rider = defaultRider {
+            rider.isPrimary = true
+            members.append(rider)
+        }
+        if var groom = defaultGroom {
+            groom.isPrimary = true
+            members.append(groom)
+        }
+        if var farrier = defaultFarrier {
+            farrier.isPrimary = true
+            members.append(farrier)
+        }
+        if var vet = defaultVet {
+            vet.isPrimary = true
+            members.append(vet)
+        }
+        if var trainer = defaultTrainer {
+            trainer.isPrimary = true
+            members.append(trainer)
+        }
+        if var dentist = defaultDentist {
+            dentist.isPrimary = true
+            members.append(dentist)
+        }
+
+        // Add additional contacts
+        if let additional = additionalContacts {
+            members.append(contentsOf: additional)
+        }
+
+        return members
+    }
+}
+
 /// Horse document structure (simplified for mobile)
 struct Horse: Codable, Identifiable, Equatable {
     let id: String
@@ -184,6 +233,185 @@ struct Horse: Codable, Identifiable, Equatable {
     // Access levels: "public", "basic_care", "professional", "management", "owner"
     var _accessLevel: String?
     var _isOwner: Bool?
+
+    // MARK: - Codable
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, breed, age, color, gender
+        case ownerId, ownerName, ownerEmail
+        case currentStableId, currentStableName, assignedAt
+        case status, notes, specialInstructions, equipment, hasSpecialInstructions
+        case usage
+        case horseGroupId, horseGroupName
+        case lastVaccinationDate, nextVaccinationDue, vaccinationStatus
+        case ueln, chipNumber, federationNumber, feiPassNumber, feiExpiryDate
+        case sire, dam, damsire, breeder, studbook
+        case dateOfBirth, withersHeight
+        case externalLocation, externalMoveType, externalDepartureDate
+        case team
+        case createdAt, updatedAt
+        case _accessLevel, _isOwner
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        // Decode all standard fields
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        breed = try container.decodeIfPresent(String.self, forKey: .breed)
+        age = try container.decodeIfPresent(Int.self, forKey: .age)
+        color = try container.decode(HorseColor.self, forKey: .color)
+        gender = try container.decodeIfPresent(HorseGender.self, forKey: .gender)
+
+        ownerId = try container.decode(String.self, forKey: .ownerId)
+        ownerName = try container.decodeIfPresent(String.self, forKey: .ownerName)
+        ownerEmail = try container.decodeIfPresent(String.self, forKey: .ownerEmail)
+
+        currentStableId = try container.decodeIfPresent(String.self, forKey: .currentStableId)
+        currentStableName = try container.decodeIfPresent(String.self, forKey: .currentStableName)
+        assignedAt = try container.decodeIfPresent(Date.self, forKey: .assignedAt)
+
+        status = try container.decode(HorseStatus.self, forKey: .status)
+        notes = try container.decodeIfPresent(String.self, forKey: .notes)
+        specialInstructions = try container.decodeIfPresent(String.self, forKey: .specialInstructions)
+        equipment = try container.decodeIfPresent([EquipmentItem].self, forKey: .equipment)
+        hasSpecialInstructions = try container.decodeIfPresent(Bool.self, forKey: .hasSpecialInstructions)
+
+        usage = try container.decodeIfPresent([HorseUsage].self, forKey: .usage)
+
+        horseGroupId = try container.decodeIfPresent(String.self, forKey: .horseGroupId)
+        horseGroupName = try container.decodeIfPresent(String.self, forKey: .horseGroupName)
+
+        lastVaccinationDate = try container.decodeIfPresent(Date.self, forKey: .lastVaccinationDate)
+        nextVaccinationDue = try container.decodeIfPresent(Date.self, forKey: .nextVaccinationDue)
+        vaccinationStatus = try container.decodeIfPresent(VaccinationStatus.self, forKey: .vaccinationStatus)
+
+        ueln = try container.decodeIfPresent(String.self, forKey: .ueln)
+        chipNumber = try container.decodeIfPresent(String.self, forKey: .chipNumber)
+        federationNumber = try container.decodeIfPresent(String.self, forKey: .federationNumber)
+        feiPassNumber = try container.decodeIfPresent(String.self, forKey: .feiPassNumber)
+        feiExpiryDate = try container.decodeIfPresent(Date.self, forKey: .feiExpiryDate)
+
+        sire = try container.decodeIfPresent(String.self, forKey: .sire)
+        dam = try container.decodeIfPresent(String.self, forKey: .dam)
+        damsire = try container.decodeIfPresent(String.self, forKey: .damsire)
+        breeder = try container.decodeIfPresent(String.self, forKey: .breeder)
+        studbook = try container.decodeIfPresent(String.self, forKey: .studbook)
+
+        dateOfBirth = try container.decodeIfPresent(Date.self, forKey: .dateOfBirth)
+        withersHeight = try container.decodeIfPresent(Int.self, forKey: .withersHeight)
+
+        externalLocation = try container.decodeIfPresent(String.self, forKey: .externalLocation)
+        externalMoveType = try container.decodeIfPresent(String.self, forKey: .externalMoveType)
+        externalDepartureDate = try container.decodeIfPresent(Date.self, forKey: .externalDepartureDate)
+
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+
+        _accessLevel = try container.decodeIfPresent(String.self, forKey: ._accessLevel)
+        _isOwner = try container.decodeIfPresent(Bool.self, forKey: ._isOwner)
+
+        // Handle team field specially - can be array or object
+        if let teamArray = try? container.decodeIfPresent([HorseTeamMember].self, forKey: .team) {
+            team = teamArray
+        } else if let teamObject = try? container.decodeIfPresent(HorseTeamObject.self, forKey: .team) {
+            team = teamObject.toArray()
+        } else {
+            team = nil
+        }
+    }
+
+    // Manual init for local creation and previews
+    init(
+        id: String,
+        name: String,
+        breed: String? = nil,
+        age: Int? = nil,
+        color: HorseColor,
+        gender: HorseGender? = nil,
+        ownerId: String,
+        ownerName: String? = nil,
+        ownerEmail: String? = nil,
+        currentStableId: String? = nil,
+        currentStableName: String? = nil,
+        assignedAt: Date? = nil,
+        status: HorseStatus,
+        notes: String? = nil,
+        specialInstructions: String? = nil,
+        equipment: [EquipmentItem]? = nil,
+        hasSpecialInstructions: Bool? = nil,
+        usage: [HorseUsage]? = nil,
+        horseGroupId: String? = nil,
+        horseGroupName: String? = nil,
+        lastVaccinationDate: Date? = nil,
+        nextVaccinationDue: Date? = nil,
+        vaccinationStatus: VaccinationStatus? = nil,
+        ueln: String? = nil,
+        chipNumber: String? = nil,
+        federationNumber: String? = nil,
+        feiPassNumber: String? = nil,
+        feiExpiryDate: Date? = nil,
+        sire: String? = nil,
+        dam: String? = nil,
+        damsire: String? = nil,
+        breeder: String? = nil,
+        studbook: String? = nil,
+        dateOfBirth: Date? = nil,
+        withersHeight: Int? = nil,
+        externalLocation: String? = nil,
+        externalMoveType: String? = nil,
+        externalDepartureDate: Date? = nil,
+        team: [HorseTeamMember]? = nil,
+        createdAt: Date,
+        updatedAt: Date,
+        _accessLevel: String? = nil,
+        _isOwner: Bool? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.breed = breed
+        self.age = age
+        self.color = color
+        self.gender = gender
+        self.ownerId = ownerId
+        self.ownerName = ownerName
+        self.ownerEmail = ownerEmail
+        self.currentStableId = currentStableId
+        self.currentStableName = currentStableName
+        self.assignedAt = assignedAt
+        self.status = status
+        self.notes = notes
+        self.specialInstructions = specialInstructions
+        self.equipment = equipment
+        self.hasSpecialInstructions = hasSpecialInstructions
+        self.usage = usage
+        self.horseGroupId = horseGroupId
+        self.horseGroupName = horseGroupName
+        self.lastVaccinationDate = lastVaccinationDate
+        self.nextVaccinationDue = nextVaccinationDue
+        self.vaccinationStatus = vaccinationStatus
+        self.ueln = ueln
+        self.chipNumber = chipNumber
+        self.federationNumber = federationNumber
+        self.feiPassNumber = feiPassNumber
+        self.feiExpiryDate = feiExpiryDate
+        self.sire = sire
+        self.dam = dam
+        self.damsire = damsire
+        self.breeder = breeder
+        self.studbook = studbook
+        self.dateOfBirth = dateOfBirth
+        self.withersHeight = withersHeight
+        self.externalLocation = externalLocation
+        self.externalMoveType = externalMoveType
+        self.externalDepartureDate = externalDepartureDate
+        self.team = team
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self._accessLevel = _accessLevel
+        self._isOwner = _isOwner
+    }
 }
 
 /// Horse group for organizing horses

@@ -11,27 +11,15 @@ struct HorseListView: View {
     @State private var authService = AuthService.shared
     @State private var horseService = HorseService.shared
     @State private var horses: [Horse] = []
+    @State private var horseGroups: [HorseGroup] = []
     @State private var searchText = ""
-    @State private var selectedFilter: HorseFilter = .all
+    @State private var filters = HorseFilters()
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showAddHorse = false
+    @State private var showFilterSheet = false
 
     @Environment(\.dismiss) private var dismiss
-
-    enum HorseFilter: String, CaseIterable {
-        case all
-        case active
-        case inactive
-
-        var displayName: String {
-            switch self {
-            case .all: return String(localized: "filter.all")
-            case .active: return String(localized: "filter.active")
-            case .inactive: return String(localized: "filter.inactive")
-            }
-        }
-    }
 
     var body: some View {
         NavigationStack {
@@ -44,7 +32,7 @@ struct HorseListView: View {
                         loadHorses()
                     }
                 } else if filteredHorses.isEmpty {
-                    if searchText.isEmpty && selectedFilter == .all {
+                    if searchText.isEmpty && !filters.hasActiveFilters {
                         EmptyStateView(
                             icon: "pawprint.fill",
                             title: String(localized: "horses.empty.title"),
@@ -82,22 +70,54 @@ struct HorseListView: View {
                 }
 
                 ToolbarItem(placement: .secondaryAction) {
+                    Button {
+                        showFilterSheet = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "line.3.horizontal.decrease.circle")
+                            if filters.activeFilterCount > 0 {
+                                Text("\(filters.activeFilterCount)")
+                                    .font(.caption2)
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(.blue)
+                                    .clipShape(Capsule())
+                            }
+                        }
+                    }
+                }
+
+                ToolbarItem(placement: .secondaryAction) {
                     Menu {
-                        ForEach(HorseFilter.allCases, id: \.self) { filter in
+                        ForEach(HorseFilters.SortOption.allCases, id: \.self) { option in
                             Button {
-                                selectedFilter = filter
-                            } label: {
-                                if selectedFilter == filter {
-                                    Label(filter.displayName, systemImage: "checkmark")
+                                if filters.sortBy == option {
+                                    filters.sortAscending.toggle()
                                 } else {
-                                    Text(filter.displayName)
+                                    filters.sortBy = option
+                                    filters.sortAscending = true
+                                }
+                            } label: {
+                                HStack {
+                                    Text(option.displayName)
+                                    if filters.sortBy == option {
+                                        Image(systemName: filters.sortAscending ? "chevron.up" : "chevron.down")
+                                    }
                                 }
                             }
                         }
                     } label: {
-                        Label(String(localized: "common.filter"), systemImage: "line.3.horizontal.decrease.circle")
+                        Image(systemName: "arrow.up.arrow.down")
                     }
                 }
+            }
+            .sheet(isPresented: $showFilterSheet) {
+                HorseFilterSheet(
+                    filters: $filters,
+                    horseGroups: horseGroups,
+                    onApply: {}
+                )
             }
             .refreshable {
                 await refreshHorses()
@@ -120,14 +140,38 @@ struct HorseListView: View {
     private var filteredHorses: [Horse] {
         var result = horses
 
-        // Apply filter
-        switch selectedFilter {
-        case .active:
-            result = result.filter { $0.status == .active }
-        case .inactive:
-            result = result.filter { $0.status == .inactive }
-        case .all:
-            break
+        // Apply status filter
+        if let status = filters.status {
+            result = result.filter { $0.status == status }
+        }
+
+        // Apply gender filter
+        if !filters.genders.isEmpty {
+            result = result.filter { horse in
+                guard let gender = horse.gender else { return false }
+                return filters.genders.contains(gender)
+            }
+        }
+
+        // Apply usage filter
+        if !filters.usages.isEmpty {
+            result = result.filter { horse in
+                guard let usages = horse.usage else { return false }
+                return !filters.usages.isDisjoint(with: Set(usages))
+            }
+        }
+
+        // Apply age filter
+        if let minAge = filters.minAge {
+            result = result.filter { ($0.age ?? 0) >= minAge }
+        }
+        if let maxAge = filters.maxAge {
+            result = result.filter { ($0.age ?? 100) <= maxAge }
+        }
+
+        // Apply group filter
+        if let groupId = filters.horseGroupId {
+            result = result.filter { $0.horseGroupId == groupId }
         }
 
         // Apply search
@@ -137,6 +181,20 @@ struct HorseListView: View {
                 (horse.breed?.localizedCaseInsensitiveContains(searchText) ?? false) ||
                 (horse.ownerName?.localizedCaseInsensitiveContains(searchText) ?? false)
             }
+        }
+
+        // Apply sorting
+        result.sort { a, b in
+            let comparison: Bool
+            switch filters.sortBy {
+            case .name:
+                comparison = a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+            case .age:
+                comparison = (a.age ?? 0) < (b.age ?? 0)
+            case .recentActivity:
+                comparison = a.updatedAt > b.updatedAt
+            }
+            return filters.sortAscending ? comparison : !comparison
         }
 
         return result
@@ -224,12 +282,40 @@ struct HorseRowView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
+
+                    if let age = horse.age {
+                        Text("•")
+                            .foregroundStyle(.secondary)
+                        Text("\(age) \(String(localized: "common.years.short"))")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
-                if let ownerName = horse.ownerName {
-                    Text(ownerName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                // Usage badges and group
+                HStack(spacing: 4) {
+                    if let usages = horse.usage, !usages.isEmpty {
+                        ForEach(usages.prefix(2), id: \.self) { usage in
+                            HorseRowUsageBadge(usage: usage)
+                        }
+                        if usages.count > 2 {
+                            Text("+\(usages.count - 2)")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if let groupName = horse.horseGroupName {
+                        HorseRowGroupBadge(name: groupName)
+                    }
+
+                    if horse.usage == nil && horse.horseGroupName == nil {
+                        if let ownerName = horse.ownerName {
+                            Text(ownerName)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
             }
 
@@ -248,6 +334,50 @@ struct HorseRowView: View {
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Horse Row Usage Badge
+
+struct HorseRowUsageBadge: View {
+    let usage: HorseUsage
+
+    var body: some View {
+        Text(usage.displayName)
+            .font(.caption2)
+            .foregroundStyle(color)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 1)
+            .background(color.opacity(0.15))
+            .clipShape(Capsule())
+    }
+
+    private var color: Color {
+        switch usage {
+        case .care: return .green
+        case .sport: return .blue
+        case .breeding: return .purple
+        }
+    }
+}
+
+// MARK: - Horse Row Group Badge
+
+struct HorseRowGroupBadge: View {
+    let name: String
+
+    var body: some View {
+        HStack(spacing: 2) {
+            Image(systemName: "folder.fill")
+                .font(.system(size: 8))
+            Text(name)
+        }
+        .font(.caption2)
+        .foregroundStyle(.gray)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 1)
+        .background(Color.gray.opacity(0.15))
+        .clipShape(Capsule())
     }
 }
 

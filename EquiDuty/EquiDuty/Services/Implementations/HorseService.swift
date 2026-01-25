@@ -85,6 +85,33 @@ final class HorseService: HorseServiceProtocol {
     func deleteHorse(id: String) async throws {
         try await apiClient.delete(APIEndpoints.horse(id))
     }
+
+    // MARK: - Team Members
+
+    func getTeamMembers(horseId: String) async throws -> [HorseTeamMember] {
+        let members: [HorseTeamMember] = try await apiClient.get(
+            APIEndpoints.horseTeam(horseId)
+        )
+        return members
+    }
+
+    func addTeamMember(horseId: String, member: HorseTeamMember) async throws {
+        let _: EmptyResponse = try await apiClient.post(
+            APIEndpoints.horseTeam(horseId),
+            body: member
+        )
+    }
+
+    func updateTeamMember(horseId: String, index: Int, member: HorseTeamMember) async throws {
+        let _: EmptyResponse = try await apiClient.put(
+            APIEndpoints.horseTeamMember(horseId, index: index),
+            body: member
+        )
+    }
+
+    func deleteTeamMember(horseId: String, index: Int) async throws {
+        try await apiClient.delete(APIEndpoints.horseTeamMember(horseId, index: index))
+    }
 }
 
 // MARK: - Response Types

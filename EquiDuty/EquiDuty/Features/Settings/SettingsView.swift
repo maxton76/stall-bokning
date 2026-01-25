@@ -241,44 +241,115 @@ private struct Language: Identifiable {
     let id: String
     let code: String
     let name: String
+    let nativeName: String
 
-    init(code: String, name: String) {
+    init(code: String, name: String, nativeName: String) {
         self.id = code
         self.code = code
         self.name = name
+        self.nativeName = nativeName
     }
 }
 
 struct LanguageSettingsView: View {
     private let languages = [
-        Language(code: "sv", name: "Svenska"),
-        Language(code: "en", name: "English")
+        Language(code: "sv", name: "Swedish", nativeName: "Svenska"),
+        Language(code: "en", name: "English", nativeName: "English")
     ]
 
-    @State private var selectedLanguage = Locale.current.language.languageCode?.identifier ?? "sv"
+    @State private var selectedLanguage: String
+    @State private var showRestartAlert = false
+    @State private var pendingLanguage: String?
+
+    init() {
+        // Get the current app language from UserDefaults or system
+        let storedLanguages = UserDefaults.standard.stringArray(forKey: "AppleLanguages")
+        let currentLang = storedLanguages?.first ?? Locale.current.language.languageCode?.identifier ?? "sv"
+        _selectedLanguage = State(initialValue: currentLang)
+    }
 
     var body: some View {
         List {
-            ForEach(languages) { language in
-                Button {
-                    selectedLanguage = language.code
-                    // Note: Changing app language requires app restart
-                } label: {
-                    HStack {
-                        Text(language.name)
-                            .foregroundStyle(.primary)
+            Section {
+                ForEach(languages) { language in
+                    Button {
+                        if language.code != selectedLanguage {
+                            pendingLanguage = language.code
+                            showRestartAlert = true
+                        }
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(language.nativeName)
+                                    .foregroundStyle(.primary)
+                                Text(language.name)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
 
-                        Spacer()
+                            Spacer()
 
-                        if selectedLanguage == language.code {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(Color.accentColor)
+                            if selectedLanguage == language.code {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(Color.accentColor)
+                            }
                         }
                     }
                 }
+            } footer: {
+                Text(String(localized: "language.restart_required"))
+                    .font(.caption)
+            }
+
+            Section {
+                Button {
+                    openSystemSettings()
+                } label: {
+                    HStack {
+                        Label(String(localized: "language.system_settings"), systemImage: "gear")
+                        Spacer()
+                        Image(systemName: "arrow.up.forward.app")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } footer: {
+                Text(String(localized: "language.system_settings_hint"))
+                    .font(.caption)
             }
         }
         .navigationTitle(String(localized: "language.title"))
+        .alert(String(localized: "language.change_title"), isPresented: $showRestartAlert) {
+            Button(String(localized: "common.cancel"), role: .cancel) {
+                pendingLanguage = nil
+            }
+            Button(String(localized: "language.restart_now")) {
+                if let newLang = pendingLanguage {
+                    changeLanguage(to: newLang)
+                }
+            }
+        } message: {
+            Text(String(localized: "language.change_message"))
+        }
+    }
+
+    private func changeLanguage(to languageCode: String) {
+        // Set the preferred language in UserDefaults
+        UserDefaults.standard.set([languageCode], forKey: "AppleLanguages")
+        UserDefaults.standard.synchronize()
+
+        // Update the selected language
+        selectedLanguage = languageCode
+
+        // Force app to exit - user will need to relaunch
+        // This is the standard iOS pattern for language changes
+        exit(0)
+    }
+
+    private func openSystemSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+        }
     }
 }
 

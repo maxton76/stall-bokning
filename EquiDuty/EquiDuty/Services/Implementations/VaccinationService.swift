@@ -48,9 +48,10 @@ final class VaccinationService: VaccinationServiceProtocol {
     // MARK: - Vaccination Rules
 
     func getVaccinationRules(organizationId: String) async throws -> [VaccinationRule] {
-        let rules: [VaccinationRule] = try await apiClient.get(
+        // API returns { rules: [...] } wrapped response
+        let response: VaccinationRulesResponse = try await apiClient.get(
             APIEndpoints.vaccinationRules(organizationId)
         )
-        return rules
+        return response.rules
     }
 }

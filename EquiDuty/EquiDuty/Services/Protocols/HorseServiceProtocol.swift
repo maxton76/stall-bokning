@@ -41,6 +41,20 @@ protocol HorseServiceProtocol {
 
     /// Delete a horse
     func deleteHorse(id: String) async throws
+
+    // MARK: - Team Members
+
+    /// Get team members for a horse
+    func getTeamMembers(horseId: String) async throws -> [HorseTeamMember]
+
+    /// Add a team member to a horse
+    func addTeamMember(horseId: String, member: HorseTeamMember) async throws
+
+    /// Update a team member
+    func updateTeamMember(horseId: String, index: Int, member: HorseTeamMember) async throws
+
+    /// Delete a team member
+    func deleteTeamMember(horseId: String, index: Int) async throws
 }
 
 // MARK: - Request Types

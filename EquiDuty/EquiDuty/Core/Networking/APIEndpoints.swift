@@ -49,7 +49,7 @@ enum APIEndpoints {
     // MARK: - Horse Vaccinations
     static func horseVaccinations(_ horseId: String) -> String { "/vaccination-records/horse/\(horseId)" }
     static func horseVaccination(_ recordId: String) -> String { "/vaccination-records/\(recordId)" }
-    static func vaccinationRules(_ orgId: String) -> String { "/organizations/\(orgId)/vaccination-rules" }
+    static func vaccinationRules(_ orgId: String) -> String { "/vaccination-rules?scope=organization&organizationId=\(orgId)" }
 
     // MARK: - Horse Ownership
     static let horseOwnership = "/horse-ownership"
