@@ -46,6 +46,26 @@ enum APIEndpoints {
         "/organizations/\(orgId)/horse-groups/\(groupId)"
     }
 
+    // MARK: - Horse Vaccinations
+    static func horseVaccinations(_ horseId: String) -> String { "/vaccination-records/horse/\(horseId)" }
+    static func horseVaccination(_ recordId: String) -> String { "/vaccination-records/\(recordId)" }
+    static func vaccinationRules(_ orgId: String) -> String { "/organizations/\(orgId)/vaccination-rules" }
+
+    // MARK: - Horse Ownership
+    static let horseOwnership = "/horse-ownership"
+    static func horseOwnershipByHorse(_ horseId: String) -> String { "/horse-ownership/horse/\(horseId)" }
+    static func horseOwnershipById(_ ownershipId: String) -> String { "/horse-ownership/\(ownershipId)" }
+
+    // MARK: - Horse Team
+    static func horseTeam(_ horseId: String) -> String { "/horses/\(horseId)/team" }
+    static func horseTeamMember(_ horseId: String, index: Int) -> String {
+        "/horses/\(horseId)/team/\(index)"
+    }
+
+    // MARK: - Horse Activity History
+    static func horseActivities(_ horseId: String) -> String { "/activities/horse/\(horseId)" }
+    static func horseActivityHistory(_ horseId: String) -> String { "/horses/\(horseId)/activity-history" }
+
     // MARK: - Feeding
     static func feedTypes(_ organizationId: String) -> String { "/feed-types/organization/\(organizationId)" }
     static func feedType(_ typeId: String) -> String { "/feed-types/\(typeId)" }

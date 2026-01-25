@@ -138,6 +138,9 @@ struct Horse: Codable, Identifiable, Equatable {
     var equipment: [EquipmentItem]?
     var hasSpecialInstructions: Bool?
 
+    // Usage types
+    var usage: [HorseUsage]?
+
     // Group assignment
     var horseGroupId: String?
     var horseGroupName: String?
@@ -150,10 +153,28 @@ struct Horse: Codable, Identifiable, Equatable {
     // Identification
     var ueln: String?
     var chipNumber: String?
+    var federationNumber: String?
+    var feiPassNumber: String?
+    var feiExpiryDate: Date?
+
+    // Pedigree
+    var sire: String?
+    var dam: String?
+    var damsire: String?
+    var breeder: String?
+    var studbook: String?
 
     // Additional details
     var dateOfBirth: Date?
     var withersHeight: Int?
+
+    // External location (when horse is temporarily away)
+    var externalLocation: String?
+    var externalMoveType: String?
+    var externalDepartureDate: Date?
+
+    // Team members (stored as array on horse document)
+    var team: [HorseTeamMember]?
 
     // Metadata
     let createdAt: Date
@@ -187,4 +208,218 @@ struct HorsesResponse: Codable {
 /// Response from /horses/{id} endpoint
 struct HorseResponse: Codable {
     let horse: Horse
+}
+
+// MARK: - Team Member
+
+/// Team member role types
+enum TeamMemberRole: String, Codable, CaseIterable {
+    case rider = "rider"
+    case groom = "groom"
+    case farrier = "farrier"
+    case veterinarian = "veterinarian"
+    case trainer = "trainer"
+    case dentist = "dentist"
+    case physiotherapist = "physiotherapist"
+    case saddler = "saddler"
+    case other = "other"
+
+    var displayName: String {
+        switch self {
+        case .rider: return String(localized: "horse.team.role.rider")
+        case .groom: return String(localized: "horse.team.role.groom")
+        case .farrier: return String(localized: "horse.team.role.farrier")
+        case .veterinarian: return String(localized: "horse.team.role.veterinarian")
+        case .trainer: return String(localized: "horse.team.role.trainer")
+        case .dentist: return String(localized: "horse.team.role.dentist")
+        case .physiotherapist: return String(localized: "horse.team.role.physiotherapist")
+        case .saddler: return String(localized: "horse.team.role.saddler")
+        case .other: return String(localized: "horse.team.role.other")
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .rider: return "figure.equestrian.sports"
+        case .groom: return "hand.raised.fill"
+        case .farrier: return "hammer.fill"
+        case .veterinarian: return "cross.case.fill"
+        case .trainer: return "figure.walk"
+        case .dentist: return "mouth.fill"
+        case .physiotherapist: return "hand.point.up.left.fill"
+        case .saddler: return "bag.fill"
+        case .other: return "person.fill"
+        }
+    }
+
+    var color: String {
+        switch self {
+        case .rider: return "blue"
+        case .groom: return "green"
+        case .farrier: return "orange"
+        case .veterinarian: return "red"
+        case .trainer: return "purple"
+        case .dentist: return "cyan"
+        case .physiotherapist: return "pink"
+        case .saddler: return "yellow"
+        case .other: return "gray"
+        }
+    }
+}
+
+/// Team member for a horse
+struct HorseTeamMember: Codable, Identifiable, Equatable {
+    var id: String { name + role.rawValue }  // Computed ID for list iteration
+    var name: String
+    var role: TeamMemberRole
+    var isPrimary: Bool?
+    var email: String?
+    var phone: String?
+    var notes: String?
+
+    enum CodingKeys: String, CodingKey {
+        case name, role, isPrimary, email, phone, notes
+        case displayName  // Alternative key used by backend
+    }
+
+    // Custom decoder to handle both "name" and "displayName"
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        // Try name first, fall back to displayName (backend format)
+        if let nameValue = try? container.decode(String.self, forKey: .name) {
+            self.name = nameValue
+        } else if let displayName = try? container.decode(String.self, forKey: .displayName) {
+            self.name = displayName
+        } else {
+            throw DecodingError.keyNotFound(
+                CodingKeys.name,
+                DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Neither 'name' nor 'displayName' found")
+            )
+        }
+
+        self.role = try container.decode(TeamMemberRole.self, forKey: .role)
+        self.isPrimary = try container.decodeIfPresent(Bool.self, forKey: .isPrimary)
+        self.email = try container.decodeIfPresent(String.self, forKey: .email)
+        self.phone = try container.decodeIfPresent(String.self, forKey: .phone)
+        self.notes = try container.decodeIfPresent(String.self, forKey: .notes)
+    }
+
+    // Encoder uses "name" for consistency
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+        try container.encode(role, forKey: .role)
+        try container.encodeIfPresent(isPrimary, forKey: .isPrimary)
+        try container.encodeIfPresent(email, forKey: .email)
+        try container.encodeIfPresent(phone, forKey: .phone)
+        try container.encodeIfPresent(notes, forKey: .notes)
+    }
+
+    // Keep init for local creation
+    init(name: String, role: TeamMemberRole, isPrimary: Bool? = nil,
+         email: String? = nil, phone: String? = nil, notes: String? = nil) {
+        self.name = name
+        self.role = role
+        self.isPrimary = isPrimary
+        self.email = email
+        self.phone = phone
+        self.notes = notes
+    }
+}
+
+// MARK: - Ownership
+
+/// Ownership role types
+enum OwnershipRole: String, Codable, CaseIterable {
+    case primary = "primary"
+    case coOwner = "co_owner"
+    case syndicate = "syndicate"
+    case leaseholder = "leaseholder"
+
+    var displayName: String {
+        switch self {
+        case .primary: return String(localized: "horse.ownership.role.primary")
+        case .coOwner: return String(localized: "horse.ownership.role.co_owner")
+        case .syndicate: return String(localized: "horse.ownership.role.syndicate")
+        case .leaseholder: return String(localized: "horse.ownership.role.leaseholder")
+        }
+    }
+
+    var color: String {
+        switch self {
+        case .primary: return "blue"
+        case .coOwner: return "purple"
+        case .syndicate: return "orange"
+        case .leaseholder: return "green"
+        }
+    }
+}
+
+/// Horse ownership record
+struct HorseOwnership: Codable, Identifiable, Equatable {
+    let id: String
+    let horseId: String
+    var ownerId: String
+    var ownerName: String
+    var role: OwnershipRole
+    var percentage: Double
+    var startDate: Date
+    var endDate: Date?
+    var email: String?
+    var phone: String?
+    var notes: String?
+    let createdAt: Date
+    let updatedAt: Date
+}
+
+/// Response from ownership endpoints
+struct HorseOwnershipResponse: Codable {
+    let ownerships: [HorseOwnership]
+}
+
+// MARK: - Vaccination
+
+/// Vaccination record for a horse
+struct VaccinationRecord: Codable, Identifiable, Equatable {
+    let id: String
+    let horseId: String
+    var date: Date              // maps from "vaccinationDate"
+    var vaccineName: String     // maps from "vaccinationRuleName"
+    var vetName: String?        // maps from "veterinarianName"
+    var notes: String?
+    var ruleId: String?         // maps from "vaccinationRuleId"
+    var ruleName: String?
+    let createdAt: Date
+    let updatedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id, horseId, notes, createdAt, updatedAt, ruleName
+        case date = "vaccinationDate"
+        case vaccineName = "vaccinationRuleName"
+        case vetName = "veterinarianName"
+        case ruleId = "vaccinationRuleId"
+    }
+}
+
+/// Vaccination rule defining vaccination requirements
+struct VaccinationRule: Codable, Identifiable, Equatable {
+    let id: String
+    let organizationId: String
+    var name: String
+    var description: String?
+    var intervalDays: Int
+    var warningDays: Int
+    var isDefault: Bool?
+    let createdAt: Date
+    let updatedAt: Date
+}
+
+/// Response from vaccination endpoints
+struct VaccinationRecordsResponse: Codable {
+    let records: [VaccinationRecord]
+}
+
+struct VaccinationRulesResponse: Codable {
+    let rules: [VaccinationRule]
 }
