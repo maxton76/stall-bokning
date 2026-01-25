@@ -296,5 +296,16 @@
     "lastThreeMonths": "Senaste 3 månaderna",
     "customRange": "Anpassat intervall"
   },
+  "scheduledRoutines": {
+    "title": "Schemalagda rutiner",
+    "noRoutines": "Inga schemalagda rutiner",
+    "noRoutinesDescription": "Alla rutiner är slutförda eller det finns inga kommande rutiner.",
+    "horsesCount_one": "{{count}} häst",
+    "horsesCount_other": "{{count}} hästar",
+    "moreHorses": "+{{count}} till",
+    "overdue": "Försenad",
+    "stepsProgress": "{{completed}}/{{total}} steg",
+    "viewAll": "Visa alla"
+  },
   "quickStart": "Snabbstart"
 }

@@ -1,7 +1,5 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   startOfWeek,
   addWeeks,
@@ -9,8 +7,6 @@ import {
   addDays,
   startOfDay,
   endOfDay,
-  format,
-  isSameDay,
 } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -20,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useUserStables } from "@/hooks/useUserStables";
@@ -45,7 +40,8 @@ import {
   getStableHorses,
   getAllAccessibleHorses,
 } from "@/services/horseService";
-import { getRoutineInstances } from "@/services/routineService";
+import { getScheduledRoutineInstances } from "@/services/routineService";
+import { ScheduledRoutinesCard } from "@/components/routines";
 import { getActivityTypesByStable } from "@/services/activityTypeService";
 // Note: formatFullName removed - member formatting now handled by formatMembersForSelection
 import type { ActivityEntry, ActivityTypeConfig } from "@/types/activity";
@@ -56,7 +52,6 @@ export default function ActivitiesPlanningPage() {
   const { t } = useTranslation(["activities", "common"]);
   const { user } = useAuth();
   const { currentOrganization } = useOrganization();
-  const navigate = useNavigate();
   const [selectedStableId, setSelectedStableId] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"day" | "week">("week");
   const [currentWeekStart, setCurrentWeekStart] = useState(
@@ -171,41 +166,31 @@ export default function ActivitiesPlanningPage() {
   const activitiesData = activitiesQuery.data ?? [];
   const activitiesLoading = activitiesQuery.isLoading;
 
-  // Load routine instances for week
+  // Load scheduled/actionable routine instances (status: scheduled, started, in_progress)
   const routinesQuery = useApiQuery<RoutineInstance[]>(
-    ["routines", "instances", selectedStableId, currentWeekStart.toISOString()],
+    ["routines", "scheduled", selectedStableId],
     async () => {
       if (stables.length === 0) return [];
 
       // If "all" is selected, fetch from all stables
       if (selectedStableId === "all") {
         const promises = stables.map((stable) =>
-          getRoutineInstances(stable.id, currentWeekStart),
+          getScheduledRoutineInstances(stable.id),
         );
         const results = await Promise.all(promises);
         return results.flat();
       }
 
       // Single stable
-      return await getRoutineInstances(selectedStableId, currentWeekStart);
+      return await getScheduledRoutineInstances(selectedStableId);
     },
     {
       enabled: stables.length > 0,
       staleTime: 2 * 60 * 1000,
     },
   );
-  const routinesData = routinesQuery.data ?? [];
-
-  // Filter routines by selected stable
-  const filteredRoutineInstances = useMemo(() => {
-    if (routinesData.length === 0) return [];
-
-    if (selectedStableId === "all") {
-      return routinesData;
-    }
-
-    return routinesData.filter((i) => i.stableId === selectedStableId);
-  }, [routinesData, selectedStableId]);
+  const scheduledRoutines = routinesQuery.data ?? [];
+  const routinesLoading = routinesQuery.isLoading;
 
   // Load activity types - based on horse stables for "all" view
   const activityTypesQuery = useApiQuery<ActivityTypeConfig[]>(
@@ -308,11 +293,6 @@ export default function ActivitiesPlanningPage() {
     setInitialFormData({});
   };
 
-  // Routine click - navigate to routine flow
-  const handleRoutineClick = (routine: RoutineInstance) => {
-    navigate(`/routines/flow/${routine.id}`);
-  };
-
   const handleSave = async (data: any) => {
     if (!user) return;
 
@@ -410,62 +390,14 @@ export default function ActivitiesPlanningPage() {
         </Select>
       </div>
 
-      {/* Routines Section */}
-      {filteredRoutineInstances.length > 0 && (
-        <Card className="mb-4 sm:mb-6">
-          <CardContent className="p-4">
-            <h3 className="text-lg font-semibold mb-4">
-              {t("activities:routines.weekRoutines")}
-            </h3>
-
-            {/* Group routines by date */}
-            <div className="space-y-4">
-              {weekDays.map((day) => {
-                const dayRoutines = filteredRoutineInstances.filter(
-                  (routine) => {
-                    const routineDate = new Date(routine.scheduledDate as any);
-                    return isSameDay(routineDate, day);
-                  },
-                );
-
-                if (dayRoutines.length === 0) return null;
-
-                return (
-                  <div key={day.toISOString()}>
-                    <div className="text-sm font-medium text-gray-600 mb-2">
-                      {format(day, "EEEE, MMM d")}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {dayRoutines.map((routine) => (
-                        <div
-                          key={routine.id}
-                          className="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg cursor-pointer hover:bg-purple-200 transition-colors flex items-center gap-2"
-                          onClick={() => handleRoutineClick(routine)}
-                        >
-                          <Clock className="w-4 h-4" />
-                          <span className="text-sm font-medium">
-                            {routine.templateName}
-                          </span>
-                          {selectedStableId === "all" && routine.stableName && (
-                            <span className="text-xs opacity-75">
-                              · {routine.stableName}
-                            </span>
-                          )}
-                          {routine.scheduledStartTime && (
-                            <span className="text-xs opacity-75">
-                              {routine.scheduledStartTime}
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Scheduled Routines Section */}
+      <div className="mb-4 sm:mb-6">
+        <ScheduledRoutinesCard
+          routineInstances={scheduledRoutines}
+          isLoading={routinesLoading}
+          selectedStableId={selectedStableId}
+        />
+      </div>
 
       {/* Calendar Card */}
       <Card className="flex-1 flex flex-col overflow-hidden">

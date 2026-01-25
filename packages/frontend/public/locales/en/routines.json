@@ -296,5 +296,16 @@
     "lastThreeMonths": "Last 3 months",
     "customRange": "Custom range"
   },
+  "scheduledRoutines": {
+    "title": "Scheduled Routines",
+    "noRoutines": "No scheduled routines",
+    "noRoutinesDescription": "All routines are completed or there are no upcoming routines.",
+    "horsesCount_one": "{{count}} horse",
+    "horsesCount_other": "{{count}} horses",
+    "moreHorses": "+{{count}} more",
+    "overdue": "Overdue",
+    "stepsProgress": "{{completed}}/{{total}} steps",
+    "viewAll": "View all"
+  },
   "quickStart": "Quick Start"
 }

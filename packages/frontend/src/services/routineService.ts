@@ -120,6 +120,41 @@ export async function getRoutineInstances(
 }
 
 /**
+ * Actionable statuses for routine instances (can be started or continued)
+ */
+export const ACTIONABLE_ROUTINE_STATUSES: string[] = [
+  "scheduled",
+  "started",
+  "in_progress",
+];
+
+/**
+ * Get scheduled/actionable routine instances for a stable
+ * Fetches routines with scheduledDate >= today and filters client-side for actionable statuses
+ */
+export async function getScheduledRoutineInstances(
+  stableId: string,
+): Promise<RoutineInstance[]> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().split("T")[0];
+
+  const params: Record<string, string> = {
+    startDate: todayStr!,
+    limit: "50",
+  };
+
+  const response = await apiClient.get<{
+    routineInstances: RoutineInstance[];
+  }>(`/routines/instances/stable/${stableId}`, params);
+
+  // Filter client-side for actionable statuses (API only supports single status)
+  return response.routineInstances.filter((instance) =>
+    ACTIONABLE_ROUTINE_STATUSES.includes(instance.status),
+  );
+}
+
+/**
  * Create a new routine instance from a template
  */
 export async function createRoutineInstance(

@@ -5,3 +5,5 @@ export {
   RoutineProgressCompact,
 } from "./RoutineProgressIndicator";
 export { RoutineTemplateEditor } from "./RoutineTemplateEditor";
+export { ScheduledRoutinesCard } from "./ScheduledRoutinesCard";
+export { StepCounter } from "./StepCounter";
