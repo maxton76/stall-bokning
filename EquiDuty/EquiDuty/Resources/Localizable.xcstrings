@@ -770,6 +770,70 @@
         }
       }
     },
+    "feeding.no_instructions" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No feeding instructions"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inga utfodringsanvisningar"
+          }
+        }
+      }
+    },
+    "feeding.error.routine_completed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This routine is already completed"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denna rutin är redan slutförd"
+          }
+        }
+      }
+    },
+    "feeding.error.routine_missed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This routine was missed"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denna rutin missades"
+          }
+        }
+      }
+    },
+    "feeding.error.routine_cancelled" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This routine was cancelled"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denna rutin avbröts"
+          }
+        }
+      }
+    },
     "filter.active" : {
       "localizations" : {
         "en" : {

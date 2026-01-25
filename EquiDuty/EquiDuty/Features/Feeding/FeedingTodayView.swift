@@ -31,6 +31,16 @@ struct FeedingSession: Identifiable {
     var isComplete: Bool {
         horsesTotal > 0 && horsesCompleted >= horsesTotal
     }
+
+    /// Whether this session can be edited (routine is in an active state)
+    var isEditable: Bool {
+        switch routineStatus {
+        case .scheduled, .started, .inProgress:
+            return true
+        case .completed, .missed, .cancelled:
+            return false
+        }
+    }
 }
 
 struct FeedingTodayView: View {
@@ -234,6 +244,24 @@ struct FeedingTodayView: View {
         horseName: String,
         completed: Bool
     ) async {
+        // Check if routine is in a state that allows progress updates
+        switch session.routineStatus {
+        case .completed:
+            print("⚠️ Routine is already completed, cannot update progress")
+            errorMessage = String(localized: "feeding.error.routine_completed")
+            return
+        case .missed:
+            print("⚠️ Routine was missed, cannot update progress")
+            errorMessage = String(localized: "feeding.error.routine_missed")
+            return
+        case .cancelled:
+            print("⚠️ Routine was cancelled, cannot update progress")
+            errorMessage = String(localized: "feeding.error.routine_cancelled")
+            return
+        case .scheduled, .started, .inProgress:
+            break  // These statuses allow updates
+        }
+
         do {
             // Auto-start routine if still in scheduled status
             // The API requires routine to be "started" or "in_progress" before accepting progress updates
@@ -404,6 +432,7 @@ struct FeedingSessionSection: View {
                             horseId: horse.id,
                             horseName: horse.name,
                             isCompleted: isCompleted,
+                            isEditable: session.isEditable,
                             feedingInstructions: formatFeedingInstructions(feedings),
                             hasSpecialInstructions: horse.hasSpecialInstructions ?? false,
                             onToggle: { completed in
@@ -435,6 +464,7 @@ struct FeedingHorseRow: View {
     let horseId: String
     let horseName: String
     let isCompleted: Bool
+    let isEditable: Bool
     let feedingInstructions: String
     let hasSpecialInstructions: Bool
     let onToggle: (Bool) -> Void
@@ -446,6 +476,7 @@ struct FeedingHorseRow: View {
         horseId: String,
         horseName: String,
         isCompleted: Bool,
+        isEditable: Bool = true,
         feedingInstructions: String,
         hasSpecialInstructions: Bool,
         onToggle: @escaping (Bool) -> Void
@@ -453,6 +484,7 @@ struct FeedingHorseRow: View {
         self.horseId = horseId
         self.horseName = horseName
         self.isCompleted = isCompleted
+        self.isEditable = isEditable
         self.feedingInstructions = feedingInstructions
         self.hasSpecialInstructions = hasSpecialInstructions
         self.onToggle = onToggle
@@ -461,9 +493,9 @@ struct FeedingHorseRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Checkbox
+            // Checkbox (disabled if routine is not editable)
             Button {
-                guard !isUpdating else { return }
+                guard !isUpdating && isEditable else { return }
                 isUpdating = true
                 let newStatus = !localCompleted
                 localCompleted = newStatus  // Optimistic update
@@ -475,9 +507,9 @@ struct FeedingHorseRow: View {
             } label: {
                 Image(systemName: localCompleted ? "checkmark.circle.fill" : "circle")
                     .font(.title2)
-                    .foregroundStyle(localCompleted ? .green : .secondary)
+                    .foregroundStyle(localCompleted ? .green : (isEditable ? .secondary : .secondary.opacity(0.5)))
             }
-            .disabled(isUpdating)
+            .disabled(isUpdating || !isEditable)
 
             // Horse info
             VStack(alignment: .leading, spacing: 2) {
