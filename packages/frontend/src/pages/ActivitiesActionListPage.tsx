@@ -85,6 +85,7 @@ import {
 } from "date-fns";
 
 export default function ActivitiesActionListPage() {
+  console.log("[ActivitiesPage] Component mounting/rendering");
   const { t } = useTranslation(["activities", "common"]);
   const { user } = useAuth();
   const { currentOrganization } = useOrganization();
@@ -204,6 +205,14 @@ export default function ActivitiesActionListPage() {
   // Load user's stables and preferences
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
   const { preferences, isLoading: preferencesLoading } = useUserPreferences();
+
+  console.log("[ActivitiesPage] Data state:", {
+    stablesLoading,
+    preferencesLoading,
+    stablesCount: stables.length,
+    preferences,
+    hasInitializedDefault,
+  });
 
   // Set default stable from user preferences when loaded (only once)
   useEffect(() => {
