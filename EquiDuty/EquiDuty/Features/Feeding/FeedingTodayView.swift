@@ -2,17 +2,47 @@
 //  FeedingTodayView.swift
 //  EquiDuty
 //
-//  Daily feeding tracking view
+//  Daily feeding tracking view - uses routine instances as source of truth
 //
 
 import SwiftUI
 
+// MARK: - Feeding Session View Model
+
+/// Represents a feeding session extracted from a routine instance step
+struct FeedingSession: Identifiable {
+    let id: String  // Unique: "\(instanceId)-\(stepId)"
+    let instanceId: String
+    let stepId: String
+    let name: String
+    let time: String
+    let routineName: String
+    var horsesTotal: Int
+    var horsesCompleted: Int
+    var horseProgress: [String: HorseStepProgress]
+    let feedingTimeId: String?
+    let routineStatus: RoutineInstanceStatus  // Track routine status for auto-start
+
+    var progressPercent: Double {
+        guard horsesTotal > 0 else { return 0 }
+        return Double(horsesCompleted) / Double(horsesTotal)
+    }
+
+    var isComplete: Bool {
+        horsesTotal > 0 && horsesCompleted >= horsesTotal
+    }
+}
+
 struct FeedingTodayView: View {
     @State private var authService = AuthService.shared
-    @State private var feedingService = FeedingService.shared
+    @State private var routineService = RoutineService.shared
     @State private var horseService = HorseService.shared
+    @State private var feedingService = FeedingService.shared
     @State private var selectedDate = Date()
-    @State private var feedingData: [DailyFeedingData] = []
+    @State private var feedingSessions: [FeedingSession] = []
+    @State private var horses: [Horse] = []
+    @State private var horseFeedings: [String: [HorseFeeding]] = [:]  // keyed by horseId
+    @State private var routineInstances: [RoutineInstance] = []  // Store for status lookup
     @State private var isLoading = false
     @State private var errorMessage: String?
 
@@ -27,8 +57,8 @@ struct FeedingTodayView: View {
                     )
 
                     // Overall progress
-                    if !feedingData.isEmpty {
-                        OverallFeedingProgress(feedingData: feedingData)
+                    if !feedingSessions.isEmpty {
+                        OverallFeedingProgress(sessions: feedingSessions)
                     }
 
                     if isLoading {
@@ -38,16 +68,29 @@ struct FeedingTodayView: View {
                         ErrorView(message: errorMessage) {
                             loadFeedingData()
                         }
-                    } else if feedingData.isEmpty {
+                    } else if feedingSessions.isEmpty {
                         EmptyStateView(
                             icon: "leaf.fill",
                             title: String(localized: "feeding.empty.title"),
                             message: String(localized: "feeding.empty.message")
                         )
                     } else {
-                        // Feeding time sections
-                        ForEach(feedingData) { data in
-                            FeedingTimeSection(feedingData: data)
+                        // Feeding sessions
+                        ForEach(feedingSessions) { session in
+                            FeedingSessionSection(
+                                session: session,
+                                horses: horses,
+                                horseFeedings: horseFeedings,
+                                onHorseToggled: { horseId, horseName, completed in
+                                    await toggleHorseFeeding(
+                                        session: session,
+                                        horseId: horseId,
+                                        horseName: horseName,
+                                        completed: completed
+                                    )
+                                },
+                                onRefresh: { loadFeedingData() }
+                            )
                         }
                     }
                 }
@@ -86,20 +129,30 @@ struct FeedingTodayView: View {
         Task {
             do {
                 guard let stableId = authService.selectedStable?.id else {
-                    feedingData = []
+                    feedingSessions = []
                     isLoading = false
                     return
                 }
 
-                // First fetch horses for the stable
-                let horses = try await horseService.getStableHorses(stableId: stableId)
-
-                // Then fetch feeding data
-                feedingData = try await feedingService.getDailyFeedingData(
+                // Fetch routine instances, horses, and feedings in parallel
+                async let instancesFetch = routineService.getRoutineInstances(
                     stableId: stableId,
-                    date: selectedDate,
-                    horses: horses
+                    date: selectedDate
                 )
+                async let horsesFetch = horseService.getStableHorses(stableId: stableId)
+                async let feedingsFetch = feedingService.getHorseFeedings(stableId: stableId)
+
+                let (instances, fetchedHorses, fetchedFeedings) = try await (instancesFetch, horsesFetch, feedingsFetch)
+
+                horses = fetchedHorses
+                routineInstances = instances  // Store for status lookup
+
+                // Group feedings by horseId for quick lookup
+                horseFeedings = Dictionary(grouping: fetchedFeedings, by: { $0.horseId })
+
+                // Extract feeding sessions from routine instances
+                feedingSessions = extractFeedingSessions(from: instances)
+                    .sorted { parseTimeToMinutes($0.time) < parseTimeToMinutes($1.time) }
 
                 isLoading = false
             } catch {
@@ -112,31 +165,135 @@ struct FeedingTodayView: View {
     private func refreshFeedingData() async {
         do {
             guard let stableId = authService.selectedStable?.id else {
-                feedingData = []
+                feedingSessions = []
                 return
             }
 
-            let horses = try await horseService.getStableHorses(stableId: stableId)
-            feedingData = try await feedingService.getDailyFeedingData(
+            async let instancesFetch = routineService.getRoutineInstances(
                 stableId: stableId,
-                date: selectedDate,
-                horses: horses
+                date: selectedDate
             )
+            async let horsesFetch = horseService.getStableHorses(stableId: stableId)
+            async let feedingsFetch = feedingService.getHorseFeedings(stableId: stableId)
+
+            let (instances, fetchedHorses, fetchedFeedings) = try await (instancesFetch, horsesFetch, feedingsFetch)
+
+            horses = fetchedHorses
+            routineInstances = instances  // Store for status lookup
+            horseFeedings = Dictionary(grouping: fetchedFeedings, by: { $0.horseId })
+            feedingSessions = extractFeedingSessions(from: instances)
+                .sorted { parseTimeToMinutes($0.time) < parseTimeToMinutes($1.time) }
+
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    // MARK: - Feeding Session Extraction
+
+    private func extractFeedingSessions(from instances: [RoutineInstance]) -> [FeedingSession] {
+        var sessions: [FeedingSession] = []
+
+        for instance in instances {
+            guard let template = instance.template else { continue }
+
+            for step in template.steps {
+                // Only include feeding steps
+                guard step.category == .feeding else { continue }
+
+                let stepProgress = instance.progress.stepProgress[step.id]
+                let horseProgress = stepProgress?.horseProgress ?? [:]
+
+                let session = FeedingSession(
+                    id: "\(instance.id)-\(step.id)",
+                    instanceId: instance.id,
+                    stepId: step.id,
+                    name: step.name,
+                    time: instance.scheduledStartTime,
+                    routineName: instance.templateName,
+                    horsesTotal: stepProgress?.horsesTotal ?? 0,
+                    horsesCompleted: stepProgress?.horsesCompleted ?? 0,
+                    horseProgress: horseProgress,
+                    feedingTimeId: step.feedingTimeId,
+                    routineStatus: instance.status
+                )
+
+                sessions.append(session)
+            }
+        }
+
+        return sessions
+    }
+
+    // MARK: - Toggle Horse Feeding
+
+    private func toggleHorseFeeding(
+        session: FeedingSession,
+        horseId: String,
+        horseName: String,
+        completed: Bool
+    ) async {
+        do {
+            // Auto-start routine if still in scheduled status
+            // The API requires routine to be "started" or "in_progress" before accepting progress updates
+            if session.routineStatus == .scheduled {
+                print("📋 Starting routine instance \(session.instanceId) before updating progress")
+                try await routineService.startRoutineInstance(
+                    instanceId: session.instanceId,
+                    dailyNotesAcknowledged: true
+                )
+            }
+
+            // Now update progress
+            try await routineService.updateRoutineProgress(
+                instanceId: session.instanceId,
+                stepId: session.stepId,
+                horseUpdates: [HorseProgressUpdate(
+                    horseId: horseId,
+                    horseName: horseName,
+                    completed: completed,
+                    skipped: nil,
+                    skipReason: nil,
+                    notes: nil,
+                    feedingConfirmed: completed,
+                    medicationGiven: nil,
+                    medicationSkipped: nil,
+                    blanketAction: nil,
+                    photoUrls: nil
+                )]
+            )
+
+            // Refresh data to get updated progress
+            await refreshFeedingData()
+        } catch {
+            print("❌ Failed to update feeding status: \(error)")
+            // Show user-visible error
+            errorMessage = "Failed to save: \(error.localizedDescription)"
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func parseTimeToMinutes(_ time: String) -> Int {
+        let parts = time.split(separator: ":")
+        guard parts.count >= 2,
+              let hours = Int(parts[0]),
+              let minutes = Int(parts[1]) else {
+            return 0
+        }
+        return hours * 60 + minutes
     }
 }
 
 // MARK: - Overall Progress
 
 struct OverallFeedingProgress: View {
-    let feedingData: [DailyFeedingData]
+    let sessions: [FeedingSession]
 
     var body: some View {
-        let totalCompleted = feedingData.reduce(0) { $0 + $1.completedCount }
-        let totalHorses = feedingData.reduce(0) { $0 + $1.totalCount }
+        let totalCompleted = sessions.reduce(0) { $0 + $1.horsesCompleted }
+        let totalHorses = sessions.reduce(0) { $0 + $1.horsesTotal }
         let progress = totalHorses > 0 ? Double(totalCompleted) / Double(totalHorses) : 0
 
         VStack(spacing: 12) {
@@ -179,10 +336,15 @@ struct OverallFeedingProgress: View {
     }
 }
 
-// MARK: - Feeding Time Section
+// MARK: - Feeding Session Section
 
-struct FeedingTimeSection: View {
-    let feedingData: DailyFeedingData
+struct FeedingSessionSection: View {
+    let session: FeedingSession
+    let horses: [Horse]
+    let horseFeedings: [String: [HorseFeeding]]
+    let onHorseToggled: (String, String, Bool) async -> Void
+    let onRefresh: () -> Void
+
     @State private var isExpanded = true
 
     var body: some View {
@@ -195,28 +357,32 @@ struct FeedingTimeSection: View {
             } label: {
                 HStack {
                     VStack(alignment: .leading) {
-                        Text(feedingData.feedingTime.name)
+                        Text(session.name)
                             .font(.headline)
                             .foregroundStyle(.primary)
 
-                        Text(feedingData.feedingTime.time)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                        HStack(spacing: 4) {
+                            Text(session.time)
+                            Text("•")
+                            Text(session.routineName)
+                        }
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                     }
 
                     Spacer()
 
                     // Progress
                     HStack(spacing: 8) {
-                        Text("\(feedingData.completedCount)/\(feedingData.totalCount)")
+                        Text("\(session.horsesCompleted)/\(session.horsesTotal)")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
 
-                        if feedingData.isComplete {
+                        if session.isComplete {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
                         } else {
-                            ProgressRing(progress: feedingData.progressPercent, size: 24)
+                            ProgressRing(progress: session.progressPercent, size: 24)
                         }
 
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
@@ -226,11 +392,26 @@ struct FeedingTimeSection: View {
                 }
             }
 
-            // Horse list
+            // Horse list - always show all horses, using progress data where available
             if isExpanded {
                 VStack(spacing: 8) {
-                    ForEach(feedingData.horses) { horseStatus in
-                        FeedingHorseRow(horseStatus: horseStatus)
+                    ForEach(horses) { horse in
+                        let feedings = horseFeedings[horse.id] ?? []
+                        let progress = session.horseProgress[horse.id]
+                        let isCompleted = progress?.completed ?? false
+
+                        FeedingHorseRow(
+                            horseId: horse.id,
+                            horseName: horse.name,
+                            isCompleted: isCompleted,
+                            feedingInstructions: formatFeedingInstructions(feedings),
+                            hasSpecialInstructions: horse.hasSpecialInstructions ?? false,
+                            onToggle: { completed in
+                                Task {
+                                    await onHorseToggled(horse.id, horse.name, completed)
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -239,39 +420,73 @@ struct FeedingTimeSection: View {
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
+
+    private func formatFeedingInstructions(_ feedings: [HorseFeeding]) -> String {
+        guard !feedings.isEmpty else {
+            return String(localized: "feeding.no_instructions")
+        }
+        return feedings.map { "\($0.feedTypeName): \($0.formattedQuantity)" }.joined(separator: ", ")
+    }
 }
 
 // MARK: - Feeding Horse Row
 
 struct FeedingHorseRow: View {
-    let horseStatus: HorseFeedingStatus
-    @State private var isCompleted: Bool
+    let horseId: String
+    let horseName: String
+    let isCompleted: Bool
+    let feedingInstructions: String
+    let hasSpecialInstructions: Bool
+    let onToggle: (Bool) -> Void
 
-    init(horseStatus: HorseFeedingStatus) {
-        self.horseStatus = horseStatus
-        _isCompleted = State(initialValue: horseStatus.isCompleted)
+    @State private var localCompleted: Bool
+    @State private var isUpdating = false
+
+    init(
+        horseId: String,
+        horseName: String,
+        isCompleted: Bool,
+        feedingInstructions: String,
+        hasSpecialInstructions: Bool,
+        onToggle: @escaping (Bool) -> Void
+    ) {
+        self.horseId = horseId
+        self.horseName = horseName
+        self.isCompleted = isCompleted
+        self.feedingInstructions = feedingInstructions
+        self.hasSpecialInstructions = hasSpecialInstructions
+        self.onToggle = onToggle
+        _localCompleted = State(initialValue: isCompleted)
     }
 
     var body: some View {
         HStack(spacing: 12) {
             // Checkbox
             Button {
-                isCompleted.toggle()
-                // TODO: Update via API
+                guard !isUpdating else { return }
+                isUpdating = true
+                let newStatus = !localCompleted
+                localCompleted = newStatus  // Optimistic update
+                onToggle(newStatus)
+                // Reset updating state after a delay (actual refresh will update the value)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    isUpdating = false
+                }
             } label: {
-                Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
+                Image(systemName: localCompleted ? "checkmark.circle.fill" : "circle")
                     .font(.title2)
-                    .foregroundStyle(isCompleted ? .green : .secondary)
+                    .foregroundStyle(localCompleted ? .green : .secondary)
             }
+            .disabled(isUpdating)
 
             // Horse info
             VStack(alignment: .leading, spacing: 2) {
-                Text(horseStatus.horse.name)
+                Text(horseName)
                     .font(.body)
-                    .strikethrough(isCompleted)
-                    .foregroundStyle(isCompleted ? .secondary : .primary)
+                    .strikethrough(localCompleted)
+                    .foregroundStyle(localCompleted ? .secondary : .primary)
 
-                Text(horseStatus.feedingInstructions)
+                Text(feedingInstructions)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -279,12 +494,22 @@ struct FeedingHorseRow: View {
             Spacer()
 
             // Special instructions indicator
-            if horseStatus.horse.hasSpecialInstructions == true {
+            if hasSpecialInstructions {
                 Image(systemName: "exclamationmark.circle.fill")
                     .foregroundStyle(.orange)
             }
+
+            // Loading indicator
+            if isUpdating {
+                ProgressView()
+                    .scaleEffect(0.8)
+            }
         }
         .padding(.vertical, 4)
+        .onChange(of: isCompleted) { _, newValue in
+            // Sync with parent state when refreshed
+            localCompleted = newValue
+        }
     }
 }
 
