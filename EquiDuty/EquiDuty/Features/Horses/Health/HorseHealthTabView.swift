@@ -39,8 +39,8 @@ struct HorseHealthTabView: View {
                 }
             )
 
-            // Care Activities (placeholder for future)
-            CareActivitiesCard(horse: horse)
+            // Care Activities
+            CareActivityCardView(horse: horse)
         }
         .padding(.horizontal)
         .onAppear {
@@ -354,60 +354,6 @@ struct VaccinationRecordRow: View {
                     .foregroundStyle(.secondary)
             }
         }
-    }
-}
-
-// MARK: - Care Activities Card
-
-struct CareActivitiesCard: View {
-    let horse: Horse
-
-    var body: some View {
-        InfoCard(title: String(localized: "horse.care_activities")) {
-            VStack(spacing: 12) {
-                // Placeholder for care activities
-                HStack(spacing: 16) {
-                    CareActivityItem(
-                        icon: "hammer.fill",
-                        title: String(localized: "horse.care.farrier"),
-                        color: .orange
-                    )
-                    CareActivityItem(
-                        icon: "mouth.fill",
-                        title: String(localized: "horse.care.dentist"),
-                        color: .cyan
-                    )
-                    CareActivityItem(
-                        icon: "pill.fill",
-                        title: String(localized: "horse.care.deworming"),
-                        color: .purple
-                    )
-                }
-
-                Text(String(localized: "horse.care_activities.coming_soon"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-}
-
-struct CareActivityItem: View {
-    let icon: String
-    let title: String
-    let color: Color
-
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(color)
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
     }
 }
 
