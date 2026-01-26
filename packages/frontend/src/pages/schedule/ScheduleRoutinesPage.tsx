@@ -68,7 +68,7 @@ import { sv, enUS } from "date-fns/locale";
 export default function ScheduleRoutinesPage() {
   const { t, i18n } = useTranslation(["routines", "common"]);
   const { user } = useAuth();
-  const { organization } = useOrganization();
+  const { currentOrganizationId } = useOrganization();
   const locale = i18n.language === "sv" ? sv : enUS;
   const langCode = i18n.language === "sv" ? "sv" : "en";
 
@@ -436,12 +436,12 @@ export default function ScheduleRoutinesPage() {
       </Card>
 
       {/* Create/Edit Dialog */}
-      {activeStableId && organization?.id && (
+      {activeStableId && currentOrganizationId && (
         <RoutineScheduleDialog
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           stableId={activeStableId}
-          organizationId={organization.id}
+          organizationId={currentOrganizationId}
           schedule={editingSchedule}
           onSuccess={handleDialogSuccess}
         />

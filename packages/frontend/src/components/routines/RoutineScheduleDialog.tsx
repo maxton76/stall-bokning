@@ -89,7 +89,7 @@ export function RoutineScheduleDialog({
     organizationId,
     stableId,
   );
-  const { members, loading: membersLoading } =
+  const { data: members = [], isLoading: membersLoading } =
     useOrganizationMembers(organizationId);
 
   // Reset form when opening or schedule changes
@@ -103,9 +103,9 @@ export function RoutineScheduleDialog({
           schedule.startDate
             ? format(
                 new Date(
-                  (schedule.startDate as any).seconds
+                  ((schedule.startDate as any).seconds
                     ? (schedule.startDate as any).seconds * 1000
-                    : schedule.startDate,
+                    : schedule.startDate) as number,
                 ),
                 "yyyy-MM-dd",
               )
@@ -116,9 +116,9 @@ export function RoutineScheduleDialog({
           setEndDate(
             format(
               new Date(
-                (schedule.endDate as any).seconds
+                ((schedule.endDate as any).seconds
                   ? (schedule.endDate as any).seconds * 1000
-                  : schedule.endDate,
+                  : schedule.endDate) as number,
               ),
               "yyyy-MM-dd",
             ),
@@ -436,11 +436,20 @@ export function RoutineScheduleDialog({
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {members.map((member) => (
-                    <SelectItem key={member.id} value={member.userId}>
-                      {member.displayName || member.email}
-                    </SelectItem>
-                  ))}
+                  {members.map(
+                    (member: {
+                      id: string;
+                      userId: string;
+                      firstName: string;
+                      lastName: string;
+                      userEmail: string;
+                    }) => (
+                      <SelectItem key={member.id} value={member.userId}>
+                        {`${member.firstName} ${member.lastName}`.trim() ||
+                          member.userEmail}
+                      </SelectItem>
+                    ),
+                  )}
                 </SelectContent>
               </Select>
             </div>
