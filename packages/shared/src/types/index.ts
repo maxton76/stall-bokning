@@ -30,6 +30,7 @@ export * from "./communication.js";
 
 // Routine Flows
 export * from "./routine.js";
+export * from "./routineSchedule.js";
 
 // Portal (Client Self-Service)
 export * from "./portal.js";
@@ -42,3 +43,9 @@ export * from "./payment.js";
 
 // AI Assistant
 export * from "./assistant.js";
+
+// Fairness Distribution
+export * from "./fairness.types.js";
+
+// User Settings
+export * from "./userSettings.js";

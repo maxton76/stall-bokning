@@ -43,9 +43,11 @@ import { lessonRoutes } from "./routes/lessons.js";
 import { paymentsRoutes } from "./routes/payments.js";
 import { assistantRoutes } from "./routes/assistant.js";
 import { routinesRoutes } from "./routes/routines.js";
+import { routineSchedulesRoutes } from "./routes/routine-schedules.js";
 import { dailyNotesRoutes } from "./routes/daily-notes.js";
 import { horseActivityHistoryRoutes } from "./routes/horse-activity-history.js";
 import { fairnessRoutes } from "./routes/fairness.js";
+import { settingsRoutes } from "./routes/settings.js";
 
 const PORT = Number(process.env.PORT) || 8080;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -174,11 +176,15 @@ await fastify.register(lessonRoutes, { prefix: "/api/v1" });
 await fastify.register(paymentsRoutes, { prefix: "/api/v1" });
 await fastify.register(assistantRoutes, { prefix: "/api/v1" });
 await fastify.register(routinesRoutes, { prefix: "/api/v1/routines" });
+await fastify.register(routineSchedulesRoutes, {
+  prefix: "/api/v1/routine-schedules",
+});
 await fastify.register(dailyNotesRoutes, { prefix: "/api/v1/daily-notes" });
 await fastify.register(horseActivityHistoryRoutes, {
   prefix: "/api/v1/horse-activity-history",
 });
 await fastify.register(fairnessRoutes, { prefix: "/api/v1/fairness" });
+await fastify.register(settingsRoutes, { prefix: "/api/v1/settings" });
 
 // 404 handler
 fastify.setNotFoundHandler((request, reply) => {

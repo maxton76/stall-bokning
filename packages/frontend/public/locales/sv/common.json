@@ -18,6 +18,7 @@
     "scheduleWeek": "Vecka",
     "scheduleMonth": "Månad",
     "scheduleDistribution": "Fördelning",
+    "routineSchedules": "Rutinscheman",
     "myAvailability": "Min tillgänglighet",
     "myReservations": "Mina bokningar",
     "settings": "Inställningar",
@@ -341,5 +342,28 @@
     "allHorses": "Alla hästar",
     "allActions": "Alla åtgärder",
     "limit": "Antal"
+  },
+  "fairness": {
+    "filters": {
+      "placeholder": "Status",
+      "all": "Alla",
+      "completed": "Genomförda",
+      "planned": "Planerade"
+    },
+    "labels": {
+      "totalPoints": "Totalt poäng",
+      "totalPointsIncPlanned": "Totalt poäng (inkl. planerade)",
+      "averagePerMember": "Genomsnitt/medlem",
+      "pointsPerMember": "poäng per aktiv medlem",
+      "activeMembers": "Aktiva medlemmar",
+      "participatingInSchedule": "deltar i schema",
+      "fairnessIndex": "Rättviseindex",
+      "fairnessIndexIncPlanned": "Rättviseindex (inkl. planerade)"
+    },
+    "status": {
+      "goodBalance": "Bra balans",
+      "acceptable": "Acceptabel",
+      "needsImprovement": "Behöver förbättras"
+    }
   }
 }

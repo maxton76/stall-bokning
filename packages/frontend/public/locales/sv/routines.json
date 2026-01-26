@@ -149,7 +149,9 @@
     "created": "Mall skapad",
     "updated": "Mall uppdaterad",
     "deleted": "Mall borttagen",
-    "duplicated": "Mall duplicerad"
+    "duplicated": "Mall duplicerad",
+    "pointsValueMaxError": "Poängvärde får inte överstiga 100",
+    "pointsValueMinError": "Poängvärde måste vara minst 1"
   },
   "stepConfig": {
     "name": "Stegnamn",
@@ -307,5 +309,82 @@
     "stepsProgress": "{{completed}}/{{total}} steg",
     "viewAll": "Visa alla"
   },
-  "quickStart": "Snabbstart"
+  "quickStart": "Snabbstart",
+  "schedules": {
+    "title": "Rutinscheman",
+    "subtitle": "Hantera återkommande rutinscheman",
+    "schedules": "Scheman",
+    "createNew": "Skapa schema",
+    "createFirst": "Skapa ditt första schema",
+    "noStables": "Inga stall tillgängliga",
+    "noStablesDescription": "Du behöver tillgång till minst ett stall för att hantera rutinscheman.",
+    "noSchedules": "Inga scheman ännu",
+    "noSchedulesDescription": "Skapa ett schema för att automatiskt generera rutininstanser.",
+    "loadError": "Kunde inte ladda scheman",
+    "enabled": "Aktivt",
+    "disabled": "Inaktivt",
+    "enable": "Aktivera",
+    "disable": "Inaktivera",
+    "indefinite": "Löpande",
+    "deleteConfirmTitle": "Ta bort schema",
+    "deleteConfirmDescription": "Är du säker på att du vill ta bort schemat \"{{name}}\"? Denna åtgärd kan inte ångras.",
+    "table": {
+      "name": "Namn",
+      "template": "Mall",
+      "dates": "Datum",
+      "pattern": "Upprepning",
+      "time": "Tid",
+      "assignment": "Tilldelning",
+      "status": "Status",
+      "actions": "Åtgärder"
+    },
+    "assignment": {
+      "auto": "Automatisk",
+      "manual": "Manuell",
+      "selfBooked": "Självbokning",
+      "unassigned": "Ej tilldelad"
+    },
+    "dialog": {
+      "createTitle": "Skapa rutinschema",
+      "editTitle": "Redigera rutinschema",
+      "name": "Schemanamn",
+      "namePlaceholder": "T.ex. Morgonpass vardagar",
+      "nameDescription": "Valfritt namn för att enklare identifiera schemat",
+      "template": "Rutinmall",
+      "templatePlaceholder": "Välj en mall...",
+      "templateDescription": "Mallen som ska användas för detta schema",
+      "startDate": "Startdatum",
+      "startDateDescription": "Datum då schemat börjar gälla",
+      "endDate": "Slutdatum",
+      "endDateDescription": "Lämna tomt för löpande schema",
+      "noEndDate": "Inget slutdatum (löpande)",
+      "repeatPattern": "Upprepningsmönster",
+      "repeatPatternDescription": "Hur ofta rutinen ska upprepas",
+      "repeatDays": "Dagar",
+      "repeatDaysDescription": "Vilka dagar rutinen ska utföras",
+      "scheduledTime": "Starttid",
+      "scheduledTimeDescription": "Tid då rutinen ska starta",
+      "assignmentMode": "Tilldelningsläge",
+      "assignmentModeDescription": "Hur rutinen ska tilldelas personal",
+      "defaultAssignee": "Standardtilldelning",
+      "defaultAssigneePlaceholder": "Välj person...",
+      "defaultAssigneeDescription": "Person som tilldelas rutinen som standard",
+      "isEnabled": "Aktivt schema",
+      "isEnabledDescription": "Inaktiva scheman genererar inga nya rutininstanser",
+      "save": "Spara schema",
+      "saving": "Sparar...",
+      "createSuccess": "Schema skapat",
+      "updateSuccess": "Schema uppdaterat",
+      "createError": "Kunde inte skapa schema",
+      "updateError": "Kunde inte uppdatera schema",
+      "noTemplates": "Inga mallar tillgängliga",
+      "noTemplatesDescription": "Skapa en rutinmall först för att kunna skapa scheman."
+    },
+    "repeatPatterns": {
+      "daily": "Dagligen",
+      "weekdays": "Vardagar",
+      "weekends": "Helger",
+      "custom": "Anpassad"
+    }
+  }
 }

@@ -149,7 +149,9 @@
     "created": "Template created",
     "updated": "Template updated",
     "deleted": "Template deleted",
-    "duplicated": "Template duplicated"
+    "duplicated": "Template duplicated",
+    "pointsValueMaxError": "Points value cannot exceed 100",
+    "pointsValueMinError": "Points value must be at least 1"
   },
   "stepConfig": {
     "name": "Step Name",
@@ -307,5 +309,82 @@
     "stepsProgress": "{{completed}}/{{total}} steps",
     "viewAll": "View all"
   },
-  "quickStart": "Quick Start"
+  "quickStart": "Quick Start",
+  "schedules": {
+    "title": "Routine Schedules",
+    "subtitle": "Manage recurring routine schedules",
+    "schedules": "Schedules",
+    "createNew": "Create Schedule",
+    "createFirst": "Create your first schedule",
+    "noStables": "No stables available",
+    "noStablesDescription": "You need access to at least one stable to manage routine schedules.",
+    "noSchedules": "No schedules yet",
+    "noSchedulesDescription": "Create a schedule to automatically generate routine instances.",
+    "loadError": "Failed to load schedules",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "enable": "Enable",
+    "disable": "Disable",
+    "indefinite": "Indefinite",
+    "deleteConfirmTitle": "Delete Schedule",
+    "deleteConfirmDescription": "Are you sure you want to delete the schedule \"{{name}}\"? This action cannot be undone.",
+    "table": {
+      "name": "Name",
+      "template": "Template",
+      "dates": "Dates",
+      "pattern": "Pattern",
+      "time": "Time",
+      "assignment": "Assignment",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "assignment": {
+      "auto": "Automatic",
+      "manual": "Manual",
+      "selfBooked": "Self-booking",
+      "unassigned": "Unassigned"
+    },
+    "dialog": {
+      "createTitle": "Create Routine Schedule",
+      "editTitle": "Edit Routine Schedule",
+      "name": "Schedule Name",
+      "namePlaceholder": "e.g., Morning shift weekdays",
+      "nameDescription": "Optional name to easily identify the schedule",
+      "template": "Routine Template",
+      "templatePlaceholder": "Select a template...",
+      "templateDescription": "The template to use for this schedule",
+      "startDate": "Start Date",
+      "startDateDescription": "Date when the schedule starts",
+      "endDate": "End Date",
+      "endDateDescription": "Leave empty for ongoing schedule",
+      "noEndDate": "No end date (ongoing)",
+      "repeatPattern": "Repeat Pattern",
+      "repeatPatternDescription": "How often the routine should repeat",
+      "repeatDays": "Days",
+      "repeatDaysDescription": "Which days the routine should run",
+      "scheduledTime": "Start Time",
+      "scheduledTimeDescription": "Time when the routine should start",
+      "assignmentMode": "Assignment Mode",
+      "assignmentModeDescription": "How the routine should be assigned to staff",
+      "defaultAssignee": "Default Assignee",
+      "defaultAssigneePlaceholder": "Select person...",
+      "defaultAssigneeDescription": "Person assigned to the routine by default",
+      "isEnabled": "Active Schedule",
+      "isEnabledDescription": "Inactive schedules do not generate new routine instances",
+      "save": "Save Schedule",
+      "saving": "Saving...",
+      "createSuccess": "Schedule created",
+      "updateSuccess": "Schedule updated",
+      "createError": "Failed to create schedule",
+      "updateError": "Failed to update schedule",
+      "noTemplates": "No templates available",
+      "noTemplatesDescription": "Create a routine template first to create schedules."
+    },
+    "repeatPatterns": {
+      "daily": "Daily",
+      "weekdays": "Weekdays",
+      "weekends": "Weekends",
+      "custom": "Custom"
+    }
+  }
 }

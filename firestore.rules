@@ -857,6 +857,23 @@ service cloud.firestore {
     }
 
     // ============================================================================
+    // USER SETTINGS SUBCOLLECTION - CROSS-DEVICE SYNCHRONIZED SETTINGS
+    // ============================================================================
+    // Stores user preferences like default stable, language, etc.
+    // Path: users/{userId}/settings/preferences
+
+    match /users/{userId}/settings/{settingId} {
+      // READ: Only user can read their settings
+      allow read: if isAuthenticated() && isOwner(userId);
+
+      // CREATE/UPDATE: Only user can manage their settings
+      allow create, update: if isAuthenticated() && isOwner(userId);
+
+      // DELETE: Only user can delete their settings
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    // ============================================================================
     // NOTIFICATIONS ARCHIVE COLLECTION - LONG-TERM STORAGE
     // ============================================================================
 
@@ -1649,6 +1666,39 @@ service cloud.firestore {
       );
 
       // DELETE: Stable managers only
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(resource.data.stableId)
+      );
+    }
+
+    // ============================================================================
+    // ROUTINE SCHEDULES COLLECTION - STABLE-SCOPED RECURRING DEFINITIONS
+    // ============================================================================
+
+    match /routineSchedules/{scheduleId} {
+      // LIST: Authenticated users (filtering by stableId happens via query)
+      allow list: if isAuthenticated();
+
+      // GET: Stable members can view
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canAccessStable(resource.data.stableId)
+      );
+
+      // CREATE: Stable managers or org admins
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(request.resource.data.stableId)
+      );
+
+      // UPDATE: Stable managers or org admins
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(resource.data.stableId)
+      );
+
+      // DELETE: Stable managers or org admins
       allow delete: if isAuthenticated() && (
         isSystemAdmin() ||
         canManageStable(resource.data.stableId)

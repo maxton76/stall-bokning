@@ -1,0 +1,172 @@
+import { z } from "zod";
+
+/**
+ * Zod schemas for Routine Schedule API validation
+ * Shared between frontend forms and backend API
+ */
+
+// ============================================================
+// Enum Schemas
+// ============================================================
+
+export const routineScheduleRepeatPatternSchema = z.enum([
+  "daily",
+  "weekdays",
+  "custom",
+]);
+
+export const scheduleAssignmentModeSchema = z.enum([
+  "auto",
+  "manual",
+  "selfBooked",
+  "unassigned",
+]);
+
+// ============================================================
+// Common Validation Helpers
+// ============================================================
+
+// Time validation (HH:MM format)
+export const scheduleTimeSchema = z
+  .string()
+  .regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Time must be in HH:MM format");
+
+// Date string validation (YYYY-MM-DD)
+export const scheduleDateStringSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format");
+
+// Day of week validation (0-6, Sunday-Saturday)
+export const dayOfWeekSchema = z.number().int().min(0).max(6);
+
+// ============================================================
+// Routine Schedule Schemas
+// ============================================================
+
+export const createRoutineScheduleSchema = z
+  .object({
+    organizationId: z.string().min(1, "Organization ID is required"),
+    stableId: z.string().min(1, "Stable ID is required"),
+    templateId: z.string().min(1, "Template ID is required"),
+
+    // Optional custom name
+    name: z.string().max(100, "Name too long").optional(),
+
+    // Schedule configuration
+    startDate: scheduleDateStringSchema,
+    endDate: scheduleDateStringSchema.optional(),
+    repeatPattern: routineScheduleRepeatPatternSchema,
+    repeatDays: z
+      .array(dayOfWeekSchema)
+      .min(1, "At least one day required for custom pattern")
+      .max(7)
+      .optional(),
+    scheduledStartTime: scheduleTimeSchema,
+
+    // Assignment configuration
+    assignmentMode: scheduleAssignmentModeSchema,
+    defaultAssignedTo: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      // If pattern is 'custom', repeatDays is required
+      if (data.repeatPattern === "custom") {
+        return data.repeatDays && data.repeatDays.length > 0;
+      }
+      return true;
+    },
+    {
+      message: "Custom pattern requires at least one day to be selected",
+      path: ["repeatDays"],
+    },
+  )
+  .refine(
+    (data) => {
+      // If assignmentMode is 'manual', defaultAssignedTo should be provided
+      if (data.assignmentMode === "manual") {
+        return !!data.defaultAssignedTo;
+      }
+      return true;
+    },
+    {
+      message: "Manual assignment mode requires a default assignee",
+      path: ["defaultAssignedTo"],
+    },
+  )
+  .refine(
+    (data) => {
+      // End date must be after start date if provided
+      if (data.endDate) {
+        return new Date(data.endDate) >= new Date(data.startDate);
+      }
+      return true;
+    },
+    {
+      message: "End date must be on or after start date",
+      path: ["endDate"],
+    },
+  );
+
+export const updateRoutineScheduleSchema = z
+  .object({
+    name: z.string().max(100, "Name too long").optional(),
+    startDate: scheduleDateStringSchema.optional(),
+    endDate: scheduleDateStringSchema.nullable().optional(),
+    repeatPattern: routineScheduleRepeatPatternSchema.optional(),
+    repeatDays: z.array(dayOfWeekSchema).min(1).max(7).optional(),
+    scheduledStartTime: scheduleTimeSchema.optional(),
+    assignmentMode: scheduleAssignmentModeSchema.optional(),
+    defaultAssignedTo: z.string().nullable().optional(),
+    isEnabled: z.boolean().optional(),
+  })
+  .refine(
+    (data) => {
+      // If pattern is 'custom', repeatDays is required
+      if (data.repeatPattern === "custom") {
+        return data.repeatDays && data.repeatDays.length > 0;
+      }
+      return true;
+    },
+    {
+      message: "Custom pattern requires at least one day to be selected",
+      path: ["repeatDays"],
+    },
+  );
+
+export const listRoutineSchedulesQuerySchema = z.object({
+  stableId: z.string().optional(),
+  templateId: z.string().optional(),
+  isEnabled: z
+    .string()
+    .transform((val) => val === "true")
+    .optional(),
+  limit: z
+    .string()
+    .transform((val) => parseInt(val, 10))
+    .pipe(z.number().int().min(1).max(100))
+    .optional(),
+  offset: z
+    .string()
+    .transform((val) => parseInt(val, 10))
+    .pipe(z.number().int().min(0))
+    .optional(),
+});
+
+// Toggle schema for enable/disable endpoint
+export const toggleRoutineScheduleSchema = z.object({
+  isEnabled: z.boolean(),
+});
+
+// ============================================================
+// Type exports for inferred types
+// ============================================================
+
+export type CreateRoutineScheduleSchemaType = z.infer<
+  typeof createRoutineScheduleSchema
+>;
+export type UpdateRoutineScheduleSchemaType = z.infer<
+  typeof updateRoutineScheduleSchema
+>;
+export type ListRoutineSchedulesQuerySchemaType = z.infer<
+  typeof listRoutineSchedulesQuerySchema
+>;

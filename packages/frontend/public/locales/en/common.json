@@ -43,7 +43,8 @@
     "myTasks": "My Tasks",
     "myStatistics": "My Statistics",
     "myAccount": "My Account",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "routineSchedules": "Routine Schedules"
   },
   "buttons": {
     "save": "Save",
@@ -341,5 +342,28 @@
     "allHorses": "All Horses",
     "allActions": "All Actions",
     "limit": "Limit"
+  },
+  "fairness": {
+    "filters": {
+      "placeholder": "Status",
+      "all": "All",
+      "completed": "Completed",
+      "planned": "Planned"
+    },
+    "labels": {
+      "totalPoints": "Total points",
+      "totalPointsIncPlanned": "Total points (incl. planned)",
+      "averagePerMember": "Average/member",
+      "pointsPerMember": "points per active member",
+      "activeMembers": "Active members",
+      "participatingInSchedule": "participating in schedule",
+      "fairnessIndex": "Fairness index",
+      "fairnessIndexIncPlanned": "Fairness index (incl. planned)"
+    },
+    "status": {
+      "goodBalance": "Good balance",
+      "acceptable": "Acceptable",
+      "needsImprovement": "Needs improvement"
+    }
   }
 }

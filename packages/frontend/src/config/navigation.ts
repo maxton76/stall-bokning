@@ -20,6 +20,7 @@ import {
   Play,
   LayoutDashboard,
   Calendar,
+  CalendarClock,
   Bell,
   User,
 } from "lucide-react";
@@ -183,6 +184,13 @@ export const mainNavigation: NavigationItem[] = [
         labelKey: "common:navigation.scheduleDistribution",
         href: "/schedule/distribution",
         icon: BarChart3,
+      },
+      {
+        id: "routines",
+        labelKey: "common:navigation.routineSchedules",
+        href: "/schedule/routines",
+        icon: CalendarClock,
+        roles: ["admin", "owner"],
       },
     ],
   },

@@ -317,6 +317,19 @@ export const queryKeys = {
       ] as const,
   },
 
+  // Routine Schedules
+  routineSchedules: {
+    all: ["routineSchedules"] as const,
+    lists: () => [...queryKeys.routineSchedules.all, "list"] as const,
+    byStable: (stableId: string) =>
+      [...queryKeys.routineSchedules.lists(), { stableId }] as const,
+    byTemplate: (templateId: string) =>
+      [...queryKeys.routineSchedules.lists(), { templateId }] as const,
+    details: () => [...queryKeys.routineSchedules.all, "detail"] as const,
+    detail: (id: string) =>
+      [...queryKeys.routineSchedules.details(), id] as const,
+  },
+
   // Feeding
   feeding: {
     all: ["feeding"] as const,
@@ -710,6 +723,32 @@ export const cacheInvalidation = {
     dailyNotes: (stableId?: string, date?: Date) =>
       queryClient.invalidateQueries({
         queryKey: queryKeys.routines.dailyNotes(stableId, date),
+      }),
+  },
+
+  /**
+   * Invalidate all routine schedule queries
+   */
+  routineSchedules: {
+    all: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.routineSchedules.all,
+      }),
+    lists: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.routineSchedules.lists(),
+      }),
+    byStable: (stableId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.routineSchedules.byStable(stableId),
+      }),
+    byTemplate: (templateId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.routineSchedules.byTemplate(templateId),
+      }),
+    detail: (id: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.routineSchedules.detail(id),
       }),
   },
 
