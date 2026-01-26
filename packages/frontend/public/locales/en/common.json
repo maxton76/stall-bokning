@@ -229,7 +229,8 @@
   "errors": {
     "generic": "An error occurred. Please try again.",
     "loadFailed": "Failed to load data",
-    "connectionFailed": "Could not connect to the server"
+    "connectionFailed": "Could not connect to the server",
+    "notFound": "The resource could not be found"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -364,6 +365,41 @@
       "goodBalance": "Good balance",
       "acceptable": "Acceptable",
       "needsImprovement": "Needs improvement"
+    },
+    "scope": {
+      "stable": "Stable",
+      "organization": "Organization"
+    },
+    "templateChart": {
+      "title": "Points by routine template",
+      "noData": "No template data available",
+      "instances": "instances"
+    },
+    "templateTypes": {
+      "morning": "Morning",
+      "midday": "Midday",
+      "evening": "Evening",
+      "custom": "Custom"
+    },
+    "stableSummary": {
+      "title": "Points by stable",
+      "description": "Distribution of points across stables in the organization",
+      "members": "members"
+    },
+    "memberDistribution": {
+      "title": "Work distribution by member",
+      "titleOrg": "Work distribution by member (all stables)"
+    },
+    "explanation": {
+      "title": "How does fair distribution work?",
+      "fairnessScore": "<strong>Fairness score</strong> shows how evenly work is distributed. 50% = exact average, below 50% = more shifts needed, above 50% = has done more than average.",
+      "fairnessIndex": "<strong>Fairness index</strong> ({{index}}%) measures the overall evenness in the stable. Higher value = more fair distribution.",
+      "assignmentPriority": "When assigning tasks, members with lower points are prioritized to balance the distribution."
+    },
+    "legend": {
+      "balanced": "Balanced (45-55%)",
+      "belowAverage": "Below average (<45%)",
+      "aboveAverage": "Above average (>55%)"
     }
   }
 }

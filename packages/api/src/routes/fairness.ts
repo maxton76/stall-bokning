@@ -3,8 +3,44 @@ import { Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
-import { hasStableAccess } from "../utils/authorization.js";
-import type { RoutineInstance } from "@stall-bokning/shared";
+import {
+  hasStableAccess,
+  getUserAccessibleStableIds,
+  isOrganizationAdmin,
+} from "../utils/authorization.js";
+import type {
+  RoutineInstance,
+  FairnessStatusFilter,
+  FairnessScope,
+  StableFairnessSummary,
+  TemplatePointsBreakdown,
+  RoutineType,
+} from "@stall-bokning/shared";
+
+/**
+ * Infer template type from template name using Swedish naming patterns
+ */
+function inferTemplateType(templateName: string): RoutineType {
+  const name = templateName.toLowerCase();
+  if (name.includes("morgon") || name.includes("morning")) {
+    return "morning";
+  }
+  if (
+    name.includes("middag") ||
+    name.includes("lunch") ||
+    name.includes("midday")
+  ) {
+    return "midday";
+  }
+  if (
+    name.includes("kväll") ||
+    name.includes("evening") ||
+    name.includes("natt")
+  ) {
+    return "evening";
+  }
+  return "custom";
+}
 
 // ==================== Types ====================
 
@@ -33,6 +69,9 @@ export interface MemberFairnessData {
   // Trend data
   trend: "up" | "down" | "stable";
   trendValue: number; // How much change
+
+  // Organization scope: which stables the member belongs to
+  stables?: Array<{ stableId: string; stableName: string }>;
 }
 
 export interface FairnessDistribution {
@@ -58,6 +97,11 @@ export interface FairnessDistribution {
 
   // Generated timestamp
   generatedAt: string;
+
+  // Enhanced features
+  scope?: FairnessScope;
+  stables?: StableFairnessSummary[];
+  templateBreakdown?: TemplatePointsBreakdown[];
 }
 
 export interface MemberPointsHistory {
@@ -200,7 +244,12 @@ export async function fairnessRoutes(fastify: FastifyInstance) {
       try {
         const { stableId } = request.params as { stableId: string };
         const user = (request as AuthenticatedRequest).user!;
-        const query = request.query as { period?: string };
+        const query = request.query as {
+          period?: string;
+          statusFilter?: FairnessStatusFilter;
+          scope?: FairnessScope;
+          groupByTemplate?: string;
+        };
 
         const hasAccess = await hasStableAccess(stableId, user.uid, user.role);
         if (!hasAccess) {
@@ -215,6 +264,11 @@ export async function fairnessRoutes(fastify: FastifyInstance) {
           | "month"
           | "quarter"
           | "year";
+        // Default to "completed" for backwards compatibility
+        const statusFilter: FairnessStatusFilter =
+          query.statusFilter || "completed";
+        const scope: FairnessScope = query.scope || "stable";
+        const groupByTemplate = query.groupByTemplate === "true";
         const { startDate, endDate } = getPeriodDateRange(period);
         const midpoint = getPeriodMidpoint(startDate, endDate);
 
@@ -223,15 +277,57 @@ export async function fairnessRoutes(fastify: FastifyInstance) {
         const stableName = stableDoc.exists
           ? stableDoc.data()?.name
           : undefined;
+        const organizationId = stableDoc.exists
+          ? stableDoc.data()?.organizationId
+          : undefined;
 
-        // Get completed routine instances for the period
-        const instancesSnapshot = await db
-          .collection("routineInstances")
-          .where("stableId", "==", stableId)
-          .where("status", "==", "completed")
-          .where("completedAt", ">=", Timestamp.fromDate(startDate))
-          .where("completedAt", "<=", Timestamp.fromDate(endDate))
-          .get();
+        // For organization scope, get all stables in the organization
+        let stableIds: string[] = [stableId];
+        const stableSummaries: StableFairnessSummary[] = [];
+
+        // Track if user is admin (for email visibility)
+        let isOrgAdmin = false;
+        // Check if user is stable owner
+        const isStableOwner =
+          stableDoc.exists && stableDoc.data()?.ownerId === user.uid;
+
+        if (scope === "organization" && organizationId) {
+          // SECURITY: Validate user has organization-level access or access to multiple stables
+          const userAccessibleStables = await getUserAccessibleStableIds(
+            user.uid,
+          );
+          isOrgAdmin = await isOrganizationAdmin(user.uid, organizationId);
+
+          const orgStablesSnapshot = await db
+            .collection("stables")
+            .where("organizationId", "==", organizationId)
+            .get();
+
+          const allOrgStableIds = orgStablesSnapshot.docs.map((doc) => doc.id);
+
+          // SECURITY: Filter to only stables user has access to
+          stableIds = allOrgStableIds.filter((sid) =>
+            userAccessibleStables.includes(sid),
+          );
+
+          // If user only has access to 1 or 0 stables in this org, revert to stable scope
+          if (stableIds.length <= 1) {
+            stableIds = [stableId];
+            // Don't return organization-level data if user doesn't have multi-stable access
+          } else {
+            // Build stable summaries only for accessible stables
+            for (const doc of orgStablesSnapshot.docs) {
+              if (stableIds.includes(doc.id)) {
+                stableSummaries.push({
+                  stableId: doc.id,
+                  stableName: doc.data().name || "Unknown",
+                  totalPoints: 0,
+                  memberCount: 0,
+                });
+              }
+            }
+          }
+        }
 
         // Aggregate points by user
         const memberMap = new Map<
@@ -244,28 +340,47 @@ export async function fairnessRoutes(fastify: FastifyInstance) {
             recentPoints: number; // Second half of period
             olderPoints: number; // First half of period
             tasksCompleted: number;
+            stables: Map<string, string>; // stableId -> stableName
           }
         >();
 
-        for (const doc of instancesSnapshot.docs) {
-          const instance = doc.data() as RoutineInstance;
-
-          if (!instance.completedBy) continue;
-
-          const userId = instance.completedBy;
-          const displayName = instance.completedByName || "Unknown";
-          const points = instance.pointsAwarded || instance.pointsValue || 0;
-
-          let completedDate: Date;
-          if (instance.completedAt) {
-            if (typeof (instance.completedAt as any).toDate === "function") {
-              completedDate = (instance.completedAt as any).toDate();
-            } else {
-              completedDate = new Date(instance.completedAt as any);
-            }
-          } else {
-            continue;
+        // Template breakdown map
+        const templateMap = new Map<
+          string,
+          {
+            templateId: string;
+            templateName: string;
+            templateType: "morning" | "midday" | "evening" | "custom";
+            templateColor?: string;
+            totalPoints: number;
+            instanceCount: number;
           }
+        >();
+
+        // Track points per stable for summaries
+        const stablePointsMap = new Map<
+          string,
+          { points: number; members: Set<string> }
+        >();
+
+        // Helper function to process routine instances
+        const processInstance = (
+          instance: RoutineInstance,
+          referenceDate: Date,
+          instanceStableId: string,
+          instanceStableName: string,
+        ) => {
+          const userId =
+            instance.status === "completed"
+              ? instance.completedBy
+              : instance.assignedTo;
+          if (!userId) return;
+
+          const displayName =
+            instance.status === "completed"
+              ? instance.completedByName || "Unknown"
+              : instance.assignedToName || "Unknown";
+          const points = instance.pointsAwarded || instance.pointsValue || 0;
 
           const existing = memberMap.get(userId) || {
             userId,
@@ -275,20 +390,153 @@ export async function fairnessRoutes(fastify: FastifyInstance) {
             recentPoints: 0,
             olderPoints: 0,
             tasksCompleted: 0,
+            stables: new Map(),
           };
 
           existing.totalPoints += points;
           existing.tasksCompleted += 1;
+          existing.stables.set(instanceStableId, instanceStableName);
 
           // Split into recent vs older for trend calculation
-          if (completedDate >= midpoint) {
+          if (referenceDate >= midpoint) {
             existing.recentPoints += points;
           } else {
             existing.olderPoints += points;
           }
 
           memberMap.set(userId, existing);
+
+          // Track stable points for organization scope
+          const stableStats = stablePointsMap.get(instanceStableId) || {
+            points: 0,
+            members: new Set<string>(),
+          };
+          stableStats.points += points;
+          stableStats.members.add(userId);
+          stablePointsMap.set(instanceStableId, stableStats);
+
+          // Track template breakdown if requested
+          if (groupByTemplate && instance.templateId) {
+            const templateKey = instance.templateId;
+            const existingTemplate = templateMap.get(templateKey) || {
+              templateId: instance.templateId,
+              templateName: instance.templateName || "Unknown",
+              // Type will be determined from template name pattern or default to custom
+              templateType: inferTemplateType(instance.templateName) as
+                | "morning"
+                | "midday"
+                | "evening"
+                | "custom",
+              templateColor: undefined, // Color would need to come from template lookup
+              totalPoints: 0,
+              instanceCount: 0,
+            };
+            existingTemplate.totalPoints += points;
+            existingTemplate.instanceCount += 1;
+            templateMap.set(templateKey, existingTemplate);
+          }
+        };
+
+        // Get stable name lookup for organization scope
+        const stableNameMap = new Map<string, string>();
+        if (scope === "organization") {
+          for (const summary of stableSummaries) {
+            stableNameMap.set(summary.stableId, summary.stableName);
+          }
+        } else {
+          stableNameMap.set(stableId, stableName || "Unknown");
         }
+
+        // Query instances for each stable (Firestore limits "in" to 10 items)
+        // Process stables in batches if needed
+        const queryStables = async (stableIdList: string[]) => {
+          // Query completed routine instances if needed
+          if (statusFilter === "completed" || statusFilter === "all") {
+            for (const queryStableId of stableIdList) {
+              const completedSnapshot = await db
+                .collection("routineInstances")
+                .where("stableId", "==", queryStableId)
+                .where("status", "==", "completed")
+                .where("completedAt", ">=", Timestamp.fromDate(startDate))
+                .where("completedAt", "<=", Timestamp.fromDate(endDate))
+                .get();
+
+              const queryStableName =
+                stableNameMap.get(queryStableId) || "Unknown";
+
+              for (const doc of completedSnapshot.docs) {
+                const instance = doc.data() as RoutineInstance;
+                if (!instance.completedBy || !instance.completedAt) continue;
+
+                let completedDate: Date;
+                if (
+                  typeof (instance.completedAt as any).toDate === "function"
+                ) {
+                  completedDate = (instance.completedAt as any).toDate();
+                } else {
+                  completedDate = new Date(instance.completedAt as any);
+                }
+
+                processInstance(
+                  instance,
+                  completedDate,
+                  queryStableId,
+                  queryStableName,
+                );
+              }
+            }
+          }
+
+          // Query planned (scheduled/in_progress) routine instances if needed
+          // Only count routines with a specific user assigned
+          if (statusFilter === "planned" || statusFilter === "all") {
+            for (const queryStableId of stableIdList) {
+              const plannedSnapshot = await db
+                .collection("routineInstances")
+                .where("stableId", "==", queryStableId)
+                .where("status", "in", ["scheduled", "started", "in_progress"])
+                .where("scheduledDate", ">=", Timestamp.fromDate(startDate))
+                .where("scheduledDate", "<=", Timestamp.fromDate(endDate))
+                .get();
+
+              const queryStableName =
+                stableNameMap.get(queryStableId) || "Unknown";
+
+              for (const doc of plannedSnapshot.docs) {
+                const instance = doc.data() as RoutineInstance;
+                // Only include planned routines with a specific user assigned
+                if (!instance.assignedTo) continue;
+
+                let scheduledDateValue: Date;
+                if (instance.scheduledDate) {
+                  if (
+                    typeof (instance.scheduledDate as any).toDate === "function"
+                  ) {
+                    scheduledDateValue = (
+                      instance.scheduledDate as any
+                    ).toDate();
+                  } else {
+                    scheduledDateValue = new Date(
+                      instance.scheduledDate as any,
+                    );
+                  }
+                } else {
+                  continue;
+                }
+
+                processInstance(
+                  instance,
+                  scheduledDateValue,
+                  queryStableId,
+                  queryStableName,
+                );
+              }
+            }
+          }
+        };
+
+        // Execute queries for all stables
+        await queryStables(stableIds);
 
         // Convert to array and calculate metrics
         const memberArray = Array.from(memberMap.values());
@@ -328,10 +576,26 @@ export async function fairnessRoutes(fastify: FastifyInstance) {
           // Estimate hours: assume 30 min per point on average
           const estimatedHoursWorked = (member.totalPoints * 30) / 60;
 
+          // Convert stables Map to array for organization scope
+          const memberStables =
+            scope === "organization"
+              ? Array.from(member.stables.entries()).map(([sid, sname]) => ({
+                  stableId: sid,
+                  stableName: sname,
+                }))
+              : undefined;
+
+          // SECURITY: Only expose email to admins, stable owners, or the member themselves
+          const canSeeEmail =
+            isOrgAdmin ||
+            isStableOwner ||
+            user.role === "system_admin" ||
+            member.userId === user.uid;
+
           return {
             userId: member.userId,
             displayName: member.displayName,
-            email: member.email,
+            email: canSeeEmail ? member.email : "",
             totalPoints: member.totalPoints,
             pointsThisPeriod: member.totalPoints,
             tasksCompleted: member.tasksCompleted,
@@ -342,11 +606,33 @@ export async function fairnessRoutes(fastify: FastifyInstance) {
             deviationFromAverage: Math.round(deviationFromAverage * 10) / 10,
             trend,
             trendValue,
+            stables: memberStables,
           };
         });
 
         // Sort by total points descending
         members.sort((a, b) => b.totalPoints - a.totalPoints);
+
+        // Update stable summaries with actual points/members for organization scope
+        let finalStableSummaries: StableFairnessSummary[] | undefined;
+        if (scope === "organization") {
+          finalStableSummaries = stableSummaries.map((summary) => {
+            const stats = stablePointsMap.get(summary.stableId);
+            return {
+              ...summary,
+              totalPoints: stats?.points || 0,
+              memberCount: stats?.members.size || 0,
+            };
+          });
+        }
+
+        // Build template breakdown if requested
+        let templateBreakdown: TemplatePointsBreakdown[] | undefined;
+        if (groupByTemplate) {
+          templateBreakdown = Array.from(templateMap.values()).sort(
+            (a, b) => b.totalPoints - a.totalPoints,
+          );
+        }
 
         const distribution: FairnessDistribution = {
           stableId,
@@ -363,6 +649,10 @@ export async function fairnessRoutes(fastify: FastifyInstance) {
           fairnessIndex,
           giniCoefficient: Math.round(giniCoefficient * 100) / 100,
           generatedAt: new Date().toISOString(),
+          // Enhanced features
+          scope,
+          stables: finalStableSummaries,
+          templateBreakdown,
         };
 
         return { distribution };

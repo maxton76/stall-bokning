@@ -186,7 +186,8 @@
   "errors": {
     "generic": "Ett fel uppstod. Försök igen.",
     "loadFailed": "Kunde inte ladda data",
-    "connectionFailed": "Kunde inte ansluta till servern"
+    "connectionFailed": "Kunde inte ansluta till servern",
+    "notFound": "Resursen kunde inte hittas"
   },
   "weekdays": {
     "monday": "Måndag",
@@ -364,6 +365,41 @@
       "goodBalance": "Bra balans",
       "acceptable": "Acceptabel",
       "needsImprovement": "Behöver förbättras"
+    },
+    "scope": {
+      "stable": "Stall",
+      "organization": "Organisation"
+    },
+    "templateChart": {
+      "title": "Poäng per rutinmall",
+      "noData": "Ingen malldata tillgänglig",
+      "instances": "tillfällen"
+    },
+    "templateTypes": {
+      "morning": "Morgon",
+      "midday": "Mitt på dagen",
+      "evening": "Kväll",
+      "custom": "Anpassad"
+    },
+    "stableSummary": {
+      "title": "Poäng per stall",
+      "description": "Fördelning av poäng mellan stallen i organisationen",
+      "members": "medlemmar"
+    },
+    "memberDistribution": {
+      "title": "Arbetsfördelning per medlem",
+      "titleOrg": "Arbetsfördelning per medlem (alla stall)"
+    },
+    "explanation": {
+      "title": "Hur fungerar rättvis fördelning?",
+      "fairnessScore": "<strong>Rättvisepoäng</strong> visar hur jämnt arbetet fördelas. 50% = exakt genomsnitt, under 50% = fler pass behövs, över 50% = har gjort mer än genomsnittet.",
+      "fairnessIndex": "<strong>Rättviseindex</strong> ({{index}}%) mäter den totala jämnheten i stallet. Högre värde = mer rättvis fördelning.",
+      "assignmentPriority": "Vid tilldelning prioriteras medlemmar med lägre poäng för att utjämna fördelningen."
+    },
+    "legend": {
+      "balanced": "Balanserad (45-55%)",
+      "belowAverage": "Under genomsnitt (<45%)",
+      "aboveAverage": "Över genomsnitt (>55%)"
     }
   }
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -10,6 +10,8 @@ import {
   AlertCircle,
   RefreshCw,
   Scale,
+  Building2,
+  Home,
 } from "lucide-react";
 import {
   Card,
@@ -29,15 +31,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserStables } from "@/hooks/useUserStables";
 import { useFairnessDistribution } from "@/hooks/useFairnessDistribution";
+import { TemplatePointsChart } from "@/components/fairness/TemplatePointsChart";
+import type {
+  FairnessPeriod,
+  FairnessStatusFilter,
+  FairnessScope,
+  MemberFairnessData,
+} from "@stall-bokning/shared";
 import {
   getFairnessLabel,
   getFairnessColor,
   formatPeriodLabel,
-  type FairnessPeriod,
-  type MemberFairnessData,
 } from "@/services/fairnessService";
 
 /**
@@ -54,7 +62,9 @@ export default function ScheduleDistributionPage() {
   const { user } = useAuth();
 
   const [period, setPeriod] = useState<FairnessPeriod>("month");
+  const [statusFilter, setStatusFilter] = useState<FairnessStatusFilter>("all");
   const [selectedStableId, setSelectedStableId] = useState<string>("");
+  const [scope, setScope] = useState<FairnessScope>("stable");
 
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
@@ -62,7 +72,12 @@ export default function ScheduleDistributionPage() {
   // Auto-select first stable if none selected
   const activeStableId = selectedStableId || stables[0]?.id;
 
-  // Fetch real fairness data
+  // Check if user has organization membership by checking if any stable has an organizationId
+  const hasOrganization = useMemo(() => {
+    return stables.some((stable) => stable.organizationId);
+  }, [stables]);
+
+  // Fetch real fairness data with enhanced options
   const {
     data: distribution,
     isLoading,
@@ -70,7 +85,10 @@ export default function ScheduleDistributionPage() {
     error,
     refetch,
     isRefetching,
-  } = useFairnessDistribution(activeStableId, period);
+  } = useFairnessDistribution(activeStableId, period, statusFilter, {
+    scope,
+    groupByTemplate: true,
+  });
 
   const getTrendIcon = (
     trend: MemberFairnessData["trend"],
@@ -233,9 +251,29 @@ export default function ScheduleDistributionPage() {
             {t("common:schedule.distribution.subtitle")}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Stable Selector */}
-          {stables.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Scope Tabs - Only show if user has multiple stables (organization) */}
+          {hasOrganization && (
+            <Tabs
+              value={scope}
+              onValueChange={(v) => setScope(v as FairnessScope)}
+              className="mr-2"
+            >
+              <TabsList>
+                <TabsTrigger value="stable" className="gap-1.5">
+                  <Home className="h-3.5 w-3.5" />
+                  {t("common:fairness.scope.stable", "Stall")}
+                </TabsTrigger>
+                <TabsTrigger value="organization" className="gap-1.5">
+                  <Building2 className="h-3.5 w-3.5" />
+                  {t("common:fairness.scope.organization", "Organisation")}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+
+          {/* Stable Selector - Only relevant for stable scope or selecting base stable */}
+          {stables.length > 1 && scope === "stable" && (
             <Select value={activeStableId} onValueChange={setSelectedStableId}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Välj stall" />
@@ -249,6 +287,29 @@ export default function ScheduleDistributionPage() {
               </SelectContent>
             </Select>
           )}
+
+          {/* Status Filter Selector */}
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => setStatusFilter(v as FairnessStatusFilter)}
+          >
+            <SelectTrigger className="w-[160px]">
+              <SelectValue
+                placeholder={t("common:fairness.filters.placeholder", "Status")}
+              />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                {t("common:fairness.filters.all", "Alla")}
+              </SelectItem>
+              <SelectItem value="completed">
+                {t("common:fairness.filters.completed", "Genomförda")}
+              </SelectItem>
+              <SelectItem value="planned">
+                {t("common:fairness.filters.planned", "Planerade")}
+              </SelectItem>
+            </SelectContent>
+          </Select>
 
           {/* Period Selector */}
           <Select
@@ -294,7 +355,14 @@ export default function ScheduleDistributionPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Totalt poäng</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {statusFilter !== "completed"
+                ? t(
+                    "common:fairness.labels.totalPointsIncPlanned",
+                    "Totalt poäng (inkl. planerade)",
+                  )
+                : t("common:fairness.labels.totalPoints", "Totalt poäng")}
+            </CardTitle>
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -308,7 +376,10 @@ export default function ScheduleDistributionPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Genomsnitt/medlem
+              {t(
+                "common:fairness.labels.averagePerMember",
+                "Genomsnitt/medlem",
+              )}
             </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -317,7 +388,10 @@ export default function ScheduleDistributionPage() {
               {distribution.averagePointsPerMember}
             </div>
             <p className="text-xs text-muted-foreground">
-              poäng per aktiv medlem
+              {t(
+                "common:fairness.labels.pointsPerMember",
+                "poäng per aktiv medlem",
+              )}
             </p>
           </CardContent>
         </Card>
@@ -325,7 +399,7 @@ export default function ScheduleDistributionPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Aktiva medlemmar
+              {t("common:fairness.labels.activeMembers", "Aktiva medlemmar")}
             </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -333,13 +407,25 @@ export default function ScheduleDistributionPage() {
             <div className="text-2xl font-bold">
               {distribution.activeMemberCount}
             </div>
-            <p className="text-xs text-muted-foreground">deltar i schema</p>
+            <p className="text-xs text-muted-foreground">
+              {t(
+                "common:fairness.labels.participatingInSchedule",
+                "deltar i schema",
+              )}
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Rättviseindex</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {statusFilter !== "completed"
+                ? t(
+                    "common:fairness.labels.fairnessIndexIncPlanned",
+                    "Rättviseindex (inkl. planerade)",
+                  )
+                : t("common:fairness.labels.fairnessIndex", "Rättviseindex")}
+            </CardTitle>
             <Scale className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -350,19 +436,87 @@ export default function ScheduleDistributionPage() {
             </div>
             <p className="text-xs text-muted-foreground">
               {distribution.fairnessIndex >= 70
-                ? "Bra balans"
+                ? t("common:fairness.status.goodBalance", "Bra balans")
                 : distribution.fairnessIndex >= 50
-                  ? "Acceptabel"
-                  : "Behöver förbättras"}
+                  ? t("common:fairness.status.acceptable", "Acceptabel")
+                  : t(
+                      "common:fairness.status.needsImprovement",
+                      "Behöver förbättras",
+                    )}
             </p>
           </CardContent>
         </Card>
       </div>
 
+      {/* Template Breakdown Chart */}
+      {distribution.templateBreakdown &&
+        distribution.templateBreakdown.length > 0 && (
+          <TemplatePointsChart
+            templateBreakdown={distribution.templateBreakdown}
+            totalPoints={distribution.totalPoints}
+          />
+        )}
+
+      {/* Organization Stables Summary - Only show in organization scope */}
+      {scope === "organization" &&
+        distribution.stables &&
+        distribution.stables.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {t("common:fairness.stableSummary.title", "Poäng per stall")}
+              </CardTitle>
+              <CardDescription>
+                {t(
+                  "common:fairness.stableSummary.description",
+                  "Fördelning av poäng mellan stallen i organisationen",
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {distribution.stables.map((stable) => (
+                  <div
+                    key={stable.stableId}
+                    className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
+                  >
+                    <div>
+                      <p className="font-medium">{stable.stableName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {stable.memberCount}{" "}
+                        {t(
+                          "common:fairness.stableSummary.members",
+                          "medlemmar",
+                        )}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-bold">{stable.totalPoints}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t("common:labels.points")}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
       {/* Member Distribution */}
       <Card>
         <CardHeader>
-          <CardTitle>Arbetsfördelning per medlem</CardTitle>
+          <CardTitle>
+            {scope === "organization"
+              ? t(
+                  "common:fairness.memberDistribution.titleOrg",
+                  "Arbetsfördelning per medlem (alla stall)",
+                )
+              : t(
+                  "common:fairness.memberDistribution.title",
+                  "Arbetsfördelning per medlem",
+                )}
+          </CardTitle>
           <CardDescription>
             {formatPeriodLabel(period)} ({distribution.periodStartDate} -{" "}
             {distribution.periodEndDate})
@@ -392,6 +546,16 @@ export default function ScheduleDistributionPage() {
                           {member.totalPoints} poäng · {member.tasksCompleted}{" "}
                           uppgifter · ~{member.estimatedHoursWorked}h
                         </p>
+                        {/* Show stables in organization scope */}
+                        {scope === "organization" &&
+                          member.stables &&
+                          member.stables.length > 0 && (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {member.stables
+                                .map((s) => s.stableName)
+                                .join(", ")}
+                            </p>
+                          )}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -436,24 +600,23 @@ export default function ScheduleDistributionPage() {
       <Card className="bg-muted/30">
         <CardHeader>
           <CardTitle className="text-base">
-            Hur fungerar rättvis fördelning?
+            {t("common:fairness.explanation.title")}
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>
-            <strong>Rättvisepoäng</strong> visar hur jämnt arbetet fördelas. 50%
-            = exakt genomsnitt, under 50% = fler pass behövs, över 50% = har
-            gjort mer än genomsnittet.
-          </p>
-          <p>
-            <strong>Rättviseindex</strong> ({distribution.fairnessIndex}%) mäter
-            den totala jämnheten i stallet. Högre värde = mer rättvis
-            fördelning.
-          </p>
-          <p>
-            Vid tilldelning prioriteras medlemmar med lägre poäng för att
-            utjämna fördelningen.
-          </p>
+          <p
+            dangerouslySetInnerHTML={{
+              __html: t("common:fairness.explanation.fairnessScore"),
+            }}
+          />
+          <p
+            dangerouslySetInnerHTML={{
+              __html: t("common:fairness.explanation.fairnessIndex", {
+                index: distribution.fairnessIndex,
+              }),
+            }}
+          />
+          <p>{t("common:fairness.explanation.assignmentPriority")}</p>
         </CardContent>
       </Card>
 
@@ -461,15 +624,15 @@ export default function ScheduleDistributionPage() {
       <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-green-500" />
-          <span>Balanserad (45-55%)</span>
+          <span>{t("common:fairness.legend.balanced")}</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-blue-500" />
-          <span>Under genomsnitt (&lt;45%)</span>
+          <span>{t("common:fairness.legend.belowAverage")}</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-amber-500" />
-          <span>Över genomsnitt (&gt;55%)</span>
+          <span>{t("common:fairness.legend.aboveAverage")}</span>
         </div>
       </div>
     </div>

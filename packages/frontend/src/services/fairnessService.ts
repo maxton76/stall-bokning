@@ -2,58 +2,26 @@ import { apiClient } from "@/lib/apiClient";
 
 // ==================== Types ====================
 
-export interface MemberFairnessData {
-  userId: string;
-  displayName: string;
-  email: string;
-  avatar?: string;
+// Re-export types from shared package for convenience
+export type {
+  FairnessScope,
+  FairnessPeriod,
+  FairnessStatusFilter,
+  StableFairnessSummary,
+  TemplatePointsBreakdown,
+  MemberFairnessData,
+  FairnessDistribution,
+} from "@stall-bokning/shared";
 
-  // Points data
-  totalPoints: number;
-  pointsThisPeriod: number;
+// Import types we need to use locally
+import type {
+  FairnessScope,
+  FairnessPeriod,
+  FairnessStatusFilter,
+  FairnessDistribution,
+} from "@stall-bokning/shared";
 
-  // Task counts
-  tasksCompleted: number;
-  tasksThisPeriod: number;
-
-  // Estimated hours (points * 30 min estimated per point)
-  estimatedHoursWorked: number;
-
-  // Fairness metrics
-  fairnessScore: number; // 0-100, 50 = average
-  percentageOfTotal: number;
-  deviationFromAverage: number; // Negative = under, Positive = over
-
-  // Trend data
-  trend: "up" | "down" | "stable";
-  trendValue: number;
-}
-
-export interface FairnessDistribution {
-  stableId: string;
-  stableName?: string;
-  period: "week" | "month" | "quarter" | "year";
-  periodStartDate: string;
-  periodEndDate: string;
-
-  // Aggregate stats
-  totalPoints: number;
-  totalTasks: number;
-  averagePointsPerMember: number;
-  averageTasksPerMember: number;
-  activeMemberCount: number;
-
-  // Member data
-  members: MemberFairnessData[];
-
-  // Fairness metrics
-  fairnessIndex: number; // 0-100, higher = more fair
-  giniCoefficient: number; // 0 = perfect equality, 1 = max inequality
-
-  // Generated timestamp
-  generatedAt: string;
-}
-
+// Local types not in shared package
 export interface MemberPointsHistory {
   userId: string;
   displayName: string;
@@ -74,7 +42,10 @@ export interface AssignmentSuggestion {
   priority: number; // 1-10, higher = should be assigned more
 }
 
-export type FairnessPeriod = "week" | "month" | "quarter" | "year";
+export interface FairnessDistributionOptions {
+  scope?: FairnessScope;
+  groupByTemplate?: boolean;
+}
 
 // ==================== API Functions ====================
 
@@ -84,10 +55,21 @@ export type FairnessPeriod = "week" | "month" | "quarter" | "year";
 export async function getFairnessDistribution(
   stableId: string,
   period: FairnessPeriod = "month",
+  statusFilter: FairnessStatusFilter = "completed",
+  options?: FairnessDistributionOptions,
 ): Promise<FairnessDistribution> {
+  const params: Record<string, string> = { period, statusFilter };
+
+  if (options?.scope) {
+    params.scope = options.scope;
+  }
+  if (options?.groupByTemplate) {
+    params.groupByTemplate = "true";
+  }
+
   const response = await apiClient.get<{ distribution: FairnessDistribution }>(
     `/fairness/distribution/${stableId}`,
-    { period },
+    params,
   );
 
   return response.distribution;
