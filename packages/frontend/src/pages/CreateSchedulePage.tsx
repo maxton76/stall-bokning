@@ -470,7 +470,7 @@ export default function CreateSchedulePage() {
                   {t("schedules:createPage.routines.noTemplates")}
                 </p>
                 <Link
-                  to="/settings/routines"
+                  to="/schedule/routinetemplates"
                   className="text-sm text-primary hover:underline"
                 >
                   {t("schedules:createPage.routines.createTemplateLink")}

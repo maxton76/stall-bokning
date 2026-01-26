@@ -298,6 +298,7 @@ export async function routineSchedulesRoutes(fastify: FastifyInstance) {
           assignmentMode: input.assignmentMode,
           defaultAssignedTo: input.defaultAssignedTo,
           defaultAssignedToName,
+          customAssignments: input.customAssignments,
 
           // Status
           isEnabled: true,

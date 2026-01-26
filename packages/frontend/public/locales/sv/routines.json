@@ -40,6 +40,29 @@
     "missed": "Missad",
     "cancelled": "Avbruten"
   },
+  "instance": {
+    "detailsTitle": "Rutindetaljer",
+    "status": "Status",
+    "scheduledTime": "Tid",
+    "assignedTo": "Tilldelad till",
+    "unassigned": "Ej tilldelad",
+    "pointsValue": "Poängvärde",
+    "progress": "Framsteg",
+    "startRoutine": "Starta rutin",
+    "reassign": "Byt tilldelning",
+    "reassignTitle": "Byt tilldelning",
+    "currentAssignee": "Nuvarande tilldelning",
+    "newAssignee": "Ny tilldelning",
+    "selectMember": "Välj person...",
+    "confirmReassign": "Bekräfta byte",
+    "reassigning": "Byter...",
+    "confirmReassignTitle": "Bekräfta byte av tilldelning",
+    "confirmReassignMessage": "Är du säker på att du vill tilldela \"{{routineName}}\" till {{newAssignee}}?",
+    "reassignSuccess": "Tilldelning ändrad",
+    "reassignSuccessMessage": "Rutinen är nu tilldelad till {{name}}",
+    "reassignError": "Kunde inte byta tilldelning",
+    "reassignErrorMessage": "Ett fel uppstod vid byte av tilldelning. Försök igen."
+  },
   "stepStatus": {
     "pending": "Väntar",
     "in_progress": "Pågår",
@@ -321,6 +344,7 @@
     "noSchedules": "Inga scheman ännu",
     "noSchedulesDescription": "Skapa ett schema för att automatiskt generera rutininstanser.",
     "loadError": "Kunde inte ladda scheman",
+    "tryAgainLater": "Försök igen senare",
     "enabled": "Aktivt",
     "disabled": "Inaktivt",
     "enable": "Aktivera",
@@ -346,7 +370,9 @@
     },
     "dialog": {
       "createTitle": "Skapa rutinschema",
+      "createDescription": "Ange detaljer för det nya rutinschemat.",
       "editTitle": "Redigera rutinschema",
+      "editDescription": "Ändra detaljer för rutinschemat.",
       "name": "Schemanamn",
       "namePlaceholder": "T.ex. Morgonpass vardagar",
       "nameDescription": "Valfritt namn för att enklare identifiera schemat",
@@ -357,7 +383,9 @@
       "startDateDescription": "Datum då schemat börjar gälla",
       "endDate": "Slutdatum",
       "endDateDescription": "Lämna tomt för löpande schema",
-      "noEndDate": "Inget slutdatum (löpande)",
+      "endDateRequired": "Slutdatum krävs",
+      "maxDurationError": "Schemat kan inte vara längre än 12 månader",
+      "pointsShort": "p",
       "repeatPattern": "Upprepningsmönster",
       "repeatPatternDescription": "Hur ofta rutinen ska upprepas",
       "repeatDays": "Dagar",
@@ -369,6 +397,12 @@
       "defaultAssignee": "Standardtilldelning",
       "defaultAssigneePlaceholder": "Välj person...",
       "defaultAssigneeDescription": "Person som tilldelas rutinen som standard",
+      "assignmentDescription": {
+        "auto": "Rutinen tilldelas automatiskt baserat på arbetsschema och rättvisepoäng.",
+        "unassigned": "Rutinen skapas utan tilldelning och kan plockas av tillgänglig personal.",
+        "manual": "Rutinen tilldelas alltid till vald person.",
+        "selfBooked": "Personal kan själv boka in sig på rutinen."
+      },
       "isEnabled": "Aktivt schema",
       "isEnabledDescription": "Inaktiva scheman genererar inga nya rutininstanser",
       "save": "Spara schema",
@@ -385,6 +419,23 @@
       "weekdays": "Vardagar",
       "weekends": "Helger",
       "custom": "Anpassad"
+    },
+    "preview": {
+      "title": "Förhandsgranska tilldelningar",
+      "description": "Granska och justera tilldelningar innan du skapar schemat",
+      "summary_one": "{{count}} rutininstans kommer att skapas",
+      "summary_other": "{{count}} rutininstanser kommer att skapas",
+      "dateRange": "Från {{start}} till {{end}}",
+      "columns": {
+        "date": "Datum",
+        "time": "Tid",
+        "assignedTo": "Tilldelad till"
+      },
+      "unassigned": "Ej tilldelad",
+      "create": "Skapa schema",
+      "previewButton": "Förhandsgranska...",
+      "fairnessHint": "Förslag baseras på rättvisalgoritmen som fördelar uppgifter jämnt",
+      "assigned": "tilldelade"
     }
   }
 }

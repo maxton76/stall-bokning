@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import {
   getOrganizationMembers,
   getActiveOrganizationMembers,
@@ -25,11 +25,11 @@ function hasStableAccess(
  * @returns Query result with organization members
  */
 export function useOrganizationMembers(organizationId: string | null) {
-  return useQuery<OrganizationMember[]>({
-    queryKey: ["organizationMembers", organizationId],
-    queryFn: () => getOrganizationMembers(organizationId!),
-    enabled: !!organizationId,
-  });
+  return useApiQuery<OrganizationMember[]>(
+    ["organizationMembers", organizationId],
+    () => getOrganizationMembers(organizationId!),
+    { enabled: !!organizationId },
+  );
 }
 
 /**
@@ -38,11 +38,11 @@ export function useOrganizationMembers(organizationId: string | null) {
  * @returns Query result with active organization members
  */
 export function useActiveOrganizationMembers(organizationId: string | null) {
-  return useQuery<OrganizationMember[]>({
-    queryKey: ["organizationMembers", organizationId, "active"],
-    queryFn: () => getActiveOrganizationMembers(organizationId!),
-    enabled: !!organizationId,
-  });
+  return useApiQuery<OrganizationMember[]>(
+    ["organizationMembers", organizationId, "active"],
+    () => getActiveOrganizationMembers(organizationId!),
+    { enabled: !!organizationId },
+  );
 }
 
 /**

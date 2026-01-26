@@ -35,7 +35,8 @@ export type AuditResource =
   | "vaccinationRule"
   | "horseFeeding" // Horse feeding schedules
   | "feedType" // Feed types (hay, grain, etc.)
-  | "feedingTime"; // Feeding times (morning, evening, etc.)
+  | "feedingTime" // Feeding times (morning, evening, etc.)
+  | "routineInstance"; // Routine instances
 
 /**
  * Field-level change details
@@ -90,6 +91,19 @@ export interface RoleChangeDetails {
 }
 
 /**
+ * Routine reassignment details
+ */
+export interface RoutineReassignmentDetails {
+  instanceId: string;
+  routineName: string;
+  previousAssigneeId: string | null;
+  previousAssigneeName: string | null;
+  newAssigneeId: string;
+  newAssigneeName: string;
+  assignmentType: "manual";
+}
+
+/**
  * Audit log entry
  */
 export interface AuditLog {
@@ -117,6 +131,7 @@ export interface AuditLog {
     assignment?: AssignmentDetails;
     statusChange?: ReservationStatusChange;
     roleChange?: RoleChangeDetails;
+    routineReassignment?: RoutineReassignmentDetails;
     [key: string]: unknown; // Allow additional custom fields
   };
 
@@ -155,6 +170,7 @@ export interface CreateAuditLogData {
     assignment?: AssignmentDetails;
     statusChange?: ReservationStatusChange;
     roleChange?: RoleChangeDetails;
+    routineReassignment?: RoutineReassignmentDetails;
     [key: string]: unknown;
   };
 

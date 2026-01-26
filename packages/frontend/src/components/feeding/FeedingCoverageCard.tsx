@@ -243,7 +243,7 @@ export function FeedingCoverageCard({
               </div>
               {status.isCovered && status.coveredBy ? (
                 <Link
-                  to={`/routines/${status.coveredBy.routineId}`}
+                  to={`/routines/flow/${status.coveredBy.routineId}`}
                   className="text-xs text-muted-foreground hover:text-foreground hover:underline"
                 >
                   {status.coveredBy.routineName}

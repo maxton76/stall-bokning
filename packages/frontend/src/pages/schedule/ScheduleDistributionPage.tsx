@@ -223,6 +223,99 @@ export default function ScheduleDistributionPage() {
               {t("common:schedule.distribution.subtitle")}
             </p>
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Scope Tabs - Only show if user has organization */}
+            {hasOrganization && (
+              <Tabs
+                value={scope}
+                onValueChange={(v) => setScope(v as FairnessScope)}
+                className="mr-2"
+              >
+                <TabsList>
+                  <TabsTrigger value="stable" className="gap-1.5">
+                    <Home className="h-3.5 w-3.5" />
+                    {t("common:fairness.scope.stable", "Stall")}
+                  </TabsTrigger>
+                  <TabsTrigger value="organization" className="gap-1.5">
+                    <Building2 className="h-3.5 w-3.5" />
+                    {t("common:fairness.scope.organization", "Organisation")}
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
+
+            {/* Stable Selector */}
+            {stables.length > 1 && scope === "stable" && (
+              <Select
+                value={activeStableId}
+                onValueChange={setSelectedStableId}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Välj stall" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stables.map((stable) => (
+                    <SelectItem key={stable.id} value={stable.id}>
+                      {stable.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Status Filter Selector */}
+            <Select
+              value={statusFilter}
+              onValueChange={(v) => setStatusFilter(v as FairnessStatusFilter)}
+            >
+              <SelectTrigger className="w-[160px]">
+                <SelectValue
+                  placeholder={t(
+                    "common:fairness.filters.placeholder",
+                    "Status",
+                  )}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  {t("common:fairness.filters.all", "Alla")}
+                </SelectItem>
+                <SelectItem value="completed">
+                  {t("common:fairness.filters.completed", "Genomförda")}
+                </SelectItem>
+                <SelectItem value="planned">
+                  {t("common:fairness.filters.planned", "Planerade")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Period Selector */}
+            <Select
+              value={period}
+              onValueChange={(v) => setPeriod(v as FairnessPeriod)}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Välj period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="week">Senaste veckan</SelectItem>
+                <SelectItem value="month">Senaste månaden</SelectItem>
+                <SelectItem value="quarter">Senaste kvartalet</SelectItem>
+                <SelectItem value="year">Senaste året</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => refetch()}
+              disabled={isRefetching}
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${isRefetching ? "animate-spin" : ""}`}
+              />
+            </Button>
+          </div>
         </div>
 
         <Card className="p-8 text-center">

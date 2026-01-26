@@ -763,7 +763,9 @@ function App() {
                   />
                   <Route
                     path="/routines/templates"
-                    element={<Navigate to="/settings/routines" replace />}
+                    element={
+                      <Navigate to="/schedule/routinetemplates" replace />
+                    }
                   />
                   <Route
                     path="/routines/analytics"
@@ -789,7 +791,7 @@ function App() {
                     element={<Navigate to="/settings" replace />}
                   />
                   <Route
-                    path="/settings/routines"
+                    path="/schedule/routinetemplates"
                     element={
                       <Suspense fallback={<InlineLoader />}>
                         <RoutineTemplatesPage />

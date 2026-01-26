@@ -1,5 +1,5 @@
 // Service Worker for Stallbokning PWA
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const STATIC_CACHE = `stallbokning-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `stallbokning-dynamic-${CACHE_VERSION}`;
 const API_CACHE = `stallbokning-api-${CACHE_VERSION}`;

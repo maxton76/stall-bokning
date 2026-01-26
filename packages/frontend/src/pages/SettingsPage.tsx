@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Bell, Moon, Globe, Shield, Loader2 } from "lucide-react";
+import { Bell, Moon, Globe, Shield, Loader2, Settings2 } from "lucide-react";
 import { ToggleSetting } from "@/components/settings/fields/ToggleSetting";
 import { SettingSection } from "@/components/settings/sections/SettingSection";
 import {
@@ -21,6 +21,9 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { authFetchJSON } from "@/utils/authFetch";
 import { useToast } from "@/hooks/use-toast";
+import { useUserStables } from "@/hooks/useUserStables";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
+import { useLanguageSync } from "@/hooks/useLanguageSync";
 
 interface UserSettings {
   emailNotifications?: boolean;
@@ -38,6 +41,16 @@ export default function SettingsPage() {
   const [darkMode, setDarkMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // User preferences (default stable, language sync)
+  const { stables, loading: stablesLoading } = useUserStables(user?.uid);
+  const {
+    preferences,
+    isLoading: preferencesLoading,
+    setDefaultStable,
+    isUpdating: preferencesUpdating,
+  } = useUserPreferences();
+  const { changeLanguageAndSync } = useLanguageSync();
 
   // Load user settings on mount
   useEffect(() => {
@@ -63,8 +76,27 @@ export default function SettingsPage() {
     loadSettings();
   }, [user]);
 
-  const handleLanguageChange = (lang: string) => {
-    i18n.changeLanguage(lang);
+  const handleLanguageChange = async (lang: string) => {
+    // Use the sync function to persist language to Firestore
+    await changeLanguageAndSync(lang as "sv" | "en");
+  };
+
+  const handleDefaultStableChange = async (stableId: string) => {
+    try {
+      // "none" means clear the default
+      await setDefaultStable(stableId === "none" ? null : stableId);
+      toast({
+        title: t("common:messages.success"),
+        description: t("settings:messages.saved"),
+      });
+    } catch (error) {
+      console.error("Failed to update default stable:", error);
+      toast({
+        title: t("common:messages.error"),
+        description: t("common:messages.saveFailed"),
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSaveSettings = async () => {
@@ -114,6 +146,47 @@ export default function SettingsPage() {
           {t("settings:page.description")}
         </p>
       </div>
+
+      {/* Default Selections */}
+      <SettingSection
+        title={t("settings:sections.defaults.title")}
+        description={t("settings:sections.defaults.description")}
+        icon={Settings2}
+      >
+        <div className="space-y-2">
+          <Label htmlFor="default-stable">
+            {t("settings:sections.defaults.defaultStable.label")}
+          </Label>
+          <Select
+            value={preferences?.defaultStableId || "none"}
+            onValueChange={handleDefaultStableChange}
+            disabled={
+              stablesLoading || preferencesLoading || preferencesUpdating
+            }
+          >
+            <SelectTrigger id="default-stable">
+              <SelectValue
+                placeholder={t(
+                  "settings:sections.defaults.defaultStable.placeholder",
+                )}
+              />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">
+                {t("settings:sections.defaults.defaultStable.noStable")}
+              </SelectItem>
+              {stables.map((stable) => (
+                <SelectItem key={stable.id} value={stable.id}>
+                  {stable.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            {t("settings:sections.defaults.defaultStable.description")}
+          </p>
+        </div>
+      </SettingSection>
 
       {/* Notifications */}
       <SettingSection

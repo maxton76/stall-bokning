@@ -8,6 +8,16 @@
       "title": "Stallinformation",
       "description": "Grundläggande information om ditt stall"
     },
+    "defaults": {
+      "title": "Standardval",
+      "description": "Ställ in standardvärden som används i appen",
+      "defaultStable": {
+        "label": "Standardstall",
+        "description": "Det här stallet väljs automatiskt när du öppnar schema- och utfodringssidor",
+        "placeholder": "Välj standardstall",
+        "noStable": "Inget standardstall"
+      }
+    },
     "scheduling": {
       "title": "Schemapreferenser",
       "description": "Konfigurera hur scheman skapas och hanteras",
@@ -76,6 +86,7 @@
         "monthly": "Månadsvis",
         "quarterly": "Kvartalsvis",
         "yearly": "Årsvis",
+        "rolling": "Rullande",
         "never": "Aldrig"
       }
     },
@@ -130,6 +141,13 @@
     "saved": "Dina inställningar har sparats"
   },
   "tabs": {
-    "general": "Allmänt"
+    "general": "Allmänt",
+    "weighting": "Rättvisa",
+    "scheduling": "Schemaläggning",
+    "notifications": "Notifieringar"
+  },
+  "stableSettings": {
+    "title": "Stallinställningar",
+    "description": "Hantera inställningar för detta stall"
   }
 }

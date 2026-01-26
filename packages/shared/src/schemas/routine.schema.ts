@@ -143,7 +143,7 @@ export const createRoutineTemplateSchema = z.object({
     .max(20, "Maximum 20 steps allowed"),
   requiresNotesRead: z.boolean().optional().default(true),
   allowSkipSteps: z.boolean().optional().default(true),
-  pointsValue: z.number().int().min(1).max(10).optional().default(1),
+  pointsValue: z.number().int().min(1).max(100).optional().default(1),
 });
 
 export const updateRoutineTemplateSchema = z.object({
@@ -157,7 +157,7 @@ export const updateRoutineTemplateSchema = z.object({
   steps: z.array(createRoutineStepSchema).min(1).max(20).optional(),
   requiresNotesRead: z.boolean().optional(),
   allowSkipSteps: z.boolean().optional(),
-  pointsValue: z.number().int().min(1).max(10).optional(),
+  pointsValue: z.number().int().min(1).max(100).optional(),
   isActive: z.boolean().optional(),
 });
 

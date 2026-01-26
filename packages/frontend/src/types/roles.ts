@@ -22,6 +22,36 @@ export type StableMemberRole = "manager" | "member";
 export type MembershipStatus = "active" | "inactive" | "pending";
 
 /**
+ * Points system configuration
+ */
+export interface PointsSystemConfig {
+  resetPeriod: "monthly" | "quarterly" | "yearly" | "rolling" | "never";
+  memoryHorizonDays: number;
+  holidayMultiplier: number;
+}
+
+/**
+ * Scheduling configuration
+ */
+export interface SchedulingConfig {
+  scheduleHorizonDays: number;
+  autoAssignment: boolean;
+  allowSwaps: boolean;
+  requireApproval: boolean;
+}
+
+/**
+ * Notification configuration
+ */
+export interface NotificationConfig {
+  emailNotifications: boolean;
+  shiftReminders: boolean;
+  schedulePublished: boolean;
+  memberJoined: boolean;
+  shiftSwapRequests: boolean;
+}
+
+/**
  * User document structure
  */
 export interface User {
@@ -46,6 +76,9 @@ export interface Stable {
   ownerId: string; // Must be a user with systemRole='stable_owner'
   ownerEmail?: string; // Cached for display
   organizationId?: string; // Link to parent organization (optional for backward compatibility)
+  pointsSystem?: PointsSystemConfig;
+  schedulingConfig?: SchedulingConfig;
+  notificationConfig?: NotificationConfig;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -20,21 +21,112 @@ import {
   NotificationSettingsTab,
   type NotificationSettings,
 } from "@/components/settings/tabs/NotificationSettingsTab";
+import { getStable, updateStable } from "@/services/stableService";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import type {
+  PointsSystemConfig,
+  SchedulingConfig,
+  NotificationConfig,
+} from "@/types/roles";
+
+interface Stable {
+  id: string;
+  name: string;
+  description?: string;
+  facilityNumber?: string;
+  address?: string;
+  city?: string;
+  postalCode?: string;
+  ownerId: string;
+  organizationId?: string;
+  pointsSystem?: PointsSystemConfig;
+  schedulingConfig?: SchedulingConfig;
+  notificationConfig?: NotificationConfig;
+}
 
 export default function StableSettingsPage() {
   const { t } = useTranslation(["stables", "common", "settings"]);
   const { stableId } = useParams();
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Mock stable data
+  // Load stable data
+  const stableQuery = useApiQuery<Stable | null>(
+    queryKeys.stables.detail(stableId || ""),
+    () => getStable(stableId!) as Promise<Stable | null>,
+    {
+      enabled: !!stableId,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
+
   const [stableInfo, setStableInfo] = useState<StableInfo>({
-    name: "Green Valley Stables",
-    description: "A friendly stable community in Stockholm",
+    name: "",
+    description: "",
     facilityNumber: "",
-    address: "Vallvägen 12",
-    city: "Stockholm",
-    postalCode: "123 45",
+    address: "",
+    city: "",
+    postalCode: "",
   });
+
+  // Update form when stable data loads
+  useEffect(() => {
+    if (stableQuery.data) {
+      setStableInfo({
+        name: stableQuery.data.name || "",
+        description: stableQuery.data.description || "",
+        facilityNumber: stableQuery.data.facilityNumber || "",
+        address: stableQuery.data.address || "",
+        city: stableQuery.data.city || "",
+        postalCode: stableQuery.data.postalCode || "",
+      });
+
+      // Load weighting from pointsSystem
+      if (stableQuery.data.pointsSystem) {
+        setWeightingSettings({
+          memoryHorizonDays:
+            stableQuery.data.pointsSystem.memoryHorizonDays ?? 90,
+          resetPeriod: stableQuery.data.pointsSystem.resetPeriod ?? "quarterly",
+          pointsMultiplier:
+            stableQuery.data.pointsSystem.holidayMultiplier ?? 1.0,
+        });
+      }
+
+      // Load scheduling config
+      if (stableQuery.data.schedulingConfig) {
+        setSchedulingSettings({
+          scheduleHorizonDays:
+            stableQuery.data.schedulingConfig.scheduleHorizonDays ?? 14,
+          autoAssignment:
+            stableQuery.data.schedulingConfig.autoAssignment ?? true,
+          allowSwaps: stableQuery.data.schedulingConfig.allowSwaps ?? true,
+          requireApproval:
+            stableQuery.data.schedulingConfig.requireApproval ?? false,
+        });
+      }
+
+      // Load notification config
+      if (stableQuery.data.notificationConfig) {
+        setNotificationSettings({
+          emailNotifications:
+            stableQuery.data.notificationConfig.emailNotifications ?? true,
+          shiftReminders:
+            stableQuery.data.notificationConfig.shiftReminders ?? true,
+          schedulePublished:
+            stableQuery.data.notificationConfig.schedulePublished ?? true,
+          memberJoined:
+            stableQuery.data.notificationConfig.memberJoined ?? true,
+          shiftSwapRequests:
+            stableQuery.data.notificationConfig.shiftSwapRequests ?? true,
+        });
+      }
+    }
+  }, [stableQuery.data]);
 
   const [weightingSettings, setWeightingSettings] = useState<WeightingSettings>(
     {
@@ -63,15 +155,65 @@ export default function StableSettingsPage() {
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!stableId || !user) return;
+
     setIsLoading(true);
+    try {
+      await updateStable(stableId, user.uid, {
+        name: stableInfo.name,
+        description: stableInfo.description || undefined,
+        facilityNumber: stableInfo.facilityNumber || undefined,
+        address: stableInfo.address || undefined,
+        pointsSystem: {
+          memoryHorizonDays: weightingSettings.memoryHorizonDays,
+          resetPeriod: weightingSettings.resetPeriod,
+          holidayMultiplier: weightingSettings.pointsMultiplier,
+        },
+        schedulingConfig: schedulingSettings,
+        notificationConfig: notificationSettings,
+      });
 
-    // TODO: Implement actual settings update with Firestore
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.stables.detail(stableId),
+      });
 
-    setIsLoading(false);
-    // Show success message (toast would be nice here)
-    alert("Settings saved successfully!");
+      toast({
+        title: t("settings:messages.saved"),
+      });
+    } catch (error) {
+      console.error("Failed to save settings:", error);
+      toast({
+        title: t("common:messages.saveFailed"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  // Loading state while fetching stable data
+  if (stableQuery.isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Error state if stable not found
+  if (!stableQuery.data && !stableQuery.isLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <Link to="/stables">
+          <Button variant="ghost" className="mb-4">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            {t("common:navigation.stables")}
+          </Button>
+        </Link>
+        <p className="text-muted-foreground">{t("common:errors.notFound")}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6 space-y-6">

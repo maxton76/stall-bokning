@@ -131,6 +131,7 @@ export function RoutineTemplateEditor({
     template?.allowSkipSteps ?? true,
   );
   const [pointsValue, setPointsValue] = useState(template?.pointsValue ?? 10);
+  const [pointsError, setPointsError] = useState<string | null>(null);
   const [isActive, setIsActive] = useState(template?.isActive ?? true);
   const [steps, setSteps] = useState<RoutineStep[]>(template?.steps ?? []);
 
@@ -239,7 +240,12 @@ export function RoutineTemplateEditor({
     onSave(data);
   };
 
-  const isValid = name.trim() !== "" && steps.length > 0;
+  const isValid =
+    name.trim() !== "" &&
+    steps.length > 0 &&
+    !pointsError &&
+    pointsValue >= 1 &&
+    pointsValue <= 100;
 
   return (
     <div className="space-y-6">
@@ -332,9 +338,23 @@ export function RoutineTemplateEditor({
             id="points"
             type="number"
             value={pointsValue}
-            onChange={(e) => setPointsValue(parseInt(e.target.value) || 0)}
-            min={0}
+            onChange={(e) => {
+              const value = parseInt(e.target.value) || 0;
+              setPointsValue(value);
+              if (value > 100) {
+                setPointsError(t("routines:template.pointsValueMaxError"));
+              } else if (value < 1) {
+                setPointsError(t("routines:template.pointsValueMinError"));
+              } else {
+                setPointsError(null);
+              }
+            }}
+            min={1}
+            max={100}
           />
+          {pointsError && (
+            <p className="text-sm text-destructive mt-1">{pointsError}</p>
+          )}
         </div>
       </div>
 

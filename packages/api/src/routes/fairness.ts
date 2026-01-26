@@ -189,8 +189,13 @@ function calculateTrend(
 
 /**
  * Get date range for period
+ * @param period - Time period to analyze
+ * @param includesFuture - If true, extends endDate to include future scheduled instances
  */
-function getPeriodDateRange(period: string): {
+function getPeriodDateRange(
+  period: string,
+  includesFuture: boolean = false,
+): {
   startDate: Date;
   endDate: Date;
 } {
@@ -203,18 +208,33 @@ function getPeriodDateRange(period: string): {
   switch (period) {
     case "week":
       startDate.setDate(startDate.getDate() - 7);
+      if (includesFuture) {
+        endDate.setDate(endDate.getDate() + 7); // Include next week
+      }
       break;
     case "month":
       startDate.setMonth(startDate.getMonth() - 1);
+      if (includesFuture) {
+        endDate.setMonth(endDate.getMonth() + 1); // Include next month
+      }
       break;
     case "quarter":
       startDate.setMonth(startDate.getMonth() - 3);
+      if (includesFuture) {
+        endDate.setMonth(endDate.getMonth() + 3); // Include next quarter
+      }
       break;
     case "year":
       startDate.setFullYear(startDate.getFullYear() - 1);
+      if (includesFuture) {
+        endDate.setFullYear(endDate.getFullYear() + 1); // Include next year
+      }
       break;
     default:
       startDate.setMonth(startDate.getMonth() - 1); // Default to month
+      if (includesFuture) {
+        endDate.setMonth(endDate.getMonth() + 1);
+      }
   }
 
   return { startDate, endDate };
@@ -269,7 +289,13 @@ export async function fairnessRoutes(fastify: FastifyInstance) {
           query.statusFilter || "completed";
         const scope: FairnessScope = query.scope || "stable";
         const groupByTemplate = query.groupByTemplate === "true";
-        const { startDate, endDate } = getPeriodDateRange(period);
+        // Include future dates when filtering for planned/all instances
+        const includesFuture =
+          statusFilter === "planned" || statusFilter === "all";
+        const { startDate, endDate } = getPeriodDateRange(
+          period,
+          includesFuture,
+        );
         const midpoint = getPeriodMidpoint(startDate, endDate);
 
         // Get stable info
@@ -537,6 +563,35 @@ export async function fairnessRoutes(fastify: FastifyInstance) {
 
         // Execute queries for all stables
         await queryStables(stableIds);
+
+        // Resolve "Unknown" display names by looking up user documents
+        const unknownMembers = Array.from(memberMap.entries()).filter(
+          ([, member]) => member.displayName === "Unknown",
+        );
+
+        if (unknownMembers.length > 0) {
+          // Batch lookup user documents for unknown members
+          const userLookups = unknownMembers.map(async ([userId, member]) => {
+            try {
+              const userDoc = await db.collection("users").doc(userId).get();
+              if (userDoc.exists) {
+                const userData = userDoc.data();
+                member.displayName =
+                  userData?.displayName || userData?.email || "Unknown";
+                member.email = userData?.email || "";
+                memberMap.set(userId, member);
+              }
+            } catch (err) {
+              // Log but don't fail - keep "Unknown" as fallback
+              request.log.warn(
+                { userId, error: err },
+                "Failed to lookup user for fairness display name",
+              );
+            }
+          });
+
+          await Promise.all(userLookups);
+        }
 
         // Convert to array and calculate metrics
         const memberArray = Array.from(memberMap.values());

@@ -9,6 +9,7 @@ import type {
   RoleChangeDetails,
   ReservationStatusChange,
   AssignmentDetails,
+  RoutineReassignmentDetails,
 } from "@shared/types/auditLog";
 
 // ============================================================================
@@ -213,6 +214,54 @@ export async function logHorseUpdate(
     stableId,
     details: {
       changes,
+    },
+  });
+}
+
+/**
+ * Log routine instance reassignment
+ * @param instanceId - Routine instance ID
+ * @param routineName - Routine name
+ * @param previousAssigneeId - Previous assignee user ID (null if unassigned)
+ * @param previousAssigneeName - Previous assignee name (null if unassigned)
+ * @param newAssigneeId - New assignee user ID
+ * @param newAssigneeName - New assignee name
+ * @param userId - User making the reassignment
+ * @param stableId - Stable ID
+ * @param organizationId - Organization ID
+ * @returns Promise with created log ID
+ */
+export async function logRoutineReassignment(
+  instanceId: string,
+  routineName: string,
+  previousAssigneeId: string | null,
+  previousAssigneeName: string | null,
+  newAssigneeId: string,
+  newAssigneeName: string,
+  userId: string,
+  stableId?: string,
+  organizationId?: string,
+): Promise<string> {
+  const routineReassignment: RoutineReassignmentDetails = {
+    instanceId,
+    routineName,
+    previousAssigneeId,
+    previousAssigneeName,
+    newAssigneeId,
+    newAssigneeName,
+    assignmentType: "manual",
+  };
+
+  return createAuditLog({
+    userId,
+    action: "assign",
+    resource: "routineInstance",
+    resourceId: instanceId,
+    resourceName: routineName,
+    stableId,
+    organizationId,
+    details: {
+      routineReassignment,
     },
   });
 }

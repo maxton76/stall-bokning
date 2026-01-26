@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import {
   getLeaveRequests,
@@ -29,33 +30,33 @@ import type {
  * Hook to fetch user's leave requests
  */
 export function useLeaveRequests(organizationId: string | null) {
-  return useQuery({
-    queryKey: queryKeys.leaveRequests.list(organizationId ?? ""),
-    queryFn: () => getLeaveRequests(organizationId!),
-    enabled: !!organizationId,
-  });
+  return useApiQuery(
+    queryKeys.leaveRequests.list(organizationId ?? ""),
+    () => getLeaveRequests(organizationId!),
+    { enabled: !!organizationId },
+  );
 }
 
 /**
  * Hook to fetch user's work schedule
  */
 export function useWorkSchedule(organizationId: string | null) {
-  return useQuery({
-    queryKey: queryKeys.workSchedules.byUser(organizationId ?? ""),
-    queryFn: () => getWorkSchedule(organizationId!),
-    enabled: !!organizationId,
-  });
+  return useApiQuery(
+    queryKeys.workSchedules.byUser(organizationId ?? ""),
+    () => getWorkSchedule(organizationId!),
+    { enabled: !!organizationId },
+  );
 }
 
 /**
  * Hook to fetch user's time balance
  */
 export function useTimeBalance(organizationId: string | null, year?: number) {
-  return useQuery({
-    queryKey: queryKeys.timeBalances.byUser(organizationId ?? "", year),
-    queryFn: () => getTimeBalance(organizationId!, year),
-    enabled: !!organizationId,
-  });
+  return useApiQuery(
+    queryKeys.timeBalances.byUser(organizationId ?? "", year),
+    () => getTimeBalance(organizationId!, year),
+    { enabled: !!organizationId },
+  );
 }
 
 /**
@@ -161,11 +162,11 @@ export function useOrganizationLeaveRequests(
     endDate?: string;
   },
 ) {
-  return useQuery({
-    queryKey: queryKeys.leaveRequests.adminList(organizationId ?? "", options),
-    queryFn: () => getOrganizationLeaveRequests(organizationId!, options),
-    enabled: !!organizationId,
-  });
+  return useApiQuery(
+    queryKeys.leaveRequests.adminList(organizationId ?? "", options),
+    () => getOrganizationLeaveRequests(organizationId!, options),
+    { enabled: !!organizationId },
+  );
 }
 
 /**

@@ -26,6 +26,7 @@ import { CalendarClock, Loader2, AlertCircle, Clock } from "lucide-react";
 import { useRoutineSchedules } from "@/hooks/useRoutineSchedules";
 import { useRoutineTemplates } from "@/hooks/useRoutines";
 import { useOrganizationMembers } from "@/hooks/useOrganizationMembers";
+import { RoutineAssignmentPreviewModal } from "./RoutineAssignmentPreviewModal";
 import type {
   RoutineSchedule,
   CreateRoutineScheduleInput,
@@ -72,8 +73,9 @@ export function RoutineScheduleDialog({
   const [name, setName] = useState("");
   const [templateId, setTemplateId] = useState("");
   const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [endDate, setEndDate] = useState("");
-  const [hasEndDate, setHasEndDate] = useState(false);
+  const [endDate, setEndDate] = useState(
+    format(addMonths(new Date(), 1), "yyyy-MM-dd"),
+  );
   const [repeatPattern, setRepeatPattern] =
     useState<RoutineScheduleRepeatPattern>("daily");
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]);
@@ -81,6 +83,12 @@ export function RoutineScheduleDialog({
   const [assignmentMode, setAssignmentMode] =
     useState<AssignmentMode>("unassigned");
   const [defaultAssignedTo, setDefaultAssignedTo] = useState("");
+
+  // Preview modal state
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [pendingScheduleData, setPendingScheduleData] =
+    useState<CreateRoutineScheduleInput | null>(null);
+  const [isPreviewSubmitting, setIsPreviewSubmitting] = useState(false);
 
   // Hooks
   const { createSchedule, updateSchedule, createMutation, updateMutation } =
@@ -99,20 +107,18 @@ export function RoutineScheduleDialog({
         // Editing mode - populate form with existing values
         setName(schedule.name || "");
         setTemplateId(schedule.templateId);
-        setStartDate(
-          schedule.startDate
-            ? format(
-                new Date(
-                  ((schedule.startDate as any).seconds
-                    ? (schedule.startDate as any).seconds * 1000
-                    : schedule.startDate) as number,
-                ),
-                "yyyy-MM-dd",
-              )
-            : format(new Date(), "yyyy-MM-dd"),
-        );
+        const parsedStartDate = schedule.startDate
+          ? format(
+              new Date(
+                ((schedule.startDate as any).seconds
+                  ? (schedule.startDate as any).seconds * 1000
+                  : schedule.startDate) as number,
+              ),
+              "yyyy-MM-dd",
+            )
+          : format(new Date(), "yyyy-MM-dd");
+        setStartDate(parsedStartDate);
         if (schedule.endDate) {
-          setHasEndDate(true);
           setEndDate(
             format(
               new Date(
@@ -124,8 +130,10 @@ export function RoutineScheduleDialog({
             ),
           );
         } else {
-          setHasEndDate(false);
-          setEndDate("");
+          // Default to 1 month from start if no end date
+          setEndDate(
+            format(addMonths(new Date(parsedStartDate), 1), "yyyy-MM-dd"),
+          );
         }
         setRepeatPattern(schedule.repeatPattern);
         setSelectedDays(schedule.repeatDays || [1, 2, 3, 4, 5]);
@@ -138,7 +146,6 @@ export function RoutineScheduleDialog({
         setTemplateId("");
         setStartDate(format(new Date(), "yyyy-MM-dd"));
         setEndDate(format(addMonths(new Date(), 1), "yyyy-MM-dd"));
-        setHasEndDate(false);
         setRepeatPattern("daily");
         setSelectedDays([1, 2, 3, 4, 5]);
         setScheduledStartTime("07:00");
@@ -163,16 +170,25 @@ export function RoutineScheduleDialog({
     );
   };
 
+  // Validate end date is within 12 months of start date
+  const isEndDateValid = useMemo(() => {
+    if (!startDate || !endDate) return false;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const maxEnd = addMonths(start, 12);
+    return end >= start && end <= maxEnd;
+  }, [startDate, endDate]);
+
   // Handle submit
   const handleSubmit = async () => {
-    if (!templateId || !startDate) return;
+    if (!templateId || !startDate || !endDate || !isEndDateValid) return;
 
     if (isEditing && schedule) {
       // Update existing schedule
       const updateData: UpdateRoutineScheduleInput = {
         name: name || undefined,
         startDate,
-        endDate: hasEndDate && endDate ? endDate : null,
+        endDate,
         repeatPattern,
         repeatDays: repeatPattern === "custom" ? selectedDays : undefined,
         scheduledStartTime,
@@ -184,6 +200,8 @@ export function RoutineScheduleDialog({
       };
 
       await updateSchedule(schedule.id, updateData);
+      onSuccess?.();
+      onOpenChange(false);
     } else {
       // Create new schedule
       const createData: CreateRoutineScheduleInput = {
@@ -192,7 +210,7 @@ export function RoutineScheduleDialog({
         templateId,
         name: name || undefined,
         startDate,
-        endDate: hasEndDate && endDate ? endDate : undefined,
+        endDate,
         repeatPattern,
         repeatDays: repeatPattern === "custom" ? selectedDays : undefined,
         scheduledStartTime,
@@ -203,11 +221,40 @@ export function RoutineScheduleDialog({
             : undefined,
       };
 
-      await createSchedule(createData);
+      // For auto mode, show preview modal first
+      if (assignmentMode === "auto") {
+        setPendingScheduleData(createData);
+        setShowPreviewModal(true);
+      } else {
+        // For other modes, create directly
+        await createSchedule(createData);
+        onSuccess?.();
+        onOpenChange(false);
+      }
     }
+  };
 
-    onSuccess?.();
-    onOpenChange(false);
+  // Handle preview modal confirmation
+  const handlePreviewConfirm = async (
+    assignments: Record<string, string | null>,
+  ) => {
+    if (!pendingScheduleData) return;
+
+    setIsPreviewSubmitting(true);
+    try {
+      const scheduleWithAssignments: CreateRoutineScheduleInput = {
+        ...pendingScheduleData,
+        customAssignments: assignments,
+      };
+
+      await createSchedule(scheduleWithAssignments);
+      setShowPreviewModal(false);
+      setPendingScheduleData(null);
+      onSuccess?.();
+      onOpenChange(false);
+    } finally {
+      setIsPreviewSubmitting(false);
+    }
   };
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
@@ -220,13 +267,13 @@ export function RoutineScheduleDialog({
           <DialogTitle className="flex items-center gap-2">
             <CalendarClock className="h-5 w-5" />
             {isEditing
-              ? t("routines:schedules.editSchedule")
-              : t("routines:schedules.createSchedule")}
+              ? t("routines:schedules.dialog.editTitle")
+              : t("routines:schedules.dialog.createTitle")}
           </DialogTitle>
           <DialogDescription>
             {isEditing
-              ? t("routines:schedules.editScheduleDescription")
-              : t("routines:schedules.createScheduleDescription")}
+              ? t("routines:schedules.dialog.editDescription")
+              : t("routines:schedules.dialog.createDescription")}
           </DialogDescription>
         </DialogHeader>
 
@@ -234,14 +281,14 @@ export function RoutineScheduleDialog({
           {/* Custom Name (optional) */}
           <div className="space-y-2">
             <Label htmlFor="name">
-              {t("routines:schedules.scheduleName")}{" "}
+              {t("routines:schedules.dialog.name")}{" "}
               <span className="text-muted-foreground">
                 ({t("common:optional")})
               </span>
             </Label>
             <Input
               id="name"
-              placeholder={t("routines:schedules.scheduleNamePlaceholder")}
+              placeholder={t("routines:schedules.dialog.namePlaceholder")}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -249,7 +296,9 @@ export function RoutineScheduleDialog({
 
           {/* Template Selection */}
           <div className="space-y-2">
-            <Label htmlFor="template">{t("routines:schedules.template")}</Label>
+            <Label htmlFor="template">
+              {t("routines:schedules.dialog.template")}
+            </Label>
             <Select
               value={templateId}
               onValueChange={setTemplateId}
@@ -257,7 +306,9 @@ export function RoutineScheduleDialog({
             >
               <SelectTrigger id="template">
                 <SelectValue
-                  placeholder={t("routines:schedules.selectTemplate")}
+                  placeholder={t(
+                    "routines:schedules.dialog.templatePlaceholder",
+                  )}
                 />
               </SelectTrigger>
               <SelectContent>
@@ -267,7 +318,7 @@ export function RoutineScheduleDialog({
                       <span>{template.name}</span>
                       <Badge variant="secondary" className="text-xs">
                         {template.pointsValue}{" "}
-                        {t("routines:schedules.pointsShort")}
+                        {t("routines:schedules.dialog.pointsShort")}
                       </Badge>
                     </div>
                   </SelectItem>
@@ -280,7 +331,7 @@ export function RoutineScheduleDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="startDate">
-                {t("routines:schedules.startDate")}
+                {t("routines:schedules.dialog.startDate")}
               </Label>
               <input
                 id="startDate"
@@ -292,7 +343,7 @@ export function RoutineScheduleDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="startTime">
-                {t("routines:schedules.startTime")}
+                {t("routines:schedules.dialog.scheduledTime")}
               </Label>
               <div className="relative">
                 <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -307,27 +358,32 @@ export function RoutineScheduleDialog({
             </div>
           </div>
 
-          {/* End Date (optional) */}
+          {/* End Date (required) */}
           <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="hasEndDate"
-                checked={hasEndDate}
-                onCheckedChange={(checked) => setHasEndDate(checked === true)}
-              />
-              <Label htmlFor="hasEndDate" className="font-normal">
-                {t("routines:schedules.hasEndDate")}
-              </Label>
-            </div>
-            {hasEndDate && (
-              <input
-                id="endDate"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                min={startDate}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              />
+            <Label htmlFor="endDate">
+              {t("routines:schedules.dialog.endDate")} *
+            </Label>
+            <input
+              id="endDate"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              min={startDate}
+              max={
+                startDate
+                  ? format(addMonths(new Date(startDate), 12), "yyyy-MM-dd")
+                  : undefined
+              }
+              className={`flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
+                !isEndDateValid && endDate
+                  ? "border-destructive"
+                  : "border-input"
+              }`}
+            />
+            {!isEndDateValid && endDate && (
+              <p className="text-xs text-destructive">
+                {t("routines:schedules.dialog.maxDurationError")}
+              </p>
             )}
           </div>
 
@@ -335,7 +391,7 @@ export function RoutineScheduleDialog({
 
           {/* Repeat Pattern */}
           <div className="space-y-2">
-            <Label>{t("routines:schedules.repeatPattern")}</Label>
+            <Label>{t("routines:schedules.dialog.repeatPattern")}</Label>
             <Select
               value={repeatPattern}
               onValueChange={(v) =>
@@ -347,13 +403,13 @@ export function RoutineScheduleDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="daily">
-                  {t("routines:schedules.patterns.daily")}
+                  {t("routines:schedules.repeatPatterns.daily")}
                 </SelectItem>
                 <SelectItem value="weekdays">
-                  {t("routines:schedules.patterns.weekdays")}
+                  {t("routines:schedules.repeatPatterns.weekdays")}
                 </SelectItem>
                 <SelectItem value="custom">
-                  {t("routines:schedules.patterns.custom")}
+                  {t("routines:schedules.repeatPatterns.custom")}
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -362,7 +418,7 @@ export function RoutineScheduleDialog({
           {/* Custom Days Selection */}
           {repeatPattern === "custom" && (
             <div className="space-y-2">
-              <Label>{t("routines:schedules.selectDays")}</Label>
+              <Label>{t("routines:schedules.dialog.repeatDays")}</Label>
               <div className="flex flex-wrap gap-2">
                 {WEEKDAY_OPTIONS.map((day) => (
                   <div key={day.value} className="flex items-center space-x-2">
@@ -387,7 +443,7 @@ export function RoutineScheduleDialog({
 
           {/* Assignment Mode */}
           <div className="space-y-2">
-            <Label>{t("routines:schedules.assignmentMode")}</Label>
+            <Label>{t("routines:schedules.dialog.assignmentMode")}</Label>
             <Select
               value={assignmentMode}
               onValueChange={(v) => setAssignmentMode(v as AssignmentMode)}
@@ -412,27 +468,29 @@ export function RoutineScheduleDialog({
             </Select>
             <p className="text-xs text-muted-foreground">
               {assignmentMode === "auto" &&
-                t("routines:schedules.assignmentDescription.auto")}
+                t("routines:schedules.dialog.assignmentDescription.auto")}
               {assignmentMode === "unassigned" &&
-                t("routines:schedules.assignmentDescription.unassigned")}
+                t("routines:schedules.dialog.assignmentDescription.unassigned")}
               {assignmentMode === "manual" &&
-                t("routines:schedules.assignmentDescription.manual")}
+                t("routines:schedules.dialog.assignmentDescription.manual")}
               {assignmentMode === "selfBooked" &&
-                t("routines:schedules.assignmentDescription.selfBooked")}
+                t("routines:schedules.dialog.assignmentDescription.selfBooked")}
             </p>
           </div>
 
           {/* Manual Assignment - Select User */}
           {assignmentMode === "manual" && (
             <div className="space-y-2">
-              <Label>{t("routines:schedules.defaultAssignee")}</Label>
+              <Label>{t("routines:schedules.dialog.defaultAssignee")}</Label>
               <Select
                 value={defaultAssignedTo}
                 onValueChange={setDefaultAssignedTo}
               >
                 <SelectTrigger>
                   <SelectValue
-                    placeholder={t("routines:schedules.selectAssignee")}
+                    placeholder={t(
+                      "routines:schedules.dialog.defaultAssigneePlaceholder",
+                    )}
                   />
                 </SelectTrigger>
                 <SelectContent>
@@ -460,7 +518,7 @@ export function RoutineScheduleDialog({
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                {t("routines:schedules.error")}:{" "}
+                {t("routines:schedules.dialog.createError")}:{" "}
                 {(error as Error)?.message || t("common:unknownError")}
               </AlertDescription>
             </Alert>
@@ -473,7 +531,13 @@ export function RoutineScheduleDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!templateId || !startDate || isSubmitting}
+            disabled={
+              !templateId ||
+              !startDate ||
+              !endDate ||
+              !isEndDateValid ||
+              isSubmitting
+            }
           >
             {isSubmitting ? (
               <>
@@ -482,12 +546,31 @@ export function RoutineScheduleDialog({
               </>
             ) : isEditing ? (
               t("common:save")
+            ) : assignmentMode === "auto" ? (
+              t("routines:schedules.preview.previewButton")
             ) : (
-              t("routines:schedules.create")
+              t("routines:schedules.createNew")
             )}
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Assignment Preview Modal for auto mode */}
+      <RoutineAssignmentPreviewModal
+        open={showPreviewModal}
+        onOpenChange={(open) => {
+          setShowPreviewModal(open);
+          if (!open) {
+            setPendingScheduleData(null);
+          }
+        }}
+        scheduleData={pendingScheduleData}
+        templateName={selectedTemplate?.name || ""}
+        stableId={stableId}
+        organizationId={organizationId}
+        onConfirm={handlePreviewConfirm}
+        isSubmitting={isPreviewSubmitting}
+      />
     </Dialog>
   );
 }

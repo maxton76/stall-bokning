@@ -18,6 +18,8 @@ export {
 
 // Re-export trigger functions
 export { onSchedulePublished } from "./triggers/onSchedulePublished.js";
+export { onRoutineScheduleCreated } from "./triggers/onRoutineScheduleCreated.js";
+export { onRoutineScheduleDeleted } from "./triggers/onRoutineScheduleDeleted.js";
 
 // ============================================================================
 // TYPE DEFINITIONS

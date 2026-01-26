@@ -45,7 +45,7 @@ import {
   CollapsibleContent,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import Logo from "@/assets/svg/logo";
+import equiDutyIcon from "@/assets/images/equiduty-icon.png";
 import ProfileDropdown from "@/components/shadcn-studio/blocks/dropdown-profile";
 import NotificationDropdown from "@/components/shadcn-studio/blocks/dropdown-notification";
 import { OrganizationsDropdown } from "@/components/shadcn-studio/blocks/dropdown-organizations";
@@ -74,16 +74,19 @@ export default function AuthenticatedLayout() {
       <Sidebar>
         <SidebarContent>
           {/* Logo */}
-          <div className="flex items-center gap-2 px-6 py-4">
-            <Logo className="size-8" />
-            <span className="text-xl font-semibold">StallBokning</span>
+          <div className="flex items-center gap-3 px-6 py-4">
+            <img
+              src={equiDutyIcon}
+              alt="EquiDuty"
+              className="h-10 w-10 rounded-lg"
+            />
+            <span className="text-xl font-semibold text-[#3d5a45]">
+              EquiDuty
+            </span>
           </div>
 
           {/* Main Navigation */}
           <SidebarGroup>
-            <SidebarGroupLabel>
-              {t("common:navigation.dashboard")}
-            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {navigation.map((item) => {

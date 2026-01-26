@@ -70,6 +70,9 @@
       "removing": "Removing..."
     }
   },
+  "horses": {
+    "title": "Horses"
+  },
   "schedule": {
     "title": "Stable Schedule",
     "description": "Manage shifts and schedules"

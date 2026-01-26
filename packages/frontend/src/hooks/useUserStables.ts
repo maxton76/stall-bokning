@@ -1,6 +1,6 @@
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { queryKeys } from "@/lib/queryClient";
-import { getUserStablesData } from "@/lib/firestoreQueries";
+import { getUserStables } from "@/services/stableService";
 
 /**
  * Stable data interface
@@ -40,7 +40,9 @@ export function useUserStables(userId: string | undefined) {
     queryKeys.userStables.byUser(userId || ""),
     async () => {
       if (!userId) return [];
-      return getUserStablesData(userId);
+      // Use API instead of direct Firestore queries
+      // The API properly handles organization membership authorization
+      return getUserStables();
     },
     { enabled: !!userId },
   );

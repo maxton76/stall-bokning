@@ -70,6 +70,9 @@
       "removing": "Tar bort..."
     }
   },
+  "horses": {
+    "title": "Hästar"
+  },
   "schedule": {
     "title": "Stallschema",
     "description": "Hantera skift och scheman"

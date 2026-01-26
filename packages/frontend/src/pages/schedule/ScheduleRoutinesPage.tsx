@@ -271,6 +271,11 @@ export default function ScheduleRoutinesPage() {
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
             </div>
+          ) : schedulesError ? (
+            // Don't show empty state when there's an error - error alert above is sufficient
+            <div className="text-center py-8 text-muted-foreground">
+              {t("routines:schedules.tryAgainLater")}
+            </div>
           ) : schedules.length === 0 ? (
             <div className="text-center py-12">
               <CalendarClock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />

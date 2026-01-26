@@ -247,6 +247,7 @@ function buildWeekSchedule(
 
 /**
  * Hook to fetch scheduled routines for a week
+ * Includes retry logic for Cloud Run cold starts
  */
 export function useWeekScheduledRoutines(
   stableId: string | undefined,
@@ -272,11 +273,15 @@ export function useWeekScheduledRoutines(
     },
     enabled: !!stableId,
     staleTime: 30 * 1000, // 30 seconds
+    // Retry configuration for Cloud Run cold starts
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 }
 
 /**
  * Hook to fetch scheduled routines for a date range
+ * Includes retry logic for Cloud Run cold starts
  */
 export function useScheduledRoutines(
   stableId: string | undefined,
@@ -302,6 +307,9 @@ export function useScheduledRoutines(
     },
     enabled: !!stableId,
     staleTime: 30 * 1000,
+    // Retry configuration for Cloud Run cold starts
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 }
 

@@ -41,6 +41,27 @@ export interface PointsSystemConfig {
 }
 
 /**
+ * Scheduling configuration for a stable
+ */
+export interface SchedulingConfig {
+  scheduleHorizonDays: number; // Default: 14, Range: 7-90
+  autoAssignment: boolean; // Default: true
+  allowSwaps: boolean; // Default: true
+  requireApproval: boolean; // Default: false
+}
+
+/**
+ * Notification configuration for a stable
+ */
+export interface NotificationConfig {
+  emailNotifications: boolean; // Master toggle, Default: true
+  shiftReminders: boolean; // Default: true
+  schedulePublished: boolean; // Default: true
+  memberJoined: boolean; // Default: true
+  shiftSwapRequests: boolean; // Default: true
+}
+
+/**
  * Stable document structure
  * CONSOLIDATED from frontend and API (removed duplicate capacity/price fields from API version)
  */
@@ -56,6 +77,12 @@ export interface Stable {
 
   // Points system configuration
   pointsSystem?: PointsSystemConfig;
+
+  // Scheduling configuration
+  schedulingConfig?: SchedulingConfig;
+
+  // Notification configuration
+  notificationConfig?: NotificationConfig;
 
   createdAt: Timestamp;
   updatedAt: Timestamp;

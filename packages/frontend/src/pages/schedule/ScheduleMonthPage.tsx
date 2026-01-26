@@ -2,9 +2,8 @@ import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -125,16 +124,17 @@ export default function ScheduleMonthPage() {
     return grouped;
   }, [routineInstances]);
 
-  // Get tasks for a specific day
-  const getTasksForDay = (date: Date) => {
+  // Get routines for a specific day, sorted by scheduled time
+  const getRoutinesForDay = (date: Date): RoutineInstance[] => {
     const dateStr = format(date, "yyyy-MM-dd");
     const instances = routinesByDate.get(dateStr) || [];
 
-    const total = instances.length;
-    const completed = instances.filter((i) => i.status === "completed").length;
-    const myShifts = instances.filter((i) => i.assignedTo === user?.uid).length;
-
-    return { total, completed, myShifts };
+    // Sort by scheduledStartTime (earliest first)
+    return [...instances].sort((a, b) => {
+      const timeA = a.scheduledStartTime || "00:00";
+      const timeB = b.scheduledStartTime || "00:00";
+      return timeA.localeCompare(timeB);
+    });
   };
 
   const handleDayClick = (date: Date) => {
@@ -258,7 +258,7 @@ export default function ScheduleMonthPage() {
             {calendarDays.map((date) => {
               const isCurrentMonth = isSameMonth(date, currentMonth);
               const isCurrentDay = isSameDay(date, today);
-              const tasks = getTasksForDay(date);
+              const routines = getRoutinesForDay(date);
 
               return (
                 <div
@@ -279,22 +279,28 @@ export default function ScheduleMonthPage() {
                   >
                     {format(date, "d")}
                   </div>
-                  {isCurrentMonth && tasks.total > 0 && (
-                    <div className="space-y-0.5">
-                      {tasks.myShifts > 0 && (
-                        <Badge
-                          variant="default"
-                          className="text-[10px] py-0 px-1 block truncate"
+                  {isCurrentMonth && routines.length > 0 && (
+                    <div className="space-y-0.5 overflow-hidden">
+                      {routines.slice(0, 3).map((routine) => (
+                        <div
+                          key={routine.id}
+                          className={`text-[10px] truncate ${
+                            routine.status === "completed"
+                              ? "text-muted-foreground line-through"
+                              : "text-foreground"
+                          }`}
                         >
-                          {tasks.myShifts} mina pass
-                        </Badge>
+                          {routine.templateName || "Rutin"}
+                        </div>
+                      ))}
+                      {routines.length > 3 && (
+                        <div className="text-[10px] text-muted-foreground">
+                          +{routines.length - 3} till
+                        </div>
                       )}
-                      <div className="text-[10px] text-muted-foreground">
-                        {tasks.completed}/{tasks.total} klara
-                      </div>
                     </div>
                   )}
-                  {isCurrentMonth && tasks.total === 0 && (
+                  {isCurrentMonth && routines.length === 0 && (
                     <div className="text-[10px] text-muted-foreground/50">
                       Inga
                     </div>
@@ -309,12 +315,12 @@ export default function ScheduleMonthPage() {
       {/* Legend */}
       <div className="flex items-center gap-4 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-primary" />
-          <span>Mina pass</span>
-        </div>
-        <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded border-2 border-primary" />
           <span>Idag</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="line-through">Rutin</span>
+          <span>= Klar</span>
         </div>
       </div>
     </div>

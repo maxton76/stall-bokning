@@ -205,7 +205,7 @@ export default function StableDetailPage() {
         <TabsContent value="horses" className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-semibold">
-              {t("stables:members.title")}
+              {t("stables:horses.title")}
             </h2>
             <p className="text-sm text-muted-foreground">
               {horsesData.length || 0}{" "}
@@ -238,7 +238,7 @@ export default function StableDetailPage() {
         <TabsContent value="routines" className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-semibold">{t("routines:title")}</h2>
-            <Link to="/settings/routines">
+            <Link to="/schedule/routinetemplates">
               <Button variant="outline">
                 {t("routines:manageRoutines")}
                 <ExternalLink className="ml-2 h-4 w-4" />
@@ -261,7 +261,8 @@ export default function StableDetailPage() {
               description={t("routines:emptyState.description")}
               action={{
                 label: t("routines:manageRoutines"),
-                onClick: () => (window.location.href = "/settings/routines"),
+                onClick: () =>
+                  (window.location.href = "/schedule/routinetemplates"),
               }}
             />
           ) : (

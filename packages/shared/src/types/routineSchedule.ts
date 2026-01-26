@@ -56,6 +56,9 @@ export interface RoutineSchedule {
   defaultAssignedTo?: string; // User ID for manual assignment mode
   defaultAssignedToName?: string; // Denormalized
 
+  // Custom assignments for auto mode (key: YYYY-MM-DD, value: userId or null)
+  customAssignments?: Record<string, string | null>;
+
   // Status
   isEnabled: boolean;
   lastGeneratedDate?: FirestoreTimestamp; // Last date instances were generated
@@ -87,7 +90,7 @@ export interface CreateRoutineScheduleInput {
 
   // Schedule configuration
   startDate: string; // ISO date string
-  endDate?: string; // ISO date string, optional
+  endDate: string; // ISO date string - required, max 12 months from startDate
   repeatPattern: RoutineScheduleRepeatPattern;
   repeatDays?: number[]; // Required when repeatPattern is 'custom'
   scheduledStartTime: string; // "HH:MM" format
@@ -95,6 +98,9 @@ export interface CreateRoutineScheduleInput {
   // Assignment configuration
   assignmentMode: RoutineAssignmentType | "unassigned";
   defaultAssignedTo?: string;
+
+  // Custom assignments for auto mode (key: YYYY-MM-DD, value: userId or null)
+  customAssignments?: Record<string, string | null>;
 }
 
 /**

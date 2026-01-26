@@ -1,0 +1,1 @@
+export { TemplatePointsChart } from "./TemplatePointsChart";

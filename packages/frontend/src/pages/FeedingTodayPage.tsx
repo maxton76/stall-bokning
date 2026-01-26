@@ -517,7 +517,7 @@ export default function FeedingTodayPage() {
                       <Link to="/routines">{t("routines:title")}</Link>
                     </Button>
                     <Button asChild>
-                      <Link to="/settings/routines">
+                      <Link to="/schedule/routinetemplates">
                         {t("routines:manageRoutines")}
                       </Link>
                     </Button>

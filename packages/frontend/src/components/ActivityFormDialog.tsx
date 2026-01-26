@@ -48,7 +48,10 @@ const taskSchema = z.object({
   date: z.date({ message: "Date is required" }),
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
-  color: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid color"),
+  color: z
+    .string()
+    .regex(/^#[0-9A-F]{6}$/i, "Invalid color")
+    .optional(),
   assignedTo: z.string().optional(),
 });
 
@@ -57,7 +60,10 @@ const messageSchema = z.object({
   date: z.date({ message: "Date is required" }),
   title: z.string().min(1, "Title is required"),
   message: z.string().min(1, "Message is required"),
-  color: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid color"),
+  color: z
+    .string()
+    .regex(/^#[0-9A-F]{6}$/i, "Invalid color")
+    .optional(),
   priority: z.enum(["low", "medium", "high"]).optional(),
 });
 
@@ -510,7 +516,6 @@ export function ActivityFormDialog({
             label={t("activities:form.labels.color")}
             form={form as any}
             colors={DEFAULT_COLORS as unknown as string[]}
-            required
           />
         </>
       )}
@@ -540,7 +545,6 @@ export function ActivityFormDialog({
             label={t("activities:form.labels.color")}
             form={form as any}
             colors={DEFAULT_COLORS as unknown as string[]}
-            required
           />
 
           <FormSelect

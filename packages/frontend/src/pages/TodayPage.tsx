@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Plus,
@@ -99,6 +99,8 @@ import {
   subYears,
   startOfWeek,
   endOfWeek,
+  parseISO,
+  isValid,
 } from "date-fns";
 
 type ViewMode = "all" | "activities" | "routines";
@@ -108,6 +110,19 @@ export default function TodayPage() {
   const { user } = useAuth();
   const { currentOrganizationId } = useOrganizationContext();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Parse date from URL query parameter, fallback to today
+  const getInitialDate = (): Date => {
+    const dateParam = searchParams.get("date");
+    if (dateParam) {
+      const parsed = parseISO(dateParam);
+      if (isValid(parsed)) {
+        return parsed;
+      }
+    }
+    return new Date();
+  };
 
   const PERIOD_TYPES: Array<{ value: PeriodType; label: string }> = [
     { value: "day", label: t("activities:actionList.period.day") },
@@ -116,7 +131,7 @@ export default function TodayPage() {
   ];
   const { toast } = useToast();
   const [periodType, setPeriodType] = useState<PeriodType>("day");
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [currentDate, setCurrentDate] = useState<Date>(getInitialDate);
   const [selectedStableId, setSelectedStableId] = useState<string>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("all");
   const [filters, setFilters] = useState<ActivityFilters>({

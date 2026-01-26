@@ -1,4 +1,5 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import type { HorseActivityHistoryEntry, RoutineCategory } from "@shared/types";
 import {
   getHorseActivityHistory,
@@ -48,6 +49,9 @@ export function useHorseActivityHistory(
       lastPage.hasMore ? lastPage.nextCursor : undefined,
     enabled: !!horseId,
     staleTime: 30 * 1000, // 30 seconds
+    // Cold-start retry config
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 15000),
   });
 }
 
@@ -65,9 +69,9 @@ export function useHorseActivityHistory(
 export function useRoutineActivityHistory(
   routineInstanceId: string | undefined,
 ) {
-  return useQuery<RoutineActivityHistoryResult>({
-    queryKey: ["horseActivityHistory", "routine", routineInstanceId],
-    queryFn: async () => {
+  return useApiQuery<RoutineActivityHistoryResult>(
+    ["horseActivityHistory", "routine", routineInstanceId],
+    async () => {
       if (!routineInstanceId) {
         return {
           activities: [],
@@ -82,9 +86,11 @@ export function useRoutineActivityHistory(
       }
       return getRoutineActivityHistory(routineInstanceId);
     },
-    enabled: !!routineInstanceId,
-    staleTime: 60 * 1000, // 1 minute - routine history rarely changes
-  });
+    {
+      enabled: !!routineInstanceId,
+      staleTime: 60 * 1000, // 1 minute - routine history rarely changes
+    },
+  );
 }
 
 /**
@@ -117,6 +123,9 @@ export function useStableActivityHistory(
       lastPage.hasMore ? lastPage.nextCursor : undefined,
     enabled: !!stableId,
     staleTime: 30 * 1000,
+    // Cold-start retry config
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 15000),
   });
 }
 

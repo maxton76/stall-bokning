@@ -26,6 +26,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import equiDutyIcon from "@/assets/images/equiduty-icon.png";
 
 const portalNavItems = [
   {
@@ -127,9 +128,13 @@ export default function PortalLayout() {
 
           {/* Logo */}
           <Link to="/portal" className="flex items-center gap-2">
-            <Horse className="h-6 w-6 text-primary" />
-            <span className="hidden font-semibold sm:inline-block">
-              {t("portal:title")}
+            <img
+              src={equiDutyIcon}
+              alt="EquiDuty"
+              className="h-8 w-8 rounded-lg"
+            />
+            <span className="hidden font-semibold text-[#3d5a45] sm:inline-block">
+              EquiDuty
             </span>
           </Link>
 

@@ -57,6 +57,8 @@ var __importStar =
   })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.monthlyTimeAccrual =
+  exports.onRoutineScheduleDeleted =
+  exports.onRoutineScheduleCreated =
   exports.onSchedulePublished =
   exports.cleanupOldNotifications =
   exports.retryFailedNotifications =
@@ -110,6 +112,20 @@ Object.defineProperty(exports, "onSchedulePublished", {
   enumerable: true,
   get: function () {
     return onSchedulePublished_js_1.onSchedulePublished;
+  },
+});
+var onRoutineScheduleCreated_js_1 = require("./triggers/onRoutineScheduleCreated.js");
+Object.defineProperty(exports, "onRoutineScheduleCreated", {
+  enumerable: true,
+  get: function () {
+    return onRoutineScheduleCreated_js_1.onRoutineScheduleCreated;
+  },
+});
+var onRoutineScheduleDeleted_js_1 = require("./triggers/onRoutineScheduleDeleted.js");
+Object.defineProperty(exports, "onRoutineScheduleDeleted", {
+  enumerable: true,
+  get: function () {
+    return onRoutineScheduleDeleted_js_1.onRoutineScheduleDeleted;
   },
 });
 // ============================================================================

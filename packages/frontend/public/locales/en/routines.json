@@ -40,6 +40,29 @@
     "missed": "Missed",
     "cancelled": "Cancelled"
   },
+  "instance": {
+    "detailsTitle": "Routine Details",
+    "status": "Status",
+    "scheduledTime": "Time",
+    "assignedTo": "Assigned to",
+    "unassigned": "Unassigned",
+    "pointsValue": "Points value",
+    "progress": "Progress",
+    "startRoutine": "Start Routine",
+    "reassign": "Reassign",
+    "reassignTitle": "Reassign Routine",
+    "currentAssignee": "Current assignee",
+    "newAssignee": "New assignee",
+    "selectMember": "Select person...",
+    "confirmReassign": "Confirm Reassign",
+    "reassigning": "Reassigning...",
+    "confirmReassignTitle": "Confirm Reassignment",
+    "confirmReassignMessage": "Are you sure you want to assign \"{{routineName}}\" to {{newAssignee}}?",
+    "reassignSuccess": "Assignment changed",
+    "reassignSuccessMessage": "Routine is now assigned to {{name}}",
+    "reassignError": "Failed to reassign",
+    "reassignErrorMessage": "An error occurred while reassigning. Please try again."
+  },
   "stepStatus": {
     "pending": "Pending",
     "in_progress": "In Progress",
@@ -321,6 +344,7 @@
     "noSchedules": "No schedules yet",
     "noSchedulesDescription": "Create a schedule to automatically generate routine instances.",
     "loadError": "Failed to load schedules",
+    "tryAgainLater": "Please try again later",
     "enabled": "Enabled",
     "disabled": "Disabled",
     "enable": "Enable",
@@ -346,7 +370,9 @@
     },
     "dialog": {
       "createTitle": "Create Routine Schedule",
+      "createDescription": "Enter details for the new routine schedule.",
       "editTitle": "Edit Routine Schedule",
+      "editDescription": "Modify the routine schedule details.",
       "name": "Schedule Name",
       "namePlaceholder": "e.g., Morning shift weekdays",
       "nameDescription": "Optional name to easily identify the schedule",
@@ -357,7 +383,9 @@
       "startDateDescription": "Date when the schedule starts",
       "endDate": "End Date",
       "endDateDescription": "Leave empty for ongoing schedule",
-      "noEndDate": "No end date (ongoing)",
+      "endDateRequired": "End date is required",
+      "maxDurationError": "Schedule cannot exceed 12 months",
+      "pointsShort": "pts",
       "repeatPattern": "Repeat Pattern",
       "repeatPatternDescription": "How often the routine should repeat",
       "repeatDays": "Days",
@@ -369,6 +397,12 @@
       "defaultAssignee": "Default Assignee",
       "defaultAssigneePlaceholder": "Select person...",
       "defaultAssigneeDescription": "Person assigned to the routine by default",
+      "assignmentDescription": {
+        "auto": "Routine is automatically assigned based on work schedule and fairness points.",
+        "unassigned": "Routine is created without assignment and can be picked up by available staff.",
+        "manual": "Routine is always assigned to the selected person.",
+        "selfBooked": "Staff can book themselves for the routine."
+      },
       "isEnabled": "Active Schedule",
       "isEnabledDescription": "Inactive schedules do not generate new routine instances",
       "save": "Save Schedule",
@@ -385,6 +419,23 @@
       "weekdays": "Weekdays",
       "weekends": "Weekends",
       "custom": "Custom"
+    },
+    "preview": {
+      "title": "Preview Assignments",
+      "description": "Review and adjust assignments before creating the schedule",
+      "summary_one": "{{count}} routine instance will be created",
+      "summary_other": "{{count}} routine instances will be created",
+      "dateRange": "From {{start}} to {{end}}",
+      "columns": {
+        "date": "Date",
+        "time": "Time",
+        "assignedTo": "Assigned to"
+      },
+      "unassigned": "Unassigned",
+      "create": "Create Schedule",
+      "previewButton": "Preview...",
+      "fairnessHint": "Suggestions are based on the fairness algorithm that distributes tasks evenly",
+      "assigned": "assigned"
     }
   }
 }

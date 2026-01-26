@@ -192,6 +192,13 @@ export const mainNavigation: NavigationItem[] = [
         icon: CalendarClock,
         roles: ["admin", "owner"],
       },
+      {
+        id: "routinetemplates",
+        labelKey: "common:navigation.routineTemplates",
+        href: "/schedule/routinetemplates",
+        icon: ListChecks,
+        roles: ["admin", "owner"],
+      },
     ],
   },
   {
@@ -231,12 +238,6 @@ export const mainNavigation: NavigationItem[] = [
         labelKey: "common:navigation.notifications",
         href: "/settings/notifications",
         icon: Bell,
-      },
-      {
-        id: "routines",
-        labelKey: "common:navigation.routineTemplates",
-        href: "/settings/routines",
-        icon: ListChecks,
       },
       {
         id: "activities",

@@ -54,7 +54,7 @@ export const createRoutineScheduleSchema = z
 
     // Schedule configuration
     startDate: scheduleDateStringSchema,
-    endDate: scheduleDateStringSchema.optional(),
+    endDate: scheduleDateStringSchema, // Required - instances are generated up to this date
     repeatPattern: routineScheduleRepeatPatternSchema,
     repeatDays: z
       .array(dayOfWeekSchema)
@@ -66,6 +66,9 @@ export const createRoutineScheduleSchema = z
     // Assignment configuration
     assignmentMode: scheduleAssignmentModeSchema,
     defaultAssignedTo: z.string().optional(),
+
+    // Custom assignments for auto mode (key: YYYY-MM-DD, value: userId or null)
+    customAssignments: z.record(z.string(), z.string().nullable()).optional(),
   })
   .refine(
     (data) => {
@@ -95,14 +98,25 @@ export const createRoutineScheduleSchema = z
   )
   .refine(
     (data) => {
-      // End date must be after start date if provided
-      if (data.endDate) {
-        return new Date(data.endDate) >= new Date(data.startDate);
-      }
-      return true;
+      // End date must be on or after start date
+      return new Date(data.endDate) >= new Date(data.startDate);
     },
     {
       message: "End date must be on or after start date",
+      path: ["endDate"],
+    },
+  )
+  .refine(
+    (data) => {
+      // End date must be at most 12 months from start date
+      const start = new Date(data.startDate);
+      const end = new Date(data.endDate);
+      const maxEnd = new Date(start);
+      maxEnd.setMonth(maxEnd.getMonth() + 12);
+      return end <= maxEnd;
+    },
+    {
+      message: "Schedule cannot exceed 12 months",
       path: ["endDate"],
     },
   );

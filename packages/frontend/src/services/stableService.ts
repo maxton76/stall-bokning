@@ -77,6 +77,25 @@ export async function createStable(
 }
 
 /**
+ * Get all stables accessible by the current user via API
+ *
+ * Returns stables that user either owns or has access to via organization membership.
+ * Uses the API which properly handles authorization and organization membership filtering.
+ *
+ * @returns Promise with array of accessible stables
+ *
+ * @example
+ * ```typescript
+ * const stables = await getUserStables()
+ * stables.forEach(stable => console.log(stable.name))
+ * ```
+ */
+export async function getUserStables(): Promise<Stable[]> {
+  const response = await apiClient.get<{ stables: Stable[] }>("/stables");
+  return response.stables;
+}
+
+/**
  * Get a stable by ID via API
  *
  * @param stableId - Stable ID

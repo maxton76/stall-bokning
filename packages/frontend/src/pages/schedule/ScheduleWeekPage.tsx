@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   ChevronLeft,
@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -20,6 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  RoutineCreationModal,
+  RoutineInstanceDetailsModal,
+} from "@/components/routines";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserStables } from "@/hooks/useUserStables";
 import {
@@ -42,11 +45,25 @@ export default function ScheduleWeekPage() {
   const { t } = useTranslation(["common"]);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [currentWeekStart, setCurrentWeekStart] = useState(() =>
-    startOfWeek(new Date(), { weekStartsOn: 1 }),
-  );
+  // Initialize week from URL date parameter or default to current week
+  const [currentWeekStart, setCurrentWeekStart] = useState(() => {
+    const dateParam = searchParams.get("date");
+    if (dateParam) {
+      const parsedDate = new Date(dateParam);
+      if (!isNaN(parsedDate.getTime())) {
+        return startOfWeek(parsedDate, { weekStartsOn: 1 });
+      }
+    }
+    return startOfWeek(new Date(), { weekStartsOn: 1 });
+  });
   const [selectedStableId, setSelectedStableId] = useState<string>("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [selectedSlot, setSelectedSlot] = useState<ScheduleSlot | null>(null);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [selectedSlotDate, setSelectedSlotDate] = useState<Date>(new Date());
 
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
@@ -132,14 +149,39 @@ export default function ScheduleWeekPage() {
     );
   };
 
-  const handleSlotClick = (slot: ScheduleSlot) => {
+  const formatAssigneeName = (fullName: string): string => {
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length === 0) return fullName;
+    if (parts.length === 1) return parts[0] ?? fullName;
+    const firstName = parts[0] ?? "";
+    const lastInitial = parts[parts.length - 1]?.[0]?.toUpperCase() || "";
+    return `${firstName} ${lastInitial}.`;
+  };
+
+  const handleSlotClick = (slot: ScheduleSlot, date: Date) => {
+    // Open details modal instead of direct navigation
+    setSelectedSlot(slot);
+    setSelectedSlotDate(date);
+    setDetailsModalOpen(true);
+  };
+
+  const handleStartRoutine = (instanceId: string) => {
     // Navigate to routine flow page
-    navigate(`/routines/${slot.id}`);
+    navigate(`/routines/flow/${instanceId}`);
   };
 
   const handleBookSlot = (day: DaySchedule) => {
-    // Navigate to create routine page with pre-selected date
-    navigate(`/routines/create?date=${day.dateStr}`);
+    // Open routine creation modal with pre-selected date
+    setSelectedDate(day.date);
+    setModalOpen(true);
+  };
+
+  const handleRoutineCreated = (instanceIds: string[]) => {
+    // Navigate to the first created routine's flow page
+    if (instanceIds.length === 1 && instanceIds[0]) {
+      navigate(`/routines/flow/${instanceIds[0]}`);
+    }
+    // For multiple routines, just stay on the page (data will refresh automatically)
   };
 
   // Loading state
@@ -337,7 +379,7 @@ export default function ScheduleWeekPage() {
                 day.slots.map((slot) => (
                   <div
                     key={slot.id}
-                    onClick={() => handleSlotClick(slot)}
+                    onClick={() => handleSlotClick(slot, day.date)}
                     className={`p-2 rounded-md border text-xs cursor-pointer transition-colors hover:opacity-80 ${getSlotTypeColor(slot.type)}`}
                   >
                     <div className="flex items-center justify-between">
@@ -349,28 +391,14 @@ export default function ScheduleWeekPage() {
                       )}
                     </div>
                     <div className="text-[10px] opacity-75">{slot.time}</div>
-                    {slot.progress.stepsTotal > 0 &&
-                      slot.status !== "completed" &&
-                      slot.status !== "scheduled" && (
-                        <div className="text-[10px] opacity-75 mt-0.5">
-                          {slot.progress.stepsCompleted}/
-                          {slot.progress.stepsTotal} steg
-                        </div>
-                      )}
                     {slot.assignee ? (
-                      <Badge
-                        variant="secondary"
-                        className="mt-1 text-[10px] py-0"
-                      >
-                        {slot.assignee}
-                      </Badge>
+                      <div className="text-[10px] font-bold mt-1">
+                        {formatAssigneeName(slot.assignee)}
+                      </div>
                     ) : (
-                      <Badge
-                        variant="outline"
-                        className="mt-1 text-[10px] py-0 border-dashed"
-                      >
+                      <div className="text-[10px] text-muted-foreground mt-1">
                         Ej tilldelad
-                      </Badge>
+                      </div>
                     )}
                   </div>
                 ))
@@ -409,6 +437,29 @@ export default function ScheduleWeekPage() {
           <span>Klar</span>
         </div>
       </div>
+
+      {/* Routine Creation Modal */}
+      {activeStableId && (
+        <RoutineCreationModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          stableId={activeStableId}
+          initialDate={selectedDate}
+          onSuccess={handleRoutineCreated}
+        />
+      )}
+
+      {/* Routine Instance Details Modal */}
+      {activeStableId && (
+        <RoutineInstanceDetailsModal
+          open={detailsModalOpen}
+          onOpenChange={setDetailsModalOpen}
+          slot={selectedSlot}
+          stableId={activeStableId}
+          scheduledDate={selectedSlotDate}
+          onStartRoutine={handleStartRoutine}
+        />
+      )}
     </div>
   );
 }

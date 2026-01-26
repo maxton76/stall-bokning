@@ -5,6 +5,7 @@ export {
   RoutineProgressCompact,
 } from "./RoutineProgressIndicator";
 export { RoutineCreationModal } from "./RoutineCreationModal";
+export { RoutineInstanceDetailsModal } from "./RoutineInstanceDetailsModal";
 export { RoutineTemplateEditor } from "./RoutineTemplateEditor";
 export { ScheduledRoutinesCard } from "./ScheduledRoutinesCard";
 export { RoutineScheduleDialog } from "./RoutineScheduleDialog";

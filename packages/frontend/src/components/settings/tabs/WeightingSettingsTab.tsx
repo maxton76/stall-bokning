@@ -5,7 +5,7 @@ import { SettingSection } from "../sections/SettingSection";
 
 export interface WeightingSettings {
   memoryHorizonDays: number;
-  resetPeriod: "monthly" | "quarterly" | "yearly" | "never";
+  resetPeriod: "monthly" | "quarterly" | "yearly" | "rolling" | "never";
   pointsMultiplier: number;
 }
 
@@ -34,6 +34,10 @@ export function WeightingSettingsTab({
     {
       value: "yearly",
       label: t("settings:sections.weighting.resetPeriods.yearly"),
+    },
+    {
+      value: "rolling",
+      label: t("settings:sections.weighting.resetPeriods.rolling"),
     },
     {
       value: "never",

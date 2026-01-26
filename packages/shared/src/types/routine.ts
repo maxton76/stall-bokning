@@ -138,6 +138,7 @@ export interface RoutineStepHorseFilter {
  */
 export interface RoutineInstance {
   id: string;
+  scheduleId?: string; // Links to routineSchedule that created this instance
   templateId: string;
   templateName: string; // Denormalized for display
   organizationId: string;

@@ -9,6 +9,35 @@ import {
 import type { AuthenticatedRequest, Stable } from "../types/index.js";
 import { canCreateStable, getMaxStables } from "@stall-bokning/shared";
 
+const pointsSystemSchema = z
+  .object({
+    resetPeriod: z
+      .enum(["monthly", "quarterly", "yearly", "rolling", "never"])
+      .optional(),
+    memoryHorizonDays: z.number().int().min(30).max(365).optional(),
+    holidayMultiplier: z.number().min(0.1).max(5.0).optional(),
+  })
+  .optional();
+
+const schedulingConfigSchema = z
+  .object({
+    scheduleHorizonDays: z.number().int().min(7).max(90).optional(),
+    autoAssignment: z.boolean().optional(),
+    allowSwaps: z.boolean().optional(),
+    requireApproval: z.boolean().optional(),
+  })
+  .optional();
+
+const notificationConfigSchema = z
+  .object({
+    emailNotifications: z.boolean().optional(),
+    shiftReminders: z.boolean().optional(),
+    schedulePublished: z.boolean().optional(),
+    memberJoined: z.boolean().optional(),
+    shiftSwapRequests: z.boolean().optional(),
+  })
+  .optional();
+
 const createStableSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().optional(),
@@ -21,6 +50,10 @@ const createStableSchema = z.object({
   availableStalls: z.number().int().min(0).optional(),
   pricePerMonth: z.number().positive().optional(),
   amenities: z.array(z.string()).default([]),
+  // Configuration objects
+  pointsSystem: pointsSystemSchema,
+  schedulingConfig: schedulingConfigSchema,
+  notificationConfig: notificationConfigSchema,
 });
 
 const updateStableSchema = createStableSchema.partial();

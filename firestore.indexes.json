@@ -937,6 +937,14 @@
       ]
     },
     {
+      "collectionGroup": "routineSchedules",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "stableId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "routineInstances",
       "queryScope": "COLLECTION",
       "fields": [
@@ -951,6 +959,34 @@
         { "fieldPath": "stableId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "scheduledDate", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "routineInstances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "stableId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "scheduledDate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "routineInstances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "stableId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "completedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "routineInstances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "stableId", "order": "ASCENDING" },
+        { "fieldPath": "completedBy", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "completedAt", "order": "ASCENDING" }
       ]
     },
     {

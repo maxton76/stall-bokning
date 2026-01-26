@@ -181,7 +181,7 @@ export default function RoutinesPage() {
           </div>
         </div>
 
-        <Button onClick={() => navigate("/settings/routines")}>
+        <Button onClick={() => navigate("/schedule/routinetemplates")}>
           <Plus className="h-4 w-4 mr-2" />
           {t("routines:actions.createTemplate")}
         </Button>

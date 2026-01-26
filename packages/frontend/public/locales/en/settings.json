@@ -8,6 +8,16 @@
       "title": "Stable Information",
       "description": "Basic information about your stable"
     },
+    "defaults": {
+      "title": "Default Selections",
+      "description": "Set default values used across the app",
+      "defaultStable": {
+        "label": "Default Stable",
+        "description": "This stable will be automatically selected when you open schedule and feeding pages",
+        "placeholder": "Select default stable",
+        "noStable": "No default stable"
+      }
+    },
     "scheduling": {
       "title": "Scheduling Preferences",
       "description": "Configure how schedules are created and managed",
@@ -76,6 +86,7 @@
         "monthly": "Monthly",
         "quarterly": "Quarterly",
         "yearly": "Yearly",
+        "rolling": "Rolling",
         "never": "Never"
       }
     },
@@ -130,6 +141,13 @@
     "saved": "Your settings have been saved"
   },
   "tabs": {
-    "general": "General"
+    "general": "General",
+    "weighting": "Fairness",
+    "scheduling": "Scheduling",
+    "notifications": "Notifications"
+  },
+  "stableSettings": {
+    "title": "Stable Settings",
+    "description": "Manage settings for this stable"
   }
 }
