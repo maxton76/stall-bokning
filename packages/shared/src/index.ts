@@ -14,3 +14,6 @@ export * from "./constants/index.js";
 
 // Re-export all lib
 export * from "./lib/index.js";
+
+// Re-export holiday data and types
+export * from "./data/holidays/index.js";

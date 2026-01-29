@@ -4,23 +4,28 @@
 //
 //  List of available routines
 //
+//  NAVIGATION PATTERN:
+//  - Uses NavigationLink(value: AppDestination.xxx) for standard navigation
+//  - Uses withAppNavigationDestinations() for ID-based deep linking support
+//  - See NavigationRouter.swift for available destinations
+//
 
 import SwiftUI
 
 struct RoutineListView: View {
     @State private var authService = AuthService.shared
     @State private var routineService = RoutineService.shared
+    @State private var router = NavigationRouter.shared
     @State private var selectedDate = Date()
     @State private var instances: [RoutineInstance] = []
     @State private var templates: [RoutineTemplate] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
-    @State private var selectedInstance: RoutineInstance?
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $router.routinesPath) {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: EquiDutyDesign.Spacing.lg) {
                     // Date navigation
                     DateNavigationHeader(
                         selectedDate: $selectedDate,
@@ -35,22 +40,20 @@ struct RoutineListView: View {
                             loadData()
                         }
                     } else if instances.isEmpty {
-                        EmptyStateView(
+                        ModernEmptyStateView(
                             icon: "checklist",
                             title: String(localized: "routines.empty.title"),
                             message: String(localized: "routines.empty.message")
                         )
                     } else {
                         // Today's routines
-                        VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.md) {
                             Text(String(localized: "routines.today"))
                                 .font(.headline)
                                 .padding(.horizontal)
 
                             ForEach(instances) { instance in
-                                RoutineInstanceCard(instance: instance) {
-                                    selectedInstance = instance
-                                }
+                                RoutineInstanceCard(instance: instance)
                             }
                             .padding(.horizontal)
                         }
@@ -62,9 +65,7 @@ struct RoutineListView: View {
             .refreshable {
                 await refreshData()
             }
-            .navigationDestination(item: $selectedInstance) { instance in
-                RoutineFlowView(instanceId: instance.id)
-            }
+            .withAppNavigationDestinations()
             .onAppear {
                 loadData()
             }
@@ -145,13 +146,13 @@ struct RoutineListView: View {
 
 // MARK: - Routine Instance Card
 
+/// Routine instance card using NavigationLink for standard navigation pattern
 struct RoutineInstanceCard: View {
     let instance: RoutineInstance
-    let onTap: () -> Void
 
     var body: some View {
-        Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 12) {
+        NavigationLink(value: AppDestination.routineFlow(instanceId: instance.id)) {
+            VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.md) {
                 // Header
                 HStack {
                     // Type icon
@@ -165,12 +166,12 @@ struct RoutineInstanceCard: View {
                             .foregroundStyle(typeColor)
                     }
 
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.xs / 2) {
                         Text(instance.templateName)
                             .font(.headline)
                             .foregroundStyle(.primary)
 
-                        HStack(spacing: 4) {
+                        HStack(spacing: EquiDutyDesign.Spacing.xs) {
                             Image(systemName: "clock")
                                 .font(.caption)
                             Text(instance.scheduledStartTime)
@@ -181,16 +182,17 @@ struct RoutineInstanceCard: View {
 
                     Spacer()
 
-                    StatusBadge(
+                    ModernStatusBadge(
                         status: instance.status.displayName,
-                        color: Color(instance.status.color)
+                        color: Color(instance.status.color),
+                        icon: typeIcon,
+                        isAnimating: instance.status == .inProgress || instance.status == .started
                     )
                 }
 
                 // Progress
-                VStack(alignment: .leading, spacing: 4) {
-                    ProgressView(value: instance.progress.percentComplete, total: 100)
-                        .tint(progressColor)
+                VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.xs) {
+                    ModernProgressView(value: instance.progress.percentComplete, total: 100, tint: progressColor)
 
                     HStack {
                         Text("\(instance.progress.stepsCompleted)/\(instance.progress.stepsTotal) \(String(localized: "routine.steps"))")
@@ -200,7 +202,7 @@ struct RoutineInstanceCard: View {
                         Spacer()
 
                         if let assignedName = instance.assignedToName {
-                            HStack(spacing: 4) {
+                            HStack(spacing: EquiDutyDesign.Spacing.xs) {
                                 Image(systemName: "person.fill")
                                     .font(.caption2)
                                 Text(assignedName)
@@ -226,11 +228,9 @@ struct RoutineInstanceCard: View {
                     }
                 }
             }
-            .padding()
-            .background(Color(.secondarySystemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .contentCard()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.scale)
     }
 
     private var typeIcon: String {

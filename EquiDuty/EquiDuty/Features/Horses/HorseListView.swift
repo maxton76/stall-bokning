@@ -33,7 +33,7 @@ struct HorseListView: View {
                     }
                 } else if filteredHorses.isEmpty {
                     if searchText.isEmpty && !filters.hasActiveFilters {
-                        EmptyStateView(
+                        ModernEmptyStateView(
                             icon: "pawprint.fill",
                             title: String(localized: "horses.empty.title"),
                             message: String(localized: "horses.empty.message"),
@@ -41,7 +41,7 @@ struct HorseListView: View {
                             action: { showAddHorse = true }
                         )
                     } else {
-                        EmptyStateView(
+                        ModernEmptyStateView(
                             icon: "magnifyingglass",
                             title: String(localized: "horses.no_results.title"),
                             message: String(localized: "horses.no_results.message")
@@ -208,23 +208,35 @@ struct HorseListView: View {
         isLoading = true
         errorMessage = nil
 
+        #if DEBUG
         print("🐴 HorseListView.loadHorses() - selectedStable: \(authService.selectedStable?.name ?? "nil")")
+        #endif
 
         Task {
             do {
                 // If a stable is selected, get stable horses; otherwise get all accessible
                 if let stableId = authService.selectedStable?.id {
+                    #if DEBUG
                     print("🔄 Fetching horses for stable: \(stableId)")
+                    #endif
                     horses = try await horseService.getStableHorses(stableId: stableId)
+                    #if DEBUG
                     print("✅ Fetched \(horses.count) horses")
+                    #endif
                 } else {
+                    #if DEBUG
                     print("🔄 Fetching all accessible horses")
+                    #endif
                     horses = try await horseService.getAllAccessibleHorses()
+                    #if DEBUG
                     print("✅ Fetched \(horses.count) horses")
+                    #endif
                 }
                 isLoading = false
             } catch {
+                #if DEBUG
                 print("❌ Error loading horses: \(error)")
+                #endif
                 errorMessage = error.localizedDescription
                 isLoading = false
             }
@@ -251,12 +263,12 @@ struct HorseRowView: View {
     let horse: Horse
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EquiDutyDesign.Spacing.md) {
             // Horse avatar
             HorseAvatarView(horse: horse, size: 50)
 
             // Info
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.xs) {
                 HStack {
                     Text(horse.name)
                         .font(.headline)
@@ -268,7 +280,7 @@ struct HorseRowView: View {
                     }
                 }
 
-                HStack(spacing: 8) {
+                HStack(spacing: EquiDutyDesign.Spacing.sm) {
                     if let breed = horse.breed {
                         Text(breed)
                             .font(.subheadline)
@@ -293,7 +305,7 @@ struct HorseRowView: View {
                 }
 
                 // Usage badges and group
-                HStack(spacing: 4) {
+                HStack(spacing: EquiDutyDesign.Spacing.xs) {
                     if let usages = horse.usage, !usages.isEmpty {
                         ForEach(usages.prefix(2), id: \.self) { usage in
                             HorseRowUsageBadge(usage: usage)
@@ -322,10 +334,11 @@ struct HorseRowView: View {
             Spacer()
 
             // Status and vaccination
-            VStack(alignment: .trailing, spacing: 4) {
-                StatusBadge(
+            VStack(alignment: .trailing, spacing: EquiDutyDesign.Spacing.xs) {
+                ModernStatusBadge(
                     status: horse.status.displayName,
-                    color: horse.status == .active ? .green : .gray
+                    color: horse.status == .active ? .green : .gray,
+                    icon: horse.status == .active ? "checkmark.circle.fill" : "circle"
                 )
 
                 if let vaccStatus = horse.vaccinationStatus {
@@ -333,7 +346,7 @@ struct HorseRowView: View {
                 }
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, EquiDutyDesign.Spacing.xs)
     }
 }
 
@@ -345,9 +358,10 @@ struct HorseRowUsageBadge: View {
     var body: some View {
         Text(usage.displayName)
             .font(.caption2)
+            .fontWeight(.medium)
             .foregroundStyle(color)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 1)
+            .padding(.horizontal, EquiDutyDesign.Spacing.sm)
+            .padding(.vertical, EquiDutyDesign.Spacing.xs)
             .background(color.opacity(0.15))
             .clipShape(Capsule())
     }
@@ -367,16 +381,17 @@ struct HorseRowGroupBadge: View {
     let name: String
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: EquiDutyDesign.Spacing.xs) {
             Image(systemName: "folder.fill")
                 .font(.system(size: 8))
             Text(name)
         }
         .font(.caption2)
-        .foregroundStyle(.gray)
-        .padding(.horizontal, 6)
-        .padding(.vertical, 1)
-        .background(Color.gray.opacity(0.15))
+        .fontWeight(.medium)
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, EquiDutyDesign.Spacing.sm)
+        .padding(.vertical, EquiDutyDesign.Spacing.xs)
+        .background(.quaternary)
         .clipShape(Capsule())
     }
 }
@@ -418,16 +433,17 @@ struct VaccinationBadge: View {
     let status: VaccinationStatus
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: EquiDutyDesign.Spacing.xs) {
             Image(systemName: iconName)
                 .font(.caption2)
 
             Text(status.displayName)
                 .font(.caption2)
+                .fontWeight(.medium)
         }
         .foregroundStyle(color)
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
+        .padding(.horizontal, EquiDutyDesign.Spacing.sm)
+        .padding(.vertical, EquiDutyDesign.Spacing.xs)
         .background(color.opacity(0.15))
         .clipShape(Capsule())
     }

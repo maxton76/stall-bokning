@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useOrganizationContext } from "@/contexts/OrganizationContext";
@@ -67,6 +67,17 @@ export function useNavigation(): UseNavigationReturn {
   const [expandedItem, setExpandedItem] = useState<string | null>(() => {
     return findActiveNavigationItem(location.pathname, mainNavigation);
   });
+
+  // Sync expandedItem with location changes to ensure navigation works correctly
+  useEffect(() => {
+    const activeItem = findActiveNavigationItem(
+      location.pathname,
+      mainNavigation,
+    );
+    if (activeItem !== null) {
+      setExpandedItem(activeItem);
+    }
+  }, [location.pathname]);
 
   // Create translated navigation items
   const navigation = useMemo((): TranslatedNavigationItem[] => {

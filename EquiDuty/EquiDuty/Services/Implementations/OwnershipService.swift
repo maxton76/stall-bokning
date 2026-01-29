@@ -7,6 +7,11 @@
 
 import Foundation
 
+/// Response wrapper for ownership API responses
+private struct OwnershipResponse: Decodable {
+    let ownerships: [HorseOwnership]
+}
+
 /// Ownership service implementation using API client
 @MainActor
 final class OwnershipService: OwnershipServiceProtocol {
@@ -19,10 +24,10 @@ final class OwnershipService: OwnershipServiceProtocol {
     // MARK: - Ownership Records
 
     func getOwnership(horseId: String) async throws -> [HorseOwnership] {
-        let ownerships: [HorseOwnership] = try await apiClient.get(
+        let response: OwnershipResponse = try await apiClient.get(
             APIEndpoints.horseOwnershipByHorse(horseId)
         )
-        return ownerships
+        return response.ownerships
     }
 
     func addOwnership(ownership: CreateOwnershipRequest) async throws -> HorseOwnership {

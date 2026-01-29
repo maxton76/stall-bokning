@@ -11,6 +11,7 @@ import {
   Shield,
   BarChart3,
   Check,
+  Calendar,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,7 +39,12 @@ import {
   upgradeOrganization,
 } from "@/services/organizationService";
 import { useToast } from "@/hooks/use-toast";
-import type { Organization } from "@stall-bokning/shared";
+import type {
+  Organization,
+  HolidayCalendarSettings,
+} from "@stall-bokning/shared";
+import { DEFAULT_HOLIDAY_SETTINGS } from "@stall-bokning/shared";
+import { HolidaySettingsTab } from "@/components/settings";
 
 const organizationSettingsSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
@@ -67,6 +73,7 @@ export default function OrganizationSettingsPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
+  const [savingHolidays, setSavingHolidays] = useState(false);
 
   // Organization data
   const organizationQuery = useApiQuery<Organization | null>(
@@ -79,6 +86,17 @@ export default function OrganizationSettingsPage() {
   );
   const organizationData = organizationQuery.data ?? null;
   const organizationLoading = organizationQuery.isLoading;
+
+  // Holiday settings state - initialize from organization or defaults
+  const [holidaySettings, setHolidaySettings] =
+    useState<HolidayCalendarSettings>(
+      () =>
+        organizationData?.settings?.holidayCalendar ?? DEFAULT_HOLIDAY_SETTINGS,
+    );
+
+  // Update holiday settings when organization data loads
+  const currentHolidaySettings =
+    organizationData?.settings?.holidayCalendar ?? DEFAULT_HOLIDAY_SETTINGS;
 
   const {
     register,
@@ -158,6 +176,34 @@ export default function OrganizationSettingsPage() {
     }
   };
 
+  const handleSaveHolidaySettings = async () => {
+    if (!organizationId || !user) return;
+
+    setSavingHolidays(true);
+    try {
+      await updateOrganization(organizationId, user.uid, {
+        settings: {
+          ...organizationData?.settings,
+          holidayCalendar: holidaySettings,
+        },
+      });
+      await cacheInvalidation.organizations.all();
+      toast({
+        title: t("organizations:messages.updateSuccess"),
+        description: t("settings:sections.holidays.messages.saved"),
+      });
+    } catch (error) {
+      console.error("Failed to save holiday settings:", error);
+      toast({
+        title: t("common:messages.error"),
+        description: t("common:messages.saveFailed"),
+        variant: "destructive",
+      });
+    } finally {
+      setSavingHolidays(false);
+    }
+  };
+
   // Check if organization is personal type
   const isPersonalOrg = organizationData?.organizationType === "personal";
 
@@ -231,6 +277,10 @@ export default function OrganizationSettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="subscription">
             {t("organizations:menu.subscription")}
+          </TabsTrigger>
+          <TabsTrigger value="holidays" className="gap-1">
+            <Calendar className="h-3 w-3" />
+            {t("settings:tabs.holidays")}
           </TabsTrigger>
           {isPersonalOrg && (
             <TabsTrigger value="upgrade" className="gap-1">
@@ -439,6 +489,46 @@ export default function OrganizationSettingsPage() {
                   {t("organizations:upgrade.personalLimitations")}
                 </p>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Holidays Tab */}
+        <TabsContent value="holidays">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                {t("settings:sections.holidays.title")}
+              </CardTitle>
+              <CardDescription>
+                {t("settings:sections.holidays.description")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <HolidaySettingsTab
+                settings={holidaySettings}
+                onChange={setHolidaySettings}
+                disabled={savingHolidays}
+              />
+              <div className="flex justify-end gap-2 pt-6 border-t mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => setHolidaySettings(currentHolidaySettings)}
+                  disabled={savingHolidays}
+                >
+                  {t("common:buttons.resetToDefaults")}
+                </Button>
+                <Button
+                  onClick={handleSaveHolidaySettings}
+                  disabled={savingHolidays}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  {savingHolidays
+                    ? t("common:labels.loading")
+                    : t("common:buttons.saveChanges")}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

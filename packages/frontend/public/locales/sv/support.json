@@ -1,0 +1,46 @@
+{
+  "title": "Kontakta support",
+  "description": "Beskriv ditt ärende så återkommer vi så snart som möjligt.",
+  "fields": {
+    "subject": "Ämne",
+    "subjectPlaceholder": "Kort beskrivning av ditt ärende",
+    "category": "Kategori",
+    "categoryPlaceholder": "Välj kategori",
+    "message": "Meddelande",
+    "messagePlaceholder": "Beskriv ditt ärende i detalj..."
+  },
+  "categories": {
+    "booking": "Bokning & Schema",
+    "billing": "Fakturering & Betalning",
+    "technical": "Tekniskt problem",
+    "other": "Övrigt"
+  },
+  "buttons": {
+    "submit": "Skicka",
+    "cancel": "Avbryt",
+    "openSupport": "Kontakta support"
+  },
+  "success": {
+    "title": "Tack för ditt meddelande!",
+    "message": "Vi har mottagit ditt ärende (biljett #{{ticketId}}) och återkommer via e-post inom 24 timmar."
+  },
+  "errors": {
+    "submitFailed": "Kunde inte skicka supportärende. Försök igen.",
+    "loadFailed": "Kunde inte ladda supportstatus"
+  },
+  "upgrade": {
+    "title": "Support för betalande kunder",
+    "message": "Support är tillgängligt för betalande kunder. Uppgradera din prenumeration för att få tillgång till support.",
+    "button": "Uppgradera nu"
+  },
+  "validation": {
+    "subjectRequired": "Ämne krävs",
+    "subjectMinLength": "Ämnet måste vara minst 5 tecken",
+    "categoryRequired": "Välj en kategori",
+    "messageRequired": "Meddelande krävs",
+    "messageMinLength": "Meddelandet måste vara minst 20 tecken"
+  },
+  "header": {
+    "helpButton": "Hjälp"
+  }
+}

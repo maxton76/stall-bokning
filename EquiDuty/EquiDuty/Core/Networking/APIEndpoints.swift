@@ -64,7 +64,7 @@ enum APIEndpoints {
 
     // MARK: - Horse Activity History
     static func horseActivities(_ horseId: String) -> String { "/activities/horse/\(horseId)" }
-    static func horseActivityHistory(_ horseId: String) -> String { "/horses/\(horseId)/activity-history" }
+    static func horseActivityHistory(_ horseId: String) -> String { "/horse-activity-history/horse/\(horseId)" }
 
     // MARK: - Feeding
     static func feedTypes(_ organizationId: String) -> String { "/feed-types/organization/\(organizationId)" }

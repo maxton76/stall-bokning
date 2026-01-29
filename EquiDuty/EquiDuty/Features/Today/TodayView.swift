@@ -2,31 +2,32 @@
 //  TodayView.swift
 //  EquiDuty
 //
-//  Unified daily view combining routines and activities
+//  Unified daily view combining routines and activities with enhanced navigation,
+//  view modes, and filtering (matching web frontend TodayPage.tsx)
+//
+//  NAVIGATION PATTERN:
+//  - Uses NavigationLink(value: AppDestination.xxx) for standard navigation
+//  - Uses withAppNavigationDestinations() for ID-based deep linking support
+//  - See NavigationRouter.swift for available destinations
 //
 
 import SwiftUI
 
 struct TodayView: View {
+    @State private var viewModel = TodayViewModel()
     @State private var authService = AuthService.shared
-    @State private var routineService = RoutineService.shared
-    @State private var activityService = ActivityService.shared
-    @State private var selectedDate = Date()
-    @State private var routines: [RoutineInstance] = []
-    @State private var activities: [ActivityInstance] = []
-    @State private var isLoading = false
-    @State private var errorMessage: String?
-
-    private let calendar = Calendar.current
+    @State private var router = NavigationRouter.shared
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $router.todayPath) {
             ScrollView {
-                VStack(spacing: 20) {
-                    // Date navigation
-                    DateNavigationHeader(
-                        selectedDate: $selectedDate,
-                        onDateChanged: { loadData() }
+                VStack(spacing: EquiDutyDesign.Spacing.lg) {
+                    // Enhanced date navigation with period selector
+                    TodayDateNavigationHeader(
+                        selectedDate: $viewModel.selectedDate,
+                        periodType: $viewModel.periodType,
+                        onDateChanged: { viewModel.loadData() },
+                        onPeriodChanged: { viewModel.loadData() }
                     )
 
                     // Stable selector
@@ -34,131 +35,231 @@ struct TodayView: View {
                         StableContextBadge(stable: stable)
                     }
 
-                    if isLoading {
-                        ProgressView()
-                            .frame(maxWidth: .infinity, minHeight: 200)
-                    } else if let errorMessage {
-                        ErrorView(message: errorMessage) {
-                            loadData()
-                        }
-                    } else {
-                        // Routines section
-                        if !routines.isEmpty {
-                            RoutinesSectionView(
-                                routines: routines,
-                                title: String(localized: "today.routines.title")
-                            )
+                    // View mode selector with counts
+                    TodayViewModeSelector(
+                        selectedMode: $viewModel.viewMode,
+                        routineCount: viewModel.routineCount,
+                        activityCount: viewModel.activityCount
+                    )
+
+                    // Filter button
+                    HStack(spacing: EquiDutyDesign.Spacing.md) {
+                        TodayFilterButton(filters: viewModel.filters) {
+                            viewModel.showFilterSheet = true
                         }
 
-                        // Activities section
-                        if !activities.isEmpty {
-                            ActivitiesSectionView(
-                                activities: activities,
-                                title: String(localized: "today.activities.title")
-                            )
-                        }
+                        Spacer()
 
-                        // Empty state
-                        if routines.isEmpty && activities.isEmpty {
-                            EmptyStateView(
-                                icon: "calendar.badge.checkmark",
-                                title: String(localized: "today.empty.title"),
-                                message: String(localized: "today.empty.message")
+                        // Quick filter toggle for "For Me" with glass styling
+                        ForMeToggleButton(
+                            isActive: Binding(
+                                get: { viewModel.filters.forMe },
+                                set: { viewModel.filters.forMe = $0 }
                             )
+                        )
+                    }
+
+                    // Main content with animation wrapper
+                    Group {
+                        if viewModel.isLoading {
+                            ProgressView()
+                                .frame(maxWidth: .infinity, minHeight: 200)
+                        } else if let errorMessage = viewModel.errorMessage {
+                            ErrorView(message: errorMessage) {
+                                viewModel.loadData()
+                            }
+                        } else {
+                            // Content based on view mode
+                            TodayContentView(viewModel: viewModel)
                         }
                     }
+                    .animation(.easeInOut(duration: EquiDutyDesign.Animation.standard), value: viewModel.viewMode)
+                    .animation(.easeInOut(duration: EquiDutyDesign.Animation.standard), value: viewModel.isLoading)
                 }
-                .padding()
+                .padding(EquiDutyDesign.Spacing.md)
             }
             .navigationTitle(String(localized: "today.title"))
+            .withAppNavigationDestinations()
             .refreshable {
-                await refreshData()
+                await viewModel.refreshData()
             }
             .onAppear {
-                loadData()
+                viewModel.loadData()
             }
             .onChange(of: authService.selectedStable?.id) { _, _ in
-                loadData()
+                viewModel.loadData()
             }
             .onChange(of: authService.selectedOrganization?.id) { _, _ in
-                loadData()
+                viewModel.loadData()
             }
-        }
-    }
-
-    // MARK: - Data Loading
-
-    private func loadData() {
-        guard !isLoading else { return }
-
-        isLoading = true
-        errorMessage = nil
-
-        print("📱 TodayView.loadData() - selectedStable: \(authService.selectedStable?.name ?? "nil"), selectedOrg: \(authService.selectedOrganization?.name ?? "nil")")
-
-        Task {
-            do {
-                // Fetch routines if stable is selected
-                if let stableId = authService.selectedStable?.id {
-                    print("🔄 Fetching routines for stable: \(stableId)")
-                    routines = try await routineService.getRoutineInstances(
-                        stableId: stableId,
-                        date: selectedDate
-                    )
-                    print("✅ Fetched \(routines.count) routines")
-
-                    // Fetch activities for the same stable
-                    print("🔄 Fetching activities for stable: \(stableId)")
-                    activities = try await activityService.getActivitiesForStable(
-                        stableId: stableId,
-                        startDate: selectedDate,
-                        endDate: selectedDate,
-                        types: nil
-                    )
-                    print("✅ Fetched \(activities.count) activities")
-                } else {
-                    print("⚠️ No stable selected, skipping data fetch")
-                    routines = []
-                    activities = []
+            .sheet(isPresented: $viewModel.showFilterSheet) {
+                TodayFilterSheet(filters: $viewModel.filters) {
+                    // Filters applied - data updates via computed properties
                 }
-
-                isLoading = false
-            } catch {
-                print("❌ Error loading data: \(error)")
-                errorMessage = error.localizedDescription
-                isLoading = false
             }
-        }
-    }
-
-    private func refreshData() async {
-        do {
-            // Fetch routines and activities if stable is selected
-            if let stableId = authService.selectedStable?.id {
-                routines = try await routineService.getRoutineInstances(
-                    stableId: stableId,
-                    date: selectedDate
-                )
-                activities = try await activityService.getActivitiesForStable(
-                    stableId: stableId,
-                    startDate: selectedDate,
-                    endDate: selectedDate,
-                    types: nil
-                )
-            } else {
-                routines = []
-                activities = []
-            }
-
-            errorMessage = nil
-        } catch {
-            errorMessage = error.localizedDescription
         }
     }
 }
 
-// MARK: - Date Navigation Header
+// MARK: - For Me Toggle Button
 
+/// Glass-styled toggle button for "For Me" filter
+struct ForMeToggleButton: View {
+    @Binding var isActive: Bool
+
+    var body: some View {
+        Button {
+            withAnimation(.easeInOut(duration: EquiDutyDesign.Animation.quick)) {
+                isActive.toggle()
+            }
+        } label: {
+            Label(
+                String(localized: "today.filters.forMe"),
+                systemImage: "person.fill"
+            )
+            .font(.subheadline)
+            .fontWeight(.medium)
+            .padding(.horizontal, EquiDutyDesign.Spacing.md)
+            .padding(.vertical, EquiDutyDesign.Spacing.sm)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: EquiDutyDesign.CornerRadius.medium, style: .continuous)
+                .fill(isActive ? Color.accentColor.opacity(0.15) : .clear)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: EquiDutyDesign.CornerRadius.medium, style: .continuous)
+                .strokeBorder(isActive ? Color.accentColor : Color.secondary.opacity(0.3), lineWidth: 1)
+        )
+        .foregroundStyle(isActive ? Color.accentColor : .secondary)
+        .buttonStyle(.scale)
+    }
+}
+
+// MARK: - Content View
+
+/// Main content view that switches based on view mode
+/// Uses NavigationLink for activity navigation (see TodayActivityCard)
+struct TodayContentView: View {
+    let viewModel: TodayViewModel
+
+    var body: some View {
+        switch viewModel.viewMode {
+        case .all:
+            AllContentView(viewModel: viewModel)
+        case .activities:
+            ActivitiesOnlyView(viewModel: viewModel)
+        case .routines:
+            RoutinesOnlyView(viewModel: viewModel)
+        }
+    }
+}
+
+/// All content (routines + activities)
+/// Activities use NavigationLink for navigation (see TodayActivityCard)
+struct AllContentView: View {
+    let viewModel: TodayViewModel
+
+    var body: some View {
+        VStack(spacing: EquiDutyDesign.Spacing.lg) {
+            // Check if completely empty
+            if viewModel.isEmpty {
+                ModernEmptyStateView(
+                    icon: "calendar.badge.checkmark",
+                    title: String(localized: "today.empty.title"),
+                    message: String(localized: "today.empty.message")
+                )
+            } else if viewModel.isFilteredEmpty && viewModel.filters.hasActiveFilters {
+                // Filtered to empty
+                ModernEmptyStateView(
+                    icon: "line.3.horizontal.decrease.circle",
+                    title: String(localized: "today.filtered.empty.title"),
+                    message: String(localized: "today.filtered.empty.message")
+                )
+            } else {
+                // Routines section (always shows today's routines only)
+                if !viewModel.filteredRoutines.isEmpty {
+                    VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.md) {
+                        ModernSectionHeader(title: String(localized: "today.routines.todaysTitle"))
+                        TodayRoutineList(
+                            routineGroups: viewModel.routineGroups,
+                            showEmptyState: false
+                        )
+                    }
+                }
+
+                // Activities section
+                if !viewModel.filteredActivities.isEmpty {
+                    VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.md) {
+                        ModernSectionHeader(title: String(localized: "today.activities.title"))
+                        TodayActivityList(
+                            activities: viewModel.filteredActivities,
+                            groupBy: viewModel.filters.groupBy,
+                            periodType: viewModel.periodType,
+                            referenceDate: viewModel.selectedDate,
+                            showEmptyState: false
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Activities only view
+/// Uses NavigationLink for activity navigation (see TodayActivityCard)
+struct ActivitiesOnlyView: View {
+    let viewModel: TodayViewModel
+
+    var body: some View {
+        if viewModel.activities.isEmpty {
+            ModernEmptyStateView(
+                icon: "calendar.badge.checkmark",
+                title: String(localized: "today.activities.empty.title"),
+                message: String(localized: "today.activities.empty.message")
+            )
+        } else if viewModel.filteredActivities.isEmpty && viewModel.filters.hasActiveFilters {
+            ModernEmptyStateView(
+                icon: "line.3.horizontal.decrease.circle",
+                title: String(localized: "today.filtered.empty.title"),
+                message: String(localized: "today.filtered.empty.message")
+            )
+        } else {
+            TodayActivityList(
+                activities: viewModel.filteredActivities,
+                groupBy: viewModel.filters.groupBy,
+                periodType: viewModel.periodType,
+                referenceDate: viewModel.selectedDate
+            )
+        }
+    }
+}
+
+/// Routines only view
+struct RoutinesOnlyView: View {
+    let viewModel: TodayViewModel
+
+    var body: some View {
+        if viewModel.routines.isEmpty {
+            ModernEmptyStateView(
+                icon: "checklist",
+                title: String(localized: "today.routines.empty.title"),
+                message: String(localized: "today.routines.empty.message")
+            )
+        } else if viewModel.filteredRoutines.isEmpty && viewModel.filters.hasActiveFilters {
+            ModernEmptyStateView(
+                icon: "line.3.horizontal.decrease.circle",
+                title: String(localized: "today.filtered.empty.title"),
+                message: String(localized: "today.filtered.empty.message")
+            )
+        } else {
+            TodayRoutineList(routineGroups: viewModel.routineGroups)
+        }
+    }
+}
+
+// MARK: - Supporting Views (Legacy Compatibility)
+
+/// Simple date navigation header (kept for backward compatibility)
 struct DateNavigationHeader: View {
     @Binding var selectedDate: Date
     var onDateChanged: () -> Void
@@ -175,16 +276,19 @@ struct DateNavigationHeader: View {
                     .font(.title3)
                     .fontWeight(.semibold)
             }
+            .buttonStyle(.scale)
 
             Spacer()
 
-            VStack {
+            VStack(spacing: EquiDutyDesign.Spacing.xs) {
                 Text(selectedDate, format: .dateTime.weekday(.wide))
                     .font(.headline)
+                    .contentTransition(.interpolate)
 
                 Text(selectedDate, format: .dateTime.day().month(.abbreviated))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .contentTransition(.interpolate)
             }
 
             Spacer()
@@ -197,10 +301,9 @@ struct DateNavigationHeader: View {
                     .font(.title3)
                     .fontWeight(.semibold)
             }
+            .buttonStyle(.scale)
         }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .glassNavigation()
     }
 }
 
@@ -210,8 +313,9 @@ struct StableContextBadge: View {
     let stable: Stable
 
     var body: some View {
-        HStack {
+        HStack(spacing: EquiDutyDesign.Spacing.sm) {
             Image(systemName: "building.2.fill")
+                .font(.system(size: EquiDutyDesign.IconSize.small))
                 .foregroundStyle(.secondary)
 
             Text(stable.name)
@@ -225,25 +329,26 @@ struct StableContextBadge: View {
             } label: {
                 Text(String(localized: "common.change"))
                     .font(.caption)
+                    .fontWeight(.medium)
             }
+            .buttonStyle(.scale)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Color(.tertiarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .padding(.horizontal, EquiDutyDesign.Spacing.md)
+        .padding(.vertical, EquiDutyDesign.Spacing.md)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: EquiDutyDesign.CornerRadius.medium, style: .continuous))
     }
 }
 
-// MARK: - Routines Section
+// MARK: - Legacy Section Views (for other views that may use them)
 
 struct RoutinesSectionView: View {
     let routines: [RoutineInstance]
     let title: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.headline)
+        VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.md) {
+            ModernSectionHeader(title: title)
 
             ForEach(routines) { routine in
                 RoutineCard(routine: routine)
@@ -252,16 +357,13 @@ struct RoutinesSectionView: View {
     }
 }
 
-// MARK: - Activities Section
-
 struct ActivitiesSectionView: View {
     let activities: [ActivityInstance]
     let title: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.headline)
+        VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.md) {
+            ModernSectionHeader(title: title)
 
             ForEach(activities) { activity in
                 ActivityCard(activity: activity)
@@ -270,26 +372,49 @@ struct ActivitiesSectionView: View {
     }
 }
 
-// MARK: - Routine Card
+// MARK: - Legacy Routine Card
 
 struct RoutineCard: View {
     let routine: RoutineInstance
 
+    /// Whether the routine is currently active
+    private var isActive: Bool {
+        routine.status == .inProgress
+    }
+
+    /// Icon for the current status
+    private var statusIcon: String {
+        switch routine.status {
+        case .completed: return "checkmark.circle.fill"
+        case .started, .inProgress: return "clock.fill"
+        case .scheduled: return "circle"
+        case .missed: return "exclamationmark.circle.fill"
+        case .cancelled: return "xmark.circle.fill"
+        }
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
+        VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.sm) {
+            HStack(spacing: EquiDutyDesign.Spacing.sm) {
                 Image(systemName: "checklist")
+                    .font(.system(size: EquiDutyDesign.IconSize.medium))
                     .foregroundStyle(Color.accentColor)
+                    .symbolEffect(.variableColor.iterative, isActive: isActive)
 
                 Text(routine.templateName)
                     .font(.headline)
 
                 Spacer()
 
-                StatusBadge(status: routine.status.displayName, color: Color(routine.status.color))
+                ModernStatusBadge(
+                    status: routine.status.displayName,
+                    color: Color(routine.status.color),
+                    icon: statusIcon,
+                    isAnimating: isActive
+                )
             }
 
-            HStack {
+            HStack(spacing: EquiDutyDesign.Spacing.xs) {
                 Image(systemName: "clock")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -308,37 +433,61 @@ struct RoutineCard: View {
                 }
             }
 
-            // Progress bar
-            ProgressView(value: routine.progress.percentComplete, total: 100)
-                .tint(Color.accentColor)
+            // Modern progress bar
+            ModernProgressView(
+                value: routine.progress.percentComplete,
+                total: 100
+            )
 
             Text("\(routine.progress.stepsCompleted)/\(routine.progress.stepsTotal) \(String(localized: "routine.steps_completed"))")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .contentTransition(.numericText())
         }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .contentCard()
     }
 }
 
-// MARK: - Activity Card
+// MARK: - Legacy Activity Card
 
 struct ActivityCard: View {
     let activity: ActivityInstance
 
+    /// Whether the activity is currently in progress
+    private var isInProgress: Bool {
+        activity.status == .inProgress
+    }
+
+    /// Icon for the current status
+    private var statusIcon: String {
+        switch activity.status {
+        case .completed: return "checkmark.circle.fill"
+        case .inProgress: return "clock.fill"
+        case .cancelled: return "xmark.circle.fill"
+        case .pending: return "calendar"
+        case .overdue: return "exclamationmark.circle.fill"
+        }
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
+        VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.sm) {
+            HStack(spacing: EquiDutyDesign.Spacing.sm) {
                 Image(systemName: activity.activityTypeCategory.icon)
+                    .font(.system(size: EquiDutyDesign.IconSize.medium))
                     .foregroundStyle(Color.accentColor)
+                    .symbolEffect(.pulse, isActive: isInProgress)
 
                 Text(activity.activityTypeName)
                     .font(.headline)
 
                 Spacer()
 
-                StatusBadge(status: activity.status.displayName, color: Color(activity.status.color))
+                ModernStatusBadge(
+                    status: activity.status.displayName,
+                    color: Color(activity.status.color),
+                    icon: statusIcon,
+                    isAnimating: isInProgress
+                )
             }
 
             if !activity.horseNames.isEmpty {
@@ -347,7 +496,7 @@ struct ActivityCard: View {
                     .foregroundStyle(.secondary)
             }
 
-            HStack {
+            HStack(spacing: EquiDutyDesign.Spacing.xs) {
                 if let time = activity.scheduledTime {
                     Image(systemName: "clock")
                         .font(.caption)
@@ -368,9 +517,7 @@ struct ActivityCard: View {
                 }
             }
         }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .contentCard()
     }
 }
 

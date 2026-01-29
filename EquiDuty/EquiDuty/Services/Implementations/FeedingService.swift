@@ -36,11 +36,30 @@ final class FeedingService: FeedingServiceProtocol {
         return response.feedingTimes.sorted { $0.sortOrder < $1.sortOrder }
     }
 
-    func getHorseFeedings(stableId: String) async throws -> [HorseFeeding] {
+    /// Get horse feedings for a stable, optionally filtered by feeding time and date
+    ///
+    /// - Parameters:
+    ///   - stableId: The stable ID
+    ///   - feedingTimeId: Optional feeding time ID to filter by (e.g., for routine steps)
+    ///   - forDate: Optional date to filter feedings by their valid date range (startDate/endDate)
+    /// - Returns: Array of active HorseFeeding objects that are valid for the specified date
+    func getHorseFeedings(stableId: String, feedingTimeId: String? = nil, forDate: Date? = nil) async throws -> [HorseFeeding] {
         let response: HorseFeedingsResponse = try await apiClient.get(
             APIEndpoints.horseFeedings(stableId)
         )
-        return response.horseFeedings.filter { $0.isActive }
+        var feedings = response.horseFeedings.filter { $0.isActive }
+
+        // Filter by date if provided (validates startDate/endDate range)
+        if let date = forDate {
+            feedings = feedings.filter { $0.isValidFor(date: date) }
+        }
+
+        // Filter by feeding time if specified
+        if let feedingTimeId = feedingTimeId {
+            feedings = feedings.filter { $0.feedingTimeId == feedingTimeId }
+        }
+
+        return feedings
     }
 
     func getDailyFeedingData(

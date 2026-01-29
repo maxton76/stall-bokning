@@ -1,0 +1,37 @@
+{
+  "names": {
+    "newYearsDay": "Nyårsdagen",
+    "epiphany": "Trettondedag jul",
+    "goodFriday": "Långfredagen",
+    "easterEve": "Påskafton",
+    "easterSunday": "Påskdagen",
+    "easterMonday": "Annandag påsk",
+    "labourDay": "Första maj",
+    "ascensionDay": "Kristi himmelsfärdsdag",
+    "whitSunday": "Pingstdagen",
+    "nationalDay": "Sveriges nationaldag",
+    "midsummerEve": "Midsommarafton",
+    "midsummerDay": "Midsommardagen",
+    "allSaintsDay": "Alla helgons dag",
+    "christmasEve": "Julafton",
+    "christmasDay": "Juldagen",
+    "boxingDay": "Annandag jul",
+    "newYearsEve": "Nyårsafton"
+  },
+  "types": {
+    "publicHoliday": "Röd dag",
+    "halfDay": "Halvdag",
+    "holiday": "Helgdag"
+  },
+  "labels": {
+    "upcomingHolidays": "Kommande helgdagar",
+    "noHolidays": "Inga helgdagar under denna period",
+    "moreHolidays": "+{{count}} fler helgdagar",
+    "holidayMultiplier": "Helgdagsmultiplikator",
+    "holidayShift": "Helgdagsskift"
+  },
+  "messages": {
+    "bookingRestricted": "Bokning är inte tillåten på {{holiday}}",
+    "holidayPointsApplied": "Helgdagspoäng tillämpade ({{multiplier}}x)"
+  }
+}

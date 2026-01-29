@@ -7,6 +7,15 @@
 
 import SwiftUI
 
+/// Tab identifiers for programmatic tab switching
+enum AppTab: String, CaseIterable {
+    case today
+    case horses
+    case feeding
+    case routines
+    case settings
+}
+
 /// Navigation destinations for the app
 enum AppDestination: Hashable {
     // Horses
@@ -39,6 +48,11 @@ enum AppDestination: Hashable {
 final class NavigationRouter {
     static let shared = NavigationRouter()
 
+    /// Currently selected tab - observed by MainTabView
+    var selectedTab: AppTab = .today
+
+    /// Navigation paths for each tab
+    var todayPath = NavigationPath()
     var horsesPath = NavigationPath()
     var feedingPath = NavigationPath()
     var routinesPath = NavigationPath()
@@ -60,8 +74,34 @@ final class NavigationRouter {
         routinesPath.append(AppDestination.routineFlow(instanceId: instanceId))
     }
 
+    func navigateToActivityDetail(_ activityId: String) {
+        todayPath.append(AppDestination.activityDetail(activityId: activityId))
+    }
+
     func navigateToAccount() {
         settingsPath.append(AppDestination.account)
+    }
+
+    // MARK: - Tab Switching
+
+    func switchToTab(_ tab: AppTab) {
+        selectedTab = tab
+    }
+
+    func switchToTabAndNavigate(_ tab: AppTab, destination: AppDestination) {
+        selectedTab = tab
+        switch tab {
+        case .today:
+            todayPath.append(destination)
+        case .horses:
+            horsesPath.append(destination)
+        case .feeding:
+            feedingPath.append(destination)
+        case .routines:
+            routinesPath.append(destination)
+        case .settings:
+            settingsPath.append(destination)
+        }
     }
 
     // MARK: - Deep Link Handling
@@ -77,12 +117,29 @@ final class NavigationRouter {
         switch host {
         case "horse":
             if let horseId = pathComponents.first {
+                switchToTab(.horses)
                 navigateToHorseDetail(horseId)
             }
         case "routine":
             if let instanceId = pathComponents.first {
+                switchToTab(.routines)
                 navigateToRoutineFlow(instanceId)
             }
+        case "activity":
+            if let activityId = pathComponents.first {
+                switchToTab(.today)
+                navigateToActivityDetail(activityId)
+            }
+        case "today":
+            switchToTab(.today)
+        case "horses":
+            switchToTab(.horses)
+        case "feeding":
+            switchToTab(.feeding)
+        case "routines":
+            switchToTab(.routines)
+        case "settings":
+            switchToTab(.settings)
         default:
             break
         }
@@ -91,10 +148,27 @@ final class NavigationRouter {
     // MARK: - Reset
 
     func resetAll() {
+        selectedTab = .today
+        todayPath = NavigationPath()
         horsesPath = NavigationPath()
         feedingPath = NavigationPath()
         routinesPath = NavigationPath()
         settingsPath = NavigationPath()
+    }
+
+    func resetCurrentTabPath() {
+        switch selectedTab {
+        case .today:
+            todayPath = NavigationPath()
+        case .horses:
+            horsesPath = NavigationPath()
+        case .feeding:
+            feedingPath = NavigationPath()
+        case .routines:
+            routinesPath = NavigationPath()
+        case .settings:
+            settingsPath = NavigationPath()
+        }
     }
 }
 
@@ -117,7 +191,7 @@ extension View {
             case .feedTypeList(let stableId):
                 FeedTypeListView(stableId: stableId)
             case .activityDetail(let activityId):
-                ActivityDetailView(activityId: activityId)
+                ActivityDetailByIdView(activityId: activityId)
             case .activityForm(let activityId):
                 ActivityFormView(activityId: activityId)
             case .account:

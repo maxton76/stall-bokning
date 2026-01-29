@@ -490,6 +490,19 @@ export const queryKeys = {
       [...queryKeys.portal.all, "thread", threadId, "messages"] as const,
     profile: () => [...queryKeys.portal.all, "profile"] as const,
   },
+
+  // Selection Processes (Turn-based routine selection)
+  selectionProcesses: {
+    all: ["selectionProcesses"] as const,
+    lists: () => [...queryKeys.selectionProcesses.all, "list"] as const,
+    list: (params: { stableId?: string; status?: string }) =>
+      [...queryKeys.selectionProcesses.lists(), params] as const,
+    byStable: (stableId: string) =>
+      [...queryKeys.selectionProcesses.lists(), { stableId }] as const,
+    details: () => [...queryKeys.selectionProcesses.all, "detail"] as const,
+    detail: (id: string) =>
+      [...queryKeys.selectionProcesses.details(), id] as const,
+  },
 };
 
 /**
@@ -1068,5 +1081,27 @@ export const cacheInvalidation = {
       }),
     profile: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.portal.profile() }),
+  },
+
+  /**
+   * Invalidate all selection process queries
+   */
+  selectionProcesses: {
+    all: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.selectionProcesses.all,
+      }),
+    lists: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.selectionProcesses.lists(),
+      }),
+    byStable: (stableId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.selectionProcesses.byStable(stableId),
+      }),
+    detail: (id: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.selectionProcesses.detail(id),
+      }),
   },
 };

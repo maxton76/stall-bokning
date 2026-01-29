@@ -270,6 +270,42 @@ export async function canManageMembers(
 }
 
 /**
+ * Check if user can manage selection processes for a stable
+ * Requires: owner, administrator, or schedule_planner role
+ *
+ * @param userId - The user's ID
+ * @param stableId - The stable's ID
+ * @returns Promise<boolean> - True if user can manage selection processes
+ */
+export async function canManageSelectionProcesses(
+  userId: string,
+  stableId: string,
+): Promise<boolean> {
+  try {
+    // Check if user is stable owner first
+    const isOwner = await isStableOwner(userId, stableId);
+    if (isOwner) {
+      return true;
+    }
+
+    // Get organization member data for stable
+    const orgMember = await getOrganizationMemberForStable(userId, stableId);
+    if (!orgMember) {
+      return false;
+    }
+
+    // Check if user has administrator or schedule_planner role
+    const roles = orgMember.roles || [];
+    return (
+      roles.includes("administrator") || roles.includes("schedule_planner")
+    );
+  } catch (error) {
+    console.error("Error checking selection process management access:", error);
+    return false;
+  }
+}
+
+/**
  * Check if user is a system administrator
  *
  * @param userRole - The user's system role from JWT token

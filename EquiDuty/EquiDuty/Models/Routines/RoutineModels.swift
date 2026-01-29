@@ -354,6 +354,68 @@ struct RoutineInstance: Codable, Identifiable, Equatable, Hashable {
 
 // MARK: - Daily Notes
 
+/// Category for daily notes - matches frontend DailyNoteCategory
+enum DailyNoteCategory: String, Codable, CaseIterable {
+    case medication = "medication"
+    case health = "health"
+    case feeding = "feeding"
+    case blanket = "blanket"
+    case behavior = "behavior"
+    case other = "other"
+
+    /// Display name for the category
+    var displayName: String {
+        switch self {
+        case .medication: return String(localized: "daily_notes.category.medication")
+        case .health: return String(localized: "daily_notes.category.health")
+        case .feeding: return String(localized: "daily_notes.category.feeding")
+        case .blanket: return String(localized: "daily_notes.category.blanket")
+        case .behavior: return String(localized: "daily_notes.category.behavior")
+        case .other: return String(localized: "daily_notes.category.other")
+        }
+    }
+
+    /// Icon for the category
+    var icon: String {
+        switch self {
+        case .medication: return "pills.fill"
+        case .health: return "heart.text.square.fill"
+        case .feeding: return "leaf.fill"
+        case .blanket: return "cloud.snow.fill"
+        case .behavior: return "exclamationmark.triangle.fill"
+        case .other: return "note.text"
+        }
+    }
+
+    /// Color for the category
+    var color: String {
+        switch self {
+        case .medication: return "pink"
+        case .health: return "red"
+        case .feeding: return "orange"
+        case .blanket: return "blue"
+        case .behavior: return "yellow"
+        case .other: return "gray"
+        }
+    }
+}
+
+/// Maps a RoutineCategory to its corresponding DailyNoteCategory
+/// Used to filter daily notes relevant to a specific routine step type
+extension RoutineCategory {
+    var dailyNoteCategory: DailyNoteCategory? {
+        switch self {
+        case .feeding: return .feeding
+        case .medication: return .medication
+        case .blanket: return .blanket
+        case .healthCheck: return .health
+        // These step types don't have a direct note category mapping
+        case .preparation, .turnout, .bringIn, .mucking, .water, .safety, .cleaning, .other:
+            return nil
+        }
+    }
+}
+
 /// Priority level for notes and alerts
 enum NotePriority: String, Codable, CaseIterable {
     case info = "info"
@@ -396,6 +458,23 @@ struct HorseDailyNote: Codable, Identifiable, Equatable {
     let createdAt: Date
     let createdBy: String
     var createdByName: String?
+
+    /// Parsed category enum (falls back to .other if unknown or nil)
+    var noteCategory: DailyNoteCategory {
+        guard let categoryString = category else { return .other }
+        return DailyNoteCategory(rawValue: categoryString) ?? .other
+    }
+
+    /// Check if this note matches a specific category
+    func matchesCategory(_ targetCategory: DailyNoteCategory) -> Bool {
+        noteCategory == targetCategory
+    }
+
+    /// Check if this note matches a routine step's category
+    func matchesStepCategory(_ stepCategory: RoutineCategory) -> Bool {
+        guard let noteCategory = stepCategory.dailyNoteCategory else { return false }
+        return self.noteCategory == noteCategory
+    }
 }
 
 /// Priority alert for the day

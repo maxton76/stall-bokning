@@ -43,7 +43,6 @@ final class CareActivityService {
         }
 
         // Sort activities into completed vs scheduled
-        let now = Date()
         for activity in careActivities {
             guard let type = CareActivityType.from(activityTypeName: activity.activityTypeName.lowercased()) else {
                 continue

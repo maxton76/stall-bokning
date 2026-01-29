@@ -15,9 +15,39 @@ import {
   sendSignupInviteEmail,
 } from "../services/emailService.js";
 import { serializeTimestamps } from "../utils/serialization.js";
-import { canInviteMembers } from "@stall-bokning/shared";
+import {
+  canInviteMembers,
+  DEFAULT_HOLIDAY_SETTINGS,
+} from "@stall-bokning/shared";
 
 // Zod schemas for validation
+const supportedCountryCodeSchema = z.enum(["SE"]);
+
+const holidayCalendarSettingsSchema = z.object({
+  countryCode: supportedCountryCodeSchema.default(
+    DEFAULT_HOLIDAY_SETTINGS.countryCode,
+  ),
+  enableHolidayDisplay: z
+    .boolean()
+    .default(DEFAULT_HOLIDAY_SETTINGS.enableHolidayDisplay),
+  enableHolidayMultiplier: z
+    .boolean()
+    .default(DEFAULT_HOLIDAY_SETTINGS.enableHolidayMultiplier),
+  holidayMultiplier: z
+    .number()
+    .min(1.0)
+    .max(3.0)
+    .default(DEFAULT_HOLIDAY_SETTINGS.holidayMultiplier),
+  enableSchedulingRestrictions: z
+    .boolean()
+    .default(DEFAULT_HOLIDAY_SETTINGS.enableSchedulingRestrictions),
+  restrictedHolidays: z.array(z.string()).optional(),
+});
+
+const organizationSettingsSchema = z.object({
+  holidayCalendar: holidayCalendarSettingsSchema.optional(),
+});
+
 const organizationRoleSchema = z.enum([
   "administrator",
   "veterinarian",
@@ -40,7 +70,9 @@ const createOrganizationSchema = z.object({
   timezone: z.string().default("Europe/Stockholm"),
 });
 
-const updateOrganizationSchema = createOrganizationSchema.partial();
+const updateOrganizationSchema = createOrganizationSchema.partial().extend({
+  settings: organizationSettingsSchema.optional(),
+});
 
 const inviteContactAddressSchema = z.object({
   street: z.string(),
@@ -331,10 +363,21 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const updateData = {
-          ...validation.data,
+        // Handle settings specially to use dot notation for nested updates
+        // This prevents overwriting other settings fields when only updating one
+        const { settings, ...otherData } = validation.data;
+        const updateData: Record<string, unknown> = {
+          ...otherData,
           updatedAt: FieldValue.serverTimestamp(),
         };
+
+        // Convert nested settings to dot notation for proper Firestore merge
+        if (settings) {
+          if (settings.holidayCalendar !== undefined) {
+            updateData["settings.holidayCalendar"] = settings.holidayCalendar;
+          }
+          // Add other settings fields here as they are added to the schema
+        }
 
         await docRef.update(updateData);
         const updatedDoc = await docRef.get();

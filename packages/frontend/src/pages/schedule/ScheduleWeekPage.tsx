@@ -1,13 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  AlertCircle,
-  Check,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -91,17 +85,21 @@ export default function ScheduleWeekPage() {
     setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
   };
 
-  const getSlotTypeColor = (type: ScheduleSlot["type"]) => {
-    switch (type) {
-      case "feeding":
-        return "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800";
-      case "cleaning":
-        return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800";
-      case "routine":
-        return "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700";
+  const getSlotStatusColor = (slot: ScheduleSlot) => {
+    // Done/Completed - Green
+    if (slot.status === "completed") {
+      return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800";
     }
+    // Overdue/Missed - Red
+    if (slot.status === "missed") {
+      return "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800";
+    }
+    // Unassigned - Gray
+    if (!slot.assigneeId) {
+      return "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700";
+    }
+    // Planned (assigned, active) - Blue
+    return "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800";
   };
 
   const getStatusBadgeVariant = (
@@ -380,16 +378,9 @@ export default function ScheduleWeekPage() {
                   <div
                     key={slot.id}
                     onClick={() => handleSlotClick(slot, day.date)}
-                    className={`p-2 rounded-md border text-xs cursor-pointer transition-colors hover:opacity-80 ${getSlotTypeColor(slot.type)}`}
+                    className={`p-2 rounded-md border text-xs cursor-pointer transition-colors hover:opacity-80 ${getSlotStatusColor(slot)}`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="font-medium truncate flex-1">
-                        {slot.title}
-                      </div>
-                      {slot.status === "completed" && (
-                        <Check className="h-3 w-3 text-green-600 ml-1 flex-shrink-0" />
-                      )}
-                    </div>
+                    <div className="font-medium truncate">{slot.title}</div>
                     <div className="text-[10px] opacity-75">{slot.time}</div>
                     {slot.assignee ? (
                       <div className="text-[10px] font-bold mt-1">
@@ -421,19 +412,19 @@ export default function ScheduleWeekPage() {
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-amber-100 border border-amber-200" />
-          <span>Utfodring</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-green-100 border border-green-200" />
-          <span>Mockning</span>
+          <div className="w-3 h-3 rounded bg-gray-100 border border-gray-200" />
+          <span>Ej tilldelad</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded bg-blue-100 border border-blue-200" />
-          <span>Rutin</span>
+          <span>Planerad</span>
         </div>
         <div className="flex items-center gap-2">
-          <Check className="h-3 w-3 text-green-600" />
+          <div className="w-3 h-3 rounded bg-red-100 border border-red-200" />
+          <span>Försenad</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded bg-green-100 border border-green-200" />
           <span>Klar</span>
         </div>
       </div>

@@ -1,0 +1,277 @@
+{
+  "navigation": {
+    "routineSelection": "Rutinval"
+  },
+  "titles": {
+    "list": "Rutinval",
+    "detail": "Rutinvalsdetaljer",
+    "create": "Skapa nytt rutinval",
+    "edit": "Redigera rutinval",
+    "startProcess": "Starta rutinval",
+    "completeTurn": "Slutför tur",
+    "selectRoutines": "Välj dina pass"
+  },
+  "descriptions": {
+    "list": "Hantera rutinval och turordning för stallmedlemmar",
+    "create": "Skapa ett nytt rutinval för att fördela uppgifter bland medlemmar",
+    "empty": "Inga rutinval ännu. Skapa ditt första rutinval för att komma igång.",
+    "selectRoutines": "Klicka på lediga pass för att tilldela dem till dig själv."
+  },
+  "status": {
+    "draft": "Utkast",
+    "active": "Aktiv",
+    "completed": "Slutförd",
+    "cancelled": "Avbruten",
+    "paused": "Pausad"
+  },
+  "turnStatus": {
+    "pending": "Väntande",
+    "active": "Aktiv",
+    "completed": "Slutförd",
+    "skipped": "Hoppöverskuren"
+  },
+  "labels": {
+    "name": "Namn",
+    "description": "Beskrivning",
+    "startDate": "Startdatum",
+    "endDate": "Slutdatum",
+    "members": "Medlemmar",
+    "turnOrder": "Turordning",
+    "currentTurn": "Aktuell tur",
+    "nextTurn": "Nästa tur",
+    "status": "Status",
+    "createdBy": "Skapad av",
+    "createdAt": "Skapad",
+    "updatedAt": "Uppdaterad",
+    "position": "Position",
+    "queue": "Kö",
+    "completedTurns": "Slutförda turer",
+    "totalTurns": "Totala turer",
+    "turnDuration": "Turs varaktighet",
+    "participantCount": "Antal deltagare",
+    "days": "dagar",
+    "yourSelection": "Ditt val"
+  },
+  "buttons": {
+    "create": "Skapa rutinval",
+    "start": "Starta rutinval",
+    "completeTurn": "Slutför tur",
+    "nextTurn": "Nästa tur",
+    "skipTurn": "Hoppa över tur",
+    "pause": "Pausa",
+    "resume": "Återuppta",
+    "cancel": "Avbryt",
+    "save": "Spara",
+    "saveChanges": "Spara ändringar",
+    "delete": "Ta bort",
+    "edit": "Redigera",
+    "view": "Visa",
+    "viewDetails": "Visa detaljer",
+    "back": "Tillbaka",
+    "close": "Stäng",
+    "addMember": "Lägg till medlem",
+    "removeMember": "Ta bort medlem",
+    "reorderMembers": "Ändra ordning"
+  },
+  "messages": {
+    "yourTurn": "Det är din tur nu!",
+    "notYourTurn": "Det är inte din tur ännu",
+    "routineSelected": "Passet har valts",
+    "processStarted": "Rutinvalet har startats",
+    "processCompleted": "Rutinvalet är slutfört",
+    "turnCompleted": "Turen är slutförd",
+    "turnSkipped": "Turen är hoppad över",
+    "memberAdded": "Medlem tillagd",
+    "memberRemoved": "Medlem borttagen",
+    "noActiveProcess": "Inget aktivt rutinval",
+    "waitingForTurn": "Väntar på sin tur",
+    "turnStartsIn": "Din tur börjar om {{days}} dagar",
+    "confirmCancelProcess": "Är du säker på att du vill avbryta detta rutinval? Denna åtgärd kan inte ångras.",
+    "confirmDeleteProcess": "Är du säker på att du vill ta bort detta rutinval? Denna åtgärd kan inte ångras.",
+    "confirmSkipTurn": "Är du säker på att du vill hoppa över denna tur?",
+    "selectMembers": "Välj minst två medlemmar för att skapa ett rutinval",
+    "processAlreadyStarted": "Rutinvalet har redan startats och kan inte redigeras",
+    "invalidDateRange": "Slutdatumet måste vara efter startdatumet",
+    "datesUpdated": "Datum har uppdaterats",
+    "successfully": {
+      "created": "Rutinval skapat",
+      "started": "Rutinval startat",
+      "completed": "Rutinval slutfört",
+      "cancelled": "Rutinval avbrutet",
+      "updated": "Rutinval uppdaterat",
+      "deleted": "Rutinval borttaget"
+    },
+    "errors": {
+      "failed": "Kunde inte {{action}}. Försök igen.",
+      "create": "Kunde inte skapa rutinval",
+      "start": "Kunde inte starta rutinval",
+      "completeTurn": "Kunde inte slutföra tur",
+      "nextTurn": "Kunde inte gå till nästa tur",
+      "delete": "Kunde inte ta bort rutinval",
+      "update": "Kunde inte uppdatera rutinval",
+      "loadFailed": "Kunde inte ladda rutinval"
+    }
+  },
+  "queue": {
+    "title": "Kö",
+    "yourPosition": "Din position: {{position}}/{{total}}",
+    "waiting": "Väntande",
+    "yourTurnNow": "Din tur nu",
+    "position": "Position",
+    "member": "Medlem",
+    "status": "Status",
+    "estimatedDate": "Ungefärligt datum",
+    "daysWaiting": "Dagar väntat"
+  },
+  "form": {
+    "name": "Rutinvalnamn",
+    "namePlaceholder": "T.ex. Höstrundor 2024",
+    "description": "Beskrivning",
+    "descriptionPlaceholder": "Beskriv syftet med detta rutinval...",
+    "startDate": "Startdatum",
+    "endDate": "Slutdatum",
+    "members": "Medlemmar",
+    "selectMembers": "Välj medlemmar",
+    "turnOrder": "Turordning",
+    "turnDuration": "Turs varaktighet (dagar)",
+    "autoAssign": "Automatisk tilldelning",
+    "autoAssignDescription": "Automatiskt tilldela nästa person när en tur är klar",
+    "saveOrder": "Spara ordning",
+    "selectAllMembers": "Välj alla",
+    "deselectAllMembers": "Avmarkera alla",
+    "memberCount": "{{count}} medlem vald",
+    "memberCount_plural": "{{count}} medlemmar valda"
+  },
+  "modals": {
+    "confirmStart": {
+      "title": "Starta rutinval",
+      "description": "Du är på väg att starta rutinvalet \"{{name}}\". Denna åtgärd kan inte ångras.",
+      "confirm": "Ja, starta rutinval"
+    },
+    "confirmComplete": {
+      "title": "Slutför tur",
+      "description": "Markera denna tur som slutförd och gå till nästa medlem?",
+      "confirm": "Ja, slutför tur"
+    },
+    "confirmCancel": {
+      "title": "Avbryt rutinval?",
+      "description": "Är du säker på att du vill avbryta detta rutinval? Redan tilldelade pass kommer att behållas."
+    },
+    "confirmDelete": {
+      "title": "Ta bort rutinval?",
+      "description": "Är du säker på att du vill ta bort detta rutinval permanent?"
+    },
+    "selectMembers": {
+      "title": "Välj medlemmar",
+      "description": "Välj medlemmarna som ska delta i detta rutinval",
+      "confirm": "Nästa"
+    },
+    "setOrder": {
+      "title": "Ange turordning",
+      "description": "Dra för att ändra ordningen på medlemmarna",
+      "confirm": "Spara ordning"
+    }
+  },
+  "history": {
+    "title": "Historik",
+    "completedTurns": "Slutförda turer",
+    "turn": "Tur {{number}}",
+    "member": "Medlem",
+    "startDate": "Startdatum",
+    "endDate": "Slutdatum",
+    "completedDate": "Slutfört",
+    "duration": "Varaktighet",
+    "notes": "Anteckningar",
+    "empty": "Ingen historik ännu"
+  },
+  "statistics": {
+    "title": "Statistik",
+    "processStats": "Rutinvalsstatistik",
+    "totalParticipants": "Totala deltagare",
+    "completedTurns": "Slutförda turer",
+    "averageTurnDuration": "Genomsnittlig turvaraktighet",
+    "days": "dagar",
+    "memberStats": "Medlemsstatistik",
+    "member": "Medlem",
+    "turnsCompleted": "Turer slutförda",
+    "turnsDue": "Förfallna turer",
+    "averageDuration": "Genomsnittlig varaktighet",
+    "lastCompletedDate": "Senast slutförd"
+  },
+  "details": {
+    "overview": "Översikt",
+    "participants": "Deltagare",
+    "currentStatus": "Aktuell status",
+    "activeMember": "Aktiv medlem",
+    "turnsCompleted": "Turer slutförda",
+    "estimatedCompletion": "Ungefärligt slutdatum",
+    "queue": "Kö",
+    "actions": "Åtgärder"
+  },
+  "emptyStates": {
+    "noProcesses": "Inga rutinval ännu",
+    "noProcessesDescription": "Skapa ett rutinval för att komma igång med turordning",
+    "noParticipants": "Inga deltagare",
+    "noHistory": "Ingen historik tillgänglig",
+    "noQueue": "Kön är tom"
+  },
+  "validation": {
+    "nameRequired": "Rutinvalnamn krävs",
+    "nameMinLength": "Rutinvalnamn måste vara minst {{min}} tecken",
+    "startDateRequired": "Startdatum krävs",
+    "endDateRequired": "Slutdatum krävs",
+    "invalidDateRange": "Slutdatumet måste vara efter startdatumet",
+    "membersRequired": "Minst två medlemmar krävs",
+    "invalidMemberCount": "Du behöver minst två medlemmar",
+    "turnDurationRequired": "Turs varaktighet krävs",
+    "invalidTurnDuration": "Turs varaktighet måste vara minst 1 dag"
+  },
+  "filters": {
+    "status": "Status",
+    "member": "Medlem",
+    "dateRange": "Datumintervall",
+    "all": "Alla",
+    "active": "Aktiva",
+    "completed": "Slutförda",
+    "draft": "Utkast"
+  },
+  "sorting": {
+    "newest": "Nyast",
+    "oldest": "Äldst",
+    "name": "Namn",
+    "status": "Status",
+    "startDate": "Startdatum",
+    "endDate": "Slutdatum"
+  },
+  "notifications": {
+    "yourTurn": "Det är din tur i {{processName}}!",
+    "yourTurnStartingSoon": "Din tur i {{processName}} börjar om {{days}} dagar",
+    "turnCompleted": "Tur slutförd i {{processName}}",
+    "processCompleted": "{{processName}} är slutfört",
+    "memberJoined": "{{member}} har lagts till i {{processName}}"
+  },
+  "share": {
+    "title": "Dela rutinval",
+    "description": "Dela denna rutinvalsprocess med medlemmar",
+    "copyLink": "Kopiera länk",
+    "linkCopied": "Länk kopierad",
+    "shareUrl": "Delningslänk"
+  },
+  "timezone": {
+    "label": "Tidszon",
+    "description": "Välj tidszon för detta rutinval"
+  },
+  "admin": {
+    "title": "Administration",
+    "editDates": "Ändra urvalsperiod",
+    "dateChangeWarning": "Användare som inte valt ännu kommer se det nya datumintervallet. Redan gjorda val påverkas inte.",
+    "startDate": "Startdatum",
+    "endDate": "Slutdatum",
+    "saveDates": "Spara",
+    "cancelProcess": "Avbryt rutinval",
+    "cancelDescription": "Redan tilldelade pass kommer att behållas.",
+    "deleteProcess": "Ta bort",
+    "deleteDescription": "Tar bort detta rutinval permanent.",
+    "startProcess": "Starta rutinval"
+  }
+}

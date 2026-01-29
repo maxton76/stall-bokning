@@ -20,15 +20,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         FirebaseApp.configure()
         return true
     }
-
-    // Handle Google Sign-In URL callback
-    func application(
-        _ app: UIApplication,
-        open url: URL,
-        options: [UIApplication.OpenURLOptionsKey: Any] = [:]
-    ) -> Bool {
-        return GIDSignIn.sharedInstance.handle(url)
-    }
 }
 
 // MARK: - Main App
@@ -56,6 +47,10 @@ struct EquiDutyApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .onOpenURL { url in
+                    // Handle Google Sign-In URL callback
+                    GIDSignIn.sharedInstance.handle(url)
+                }
         }
         .modelContainer(sharedModelContainer)
     }

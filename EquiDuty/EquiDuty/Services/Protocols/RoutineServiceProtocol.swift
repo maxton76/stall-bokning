@@ -15,6 +15,13 @@ protocol RoutineServiceProtocol {
         date: Date
     ) async throws -> [RoutineInstance]
 
+    /// Get routine instances for a stable within a date range
+    func getRoutineInstancesForDateRange(
+        stableId: String,
+        startDate: Date,
+        endDate: Date
+    ) async throws -> [RoutineInstance]
+
     /// Get routine templates for an organization
     func getRoutineTemplates(
         organizationId: String

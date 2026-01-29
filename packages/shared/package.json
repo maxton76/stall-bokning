@@ -1,6 +1,6 @@
 {
   "name": "@stall-bokning/shared",
-  "version": "1.0.7",
+  "version": "1.0.9",
   "description": "Shared types, utilities, and schemas for stall-bokning monorepo",
   "type": "module",
   "main": "./dist/index.js",
@@ -65,6 +65,11 @@
       "types": "./dist/lib/*.d.ts",
       "import": "./dist/lib/*.js",
       "default": "./dist/lib/*.js"
+    },
+    "./data/holidays": {
+      "types": "./dist/data/holidays/index.d.ts",
+      "import": "./dist/data/holidays/index.js",
+      "default": "./dist/data/holidays/index.js"
     }
   },
   "dependencies": {

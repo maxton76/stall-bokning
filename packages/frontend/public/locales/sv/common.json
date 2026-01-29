@@ -19,6 +19,7 @@
     "scheduleMonth": "Månad",
     "scheduleDistribution": "Fördelning",
     "routineSchedules": "Rutinscheman",
+    "routineSelection": "Rutinval",
     "myAvailability": "Min tillgänglighet",
     "myReservations": "Mina bokningar",
     "settings": "Inställningar",
@@ -69,7 +70,8 @@
     "resetToDefaults": "Återställ till standard",
     "sendInvitation": "Skicka inbjudan",
     "viewAll": "Visa alla",
-    "actions": "Åtgärder"
+    "actions": "Åtgärder",
+    "retry": "Försök igen"
   },
   "labels": {
     "name": "Namn",
@@ -106,7 +108,10 @@
     "copy": "Kopia",
     "points": "poäng",
     "optional": "valfritt",
-    "of": "av"
+    "of": "av",
+    "selectDate": "Välj datum",
+    "you": "du",
+    "selected": "vald"
   },
   "status": {
     "active": "Aktiv",
@@ -130,7 +135,11 @@
     "deleteSuccess": "Borttaget",
     "saveSuccess": "Sparat",
     "createSuccess": "Skapad",
-    "updateSuccess": "Uppdaterad"
+    "updateSuccess": "Uppdaterad",
+    "unknownError": "Okänt fel",
+    "actionCannotBeUndone": "Denna åtgärd kan inte ångras.",
+    "noStables": "Inga stall",
+    "joinStableFirst": "Du behöver vara medlem i ett stall för att se denna sida."
   },
   "time": {
     "today": "Idag",
@@ -317,7 +326,12 @@
     "distribution": {
       "title": "Fördelning",
       "subtitle": "Rättvis fördelning av uppgifter"
-    }
+    },
+    "total": "Totalt",
+    "available": "Tillgängliga",
+    "assigned": "Tilldelade",
+    "noRoutines": "Inga rutiner",
+    "unavailable": "Ej valbar"
   },
   "pwa": {
     "installTitle": "Installera Stallbokning",

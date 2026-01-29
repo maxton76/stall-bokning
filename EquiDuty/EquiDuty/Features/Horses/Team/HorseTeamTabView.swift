@@ -29,7 +29,7 @@ struct HorseTeamTabView: View {
     @State private var showDeleteTeamMemberConfirmation = false
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: EquiDutyDesign.Spacing.standard) {
             // Ownership Section
             OwnershipCard(
                 ownerships: ownerships,
@@ -221,7 +221,7 @@ struct OwnershipCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.md) {
             // Header with add button
             HStack {
                 Text(String(localized: "horse.ownership"))
@@ -237,7 +237,7 @@ struct OwnershipCard: View {
 
             // Total ownership progress
             if !ownerships.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.xs) {
                     HStack {
                         Text(String(localized: "horse.ownership.total"))
                             .font(.caption)
@@ -247,8 +247,11 @@ struct OwnershipCard: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    ProgressView(value: min(totalPercentage, 100), total: 100)
-                        .tint(totalPercentage == 100 ? .green : (totalPercentage > 100 ? .red : .blue))
+                    ModernProgressView(
+                        value: totalPercentage,
+                        total: 100,
+                        tint: totalPercentage == 100 ? .green : (totalPercentage > 100 ? .red : .blue)
+                    )
                 }
             }
 
@@ -260,7 +263,7 @@ struct OwnershipCard: View {
                 }
                 .padding(.vertical)
             } else if ownerships.isEmpty {
-                VStack(spacing: 8) {
+                VStack(spacing: EquiDutyDesign.Spacing.sm) {
                     Image(systemName: "person.2.fill")
                         .font(.largeTitle)
                         .foregroundStyle(.secondary)
@@ -290,9 +293,7 @@ struct OwnershipCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .contentCard()
     }
 }
 
@@ -305,8 +306,8 @@ struct OwnershipRow: View {
 
     var body: some View {
         HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.xs) {
+                HStack(spacing: EquiDutyDesign.Spacing.sm) {
                     Text(ownership.ownerName)
                         .font(.body)
                         .fontWeight(.medium)
@@ -314,7 +315,7 @@ struct OwnershipRow: View {
                     OwnershipRoleBadge(role: ownership.role)
                 }
 
-                HStack(spacing: 8) {
+                HStack(spacing: EquiDutyDesign.Spacing.sm) {
                     Text("\(Int(ownership.percentage))%")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -328,7 +329,7 @@ struct OwnershipRow: View {
                 }
 
                 if let email = ownership.email, !email.isEmpty {
-                    HStack(spacing: 4) {
+                    HStack(spacing: EquiDutyDesign.Spacing.xs) {
                         Image(systemName: "envelope.fill")
                             .font(.caption2)
                         Text(email)
@@ -338,7 +339,7 @@ struct OwnershipRow: View {
                 }
 
                 if let phone = ownership.phone, !phone.isEmpty {
-                    HStack(spacing: 4) {
+                    HStack(spacing: EquiDutyDesign.Spacing.xs) {
                         Image(systemName: "phone.fill")
                             .font(.caption2)
                         Text(phone)
@@ -377,9 +378,10 @@ struct OwnershipRoleBadge: View {
     var body: some View {
         Text(role.displayName)
             .font(.caption2)
+            .fontWeight(.medium)
             .foregroundStyle(color)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 2)
+            .padding(.horizontal, EquiDutyDesign.Spacing.sm)
+            .padding(.vertical, EquiDutyDesign.Spacing.xs)
             .background(color.opacity(0.15))
             .clipShape(Capsule())
     }
@@ -402,7 +404,7 @@ struct StableInfoCard: View {
     var body: some View {
         if horse.currentStableName != nil || horse.externalLocation != nil {
             InfoCard(title: String(localized: "horse.location")) {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.sm) {
                     // Current stable
                     if let stableName = horse.currentStableName {
                         HStack {
@@ -472,7 +474,7 @@ struct TeamMembersCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.md) {
             // Header with add button
             HStack {
                 Text(String(localized: "horse.team"))
@@ -494,7 +496,7 @@ struct TeamMembersCard: View {
                 }
                 .padding(.vertical)
             } else if members.isEmpty {
-                VStack(spacing: 8) {
+                VStack(spacing: EquiDutyDesign.Spacing.sm) {
                     Image(systemName: "person.3.fill")
                         .font(.largeTitle)
                         .foregroundStyle(.secondary)
@@ -512,9 +514,9 @@ struct TeamMembersCard: View {
                 .padding(.vertical)
             } else {
                 ForEach(groupedMembers, id: \.role) { group in
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.sm) {
                         // Role header
-                        HStack(spacing: 6) {
+                        HStack(spacing: EquiDutyDesign.Spacing.sm) {
                             Image(systemName: group.role.icon)
                                 .font(.caption)
                             Text(group.role.displayName)
@@ -540,9 +542,7 @@ struct TeamMembersCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .contentCard()
     }
 
     private func colorForRole(_ role: TeamMemberRole) -> Color {
@@ -569,8 +569,8 @@ struct TeamMemberRow: View {
 
     var body: some View {
         HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.xs) {
+                HStack(spacing: EquiDutyDesign.Spacing.sm) {
                     Text(member.name)
                         .font(.body)
                         .fontWeight(.medium)
@@ -578,16 +578,17 @@ struct TeamMemberRow: View {
                     if member.isPrimary == true {
                         Text(String(localized: "horse.team.primary"))
                             .font(.caption2)
+                            .fontWeight(.medium)
                             .foregroundStyle(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
+                            .padding(.horizontal, EquiDutyDesign.Spacing.sm)
+                            .padding(.vertical, EquiDutyDesign.Spacing.xs)
                             .background(.blue)
                             .clipShape(Capsule())
                     }
                 }
 
                 if let email = member.email, !email.isEmpty {
-                    HStack(spacing: 4) {
+                    HStack(spacing: EquiDutyDesign.Spacing.xs) {
                         Image(systemName: "envelope.fill")
                             .font(.caption2)
                         Text(email)
@@ -597,7 +598,7 @@ struct TeamMemberRow: View {
                 }
 
                 if let phone = member.phone, !phone.isEmpty {
-                    HStack(spacing: 4) {
+                    HStack(spacing: EquiDutyDesign.Spacing.xs) {
                         Image(systemName: "phone.fill")
                             .font(.caption2)
                         Text(phone)
@@ -632,7 +633,7 @@ struct TeamMemberRow: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.leading, 20)
+        .padding(.leading, EquiDutyDesign.Spacing.lg)
     }
 }
 

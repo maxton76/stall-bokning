@@ -1,0 +1,46 @@
+{
+  "title": "Contact Support",
+  "description": "Describe your issue and we'll get back to you as soon as possible.",
+  "fields": {
+    "subject": "Subject",
+    "subjectPlaceholder": "Brief description of your issue",
+    "category": "Category",
+    "categoryPlaceholder": "Select category",
+    "message": "Message",
+    "messagePlaceholder": "Describe your issue in detail..."
+  },
+  "categories": {
+    "booking": "Booking & Schedule",
+    "billing": "Billing & Payment",
+    "technical": "Technical Issue",
+    "other": "Other"
+  },
+  "buttons": {
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "openSupport": "Contact Support"
+  },
+  "success": {
+    "title": "Thank you for your message!",
+    "message": "We've received your request (ticket #{{ticketId}}) and will respond via email within 24 hours."
+  },
+  "errors": {
+    "submitFailed": "Failed to submit support request. Please try again.",
+    "loadFailed": "Failed to load support status"
+  },
+  "upgrade": {
+    "title": "Support for Paid Customers",
+    "message": "Support is available for paying customers. Upgrade your subscription to access support.",
+    "button": "Upgrade Now"
+  },
+  "validation": {
+    "subjectRequired": "Subject is required",
+    "subjectMinLength": "Subject must be at least 5 characters",
+    "categoryRequired": "Please select a category",
+    "messageRequired": "Message is required",
+    "messageMinLength": "Message must be at least 20 characters"
+  },
+  "header": {
+    "helpButton": "Help"
+  }
+}

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -10,10 +10,12 @@ import type {
   EventClickArg,
   DateSelectArg,
   EventDropArg,
+  EventInput,
 } from "@fullcalendar/core";
 import type { EventResizeDoneArg } from "@fullcalendar/interaction";
 import type { Facility } from "@/types/facility";
 import type { FacilityReservation } from "@/types/facilityReservation";
+import type { Holiday } from "@stall-bokning/shared";
 import { toDate } from "@/utils/timestampUtils";
 
 // Default status colors using Tailwind palette
@@ -71,6 +73,20 @@ export interface CalendarEvent {
   extendedProps?: Record<string, any>;
 }
 
+// Holiday display options
+export interface HolidayDisplayOptions {
+  /** Array of holidays to display */
+  holidays?: Holiday[];
+  /** Whether to show holiday background events (default: false) */
+  showHolidays?: boolean;
+  /** Background color for public holidays */
+  publicHolidayColor?: string;
+  /** Background color for half-days */
+  halfDayColor?: string;
+  /** Background color for other holidays */
+  holidayColor?: string;
+}
+
 // Generic calendar view props
 interface GenericCalendarViewProps<T> {
   items: T[];
@@ -85,6 +101,9 @@ interface GenericCalendarViewProps<T> {
   viewOptions?: ViewOptions;
   editable?: boolean;
   className?: string;
+
+  // Holiday display options
+  holidayOptions?: HolidayDisplayOptions;
 }
 
 interface FacilityCalendarViewProps {
@@ -107,6 +126,9 @@ interface FacilityCalendarViewProps {
   viewOptions?: ViewOptions;
   editable?: boolean;
   className?: string;
+
+  // Holiday display options
+  holidayOptions?: HolidayDisplayOptions;
 }
 
 // Generic calendar view component
@@ -121,10 +143,63 @@ export function GenericCalendarView<T>({
   viewOptions = {},
   editable = true,
   className = "",
+  holidayOptions = {},
 }: GenericCalendarViewProps<T>) {
   const calendarRef = useRef<FullCalendar>(null);
   const { i18n } = useTranslation();
   const isSwedish = i18n.language === "sv";
+
+  // Holiday configuration with defaults
+  const {
+    holidays = [],
+    showHolidays = false,
+    publicHolidayColor = "rgba(239, 68, 68, 0.15)", // red-500 with opacity
+    halfDayColor = "rgba(249, 115, 22, 0.12)", // orange-500 with opacity
+    holidayColor = "rgba(239, 68, 68, 0.08)", // red-500 with lighter opacity
+  } = holidayOptions;
+
+  // Transform holidays to background events
+  const holidayEvents = useMemo((): EventInput[] => {
+    if (!showHolidays || !holidays.length) return [];
+
+    return holidays.map((holiday) => {
+      const holidayName = isSwedish ? holiday.name : holiday.nameEn;
+      let backgroundColor = holidayColor;
+
+      if (holiday.isPublicHoliday) {
+        backgroundColor = publicHolidayColor;
+      } else if (holiday.isHalfDay) {
+        backgroundColor = halfDayColor;
+      }
+
+      return {
+        id: `holiday-${holiday.date}`,
+        title: holidayName,
+        start: holiday.date,
+        allDay: true,
+        display: "background",
+        backgroundColor,
+        classNames: [
+          "holiday-background",
+          holiday.isPublicHoliday ? "public-holiday" : "",
+          holiday.isHalfDay ? "half-day" : "",
+        ].filter(Boolean),
+        extendedProps: {
+          isHoliday: true,
+          holidayName,
+          isPublicHoliday: holiday.isPublicHoliday,
+          isHalfDay: holiday.isHalfDay,
+        },
+      };
+    });
+  }, [
+    holidays,
+    showHolidays,
+    isSwedish,
+    publicHolidayColor,
+    halfDayColor,
+    holidayColor,
+  ]);
 
   // Merge with defaults
   const config: Required<CalendarConfig> = {
@@ -164,9 +239,17 @@ export function GenericCalendarView<T>({
   };
 
   // Transform items to FullCalendar events using the provided function
-  const events = items.map((item) => transformEvent(item));
+  const itemEvents = items.map((item) => transformEvent(item));
+
+  // Combine item events with holiday background events
+  const events = useMemo(() => {
+    return [...itemEvents, ...holidayEvents];
+  }, [itemEvents, holidayEvents]);
 
   const handleEventClick = (info: EventClickArg) => {
+    // Ignore clicks on holiday background events
+    if (info.event.extendedProps.isHoliday) return;
+
     const item = info.event.extendedProps.item as T;
     if (item) {
       onEventClick(item);
@@ -326,6 +409,25 @@ export function GenericCalendarView<T>({
         .fc-event-main {
           padding: 2px 4px;
         }
+
+        /* Holiday background events */
+        .fc .fc-bg-event.holiday-background {
+          opacity: 1;
+        }
+
+        .fc .fc-bg-event.public-holiday {
+          border-left: 3px solid rgba(239, 68, 68, 0.5);
+        }
+
+        .fc .fc-bg-event.half-day {
+          border-left: 3px solid rgba(249, 115, 22, 0.4);
+        }
+
+        /* Holiday day number styling in day grid */
+        .fc .fc-daygrid-day.fc-day-holiday .fc-daygrid-day-number {
+          color: hsl(var(--destructive));
+          font-weight: 600;
+        }
       `}</style>
 
       <FullCalendar
@@ -372,6 +474,7 @@ export function FacilityCalendarView({
   viewOptions,
   editable,
   className,
+  holidayOptions,
 }: FacilityCalendarViewProps) {
   const { t } = useTranslation(["facilities", "common"]);
   // Create facility color map
@@ -453,6 +556,7 @@ export function FacilityCalendarView({
       viewOptions={viewOptions}
       editable={editable}
       className={className}
+      holidayOptions={holidayOptions}
     />
   );
 }

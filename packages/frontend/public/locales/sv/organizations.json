@@ -116,6 +116,10 @@
         "label": "Administratör",
         "description": "Full organisationsåtkomst"
       },
+      "schedule_planner": {
+        "label": "Schemaplanerare",
+        "description": "Kan skapa och hantera rutinval för stallet"
+      },
       "veterinarian": {
         "label": "Veterinär",
         "description": "Djurhälsotjänster"

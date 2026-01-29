@@ -4,82 +4,93 @@
 //
 //  Main tab navigation for authenticated users
 //
+//  NAVIGATION PATTERN:
+//  - Each tab maintains its own NavigationStack (iOS best practice for TabView)
+//  - NavigationRouter.shared manages selectedTab for programmatic tab switching
+//  - Deep links handled via router.handleDeepLink(_:)
+//  - Use NavigationLink(value: AppDestination.xxx) + withAppNavigationDestinations()
+//
 
 import SwiftUI
 
 /// Main tab bar navigation
 struct MainTabView: View {
-    @State private var selectedTab: Tab = .today
+    /// Navigation router for programmatic navigation and deep linking
+    @State private var router = NavigationRouter.shared
 
-    enum Tab: String, CaseIterable {
-        case today
-        case horses
-        case feeding
-        case routines
-        case settings
+    /// Tab metadata for display (titles and icons)
+    private struct TabInfo {
+        let title: String
+        let icon: String
+        let selectedIcon: String
 
-        var title: String {
-            switch self {
-            case .today: return String(localized: "tab.today")
-            case .horses: return String(localized: "tab.horses")
-            case .feeding: return String(localized: "tab.feeding")
-            case .routines: return String(localized: "tab.routines")
-            case .settings: return String(localized: "tab.settings")
-            }
-        }
-
-        var icon: String {
-            switch self {
-            case .today: return "calendar"
-            case .horses: return "pawprint.fill"
-            case .feeding: return "leaf.fill"
-            case .routines: return "checklist"
-            case .settings: return "gearshape.fill"
-            }
-        }
-
-        var selectedIcon: String {
-            switch self {
-            case .today: return "calendar.circle.fill"
-            case .horses: return "pawprint.fill"
-            case .feeding: return "leaf.fill"
-            case .routines: return "checklist.checked"
-            case .settings: return "gearshape.fill"
+        static func forTab(_ tab: AppTab) -> TabInfo {
+            switch tab {
+            case .today: return TabInfo(
+                title: String(localized: "tab.today"),
+                icon: "calendar",
+                selectedIcon: "calendar.circle.fill"
+            )
+            case .horses: return TabInfo(
+                title: String(localized: "tab.horses"),
+                icon: "pawprint.fill",
+                selectedIcon: "pawprint.fill"
+            )
+            case .feeding: return TabInfo(
+                title: String(localized: "tab.feeding"),
+                icon: "leaf.fill",
+                selectedIcon: "leaf.fill"
+            )
+            case .routines: return TabInfo(
+                title: String(localized: "tab.routines"),
+                icon: "checklist",
+                selectedIcon: "checklist.checked"
+            )
+            case .settings: return TabInfo(
+                title: String(localized: "tab.settings"),
+                icon: "gearshape.fill",
+                selectedIcon: "gearshape.fill"
+            )
             }
         }
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: $router.selectedTab) {
             TodayView()
                 .tabItem {
-                    Label(Tab.today.title, systemImage: selectedTab == .today ? Tab.today.selectedIcon : Tab.today.icon)
+                    let info = TabInfo.forTab(.today)
+                    Label(info.title, systemImage: router.selectedTab == .today ? info.selectedIcon : info.icon)
                 }
-                .tag(Tab.today)
+                .tag(AppTab.today)
 
             HorseListView()
                 .tabItem {
-                    Label(Tab.horses.title, systemImage: selectedTab == .horses ? Tab.horses.selectedIcon : Tab.horses.icon)
+                    let info = TabInfo.forTab(.horses)
+                    Label(info.title, systemImage: router.selectedTab == .horses ? info.selectedIcon : info.icon)
                 }
-                .tag(Tab.horses)
+                .tag(AppTab.horses)
 
             FeedingTodayView()
                 .tabItem {
-                    Label(Tab.feeding.title, systemImage: selectedTab == .feeding ? Tab.feeding.selectedIcon : Tab.feeding.icon)
+                    let info = TabInfo.forTab(.feeding)
+                    Label(info.title, systemImage: router.selectedTab == .feeding ? info.selectedIcon : info.icon)
                 }
-                .tag(Tab.feeding)
+                .tag(AppTab.feeding)
 
             RoutineListView()
                 .tabItem {
-                    Label(Tab.routines.title, systemImage: selectedTab == .routines ? Tab.routines.selectedIcon : Tab.routines.icon)
+                    let info = TabInfo.forTab(.routines)
+                    Label(info.title, systemImage: router.selectedTab == .routines ? info.selectedIcon : info.icon)
                 }
-                .tag(Tab.routines)
+                .tag(AppTab.routines)
 
             SettingsView()
                 .tabItem {
-                    Label(Tab.settings.title, systemImage: selectedTab == .settings ? Tab.settings.selectedIcon : Tab.settings.icon)
+                    let info = TabInfo.forTab(.settings)
+                    Label(info.title, systemImage: router.selectedTab == .settings ? info.selectedIcon : info.icon)
                 }
-                .tag(Tab.settings)
+                .tag(AppTab.settings)
         }
         .tint(.accentColor)
     }

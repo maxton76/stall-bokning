@@ -49,3 +49,9 @@ export * from "./fairness.types.js";
 
 // User Settings
 export * from "./userSettings.js";
+
+// Selection Process (Turn-based routine selection)
+export * from "./selectionProcess.js";
+
+// Support (ZenDesk Integration)
+export * from "./support.js";

@@ -145,6 +145,25 @@ struct HorseFeeding: Codable, Identifiable, Equatable {
         let quantityStr = formatter.string(from: NSNumber(value: quantity)) ?? "\(quantity)"
         return "\(quantityStr) \(quantityMeasure.abbreviation)"
     }
+
+    /// Check if this feeding is valid for a specific date
+    /// Returns true if the feeding's date range includes the target date
+    func isValidFor(date: Date) -> Bool {
+        let calendar = Calendar.current
+        let dateStart = calendar.startOfDay(for: date)
+        let feedingStart = calendar.startOfDay(for: startDate)
+
+        // Start date must be on or before the target date
+        guard feedingStart <= dateStart else { return false }
+
+        // If endDate exists, it must be after the target date
+        if let end = endDate {
+            let feedingEnd = calendar.startOfDay(for: end)
+            return dateStart < feedingEnd
+        }
+
+        return true // No end date means ongoing
+    }
 }
 
 /// Daily feeding log entry

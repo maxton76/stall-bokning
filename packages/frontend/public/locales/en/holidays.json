@@ -1,0 +1,37 @@
+{
+  "names": {
+    "newYearsDay": "New Year's Day",
+    "epiphany": "Epiphany",
+    "goodFriday": "Good Friday",
+    "easterEve": "Easter Eve",
+    "easterSunday": "Easter Sunday",
+    "easterMonday": "Easter Monday",
+    "labourDay": "Labour Day",
+    "ascensionDay": "Ascension Day",
+    "whitSunday": "Whit Sunday",
+    "nationalDay": "National Day of Sweden",
+    "midsummerEve": "Midsummer Eve",
+    "midsummerDay": "Midsummer Day",
+    "allSaintsDay": "All Saints' Day",
+    "christmasEve": "Christmas Eve",
+    "christmasDay": "Christmas Day",
+    "boxingDay": "Boxing Day",
+    "newYearsEve": "New Year's Eve"
+  },
+  "types": {
+    "publicHoliday": "Public Holiday",
+    "halfDay": "Half Day",
+    "holiday": "Holiday"
+  },
+  "labels": {
+    "upcomingHolidays": "Upcoming Holidays",
+    "noHolidays": "No holidays during this period",
+    "moreHolidays": "+{{count}} more holidays",
+    "holidayMultiplier": "Holiday Multiplier",
+    "holidayShift": "Holiday Shift"
+  },
+  "messages": {
+    "bookingRestricted": "Booking is not allowed on {{holiday}}",
+    "holidayPointsApplied": "Holiday points applied ({{multiplier}}x)"
+  }
+}

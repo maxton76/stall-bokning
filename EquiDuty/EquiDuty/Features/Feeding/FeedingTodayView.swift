@@ -33,11 +33,13 @@ struct FeedingSession: Identifiable {
     }
 
     /// Whether this session can be edited (routine is in an active state)
+    /// Note: For feeding, we allow editing even for "missed" routines since users
+    /// should be able to record feedings even if they're running late
     var isEditable: Bool {
         switch routineStatus {
-        case .scheduled, .started, .inProgress:
+        case .scheduled, .started, .inProgress, .missed:
             return true
-        case .completed, .missed, .cancelled:
+        case .completed, .cancelled:
             return false
         }
     }
@@ -59,7 +61,7 @@ struct FeedingTodayView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: EquiDutyDesign.Spacing.lg) {
                     // Date navigation
                     DateNavigationHeader(
                         selectedDate: $selectedDate,
@@ -79,7 +81,7 @@ struct FeedingTodayView: View {
                             loadFeedingData()
                         }
                     } else if feedingSessions.isEmpty {
-                        EmptyStateView(
+                        ModernEmptyStateView(
                             icon: "leaf.fill",
                             title: String(localized: "feeding.empty.title"),
                             message: String(localized: "feeding.empty.message")
@@ -104,7 +106,7 @@ struct FeedingTodayView: View {
                         }
                     }
                 }
-                .padding()
+                .padding(EquiDutyDesign.Spacing.standard)
             }
             .navigationTitle(String(localized: "feeding.title"))
             .toolbar {
@@ -150,7 +152,7 @@ struct FeedingTodayView: View {
                     date: selectedDate
                 )
                 async let horsesFetch = horseService.getStableHorses(stableId: stableId)
-                async let feedingsFetch = feedingService.getHorseFeedings(stableId: stableId)
+                async let feedingsFetch = feedingService.getHorseFeedings(stableId: stableId, forDate: selectedDate)
 
                 let (instances, fetchedHorses, fetchedFeedings) = try await (instancesFetch, horsesFetch, feedingsFetch)
 
@@ -184,7 +186,7 @@ struct FeedingTodayView: View {
                 date: selectedDate
             )
             async let horsesFetch = horseService.getStableHorses(stableId: stableId)
-            async let feedingsFetch = feedingService.getHorseFeedings(stableId: stableId)
+            async let feedingsFetch = feedingService.getHorseFeedings(stableId: stableId, forDate: selectedDate)
 
             let (instances, fetchedHorses, fetchedFeedings) = try await (instancesFetch, horsesFetch, feedingsFetch)
 
@@ -222,8 +224,8 @@ struct FeedingTodayView: View {
                     name: step.name,
                     time: instance.scheduledStartTime,
                     routineName: instance.templateName,
-                    horsesTotal: stepProgress?.horsesTotal ?? 0,
-                    horsesCompleted: stepProgress?.horsesCompleted ?? 0,
+                    horsesTotal: horses.count,
+                    horsesCompleted: horseProgress.values.filter { $0.completed }.count,
                     horseProgress: horseProgress,
                     feedingTimeId: step.feedingTimeId,
                     routineStatus: instance.status
@@ -247,26 +249,28 @@ struct FeedingTodayView: View {
         // Check if routine is in a state that allows progress updates
         switch session.routineStatus {
         case .completed:
+            #if DEBUG
             print("⚠️ Routine is already completed, cannot update progress")
+            #endif
             errorMessage = String(localized: "feeding.error.routine_completed")
             return
-        case .missed:
-            print("⚠️ Routine was missed, cannot update progress")
-            errorMessage = String(localized: "feeding.error.routine_missed")
-            return
         case .cancelled:
+            #if DEBUG
             print("⚠️ Routine was cancelled, cannot update progress")
+            #endif
             errorMessage = String(localized: "feeding.error.routine_cancelled")
             return
-        case .scheduled, .started, .inProgress:
-            break  // These statuses allow updates
+        case .scheduled, .started, .inProgress, .missed:
+            break  // These statuses allow updates (missed allowed for late feeding recording)
         }
 
         do {
-            // Auto-start routine if still in scheduled status
+            // Auto-start routine if still in scheduled or missed status
             // The API requires routine to be "started" or "in_progress" before accepting progress updates
-            if session.routineStatus == .scheduled {
+            if session.routineStatus == .scheduled || session.routineStatus == .missed {
+                #if DEBUG
                 print("📋 Starting routine instance \(session.instanceId) before updating progress")
+                #endif
                 try await routineService.startRoutineInstance(
                     instanceId: session.instanceId,
                     dailyNotesAcknowledged: true
@@ -295,7 +299,9 @@ struct FeedingTodayView: View {
             // Refresh data to get updated progress
             await refreshFeedingData()
         } catch {
+            #if DEBUG
             print("❌ Failed to update feeding status: \(error)")
+            #endif
             // Show user-visible error
             errorMessage = "Failed to save: \(error.localizedDescription)"
         }
@@ -324,21 +330,22 @@ struct OverallFeedingProgress: View {
         let totalHorses = sessions.reduce(0) { $0 + $1.horsesTotal }
         let progress = totalHorses > 0 ? Double(totalCompleted) / Double(totalHorses) : 0
 
-        VStack(spacing: 12) {
+        VStack(spacing: EquiDutyDesign.Spacing.md) {
             ZStack {
                 Circle()
-                    .stroke(Color.secondary.opacity(0.2), lineWidth: 12)
+                    .stroke(.quaternary, lineWidth: 12)
 
                 Circle()
                     .trim(from: 0, to: progress)
                     .stroke(progressColor(progress), style: StrokeStyle(lineWidth: 12, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                    .animation(.easeInOut, value: progress)
+                    .animation(.smooth(duration: EquiDutyDesign.Animation.smooth), value: progress)
 
-                VStack {
+                VStack(spacing: EquiDutyDesign.Spacing.xs) {
                     Text("\(Int(progress * 100))%")
                         .font(.title)
                         .fontWeight(.bold)
+                        .contentTransition(.numericText())
 
                     Text(String(localized: "feeding.completed"))
                         .font(.caption)
@@ -350,11 +357,10 @@ struct OverallFeedingProgress: View {
             Text("\(totalCompleted)/\(totalHorses) \(String(localized: "feeding.horses_fed"))")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+                .contentTransition(.numericText())
         }
-        .padding()
         .frame(maxWidth: .infinity)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .contentCard()
     }
 
     private func progressColor(_ progress: Double) -> Color {
@@ -376,20 +382,20 @@ struct FeedingSessionSection: View {
     @State private var isExpanded = true
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.md) {
             // Header
             Button {
-                withAnimation {
+                withAnimation(.smooth(duration: EquiDutyDesign.Animation.standard)) {
                     isExpanded.toggle()
                 }
             } label: {
                 HStack {
-                    VStack(alignment: .leading) {
+                    VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.xs) {
                         Text(session.name)
                             .font(.headline)
                             .foregroundStyle(.primary)
 
-                        HStack(spacing: 4) {
+                        HStack(spacing: EquiDutyDesign.Spacing.xs) {
                             Text(session.time)
                             Text("•")
                             Text(session.routineName)
@@ -401,14 +407,16 @@ struct FeedingSessionSection: View {
                     Spacer()
 
                     // Progress
-                    HStack(spacing: 8) {
+                    HStack(spacing: EquiDutyDesign.Spacing.sm) {
                         Text("\(session.horsesCompleted)/\(session.horsesTotal)")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                            .contentTransition(.numericText())
 
                         if session.isComplete {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
+                                .symbolEffect(.bounce, value: session.isComplete)
                         } else {
                             ProgressRing(progress: session.progressPercent, size: 24)
                         }
@@ -419,12 +427,17 @@ struct FeedingSessionSection: View {
                     }
                 }
             }
+            .buttonStyle(.scale)
 
             // Horse list - always show all horses, using progress data where available
             if isExpanded {
-                VStack(spacing: 8) {
+                VStack(spacing: EquiDutyDesign.Spacing.sm) {
                     ForEach(horses) { horse in
-                        let feedings = horseFeedings[horse.id] ?? []
+                        // Get all feedings for this horse and filter by the session's feeding time
+                        let allFeedings = horseFeedings[horse.id] ?? []
+                        let feedings = session.feedingTimeId != nil
+                            ? allFeedings.filter { $0.feedingTimeId == session.feedingTimeId }
+                            : allFeedings
                         let progress = session.horseProgress[horse.id]
                         let isCompleted = progress?.completed ?? false
 
@@ -445,9 +458,7 @@ struct FeedingSessionSection: View {
                 }
             }
         }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .contentCard()
     }
 
     private func formatFeedingInstructions(_ feedings: [HorseFeeding]) -> String {
@@ -492,7 +503,7 @@ struct FeedingHorseRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: EquiDutyDesign.Spacing.md) {
             // Checkbox (disabled if routine is not editable)
             Button {
                 guard !isUpdating && isEditable else { return }
@@ -508,11 +519,13 @@ struct FeedingHorseRow: View {
                 Image(systemName: localCompleted ? "checkmark.circle.fill" : "circle")
                     .font(.title2)
                     .foregroundStyle(localCompleted ? .green : (isEditable ? .secondary : .secondary.opacity(0.5)))
+                    .symbolEffect(.bounce, value: localCompleted)
             }
+            .buttonStyle(.scale)
             .disabled(isUpdating || !isEditable)
 
             // Horse info
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.xs) {
                 Text(horseName)
                     .font(.body)
                     .strikethrough(localCompleted)
@@ -529,6 +542,7 @@ struct FeedingHorseRow: View {
             if hasSpecialInstructions {
                 Image(systemName: "exclamationmark.circle.fill")
                     .foregroundStyle(.orange)
+                    .symbolEffect(.pulse, options: .repeating)
             }
 
             // Loading indicator
@@ -537,7 +551,7 @@ struct FeedingHorseRow: View {
                     .scaleEffect(0.8)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, EquiDutyDesign.Spacing.xs)
         .onChange(of: isCompleted) { _, newValue in
             // Sync with parent state when refreshed
             localCompleted = newValue
@@ -554,12 +568,13 @@ struct ProgressRing: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.secondary.opacity(0.2), lineWidth: 3)
+                .stroke(.quaternary, lineWidth: 3)
 
             Circle()
                 .trim(from: 0, to: progress)
                 .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                 .rotationEffect(.degrees(-90))
+                .animation(.smooth(duration: EquiDutyDesign.Animation.smooth), value: progress)
         }
         .frame(width: size, height: size)
     }

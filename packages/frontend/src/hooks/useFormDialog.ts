@@ -4,7 +4,7 @@ import {
   type FieldValues,
   type DefaultValues,
 } from "react-hook-form";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { ZodSchema } from "zod";
 import { useToast } from "@/hooks/use-toast";
@@ -101,6 +101,11 @@ export function useFormDialog<T extends FieldValues>(
 ): UseFormDialogReturn<T> {
   const { toast } = useToast();
 
+  // Use ref to avoid infinite loops when defaultValues is an inline object
+  // This prevents resetForm from being recreated on every render
+  const defaultValuesRef = useRef(options.defaultValues);
+  defaultValuesRef.current = options.defaultValues;
+
   // Initialize form with react-hook-form
   const form = useForm<T>({
     resolver: zodResolver(options.schema as any) as any,
@@ -154,10 +159,11 @@ export function useFormDialog<T extends FieldValues>(
       if (values) {
         form.reset(values as DefaultValues<T>);
       } else {
-        form.reset(options.defaultValues);
+        // Use ref to get current defaultValues without causing dependency changes
+        form.reset(defaultValuesRef.current);
       }
     },
-    [form, options.defaultValues],
+    [form],
   );
 
   return {

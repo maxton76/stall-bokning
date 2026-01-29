@@ -18,6 +18,7 @@
     "scheduleWeek": "Week",
     "scheduleMonth": "Month",
     "scheduleDistribution": "Distribution",
+    "routineSelection": "Routine Selection",
     "myAvailability": "My Availability",
     "myReservations": "My Reservations",
     "settings": "Settings",
@@ -69,7 +70,8 @@
     "resetToDefaults": "Reset to Defaults",
     "sendInvitation": "Send Invitation",
     "viewAll": "View All",
-    "actions": "Actions"
+    "actions": "Actions",
+    "retry": "Retry"
   },
   "labels": {
     "name": "Name",
@@ -106,7 +108,10 @@
     "copy": "Copy",
     "points": "points",
     "optional": "optional",
-    "of": "of"
+    "of": "of",
+    "selectDate": "Select date",
+    "you": "you",
+    "selected": "selected"
   },
   "status": {
     "active": "Active",
@@ -130,7 +135,11 @@
     "deleteSuccess": "Deleted successfully",
     "saveSuccess": "Saved successfully",
     "createSuccess": "Created successfully",
-    "updateSuccess": "Updated successfully"
+    "updateSuccess": "Updated successfully",
+    "unknownError": "Unknown error",
+    "actionCannotBeUndone": "This action cannot be undone.",
+    "noStables": "No stables",
+    "joinStableFirst": "You need to be a member of a stable to view this page."
   },
   "time": {
     "today": "Today",
@@ -317,7 +326,12 @@
     "distribution": {
       "title": "Distribution",
       "subtitle": "Fair distribution of tasks"
-    }
+    },
+    "total": "Total",
+    "available": "Available",
+    "assigned": "Assigned",
+    "noRoutines": "No routines",
+    "unavailable": "Not selectable"
   },
   "pwa": {
     "installTitle": "Install Stallbokning",

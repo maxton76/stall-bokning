@@ -28,7 +28,7 @@ struct CareActivityCardView: View {
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.md) {
             // Header with add button
             HStack {
                 Text(String(localized: "horse.care_activities"))
@@ -51,7 +51,7 @@ struct CareActivityCardView: View {
                 }
                 .padding(.vertical)
             } else if let error = errorMessage {
-                VStack(spacing: 8) {
+                VStack(spacing: EquiDutyDesign.Spacing.sm) {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.title2)
                         .foregroundStyle(.secondary)
@@ -68,21 +68,19 @@ struct CareActivityCardView: View {
                 .padding(.vertical)
             } else {
                 // 2-column grid of care types
-                LazyVGrid(columns: columns, spacing: 8) {
+                LazyVGrid(columns: columns, spacing: EquiDutyDesign.Spacing.sm) {
                     ForEach(statuses) { status in
                         CareActivityTypeCell(status: status) {
                             handleCellTap(status)
                         }
-                        .background(Color(.tertiarySystemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .background(.quaternary)
+                        .clipShape(RoundedRectangle(cornerRadius: EquiDutyDesign.CornerRadius.small, style: .continuous))
                     }
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .contentCard()
         .onAppear {
             loadData()
         }

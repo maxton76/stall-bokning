@@ -40,9 +40,9 @@ struct SignUpView: View {
                         .padding(.top, 40)
 
                     // Form card
-                    VStack(spacing: 16) {
+                    VStack(spacing: EquiDutyDesign.Spacing.standard) {
                         // Header inside card
-                        VStack(spacing: 4) {
+                        VStack(spacing: EquiDutyDesign.Spacing.xs) {
                             Text(String(localized: "signup.title"))
                                 .font(.title2)
                                 .fontWeight(.bold)
@@ -53,8 +53,8 @@ struct SignUpView: View {
                                 .multilineTextAlignment(.center)
                         }
                     // Name row
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: EquiDutyDesign.Spacing.md) {
+                        VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.sm) {
                             Text(String(localized: "signup.first_name"))
                                 .font(.subheadline)
                                 .fontWeight(.medium)
@@ -67,7 +67,7 @@ struct SignUpView: View {
                                 .onSubmit { focusedField = .lastName }
                         }
 
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.sm) {
                             Text(String(localized: "signup.last_name"))
                                 .font(.subheadline)
                                 .fontWeight(.medium)
@@ -82,7 +82,7 @@ struct SignUpView: View {
                     }
 
                     // Email
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.sm) {
                         Text(String(localized: "login.email"))
                             .font(.subheadline)
                             .fontWeight(.medium)
@@ -99,7 +99,7 @@ struct SignUpView: View {
                     }
 
                     // Password
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.sm) {
                         Text(String(localized: "login.password"))
                             .font(.subheadline)
                             .fontWeight(.medium)
@@ -117,7 +117,7 @@ struct SignUpView: View {
                     }
 
                     // Confirm password
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.sm) {
                         Text(String(localized: "signup.confirm_password"))
                             .font(.subheadline)
                             .fontWeight(.medium)
@@ -162,7 +162,8 @@ struct SignUpView: View {
                         .frame(height: 50)
                         .background(Color.equiDutyGreen)
                         .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .clipShape(RoundedRectangle(cornerRadius: EquiDutyDesign.CornerRadius.medium, style: .continuous))
+                        .buttonStyle(.scale)
                         .disabled(isLoading || !isFormValid)
                         .opacity(isFormValid ? 1 : 0.6)
 
@@ -184,13 +185,13 @@ struct SignUpView: View {
                         }
                         .font(.subheadline)
                     }
-                    .padding(24)
-                    .background(Color(.systemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .padding(EquiDutyDesign.Spacing.xl)
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: EquiDutyDesign.CornerRadius.card, style: .continuous))
                     .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 32)
+                .padding(.horizontal, EquiDutyDesign.Spacing.xl)
+                .padding(.bottom, EquiDutyDesign.Spacing.section)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -244,9 +245,9 @@ struct PasswordStrengthView: View {
     let password: String
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: EquiDutyDesign.Spacing.xs) {
             ForEach(0..<4, id: \.self) { index in
-                RoundedRectangle(cornerRadius: 2)
+                Capsule()
                     .fill(index < strength.level ? strength.color : Color.secondary.opacity(0.3))
                     .frame(height: 4)
             }

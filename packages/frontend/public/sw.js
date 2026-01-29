@@ -1,5 +1,5 @@
 // Service Worker for Stallbokning PWA
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const STATIC_CACHE = `stallbokning-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `stallbokning-dynamic-${CACHE_VERSION}`;
 const API_CACHE = `stallbokning-api-${CACHE_VERSION}`;
@@ -81,7 +81,8 @@ self.addEventListener("fetch", (event) => {
 
   // Handle static assets
   if (isStaticAsset(url.pathname)) {
-    event.respondWith(cacheFirst(request, STATIC_CACHE));
+    const strategy = isCodeAsset(url.pathname) ? networkFirst : cacheFirst;
+    event.respondWith(strategy(request, STATIC_CACHE));
     return;
   }
 
@@ -110,6 +111,11 @@ function isStaticAsset(pathname) {
     ".ttf",
   ];
   return staticExtensions.some((ext) => pathname.endsWith(ext));
+}
+
+// Code assets should prefer network to avoid stale bundles.
+function isCodeAsset(pathname) {
+  return pathname.endsWith(".js") || pathname.endsWith(".css");
 }
 
 // Cache-first strategy (for static assets)
@@ -193,8 +199,12 @@ async function handleApiRequest(request) {
 // Handle navigation requests (SPA routing)
 async function handleNavigationRequest(request) {
   try {
-    const response = await fetch(request);
-    return response;
+    const response = await fetch("/index.html", { cache: "no-store" });
+    if (response.ok) {
+      const cache = await caches.open(STATIC_CACHE);
+      cache.put("/index.html", response.clone());
+      return response;
+    }
   } catch (error) {
     // Try to return cached index.html for SPA navigation
     const cachedIndex = await caches.match("/index.html");

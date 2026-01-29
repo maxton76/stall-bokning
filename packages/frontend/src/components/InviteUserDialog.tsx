@@ -50,6 +50,7 @@ type InviteUserFormData = {
 
 const ROLE_KEYS = [
   "administrator",
+  "schedule_planner",
   "veterinarian",
   "dentist",
   "farrier",

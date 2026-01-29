@@ -13,7 +13,7 @@ struct CareActivityTypeCell: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 8) {
+            VStack(spacing: EquiDutyDesign.Spacing.sm) {
                 // Icon with type color
                 Image(systemName: status.type.icon)
                     .font(.title2)
@@ -27,18 +27,19 @@ struct CareActivityTypeCell: View {
                     .lineLimit(1)
 
                 // Status badges
-                VStack(spacing: 4) {
+                VStack(spacing: EquiDutyDesign.Spacing.xs) {
                     // Last completed badge (blue)
                     if let lastDate = status.lastCompletedDate {
-                        HStack(spacing: 2) {
+                        HStack(spacing: EquiDutyDesign.Spacing.xs) {
                             Image(systemName: "checkmark")
                                 .font(.caption2)
                             Text(lastDate.formatted(date: .abbreviated, time: .omitted))
                                 .font(.caption2)
                         }
+                        .fontWeight(.medium)
                         .foregroundStyle(.blue)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
+                        .padding(.horizontal, EquiDutyDesign.Spacing.sm)
+                        .padding(.vertical, EquiDutyDesign.Spacing.xs)
                         .background(Color.blue.opacity(0.1))
                         .clipShape(Capsule())
                     }
@@ -47,52 +48,55 @@ struct CareActivityTypeCell: View {
                     if let nextDate = status.nextScheduledDate {
                         if status.isOverdue {
                             // Overdue badge (red)
-                            HStack(spacing: 2) {
+                            HStack(spacing: EquiDutyDesign.Spacing.xs) {
                                 Image(systemName: "exclamationmark.circle")
                                     .font(.caption2)
                                 Text(String(localized: "care.status.overdue"))
                                     .font(.caption2)
                             }
+                            .fontWeight(.medium)
                             .foregroundStyle(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
+                            .padding(.horizontal, EquiDutyDesign.Spacing.sm)
+                            .padding(.vertical, EquiDutyDesign.Spacing.xs)
                             .background(Color.red)
                             .clipShape(Capsule())
                         } else {
                             // Next scheduled badge (green)
-                            HStack(spacing: 2) {
+                            HStack(spacing: EquiDutyDesign.Spacing.xs) {
                                 Image(systemName: "calendar")
                                     .font(.caption2)
                                 Text(nextDate.formatted(date: .abbreviated, time: .omitted))
                                     .font(.caption2)
                             }
+                            .fontWeight(.medium)
                             .foregroundStyle(.green)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
+                            .padding(.horizontal, EquiDutyDesign.Spacing.sm)
+                            .padding(.vertical, EquiDutyDesign.Spacing.xs)
                             .background(Color.green.opacity(0.1))
                             .clipShape(Capsule())
                         }
                     } else if status.lastCompletedDate == nil {
                         // No history - show schedule button
-                        HStack(spacing: 2) {
+                        HStack(spacing: EquiDutyDesign.Spacing.xs) {
                             Image(systemName: "plus")
                                 .font(.caption2)
                             Text(String(localized: "care.action.schedule"))
                                 .font(.caption2)
                         }
+                        .fontWeight(.medium)
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color(.systemGray5))
+                        .padding(.horizontal, EquiDutyDesign.Spacing.sm)
+                        .padding(.vertical, EquiDutyDesign.Spacing.xs)
+                        .background(.quaternary)
                         .clipShape(Capsule())
                     }
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
+            .padding(.vertical, EquiDutyDesign.Spacing.sm)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.scale)
     }
 }
 

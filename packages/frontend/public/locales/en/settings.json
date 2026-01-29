@@ -121,6 +121,41 @@
       "email": "Email Address",
       "name": "Name",
       "phone": "Phone Number"
+    },
+    "holidays": {
+      "title": "Holiday Calendar",
+      "description": "Configure holiday settings for scheduling and fairness calculations",
+      "display": {
+        "title": "Calendar Display",
+        "description": "Control how holidays appear in calendars",
+        "enableLabel": "Show Holidays in Calendars",
+        "enableDescription": "Display holiday markers in all calendar views"
+      },
+      "fairness": {
+        "title": "Fairness Algorithm",
+        "description": "Configure how holidays affect shift point calculations",
+        "enableLabel": "Apply Holiday Multiplier",
+        "enableDescription": "Award extra points for shifts on holidays",
+        "multiplierLabel": "Holiday Multiplier",
+        "multiplierDescription": "Point multiplier for shifts on holidays"
+      },
+      "restrictions": {
+        "title": "Scheduling Restrictions",
+        "description": "Control booking availability on holidays",
+        "enableLabel": "Block Holiday Bookings",
+        "enableDescription": "Prevent members from booking shifts on holidays"
+      },
+      "preview": {
+        "title": "Upcoming Holidays",
+        "description": "Preview of holidays in the next 6 months",
+        "publicHoliday": "Public Holiday",
+        "halfDay": "Half Day",
+        "noHolidays": "No upcoming holidays found",
+        "moreHolidays": "+{{count}} more holidays"
+      },
+      "messages": {
+        "saved": "Holiday settings have been saved"
+      }
     }
   },
   "layout": {
@@ -144,7 +179,8 @@
     "general": "General",
     "weighting": "Fairness",
     "scheduling": "Scheduling",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "holidays": "Holidays"
   },
   "stableSettings": {
     "title": "Stable Settings",

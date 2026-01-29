@@ -45,6 +45,12 @@ const ScheduleDistributionPage = lazy(
 const ScheduleRoutinesPage = lazy(
   () => import("./pages/schedule/ScheduleRoutinesPage"),
 );
+const SelectionProcessListPage = lazy(
+  () => import("./pages/schedule/SelectionProcessListPage"),
+);
+const SelectionProcessPage = lazy(
+  () => import("./pages/schedule/SelectionProcessPage"),
+);
 
 // Horse pages
 const MyHorsesPage = lazy(() => import("./pages/MyHorsesPage"));
@@ -318,6 +324,23 @@ function App() {
                     element={
                       <Suspense fallback={<InlineLoader />}>
                         <ScheduleRoutinesPage />
+                      </Suspense>
+                    }
+                  />
+                  {/* Selection process routes */}
+                  <Route
+                    path="/schedule/selection"
+                    element={
+                      <Suspense fallback={<InlineLoader />}>
+                        <SelectionProcessListPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="/schedule/selection/:processId"
+                    element={
+                      <Suspense fallback={<InlineLoader />}>
+                        <SelectionProcessPage />
                       </Suspense>
                     }
                   />

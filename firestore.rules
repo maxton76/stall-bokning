@@ -1706,6 +1706,60 @@ service cloud.firestore {
     }
 
     // ============================================================================
+    // SELECTION PROCESSES COLLECTION - TURN-BASED ROUTINE SELECTION
+    // ============================================================================
+
+    match /selectionProcesses/{processId} {
+      // LIST: Authenticated users (filtering by stableId happens via query)
+      allow list: if isAuthenticated();
+
+      // GET: Stable members can view processes for their stable
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canAccessStable(resource.data.stableId)
+      );
+
+      // CREATE: Stable managers or org admins only
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(request.resource.data.stableId)
+      );
+
+      // UPDATE: Stable managers or org admins only
+      // Note: Turn completion handled via API for validation
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canManageStable(resource.data.stableId)
+      );
+
+      // DELETE: Stable managers only, and only draft processes
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        (canManageStable(resource.data.stableId) &&
+         resource.data.status == 'draft')
+      );
+
+      // SELECTIONS SUBCOLLECTION - Selection history tracking
+      match /selections/{selectionId} {
+        // LIST: Stable members can view selections
+        allow list: if isAuthenticated() && (
+          isSystemAdmin() ||
+          canAccessStable(get(/databases/$(database)/documents/selectionProcesses/$(processId)).data.stableId)
+        );
+
+        // GET: Stable members can view individual selection
+        allow get: if isAuthenticated() && (
+          isSystemAdmin() ||
+          canAccessStable(get(/databases/$(database)/documents/selectionProcesses/$(processId)).data.stableId)
+        );
+
+        // WRITES: Backend API only (uses service account)
+        // Selections are recorded by API during turn completion
+        allow create, update, delete: if false;
+      }
+    }
+
+    // ============================================================================
     // DAILY NOTES COLLECTION - STABLE-SCOPED COMMUNICATION
     // ============================================================================
 

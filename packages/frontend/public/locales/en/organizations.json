@@ -116,6 +116,10 @@
         "label": "Administrator",
         "description": "Full organization access"
       },
+      "schedule_planner": {
+        "label": "Schedule Planner",
+        "description": "Can create and manage routine selection processes"
+      },
       "veterinarian": {
         "label": "Veterinarian",
         "description": "Animal health services"

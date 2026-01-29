@@ -121,6 +121,41 @@
       "email": "E-postadress",
       "name": "Namn",
       "phone": "Telefonnummer"
+    },
+    "holidays": {
+      "title": "Helgdagskalender",
+      "description": "Konfigurera helgdagsinställningar för schemaläggning och rättviseberäkningar",
+      "display": {
+        "title": "Kalendervisning",
+        "description": "Kontrollera hur helgdagar visas i kalendrar",
+        "enableLabel": "Visa helgdagar i kalendrar",
+        "enableDescription": "Visa helgdagsmarkeringar i alla kalendervyer"
+      },
+      "fairness": {
+        "title": "Rättvisealgoritm",
+        "description": "Konfigurera hur helgdagar påverkar skiftpoängberäkningar",
+        "enableLabel": "Tillämpa helgdagsmultiplikator",
+        "enableDescription": "Ge extra poäng för skift på helgdagar",
+        "multiplierLabel": "Helgdagsmultiplikator",
+        "multiplierDescription": "Poängmultiplikator för skift på helgdagar"
+      },
+      "restrictions": {
+        "title": "Schemaläggningsbegränsningar",
+        "description": "Kontrollera bokningstillgänglighet på helgdagar",
+        "enableLabel": "Blockera helgdagsbokningar",
+        "enableDescription": "Förhindra medlemmar från att boka skift på helgdagar"
+      },
+      "preview": {
+        "title": "Kommande helgdagar",
+        "description": "Förhandsvisning av helgdagar de närmaste 6 månaderna",
+        "publicHoliday": "Röd dag",
+        "halfDay": "Halvdag",
+        "noHolidays": "Inga kommande helgdagar hittades",
+        "moreHolidays": "+{{count}} fler helgdagar"
+      },
+      "messages": {
+        "saved": "Helgdagsinställningar har sparats"
+      }
     }
   },
   "layout": {
@@ -144,7 +179,8 @@
     "general": "Allmänt",
     "weighting": "Rättvisa",
     "scheduling": "Schemaläggning",
-    "notifications": "Notifieringar"
+    "notifications": "Notifieringar",
+    "holidays": "Helgdagar"
   },
   "stableSettings": {
     "title": "Stallinställningar",

@@ -37,6 +37,24 @@ final class RoutineService: RoutineServiceProtocol {
         return response.routineInstances
     }
 
+    func getRoutineInstancesForDateRange(
+        stableId: String,
+        startDate: Date,
+        endDate: Date
+    ) async throws -> [RoutineInstance] {
+        let params: [String: String] = [
+            "startDate": dateFormatter.string(from: startDate),
+            "endDate": dateFormatter.string(from: endDate)
+        ]
+
+        let response: RoutineInstancesResponse = try await apiClient.get(
+            APIEndpoints.routineInstances(stableId),
+            params: params
+        )
+
+        return response.routineInstances
+    }
+
     func getRoutineTemplates(organizationId: String) async throws -> [RoutineTemplate] {
         let response: RoutineTemplatesResponse = try await apiClient.get(
             APIEndpoints.routineTemplates(organizationId)
@@ -83,6 +101,14 @@ final class RoutineService: RoutineServiceProtocol {
             photoUrls: photoUrls,
             horseUpdates: horseUpdates
         )
+        #if DEBUG
+        // Debug: Log the request body
+        if let updates = horseUpdates {
+            for update in updates {
+                print("📤 RoutineService - Sending horse update: horseId=\(update.horseId), notes=\(update.notes ?? "nil"), completed=\(update.completed ?? false)")
+            }
+        }
+        #endif
         // Use EmptyResponse to avoid decoding issues - we don't need the response data
         let _: EmptyResponse = try await apiClient.put(
             APIEndpoints.routineInstanceProgress(instanceId),

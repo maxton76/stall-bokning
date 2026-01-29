@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 
 import { UserIcon, SettingsIcon, LogOutIcon } from "lucide-react";
 
@@ -18,7 +19,6 @@ type Props = {
   defaultOpen?: boolean;
   align?: "start" | "center" | "end";
   onLogout?: () => void;
-  onNavigate?: (path: string) => void;
   user?: {
     email?: string;
     firstName?: string;
@@ -32,7 +32,6 @@ const ProfileDropdown = ({
   defaultOpen,
   align = "end",
   onLogout,
-  onNavigate,
   user,
 }: Props) => {
   // user.firstName and user.lastName now properly available from AppUser
@@ -68,19 +67,17 @@ const ProfileDropdown = ({
         <DropdownMenuSeparator />
 
         <DropdownMenuGroup>
-          <DropdownMenuItem
-            className="px-4 py-2.5 text-base"
-            onClick={() => onNavigate?.("/account")}
-          >
-            <UserIcon className="text-foreground size-5" />
-            <span>My account</span>
+          <DropdownMenuItem asChild className="px-4 py-2.5 text-base">
+            <Link to="/account">
+              <UserIcon className="text-foreground size-5" />
+              <span>My account</span>
+            </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem
-            className="px-4 py-2.5 text-base"
-            onClick={() => onNavigate?.("/settings")}
-          >
-            <SettingsIcon className="text-foreground size-5" />
-            <span>Settings</span>
+          <DropdownMenuItem asChild className="px-4 py-2.5 text-base">
+            <Link to="/settings">
+              <SettingsIcon className="text-foreground size-5" />
+              <span>Settings</span>
+            </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
 

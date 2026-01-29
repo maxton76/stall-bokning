@@ -32,18 +32,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarProvider,
   SidebarInset,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import {
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent,
-} from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import equiDutyIcon from "@/assets/images/equiduty-icon.png";
 import ProfileDropdown from "@/components/shadcn-studio/blocks/dropdown-profile";
@@ -51,16 +43,18 @@ import NotificationDropdown from "@/components/shadcn-studio/blocks/dropdown-not
 import { OrganizationsDropdown } from "@/components/shadcn-studio/blocks/dropdown-organizations";
 import { LanguageSwitcherCompact } from "@/components/LanguageSwitcher";
 import { AssistantButton } from "@/components/assistant";
+import { SupportButton } from "@/components/SupportDialog";
 
 export default function AuthenticatedLayout() {
-  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { t } = useTranslation(["common", "organizations"]);
+  const navigate = useNavigate();
   const {
     navigation,
     organizationNavigation,
     expandedItem,
     toggleItem,
+    isActive,
     pathname,
   } = useNavigation();
 
@@ -90,63 +84,70 @@ export default function AuthenticatedLayout() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {navigation.map((item) => {
-                  // Items with subItems use Collapsible for accordion behavior
+                  // Items with subItems - simple expand/collapse
                   if (item.subItems && item.subItems.length > 0) {
+                    const isExpanded = expandedItem === item.id;
                     return (
-                      <Collapsible
-                        key={item.id}
-                        open={expandedItem === item.id}
-                        onOpenChange={() => toggleItem(item.id)}
-                      >
-                        <SidebarMenuItem>
-                          <CollapsibleTrigger asChild>
-                            <SidebarMenuButton>
-                              <item.icon className="size-5" />
-                              <span>{item.label}</span>
-                              {item.badge && (
-                                <Badge
-                                  variant={
-                                    item.badge === "new"
-                                      ? "default"
-                                      : "secondary"
-                                  }
-                                  className="ml-1 text-[10px] py-0 px-1"
-                                >
-                                  {item.badge}
-                                </Badge>
-                              )}
-                              <ChevronDown
-                                className={cn(
-                                  "ml-auto size-4 transition-transform duration-200",
-                                  expandedItem === item.id && "rotate-180",
-                                )}
-                              />
-                            </SidebarMenuButton>
-                          </CollapsibleTrigger>
+                      <SidebarMenuItem key={item.id}>
+                        {/* Parent button - toggles expand */}
+                        <button
+                          type="button"
+                          onClick={() => toggleItem(item.id)}
+                          className={cn(
+                            "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium",
+                            "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                            "outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                          )}
+                        >
+                          <item.icon className="size-5" />
+                          <span>{item.label}</span>
+                          {item.badge && (
+                            <Badge
+                              variant={
+                                item.badge === "new" ? "default" : "secondary"
+                              }
+                              className="ml-1 text-[10px] py-0 px-1"
+                            >
+                              {item.badge}
+                            </Badge>
+                          )}
+                          <ChevronDown
+                            className={cn(
+                              "ml-auto size-4 transition-transform duration-200",
+                              isExpanded && "rotate-180",
+                            )}
+                          />
+                        </button>
 
-                          <CollapsibleContent>
-                            <SidebarMenuSub>
-                              {item.subItems.map((subItem) => (
-                                <SidebarMenuSubItem key={subItem.id}>
-                                  <SidebarMenuSubButton
-                                    asChild
-                                    isActive={pathname === subItem.href}
-                                  >
-                                    <Link to={subItem.href}>
-                                      <subItem.icon className="size-4" />
-                                      <span>{subItem.label}</span>
-                                    </Link>
-                                  </SidebarMenuSubButton>
-                                </SidebarMenuSubItem>
-                              ))}
-                            </SidebarMenuSub>
-                          </CollapsibleContent>
-                        </SidebarMenuItem>
-                      </Collapsible>
+                        {/* Sub-items - simple conditional render */}
+                        {isExpanded && (
+                          <ul className="mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l border-sidebar-border px-2.5 py-0.5">
+                            {item.subItems.map((subItem) => (
+                              <li key={subItem.id}>
+                                <Link
+                                  to={subItem.href}
+                                  className={cn(
+                                    "flex h-7 w-full min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sm text-left",
+                                    "text-sidebar-foreground outline-none ring-sidebar-ring",
+                                    "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                                    "focus-visible:ring-2",
+                                    "[&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground",
+                                    isActive(subItem.href) &&
+                                      "bg-sidebar-accent text-sidebar-accent-foreground",
+                                  )}
+                                >
+                                  <subItem.icon className="size-4" />
+                                  <span>{subItem.label}</span>
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </SidebarMenuItem>
                     );
                   }
 
-                  // Items without subItems remain as direct links
+                  // Items without subItems - direct links
                   return (
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
@@ -183,44 +184,53 @@ export default function AuthenticatedLayout() {
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  <Collapsible
-                    open={expandedItem === organizationNavigation.id}
-                    onOpenChange={() => toggleItem(organizationNavigation.id)}
-                  >
-                    <SidebarMenuItem>
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton>
-                          <organizationNavigation.icon className="size-5" />
-                          <span>{organizationNavigation.label}</span>
-                          <ChevronDown
-                            className={cn(
-                              "ml-auto size-4 transition-transform duration-200",
-                              expandedItem === organizationNavigation.id &&
-                                "rotate-180",
-                            )}
-                          />
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
+                  <SidebarMenuItem>
+                    {/* Parent button - toggles expand */}
+                    <button
+                      type="button"
+                      onClick={() => toggleItem(organizationNavigation.id)}
+                      className={cn(
+                        "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium",
+                        "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                        "outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                      )}
+                    >
+                      <organizationNavigation.icon className="size-5" />
+                      <span>{organizationNavigation.label}</span>
+                      <ChevronDown
+                        className={cn(
+                          "ml-auto size-4 transition-transform duration-200",
+                          expandedItem === organizationNavigation.id &&
+                            "rotate-180",
+                        )}
+                      />
+                    </button>
 
-                      <CollapsibleContent>
-                        <SidebarMenuSub>
-                          {organizationNavigation.subItems.map((subItem) => (
-                            <SidebarMenuSubItem key={subItem.id}>
-                              <SidebarMenuSubButton
-                                asChild
-                                isActive={pathname === subItem.href}
-                              >
-                                <Link to={subItem.href}>
-                                  <subItem.icon className="size-4" />
-                                  <span>{subItem.label}</span>
-                                </Link>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          ))}
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
-                    </SidebarMenuItem>
-                  </Collapsible>
+                    {/* Sub-items - simple conditional render */}
+                    {expandedItem === organizationNavigation.id && (
+                      <ul className="mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l border-sidebar-border px-2.5 py-0.5">
+                        {organizationNavigation.subItems.map((subItem) => (
+                          <li key={subItem.id}>
+                            <Link
+                              to={subItem.href}
+                              className={cn(
+                                "flex h-7 w-full min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sm text-left",
+                                "text-sidebar-foreground outline-none ring-sidebar-ring",
+                                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                                "focus-visible:ring-2",
+                                "[&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground",
+                                isActive(subItem.href) &&
+                                  "bg-sidebar-accent text-sidebar-accent-foreground",
+                              )}
+                            >
+                              <subItem.icon className="size-4" />
+                              <span>{subItem.label}</span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -307,6 +317,9 @@ export default function AuthenticatedLayout() {
             {/* Language Switcher */}
             <LanguageSwitcherCompact />
 
+            {/* Support */}
+            <SupportButton />
+
             {/* Notifications */}
             <NotificationDropdown
               trigger={
@@ -334,7 +347,6 @@ export default function AuthenticatedLayout() {
                 </Button>
               }
               onLogout={handleLogout}
-              onNavigate={navigate}
               user={{
                 email: user?.email || undefined,
                 firstName: user?.firstName || undefined,

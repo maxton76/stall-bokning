@@ -1,0 +1,987 @@
+{
+  "country": "SE",
+  "countryName": "Sweden",
+  "countryNameNative": "Sverige",
+  "recurringHolidays": [
+    {
+      "date": "01-01",
+      "name": "Nyårsdagen",
+      "nameEn": "New Year's Day",
+      "nameKey": "newYearsDay",
+      "type": "fixed",
+      "isPublicHoliday": true
+    },
+    {
+      "date": "01-06",
+      "name": "Trettondedag jul",
+      "nameEn": "Epiphany",
+      "nameKey": "epiphany",
+      "type": "fixed",
+      "isPublicHoliday": true
+    },
+    {
+      "date": "05-01",
+      "name": "Första maj",
+      "nameEn": "May Day",
+      "nameKey": "mayDay",
+      "type": "fixed",
+      "isPublicHoliday": true
+    },
+    {
+      "date": "06-06",
+      "name": "Nationaldagen",
+      "nameEn": "National Day",
+      "nameKey": "nationalDay",
+      "type": "fixed",
+      "isPublicHoliday": true
+    },
+    {
+      "date": "12-24",
+      "name": "Julafton",
+      "nameEn": "Christmas Eve",
+      "nameKey": "christmasEve",
+      "type": "fixed",
+      "isPublicHoliday": false,
+      "isHalfDay": true
+    },
+    {
+      "date": "12-25",
+      "name": "Juldagen",
+      "nameEn": "Christmas Day",
+      "nameKey": "christmasDay",
+      "type": "fixed",
+      "isPublicHoliday": true
+    },
+    {
+      "date": "12-26",
+      "name": "Annandag jul",
+      "nameEn": "Boxing Day",
+      "nameKey": "boxingDay",
+      "type": "fixed",
+      "isPublicHoliday": true
+    },
+    {
+      "date": "12-31",
+      "name": "Nyårsafton",
+      "nameEn": "New Year's Eve",
+      "nameKey": "newYearsEve",
+      "type": "fixed",
+      "isPublicHoliday": false,
+      "isHalfDay": true
+    }
+  ],
+  "years": {
+    "2024": [
+      {
+        "date": "2024-03-29",
+        "name": "Långfredagen",
+        "nameEn": "Good Friday",
+        "nameKey": "goodFriday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2024-03-30",
+        "name": "Påskafton",
+        "nameEn": "Easter Eve",
+        "nameKey": "easterEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2024-03-31",
+        "name": "Påskdagen",
+        "nameEn": "Easter Sunday",
+        "nameKey": "easterSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2024-04-01",
+        "name": "Annandag påsk",
+        "nameEn": "Easter Monday",
+        "nameKey": "easterMonday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2024-05-09",
+        "name": "Kristi himmelsfärdsdag",
+        "nameEn": "Ascension Day",
+        "nameKey": "ascensionDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2024-05-19",
+        "name": "Pingstdagen",
+        "nameEn": "Whit Sunday",
+        "nameKey": "whitSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2024-06-21",
+        "name": "Midsommarafton",
+        "nameEn": "Midsummer Eve",
+        "nameKey": "midsummerEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2024-06-22",
+        "name": "Midsommardagen",
+        "nameEn": "Midsummer Day",
+        "nameKey": "midsummerDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2024-11-02",
+        "name": "Alla helgons dag",
+        "nameEn": "All Saints' Day",
+        "nameKey": "allSaintsDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      }
+    ],
+    "2025": [
+      {
+        "date": "2025-04-18",
+        "name": "Långfredagen",
+        "nameEn": "Good Friday",
+        "nameKey": "goodFriday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2025-04-19",
+        "name": "Påskafton",
+        "nameEn": "Easter Eve",
+        "nameKey": "easterEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2025-04-20",
+        "name": "Påskdagen",
+        "nameEn": "Easter Sunday",
+        "nameKey": "easterSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2025-04-21",
+        "name": "Annandag påsk",
+        "nameEn": "Easter Monday",
+        "nameKey": "easterMonday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2025-05-29",
+        "name": "Kristi himmelsfärdsdag",
+        "nameEn": "Ascension Day",
+        "nameKey": "ascensionDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2025-06-08",
+        "name": "Pingstdagen",
+        "nameEn": "Whit Sunday",
+        "nameKey": "whitSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2025-06-20",
+        "name": "Midsommarafton",
+        "nameEn": "Midsummer Eve",
+        "nameKey": "midsummerEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2025-06-21",
+        "name": "Midsommardagen",
+        "nameEn": "Midsummer Day",
+        "nameKey": "midsummerDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2025-11-01",
+        "name": "Alla helgons dag",
+        "nameEn": "All Saints' Day",
+        "nameKey": "allSaintsDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      }
+    ],
+    "2026": [
+      {
+        "date": "2026-04-03",
+        "name": "Långfredagen",
+        "nameEn": "Good Friday",
+        "nameKey": "goodFriday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2026-04-04",
+        "name": "Påskafton",
+        "nameEn": "Easter Eve",
+        "nameKey": "easterEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2026-04-05",
+        "name": "Påskdagen",
+        "nameEn": "Easter Sunday",
+        "nameKey": "easterSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2026-04-06",
+        "name": "Annandag påsk",
+        "nameEn": "Easter Monday",
+        "nameKey": "easterMonday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2026-05-14",
+        "name": "Kristi himmelsfärdsdag",
+        "nameEn": "Ascension Day",
+        "nameKey": "ascensionDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2026-05-24",
+        "name": "Pingstdagen",
+        "nameEn": "Whit Sunday",
+        "nameKey": "whitSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2026-06-19",
+        "name": "Midsommarafton",
+        "nameEn": "Midsummer Eve",
+        "nameKey": "midsummerEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2026-06-20",
+        "name": "Midsommardagen",
+        "nameEn": "Midsummer Day",
+        "nameKey": "midsummerDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2026-10-31",
+        "name": "Alla helgons dag",
+        "nameEn": "All Saints' Day",
+        "nameKey": "allSaintsDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      }
+    ],
+    "2027": [
+      {
+        "date": "2027-03-26",
+        "name": "Långfredagen",
+        "nameEn": "Good Friday",
+        "nameKey": "goodFriday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2027-03-27",
+        "name": "Påskafton",
+        "nameEn": "Easter Eve",
+        "nameKey": "easterEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2027-03-28",
+        "name": "Påskdagen",
+        "nameEn": "Easter Sunday",
+        "nameKey": "easterSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2027-03-29",
+        "name": "Annandag påsk",
+        "nameEn": "Easter Monday",
+        "nameKey": "easterMonday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2027-05-06",
+        "name": "Kristi himmelsfärdsdag",
+        "nameEn": "Ascension Day",
+        "nameKey": "ascensionDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2027-05-16",
+        "name": "Pingstdagen",
+        "nameEn": "Whit Sunday",
+        "nameKey": "whitSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2027-06-25",
+        "name": "Midsommarafton",
+        "nameEn": "Midsummer Eve",
+        "nameKey": "midsummerEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2027-06-26",
+        "name": "Midsommardagen",
+        "nameEn": "Midsummer Day",
+        "nameKey": "midsummerDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2027-11-06",
+        "name": "Alla helgons dag",
+        "nameEn": "All Saints' Day",
+        "nameKey": "allSaintsDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      }
+    ],
+    "2028": [
+      {
+        "date": "2028-04-14",
+        "name": "Långfredagen",
+        "nameEn": "Good Friday",
+        "nameKey": "goodFriday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2028-04-15",
+        "name": "Påskafton",
+        "nameEn": "Easter Eve",
+        "nameKey": "easterEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2028-04-16",
+        "name": "Påskdagen",
+        "nameEn": "Easter Sunday",
+        "nameKey": "easterSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2028-04-17",
+        "name": "Annandag påsk",
+        "nameEn": "Easter Monday",
+        "nameKey": "easterMonday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2028-05-25",
+        "name": "Kristi himmelsfärdsdag",
+        "nameEn": "Ascension Day",
+        "nameKey": "ascensionDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2028-06-04",
+        "name": "Pingstdagen",
+        "nameEn": "Whit Sunday",
+        "nameKey": "whitSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2028-06-23",
+        "name": "Midsommarafton",
+        "nameEn": "Midsummer Eve",
+        "nameKey": "midsummerEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2028-06-24",
+        "name": "Midsommardagen",
+        "nameEn": "Midsummer Day",
+        "nameKey": "midsummerDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2028-11-04",
+        "name": "Alla helgons dag",
+        "nameEn": "All Saints' Day",
+        "nameKey": "allSaintsDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      }
+    ],
+    "2029": [
+      {
+        "date": "2029-03-30",
+        "name": "Långfredagen",
+        "nameEn": "Good Friday",
+        "nameKey": "goodFriday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2029-03-31",
+        "name": "Påskafton",
+        "nameEn": "Easter Eve",
+        "nameKey": "easterEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2029-04-01",
+        "name": "Påskdagen",
+        "nameEn": "Easter Sunday",
+        "nameKey": "easterSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2029-04-02",
+        "name": "Annandag påsk",
+        "nameEn": "Easter Monday",
+        "nameKey": "easterMonday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2029-05-10",
+        "name": "Kristi himmelsfärdsdag",
+        "nameEn": "Ascension Day",
+        "nameKey": "ascensionDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2029-05-20",
+        "name": "Pingstdagen",
+        "nameEn": "Whit Sunday",
+        "nameKey": "whitSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2029-06-22",
+        "name": "Midsommarafton",
+        "nameEn": "Midsummer Eve",
+        "nameKey": "midsummerEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2029-06-23",
+        "name": "Midsommardagen",
+        "nameEn": "Midsummer Day",
+        "nameKey": "midsummerDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2029-11-03",
+        "name": "Alla helgons dag",
+        "nameEn": "All Saints' Day",
+        "nameKey": "allSaintsDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      }
+    ],
+    "2030": [
+      {
+        "date": "2030-04-19",
+        "name": "Långfredagen",
+        "nameEn": "Good Friday",
+        "nameKey": "goodFriday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2030-04-20",
+        "name": "Påskafton",
+        "nameEn": "Easter Eve",
+        "nameKey": "easterEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2030-04-21",
+        "name": "Påskdagen",
+        "nameEn": "Easter Sunday",
+        "nameKey": "easterSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2030-04-22",
+        "name": "Annandag påsk",
+        "nameEn": "Easter Monday",
+        "nameKey": "easterMonday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2030-05-30",
+        "name": "Kristi himmelsfärdsdag",
+        "nameEn": "Ascension Day",
+        "nameKey": "ascensionDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2030-06-09",
+        "name": "Pingstdagen",
+        "nameEn": "Whit Sunday",
+        "nameKey": "whitSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2030-06-21",
+        "name": "Midsommarafton",
+        "nameEn": "Midsummer Eve",
+        "nameKey": "midsummerEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2030-06-22",
+        "name": "Midsommardagen",
+        "nameEn": "Midsummer Day",
+        "nameKey": "midsummerDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2030-11-02",
+        "name": "Alla helgons dag",
+        "nameEn": "All Saints' Day",
+        "nameKey": "allSaintsDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      }
+    ],
+    "2031": [
+      {
+        "date": "2031-04-11",
+        "name": "Långfredagen",
+        "nameEn": "Good Friday",
+        "nameKey": "goodFriday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2031-04-12",
+        "name": "Påskafton",
+        "nameEn": "Easter Eve",
+        "nameKey": "easterEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2031-04-13",
+        "name": "Påskdagen",
+        "nameEn": "Easter Sunday",
+        "nameKey": "easterSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2031-04-14",
+        "name": "Annandag påsk",
+        "nameEn": "Easter Monday",
+        "nameKey": "easterMonday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2031-05-22",
+        "name": "Kristi himmelsfärdsdag",
+        "nameEn": "Ascension Day",
+        "nameKey": "ascensionDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2031-06-01",
+        "name": "Pingstdagen",
+        "nameEn": "Whit Sunday",
+        "nameKey": "whitSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2031-06-20",
+        "name": "Midsommarafton",
+        "nameEn": "Midsummer Eve",
+        "nameKey": "midsummerEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2031-06-21",
+        "name": "Midsommardagen",
+        "nameEn": "Midsummer Day",
+        "nameKey": "midsummerDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2031-11-01",
+        "name": "Alla helgons dag",
+        "nameEn": "All Saints' Day",
+        "nameKey": "allSaintsDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      }
+    ],
+    "2032": [
+      {
+        "date": "2032-03-26",
+        "name": "Långfredagen",
+        "nameEn": "Good Friday",
+        "nameKey": "goodFriday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2032-03-27",
+        "name": "Påskafton",
+        "nameEn": "Easter Eve",
+        "nameKey": "easterEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2032-03-28",
+        "name": "Påskdagen",
+        "nameEn": "Easter Sunday",
+        "nameKey": "easterSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2032-03-29",
+        "name": "Annandag påsk",
+        "nameEn": "Easter Monday",
+        "nameKey": "easterMonday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2032-05-06",
+        "name": "Kristi himmelsfärdsdag",
+        "nameEn": "Ascension Day",
+        "nameKey": "ascensionDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2032-05-16",
+        "name": "Pingstdagen",
+        "nameEn": "Whit Sunday",
+        "nameKey": "whitSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2032-06-25",
+        "name": "Midsommarafton",
+        "nameEn": "Midsummer Eve",
+        "nameKey": "midsummerEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2032-06-26",
+        "name": "Midsommardagen",
+        "nameEn": "Midsummer Day",
+        "nameKey": "midsummerDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2032-11-06",
+        "name": "Alla helgons dag",
+        "nameEn": "All Saints' Day",
+        "nameKey": "allSaintsDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      }
+    ],
+    "2033": [
+      {
+        "date": "2033-04-15",
+        "name": "Långfredagen",
+        "nameEn": "Good Friday",
+        "nameKey": "goodFriday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2033-04-16",
+        "name": "Påskafton",
+        "nameEn": "Easter Eve",
+        "nameKey": "easterEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2033-04-17",
+        "name": "Påskdagen",
+        "nameEn": "Easter Sunday",
+        "nameKey": "easterSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2033-04-18",
+        "name": "Annandag påsk",
+        "nameEn": "Easter Monday",
+        "nameKey": "easterMonday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2033-05-26",
+        "name": "Kristi himmelsfärdsdag",
+        "nameEn": "Ascension Day",
+        "nameKey": "ascensionDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2033-06-05",
+        "name": "Pingstdagen",
+        "nameEn": "Whit Sunday",
+        "nameKey": "whitSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2033-06-24",
+        "name": "Midsommarafton",
+        "nameEn": "Midsummer Eve",
+        "nameKey": "midsummerEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2033-06-25",
+        "name": "Midsommardagen",
+        "nameEn": "Midsummer Day",
+        "nameKey": "midsummerDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2033-11-05",
+        "name": "Alla helgons dag",
+        "nameEn": "All Saints' Day",
+        "nameKey": "allSaintsDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      }
+    ],
+    "2034": [
+      {
+        "date": "2034-04-07",
+        "name": "Långfredagen",
+        "nameEn": "Good Friday",
+        "nameKey": "goodFriday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2034-04-08",
+        "name": "Påskafton",
+        "nameEn": "Easter Eve",
+        "nameKey": "easterEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2034-04-09",
+        "name": "Påskdagen",
+        "nameEn": "Easter Sunday",
+        "nameKey": "easterSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2034-04-10",
+        "name": "Annandag påsk",
+        "nameEn": "Easter Monday",
+        "nameKey": "easterMonday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2034-05-18",
+        "name": "Kristi himmelsfärdsdag",
+        "nameEn": "Ascension Day",
+        "nameKey": "ascensionDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2034-05-28",
+        "name": "Pingstdagen",
+        "nameEn": "Whit Sunday",
+        "nameKey": "whitSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2034-06-23",
+        "name": "Midsommarafton",
+        "nameEn": "Midsummer Eve",
+        "nameKey": "midsummerEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2034-06-24",
+        "name": "Midsommardagen",
+        "nameEn": "Midsummer Day",
+        "nameKey": "midsummerDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2034-11-04",
+        "name": "Alla helgons dag",
+        "nameEn": "All Saints' Day",
+        "nameKey": "allSaintsDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      }
+    ],
+    "2035": [
+      {
+        "date": "2035-03-23",
+        "name": "Långfredagen",
+        "nameEn": "Good Friday",
+        "nameKey": "goodFriday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2035-03-24",
+        "name": "Påskafton",
+        "nameEn": "Easter Eve",
+        "nameKey": "easterEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2035-03-25",
+        "name": "Påskdagen",
+        "nameEn": "Easter Sunday",
+        "nameKey": "easterSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2035-03-26",
+        "name": "Annandag påsk",
+        "nameEn": "Easter Monday",
+        "nameKey": "easterMonday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2035-05-03",
+        "name": "Kristi himmelsfärdsdag",
+        "nameEn": "Ascension Day",
+        "nameKey": "ascensionDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2035-05-13",
+        "name": "Pingstdagen",
+        "nameEn": "Whit Sunday",
+        "nameKey": "whitSunday",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2035-06-22",
+        "name": "Midsommarafton",
+        "nameEn": "Midsummer Eve",
+        "nameKey": "midsummerEve",
+        "type": "moving",
+        "isPublicHoliday": false,
+        "isHalfDay": true
+      },
+      {
+        "date": "2035-06-23",
+        "name": "Midsommardagen",
+        "nameEn": "Midsummer Day",
+        "nameKey": "midsummerDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      },
+      {
+        "date": "2035-11-03",
+        "name": "Alla helgons dag",
+        "nameEn": "All Saints' Day",
+        "nameKey": "allSaintsDay",
+        "type": "moving",
+        "isPublicHoliday": true
+      }
+    ]
+  }
+}

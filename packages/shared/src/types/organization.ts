@@ -4,6 +4,7 @@ import type {
   MemberLimits,
   MemberStats,
 } from "./domain.js";
+import type { HolidayCalendarSettings } from "../data/holidays/schema.js";
 
 /**
  * Organization roles for multi-role permission system
@@ -11,6 +12,7 @@ import type {
  */
 export type OrganizationRole =
   | "administrator" // Full organization access
+  | "schedule_planner" // Can manage routine selection processes
   | "veterinarian" // Animal health services
   | "dentist" // Equine dental services
   | "farrier" // Hoof care services
@@ -47,6 +49,16 @@ export type MembershipStatus = "active" | "inactive" | "pending";
  * Stable access level for organization members
  */
 export type StableAccessLevel = "all" | "specific";
+
+/**
+ * Organization-level settings
+ * Groups configurable organization preferences
+ */
+export interface OrganizationSettings {
+  /** Holiday calendar settings for the organization */
+  holidayCalendar?: HolidayCalendarSettings;
+  // Future settings can be added here (e.g., notification preferences, theme settings)
+}
 
 /**
  * Organization entity - contains multiple stables
@@ -92,6 +104,9 @@ export interface Organization {
     stableCount: number;
     totalMemberCount: number;
   };
+
+  // Organization Settings (optional for backward compatibility)
+  settings?: OrganizationSettings;
 
   // Metadata
   createdAt: Timestamp;

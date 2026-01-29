@@ -43,9 +43,9 @@ struct LoginView: View {
                         .padding(.top, 60)
 
                 // Login form card
-                VStack(spacing: 16) {
+                VStack(spacing: EquiDutyDesign.Spacing.standard) {
                     // Email field
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.sm) {
                         Text(String(localized: "login.email"))
                             .font(.subheadline)
                             .fontWeight(.medium)
@@ -65,7 +65,7 @@ struct LoginView: View {
                     }
 
                     // Password field
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.sm) {
                         Text(String(localized: "login.password"))
                             .font(.subheadline)
                             .fontWeight(.medium)
@@ -115,9 +115,10 @@ struct LoginView: View {
                     .frame(height: 50)
                     .background(Color.equiDutyGreen)
                     .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: EquiDutyDesign.CornerRadius.medium, style: .continuous))
                     .disabled(isLoading || !isFormValid)
                     .opacity(isFormValid ? 1 : 0.6)
+                    .buttonStyle(.scale)
 
                     // Divider
                     HStack {
@@ -146,7 +147,8 @@ struct LoginView: View {
                     .frame(height: 50)
                     .background(Color.white)
                     .foregroundStyle(.primary)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: EquiDutyDesign.CornerRadius.medium, style: .continuous))
+                    .buttonStyle(.scale)
 
                     // Sign up link
                     HStack {
@@ -160,13 +162,13 @@ struct LoginView: View {
                     }
                     .font(.subheadline)
                 }
-                .padding(24)
-                .background(Color(.systemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .padding(EquiDutyDesign.Spacing.xl)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: EquiDutyDesign.CornerRadius.card, style: .continuous))
                 .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 32)
+            .padding(.horizontal, EquiDutyDesign.Spacing.xl)
+            .padding(.bottom, EquiDutyDesign.Spacing.section)
         }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -229,7 +231,7 @@ struct ForgotPasswordView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
+            VStack(spacing: EquiDutyDesign.Spacing.xl) {
                 Text(String(localized: "forgot_password.description"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -267,12 +269,13 @@ struct ForgotPasswordView: View {
                 .frame(height: 50)
                 .background(Color.accentColor)
                 .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(RoundedRectangle(cornerRadius: EquiDutyDesign.CornerRadius.medium, style: .continuous))
+                .buttonStyle(.scale)
                 .disabled(isLoading || email.isEmpty)
 
                 Spacer()
             }
-            .padding(24)
+            .padding(EquiDutyDesign.Spacing.xl)
             .navigationTitle(String(localized: "forgot_password.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

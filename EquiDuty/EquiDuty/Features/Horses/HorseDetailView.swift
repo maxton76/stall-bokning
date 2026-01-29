@@ -21,12 +21,14 @@ struct HorseDetailView: View {
         case info
         case health
         case team
+        case history
 
         var displayName: String {
             switch self {
             case .info: return String(localized: "horse.tab.info")
             case .health: return String(localized: "horse.tab.health")
             case .team: return String(localized: "horse.tab.team")
+            case .history: return String(localized: "horse.tab.history")
             }
         }
 
@@ -35,6 +37,7 @@ struct HorseDetailView: View {
             case .info: return "info.circle"
             case .health: return "heart.text.square"
             case .team: return "person.3"
+            case .history: return "clock.arrow.circlepath"
             }
         }
     }
@@ -71,6 +74,8 @@ struct HorseDetailView: View {
                             HorseHealthTabView(horse: horse)
                         case .team:
                             HorseTeamTabView(horse: horse)
+                        case .history:
+                            HorseActivityHistoryView(horseId: horse.id)
                         }
                     }
                     .padding(.bottom, 20)
@@ -127,14 +132,14 @@ struct HorseDetailHeader: View {
     let horse: Horse
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: EquiDutyDesign.Spacing.md) {
             HorseAvatarView(horse: horse, size: 100)
 
             Text(horse.name)
                 .font(.title)
                 .fontWeight(.bold)
 
-            HStack(spacing: 16) {
+            HStack(spacing: EquiDutyDesign.Spacing.standard) {
                 if let breed = horse.breed {
                     Label(breed, systemImage: "tag")
                         .font(.subheadline)
@@ -148,10 +153,11 @@ struct HorseDetailHeader: View {
                 }
             }
 
-            HStack(spacing: 12) {
-                StatusBadge(
+            HStack(spacing: EquiDutyDesign.Spacing.md) {
+                ModernStatusBadge(
                     status: horse.status.displayName,
-                    color: horse.status == .active ? .green : .gray
+                    color: horse.status == .active ? .green : .gray,
+                    icon: horse.status == .active ? "checkmark.circle.fill" : "circle"
                 )
 
                 if let vaccStatus = horse.vaccinationStatus {
@@ -159,9 +165,9 @@ struct HorseDetailHeader: View {
                 }
             }
         }
-        .padding()
+        .padding(EquiDutyDesign.Spacing.standard)
         .frame(maxWidth: .infinity)
-        .background(Color(.secondarySystemBackground))
+        .background(.ultraThinMaterial)
     }
 }
 
@@ -171,7 +177,7 @@ struct HorseInfoSection: View {
     let horse: Horse
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: EquiDutyDesign.Spacing.standard) {
             // Basic info
             InfoCard(title: String(localized: "horse.info.basic")) {
                 InfoRow(label: String(localized: "horse.color"), value: horse.color.displayName)
@@ -195,7 +201,7 @@ struct HorseInfoSection: View {
                         Text(String(localized: "horse.usage"))
                             .foregroundStyle(.secondary)
                         Spacer()
-                        HStack(spacing: 4) {
+                        HStack(spacing: EquiDutyDesign.Spacing.xs) {
                             ForEach(usage, id: \.self) { u in
                                 UsageBadge(usage: u)
                             }
@@ -261,9 +267,10 @@ struct UsageBadge: View {
     var body: some View {
         Text(usage.displayName)
             .font(.caption2)
+            .fontWeight(.medium)
             .foregroundStyle(color)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 2)
+            .padding(.horizontal, EquiDutyDesign.Spacing.sm)
+            .padding(.vertical, EquiDutyDesign.Spacing.xs)
             .background(color.opacity(0.15))
             .clipShape(Capsule())
     }
@@ -373,7 +380,7 @@ struct FEIExpiryBadge: View {
     }
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: EquiDutyDesign.Spacing.xs) {
             Image(systemName: status == .valid ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                 .font(.caption2)
 
@@ -387,9 +394,10 @@ struct FEIExpiryBadge: View {
             }
         }
         .font(.caption)
+        .fontWeight(.medium)
         .foregroundStyle(statusColor)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 2)
+        .padding(.horizontal, EquiDutyDesign.Spacing.sm)
+        .padding(.vertical, EquiDutyDesign.Spacing.xs)
         .background(statusColor.opacity(0.15))
         .clipShape(Capsule())
     }
@@ -437,16 +445,14 @@ struct InfoCard<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.md) {
             Text(title)
                 .font(.headline)
 
             content
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .contentCard()
     }
 }
 

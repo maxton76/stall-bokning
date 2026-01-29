@@ -48,6 +48,8 @@ import { dailyNotesRoutes } from "./routes/daily-notes.js";
 import { horseActivityHistoryRoutes } from "./routes/horse-activity-history.js";
 import { fairnessRoutes } from "./routes/fairness.js";
 import { settingsRoutes } from "./routes/settings.js";
+import { selectionProcessesRoutes } from "./routes/selectionProcesses.js";
+import { supportRoutes } from "./routes/support.js";
 
 const PORT = Number(process.env.PORT) || 8080;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -185,6 +187,10 @@ await fastify.register(horseActivityHistoryRoutes, {
 });
 await fastify.register(fairnessRoutes, { prefix: "/api/v1/fairness" });
 await fastify.register(settingsRoutes, { prefix: "/api/v1/settings" });
+await fastify.register(selectionProcessesRoutes, {
+  prefix: "/api/v1/selection-processes",
+});
+await fastify.register(supportRoutes, { prefix: "/api/v1/support" });
 
 // 404 handler
 fastify.setNotFoundHandler((request, reply) => {

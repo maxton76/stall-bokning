@@ -1,0 +1,277 @@
+{
+  "navigation": {
+    "routineSelection": "Routine Selection"
+  },
+  "titles": {
+    "list": "Routine Selection",
+    "detail": "Routine Selection Details",
+    "create": "Create New Routine Selection",
+    "edit": "Edit Routine Selection",
+    "startProcess": "Start Routine Selection",
+    "completeTurn": "Complete Turn",
+    "selectRoutines": "Select your routines"
+  },
+  "descriptions": {
+    "list": "Manage routine selection and turn order for stable members",
+    "create": "Create a new routine selection to distribute tasks among members",
+    "empty": "No routine selections yet. Create your first routine selection to get started.",
+    "selectRoutines": "Click on available routines to assign them to yourself."
+  },
+  "status": {
+    "draft": "Draft",
+    "active": "Active",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "paused": "Paused"
+  },
+  "turnStatus": {
+    "pending": "Pending",
+    "active": "Active",
+    "completed": "Completed",
+    "skipped": "Skipped"
+  },
+  "labels": {
+    "name": "Name",
+    "description": "Description",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "members": "Members",
+    "turnOrder": "Turn Order",
+    "currentTurn": "Current Turn",
+    "nextTurn": "Next Turn",
+    "status": "Status",
+    "createdBy": "Created by",
+    "createdAt": "Created",
+    "updatedAt": "Updated",
+    "position": "Position",
+    "queue": "Queue",
+    "completedTurns": "Completed Turns",
+    "totalTurns": "Total Turns",
+    "turnDuration": "Turn Duration",
+    "participantCount": "Number of Participants",
+    "days": "days",
+    "yourSelection": "Your selection"
+  },
+  "buttons": {
+    "create": "Create Routine Selection",
+    "start": "Start Routine Selection",
+    "completeTurn": "Complete Turn",
+    "nextTurn": "Next Turn",
+    "skipTurn": "Skip Turn",
+    "pause": "Pause",
+    "resume": "Resume",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saveChanges": "Save Changes",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "viewDetails": "View Details",
+    "back": "Back",
+    "close": "Close",
+    "addMember": "Add Member",
+    "removeMember": "Remove Member",
+    "reorderMembers": "Reorder Members"
+  },
+  "messages": {
+    "yourTurn": "It's your turn now!",
+    "notYourTurn": "It's not your turn yet",
+    "routineSelected": "Routine has been selected",
+    "processStarted": "Routine selection has been started",
+    "processCompleted": "Routine selection is completed",
+    "turnCompleted": "Turn has been completed",
+    "turnSkipped": "Turn has been skipped",
+    "memberAdded": "Member added",
+    "memberRemoved": "Member removed",
+    "noActiveProcess": "No active routine selection",
+    "waitingForTurn": "Waiting for their turn",
+    "turnStartsIn": "Your turn starts in {{days}} days",
+    "confirmCancelProcess": "Are you sure you want to cancel this routine selection? This action cannot be undone.",
+    "confirmDeleteProcess": "Are you sure you want to delete this routine selection? This action cannot be undone.",
+    "confirmSkipTurn": "Are you sure you want to skip this turn?",
+    "selectMembers": "Select at least two members to create a routine selection",
+    "processAlreadyStarted": "Routine selection has already been started and cannot be edited",
+    "invalidDateRange": "End date must be after start date",
+    "datesUpdated": "Dates updated",
+    "successfully": {
+      "created": "Routine selection created",
+      "started": "Routine selection started",
+      "completed": "Routine selection completed",
+      "cancelled": "Routine selection cancelled",
+      "updated": "Routine selection updated",
+      "deleted": "Routine selection deleted"
+    },
+    "errors": {
+      "failed": "Could not {{action}}. Please try again.",
+      "create": "Failed to create routine selection",
+      "start": "Failed to start routine selection",
+      "completeTurn": "Failed to complete turn",
+      "nextTurn": "Failed to move to next turn",
+      "delete": "Failed to delete routine selection",
+      "update": "Failed to update routine selection",
+      "loadFailed": "Failed to load routine selection"
+    }
+  },
+  "queue": {
+    "title": "Queue",
+    "yourPosition": "Your position: {{position}}/{{total}}",
+    "waiting": "Waiting",
+    "yourTurnNow": "Your turn now",
+    "position": "Position",
+    "member": "Member",
+    "status": "Status",
+    "estimatedDate": "Estimated Date",
+    "daysWaiting": "Days Waiting"
+  },
+  "form": {
+    "name": "Routine Selection Name",
+    "namePlaceholder": "E.g. Fall Rounds 2024",
+    "description": "Description",
+    "descriptionPlaceholder": "Describe the purpose of this routine selection...",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "members": "Members",
+    "selectMembers": "Select Members",
+    "turnOrder": "Turn Order",
+    "turnDuration": "Turn Duration (days)",
+    "autoAssign": "Auto Assignment",
+    "autoAssignDescription": "Automatically assign next person when a turn is completed",
+    "saveOrder": "Save Order",
+    "selectAllMembers": "Select All",
+    "deselectAllMembers": "Deselect All",
+    "memberCount": "{{count}} member selected",
+    "memberCount_plural": "{{count}} members selected"
+  },
+  "modals": {
+    "confirmStart": {
+      "title": "Start Routine Selection",
+      "description": "You are about to start the routine selection \"{{name}}\". This action cannot be undone.",
+      "confirm": "Yes, start routine selection"
+    },
+    "confirmComplete": {
+      "title": "Complete Turn",
+      "description": "Mark this turn as completed and move to the next member?",
+      "confirm": "Yes, complete turn"
+    },
+    "confirmCancel": {
+      "title": "Cancel selection process?",
+      "description": "Are you sure you want to cancel? Already assigned shifts will be kept."
+    },
+    "confirmDelete": {
+      "title": "Delete selection process?",
+      "description": "Are you sure you want to permanently delete this selection process?"
+    },
+    "selectMembers": {
+      "title": "Select Members",
+      "description": "Select the members who will participate in this routine selection",
+      "confirm": "Next"
+    },
+    "setOrder": {
+      "title": "Set Turn Order",
+      "description": "Drag to reorder members",
+      "confirm": "Save Order"
+    }
+  },
+  "history": {
+    "title": "History",
+    "completedTurns": "Completed Turns",
+    "turn": "Turn {{number}}",
+    "member": "Member",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "completedDate": "Completed",
+    "duration": "Duration",
+    "notes": "Notes",
+    "empty": "No history yet"
+  },
+  "statistics": {
+    "title": "Statistics",
+    "processStats": "Routine Selection Statistics",
+    "totalParticipants": "Total Participants",
+    "completedTurns": "Completed Turns",
+    "averageTurnDuration": "Average Turn Duration",
+    "days": "days",
+    "memberStats": "Member Statistics",
+    "member": "Member",
+    "turnsCompleted": "Turns Completed",
+    "turnsDue": "Turns Due",
+    "averageDuration": "Average Duration",
+    "lastCompletedDate": "Last Completed"
+  },
+  "details": {
+    "overview": "Overview",
+    "participants": "Participants",
+    "currentStatus": "Current Status",
+    "activeMember": "Active Member",
+    "turnsCompleted": "Turns Completed",
+    "estimatedCompletion": "Estimated Completion",
+    "queue": "Queue",
+    "actions": "Actions"
+  },
+  "emptyStates": {
+    "noProcesses": "No routine selections yet",
+    "noProcessesDescription": "Create a routine selection to get started with turn ordering",
+    "noParticipants": "No participants",
+    "noHistory": "No history available",
+    "noQueue": "Queue is empty"
+  },
+  "validation": {
+    "nameRequired": "Routine selection name is required",
+    "nameMinLength": "Routine selection name must be at least {{min}} characters",
+    "startDateRequired": "Start date is required",
+    "endDateRequired": "End date is required",
+    "invalidDateRange": "End date must be after start date",
+    "membersRequired": "At least two members are required",
+    "invalidMemberCount": "You need at least two members",
+    "turnDurationRequired": "Turn duration is required",
+    "invalidTurnDuration": "Turn duration must be at least 1 day"
+  },
+  "filters": {
+    "status": "Status",
+    "member": "Member",
+    "dateRange": "Date Range",
+    "all": "All",
+    "active": "Active",
+    "completed": "Completed",
+    "draft": "Draft"
+  },
+  "sorting": {
+    "newest": "Newest",
+    "oldest": "Oldest",
+    "name": "Name",
+    "status": "Status",
+    "startDate": "Start Date",
+    "endDate": "End Date"
+  },
+  "notifications": {
+    "yourTurn": "It's your turn in {{processName}}!",
+    "yourTurnStartingSoon": "Your turn in {{processName}} starts in {{days}} days",
+    "turnCompleted": "Turn completed in {{processName}}",
+    "processCompleted": "{{processName}} is completed",
+    "memberJoined": "{{member}} has been added to {{processName}}"
+  },
+  "share": {
+    "title": "Share Routine Selection",
+    "description": "Share this routine selection process with members",
+    "copyLink": "Copy Link",
+    "linkCopied": "Link copied",
+    "shareUrl": "Share URL"
+  },
+  "timezone": {
+    "label": "Time Zone",
+    "description": "Select time zone for this routine selection"
+  },
+  "admin": {
+    "title": "Administration",
+    "editDates": "Edit selection period",
+    "dateChangeWarning": "Users who haven't selected yet will see the new date range. Existing selections are not affected.",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "saveDates": "Save",
+    "cancelProcess": "Cancel selection",
+    "cancelDescription": "Already assigned shifts will be kept.",
+    "deleteProcess": "Delete",
+    "deleteDescription": "Permanently delete this selection process.",
+    "startProcess": "Start selection"
+  }
+}

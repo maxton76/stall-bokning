@@ -9,11 +9,8 @@ import { Timestamp } from "firebase/firestore";
 import {
   parseShiftStartTime,
   createDateThreshold,
+  holidayService,
 } from "@stall-bokning/shared";
-import {
-  isSwedishHoliday,
-  applyHolidayMultiplier,
-} from "@/utils/holidayHelpers";
 import {
   createTrackingContext,
   updateMemberTracking,

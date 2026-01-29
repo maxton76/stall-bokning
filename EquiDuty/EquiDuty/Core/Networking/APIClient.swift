@@ -13,7 +13,9 @@ enum APIConfig {
     #if DEBUG
     static let baseURL = "https://dev-api-service-wigho7gnca-ew.a.run.app"
     #else
-    static let baseURL = "https://api.equiduty.com"  // TODO: Update with actual prod URL
+    // Production URL - uses Cloud Run service via custom domain
+    // Configure via: GCP Cloud Run → Custom Domains → Map api.equiduty.com
+    static let baseURL = "https://prod-api-service-wigho7gnca-ew.a.run.app"
     #endif
 
     static let apiVersion = "v1"
@@ -314,16 +316,56 @@ final class APIClient {
 struct EmptyResponse: Codable {}
 
 /// Firestore Timestamp format for decoding dates (underscore variant)
-struct FirestoreTimestamp: Codable {
+/// Explicit nonisolated Codable conformance for Swift 6 concurrency
+struct FirestoreTimestamp: Sendable {
     let _seconds: Int
     let _nanoseconds: Int
 }
 
+extension FirestoreTimestamp: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case _seconds, _nanoseconds
+    }
+
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        _seconds = try container.decode(Int.self, forKey: ._seconds)
+        _nanoseconds = try container.decode(Int.self, forKey: ._nanoseconds)
+    }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(_seconds, forKey: ._seconds)
+        try container.encode(_nanoseconds, forKey: ._nanoseconds)
+    }
+}
+
 /// Firestore Timestamp format with type field (no underscore variant)
-struct FirestoreTimestampTyped: Codable {
+/// Explicit nonisolated Codable conformance for Swift 6 concurrency
+struct FirestoreTimestampTyped: Sendable {
     let type: String?
     let seconds: Int
     let nanoseconds: Int
+}
+
+extension FirestoreTimestampTyped: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case type, seconds, nanoseconds
+    }
+
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        type = try container.decodeIfPresent(String.self, forKey: .type)
+        seconds = try container.decode(Int.self, forKey: .seconds)
+        nanoseconds = try container.decode(Int.self, forKey: .nanoseconds)
+    }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(type, forKey: .type)
+        try container.encode(seconds, forKey: .seconds)
+        try container.encode(nanoseconds, forKey: .nanoseconds)
+    }
 }
 
 // MARK: - Public API Client (Unauthenticated)

@@ -23,7 +23,7 @@ struct HorseHealthTabView: View {
     @State private var showDeleteConfirmation = false
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: EquiDutyDesign.Spacing.standard) {
             // Vaccination Status Card
             VaccinationStatusCard(horse: horse)
 
@@ -102,16 +102,15 @@ struct HorseHealthTabView: View {
 
         Task {
             do {
-                async let recordsTask = vaccinationService.getVaccinationRecords(horseId: horse.id)
-                async let rulesTask: [VaccinationRule] = {
-                    if let orgId = authService.selectedOrganization?.id {
-                        return try await vaccinationService.getVaccinationRules(organizationId: orgId)
-                    }
-                    return []
-                }()
+                // Fetch records
+                vaccinationRecords = try await vaccinationService.getVaccinationRecords(horseId: horse.id)
 
-                vaccinationRecords = try await recordsTask
-                vaccinationRules = try await rulesTask
+                // Fetch rules if organization is selected
+                if let orgId = authService.selectedOrganization?.id {
+                    vaccinationRules = try await vaccinationService.getVaccinationRules(organizationId: orgId)
+                } else {
+                    vaccinationRules = []
+                }
 
                 // Sort records by date descending
                 vaccinationRecords.sort { $0.date > $1.date }
@@ -160,7 +159,7 @@ struct VaccinationStatusCard: View {
 
     var body: some View {
         InfoCard(title: String(localized: "horse.vaccination.status")) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.md) {
                 // Status indicator
                 if let status = horse.vaccinationStatus {
                     HStack {
@@ -174,7 +173,7 @@ struct VaccinationStatusCard: View {
                 // Last vaccination
                 if let lastDate = horse.lastVaccinationDate {
                     HStack {
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.xs) {
                             Text(String(localized: "horse.vaccination.last"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -188,11 +187,11 @@ struct VaccinationStatusCard: View {
                 // Next due
                 if let nextDate = horse.nextVaccinationDue {
                     HStack {
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.xs) {
                             Text(String(localized: "horse.vaccination.next"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                            HStack(spacing: 8) {
+                            HStack(spacing: EquiDutyDesign.Spacing.sm) {
                                 Text(nextDate.formatted(date: .abbreviated, time: .omitted))
                                     .font(.body)
 
@@ -201,17 +200,19 @@ struct VaccinationStatusCard: View {
                                 if daysUntil < 0 {
                                     Text(String(localized: "horse.vaccination.overdue_days \(abs(daysUntil))"))
                                         .font(.caption)
+                                        .fontWeight(.medium)
                                         .foregroundStyle(.white)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 2)
+                                        .padding(.horizontal, EquiDutyDesign.Spacing.sm)
+                                        .padding(.vertical, EquiDutyDesign.Spacing.xs)
                                         .background(.red)
                                         .clipShape(Capsule())
                                 } else if daysUntil <= 30 {
                                     Text(String(localized: "horse.vaccination.due_days \(daysUntil)"))
                                         .font(.caption)
+                                        .fontWeight(.medium)
                                         .foregroundStyle(.white)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 2)
+                                        .padding(.horizontal, EquiDutyDesign.Spacing.sm)
+                                        .padding(.vertical, EquiDutyDesign.Spacing.xs)
                                         .background(.orange)
                                         .clipShape(Capsule())
                                 }
@@ -242,7 +243,7 @@ struct VaccinationHistoryCard: View {
     let onDelete: (VaccinationRecord) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.md) {
             // Header with add button
             HStack {
                 Text(String(localized: "horse.vaccination.history"))
@@ -264,7 +265,7 @@ struct VaccinationHistoryCard: View {
                 }
                 .padding(.vertical)
             } else if records.isEmpty {
-                VStack(spacing: 8) {
+                VStack(spacing: EquiDutyDesign.Spacing.sm) {
                     Image(systemName: "syringe")
                         .font(.largeTitle)
                         .foregroundStyle(.secondary)
@@ -294,9 +295,7 @@ struct VaccinationHistoryCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .contentCard()
     }
 }
 
@@ -309,7 +308,7 @@ struct VaccinationRecordRow: View {
 
     var body: some View {
         HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.xs) {
                 Text(record.vaccineName)
                     .font(.body)
                     .fontWeight(.medium)
@@ -319,7 +318,7 @@ struct VaccinationRecordRow: View {
                     .foregroundStyle(.secondary)
 
                 if let vetName = record.vetName, !vetName.isEmpty {
-                    HStack(spacing: 4) {
+                    HStack(spacing: EquiDutyDesign.Spacing.xs) {
                         Image(systemName: "person.fill")
                             .font(.caption2)
                         Text(vetName)

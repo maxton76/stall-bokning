@@ -26,7 +26,9 @@ export type NotificationType =
   | "activity_cancelled" // Activity cancelled
   | "daily_summary" // Daily task summary
   | "weekly_summary" // Weekly summary
-  | "system_alert"; // System-level alerts
+  | "system_alert" // System-level alerts
+  | "selection_turn_started" // User's turn to select routines has started
+  | "selection_process_completed"; // All members have completed their selections
 
 /**
  * Notification priority levels
@@ -369,5 +371,17 @@ export const NOTIFICATION_TEMPLATES = {
     bodyKey: "notifications.dailySummary.body",
     priority: "low" as NotificationPriority,
     defaultChannels: ["email"] as NotificationChannel[],
+  },
+  selection_turn_started: {
+    titleKey: "notifications.selectionTurnStarted.title",
+    bodyKey: "notifications.selectionTurnStarted.body",
+    priority: "high" as NotificationPriority,
+    defaultChannels: ["inApp", "email", "push"] as NotificationChannel[],
+  },
+  selection_process_completed: {
+    titleKey: "notifications.selectionProcessCompleted.title",
+    bodyKey: "notifications.selectionProcessCompleted.body",
+    priority: "normal" as NotificationPriority,
+    defaultChannels: ["inApp", "email"] as NotificationChannel[],
   },
 } as const;

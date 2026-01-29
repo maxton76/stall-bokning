@@ -66,7 +66,10 @@ final class AuthService {
     // MARK: - Private
 
     private let keychain = KeychainManager.shared
-    private nonisolated(unsafe) var authStateListener: AuthStateDidChangeListenerHandle?
+    /// Store listener handle - kept for reference but cleanup not needed
+    /// Note: As a singleton, AuthService lives for the app's lifetime, so deinit is never called.
+    /// Firebase Auth automatically handles listener cleanup when the app terminates.
+    private var authStateListener: AuthStateDidChangeListenerHandle?
 
     private init() {
         // Delay setup until Firebase is configured
@@ -81,12 +84,6 @@ final class AuthService {
                     authState = .signedOut
                 }
             }
-        }
-    }
-
-    deinit {
-        if let listener = authStateListener {
-            Auth.auth().removeStateDidChangeListener(listener)
         }
     }
 
@@ -127,7 +124,9 @@ final class AuthService {
             try? keychain.saveToken(token)
             return token
         } catch {
+            #if DEBUG
             print("Failed to get ID token: \(error)")
+            #endif
             return keychain.getToken()
         }
     }
@@ -151,12 +150,16 @@ final class AuthService {
             do {
                 let orgsResponse: OrganizationsResponse = try await APIClient.shared.get(APIEndpoints.organizations)
                 self.organizations = orgsResponse.organizations
+                #if DEBUG
                 print("✅ Fetched \(orgsResponse.organizations.count) organizations")
                 for org in orgsResponse.organizations {
                     print("   - \(org.name) (id: \(org.id))")
                 }
+                #endif
             } catch {
+                #if DEBUG
                 print("❌ Failed to fetch organizations: \(error)")
+                #endif
                 self.organizations = []
             }
 
@@ -165,7 +168,9 @@ final class AuthService {
 
             isLoading = false
         } catch {
+            #if DEBUG
             print("Failed to fetch user profile: \(error)")
+            #endif
             self.error = error
             isLoading = false
 
@@ -212,29 +217,41 @@ final class AuthService {
 
     /// Fetch stables for an organization and restore/select one
     private func fetchAndRestoreStable(organizationId: String) async {
+        #if DEBUG
         print("🔍 Fetching stables for organization: \(organizationId)")
+        #endif
         do {
             let response: StablesResponse = try await APIClient.shared.get(
                 APIEndpoints.stables(organizationId: organizationId)
             )
+            #if DEBUG
             print("✅ Fetched \(response.stables.count) stables")
             for stable in response.stables {
                 print("   - \(stable.name) (id: \(stable.id))")
             }
+            #endif
 
             // Restore saved stable or select first
             if let savedStableId = UserDefaults.standard.string(forKey: "selectedStableId"),
                let stable = response.stables.first(where: { $0.id == savedStableId }) {
                 selectedStable = stable
+                #if DEBUG
                 print("✅ Restored selected stable: \(stable.name)")
+                #endif
             } else if let firstStable = response.stables.first {
                 selectedStable = firstStable
+                #if DEBUG
                 print("✅ Auto-selected first stable: \(firstStable.name)")
+                #endif
             } else {
+                #if DEBUG
                 print("⚠️ No stables found for organization")
+                #endif
             }
         } catch {
+            #if DEBUG
             print("❌ Failed to fetch stables: \(error)")
+            #endif
         }
     }
 
@@ -271,8 +288,8 @@ final class AuthService {
             GIDSignIn.sharedInstance.configuration = config
 
             // Get the presenting view controller
-            guard let windowScene = await UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                  let rootViewController = await windowScene.windows.first?.rootViewController else {
+            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let rootViewController = windowScene.windows.first?.rootViewController else {
                 throw AuthError.configurationError("No root view controller found")
             }
 
@@ -367,7 +384,9 @@ final class AuthService {
             let orgsResponse: OrganizationsResponse = try await APIClient.shared.get(APIEndpoints.organizations)
             self.organizations = orgsResponse.organizations
         } catch {
+            #if DEBUG
             print("Failed to refresh organizations: \(error)")
+            #endif
         }
 
         restoreSelectedContext()

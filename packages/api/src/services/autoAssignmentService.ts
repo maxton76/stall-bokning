@@ -12,11 +12,11 @@ import {
   parseDate,
   getDayOfWeek,
   isTimeInRange,
+  holidayService,
+  type HolidayCalendarSettings,
+  type SupportedCountryCode,
+  DEFAULT_HOLIDAY_SETTINGS,
 } from "@stall-bokning/shared";
-import {
-  isSwedishHoliday,
-  applyHolidayMultiplier,
-} from "../utils/holidayHelpers.js";
 
 // ============= Types =============
 
@@ -60,6 +60,8 @@ export interface AssignmentConfig {
   holidayMultiplier?: number; // Default: 1.5
   preferenceBonus?: number; // Points bonus for preferred times (default: -2)
   memoryHorizonDays?: number; // Default: 90
+  /** Holiday calendar settings from organization */
+  holidaySettings?: Partial<HolidayCalendarSettings>;
 }
 
 export interface AssignmentResult {
@@ -222,7 +224,22 @@ export function autoAssignShifts(
   config: AssignmentConfig = {},
 ): AssignmentResult[] {
   const results: AssignmentResult[] = [];
-  const holidayMultiplier = config.holidayMultiplier ?? 1.5;
+
+  // Merge holiday settings with defaults
+  const holidaySettings: HolidayCalendarSettings = {
+    ...DEFAULT_HOLIDAY_SETTINGS,
+    ...config.holidaySettings,
+  };
+
+  // Use holiday multiplier from config or from holiday settings
+  const holidayMultiplier =
+    config.holidayMultiplier ??
+    (holidaySettings.enableHolidayMultiplier
+      ? holidaySettings.holidayMultiplier
+      : 1.0);
+
+  // Get country code for holiday lookups
+  const countryCode: SupportedCountryCode = holidaySettings.countryCode;
 
   // Initialize tracking state for each member
   const memberTracking = new Map<string, MemberTrackingState>();
@@ -306,12 +323,14 @@ export function autoAssignShifts(
     if (!bestCandidate) continue;
 
     // Calculate points with holiday multiplier
-    const isHoliday = isSwedishHoliday(shiftDate);
-    const pointsAwarded = applyHolidayMultiplier(
-      shift.points,
-      isHoliday,
-      holidayMultiplier,
-    );
+    const isHoliday = holidayService.isHoliday(shiftDate, countryCode);
+    const pointsAwarded = holidaySettings.enableHolidayMultiplier
+      ? holidayService.applyHolidayMultiplier(
+          shift.points,
+          isHoliday,
+          holidayMultiplier,
+        )
+      : shift.points;
 
     // Update tracking state for assigned member
     const tracking = memberTracking.get(bestCandidate.userId)!;
@@ -332,6 +351,55 @@ export function autoAssignShifts(
   }
 
   return results;
+}
+
+/**
+ * Validate if a shift can be created/booked on a specific date
+ * considering holiday scheduling restrictions.
+ * Returns an error message if booking is restricted, null otherwise
+ */
+export function validateHolidayRestriction(
+  date: Date,
+  holidaySettings?: Partial<HolidayCalendarSettings>,
+): {
+  allowed: boolean;
+  message?: string;
+  holiday?: { name: string; nameEn: string };
+} {
+  // Merge with defaults
+  const settings: HolidayCalendarSettings = {
+    ...DEFAULT_HOLIDAY_SETTINGS,
+    ...holidaySettings,
+  };
+
+  // If scheduling restrictions are not enabled, always allow
+  if (!settings.enableSchedulingRestrictions) {
+    return { allowed: true };
+  }
+
+  // Check if the date is a holiday
+  const holiday = holidayService.getHoliday(date, settings.countryCode);
+  if (!holiday) {
+    return { allowed: true };
+  }
+
+  // If restrictedHolidays list is provided and not empty, only block specific holidays
+  if (settings.restrictedHolidays && settings.restrictedHolidays.length > 0) {
+    const isRestricted = settings.restrictedHolidays.includes(holiday.nameKey);
+    if (!isRestricted) {
+      return { allowed: true };
+    }
+  }
+
+  // Block the booking
+  return {
+    allowed: false,
+    message: `Booking not allowed on ${holiday.nameEn} (${holiday.name})`,
+    holiday: {
+      name: holiday.name,
+      nameEn: holiday.nameEn,
+    },
+  };
 }
 
 /**

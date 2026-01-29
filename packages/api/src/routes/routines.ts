@@ -42,6 +42,11 @@ import {
   findExistingEntry,
   updateEntry,
 } from "../services/horseActivityHistoryService.js";
+import {
+  getActiveSelectionProcessForStable,
+  recordSelectionEntry,
+  getCurrentTurnInfo,
+} from "../services/selectionProcessService.js";
 
 /**
  * Enrich routine instance with template data
@@ -1741,6 +1746,9 @@ export async function routinesRoutes(fastify: FastifyInstance) {
   /**
    * POST /api/v1/routines/instances/:id/assign
    * Assign a routine instance to a member
+   *
+   * If there's an active selection process for the stable, validates that
+   * the requesting user is the current turn user before allowing assignment.
    */
   fastify.post(
     "/instances/:id/assign",
@@ -1792,6 +1800,21 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           });
         }
 
+        // Check if there's an active selection process for this stable
+        const activeProcess = await getActiveSelectionProcessForStable(
+          data.stableId,
+        );
+
+        if (activeProcess) {
+          // Validate the requesting user is the current turn user
+          if (activeProcess.currentTurnUserId !== user.uid) {
+            return reply.status(403).send({
+              error: "Forbidden",
+              message: "Det är inte din tur att välja pass",
+            });
+          }
+        }
+
         const now = Timestamp.now();
         await db.collection("routineInstances").doc(id).update({
           assignedTo,
@@ -1802,6 +1825,41 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           updatedAt: now,
           updatedBy: user.uid,
         });
+
+        // If there's an active selection process, record the selection
+        if (activeProcess) {
+          const turnInfo = getCurrentTurnInfo(activeProcess);
+          try {
+            await recordSelectionEntry(
+              activeProcess.id,
+              id,
+              user.uid,
+              assignedToName,
+              turnInfo.turnOrder || 0,
+              data.templateName,
+              data.scheduledDate,
+            );
+            request.log.info(
+              {
+                processId: activeProcess.id,
+                instanceId: id,
+                userId: user.uid,
+                turnOrder: turnInfo.turnOrder,
+              },
+              "Recorded selection entry for active selection process",
+            );
+          } catch (selectionError) {
+            // Log but don't fail the assignment if selection recording fails
+            request.log.error(
+              {
+                error: selectionError,
+                processId: activeProcess.id,
+                instanceId: id,
+              },
+              "Failed to record selection entry (non-blocking)",
+            );
+          }
+        }
 
         const updated = await db.collection("routineInstances").doc(id).get();
         const enriched = await enrichInstanceWithTemplate(
