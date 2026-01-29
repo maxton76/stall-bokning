@@ -59,7 +59,7 @@ async function getZendeskApiToken(): Promise<string> {
     name: `projects/${GCP_PROJECT}/secrets/zendesk-api-token/versions/latest`,
   });
 
-  const token = version.payload?.data?.toString() || "";
+  const token = version.payload?.data?.toString().trim() || "";
   cachedApiToken = token;
   return token;
 }
@@ -87,7 +87,7 @@ async function getZendeskWebhookSecret(): Promise<string> {
     name: `projects/${GCP_PROJECT}/secrets/zendesk-webhook-secret/versions/latest`,
   });
 
-  const secret = version.payload?.data?.toString() || "";
+  const secret = version.payload?.data?.toString().trim() || "";
   cachedWebhookSecret = secret;
   return secret;
 }
@@ -123,6 +123,7 @@ export interface CreateTicketParams {
   body: string;
   locale: "sv" | "en";
   category?: string;
+  zendeskUserId?: number;
 }
 
 /**
@@ -134,6 +135,7 @@ export interface ZendeskTicketResponse {
     url: string;
     status: string;
     subject: string;
+    requester_id: number;
     created_at: string;
     updated_at: string;
   };
@@ -193,6 +195,7 @@ export async function createTicket(
       subject: params.subject,
       comment: {
         body: params.body,
+        ...(params.zendeskUserId && { author_id: params.zendeskUserId }),
       },
       requester: {
         name: params.userName,
@@ -289,6 +292,46 @@ export async function searchTicketsByEmail(
 }
 
 /**
+ * ZenDesk user details
+ */
+export interface ZendeskUser {
+  id: number;
+  email: string;
+  name: string;
+}
+
+/**
+ * Get user details from Zendesk by user ID
+ */
+export async function getZendeskUser(
+  userId: string,
+): Promise<ZendeskUser | null> {
+  const authHeader = await getAuthHeader();
+  const apiUrl = getZendeskApiUrl();
+
+  const response = await fetch(`${apiUrl}/users/${userId}.json`, {
+    method: "GET",
+    headers: {
+      Authorization: authHeader,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `ZenDesk API error: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  const data = (await response.json()) as { user: ZendeskUser };
+  return data.user;
+}
+
+/**
  * Verify ZenDesk webhook secret
  *
  * Compares the provided secret from the X-Zendesk-Webhook-Secret header
@@ -313,6 +356,173 @@ export async function verifyWebhookSecret(
     // Buffers have different lengths - secrets don't match
     return false;
   }
+}
+
+/**
+ * Bulk-fetch Zendesk users by their IDs
+ * Uses the show_many endpoint to avoid N+1 queries
+ */
+export async function getZendeskUsersBulk(
+  userIds: number[],
+): Promise<Array<{ id: number; name: string; role: string }>> {
+  if (userIds.length === 0) return [];
+
+  const authHeader = await getAuthHeader();
+  const apiUrl = getZendeskApiUrl();
+
+  const ids = userIds.join(",");
+  const response = await fetch(`${apiUrl}/users/show_many.json?ids=${ids}`, {
+    method: "GET",
+    headers: {
+      Authorization: authHeader,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `ZenDesk API error: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  const data = (await response.json()) as {
+    users: Array<{ id: number; name: string; role: string }>;
+  };
+  return data.users || [];
+}
+
+/**
+ * Raw comment from Zendesk API
+ */
+interface ZendeskRawComment {
+  id: number;
+  body: string;
+  author_id: number;
+  public: boolean;
+  created_at: string;
+  via: {
+    channel: string;
+  };
+}
+
+/**
+ * Get all comments for a ticket, with author info resolved via bulk user fetch
+ */
+export async function getTicketComments(ticketId: number): Promise<{
+  comments: ZendeskRawComment[];
+  authors: Map<number, { name: string; role: string }>;
+}> {
+  const authHeader = await getAuthHeader();
+  const apiUrl = getZendeskApiUrl();
+
+  const response = await fetch(`${apiUrl}/tickets/${ticketId}/comments.json`, {
+    method: "GET",
+    headers: {
+      Authorization: authHeader,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (response.status === 404) {
+    throw new Error("Ticket not found");
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `ZenDesk API error: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  const data = (await response.json()) as { comments: ZendeskRawComment[] };
+  const comments = data.comments || [];
+
+  // Collect unique author IDs and bulk-resolve
+  const uniqueAuthorIds = [...new Set(comments.map((c) => c.author_id))];
+  const users = await getZendeskUsersBulk(uniqueAuthorIds);
+  const authors = new Map(
+    users.map((u) => [u.id, { name: u.name, role: u.role }]),
+  );
+
+  return { comments, authors };
+}
+
+/**
+ * Add a reply to a ticket on behalf of an end-user
+ */
+export async function addTicketReply(
+  ticketId: number,
+  body: string,
+  authorId: number,
+): Promise<void> {
+  const authHeader = await getAuthHeader();
+  const apiUrl = getZendeskApiUrl();
+
+  const response = await fetch(`${apiUrl}/tickets/${ticketId}.json`, {
+    method: "PUT",
+    headers: {
+      Authorization: authHeader,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      ticket: {
+        comment: {
+          body,
+          author_id: authorId,
+        },
+      },
+    }),
+  });
+
+  if (response.status === 404) {
+    throw new Error("Ticket not found");
+  }
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    console.error("ZenDesk API error:", {
+      status: response.status,
+      statusText: response.statusText,
+      body: errorBody,
+    });
+    throw new Error(
+      `ZenDesk API error: ${response.status} ${response.statusText}`,
+    );
+  }
+}
+
+/**
+ * Find or create a Zendesk end-user by email.
+ * Returns their Zendesk user ID for use as author_id on comments.
+ */
+export async function findOrCreateZendeskUser(
+  email: string,
+  name: string,
+): Promise<number> {
+  const authHeader = await getAuthHeader();
+  const apiUrl = getZendeskApiUrl();
+
+  const response = await fetch(`${apiUrl}/users/create_or_update.json`, {
+    method: "POST",
+    headers: {
+      Authorization: authHeader,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      user: { email, name },
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    console.error("Failed to find/create Zendesk user:", {
+      status: response.status,
+      body: errorBody,
+    });
+    throw new Error(`Failed to find/create Zendesk user: ${response.status}`);
+  }
+
+  const data = (await response.json()) as { user: { id: number } };
+  return data.user.id;
 }
 
 /**

@@ -13,6 +13,11 @@ import {
   createTicket,
   searchTicketsByEmail,
   verifyWebhookSecret,
+  getZendeskUser,
+  getTicket,
+  getTicketComments,
+  addTicketReply,
+  findOrCreateZendeskUser,
   type CreateTicketParams,
 } from "../services/zendeskService.js";
 import type {
@@ -20,8 +25,11 @@ import type {
   CreateSupportTicketResponse,
   ListSupportTicketsResponse,
   SupportAccessResponse,
-  ZendeskWebhookPayload,
+  ZendeskNativeWebhookPayload,
   SupportTicketCategory,
+  TicketConversationResponse,
+  ReplyToTicketResponse,
+  SupportTicketComment,
 } from "@stall-bokning/shared";
 
 /**
@@ -100,6 +108,42 @@ async function checkSupportAccess(userId: string): Promise<{
   }
 
   return { hasAccess: false, reason: "no_paid_plan" };
+}
+
+/**
+ * Verify that the authenticated user owns a Zendesk ticket.
+ * Returns the ticket data if owned, throws/returns null otherwise.
+ * Uses identical 404 response for not-found AND unauthorized to prevent enumeration.
+ */
+async function verifyTicketOwnership(
+  ticketId: number,
+  userEmail: string,
+  logger: { warn: (obj: Record<string, unknown>, msg: string) => void },
+): Promise<{
+  ticket: { id: number; subject: string; status: string };
+  requesterId: number;
+} | null> {
+  const ticketResult = await getTicket(ticketId);
+  if (!ticketResult) {
+    return null;
+  }
+
+  // Resolve the requester to check email ownership
+  const requesterId = ticketResult.ticket.requester_id;
+  if (!requesterId) {
+    return null;
+  }
+
+  const requester = await getZendeskUser(String(requesterId));
+  if (!requester || requester.email.toLowerCase() !== userEmail.toLowerCase()) {
+    logger.warn(
+      { ticketId, userEmail },
+      "Ticket ownership verification failed",
+    );
+    return null;
+  }
+
+  return { ticket: ticketResult.ticket, requesterId };
 }
 
 export async function supportRoutes(fastify: FastifyInstance) {
@@ -187,11 +231,19 @@ export async function supportRoutes(fastify: FastifyInstance) {
         const locale = (userData?.language || "sv") as "sv" | "en";
 
         // Create ticket in ZenDesk
+        const userName = userData?.firstName
+          ? `${userData.firstName} ${userData.lastName || ""}`.trim()
+          : user.email || "Unknown";
+
+        // Find or create the Zendesk end-user so comments are attributed correctly
+        const zendeskUserId = await findOrCreateZendeskUser(
+          user.email || "",
+          userName,
+        );
+
         const ticketParams: CreateTicketParams = {
           userEmail: user.email || "",
-          userName: userData?.firstName
-            ? `${userData.firstName} ${userData.lastName || ""}`
-            : user.email || "Unknown",
+          userName,
           userId: user.uid,
           organizationName: accessResult.organization!.name,
           organizationId: accessResult.organization!.id,
@@ -201,6 +253,7 @@ export async function supportRoutes(fastify: FastifyInstance) {
           body: message,
           locale,
           category,
+          zendeskUserId,
         };
 
         const result = await createTicket(ticketParams);
@@ -273,12 +326,188 @@ export async function supportRoutes(fastify: FastifyInstance) {
   );
 
   // ============================================================================
+  // TICKET CONVERSATION
+  // ============================================================================
+
+  /**
+   * GET /api/v1/support/tickets/:ticketId/comments
+   * Get conversation (comments) for a specific ticket
+   * Requires paid subscription and ticket ownership
+   */
+  fastify.get<{
+    Params: { ticketId: string };
+    Reply: TicketConversationResponse;
+  }>(
+    "/tickets/:ticketId/comments",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+        const ticketId = parseInt(request.params.ticketId, 10);
+
+        if (isNaN(ticketId)) {
+          return reply.status(400).send({
+            ticketId: 0,
+            subject: "",
+            status: "new",
+            comments: [],
+          } as any);
+        }
+
+        // Check support access
+        const accessResult = await checkSupportAccess(user.uid);
+        if (!accessResult.hasAccess) {
+          return reply.status(403).send({
+            ticketId: 0,
+            subject: "",
+            status: "new",
+            comments: [],
+          } as any);
+        }
+
+        // Verify ticket ownership (returns null for not-found OR unauthorized)
+        const ticketResult = await verifyTicketOwnership(
+          ticketId,
+          user.email || "",
+          request.log,
+        );
+        if (!ticketResult) {
+          return reply.status(404).send({
+            ticketId: 0,
+            subject: "",
+            status: "new",
+            comments: [],
+          } as any);
+        }
+
+        // Fetch comments with resolved author names
+        const { comments: rawComments, authors } =
+          await getTicketComments(ticketId);
+
+        // Use via.channel to distinguish user messages from staff messages.
+        // Channel "api" means the comment was created through our app;
+        // any other channel (web, email, etc.) indicates a staff/external reply.
+        // This is reliable even when the user and agent are the same person.
+
+        // Filter to public comments only and map to response type
+        const comments: SupportTicketComment[] = rawComments
+          .filter((c) => c.public)
+          .map((c) => {
+            const author = authors.get(c.author_id);
+            const isStaff = c.via?.channel !== "api";
+            return {
+              id: c.id,
+              body: c.body,
+              authorName: author?.name || "Unknown",
+              isStaff,
+              isPublic: c.public,
+              createdAt: c.created_at,
+            };
+          });
+
+        return {
+          ticketId,
+          subject: ticketResult.ticket.subject,
+          status: ticketResult.ticket.status as any,
+          comments,
+        };
+      } catch (error) {
+        request.log.error({ error }, "Failed to fetch ticket comments");
+        return reply.status(500).send({
+          ticketId: 0,
+          subject: "",
+          status: "new",
+          comments: [],
+        } as any);
+      }
+    },
+  );
+
+  /**
+   * POST /api/v1/support/tickets/:ticketId/reply
+   * Reply to a support ticket
+   * Requires paid subscription and ticket ownership
+   */
+  fastify.post<{
+    Params: { ticketId: string };
+    Body: { message: string };
+    Reply: ReplyToTicketResponse;
+  }>(
+    "/tickets/:ticketId/reply",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+        const ticketId = parseInt(request.params.ticketId, 10);
+
+        if (isNaN(ticketId)) {
+          return reply.status(400).send({ success: false });
+        }
+
+        // Validate message
+        const { message } = request.body || {};
+        if (
+          !message ||
+          typeof message !== "string" ||
+          message.trim().length < 10
+        ) {
+          return reply.status(400).send({ success: false });
+        }
+
+        // Cap message length
+        if (message.length > 10000) {
+          return reply.status(400).send({ success: false });
+        }
+
+        // Check support access
+        const accessResult = await checkSupportAccess(user.uid);
+        if (!accessResult.hasAccess) {
+          return reply.status(403).send({ success: false });
+        }
+
+        // Verify ticket ownership
+        const ticketResult = await verifyTicketOwnership(
+          ticketId,
+          user.email || "",
+          request.log,
+        );
+        if (!ticketResult) {
+          return reply.status(404).send({ success: false });
+        }
+
+        // Check ticket is not closed
+        if (ticketResult.ticket.status === "closed") {
+          return reply.status(400).send({ success: false });
+        }
+
+        // Add reply using the Zendesk requester ID so the comment is
+        // attributed to the end-user (not the API admin user)
+        await addTicketReply(
+          ticketId,
+          message.trim(),
+          ticketResult.requesterId,
+        );
+
+        return { success: true };
+      } catch (error) {
+        request.log.error({ error }, "Failed to reply to ticket");
+        return reply.status(500).send({ success: false });
+      }
+    },
+  );
+
+  // ============================================================================
   // WEBHOOK HANDLER
   // ============================================================================
 
   /**
    * POST /api/v1/webhooks/zendesk
    * Handle ZenDesk webhook for agent replies
+   * Supports native Zendesk webhook format (zen:event-type:ticket.comment_added)
    * Uses webhook signature verification for security
    */
   fastify.post(
@@ -300,31 +529,56 @@ export async function supportRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const payload = request.body as ZendeskWebhookPayload;
+        const payload = request.body as ZendeskNativeWebhookPayload;
 
-        // Validate payload
-        if (payload.event !== "agent_reply") {
+        // Check if this is a comment_added event (native Zendesk format)
+        if (payload.type !== "zen:event-type:ticket.comment_added") {
           request.log.info(
-            { event: payload.event },
-            "Ignoring non-reply webhook event",
+            { type: payload.type },
+            "Ignoring non-comment webhook event",
           );
           return { success: true, message: "Event ignored" };
         }
 
+        // Check if comment is from staff (agent reply)
+        const isAgentReply = payload.event?.comment?.author?.is_staff === true;
+        if (!isAgentReply) {
+          request.log.info("Ignoring non-agent comment");
+          return {
+            success: true,
+            message: "Event ignored - not an agent reply",
+          };
+        }
+
+        // Extract data from native format
+        const ticketId = payload.detail.id;
+        const ticketSubject = payload.detail.subject;
+        const agentName = payload.event.comment.author.name;
+        const requesterId = payload.detail.requester_id;
+
         // Log the webhook for debugging
         request.log.info(
-          {
-            ticketId: payload.ticket_id,
-            subject: payload.ticket_subject,
-            agentName: payload.agent_name,
-          },
+          { ticketId, ticketSubject, agentName, requesterId },
           "Received ZenDesk agent reply webhook",
         );
+
+        // Fetch requester email from Zendesk API (native format only provides IDs)
+        const requester = await getZendeskUser(requesterId);
+        if (!requester?.email) {
+          request.log.warn(
+            { requesterId },
+            "Could not fetch requester email from Zendesk",
+          );
+          return {
+            success: true,
+            message: "Processed but could not notify user",
+          };
+        }
 
         // Find user by email to send notification
         const usersSnapshot = await db
           .collection("users")
-          .where("email", "==", payload.requester_email.toLowerCase())
+          .where("email", "==", requester.email.toLowerCase())
           .limit(1)
           .get();
 
@@ -336,22 +590,22 @@ export async function supportRoutes(fastify: FastifyInstance) {
           await db.collection("notifications").add({
             userId,
             type: "support_reply",
-            title: `Support reply: ${payload.ticket_subject}`,
-            body: `${payload.agent_name} replied to your support ticket`,
+            title: `Support reply: ${ticketSubject}`,
+            body: `${agentName} replied to your support ticket`,
             read: false,
             entityType: "support_ticket",
-            entityId: payload.ticket_id,
+            entityId: ticketId,
             createdAt: new Date(),
             updatedAt: new Date(),
           });
 
           request.log.info(
-            { userId, ticketId: payload.ticket_id },
+            { userId, ticketId },
             "Created notification for support reply",
           );
         } else {
           request.log.warn(
-            { email: payload.requester_email },
+            { email: requester.email },
             "Could not find user for support reply notification",
           );
         }

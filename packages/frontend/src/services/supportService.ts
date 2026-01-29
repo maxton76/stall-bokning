@@ -10,6 +10,9 @@ import type {
   CreateSupportTicketResponse,
   ListSupportTicketsResponse,
   SupportAccessResponse,
+  TicketConversationResponse,
+  ReplyToTicketInput,
+  ReplyToTicketResponse,
 } from "@stall-bokning/shared";
 
 /**
@@ -37,4 +40,28 @@ export async function createSupportTicket(
  */
 export async function listSupportTickets(): Promise<ListSupportTicketsResponse> {
   return apiClient.get<ListSupportTicketsResponse>("/support/tickets");
+}
+
+/**
+ * Get conversation (comments) for a specific ticket
+ */
+export async function getTicketConversation(
+  ticketId: number,
+): Promise<TicketConversationResponse> {
+  return apiClient.get<TicketConversationResponse>(
+    `/support/tickets/${ticketId}/comments`,
+  );
+}
+
+/**
+ * Reply to a support ticket
+ */
+export async function replyToTicket(
+  ticketId: number,
+  input: ReplyToTicketInput,
+): Promise<ReplyToTicketResponse> {
+  return apiClient.post<ReplyToTicketResponse>(
+    `/support/tickets/${ticketId}/reply`,
+    input,
+  );
 }

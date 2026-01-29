@@ -61,7 +61,8 @@ export interface ListSupportTicketsResponse {
 }
 
 /**
- * ZenDesk webhook payload for agent replies
+ * ZenDesk webhook payload for agent replies (custom format - deprecated)
+ * @deprecated Use ZendeskNativeWebhookPayload for native Zendesk webhook format
  */
 export interface ZendeskWebhookPayload {
   event: "agent_reply";
@@ -75,10 +76,110 @@ export interface ZendeskWebhookPayload {
   custom_org_id?: string;
 }
 
+// ============================================================================
+// Native Zendesk Webhook Types
+// ============================================================================
+
+/**
+ * Native Zendesk webhook comment author
+ */
+export interface ZendeskWebhookAuthor {
+  id: string;
+  is_staff: boolean;
+  name: string;
+}
+
+/**
+ * Native Zendesk webhook comment
+ */
+export interface ZendeskWebhookComment {
+  author: ZendeskWebhookAuthor;
+  body: string;
+  id: string;
+  is_public: boolean;
+}
+
+/**
+ * Native Zendesk webhook event
+ */
+export interface ZendeskWebhookEvent {
+  comment: ZendeskWebhookComment;
+  meta?: {
+    sequence?: { id: string; position: number };
+  };
+}
+
+/**
+ * Native Zendesk webhook detail (ticket info)
+ */
+export interface ZendeskWebhookDetail {
+  id: string;
+  subject: string;
+  status: string;
+  requester_id: string;
+  assignee_id?: string;
+  group_id?: string;
+}
+
+/**
+ * Native Zendesk webhook payload
+ * This is the format Zendesk sends when using native webhook events
+ */
+export interface ZendeskNativeWebhookPayload {
+  account_id: number;
+  id: string;
+  type: string; // e.g., "zen:event-type:ticket.comment_added"
+  subject: string; // e.g., "zen:ticket:342757"
+  time: string;
+  zendesk_event_version: string;
+  detail: ZendeskWebhookDetail;
+  event: ZendeskWebhookEvent;
+}
+
 /**
  * Support access check response
  */
 export interface SupportAccessResponse {
   hasAccess: boolean;
   reason?: "no_paid_plan" | "no_organization";
+}
+
+// ============================================================================
+// Ticket Conversation Types
+// ============================================================================
+
+/**
+ * A single comment in a ticket conversation
+ */
+export interface SupportTicketComment {
+  id: number;
+  body: string;
+  authorName: string;
+  isStaff: boolean;
+  isPublic: boolean;
+  createdAt: string;
+}
+
+/**
+ * Response for GET /support/tickets/:ticketId/comments
+ */
+export interface TicketConversationResponse {
+  ticketId: number;
+  subject: string;
+  status: SupportTicketStatus;
+  comments: SupportTicketComment[];
+}
+
+/**
+ * Input for POST /support/tickets/:ticketId/reply
+ */
+export interface ReplyToTicketInput {
+  message: string;
+}
+
+/**
+ * Response for POST /support/tickets/:ticketId/reply
+ */
+export interface ReplyToTicketResponse {
+  success: boolean;
 }

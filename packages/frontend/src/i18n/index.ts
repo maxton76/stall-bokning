@@ -48,7 +48,7 @@ export const languageFlags: Record<SupportedLanguage, string> = {
 };
 
 // Cache-busting version - update this when translations change
-const TRANSLATIONS_VERSION = "2026.01.22.1";
+const TRANSLATIONS_VERSION = "2026.01.29.2";
 
 i18n
   .use(Backend)

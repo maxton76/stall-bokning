@@ -26,7 +26,9 @@
   },
   "errors": {
     "submitFailed": "Kunde inte skicka supportärende. Försök igen.",
-    "loadFailed": "Kunde inte ladda supportstatus"
+    "loadFailed": "Kunde inte ladda supportstatus",
+    "replyFailed": "Kunde inte skicka svar. Försök igen.",
+    "conversationFailed": "Kunde inte ladda konversationen."
   },
   "upgrade": {
     "title": "Support för betalande kunder",
@@ -38,9 +40,33 @@
     "subjectMinLength": "Ämnet måste vara minst 5 tecken",
     "categoryRequired": "Välj en kategori",
     "messageRequired": "Meddelande krävs",
-    "messageMinLength": "Meddelandet måste vara minst 20 tecken"
+    "messageMinLength": "Meddelandet måste vara minst 20 tecken",
+    "replyMinLength": "Svaret måste vara minst 10 tecken"
   },
   "header": {
     "helpButton": "Hjälp"
+  },
+  "ticketList": {
+    "title": "Mina ärenden",
+    "empty": "Du har inga supportärenden ännu.",
+    "newTicket": "Nytt ärende",
+    "updated": "Uppdaterad"
+  },
+  "conversation": {
+    "replyPlaceholder": "Skriv ditt svar...",
+    "send": "Skicka svar",
+    "agent": "Support",
+    "you": "Du",
+    "replySuccess": "Svar skickat!",
+    "ticketClosed": "Detta ärende är stängt och kan inte besvaras.",
+    "back": "Tillbaka"
+  },
+  "status": {
+    "new": "Nytt",
+    "open": "Pågående",
+    "pending": "Väntar",
+    "hold": "Pausat",
+    "solved": "Löst",
+    "closed": "Stängt"
   }
 }

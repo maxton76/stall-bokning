@@ -1,15 +1,25 @@
 /**
  * SupportDialog Component
  *
- * Dialog for creating support tickets via ZenDesk.
+ * Multi-view dialog for support ticket management via ZenDesk.
+ * Views: ticket list, create ticket, ticket conversation.
  * Only available for users with paid subscriptions.
  */
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { HelpCircle, ExternalLink, CheckCircle2 } from "lucide-react";
+import {
+  HelpCircle,
+  ExternalLink,
+  CheckCircle2,
+  ArrowLeft,
+  Send,
+  MessageSquare,
+  Plus,
+  Loader2,
+} from "lucide-react";
 
 import { BaseFormDialog } from "@/components/BaseFormDialog";
 import { useFormDialog } from "@/hooks/useFormDialog";
@@ -24,15 +34,35 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   checkSupportAccess,
   createSupportTicket,
+  listSupportTickets,
+  getTicketConversation,
+  replyToTicket,
 } from "@/services/supportService";
-import type { SupportTicketCategory } from "@stall-bokning/shared";
+import type {
+  SupportTicketCategory,
+  SupportTicketStatus,
+  SupportTicketComment,
+} from "@stall-bokning/shared";
+
+// =============================================================================
+// Types
+// =============================================================================
+
+type SupportView =
+  | { type: "list" }
+  | { type: "create" }
+  | { type: "conversation"; ticketId: number };
 
 interface SupportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialTicketId?: number;
 }
 
 type SupportFormData = {
@@ -41,20 +71,300 @@ type SupportFormData = {
   message: string;
 };
 
-export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
-  const { t } = useTranslation(["support", "common"]);
-  const queryClient = useQueryClient();
-  const [successTicketId, setSuccessTicketId] = useState<number | null>(null);
+// =============================================================================
+// Status Badge Helper
+// =============================================================================
 
-  // Check if user has support access
-  const { data: accessData, isLoading: isAccessLoading } = useQuery({
-    queryKey: ["support-access"],
-    queryFn: checkSupportAccess,
-    enabled: open,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+function StatusBadge({ status }: { status: SupportTicketStatus }) {
+  const { t } = useTranslation("support");
+
+  const variantMap: Record<
+    SupportTicketStatus,
+    "default" | "secondary" | "outline" | "destructive"
+  > = {
+    new: "default",
+    open: "default",
+    pending: "secondary",
+    hold: "secondary",
+    solved: "outline",
+    closed: "outline",
+  };
+
+  return (
+    <Badge variant={variantMap[status] || "outline"}>
+      {t(`status.${status}`)}
+    </Badge>
+  );
+}
+
+// =============================================================================
+// Ticket List View
+// =============================================================================
+
+function TicketListView({
+  onSelectTicket,
+  onCreateNew,
+}: {
+  onSelectTicket: (ticketId: number) => void;
+  onCreateNew: () => void;
+}) {
+  const { t } = useTranslation(["support", "common"]);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["support-tickets"],
+    queryFn: listSupportTickets,
   });
 
-  // Category options
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const tickets = data?.tickets || [];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <DialogTitle>{t("support:ticketList.title")}</DialogTitle>
+        <Button size="sm" onClick={onCreateNew}>
+          <Plus className="mr-1.5 h-4 w-4" />
+          {t("support:ticketList.newTicket")}
+        </Button>
+      </div>
+
+      {tickets.length === 0 ? (
+        <div className="flex flex-col items-center py-8 text-center">
+          <MessageSquare className="h-12 w-12 text-muted-foreground mb-3" />
+          <p className="text-muted-foreground mb-4">
+            {t("support:ticketList.empty")}
+          </p>
+          <Button onClick={onCreateNew}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            {t("support:ticketList.newTicket")}
+          </Button>
+        </div>
+      ) : (
+        <ScrollArea className="max-h-[400px]">
+          <div className="flex flex-col gap-2">
+            {tickets.map((ticket) => (
+              <button
+                key={ticket.id}
+                onClick={() => onSelectTicket(ticket.id)}
+                className="flex items-center justify-between rounded-lg border p-3 text-left hover:bg-accent transition-colors"
+              >
+                <div className="flex-1 min-w-0 mr-3">
+                  <p className="font-medium truncate">{ticket.subject}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {t("support:ticketList.updated")}{" "}
+                    {new Date(ticket.updatedAt).toLocaleString(undefined, {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    })}
+                  </p>
+                </div>
+                <StatusBadge status={ticket.status} />
+              </button>
+            ))}
+          </div>
+        </ScrollArea>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// Conversation View
+// =============================================================================
+
+function ConversationView({
+  ticketId,
+  onBack,
+}: {
+  ticketId: number;
+  onBack: () => void;
+}) {
+  const { t } = useTranslation(["support", "common"]);
+  const queryClient = useQueryClient();
+  const [replyText, setReplyText] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const {
+    data: conversation,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["ticket-conversation", ticketId],
+    queryFn: () => getTicketConversation(ticketId),
+  });
+
+  const replyMutation = useMutation({
+    mutationFn: (message: string) => replyToTicket(ticketId, { message }),
+    onSuccess: () => {
+      setReplyText("");
+      queryClient.invalidateQueries({
+        queryKey: ["ticket-conversation", ticketId],
+      });
+    },
+  });
+
+  // Scroll to bottom when comments load or new reply is added
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [conversation?.comments]);
+
+  const isClosed = conversation?.status === "closed";
+  const canSend = replyText.trim().length >= 10 && !replyMutation.isPending;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (isError || !conversation) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <DialogTitle>{t("support:errors.conversationFailed")}</DialogTitle>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex-1 min-w-0">
+          <DialogTitle className="truncate text-base">
+            {conversation.subject}
+          </DialogTitle>
+        </div>
+        <StatusBadge status={conversation.status} />
+      </div>
+
+      {/* Messages */}
+      <div
+        ref={scrollRef}
+        className="flex flex-col gap-3 max-h-[350px] overflow-y-auto px-1"
+      >
+        {conversation.comments.map((comment) => (
+          <CommentBubble key={comment.id} comment={comment} />
+        ))}
+      </div>
+
+      {/* Reply form or closed notice */}
+      {isClosed ? (
+        <Alert>
+          <AlertDescription>
+            {t("support:conversation.ticketClosed")}
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {replyMutation.isError && (
+            <p className="text-sm text-destructive">
+              {t("support:errors.replyFailed")}
+            </p>
+          )}
+          {replyMutation.isSuccess && (
+            <p className="text-sm text-green-600">
+              {t("support:conversation.replySuccess")}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <Textarea
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder={t("support:conversation.replyPlaceholder")}
+              rows={3}
+              className="flex-1 resize-none"
+            />
+            <Button
+              size="icon"
+              disabled={!canSend}
+              onClick={() => replyMutation.mutate(replyText.trim())}
+              className="self-end"
+            >
+              {replyMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          {replyText.length > 0 && replyText.trim().length < 10 && (
+            <p className="text-xs text-muted-foreground">
+              {t("support:validation.replyMinLength")}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CommentBubble({ comment }: { comment: SupportTicketComment }) {
+  const { t } = useTranslation("support");
+
+  const isAgent = comment.isStaff;
+
+  return (
+    <div
+      className={`flex flex-col gap-1 max-w-[80%] ${
+        isAgent ? "self-start items-start" : "self-end items-end"
+      }`}
+    >
+      <div
+        className={`rounded-2xl px-4 py-2.5 text-sm ${
+          isAgent
+            ? "bg-muted text-foreground rounded-bl-sm"
+            : "bg-primary text-primary-foreground rounded-br-sm"
+        }`}
+      >
+        {isAgent && (
+          <p className="text-xs font-semibold mb-1 opacity-80">
+            {comment.authorName}
+          </p>
+        )}
+        <p className="whitespace-pre-wrap">{comment.body}</p>
+      </div>
+      <span className="text-[11px] text-muted-foreground px-1">
+        {new Date(comment.createdAt).toLocaleString(undefined, {
+          dateStyle: "short",
+          timeStyle: "short",
+        })}
+      </span>
+    </div>
+  );
+}
+
+// =============================================================================
+// Create Ticket View (extracted from original form)
+// =============================================================================
+
+function CreateTicketView({
+  onBack,
+  onSuccess,
+}: {
+  onBack: () => void;
+  onSuccess: (ticketId: number) => void;
+}) {
+  const { t } = useTranslation(["support", "common"]);
+
   const categoryOptions = useMemo(
     () => [
       { value: "booking", label: t("support:categories.booking") },
@@ -65,7 +375,6 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
     [t],
   );
 
-  // Form validation schema
   const supportSchema = useMemo(
     () =>
       z.object({
@@ -86,8 +395,7 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
     [t],
   );
 
-  // Form setup
-  const { form, handleSubmit, resetForm } = useFormDialog<SupportFormData>({
+  const { form, handleSubmit } = useFormDialog<SupportFormData>({
     schema: supportSchema,
     defaultValues: {
       subject: "",
@@ -96,22 +404,102 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
     },
     onSubmit: async (data) => {
       const result = await createSupportTicket(data);
-      setSuccessTicketId(result.ticketId);
-    },
-    onSuccess: () => {
-      // Don't close dialog - show success message instead
+      onSuccess(result.ticketId);
     },
     successMessage: t("support:success.title"),
     errorMessage: t("support:errors.submitFailed"),
   });
 
-  // Reset form when dialog closes
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <DialogTitle>{t("support:title")}</DialogTitle>
+      </div>
+      <DialogDescription>{t("support:description")}</DialogDescription>
+
+      <form
+        onSubmit={form.handleSubmit(handleSubmit)}
+        className="flex flex-col gap-4"
+      >
+        <FormInput
+          name="subject"
+          label={t("support:fields.subject")}
+          form={form}
+          placeholder={t("support:fields.subjectPlaceholder")}
+        />
+
+        <FormSelect
+          name="category"
+          label={t("support:fields.category")}
+          form={form}
+          options={categoryOptions}
+          placeholder={t("support:fields.categoryPlaceholder")}
+        />
+
+        <FormTextarea
+          name="message"
+          label={t("support:fields.message")}
+          form={form}
+          placeholder={t("support:fields.messagePlaceholder")}
+          rows={6}
+        />
+
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onBack}>
+            {t("common:buttons.cancel")}
+          </Button>
+          <Button type="submit">{t("support:buttons.submit")}</Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// =============================================================================
+// Main SupportDialog
+// =============================================================================
+
+export function SupportDialog({
+  open,
+  onOpenChange,
+  initialTicketId,
+}: SupportDialogProps) {
+  const { t } = useTranslation(["support", "common"]);
+  const queryClient = useQueryClient();
+
+  const [view, setView] = useState<SupportView>(
+    initialTicketId
+      ? { type: "conversation", ticketId: initialTicketId }
+      : { type: "list" },
+  );
+  const [successTicketId, setSuccessTicketId] = useState<number | null>(null);
+
+  // Check if user has support access
+  const { data: accessData, isLoading: isAccessLoading } = useQuery({
+    queryKey: ["support-access"],
+    queryFn: checkSupportAccess,
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Reset view when dialog opens/closes
   useEffect(() => {
     if (!open) {
-      resetForm();
       setSuccessTicketId(null);
+      setView(
+        initialTicketId
+          ? { type: "conversation", ticketId: initialTicketId }
+          : { type: "list" },
+      );
     }
-  }, [open, resetForm]);
+  }, [open, initialTicketId]);
+
+  // Determine dialog width based on view
+  const maxWidth =
+    view.type === "conversation" ? "sm:max-w-[650px]" : "sm:max-w-[550px]";
 
   // Show loading state
   if (isAccessLoading) {
@@ -119,10 +507,10 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>{t("support:title")}</DialogTitle>
+            <DialogTitle>{t("support:ticketList.title")}</DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         </DialogContent>
       </Dialog>
@@ -183,6 +571,18 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
             </Alert>
           </div>
           <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSuccessTicketId(null);
+                setView({ type: "list" });
+                queryClient.invalidateQueries({
+                  queryKey: ["support-tickets"],
+                });
+              }}
+            >
+              {t("support:conversation.back")}
+            </Button>
             <Button onClick={() => onOpenChange(false)}>
               {t("common:buttons.close")}
             </Button>
@@ -192,50 +592,46 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
     );
   }
 
-  // Show support form
+  // Main multi-view dialog
   return (
-    <BaseFormDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title={t("support:title")}
-      description={t("support:description")}
-      form={form}
-      onSubmit={handleSubmit}
-      submitLabel={t("support:buttons.submit")}
-      cancelLabel={t("common:buttons.cancel")}
-      maxWidth="sm:max-w-[550px]"
-    >
-      <FormInput
-        name="subject"
-        label={t("support:fields.subject")}
-        form={form}
-        placeholder={t("support:fields.subjectPlaceholder")}
-      />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={maxWidth}>
+        {view.type === "list" && (
+          <TicketListView
+            onSelectTicket={(id) =>
+              setView({ type: "conversation", ticketId: id })
+            }
+            onCreateNew={() => setView({ type: "create" })}
+          />
+        )}
 
-      <FormSelect
-        name="category"
-        label={t("support:fields.category")}
-        form={form}
-        options={categoryOptions}
-        placeholder={t("support:fields.categoryPlaceholder")}
-      />
+        {view.type === "create" && (
+          <CreateTicketView
+            onBack={() => setView({ type: "list" })}
+            onSuccess={(ticketId) => setSuccessTicketId(ticketId)}
+          />
+        )}
 
-      <FormTextarea
-        name="message"
-        label={t("support:fields.message")}
-        form={form}
-        placeholder={t("support:fields.messagePlaceholder")}
-        rows={6}
-      />
-    </BaseFormDialog>
+        {view.type === "conversation" && (
+          <ConversationView
+            ticketId={view.ticketId}
+            onBack={() => {
+              setView({ type: "list" });
+              queryClient.invalidateQueries({
+                queryKey: ["support-tickets"],
+              });
+            }}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
-/**
- * Support Button for Header
- *
- * A simple button that opens the support dialog.
- */
+// =============================================================================
+// Support Button for Header
+// =============================================================================
+
 interface SupportButtonProps {
   variant?: "icon" | "text";
 }

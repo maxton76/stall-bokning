@@ -26,7 +26,9 @@
   },
   "errors": {
     "submitFailed": "Failed to submit support request. Please try again.",
-    "loadFailed": "Failed to load support status"
+    "loadFailed": "Failed to load support status",
+    "replyFailed": "Failed to send reply. Please try again.",
+    "conversationFailed": "Failed to load conversation."
   },
   "upgrade": {
     "title": "Support for Paid Customers",
@@ -38,9 +40,33 @@
     "subjectMinLength": "Subject must be at least 5 characters",
     "categoryRequired": "Please select a category",
     "messageRequired": "Message is required",
-    "messageMinLength": "Message must be at least 20 characters"
+    "messageMinLength": "Message must be at least 20 characters",
+    "replyMinLength": "Reply must be at least 10 characters"
   },
   "header": {
     "helpButton": "Help"
+  },
+  "ticketList": {
+    "title": "My Tickets",
+    "empty": "You don't have any support tickets yet.",
+    "newTicket": "New Ticket",
+    "updated": "Updated"
+  },
+  "conversation": {
+    "replyPlaceholder": "Type your reply...",
+    "send": "Send Reply",
+    "agent": "Support",
+    "you": "You",
+    "replySuccess": "Reply sent!",
+    "ticketClosed": "This ticket is closed and cannot be replied to.",
+    "back": "Back"
+  },
+  "status": {
+    "new": "New",
+    "open": "Open",
+    "pending": "Pending",
+    "hold": "On Hold",
+    "solved": "Solved",
+    "closed": "Closed"
   }
 }
