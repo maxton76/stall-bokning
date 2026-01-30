@@ -51,6 +51,8 @@ import { settingsRoutes } from "./routes/settings.js";
 import { selectionProcessesRoutes } from "./routes/selectionProcesses.js";
 import { supportRoutes } from "./routes/support.js";
 import { adminRoutes } from "./routes/admin.js";
+import { subscriptionRoutes } from "./routes/subscriptions.js";
+import { stripeWebhookRoutes } from "./routes/stripe-webhooks.js";
 
 const PORT = Number(process.env.PORT) || 8080;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -193,6 +195,8 @@ await fastify.register(selectionProcessesRoutes, {
 });
 await fastify.register(supportRoutes, { prefix: "/api/v1/support" });
 await fastify.register(adminRoutes, { prefix: "/api/v1/admin" });
+await fastify.register(subscriptionRoutes, { prefix: "/api/v1" });
+await fastify.register(stripeWebhookRoutes, { prefix: "/api/v1" });
 
 // 404 handler
 fastify.setNotFoundHandler((request, reply) => {

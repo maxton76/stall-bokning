@@ -281,9 +281,9 @@ export function RoutineTemplateEditor({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {ROUTINE_TYPES.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t}
+              {ROUTINE_TYPES.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {t(`routines:types.${type}`)}
                 </SelectItem>
               ))}
             </SelectContent>

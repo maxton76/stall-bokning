@@ -30,6 +30,7 @@ export type ContactType = "Personal" | "Business";
 
 // SubscriptionTier moved to admin.ts: "free" | "standard" | "pro" | "enterprise"
 import type { SubscriptionTier } from "./admin.js";
+import type { OrganizationStripeSubscription } from "./subscription.js";
 
 /**
  * Organization type - determines feature availability and behavior
@@ -96,6 +97,8 @@ export interface Organization {
 
   // Subscription
   subscriptionTier: SubscriptionTier;
+  /** Stripe subscription data for platform billing */
+  stripeSubscription?: OrganizationStripeSubscription;
 
   // Statistics (denormalized for performance)
   stats: {

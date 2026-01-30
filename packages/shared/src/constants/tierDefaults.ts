@@ -5,6 +5,7 @@ import type {
   ModuleFlags,
   SubscriptionAddons,
 } from "../types/admin.js";
+import type { BillingInterval } from "../types/subscription.js";
 
 /**
  * Default limits for each tier
@@ -182,6 +183,30 @@ export const DEFAULT_TIER_DEFINITIONS: Record<
     addons: TIER_ADDONS.enterprise,
   },
 };
+
+/**
+ * Tier pricing in ore (smallest currency unit for SEK).
+ * 29900 = 299 SEK, 79900 = 799 SEK.
+ */
+export const TIER_PRICING: Record<
+  "standard" | "pro",
+  Record<BillingInterval, number>
+> = {
+  standard: {
+    month: 29900, // 299 SEK/month
+    year: 298800, // 2988 SEK/year (~249 SEK/month, ~17% discount)
+  },
+  pro: {
+    month: 79900, // 799 SEK/month
+    year: 796800, // 7968 SEK/year (~664 SEK/month, ~17% discount)
+  },
+};
+
+/** Annual discount percentage (approximately 2 months free) */
+export const ANNUAL_DISCOUNT_PERCENT = 17;
+
+/** Trial duration in days for first-time subscribers */
+export const TRIAL_DAYS = 14;
 
 /**
  * All subscription tiers in order

@@ -58,3 +58,6 @@ export * from "./support.js";
 
 // Admin (System Administration)
 export * from "./admin.js";
+
+// Subscription & Billing (Platform-to-Org)
+export * from "./subscription.js";

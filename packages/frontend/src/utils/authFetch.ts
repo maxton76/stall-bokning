@@ -116,8 +116,8 @@ export async function authFetchJSON<T = any>(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    // Log full error details for debugging
-    if (error.details) {
+    // Log full error details for debugging (dev only)
+    if (import.meta.env.DEV && error.details) {
       console.error("API validation error details:", error.details);
     }
     throw new Error(

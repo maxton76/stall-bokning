@@ -302,6 +302,7 @@
     "pageDescription": "Manage your subscription and billing information",
     "currentPlan": "Current Plan",
     "currentPlanDescription": "Your current subscription tier and features",
+    "billingPeriod": "Billing period",
     "upgrade": "Upgrade",
     "downgrade": "Downgrade",
     "afterTrial": "(after trial)",
@@ -310,17 +311,96 @@
       "title": "Trial Period",
       "description": "Your subscription is currently in trial with all features. You have {{days}} days left to test all features."
     },
+    "pastDue": {
+      "title": "Payment failed",
+      "description": "Your last payment failed. Update your payment method to avoid interruptions.",
+      "updatePayment": "Update payment method"
+    },
+    "canceling": {
+      "title": "Subscription ending",
+      "description": "Your subscription will end on {{date}}. You have access to all features until then.",
+      "resume": "Resume subscription"
+    },
+    "status": {
+      "trialing": "Trial",
+      "active": "Active",
+      "past_due": "Past due",
+      "canceled": "Canceled",
+      "unpaid": "Unpaid",
+      "incomplete": "Incomplete",
+      "incomplete_expired": "Expired",
+      "paused": "Paused"
+    },
+    "tiers": {
+      "free": {
+        "name": "Free",
+        "description": "Try it — basic features with limited resources"
+      },
+      "standard": {
+        "name": "Standard",
+        "description": "Collaborate — scale up and get an overview"
+      },
+      "pro": {
+        "name": "Pro",
+        "description": "Full operation — complete toolbox"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "description": "Business — everything included with custom solutions"
+      }
+    },
     "features": {
       "upToMembers": "Up to {{count}} members",
       "unlimitedStables": "Unlimited stables",
       "advancedScheduling": "Advanced scheduling",
       "prioritySupport": "Priority support",
       "customIntegrations": "Custom integrations",
-      "detailedAnalytics": "Detailed analytics"
+      "detailedAnalytics": "Detailed analytics",
+      "members_3": "Up to 3 members",
+      "members_15": "Up to 15 members",
+      "members_50": "Up to 50 members",
+      "stables_1": "1 stable",
+      "stables_3": "Up to 3 stables",
+      "stables_10": "Up to 10 stables",
+      "horses_5": "Up to 5 horses",
+      "horses_25": "Up to 25 horses",
+      "horses_75": "Up to 75 horses",
+      "basicScheduling": "Basic scheduling",
+      "analytics": "Analytics and insights",
+      "selectionProcess": "Routine selection",
+      "locationHistory": "Location history",
+      "photoEvidence": "Photo evidence in routines",
+      "allStandardFeatures": "All Standard features",
+      "leaveManagement": "Leave management",
+      "inventory": "Inventory management",
+      "lessons": "Lesson scheduling",
+      "staffMatrix": "Staff matrix",
+      "integrations": "External integrations",
+      "aiAssistant": "AI assistant",
+      "unlimitedEverything": "Unlimited resources",
+      "allProFeatures": "All Pro features",
+      "portal": "Customer portal",
+      "invoicing": "Invoicing and payments",
+      "dedicatedSupport": "Dedicated support"
+    },
+    "pricing": {
+      "title": "Choose a plan",
+      "monthly": "Monthly",
+      "annual": "Annual",
+      "savePercent": "Save {{percent}}%",
+      "free": "Free",
+      "contactSales": "Contact us",
+      "perMonth": "mo",
+      "perYear": "yr",
+      "popular": "Popular",
+      "currentPlan": "Current plan",
+      "selectPlan": "Select plan"
     },
     "buttons": {
       "changePlan": "Change Plan",
-      "upgradeNow": "Upgrade Now"
+      "upgradeNow": "Upgrade Now",
+      "manageBilling": "Manage Billing",
+      "cancelSubscription": "Cancel Subscription"
     },
     "billing": {
       "title": "Billing Details",
@@ -344,7 +424,39 @@
     "history": {
       "title": "Billing History",
       "description": "Your past invoices and payment history",
-      "emptyState": "No billing history available during trial period"
+      "emptyState": "No billing history available yet",
+      "date": "Date",
+      "amount": "Amount",
+      "status": "Status",
+      "invoice": "Invoice"
+    },
+    "invoiceStatus": {
+      "draft": "Draft",
+      "open": "Open",
+      "paid": "Paid",
+      "uncollectible": "Uncollectible",
+      "void": "Void"
+    },
+    "success": {
+      "title": "Subscription activated!",
+      "description": "Your subscription has been activated. Welcome!",
+      "processing": "Activating subscription...",
+      "processingDescription": "Please wait while we confirm your payment.",
+      "plan": "Plan",
+      "status": "Status",
+      "goToSubscription": "Go to subscription"
+    },
+    "cancel": {
+      "title": "Checkout cancelled",
+      "description": "You cancelled the checkout. No payment has been made.",
+      "goBack": "Back to subscription"
+    },
+    "featureGate": {
+      "upgradeRequired": "Upgrade required",
+      "upgradeDescription": "This feature requires the {{tier}} plan or higher.",
+      "limitReached": "Limit reached",
+      "limitDescription": "You have reached the limit for {{resource}} on your current plan.",
+      "upgradeButton": "Upgrade now"
     }
   },
   "upgrade": {

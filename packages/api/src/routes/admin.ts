@@ -21,12 +21,14 @@ import type {
   PaginatedResponse,
   SubscriptionTier,
 } from "@equiduty/shared";
-import { DEFAULT_TIER_DEFINITIONS } from "@equiduty/shared";
+import { DEFAULT_TIER_DEFINITIONS, SUBSCRIPTION_TIERS } from "@equiduty/shared";
+import { stripe } from "../utils/stripe.js";
+import { getPriceIdForTier } from "../utils/stripeTierMapping.js";
 
 const adminPreHandler = [authenticate, requireSystemAdmin];
 
-// Valid tier values for param validation
-const VALID_TIERS = ["free", "standard", "pro", "enterprise"];
+// Valid tier values derived from shared constants
+const VALID_TIERS: string[] = [...SUBSCRIPTION_TIERS];
 
 // Valid system roles for user updates
 const VALID_SYSTEM_ROLES = ["system_admin", "stable_owner", "member"];
@@ -215,8 +217,13 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
         limit?: string;
       };
 
-      const pageNum = Math.max(1, parseInt(page, 10));
-      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
+      const parsedPage = parseInt(page, 10);
+      const parsedLimit = parseInt(limit, 10);
+      const pageNum = Math.max(1, isNaN(parsedPage) ? 1 : parsedPage);
+      const limitNum = Math.min(
+        100,
+        Math.max(1, isNaN(parsedLimit) ? 20 : parsedLimit),
+      );
 
       try {
         // Server-side pagination with Firestore limit + cursor
@@ -386,6 +393,64 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
           updatePayload.subscriptionTier = subscription.tier;
         }
 
+        // If tier change requires Stripe sync, use a transactional approach:
+        // 1. Update Stripe first (external call)
+        // 2. Only update Firestore if Stripe succeeds
+        if (
+          subscription.tier &&
+          currentData.stripeSubscription?.subscriptionId
+        ) {
+          const stripeSubId = currentData.stripeSubscription.subscriptionId;
+          const billingInterval =
+            currentData.stripeSubscription.billingInterval || "month";
+
+          try {
+            if (subscription.tier === "free") {
+              await stripe.subscriptions.update(stripeSubId, {
+                cancel_at_period_end: true,
+              });
+              request.log.info(
+                { orgId: id, tier: subscription.tier },
+                "Admin set tier to free — Stripe subscription set to cancel at period end",
+              );
+            } else {
+              const newPriceId = await getPriceIdForTier(
+                subscription.tier as "standard" | "pro",
+                billingInterval,
+              );
+
+              if (newPriceId) {
+                const stripeSub =
+                  await stripe.subscriptions.retrieve(stripeSubId);
+                const currentItemId = stripeSub.items.data[0]?.id;
+
+                if (currentItemId) {
+                  await stripe.subscriptions.update(stripeSubId, {
+                    items: [{ id: currentItemId, price: newPriceId }],
+                    cancel_at_period_end: false,
+                    proration_behavior: "create_prorations",
+                  });
+                  request.log.info(
+                    { orgId: id, tier: subscription.tier },
+                    "Admin changed tier — Stripe subscription updated",
+                  );
+                }
+              }
+            }
+          } catch (stripeError) {
+            // Stripe failed — do NOT update Firestore to avoid divergence
+            request.log.error(
+              { error: stripeError, orgId: id },
+              "Failed to sync tier change to Stripe — Firestore update aborted to prevent state divergence",
+            );
+            return reply.status(502).send({
+              error: "Stripe sync failed",
+              message: "Tier change was not applied. Please try again.",
+            });
+          }
+        }
+
+        // Stripe succeeded (or no Stripe sync needed) — now update Firestore
         await orgRef.update(updatePayload);
 
         return reply.send({ success: true, subscription: updatedSub });
@@ -420,8 +485,13 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
         limit?: string;
       };
 
-      const pageNum = Math.max(1, parseInt(page, 10));
-      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
+      const parsedPage = parseInt(page, 10);
+      const parsedLimit = parseInt(limit, 10);
+      const pageNum = Math.max(1, isNaN(parsedPage) ? 1 : parsedPage);
+      const limitNum = Math.min(
+        100,
+        Math.max(1, isNaN(parsedLimit) ? 20 : parsedLimit),
+      );
 
       try {
         const snapshot = await db

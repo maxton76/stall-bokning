@@ -21,7 +21,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, Loader2, AlertCircle, CalendarDays } from "lucide-react";
+import {
+  Calendar,
+  Loader2,
+  AlertCircle,
+  CalendarDays,
+  ExternalLink,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 import { useRoutineTemplates } from "@/hooks/useRoutines";
 import { useUserStables } from "@/hooks/useUserStables";
 import { useAuth } from "@/contexts/AuthContext";
@@ -228,7 +235,16 @@ export function RoutineCreationModal({
               </AlertDescription>
             </Alert>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-row justify-between sm:justify-between">
+            <Button variant="outline" asChild>
+              <Link
+                to="/schedule/routinetemplates"
+                onClick={() => handleOpenChange(false)}
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Gå till rutinmallar
+              </Link>
+            </Button>
             <Button variant="outline" onClick={() => handleOpenChange(false)}>
               Stäng
             </Button>

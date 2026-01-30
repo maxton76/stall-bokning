@@ -8,6 +8,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { AuthProvider } from "./contexts/AuthContext";
 import { OrganizationProvider } from "./contexts/OrganizationContext";
+import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import { useLanguageSync } from "./hooks/useLanguageSync";
 import { prewarmApi } from "./services/apiWarmup";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -127,6 +128,12 @@ const OrganizationPermissionsPage = lazy(
 const OrganizationSubscriptionPage = lazy(
   () => import("./pages/OrganizationSubscriptionPage"),
 );
+const SubscriptionSuccessPage = lazy(
+  () => import("./pages/SubscriptionSuccessPage"),
+);
+const SubscriptionCancelPage = lazy(
+  () => import("./pages/SubscriptionCancelPage"),
+);
 const LeaveManagementPage = lazy(() => import("./pages/LeaveManagementPage"));
 const ScheduleManagementPage = lazy(
   () => import("./pages/ScheduleManagementPage"),
@@ -212,11 +219,13 @@ function RootLayout() {
     <AuthProvider>
       <LanguageSyncWrapper>
         <OrganizationProvider>
-          <div className="min-h-screen bg-background">
-            <Suspense fallback={<PageLoader />}>
-              <Outlet />
-            </Suspense>
-          </div>
+          <SubscriptionProvider>
+            <div className="min-h-screen bg-background">
+              <Suspense fallback={<PageLoader />}>
+                <Outlet />
+              </Suspense>
+            </div>
+          </SubscriptionProvider>
         </OrganizationProvider>
       </LanguageSyncWrapper>
     </AuthProvider>
@@ -477,6 +486,14 @@ export const router = createBrowserRouter([
           {
             path: "/organizations/:organizationId/subscription",
             element: withSuspense(OrganizationSubscriptionPage),
+          },
+          {
+            path: "/organizations/:organizationId/subscription/success",
+            element: withSuspense(SubscriptionSuccessPage),
+          },
+          {
+            path: "/organizations/:organizationId/subscription/cancel",
+            element: withSuspense(SubscriptionCancelPage),
           },
           {
             path: "/organizations/:organizationId/settings",

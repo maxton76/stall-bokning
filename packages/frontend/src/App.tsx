@@ -9,6 +9,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { AuthProvider } from "./contexts/AuthContext";
 import { OrganizationProvider } from "./contexts/OrganizationContext";
+import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AdminProtectedRoute } from "./components/AdminProtectedRoute";
 import AuthenticatedLayout from "./layouts/AuthenticatedLayout";
@@ -262,761 +263,766 @@ function App() {
     <AuthProvider>
       <LanguageSyncWrapper>
         <OrganizationProvider>
-          <div className="min-h-screen bg-background">
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                {/* Public routes - landing page is now served by the Astro site */}
-                <Route path="/" element={<Navigate to="/login" replace />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/signup" element={<SignupPage />} />
-                <Route
-                  path="/complete-profile"
-                  element={<CompleteProfilePage />}
-                />
-                <Route path="/invites/accept" element={<InviteAcceptPage />} />
-
-                {/* Authenticated routes with layout - lazy loaded */}
-                <Route
-                  element={
-                    <ProtectedRoute>
-                      <AuthenticatedLayout />
-                    </ProtectedRoute>
-                  }
-                >
-                  {/* Overview - new landing page */}
+          <SubscriptionProvider>
+            <div className="min-h-screen bg-background">
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  {/* Public routes - landing page is now served by the Astro site */}
+                  <Route path="/" element={<Navigate to="/login" replace />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/signup" element={<SignupPage />} />
                   <Route
-                    path="/overview"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <OverviewPage />
-                      </Suspense>
-                    }
-                  />
-                  {/* Legacy redirect: /dashboard → /overview */}
-                  <Route
-                    path="/dashboard"
-                    element={<Navigate to="/overview" replace />}
+                    path="/complete-profile"
+                    element={<CompleteProfilePage />}
                   />
                   <Route
-                    path="/account"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <AccountPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/settings"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <SettingsPage />
-                      </Suspense>
-                    }
-                  />
-                  {/* Schedule routes */}
-                  <Route
-                    path="/schedule"
-                    element={<Navigate to="/schedule/week" replace />}
-                  />
-                  <Route
-                    path="/schedule/week"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <ScheduleWeekPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/schedule/month"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <ScheduleMonthPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/schedule/distribution"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <ScheduleDistributionPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/schedule/routines"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <ScheduleRoutinesPage />
-                      </Suspense>
-                    }
-                  />
-                  {/* Selection process routes */}
-                  <Route
-                    path="/schedule/selection"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <SelectionProcessListPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/schedule/selection/:processId"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <SelectionProcessPage />
-                      </Suspense>
-                    }
-                  />
-                  {/* Legacy schedule page still available at /schedule/legacy */}
-                  <Route
-                    path="/schedule/legacy"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <SchedulePage />
-                      </Suspense>
-                    }
+                    path="/invites/accept"
+                    element={<InviteAcceptPage />}
                   />
 
-                  {/* My Reservations routes */}
+                  {/* Authenticated routes with layout - lazy loaded */}
                   <Route
-                    path="/my-reservations"
                     element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <MyReservationsPage />
-                      </Suspense>
+                      <ProtectedRoute>
+                        <AuthenticatedLayout />
+                      </ProtectedRoute>
                     }
-                  />
-                  <Route
-                    path="/my-reservations/facility/:facilityId"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <FacilityAvailabilityPage />
-                      </Suspense>
-                    }
-                  />
+                  >
+                    {/* Overview - new landing page */}
+                    <Route
+                      path="/overview"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <OverviewPage />
+                        </Suspense>
+                      }
+                    />
+                    {/* Legacy redirect: /dashboard → /overview */}
+                    <Route
+                      path="/dashboard"
+                      element={<Navigate to="/overview" replace />}
+                    />
+                    <Route
+                      path="/account"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <AccountPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/settings"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <SettingsPage />
+                        </Suspense>
+                      }
+                    />
+                    {/* Schedule routes */}
+                    <Route
+                      path="/schedule"
+                      element={<Navigate to="/schedule/week" replace />}
+                    />
+                    <Route
+                      path="/schedule/week"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <ScheduleWeekPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/schedule/month"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <ScheduleMonthPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/schedule/distribution"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <ScheduleDistributionPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/schedule/routines"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <ScheduleRoutinesPage />
+                        </Suspense>
+                      }
+                    />
+                    {/* Selection process routes */}
+                    <Route
+                      path="/schedule/selection"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <SelectionProcessListPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/schedule/selection/:processId"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <SelectionProcessPage />
+                        </Suspense>
+                      }
+                    />
+                    {/* Legacy schedule page still available at /schedule/legacy */}
+                    <Route
+                      path="/schedule/legacy"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <SchedulePage />
+                        </Suspense>
+                      }
+                    />
 
-                  {/* Task routes - redirect to activities (tasks consolidated) */}
-                  <Route
-                    path="/tasks"
-                    element={<Navigate to="/activities" replace />}
-                  />
-                  <Route
-                    path="/tasks/*"
-                    element={<Navigate to="/activities" replace />}
-                  />
+                    {/* My Reservations routes */}
+                    <Route
+                      path="/my-reservations"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <MyReservationsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/my-reservations/facility/:facilityId"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <FacilityAvailabilityPage />
+                        </Suspense>
+                      }
+                    />
 
-                  {/* My Page routes - personal aggregation */}
-                  <Route
-                    path="/my-page"
-                    element={<Navigate to="/my-page/availability" replace />}
-                  />
-                  <Route
-                    path="/my-page/tasks"
-                    element={<Navigate to="/activities" replace />}
-                  />
-                  <Route
-                    path="/my-page/availability"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <MyAvailabilityPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/my-page/statistics"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <MyStatisticsPage />
-                      </Suspense>
-                    }
-                  />
-                  {/* Legacy redirect: /my-availability → /my-page/availability */}
-                  <Route
-                    path="/my-availability"
-                    element={<Navigate to="/my-page/availability" replace />}
-                  />
+                    {/* Task routes - redirect to activities (tasks consolidated) */}
+                    <Route
+                      path="/tasks"
+                      element={<Navigate to="/activities" replace />}
+                    />
+                    <Route
+                      path="/tasks/*"
+                      element={<Navigate to="/activities" replace />}
+                    />
 
-                  {/* Horse routes */}
-                  <Route
-                    path="/horses"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <MyHorsesPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/horses/:horseId"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <HorseDetailPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/horses/settings"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <HorseSettingsPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/location-history"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <LocationHistoryPage />
-                      </Suspense>
-                    }
-                  />
+                    {/* My Page routes - personal aggregation */}
+                    <Route
+                      path="/my-page"
+                      element={<Navigate to="/my-page/availability" replace />}
+                    />
+                    <Route
+                      path="/my-page/tasks"
+                      element={<Navigate to="/activities" replace />}
+                    />
+                    <Route
+                      path="/my-page/availability"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <MyAvailabilityPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/my-page/statistics"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <MyStatisticsPage />
+                        </Suspense>
+                      }
+                    />
+                    {/* Legacy redirect: /my-availability → /my-page/availability */}
+                    <Route
+                      path="/my-availability"
+                      element={<Navigate to="/my-page/availability" replace />}
+                    />
 
-                  {/* Facility routes */}
-                  <Route
-                    path="/facilities/reservations"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <FacilitiesReservationsPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/facilities/manage"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <ManageFacilitiesPage />
-                      </Suspense>
-                    }
-                  />
+                    {/* Horse routes */}
+                    <Route
+                      path="/horses"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <MyHorsesPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/horses/:horseId"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <HorseDetailPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/horses/settings"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <HorseSettingsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/location-history"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <LocationHistoryPage />
+                        </Suspense>
+                      }
+                    />
 
-                  {/* Activity routes - Unified "Today" dashboard (combines activities + routines) */}
-                  <Route
-                    path="/activities"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <TodayPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/activities/planning"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <ActivitiesPlanningPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/activities/care"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <ActivitiesCarePage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/activities/analytics"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <RoutineAnalyticsPage />
-                      </Suspense>
-                    }
-                  />
-                  {/* Legacy redirect: /activities/settings moved to /settings/activities */}
-                  <Route
-                    path="/activities/settings"
-                    element={<Navigate to="/settings/activities" replace />}
-                  />
+                    {/* Facility routes */}
+                    <Route
+                      path="/facilities/reservations"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <FacilitiesReservationsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/facilities/manage"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <ManageFacilitiesPage />
+                        </Suspense>
+                      }
+                    />
 
-                  {/* Feeding routes */}
-                  <Route
-                    path="/feeding"
-                    element={<Navigate to="/feeding/today" replace />}
-                  />
-                  <Route
-                    path="/feeding/today"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <FeedingTodayPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/feeding/overview"
-                    element={<Navigate to="/feeding/today" replace />}
-                  />
-                  <Route
-                    path="/feeding/schedule"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <FeedingSchedulePage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/feeding/history"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <FeedingHistoryPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/feeding/settings"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <FeedingSettingsPage />
-                      </Suspense>
-                    }
-                  />
+                    {/* Activity routes - Unified "Today" dashboard (combines activities + routines) */}
+                    <Route
+                      path="/activities"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <TodayPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/activities/planning"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <ActivitiesPlanningPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/activities/care"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <ActivitiesCarePage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/activities/analytics"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <RoutineAnalyticsPage />
+                        </Suspense>
+                      }
+                    />
+                    {/* Legacy redirect: /activities/settings moved to /settings/activities */}
+                    <Route
+                      path="/activities/settings"
+                      element={<Navigate to="/settings/activities" replace />}
+                    />
 
-                  {/* Inventory routes */}
-                  <Route
-                    path="/inventory"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <InventoryPage />
-                      </Suspense>
-                    }
-                  />
+                    {/* Feeding routes */}
+                    <Route
+                      path="/feeding"
+                      element={<Navigate to="/feeding/today" replace />}
+                    />
+                    <Route
+                      path="/feeding/today"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <FeedingTodayPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/feeding/overview"
+                      element={<Navigate to="/feeding/today" replace />}
+                    />
+                    <Route
+                      path="/feeding/schedule"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <FeedingSchedulePage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/feeding/history"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <FeedingHistoryPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/feeding/settings"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <FeedingSettingsPage />
+                        </Suspense>
+                      }
+                    />
 
-                  {/* Invoice routes */}
-                  <Route
-                    path="/invoices"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <InvoicesPage />
-                      </Suspense>
-                    }
-                  />
+                    {/* Inventory routes */}
+                    <Route
+                      path="/inventory"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <InventoryPage />
+                        </Suspense>
+                      }
+                    />
 
-                  {/* Lesson routes */}
-                  <Route
-                    path="/lessons"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <LessonsPage />
-                      </Suspense>
-                    }
-                  />
+                    {/* Invoice routes */}
+                    <Route
+                      path="/invoices"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <InvoicesPage />
+                        </Suspense>
+                      }
+                    />
 
-                  {/* Stable routes */}
-                  <Route
-                    path="/stables"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <StablesPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/stables/create"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <CreateStablePage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/stables/:stableId"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <StableDetailPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/stables/:stableId/schedule"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <StableSchedulePage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/stables/:stableId/settings"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <StableSettingsPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/stables/:stableId/horses/settings"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <HorseSettingsPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/stables/:stableId/invite"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <StableInvitePage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/stables/:stableId/schedules/create"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <CreateSchedulePage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/stables/:stableId/schedules/:scheduleId/edit"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <ScheduleEditorPage />
-                      </Suspense>
-                    }
-                  />
+                    {/* Lesson routes */}
+                    <Route
+                      path="/lessons"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <LessonsPage />
+                        </Suspense>
+                      }
+                    />
 
-                  {/* Organization routes */}
-                  <Route
-                    path="/organizations"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <OrganizationsPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/organizations/create"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <CreateOrganizationPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/organizations/:organizationId/users"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <OrganizationUsersPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/organizations/:organizationId/integrations"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <OrganizationIntegrationsPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/organizations/:organizationId/manure"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <OrganizationManurePage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/organizations/:organizationId/permissions"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <OrganizationPermissionsPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/organizations/:organizationId/subscription"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <OrganizationSubscriptionPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/organizations/:organizationId/settings"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <OrganizationSettingsPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/organizations/:organizationId/settings/payments"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <PaymentSettingsPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/organizations/:organizationId/leave-management"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <LeaveManagementPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/organizations/:organizationId/schedule-management"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <ScheduleManagementPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/organizations/:organizationId/staff-matrix"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <StaffMatrixPage />
-                      </Suspense>
-                    }
-                  />
+                    {/* Stable routes */}
+                    <Route
+                      path="/stables"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <StablesPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/stables/create"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <CreateStablePage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/stables/:stableId"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <StableDetailPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/stables/:stableId/schedule"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <StableSchedulePage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/stables/:stableId/settings"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <StableSettingsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/stables/:stableId/horses/settings"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <HorseSettingsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/stables/:stableId/invite"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <StableInvitePage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/stables/:stableId/schedules/create"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <CreateSchedulePage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/stables/:stableId/schedules/:scheduleId/edit"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <ScheduleEditorPage />
+                        </Suspense>
+                      }
+                    />
 
-                  {/* Contact routes */}
-                  <Route
-                    path="/contacts"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <ContactsPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/contacts/:contactId"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <ContactDetailPage />
-                      </Suspense>
-                    }
-                  />
+                    {/* Organization routes */}
+                    <Route
+                      path="/organizations"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <OrganizationsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/organizations/create"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <CreateOrganizationPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/organizations/:organizationId/users"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <OrganizationUsersPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/organizations/:organizationId/integrations"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <OrganizationIntegrationsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/organizations/:organizationId/manure"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <OrganizationManurePage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/organizations/:organizationId/permissions"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <OrganizationPermissionsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/organizations/:organizationId/subscription"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <OrganizationSubscriptionPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/organizations/:organizationId/settings"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <OrganizationSettingsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/organizations/:organizationId/settings/payments"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <PaymentSettingsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/organizations/:organizationId/leave-management"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <LeaveManagementPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/organizations/:organizationId/schedule-management"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <ScheduleManagementPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/organizations/:organizationId/staff-matrix"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <StaffMatrixPage />
+                        </Suspense>
+                      }
+                    />
 
-                  {/* Routine flow route (kept for routine execution) */}
-                  <Route
-                    path="/routines/flow/:instanceId"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <RoutineFlowPage />
-                      </Suspense>
-                    }
-                  />
-                  {/* Legacy redirects: Routines menu reorganized under Activities and Settings */}
-                  <Route
-                    path="/routines"
-                    element={<Navigate to="/activities" replace />}
-                  />
-                  <Route
-                    path="/routines/create"
-                    element={<RoutineCreateRedirect />}
-                  />
-                  <Route
-                    path="/routines/templates"
-                    element={
-                      <Navigate to="/schedule/routinetemplates" replace />
-                    }
-                  />
-                  <Route
-                    path="/routines/analytics"
-                    element={<Navigate to="/activities/analytics" replace />}
-                  />
-                  {/* Catch-all: /routines/:routineId → /routines/flow/:routineId */}
-                  <Route
-                    path="/routines/:routineId"
-                    element={<RoutineIdRedirect />}
-                  />
+                    {/* Contact routes */}
+                    <Route
+                      path="/contacts"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <ContactsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/contacts/:contactId"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <ContactDetailPage />
+                        </Suspense>
+                      }
+                    />
 
-                  {/* Settings routes for configuration */}
-                  <Route
-                    path="/settings/account"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <AccountPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/settings/notifications"
-                    element={<Navigate to="/settings" replace />}
-                  />
-                  <Route
-                    path="/schedule/routinetemplates"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <RoutineTemplatesPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/settings/activities"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <ActivitiesSettingsPage />
-                      </Suspense>
-                    }
-                  />
-                </Route>
+                    {/* Routine flow route (kept for routine execution) */}
+                    <Route
+                      path="/routines/flow/:instanceId"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <RoutineFlowPage />
+                        </Suspense>
+                      }
+                    />
+                    {/* Legacy redirects: Routines menu reorganized under Activities and Settings */}
+                    <Route
+                      path="/routines"
+                      element={<Navigate to="/activities" replace />}
+                    />
+                    <Route
+                      path="/routines/create"
+                      element={<RoutineCreateRedirect />}
+                    />
+                    <Route
+                      path="/routines/templates"
+                      element={
+                        <Navigate to="/schedule/routinetemplates" replace />
+                      }
+                    />
+                    <Route
+                      path="/routines/analytics"
+                      element={<Navigate to="/activities/analytics" replace />}
+                    />
+                    {/* Catch-all: /routines/:routineId → /routines/flow/:routineId */}
+                    <Route
+                      path="/routines/:routineId"
+                      element={<RoutineIdRedirect />}
+                    />
 
-                {/* Portal routes (Client Self-Service) - separate layout */}
-                <Route
-                  element={
-                    <ProtectedRoute>
-                      <Suspense fallback={<PageLoader />}>
-                        <PortalLayout />
-                      </Suspense>
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route
-                    path="/portal"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <PortalDashboard />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/portal/horses"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <PortalHorsesPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/portal/horses/:horseId"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <PortalHorseDetailPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/portal/invoices"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <PortalInvoicesPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/portal/invoices/:invoiceId"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <PortalInvoiceDetailPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/portal/pay/:invoiceId"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <PortalPaymentPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/portal/messages"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <PortalMessagesPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/portal/profile"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <PortalProfilePage />
-                      </Suspense>
-                    }
-                  />
-                </Route>
+                    {/* Settings routes for configuration */}
+                    <Route
+                      path="/settings/account"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <AccountPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/settings/notifications"
+                      element={<Navigate to="/settings" replace />}
+                    />
+                    <Route
+                      path="/schedule/routinetemplates"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <RoutineTemplatesPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/settings/activities"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <ActivitiesSettingsPage />
+                        </Suspense>
+                      }
+                    />
+                  </Route>
 
-                {/* Admin routes (System Admin Portal) - separate layout */}
-                <Route
-                  element={
-                    <AdminProtectedRoute>
-                      <Suspense fallback={<PageLoader />}>
-                        <AdminLayout />
-                      </Suspense>
-                    </AdminProtectedRoute>
-                  }
-                >
+                  {/* Portal routes (Client Self-Service) - separate layout */}
                   <Route
-                    path="/admin"
                     element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <AdminDashboardPage />
-                      </Suspense>
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <PortalLayout />
+                        </Suspense>
+                      </ProtectedRoute>
                     }
-                  />
+                  >
+                    <Route
+                      path="/portal"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <PortalDashboard />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/portal/horses"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <PortalHorsesPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/portal/horses/:horseId"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <PortalHorseDetailPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/portal/invoices"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <PortalInvoicesPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/portal/invoices/:invoiceId"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <PortalInvoiceDetailPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/portal/pay/:invoiceId"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <PortalPaymentPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/portal/messages"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <PortalMessagesPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/portal/profile"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <PortalProfilePage />
+                        </Suspense>
+                      }
+                    />
+                  </Route>
+
+                  {/* Admin routes (System Admin Portal) - separate layout */}
                   <Route
-                    path="/admin/organizations"
                     element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <AdminOrganizationsPage />
-                      </Suspense>
+                      <AdminProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <AdminLayout />
+                        </Suspense>
+                      </AdminProtectedRoute>
                     }
-                  />
-                  <Route
-                    path="/admin/organizations/:id"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <AdminOrganizationDetailPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/admin/tiers"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <AdminTierManagementPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/admin/users"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <AdminUsersPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/admin/users/:id"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <AdminUserDetailPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/admin/payments"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <AdminPaymentsPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/admin/system"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <AdminSystemHealthPage />
-                      </Suspense>
-                    }
-                  />
-                  <Route
-                    path="/admin/support"
-                    element={
-                      <Suspense fallback={<InlineLoader />}>
-                        <AdminSupportPage />
-                      </Suspense>
-                    }
-                  />
-                </Route>
-              </Routes>
-            </Suspense>
-          </div>
+                  >
+                    <Route
+                      path="/admin"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <AdminDashboardPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/admin/organizations"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <AdminOrganizationsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/admin/organizations/:id"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <AdminOrganizationDetailPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/admin/tiers"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <AdminTierManagementPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/admin/users"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <AdminUsersPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/admin/users/:id"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <AdminUserDetailPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/admin/payments"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <AdminPaymentsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/admin/system"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <AdminSystemHealthPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/admin/support"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <AdminSupportPage />
+                        </Suspense>
+                      }
+                    />
+                  </Route>
+                </Routes>
+              </Suspense>
+            </div>
+          </SubscriptionProvider>
         </OrganizationProvider>
       </LanguageSyncWrapper>
     </AuthProvider>

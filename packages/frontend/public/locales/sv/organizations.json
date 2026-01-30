@@ -302,6 +302,7 @@
     "pageDescription": "Hantera din prenumeration och faktureringsinformation",
     "currentPlan": "Nuvarande plan",
     "currentPlanDescription": "Din nuvarande prenumerationsnivå och funktioner",
+    "billingPeriod": "Faktureringsperiod",
     "upgrade": "Uppgradera",
     "downgrade": "Nedgradera",
     "afterTrial": "(efter provperioden)",
@@ -310,17 +311,96 @@
       "title": "Provperiod",
       "description": "Din prenumeration är för närvarande i provperiod med alla funktioner. Du har {{days}} dagar kvar att testa alla funktioner."
     },
+    "pastDue": {
+      "title": "Betalning misslyckades",
+      "description": "Din senaste betalning misslyckades. Uppdatera din betalningsmetod för att undvika avbrott.",
+      "updatePayment": "Uppdatera betalningsmetod"
+    },
+    "canceling": {
+      "title": "Prenumeration avslutas",
+      "description": "Din prenumeration avslutas den {{date}}. Du har tillgång till alla funktioner till dess.",
+      "resume": "Återuppta prenumeration"
+    },
+    "status": {
+      "trialing": "Provperiod",
+      "active": "Aktiv",
+      "past_due": "Förfallen",
+      "canceled": "Avslutad",
+      "unpaid": "Obetald",
+      "incomplete": "Ofullständig",
+      "incomplete_expired": "Utgången",
+      "paused": "Pausad"
+    },
+    "tiers": {
+      "free": {
+        "name": "Gratis",
+        "description": "Testa — grundläggande funktioner med begränsade resurser"
+      },
+      "standard": {
+        "name": "Standard",
+        "description": "Samarbeta — skala upp och få överblick"
+      },
+      "pro": {
+        "name": "Pro",
+        "description": "Full drift — komplett verktygslåda"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "description": "Företag — allt inkluderat med skräddarsydda lösningar"
+      }
+    },
     "features": {
       "upToMembers": "Upp till {{count}} medlemmar",
       "unlimitedStables": "Obegränsat antal stall",
       "advancedScheduling": "Avancerad schemaläggning",
       "prioritySupport": "Prioriterad support",
       "customIntegrations": "Anpassade integrationer",
-      "detailedAnalytics": "Detaljerad statistik"
+      "detailedAnalytics": "Detaljerad statistik",
+      "members_3": "Upp till 3 medlemmar",
+      "members_15": "Upp till 15 medlemmar",
+      "members_50": "Upp till 50 medlemmar",
+      "stables_1": "1 stall",
+      "stables_3": "Upp till 3 stall",
+      "stables_10": "Upp till 10 stall",
+      "horses_5": "Upp till 5 hästar",
+      "horses_25": "Upp till 25 hästar",
+      "horses_75": "Upp till 75 hästar",
+      "basicScheduling": "Grundläggande schemaläggning",
+      "analytics": "Statistik och analys",
+      "selectionProcess": "Rutinval",
+      "locationHistory": "Platshistorik",
+      "photoEvidence": "Fotobevis i rutiner",
+      "allStandardFeatures": "Alla Standard-funktioner",
+      "leaveManagement": "Ledighetshantering",
+      "inventory": "Lagerhantering",
+      "lessons": "Lektionsschemaläggning",
+      "staffMatrix": "Personalmatris",
+      "integrations": "Externa integrationer",
+      "aiAssistant": "AI-assistent",
+      "unlimitedEverything": "Obegränsade resurser",
+      "allProFeatures": "Alla Pro-funktioner",
+      "portal": "Kundportal",
+      "invoicing": "Fakturering och betalningar",
+      "dedicatedSupport": "Dedikerad support"
+    },
+    "pricing": {
+      "title": "Välj plan",
+      "monthly": "Månatlig",
+      "annual": "Årsvis",
+      "savePercent": "Spara {{percent}}%",
+      "free": "Gratis",
+      "contactSales": "Kontakta oss",
+      "perMonth": "mån",
+      "perYear": "år",
+      "popular": "Populär",
+      "currentPlan": "Nuvarande plan",
+      "selectPlan": "Välj plan"
     },
     "buttons": {
       "changePlan": "Byt plan",
-      "upgradeNow": "Uppgradera nu"
+      "upgradeNow": "Uppgradera nu",
+      "manageBilling": "Hantera fakturering",
+      "cancelSubscription": "Avsluta prenumeration"
     },
     "billing": {
       "title": "Faktureringsinformation",
@@ -344,7 +424,39 @@
     "history": {
       "title": "Faktureringshistorik",
       "description": "Dina tidigare fakturor och betalningshistorik",
-      "emptyState": "Ingen faktureringshistorik tillgänglig under provperioden"
+      "emptyState": "Ingen faktureringshistorik tillgänglig ännu",
+      "date": "Datum",
+      "amount": "Belopp",
+      "status": "Status",
+      "invoice": "Faktura"
+    },
+    "invoiceStatus": {
+      "draft": "Utkast",
+      "open": "Öppen",
+      "paid": "Betald",
+      "uncollectible": "Ej indrivningsbar",
+      "void": "Annullerad"
+    },
+    "success": {
+      "title": "Prenumeration aktiverad!",
+      "description": "Din prenumeration har aktiverats. Välkommen!",
+      "processing": "Aktiverar prenumeration...",
+      "processingDescription": "Vänta medan vi bekräftar din betalning.",
+      "plan": "Plan",
+      "status": "Status",
+      "goToSubscription": "Gå till prenumeration"
+    },
+    "cancel": {
+      "title": "Utcheckningen avbröts",
+      "description": "Du avbröt utcheckningen. Ingen betalning har gjorts.",
+      "goBack": "Tillbaka till prenumeration"
+    },
+    "featureGate": {
+      "upgradeRequired": "Uppgradering krävs",
+      "upgradeDescription": "Denna funktion kräver {{tier}}-planen eller högre.",
+      "limitReached": "Gräns nådd",
+      "limitDescription": "Du har nått gränsen för {{resource}} på din nuvarande plan.",
+      "upgradeButton": "Uppgradera nu"
     }
   },
   "upgrade": {
