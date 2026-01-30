@@ -113,7 +113,7 @@ function TierManagementContent({
   initialStripeProducts: StripeProductMapping[];
 }) {
   const [selectedTier, setSelectedTier] = useState<SubscriptionTier>(
-    SUBSCRIPTION_TIERS[0],
+    SUBSCRIPTION_TIERS[0] as SubscriptionTier,
   );
 
   const [forms, setForms] = useState<Record<SubscriptionTier, TierFormData>>(
