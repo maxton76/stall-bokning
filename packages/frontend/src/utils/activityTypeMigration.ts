@@ -14,7 +14,7 @@ import { getStandardTypeByName } from "@/constants/standardActivityTypes";
  * This maintains backward compatibility with existing activities that use
  * the old ActivityType enum. Maps to the new standardized naming.
  */
-const LEGACY_TO_STANDARD_MAP: Record<ActivityType, string> = {
+const LEGACY_TO_STANDARD_MAP: Record<string, string> = {
   // Care category
   dentist: "Dentist",
   farrier: "Farrier",
@@ -177,7 +177,7 @@ export function getLegacyMappingReport(): Array<{
 }> {
   return (Object.keys(LEGACY_TO_STANDARD_MAP) as ActivityType[]).map(
     (legacyType) => {
-      const standardName = LEGACY_TO_STANDARD_MAP[legacyType];
+      const standardName = LEGACY_TO_STANDARD_MAP[legacyType] ?? "Riding";
       const standardType = getStandardTypeByName(standardName);
 
       return {

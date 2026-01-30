@@ -112,7 +112,7 @@ export function FeedTypeFormDialog({
     onSubmit: async (data) => {
       await onSave({
         name: data.name.trim(),
-        brand: data.brand.trim(),
+        brand: data.brand?.trim(),
         category: data.category,
         quantityMeasure: data.quantityMeasure,
         defaultQuantity: data.defaultQuantity,
@@ -135,7 +135,7 @@ export function FeedTypeFormDialog({
     if (feedType) {
       resetForm({
         name: feedType.name,
-        brand: feedType.brand,
+        brand: feedType.brand ?? undefined,
         category: feedType.category,
         quantityMeasure: feedType.quantityMeasure,
         defaultQuantity: feedType.defaultQuantity,
