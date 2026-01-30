@@ -1,0 +1,60 @@
+{
+  "panel": {
+    "title": "Get started with EquiDuty",
+    "progress": "{{completed}} of {{total}} steps completed",
+    "minimize": "Minimize",
+    "dismiss": "Close guide",
+    "go": "Go there",
+    "allComplete": "All done! You're ready to use EquiDuty."
+  },
+  "trigger": {
+    "tooltip": "{{remaining}} steps remaining"
+  },
+  "sections": {
+    "gettingStarted": "Getting started",
+    "setupStable": "Set up your stable",
+    "buildTeam": "Build your team",
+    "explore": "Explore"
+  },
+  "steps": {
+    "completeProfile": {
+      "title": "Complete your profile",
+      "description": "Add your first and last name.",
+      "action": "Go to profile"
+    },
+    "nameOrganization": {
+      "title": "Name your organization",
+      "description": "Give your organization a descriptive name.",
+      "action": "Go to organizations"
+    },
+    "createStable": {
+      "title": "Create your first stable",
+      "description": "Add a stable to start managing horses and schedules.",
+      "action": "Go to stables"
+    },
+    "addHorse": {
+      "title": "Add your first horse",
+      "description": "Register a horse with basic information.",
+      "action": "Go to horses"
+    },
+    "inviteMember": {
+      "title": "Invite a member",
+      "description": "Invite stable members to start sharing chores.",
+      "action": "Invite"
+    },
+    "joinStable": {
+      "title": "Join a stable",
+      "description": "Accept an invitation or search for a stable to join."
+    },
+    "viewHorses": {
+      "title": "Explore horses",
+      "description": "See which horses are in your stable.",
+      "action": "View horses"
+    },
+    "viewSchedule": {
+      "title": "View the schedule",
+      "description": "Check the stable schedule and book shifts.",
+      "action": "View schedule"
+    }
+  }
+}

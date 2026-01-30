@@ -1,0 +1,60 @@
+{
+  "panel": {
+    "title": "Kom igång med EquiDuty",
+    "progress": "{{completed}} av {{total}} steg klara",
+    "minimize": "Minimera",
+    "dismiss": "Stäng guide",
+    "go": "Gå dit",
+    "allComplete": "Allt klart! Du är redo att använda EquiDuty."
+  },
+  "trigger": {
+    "tooltip": "{{remaining}} steg kvar att slutföra"
+  },
+  "sections": {
+    "gettingStarted": "Kom igång",
+    "setupStable": "Ställ in ditt stall",
+    "buildTeam": "Bygg ditt team",
+    "explore": "Utforska"
+  },
+  "steps": {
+    "completeProfile": {
+      "title": "Fyll i din profil",
+      "description": "Lägg till ditt för- och efternamn.",
+      "action": "Gå till profil"
+    },
+    "nameOrganization": {
+      "title": "Namnge din organisation",
+      "description": "Ge din organisation ett beskrivande namn.",
+      "action": "Gå till organisationer"
+    },
+    "createStable": {
+      "title": "Skapa ditt första stall",
+      "description": "Lägg till ett stall för att börja hantera hästar och schema.",
+      "action": "Gå till stall"
+    },
+    "addHorse": {
+      "title": "Lägg till din första häst",
+      "description": "Registrera en häst med grundläggande information.",
+      "action": "Gå till hästar"
+    },
+    "inviteMember": {
+      "title": "Bjud in en medlem",
+      "description": "Bjud in stallmedlemmar för att börja dela på sysslorna.",
+      "action": "Bjud in"
+    },
+    "joinStable": {
+      "title": "Gå med i ett stall",
+      "description": "Acceptera en inbjudan eller sök efter ett stall att gå med i."
+    },
+    "viewHorses": {
+      "title": "Utforska hästar",
+      "description": "Se vilka hästar som finns i ditt stall.",
+      "action": "Visa hästar"
+    },
+    "viewSchedule": {
+      "title": "Se schemat",
+      "description": "Kolla stallets schema och boka pass.",
+      "action": "Visa schema"
+    }
+  }
+}

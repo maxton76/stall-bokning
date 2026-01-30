@@ -54,6 +54,7 @@ import { adminRoutes } from "./routes/admin.js";
 import { subscriptionRoutes } from "./routes/subscriptions.js";
 import { stripeWebhookRoutes } from "./routes/stripe-webhooks.js";
 import { featureRequestsRoutes } from "./routes/feature-requests.js";
+import { onboardingRoutes } from "./routes/onboarding.js";
 
 const PORT = Number(process.env.PORT) || 8080;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -201,6 +202,7 @@ await fastify.register(stripeWebhookRoutes, { prefix: "/api/v1" });
 await fastify.register(featureRequestsRoutes, {
   prefix: "/api/v1/feature-requests",
 });
+await fastify.register(onboardingRoutes, { prefix: "/api/v1/settings" });
 
 // 404 handler
 fastify.setNotFoundHandler((request, reply) => {

@@ -64,3 +64,6 @@ export * from "./subscription.js";
 
 // Feature Requests / Voting
 export * from "./featureRequest.js";
+
+// Onboarding Guide
+export * from "./onboarding.js";
