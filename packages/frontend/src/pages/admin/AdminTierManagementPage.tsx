@@ -36,7 +36,7 @@ import type {
   SubscriptionAddons,
   StripeProductMapping,
 } from "@equiduty/shared";
-import { SUBSCRIPTION_TIERS } from "@equiduty/shared";
+import { SUBSCRIPTION_TIERS, DEFAULT_TIER_DEFINITIONS } from "@equiduty/shared";
 import {
   getTierDefinitions,
   updateTierDefinition,
@@ -120,11 +120,11 @@ function TierManagementContent({
     () => {
       const result = {} as Record<SubscriptionTier, TierFormData>;
       for (const [index, tierKey] of SUBSCRIPTION_TIERS.entries()) {
-        const tierDef = initialTiers.find((t) => t.tier === tierKey);
+        const tierDef =
+          initialTiers.find((t) => t.tier === tierKey) ??
+          DEFAULT_TIER_DEFINITIONS[tierKey];
         const stripe = initialStripeProducts.find((p) => p.tier === tierKey);
-        if (tierDef) {
-          result[tierKey] = buildFormData(tierDef, index, stripe);
-        }
+        result[tierKey] = buildFormData(tierDef, index, stripe);
       }
       return result;
     },
