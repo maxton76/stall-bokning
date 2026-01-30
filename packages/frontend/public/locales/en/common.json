@@ -34,6 +34,7 @@
     "staffMatrix": "Staff Overview",
     "routines": "Stable Routines",
     "routinesList": "Today's Routines",
+    "featureRequests": "Feature Requests",
     "routineTemplates": "Routine Templates",
     "routineAnalytics": "Analytics",
     "tasks": "Tasks",
@@ -71,7 +72,10 @@
     "sendInvitation": "Send Invitation",
     "viewAll": "View All",
     "actions": "Actions",
-    "retry": "Retry"
+    "retry": "Retry",
+    "loadMore": "Load More",
+    "saving": "Saving...",
+    "submitting": "Submitting..."
   },
   "labels": {
     "name": "Name",
@@ -237,6 +241,7 @@
   },
   "errors": {
     "generic": "An error occurred. Please try again.",
+    "somethingWentWrong": "Something went wrong",
     "loadFailed": "Failed to load data",
     "connectionFailed": "Could not connect to the server",
     "notFound": "The resource could not be found"

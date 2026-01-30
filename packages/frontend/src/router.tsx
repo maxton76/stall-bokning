@@ -185,6 +185,13 @@ const AdminSystemHealthPage = lazy(
   () => import("./pages/admin/AdminSystemHealthPage"),
 );
 const AdminSupportPage = lazy(() => import("./pages/admin/AdminSupportPage"));
+const FeatureRequestsPage = lazy(() => import("./pages/FeatureRequestsPage"));
+const FeatureRequestDetailPage = lazy(
+  () => import("./pages/FeatureRequestDetailPage"),
+);
+const AdminFeatureRequestsPage = lazy(
+  () => import("./pages/admin/AdminFeatureRequestsPage"),
+);
 
 // Helper to wrap lazy components with Suspense
 function withSuspense(
@@ -542,6 +549,16 @@ export const router = createBrowserRouter([
             element: <Navigate to="/activities/analytics" replace />,
           },
 
+          // Feature Requests
+          {
+            path: "/feature-requests",
+            element: withSuspense(FeatureRequestsPage),
+          },
+          {
+            path: "/feature-requests/:requestId",
+            element: withSuspense(FeatureRequestDetailPage),
+          },
+
           // Settings
           { path: "/settings/account", element: withSuspense(AccountPage) },
           {
@@ -613,6 +630,10 @@ export const router = createBrowserRouter([
             element: withSuspense(AdminSystemHealthPage),
           },
           { path: "/admin/support", element: withSuspense(AdminSupportPage) },
+          {
+            path: "/admin/feature-requests",
+            element: withSuspense(AdminFeatureRequestsPage),
+          },
         ],
       },
     ],

@@ -1,0 +1,144 @@
+{
+  "title": {
+    "page": "Funktionsförfrågningar",
+    "subtitle": "Rösta och föreslå nya funktioner",
+    "create": "Ny förfrågan",
+    "detail": "Förfrågan"
+  },
+  "form": {
+    "title": "Titel",
+    "titleLabel": "Titel",
+    "titlePlaceholder": "Kort beskrivning av din idé",
+    "descriptionLabel": "Beskrivning",
+    "descriptionPlaceholder": "Beskriv din idé i detalj. Vad vill du kunna göra och varför?",
+    "categoryLabel": "Kategori",
+    "categoryPlaceholder": "Välj kategori",
+    "submit": "Skicka förfrågan",
+    "createButton": "Ny förfrågan",
+    "cancel": "Avbryt"
+  },
+  "categories": {
+    "improvement": "Förbättring",
+    "new_feature": "Ny funktion",
+    "integration": "Integration",
+    "bug_fix": "Buggfix",
+    "other": "Övrigt"
+  },
+  "statuses": {
+    "open": "Öppen",
+    "under_review": "Under granskning",
+    "planned": "Planerad",
+    "in_progress": "Pågående",
+    "completed": "Genomförd",
+    "declined": "Avvisad"
+  },
+  "priorities": {
+    "none": "Ingen prioritet",
+    "low": "Låg",
+    "medium": "Medel",
+    "high": "Hög",
+    "critical": "Kritisk"
+  },
+  "sort": {
+    "votes": "Flest röster",
+    "newest": "Nyast",
+    "oldest": "Äldst"
+  },
+  "vote": {
+    "button": "Rösta",
+    "voted": "Röstad",
+    "voteCount": "{{count}} röst",
+    "voteCount_plural": "{{count}} röster",
+    "ariaVote": "Rösta på denna förfrågan",
+    "ariaRemoveVote": "Ta bort röst"
+  },
+  "comments": {
+    "title": "Kommentarer",
+    "placeholder": "Skriv en kommentar...",
+    "submit": "Skicka kommentar",
+    "empty": "Inga kommentarer ännu. Bli först att kommentera!"
+  },
+  "admin": {
+    "responseLabel": "Administratörssvar",
+    "statusChange": "Ändra status",
+    "priorityChange": "Ändra prioritet",
+    "priority": "Prioritet",
+    "actions": "Administratörsåtgärder",
+    "pageTitle": "Hantera funktionsförfrågningar",
+    "responsePlaceholder": "Skriv ett svar till användaren...",
+    "saveChanges": "Spara ändringar",
+    "noPriority": "Ingen prioritet"
+  },
+  "filters": {
+    "all": "Alla",
+    "status": "Status",
+    "category": "Kategori",
+    "allCategories": "Alla kategorier",
+    "statusTabs": "Filtrera på status",
+    "categoryDropdown": "Filtrera på kategori",
+    "myRequests": "Mina förfrågningar"
+  },
+  "fields": {
+    "title": "Titel",
+    "description": "Beskrivning",
+    "category": "Kategori",
+    "status": "Status",
+    "priority": "Prioritet",
+    "adminResponse": "Administratörssvar"
+  },
+  "placeholders": {
+    "title": "Kort beskrivning av din idé",
+    "description": "Beskriv din idé i detalj. Vad vill du kunna göra och varför?",
+    "category": "Välj kategori",
+    "adminResponse": "Skriv ett svar till användaren..."
+  },
+  "card": {
+    "by": "av {{name}}",
+    "descriptionPreview": "Visa mer",
+    "byAuthor": "av {{author}}",
+    "ago": "{{time}} sedan",
+    "commentCount": "{{count}} kommentar",
+    "commentCount_plural": "{{count}} kommentarer"
+  },
+  "detail": {
+    "back": "Tillbaka till förfrågningar",
+    "adminResponse": "Svar från administratör"
+  },
+  "empty": {
+    "noRequests": "Inga förfrågningar ännu. Var först med att skicka en idé!",
+    "noComments": "Inga kommentarer ännu."
+  },
+  "errors": {
+    "generic": "Något gick fel. Försök igen.",
+    "createFailed": "Kunde inte skapa förfrågan. Försök igen.",
+    "voteFailed": "Kunde inte registrera din röst. Försök igen.",
+    "commentFailed": "Kunde inte skicka kommentaren. Försök igen."
+  },
+  "messages": {
+    "createSuccess": "Förfrågan har skickats!",
+    "voteSuccess": "Din röst har registrerats!",
+    "statusUpdated": "Status har uppdaterats.",
+    "priorityUpdated": "Prioritet har uppdaterats.",
+    "commentAdded": "Kommentaren har lagts till."
+  },
+  "time": {
+    "justNow": "precis nu",
+    "minutesAgo": "{{count}}m sedan",
+    "hoursAgo": "{{count}}t sedan",
+    "daysAgo": "{{count}}d sedan"
+  },
+  "validation": {
+    "titleMin": "Titeln måste vara minst 5 tecken",
+    "descriptionMin": "Beskrivningen måste vara minst 20 tecken"
+  },
+  "createTitle": "Skicka en funktionsförfrågan",
+  "createDescription": "Dela din idé och låt gemenskapen rösta på den.",
+  "createSuccess": "Förfrågan har skickats!",
+  "createSuccessDescription": "Din funktionsförfrågan är nu synlig för andra.",
+  "noComments": "Inga kommentarer ännu.",
+  "adminBadge": "Admin",
+  "loadMoreComments": "Ladda fler kommentarer",
+  "adminActions": "Administratörsåtgärder",
+  "adminUpdateSuccess": "Ändringar har sparats.",
+  "noChanges": "Inga ändringar att spara."
+}

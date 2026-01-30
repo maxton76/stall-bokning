@@ -35,6 +35,7 @@
     "staffMatrix": "Personalöversikt",
     "routines": "Stallrutiner",
     "routinesList": "Dagliga rutiner",
+    "featureRequests": "Funktionsförfrågningar",
     "routineTemplates": "Rutinmallar",
     "routineAnalytics": "Statistik",
     "tasks": "Uppgifter",
@@ -71,7 +72,10 @@
     "sendInvitation": "Skicka inbjudan",
     "viewAll": "Visa alla",
     "actions": "Åtgärder",
-    "retry": "Försök igen"
+    "retry": "Försök igen",
+    "loadMore": "Ladda fler",
+    "saving": "Sparar...",
+    "submitting": "Skickar..."
   },
   "labels": {
     "name": "Namn",
@@ -194,6 +198,7 @@
   },
   "errors": {
     "generic": "Ett fel uppstod. Försök igen.",
+    "somethingWentWrong": "Något gick fel",
     "loadFailed": "Kunde inte ladda data",
     "connectionFailed": "Kunde inte ansluta till servern",
     "notFound": "Resursen kunde inte hittas"

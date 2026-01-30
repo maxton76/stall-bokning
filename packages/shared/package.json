@@ -1,6 +1,6 @@
 {
   "name": "@equiduty/shared",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "Shared types, utilities, and schemas for equiduty monorepo",
   "type": "module",
   "main": "./dist/index.js",

@@ -1,0 +1,144 @@
+{
+  "title": {
+    "page": "Feature Requests",
+    "subtitle": "Vote and suggest new features",
+    "create": "New Request",
+    "detail": "Request"
+  },
+  "form": {
+    "title": "Title",
+    "titleLabel": "Title",
+    "titlePlaceholder": "Short description of your idea",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Describe your idea in detail. What would you like to be able to do and why?",
+    "categoryLabel": "Category",
+    "categoryPlaceholder": "Select category",
+    "submit": "Submit Request",
+    "createButton": "New Request",
+    "cancel": "Cancel"
+  },
+  "categories": {
+    "improvement": "Improvement",
+    "new_feature": "New Feature",
+    "integration": "Integration",
+    "bug_fix": "Bug Fix",
+    "other": "Other"
+  },
+  "statuses": {
+    "open": "Open",
+    "under_review": "Under Review",
+    "planned": "Planned",
+    "in_progress": "In Progress",
+    "completed": "Completed",
+    "declined": "Declined"
+  },
+  "priorities": {
+    "none": "No Priority",
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "critical": "Critical"
+  },
+  "sort": {
+    "votes": "Most Votes",
+    "newest": "Newest",
+    "oldest": "Oldest"
+  },
+  "vote": {
+    "button": "Vote",
+    "voted": "Voted",
+    "voteCount": "{{count}} vote",
+    "voteCount_plural": "{{count}} votes",
+    "ariaVote": "Vote for this request",
+    "ariaRemoveVote": "Remove vote"
+  },
+  "comments": {
+    "title": "Comments",
+    "placeholder": "Write a comment...",
+    "submit": "Submit Comment",
+    "empty": "No comments yet. Be the first to comment!"
+  },
+  "admin": {
+    "responseLabel": "Admin Response",
+    "statusChange": "Change Status",
+    "priorityChange": "Change Priority",
+    "priority": "Priority",
+    "actions": "Admin Actions",
+    "pageTitle": "Manage Feature Requests",
+    "responsePlaceholder": "Write a response to the user...",
+    "saveChanges": "Save Changes",
+    "noPriority": "No Priority"
+  },
+  "filters": {
+    "all": "All",
+    "status": "Status",
+    "category": "Category",
+    "allCategories": "All Categories",
+    "statusTabs": "Filter by Status",
+    "categoryDropdown": "Filter by Category",
+    "myRequests": "My Requests"
+  },
+  "fields": {
+    "title": "Title",
+    "description": "Description",
+    "category": "Category",
+    "status": "Status",
+    "priority": "Priority",
+    "adminResponse": "Admin Response"
+  },
+  "placeholders": {
+    "title": "Short description of your idea",
+    "description": "Describe your idea in detail. What would you like to be able to do and why?",
+    "category": "Select category",
+    "adminResponse": "Write a response to the user..."
+  },
+  "card": {
+    "by": "by {{name}}",
+    "descriptionPreview": "Show more",
+    "byAuthor": "by {{author}}",
+    "ago": "{{time}} ago",
+    "commentCount": "{{count}} comment",
+    "commentCount_plural": "{{count}} comments"
+  },
+  "detail": {
+    "back": "Back to requests",
+    "adminResponse": "Admin Response"
+  },
+  "empty": {
+    "noRequests": "No requests yet. Be the first to submit an idea!",
+    "noComments": "No comments yet."
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "createFailed": "Could not create request. Please try again.",
+    "voteFailed": "Could not register your vote. Please try again.",
+    "commentFailed": "Could not submit comment. Please try again."
+  },
+  "messages": {
+    "createSuccess": "Request submitted successfully!",
+    "voteSuccess": "Your vote has been registered!",
+    "statusUpdated": "Status has been updated.",
+    "priorityUpdated": "Priority has been updated.",
+    "commentAdded": "Comment has been added."
+  },
+  "time": {
+    "justNow": "just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago"
+  },
+  "validation": {
+    "titleMin": "Title must be at least 5 characters",
+    "descriptionMin": "Description must be at least 20 characters"
+  },
+  "createTitle": "Submit a Feature Request",
+  "createDescription": "Share your idea and let the community vote on it.",
+  "createSuccess": "Request submitted successfully!",
+  "createSuccessDescription": "Your feature request is now visible to others.",
+  "noComments": "No comments yet.",
+  "adminBadge": "Admin",
+  "loadMoreComments": "Load more comments",
+  "adminActions": "Admin Actions",
+  "adminUpdateSuccess": "Changes saved successfully.",
+  "noChanges": "No changes to save."
+}

@@ -24,6 +24,7 @@ import {
   CalendarClock,
   Bell,
   User,
+  Lightbulb,
 } from "lucide-react";
 import type {
   NavigationItem,
@@ -227,6 +228,12 @@ export const mainNavigation: NavigationItem[] = [
         icon: BarChart3,
       },
     ],
+  },
+  {
+    id: "featureRequests",
+    labelKey: "common:navigation.featureRequests",
+    href: "/feature-requests",
+    icon: Lightbulb,
   },
   {
     id: "settings",

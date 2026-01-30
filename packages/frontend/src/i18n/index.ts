@@ -29,6 +29,7 @@ export const namespaces = [
   "landing",
   "routines",
   "support",
+  "featureRequests",
 ] as const;
 
 export type Namespace = (typeof namespaces)[number];

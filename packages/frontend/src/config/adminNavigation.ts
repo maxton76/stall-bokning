@@ -6,6 +6,7 @@ import {
   CreditCard,
   Activity,
   HeadsetIcon,
+  Lightbulb,
 } from "lucide-react";
 
 export interface AdminNavigationItem {
@@ -57,5 +58,11 @@ export const adminNavigation: AdminNavigationItem[] = [
     label: "Support",
     href: "/admin/support",
     icon: HeadsetIcon,
+  },
+  {
+    id: "admin-feature-requests",
+    label: "Feature Requests",
+    href: "/admin/feature-requests",
+    icon: Lightbulb,
   },
 ];

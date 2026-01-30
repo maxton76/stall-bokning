@@ -61,3 +61,6 @@ export * from "./admin.js";
 
 // Subscription & Billing (Platform-to-Org)
 export * from "./subscription.js";
+
+// Feature Requests / Voting
+export * from "./featureRequest.js";
