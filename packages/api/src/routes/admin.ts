@@ -20,10 +20,14 @@ import type {
   OrganizationSubscription,
   PaginatedResponse,
   SubscriptionTier,
+  StripeProductMapping,
 } from "@equiduty/shared";
 import { DEFAULT_TIER_DEFINITIONS, SUBSCRIPTION_TIERS } from "@equiduty/shared";
 import { stripe } from "../utils/stripe.js";
-import { getPriceIdForTier } from "../utils/stripeTierMapping.js";
+import {
+  getPriceIdForTier,
+  invalidateTierCache,
+} from "../utils/stripeTierMapping.js";
 
 const adminPreHandler = [authenticate, requireSystemAdmin];
 
@@ -815,6 +819,108 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to reset tier definition",
+        });
+      }
+    },
+  );
+
+  // ============================================
+  // STRIPE PRODUCTS
+  // ============================================
+
+  const putStripeProductSchema = {
+    body: {
+      type: "object" as const,
+      required: ["stripeProductId", "prices"],
+      additionalProperties: false,
+      properties: {
+        stripeProductId: { type: "string" as const, minLength: 1 },
+        prices: {
+          type: "object" as const,
+          required: ["month", "year"],
+          additionalProperties: false,
+          properties: {
+            month: { type: "string" as const, minLength: 1 },
+            year: { type: "string" as const, minLength: 1 },
+          },
+        },
+      },
+    },
+  };
+
+  /**
+   * GET /stripe-products - List all Stripe product mappings
+   */
+  fastify.get(
+    "/stripe-products",
+    { preHandler: adminPreHandler },
+    async (_request: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const snapshot = await db.collection("stripeProducts").get();
+
+        const products: StripeProductMapping[] = snapshot.docs.map((doc) => ({
+          tier: doc.id as SubscriptionTier,
+          ...doc.data(),
+        })) as StripeProductMapping[];
+
+        return reply.send(products);
+      } catch (error) {
+        _request.log.error({ error }, "Failed to list stripe products");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to fetch stripe products",
+        });
+      }
+    },
+  );
+
+  /**
+   * PUT /stripe-products/:tier - Upsert Stripe product mapping for a tier
+   */
+  fastify.put(
+    "/stripe-products/:tier",
+    { preHandler: adminPreHandler, schema: putStripeProductSchema },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const { tier } = request.params as { tier: string };
+      const BILLABLE_TIERS = ["standard", "pro"];
+
+      if (!BILLABLE_TIERS.includes(tier)) {
+        return reply.status(400).send({
+          error: "Bad Request",
+          message: `Invalid tier: ${tier}. Only ${BILLABLE_TIERS.join(", ")} can have Stripe products.`,
+        });
+      }
+
+      const body = request.body as {
+        stripeProductId: string;
+        prices: { month: string; year: string };
+      };
+
+      try {
+        const user = (request as AuthenticatedRequest).user;
+
+        await db
+          .collection("stripeProducts")
+          .doc(tier)
+          .set(
+            {
+              tier,
+              stripeProductId: body.stripeProductId,
+              prices: body.prices,
+              updatedAt: new Date(),
+              updatedBy: user?.uid || "unknown",
+            },
+            { merge: true },
+          );
+
+        invalidateTierCache();
+
+        return reply.send({ success: true });
+      } catch (error) {
+        request.log.error({ error }, "Failed to update stripe product mapping");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to update stripe product mapping",
         });
       }
     },

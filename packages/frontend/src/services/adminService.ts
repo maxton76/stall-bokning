@@ -15,6 +15,7 @@ import type {
   TierDefinition,
   OrganizationSubscription,
   PaginatedResponse,
+  StripeProductMapping,
 } from "@equiduty/shared";
 
 // ============================================
@@ -107,5 +108,23 @@ export async function resetTierDefaults(
 ): Promise<{ success: boolean; definition: TierDefinition }> {
   return apiClient.post<{ success: boolean; definition: TierDefinition }>(
     `/admin/tiers/${tier}/reset`,
+  );
+}
+
+// ============================================
+// STRIPE PRODUCTS
+// ============================================
+
+export async function getStripeProducts(): Promise<StripeProductMapping[]> {
+  return apiClient.get<StripeProductMapping[]>("/admin/stripe-products");
+}
+
+export async function updateStripeProduct(
+  tier: string,
+  data: { stripeProductId: string; prices: { month: string; year: string } },
+): Promise<{ success: boolean }> {
+  return apiClient.put<{ success: boolean }>(
+    `/admin/stripe-products/${tier}`,
+    data,
   );
 }

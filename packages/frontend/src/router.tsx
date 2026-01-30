@@ -192,6 +192,9 @@ const FeatureRequestDetailPage = lazy(
 const AdminFeatureRequestsPage = lazy(
   () => import("./pages/admin/AdminFeatureRequestsPage"),
 );
+const AdminStripeProductsPage = lazy(
+  () => import("./pages/admin/AdminStripeProductsPage"),
+);
 
 // Helper to wrap lazy components with Suspense
 function withSuspense(
@@ -633,6 +636,10 @@ export const router = createBrowserRouter([
           {
             path: "/admin/feature-requests",
             element: withSuspense(AdminFeatureRequestsPage),
+          },
+          {
+            path: "/admin/stripe-products",
+            element: withSuspense(AdminStripeProductsPage),
           },
         ],
       },
