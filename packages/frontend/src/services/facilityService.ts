@@ -77,18 +77,11 @@ export async function updateFacility(
 }
 
 /**
- * Delete facility (soft delete by setting status)
+ * Delete facility
  */
 export async function deleteFacility(
   facilityId: string,
-  userId: string,
+  _userId?: string,
 ): Promise<void> {
-  await apiClient.patch(`/facilities/${facilityId}`, { status: "inactive" });
-}
-
-/**
- * Hard delete facility
- */
-export async function hardDeleteFacility(facilityId: string): Promise<void> {
   await apiClient.delete(`/facilities/${facilityId}`);
 }
