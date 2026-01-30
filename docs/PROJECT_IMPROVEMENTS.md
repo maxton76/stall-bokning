@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-This document outlines implemented improvements and future recommendations for maintaining code quality and modularity in the stall-bokning project.
+This document outlines implemented improvements and future recommendations for maintaining code quality and modularity in the equiduty project.
 
 ---
 

@@ -1,0 +1,59 @@
+---
+import { useTranslations } from '../i18n';
+
+interface Props {
+  lang?: string;
+}
+
+const { lang = 'sv' } = Astro.props;
+const { t } = useTranslations(lang);
+
+const guides = [
+  { key: 'gettingStarted', icon: 'book', href: '/docs/getting-started' },
+  { key: 'fairnessAlgorithm', icon: 'scale', href: '/docs/fairness' },
+  { key: 'scheduling', icon: 'calendar', href: '/docs/scheduling' },
+];
+
+const icons: Record<string, string> = {
+  book: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />',
+  scale: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0 0 12 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52 2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 0 1-2.031.352 5.988 5.988 0 0 1-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971Zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0 2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 0 1-2.031.352 5.989 5.989 0 0 1-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971Z" />',
+  calendar: '<path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />',
+};
+---
+
+<section id="documentation" class="py-24 bg-muted/50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl font-bold mb-4">{t('documentation.title')}</h2>
+      <p class="text-muted-foreground max-w-2xl mx-auto">
+        {t('documentation.subtitle')}
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      {guides.map(({ key, icon, href }) => (
+        <div class="group rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow">
+          <div class="p-6">
+            <div class="p-3 w-fit rounded-lg bg-primary/10 mb-4">
+              <svg class="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" set:html={icons[icon]} />
+            </div>
+            <h3 class="text-lg font-semibold leading-none tracking-tight">
+              {t(`documentation.${key}.title`)}
+            </h3>
+            <p class="text-sm text-muted-foreground mt-2">
+              {t(`documentation.${key}.description`)}
+            </p>
+          </div>
+          <div class="px-6 pb-6">
+            <a href={href} class="inline-flex items-center text-sm font-medium text-primary hover:underline">
+              {t(`documentation.${key}.link`)}
+              <svg class="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

@@ -38,7 +38,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import type { LessonType, Instructor } from "@stall-bokning/shared";
+import type { LessonType, Instructor } from "@equiduty/shared";
 
 const createLessonSchema = z.object({
   lessonTypeId: z.string().min(1, "Lesson type is required"),

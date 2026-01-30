@@ -15,8 +15,8 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-PROJECT_ID="${1:-stall-bokning-dev}"
-BUCKET_NAME="stall-bokning-terraform-state"
+PROJECT_ID="${1:-equiduty-dev}"
+BUCKET_NAME="equiduty-terraform-state"
 REGION="europe-west1"
 
 echo -e "${YELLOW}Initializing Terraform state bucket...${NC}"

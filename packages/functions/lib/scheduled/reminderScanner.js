@@ -61,7 +61,7 @@ const scheduler_1 = require("firebase-functions/v2/scheduler");
 const firebase_functions_1 = require("firebase-functions");
 const crypto = __importStar(require("crypto"));
 const firebase_js_1 = require("../lib/firebase.js");
-const shared_1 = require("@stall-bokning/shared");
+const shared_1 = require("@equiduty/shared");
 /**
  * Check if current time is within user's quiet hours
  */

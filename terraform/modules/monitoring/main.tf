@@ -4,7 +4,7 @@
 
 locals {
   # Notification channel display name prefix
-  notification_prefix = "${var.environment}-stall-bokning"
+  notification_prefix = "${var.environment}-equiduty"
 }
 
 # =============================================================================

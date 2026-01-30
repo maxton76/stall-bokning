@@ -41,10 +41,16 @@ variable "create_source_bucket" {
   default     = true
 }
 
+variable "pause_all_schedulers" {
+  description = "Force-pause all scheduler jobs regardless of environment"
+  type        = bool
+  default     = false
+}
+
 variable "source_bucket_location" {
   description = "Location for the source bucket"
   type        = string
-  default     = "EU"
+  default     = "europe-west1"
 }
 
 # =============================================================================

@@ -10,7 +10,7 @@ import type {
   InventoryTransaction,
   InventoryAlert,
   InventoryStatus,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 /**
  * Hook for loading inventory items for a stable using TanStack Query.

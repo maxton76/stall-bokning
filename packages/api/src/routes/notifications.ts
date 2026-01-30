@@ -7,7 +7,7 @@ import { serializeTimestamps } from "../utils/serialization.js";
 import type {
   CreateNotificationInput,
   UpdateNotificationPreferencesInput,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 export async function notificationsRoutes(fastify: FastifyInstance) {
   // ============================================================================

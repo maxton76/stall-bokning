@@ -6,7 +6,7 @@ import type {
   Instructor,
   InstructorAvailability,
   LessonScheduleTemplate,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 // ============================================
 // Types

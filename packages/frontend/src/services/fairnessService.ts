@@ -11,7 +11,7 @@ export type {
   TemplatePointsBreakdown,
   MemberFairnessData,
   FairnessDistribution,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 // Import types we need to use locally
 import type {
@@ -19,7 +19,7 @@ import type {
   FairnessPeriod,
   FairnessStatusFilter,
   FairnessDistribution,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 // Local types not in shared package
 export interface MemberPointsHistory {

@@ -13,7 +13,7 @@ if (getApps().length === 0) {
     if (process.env.FIRESTORE_EMULATOR_HOST) {
       // Using Firebase Emulator
       initializeApp({
-        projectId: "stall-bokning-dev",
+        projectId: "equiduty-dev",
       });
     } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
       // Using service account file

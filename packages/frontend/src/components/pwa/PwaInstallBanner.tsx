@@ -60,7 +60,7 @@ export function PwaInstallBanner({ className }: PwaInstallBannerProps) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium text-sm sm:text-base">
-              {t("pwa.installTitle", "Installera Stallbokning")}
+              {t("pwa.installTitle", "Installera EquiDuty")}
             </p>
             <p className="text-xs sm:text-sm opacity-90 truncate">
               {t("pwa.installDescription", "Snabbare och fungerar offline")}

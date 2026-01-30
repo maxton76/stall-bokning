@@ -13,7 +13,7 @@ import { serializeTimestamps } from "../utils/serialization.js";
 import type {
   InventoryStatus,
   InventoryTransactionType,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 /**
  * Helper to calculate inventory status based on current quantity and thresholds

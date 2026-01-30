@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import type { GroupByOption } from "@/components/activities/GroupedActivityList";
-import type { ActivityInstance } from "@stall-bokning/shared";
+import type { ActivityInstance } from "@equiduty/shared";
 
 const STORAGE_KEY = "activityGroupByPreference";
 

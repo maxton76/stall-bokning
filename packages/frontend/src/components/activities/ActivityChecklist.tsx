@@ -4,7 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, Circle, Loader2 } from "lucide-react";
-import type { ChecklistItem } from "@stall-bokning/shared";
+import type { ChecklistItem } from "@equiduty/shared";
 
 interface ActivityChecklistProps {
   items: ChecklistItem[];

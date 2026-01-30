@@ -1,9 +1,5 @@
-import type { FeedAnalytics } from "@stall-bokning/shared";
-import type {
-  HorseFeeding,
-  FeedType,
-  FeedInventory,
-} from "@stall-bokning/shared";
+import type { FeedAnalytics } from "@equiduty/shared";
+import type { HorseFeeding, FeedType, FeedInventory } from "@equiduty/shared";
 import { getHorseFeedingsByStable } from "./horseFeedingService";
 import { getFeedTypesByOrganization } from "./feedTypeService";
 import { getStableInventory } from "./inventoryService";

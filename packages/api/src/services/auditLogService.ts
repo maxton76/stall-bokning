@@ -5,7 +5,7 @@ import type {
   ChangeDetails,
   AuditAction,
   AuditResource,
-} from "@stall-bokning/shared/types/auditLog";
+} from "@equiduty/shared/types/auditLog";
 
 /**
  * Data required to create an audit log entry

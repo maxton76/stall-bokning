@@ -11,13 +11,13 @@ locals {
     GOOGLE_CLOUD_PROJECT = var.project_id
     FIRESTORE_DATABASE   = "(default)"
     LOG_LEVEL            = var.environment == "prod" ? "info" : "debug"
-    CORS_ORIGINS         = join(",", var.cors_origins)
+    CORS_ORIGIN          = join(",", var.cors_origins)
     API_VERSION          = "v1"
 
     # SMTP Configuration
     EMAIL_SMTP_SERVER = "send.one.com"
     EMAIL_SMTP_PORT   = "587"
-    EMAIL_SMTP_USER   = "info@stallbokning.se"
+    EMAIL_SMTP_USER   = "info@equiduty.se"
     EMAIL_SMTP_SECURE = "false" # false for port 587 (STARTTLS)
 
     # Frontend URL for email links

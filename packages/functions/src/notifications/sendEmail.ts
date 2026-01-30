@@ -1,7 +1,7 @@
 import { logger } from "firebase-functions";
 
 import { escapeHtml } from "../lib/text.js";
-import { formatErrorMessage, isValidEmail } from "@stall-bokning/shared";
+import { formatErrorMessage, isValidEmail } from "@equiduty/shared";
 import { initializeSMTP, sendViaSMTP, isSMTPInitialized } from "../lib/smtp.js";
 
 /**
@@ -49,9 +49,8 @@ interface EmailPayload {
  */
 function getSendGridConfig(): SendGridConfig | null {
   const apiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail =
-    process.env.SENDGRID_FROM_EMAIL || "noreply@stallbokning.se";
-  const fromName = process.env.SENDGRID_FROM_NAME || "Stallbokning";
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL || "noreply@equiduty.se";
+  const fromName = process.env.SENDGRID_FROM_NAME || "EquiDuty";
 
   if (!apiKey) {
     logger.warn("SENDGRID_API_KEY not configured");
@@ -137,7 +136,7 @@ function buildHtmlBody(
             font-weight: 600;
             color: #111827;
             margin: 0;
-          ">🐴 Stallbokning</h1>
+          ">🐴 EquiDuty</h1>
         </div>
 
         <h2 style="
@@ -163,7 +162,7 @@ function buildHtmlBody(
           color: #9ca3af;
         ">
           <p style="margin: 0;">
-            Detta meddelande skickades automatiskt från Stallbokning.
+            Detta meddelande skickades automatiskt från EquiDuty.
           </p>
           <p style="margin: 8px 0 0 0;">
             Du kan ändra dina aviseringsinställningar i appen.

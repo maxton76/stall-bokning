@@ -16,7 +16,7 @@ import {
   Bell,
   type LucideIcon,
 } from "lucide-react";
-import type { CommunicationType } from "@stall-bokning/shared";
+import type { CommunicationType } from "@equiduty/shared";
 
 /**
  * Icons for each communication type

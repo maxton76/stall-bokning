@@ -6,9 +6,9 @@
  */
 
 // Re-export toDate from shared package for consistency
-export { toDate } from "@stall-bokning/shared";
+export { toDate } from "@equiduty/shared";
 
-import { toDate } from "@stall-bokning/shared";
+import { toDate } from "@equiduty/shared";
 import type { Timestamp } from "firebase/firestore";
 
 /**

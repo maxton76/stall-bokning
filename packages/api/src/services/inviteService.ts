@@ -8,7 +8,7 @@ import type {
   StableAccessLevel,
   ContactType,
   InviteContactAddress,
-} from "@stall-bokning/shared/types/organization";
+} from "@equiduty/shared/types/organization";
 
 /**
  * Generate a cryptographically secure invite token

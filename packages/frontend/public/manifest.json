@@ -1,6 +1,6 @@
 {
-  "name": "Stallbokning - Stable Management System",
-  "short_name": "Stallbokning",
+  "name": "EquiDuty - Stable Management System",
+  "short_name": "EquiDuty",
   "description": "Modern SaaS platform for stable owners and guests to manage daily chores through an intelligent booking system",
   "start_url": "/",
   "display": "standalone",

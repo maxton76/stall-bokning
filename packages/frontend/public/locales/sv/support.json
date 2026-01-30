@@ -61,6 +61,16 @@
     "ticketClosed": "Detta ärende är stängt och kan inte besvaras.",
     "back": "Tillbaka"
   },
+  "actions": {
+    "closeTicket": "Stäng ärende",
+    "reopenTicket": "Återöppna ärende",
+    "confirmClose": "Är du säker på att du vill stänga detta ärende?",
+    "confirmReopen": "Vill du återöppna detta ärende?",
+    "closeSuccess": "Ärendet har stängts.",
+    "reopenSuccess": "Ärendet har återöppnats.",
+    "statusChangeFailed": "Kunde inte ändra status. Försök igen.",
+    "pendingReplyHint": "Ditt svar kommer att återaktivera ärendet."
+  },
   "status": {
     "new": "Nytt",
     "open": "Pågående",

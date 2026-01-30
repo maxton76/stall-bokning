@@ -59,11 +59,7 @@ import {
   getUserPersonalContacts,
 } from "@/services/contactService";
 import { getOrganization } from "@/services/organizationService";
-import type {
-  Contact,
-  ContactBadge,
-  Organization,
-} from "@stall-bokning/shared";
+import type { Contact, ContactBadge, Organization } from "@equiduty/shared";
 import {
   Tooltip,
   TooltipContent,

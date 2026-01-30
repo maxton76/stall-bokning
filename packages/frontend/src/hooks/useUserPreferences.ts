@@ -26,7 +26,7 @@ import {
 import type {
   UserPreferences,
   UpdateUserPreferencesInput,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 // Query key for user preferences
 export const USER_PREFERENCES_KEY = ["userPreferences"] as const;

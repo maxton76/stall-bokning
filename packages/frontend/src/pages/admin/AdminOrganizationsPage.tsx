@@ -20,7 +20,7 @@ import {
 import type {
   AdminOrganizationSummary,
   PaginatedResponse,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import { getOrganizations } from "@/services/adminService";
 
 const tierBadgeVariants: Record<string, string> = {

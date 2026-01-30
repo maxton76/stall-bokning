@@ -18,10 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type {
-  AdminUserSummary,
-  PaginatedResponse,
-} from "@stall-bokning/shared";
+import type { AdminUserSummary, PaginatedResponse } from "@equiduty/shared";
 import { getUsers } from "@/services/adminService";
 
 function UsersTableSkeleton() {

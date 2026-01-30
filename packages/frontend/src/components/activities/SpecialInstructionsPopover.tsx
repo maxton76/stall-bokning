@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { authFetchJSON } from "@/utils/authFetch";
 import { EquipmentDisplay } from "@/components/EquipmentDisplay";
-import type { EquipmentItem } from "@stall-bokning/shared";
+import type { EquipmentItem } from "@equiduty/shared";
 
 interface SpecialInstructionsData {
   specialInstructions: string;

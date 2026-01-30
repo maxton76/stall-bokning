@@ -72,9 +72,7 @@
   },
   "activityTypes": {
     "dentist": "Tandvård",
-    "deworm": "Avmaskning",
     "farrier": "Hovslagare",
-    "influenza": "Influensa",
     "rhino": "Rhino",
     "vet": "Veterinär",
     "veterinarian": "Veterinär",

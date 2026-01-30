@@ -1,7 +1,7 @@
 /**
  * Routine Schemas - Re-export from shared package
  *
- * This file re-exports schemas from @stall-bokning/shared for backward compatibility.
+ * This file re-exports schemas from @equiduty/shared for backward compatibility.
  * All schema definitions are now maintained in the shared package.
  */
 
@@ -48,9 +48,9 @@ export {
   // Query schemas
   listRoutineTemplatesQuerySchema,
   listRoutineInstancesQuerySchema,
-} from "@stall-bokning/shared/schemas";
+} from "@equiduty/shared/schemas";
 
-// Types from @stall-bokning/shared/types
+// Types from @equiduty/shared/types
 export type {
   // Enum types
   RoutineCategory,
@@ -75,4 +75,4 @@ export type {
   // Query types
   ListRoutineTemplatesQuery,
   ListRoutineInstancesQuery,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";

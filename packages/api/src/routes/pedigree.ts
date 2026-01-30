@@ -7,7 +7,7 @@ import type {
   HorseTelexSearchResult,
   HorseTelexImportResult,
   HorseTelexImportRequest,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import type { AuthenticatedRequest } from "../types/index.js";
 
 interface PedigreeParams {

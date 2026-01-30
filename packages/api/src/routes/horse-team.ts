@@ -1,11 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { canAccessHorse } from "../utils/authorization.js";
-import type {
-  TeamMember,
-  HorseTeam,
-  TeamMemberInput,
-} from "@stall-bokning/shared";
+import type { TeamMember, HorseTeam, TeamMemberInput } from "@equiduty/shared";
 import type { AuthenticatedRequest } from "../types/index.js";
 
 interface TeamParams {

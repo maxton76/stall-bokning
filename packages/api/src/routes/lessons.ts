@@ -15,7 +15,7 @@ import type {
   Instructor,
   LessonStatus,
   BookingStatus,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 // ============================================
 // Schemas

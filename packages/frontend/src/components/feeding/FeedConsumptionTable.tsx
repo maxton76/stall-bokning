@@ -24,7 +24,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import type { FeedAnalytics } from "@stall-bokning/shared";
+import type { FeedAnalytics } from "@equiduty/shared";
 import { cn } from "@/lib/utils";
 
 interface FeedConsumptionTableProps {

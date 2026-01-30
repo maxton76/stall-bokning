@@ -59,6 +59,9 @@ pnpm-debug.log*
 # OS
 Thumbs.db
 
+# Build artifacts (Terraform function source)
+.build/
+
 # Misc
 .cache/
 .temp/

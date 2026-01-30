@@ -41,7 +41,7 @@ import type {
   FairnessStatusFilter,
   FairnessScope,
   MemberFairnessData,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import {
   getFairnessLabel,
   getFairnessColor,

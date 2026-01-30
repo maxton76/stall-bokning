@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { acknowledgeAlert } from "@/services/inventoryService";
-import type { InventoryAlertDisplay } from "@stall-bokning/shared";
+import type { InventoryAlertDisplay } from "@equiduty/shared";
 import { cn } from "@/lib/utils";
 
 interface InventoryAlertsCardProps {

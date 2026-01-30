@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { PartialDayType } from "@stall-bokning/shared";
+import type { PartialDayType } from "@equiduty/shared";
 
 const requestLeaveSchema = z
   .object({

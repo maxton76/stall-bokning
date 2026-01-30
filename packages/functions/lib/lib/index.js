@@ -38,5 +38,5 @@ Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./firebase.js"), exports);
 __exportStar(require("./text.js"), exports);
 __exportStar(require("./smtp.js"), exports);
-// Error and validation utilities now imported from @stall-bokning/shared
+// Error and validation utilities now imported from @equiduty/shared
 //# sourceMappingURL=index.js.map

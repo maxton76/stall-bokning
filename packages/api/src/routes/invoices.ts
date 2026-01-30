@@ -10,7 +10,7 @@ import {
   isSystemAdmin,
 } from "../utils/authorization.js";
 import { serializeTimestamps } from "../utils/serialization.js";
-import type { InvoiceStatus } from "@stall-bokning/shared";
+import type { InvoiceStatus } from "@equiduty/shared";
 
 /**
  * Generate next invoice number for organization

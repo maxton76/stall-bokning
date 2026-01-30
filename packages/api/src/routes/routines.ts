@@ -37,7 +37,7 @@ import type {
   UpdateStepProgressInput,
   ListRoutineTemplatesQuery,
   ListRoutineInstancesQuery,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import {
   createActivityHistoryEntries,
   findExistingEntry,

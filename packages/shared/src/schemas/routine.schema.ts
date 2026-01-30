@@ -274,7 +274,7 @@ export const listRoutineInstancesQuerySchema = z.object({
 });
 
 // ============================================================
-// Note: Types are defined in @stall-bokning/shared/types/routine
+// Note: Types are defined in @equiduty/shared/types/routine
 // This file only exports Zod schemas for validation purposes.
 // Use types from the types module for type annotations.
 // ============================================================

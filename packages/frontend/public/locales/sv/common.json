@@ -243,7 +243,7 @@
   },
   "dashboard": {
     "title": "Översikt",
-    "subtitle": "Översikt över stallbokningssystemet",
+    "subtitle": "Översikt över EquiDuty-systemet",
     "stats": {
       "totalBookings": "Totala bokningar",
       "activeStables": "Aktiva stall",
@@ -334,7 +334,7 @@
     "unavailable": "Ej valbar"
   },
   "pwa": {
-    "installTitle": "Installera Stallbokning",
+    "installTitle": "Installera EquiDuty",
     "installDescription": "Snabbare och fungerar offline",
     "install": "Installera",
     "updateTitle": "Ny version tillgänglig",

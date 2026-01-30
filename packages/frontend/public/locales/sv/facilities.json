@@ -82,7 +82,11 @@
     "planningWindowCloses": "Planeringsfönster stänger (timmar före)",
     "maxHorsesPerReservation": "Max antal hästar per bokning",
     "minSlotDuration": "Minsta bokningslängd",
-    "maxHoursPerReservation": "Max timmar per bokning"
+    "maxDurationPerReservation": "Max längd per bokning",
+    "durationUnit": {
+      "hours": "Timmar",
+      "days": "Dagar"
+    }
   },
   "availability": {
     "availableFrom": "Tillgänglig från",

@@ -16,7 +16,7 @@ import type {
   CreateRecurringActivityInput,
   UpdateRecurringActivityInput,
   UpdateProgressInput,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 export async function recurringActivitiesRoutes(fastify: FastifyInstance) {
   // ============================================================================

@@ -1,5 +1,5 @@
-import type { ActivityType } from '@/types/activity'
-import { getStandardTypeByName } from '@/constants/standardActivityTypes'
+import type { ActivityType } from "@/types/activity";
+import { getStandardTypeByName } from "@/constants/standardActivityTypes";
 
 /**
  * Activity Type Migration Utility
@@ -16,21 +16,21 @@ import { getStandardTypeByName } from '@/constants/standardActivityTypes'
  */
 const LEGACY_TO_STANDARD_MAP: Record<ActivityType, string> = {
   // Care category
-  dentist: 'Dentist',
-  farrier: 'Farrier',
-  vet: 'Vet',
-  deworm: 'Deworm',
-  vaccination: 'Influenza', // Map to Influenza (vaccination)
-  chiropractic: 'Vet', // Map to general Vet category
-  massage: 'Vet', // Map to general Vet category
+  dentist: "Dentist",
+  farrier: "Farrier",
+  vet: "Vet",
+  deworm: "Vet", // Deworm removed, map to general Vet category
+  vaccination: "Vet", // Influenza removed, map to general Vet category
+  chiropractic: "Vet", // Map to general Vet category
+  massage: "Vet", // Map to general Vet category
 
   // Sport category
-  training: 'Riding', // Map to Riding
-  competition: 'Show', // Map to Show
+  training: "Riding", // Map to Riding
+  competition: "Show", // Map to Show
 
   // Other
-  other: 'Riding' // Default fallback to Riding
-}
+  other: "Riding", // Default fallback to Riding
+};
 
 /**
  * Get standard activity type name from legacy activity type
@@ -48,7 +48,7 @@ const LEGACY_TO_STANDARD_MAP: Record<ActivityType, string> = {
  * ```
  */
 export function getLegacyTypeMapping(legacyType: ActivityType): string {
-  return LEGACY_TO_STANDARD_MAP[legacyType] || 'Riding'
+  return LEGACY_TO_STANDARD_MAP[legacyType] || "Riding";
 }
 
 /**
@@ -67,8 +67,8 @@ export function getLegacyTypeMapping(legacyType: ActivityType): string {
  * ```
  */
 export function getStandardTypeForLegacy(legacyType: ActivityType) {
-  const standardName = getLegacyTypeMapping(legacyType)
-  return getStandardTypeByName(standardName)
+  const standardName = getLegacyTypeMapping(legacyType);
+  return getStandardTypeByName(standardName);
 }
 
 /**
@@ -81,10 +81,10 @@ export function getStandardTypeForLegacy(legacyType: ActivityType) {
  * @returns True if activity uses legacy type system
  */
 export function isLegacyActivity(activity: {
-  activityType: ActivityType
-  activityTypeConfigId?: string
+  activityType: ActivityType;
+  activityTypeConfigId?: string;
 }): boolean {
-  return !activity.activityTypeConfigId
+  return !activity.activityTypeConfigId;
 }
 
 /**
@@ -111,16 +111,16 @@ export function isLegacyActivity(activity: {
  * ```
  */
 export function getActivityTypeDisplayName(activity: {
-  activityType: ActivityType
-  activityTypeConfigId?: string
+  activityType: ActivityType;
+  activityTypeConfigId?: string;
 }): string {
   if (isLegacyActivity(activity)) {
-    return getLegacyTypeMapping(activity.activityType)
+    return getLegacyTypeMapping(activity.activityType);
   }
 
   // For new activities, name should be fetched from ActivityTypeConfig
   // This is a fallback for when config isn't available
-  return getLegacyTypeMapping(activity.activityType)
+  return getLegacyTypeMapping(activity.activityType);
 }
 
 /**
@@ -148,18 +148,18 @@ export function getActivityTypeDisplayName(activity: {
  * ```
  */
 export function getActivityTypeColor(activity: {
-  activityType: ActivityType
-  activityTypeConfigId?: string
-  activityTypeColor?: string
+  activityType: ActivityType;
+  activityTypeConfigId?: string;
+  activityTypeColor?: string;
 }): string {
   // Use denormalized color if available (new system)
   if (activity.activityTypeColor) {
-    return activity.activityTypeColor
+    return activity.activityTypeColor;
   }
 
   // Fallback to standard type color for legacy activities
-  const standardType = getStandardTypeForLegacy(activity.activityType)
-  return standardType?.color || '#6366f1' // Default to indigo
+  const standardType = getStandardTypeForLegacy(activity.activityType);
+  return standardType?.color || "#6366f1"; // Default to indigo
 }
 
 /**
@@ -170,22 +170,22 @@ export function getActivityTypeColor(activity: {
  * @returns Array of mapping information
  */
 export function getLegacyMappingReport(): Array<{
-  legacy: ActivityType
-  standard: string
-  color: string
-  category: string
+  legacy: ActivityType;
+  standard: string;
+  color: string;
+  category: string;
 }> {
   return (Object.keys(LEGACY_TO_STANDARD_MAP) as ActivityType[]).map(
     (legacyType) => {
-      const standardName = LEGACY_TO_STANDARD_MAP[legacyType]
-      const standardType = getStandardTypeByName(standardName)
+      const standardName = LEGACY_TO_STANDARD_MAP[legacyType];
+      const standardType = getStandardTypeByName(standardName);
 
       return {
         legacy: legacyType,
         standard: standardName,
-        color: standardType?.color || '#000000',
-        category: standardType?.category || 'Unknown'
-      }
-    }
-  )
+        color: standardType?.color || "#000000",
+        category: standardType?.category || "Unknown",
+      };
+    },
+  );
 }

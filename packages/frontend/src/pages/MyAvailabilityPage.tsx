@@ -27,7 +27,7 @@ import {
 import { formatPeriodDisplay } from "@/services/availabilityService";
 import { useToast } from "@/hooks/use-toast";
 import { STATUS_BADGES, DEFAULT_SCHEDULE } from "@/lib/availabilityConstants";
-import type { LeaveType, LeaveStatus } from "@stall-bokning/shared";
+import type { LeaveType, LeaveStatus } from "@equiduty/shared";
 
 // Weekday keys in Sunday-first order for translation lookup
 const WEEKDAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;

@@ -16,10 +16,7 @@ import {
   sendSignupInviteEmail,
 } from "../services/emailService.js";
 import { serializeTimestamps } from "../utils/serialization.js";
-import {
-  canInviteMembers,
-  DEFAULT_HOLIDAY_SETTINGS,
-} from "@stall-bokning/shared";
+import { canInviteMembers, DEFAULT_HOLIDAY_SETTINGS } from "@equiduty/shared";
 
 // Zod schemas for validation
 const supportedCountryCodeSchema = z.enum(["SE"]);

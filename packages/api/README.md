@@ -1,6 +1,6 @@
-# Stall Bokning API Gateway
+# EquiDuty API Gateway
 
-Cloud Run API Gateway built with Fastify for the Stall Bokning application.
+Cloud Run API Gateway built with Fastify for the EquiDuty application.
 
 ## 🏗️ Architecture
 
@@ -111,21 +111,21 @@ This starts:
 
 1. **Build the image**:
 ```bash
-podman build -t stall-bokning-api:local .
+podman build -t equiduty-api:local .
 ```
 
 2. **Run the container**:
 ```bash
 podman run -d \
-  --name stall-bokning-api \
+  --name equiduty-api \
   -p 3000:8080 \
   --env-file .env \
-  stall-bokning-api:local
+  equiduty-api:local
 ```
 
 3. **View logs**:
 ```bash
-podman logs -f stall-bokning-api
+podman logs -f equiduty-api
 ```
 
 ## 📁 Project Structure
@@ -233,7 +233,7 @@ podman-compose logs -f api-gateway
 
 **Direct Podman**:
 ```bash
-podman logs -f stall-bokning-api
+podman logs -f equiduty-api
 ```
 
 **Node.js**:
@@ -286,10 +286,10 @@ open http://localhost:5444
 podman rm -f $(podman ps -aq)
 
 # Remove all images
-podman rmi -f stall-bokning-api:local
+podman rmi -f equiduty-api:local
 
 # Rebuild
-podman build -t stall-bokning-api:local .
+podman build -t equiduty-api:local .
 ```
 
 ### Connection Refused Errors
@@ -310,7 +310,7 @@ npm run build
 ### Deploy to Cloud Run
 
 ```bash
-gcloud run deploy stall-bokning-api \
+gcloud run deploy equiduty-api \
   --source . \
   --region europe-north1 \
   --platform managed \

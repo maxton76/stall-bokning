@@ -15,7 +15,7 @@ import type {
   HorseDailyNote,
   DailyAlert,
   UpdateDailyNotesInput,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 export async function dailyNotesRoutes(fastify: FastifyInstance) {
   // ============================================================================

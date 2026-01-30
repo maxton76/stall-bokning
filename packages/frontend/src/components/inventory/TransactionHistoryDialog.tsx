@@ -24,7 +24,7 @@ import type {
   FeedInventory,
   InventoryTransaction,
   InventoryTransactionType,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import { cn, toDate } from "@/lib/utils";
 
 interface TransactionHistoryDialogProps {

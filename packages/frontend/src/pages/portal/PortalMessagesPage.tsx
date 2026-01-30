@@ -43,7 +43,7 @@ import {
   type PortalThreadsResponse,
   type PortalMessagesResponse,
 } from "@/services/portalService";
-import type { PortalThread, PortalMessage } from "@stall-bokning/shared";
+import type { PortalThread, PortalMessage } from "@equiduty/shared";
 import { cn, toDate } from "@/lib/utils";
 
 export default function PortalMessagesPage() {

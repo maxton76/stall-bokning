@@ -1,5 +1,5 @@
-import type { Horse } from "@stall-bokning/shared";
-import type { HealthRecord } from "@stall-bokning/shared";
+import type { Horse } from "@equiduty/shared";
+import type { HealthRecord } from "@equiduty/shared";
 import type { HorseAccessContext, HorseAccessLevel } from "./authorization.js";
 
 /**

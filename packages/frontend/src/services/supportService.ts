@@ -13,7 +13,9 @@ import type {
   TicketConversationResponse,
   ReplyToTicketInput,
   ReplyToTicketResponse,
-} from "@stall-bokning/shared";
+  UpdateTicketStatusInput,
+  UpdateTicketStatusResponse,
+} from "@equiduty/shared";
 
 /**
  * Check if the current user has access to support
@@ -62,6 +64,19 @@ export async function replyToTicket(
 ): Promise<ReplyToTicketResponse> {
   return apiClient.post<ReplyToTicketResponse>(
     `/support/tickets/${ticketId}/reply`,
+    input,
+  );
+}
+
+/**
+ * Update ticket status (close/reopen)
+ */
+export async function updateTicketStatus(
+  ticketId: number,
+  input: UpdateTicketStatusInput,
+): Promise<UpdateTicketStatusResponse> {
+  return apiClient.put<UpdateTicketStatusResponse>(
+    `/support/tickets/${ticketId}/status`,
     input,
   );
 }

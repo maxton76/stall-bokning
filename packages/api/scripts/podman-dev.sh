@@ -1,5 +1,5 @@
 #!/bin/bash
-# Podman development management script for Stall Bokning API
+# Podman development management script for EquiDuty API
 
 set -e
 
@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 
 # Helper functions
 print_header() {
-    echo -e "${BLUE}🐳 Stall Bokning API - Podman Manager${NC}"
+    echo -e "${BLUE}🐳 EquiDuty API - Podman Manager${NC}"
     echo ""
 }
 

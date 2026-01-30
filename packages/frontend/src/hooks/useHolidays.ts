@@ -11,7 +11,7 @@ import {
   type Holiday,
   type HolidayCalendarSettings,
   DEFAULT_HOLIDAY_SETTINGS,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 interface UseHolidaysOptions {
   /** Start date for the holiday range */

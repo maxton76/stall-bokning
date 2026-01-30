@@ -1,4 +1,4 @@
-# Taskfile.yml - stall-bokning Project Tasks
+# Taskfile.yml - EquiDuty Project Tasks
 # https://taskfile.dev
 #
 # Usage:
@@ -23,7 +23,7 @@ vars:
   ENV: '{{.ENV | default "dev"}}'
 
   # GCP Configuration
-  PROJECT_ID: stall-bokning-{{.ENV}}
+  PROJECT_ID: equiduty-{{.ENV}}
   REGION: europe-west1
 
   # Service names
@@ -35,6 +35,7 @@ vars:
   FRONTEND_DIR: '{{.ROOT_DIR}}/packages/frontend'
   API_DIR: '{{.ROOT_DIR}}/packages/api'
   FUNCTIONS_DIR: '{{.ROOT_DIR}}/packages/functions'
+  LANDING_DIR: '{{.ROOT_DIR}}/packages/landing'
   SHARED_DIR: '{{.ROOT_DIR}}/packages/shared'
   TERRAFORM_DIR: '{{.ROOT_DIR}}/terraform'
 
@@ -82,15 +83,26 @@ tasks:
   # ===========================================================================
 
   deploy:frontend:
-    desc: Build and deploy frontend to Firebase Hosting
+    desc: Build and deploy React app to Firebase Hosting (app target)
     dir: '{{.FRONTEND_DIR}}'
-    deps: [env:switch, config:check]
+    deps: [env:switch, config:check, config:sync-frontend-env]
     cmds:
       - echo "Building frontend..."
       - npm run build
-      - echo "Deploying to Firebase Hosting..."
-      - firebase deploy --only hosting --project {{.PROJECT_ID}}
-      - echo "Frontend deployed to {{.ENV}}"
+      - echo "Deploying app to Firebase Hosting..."
+      - firebase deploy --only hosting:app --project {{.PROJECT_ID}}
+      - echo "Frontend app deployed to {{.ENV}}"
+
+  deploy:landing:
+    desc: Build and deploy Astro landing site to Firebase Hosting (landing target)
+    dir: '{{.LANDING_DIR}}'
+    deps: [env:switch, config:sync-landing-env]
+    cmds:
+      - echo "Building landing site..."
+      - npm run build
+      - echo "Deploying landing to Firebase Hosting..."
+      - cd {{.ROOT_DIR}} && firebase deploy --only hosting:landing --project {{.PROJECT_ID}}
+      - echo "Landing site deployed to {{.ENV}}"
 
   deploy:api:
     desc: Deploy API to Cloud Run
@@ -117,24 +129,12 @@ tasks:
       - echo "API deployed to {{.ENV}}"
 
   deploy:functions:
-    desc: Deploy all Cloud Functions
-    deps: [env:switch]
+    desc: Build, upload, and deploy Cloud Functions via Terraform
     cmds:
-      - echo "Deploying all functions..."
-      - defer: bash ./scripts/cleanup-functions-deploy.sh
-      - firebase deploy --only functions --project {{.PROJECT_ID}}
+      - bash ./scripts/build-functions-source.sh {{.ENV}}
+      - echo "Deploying functions via Terraform..."
+      - cd {{.TERRAFORM_DIR}}/environments/{{.ENV}} && terraform apply -target=module.cloud_functions
       - echo "All functions deployed to {{.ENV}}"
-
-  deploy:function:
-    desc: Deploy a specific Cloud Function (NAME=functionName)
-    deps: [env:switch]
-    requires:
-      vars: [NAME]
-    cmds:
-      - echo "Deploying function {{.NAME}}..."
-      - defer: bash ./scripts/cleanup-functions-deploy.sh
-      - firebase deploy --only functions:{{.NAME}} --project {{.PROJECT_ID}}
-      - echo "Function {{.NAME}} deployed to {{.ENV}}"
 
   deploy:firestore:rules:
     desc: Deploy Firestore security rules
@@ -161,13 +161,14 @@ tasks:
       - echo "Storage rules deployed to {{.ENV}}"
 
   deploy:all:
-    desc: Deploy everything (frontend, API, functions, rules)
+    desc: Deploy everything (landing, frontend, API, functions, rules)
     cmds:
       - task: deploy:firestore:rules
       - task: deploy:firestore:indexes
       - task: deploy:storage:rules
       - task: deploy:functions
       - task: deploy:api
+      - task: deploy:landing
       - task: deploy:frontend
       - echo "Full deployment to {{.ENV}} complete!"
 
@@ -262,6 +263,12 @@ tasks:
   # Development Tasks
   # ===========================================================================
 
+  dev:landing:
+    desc: Start landing site dev server
+    dir: '{{.LANDING_DIR}}'
+    cmds:
+      - npm run dev
+
   dev:frontend:
     desc: Start frontend dev server
     dir: '{{.FRONTEND_DIR}}'
@@ -299,9 +306,16 @@ tasks:
     desc: Build all packages
     cmds:
       - task: build:shared
+      - task: build:landing
       - task: build:frontend
       - task: build:api
       - task: build:functions
+
+  build:landing:
+    desc: Build landing site
+    dir: '{{.LANDING_DIR}}'
+    cmds:
+      - npm run build
 
   build:frontend:
     desc: Build frontend
@@ -540,6 +554,14 @@ tasks:
     cmds:
       - gcloud firestore import {{.BACKUP}} --project {{.PROJECT_ID}}
 
+  db:seed:
+    desc: Seed system data (vaccination rules) into Firestore
+    deps: [env:switch]
+    cmds:
+      - echo "Seeding system data into {{.ENV}} ({{.PROJECT_ID}})..."
+      - npx tsx packages/api/src/scripts/seedVaccinationRules.ts {{.ENV}}
+      - echo "Seed complete for {{.ENV}}"
+
   # ===========================================================================
   # Config Tasks (API URL Synchronization)
   # ===========================================================================
@@ -592,6 +614,57 @@ tasks:
           echo "✅ Added VITE_API_URL={{.API_URL}}"
         fi
 
+  config:sync-landing-env:
+    desc: Sync landing site environment variables for current environment
+    cmds:
+      - |
+        case "{{.ENV}}" in
+          dev)
+            APP_URL="https://equiduty-dev-app.web.app"
+            ;;
+          staging)
+            APP_URL="https://equiduty-staging-app.web.app"
+            ;;
+          prod)
+            APP_URL="https://equiduty-prod-app.web.app"
+            ;;
+          *)
+            APP_URL="http://localhost:5173"
+            ;;
+        esac
+        cat > {{.LANDING_DIR}}/.env <<EOF
+        PUBLIC_APP_URL=${APP_URL}
+        PUBLIC_ENVIRONMENT={{.ENV}}
+        EOF
+        echo "Landing .env synced: PUBLIC_APP_URL=${APP_URL}"
+
+  config:sync-frontend-env:
+    desc: Sync frontend environment variables (VITE_LANDING_URL) for current environment
+    cmds:
+      - |
+        case "{{.ENV}}" in
+          dev)
+            LANDING_URL="https://equiduty-dev.web.app"
+            ;;
+          staging)
+            LANDING_URL="https://equiduty-staging.web.app"
+            ;;
+          prod)
+            LANDING_URL="https://equiduty-prod.web.app"
+            ;;
+          *)
+            LANDING_URL="http://localhost:4321"
+            ;;
+        esac
+        if grep -q "^VITE_LANDING_URL=" {{.FRONTEND_DIR}}/.env 2>/dev/null; then
+          sed -i.bak "s|^VITE_LANDING_URL=.*|VITE_LANDING_URL=${LANDING_URL}|" {{.FRONTEND_DIR}}/.env
+          rm -f {{.FRONTEND_DIR}}/.env.bak
+          echo "Updated VITE_LANDING_URL=${LANDING_URL}"
+        else
+          echo "VITE_LANDING_URL=${LANDING_URL}" >> {{.FRONTEND_DIR}}/.env
+          echo "Added VITE_LANDING_URL=${LANDING_URL}"
+        fi
+
   config:show-api-url:
     desc: Show the current Cloud Run API URL
     cmds:
@@ -606,6 +679,7 @@ tasks:
   clean:
     desc: Clean build artifacts
     cmds:
+      - rm -rf packages/landing/dist
       - rm -rf packages/frontend/dist
       - rm -rf packages/api/dist
       - rm -rf packages/functions/lib

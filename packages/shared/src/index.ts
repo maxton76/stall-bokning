@@ -1,4 +1,4 @@
-// Main barrel export for @stall-bokning/shared package
+// Main barrel export for @equiduty/shared package
 
 // Re-export all types
 export * from "./types/index.js";

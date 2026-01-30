@@ -1,6 +1,6 @@
 # Local Development Guide
 
-Complete guide for running the Stall Bokning application locally on macOS.
+Complete guide for running the EquiDuty application locally on macOS.
 
 ## 📋 Prerequisites
 
@@ -79,7 +79,7 @@ This runs everything directly on your machine for fastest hot-reload.
 
 **Terminal 1 - Firebase Emulators:**
 ```bash
-cd /Users/p950xam/Utv/stall-bokning
+cd /Users/p950xam/Utv/equiduty
 firebase emulators:start --only firestore,auth
 ```
 
@@ -100,7 +100,7 @@ npm run dev
 ## 📁 Project Structure
 
 ```
-stall-bokning/
+equiduty/
 ├── packages/
 │   ├── api/                  # Fastify API Gateway (Cloud Run)
 │   │   ├── src/
@@ -134,7 +134,7 @@ stall-bokning/
 ### 1. Clone and Install
 
 ```bash
-cd /Users/p950xam/Utv/stall-bokning
+cd /Users/p950xam/Utv/equiduty
 
 # Install API dependencies
 cd packages/api
@@ -411,7 +411,7 @@ podman-compose up -d --build
 podman logs <container-name>
 
 # Execute command in container
-podman exec -it stall-bokning-api sh
+podman exec -it equiduty-api sh
 ```
 
 ### NPM Scripts

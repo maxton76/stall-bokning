@@ -82,7 +82,11 @@
     "planningWindowCloses": "Planning window closes (hours before)",
     "maxHorsesPerReservation": "Maximum horses per reservation",
     "minSlotDuration": "Minimum time slot duration",
-    "maxHoursPerReservation": "Maximum hours per reservation"
+    "maxDurationPerReservation": "Maximum duration per reservation",
+    "durationUnit": {
+      "hours": "Hours",
+      "days": "Days"
+    }
   },
   "availability": {
     "availableFrom": "Available from",

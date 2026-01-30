@@ -1,9 +1,9 @@
 #!/bin/bash
-# Development startup script for Stall Bokning API
+# Development startup script for EquiDuty API
 
 set -e
 
-echo "🚀 Starting Stall Bokning API Development Environment"
+echo "🚀 Starting EquiDuty API Development Environment"
 echo ""
 
 # Check if Node.js is installed

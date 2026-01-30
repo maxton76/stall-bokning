@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { recordAdjustment } from "@/services/inventoryService";
-import type { FeedInventory } from "@stall-bokning/shared";
+import type { FeedInventory } from "@equiduty/shared";
 
 const adjustmentSchema = z.object({
   newQuantity: z.number().min(0, "Quantity cannot be negative"),

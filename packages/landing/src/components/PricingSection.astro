@@ -1,0 +1,88 @@
+---
+import { useTranslations } from '../i18n';
+
+interface Props {
+  lang?: string;
+}
+
+const { lang = 'sv' } = Astro.props;
+const { t, tArray } = useTranslations(lang);
+const appUrl = import.meta.env.PUBLIC_APP_URL;
+
+const plans = [
+  { key: 'free', highlighted: false, link: `${appUrl}/register` },
+  { key: 'pro', highlighted: true, link: `${appUrl}/register?plan=pro` },
+  { key: 'enterprise', highlighted: false, link: `${appUrl}/contact` },
+];
+---
+
+<section id="pricing" class="py-24 bg-muted/50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl font-bold mb-4">{t('pricing.title')}</h2>
+      <p class="text-muted-foreground">{t('pricing.subtitle')}</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      {plans.map(({ key, highlighted, link }) => {
+        const price = t(`pricing.${key}.price`);
+        const isContactPrice = price.toLowerCase().includes('kontakta') || price.toLowerCase().includes('contact');
+        const badge = t(`pricing.${key}.badge`);
+
+        return (
+          <div class:list={[
+            'rounded-lg border bg-card text-card-foreground shadow-sm',
+            highlighted && 'border-primary shadow-lg relative',
+          ]}>
+            {highlighted && badge && badge !== `pricing.${key}.badge` && (
+              <span class="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-primary text-primary-foreground">
+                {badge}
+              </span>
+            )}
+            <div class="p-6 pt-8">
+              <h3 class="text-lg font-semibold leading-none tracking-tight">
+                {t(`pricing.${key}.name`)}
+              </h3>
+              <p class="text-sm text-muted-foreground mt-2">
+                {t(`pricing.${key}.description`)}
+              </p>
+              <div class="mt-4">
+                {isContactPrice ? (
+                  <span class="text-2xl font-bold">{price}</span>
+                ) : (
+                  <Fragment>
+                    <span class="text-4xl font-bold">{price}</span>
+                    <span class="text-muted-foreground"> SEK{t('pricing.perMonth')}</span>
+                  </Fragment>
+                )}
+              </div>
+            </div>
+            <div class="px-6 pb-6">
+              <ul class="space-y-3 mb-6">
+                {tArray(`pricing.${key}.features`).map((feature) => (
+                  <li class="flex items-center gap-2">
+                    <svg class="h-4 w-4 text-primary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                    <span class="text-sm">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              <a
+                href={link}
+                class:list={[
+                  'inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium w-full transition-colors',
+                  highlighted
+                    ? 'bg-primary text-primary-foreground shadow hover:bg-primary/90'
+                    : 'border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground',
+                ]}
+              >
+                {t(`pricing.${key}.cta`)}
+              </a>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+</section>

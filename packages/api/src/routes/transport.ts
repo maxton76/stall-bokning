@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { canAccessHorse } from "../utils/authorization.js";
-import type { UpdateTransportInstructionsInput } from "@stall-bokning/shared";
+import type { UpdateTransportInstructionsInput } from "@equiduty/shared";
 import type { AuthenticatedRequest } from "../types/index.js";
 
 interface TransportParams {

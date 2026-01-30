@@ -53,8 +53,8 @@ This guide will help you set up a complete development environment for the Stabl
 
 ```bash
 # 1. Clone repo
-git clone https://github.com/your-org/stall-bokning.git
-cd stall-bokning
+git clone https://github.com/your-org/equiduty.git
+cd equiduty
 
 # 2. Install dependencies
 npm install
@@ -89,12 +89,12 @@ npm run dev
 
 ```bash
 # SSH (recommended if you have SSH keys set up)
-git clone git@github.com:your-org/stall-bokning.git
+git clone git@github.com:your-org/equiduty.git
 
 # HTTPS (easier for first-time)
-git clone https://github.com/your-org/stall-bokning.git
+git clone https://github.com/your-org/equiduty.git
 
-cd stall-bokning
+cd equiduty
 ```
 
 **Verify**:
@@ -149,14 +149,14 @@ This will open your browser for authentication.
 1. Go to [console.firebase.google.com](https://console.firebase.google.com/)
 2. Click "Add project"
 3. Create development project:
-   - `stall-bokning-dev` (Development)
+   - `equiduty-dev` (Development)
    - *Note: Staging and production environments are created later as needed*
 
 **Option B: Via CLI**
 
 ```bash
 # Create development project
-firebase projects:create stall-bokning-dev
+firebase projects:create equiduty-dev
 ```
 
 #### 3.3 Initialize Firebase in Project
@@ -167,7 +167,7 @@ firebase init
 
 **Select the following**:
 - **Features**: Firestore, Functions, Hosting, Storage, Emulators
-- **Project**: Use existing project → `stall-bokning-dev`
+- **Project**: Use existing project → `equiduty-dev`
 - **Firestore Rules**: `firestore.rules`
 - **Firestore Indexes**: `firestore.indexes.json`
 - **Functions Language**: TypeScript
@@ -182,7 +182,7 @@ firebase init
 
 ```bash
 # Enable Authentication
-firebase use stall-bokning-dev
+firebase use equiduty-dev
 gcloud services enable identitytoolkit.googleapis.com
 
 # Enable Firestore
@@ -208,21 +208,21 @@ gcloud services enable storage-api.googleapis.com
 **Get OAuth Client ID** (for web app):
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Select your Firebase project (`stall-bokning-dev`)
+2. Select your Firebase project (`equiduty-dev`)
 3. Navigate to **APIs & Services** → **Credentials**
 4. Find the auto-created **Web client (auto created by Google Service)**
 5. Add authorized JavaScript origins:
    - `http://localhost:5173` (Vite dev server)
-   - `https://stall-bokning-dev.web.app` (Firebase Hosting dev)
+   - `https://equiduty-dev.web.app` (Firebase Hosting dev)
 6. Add authorized redirect URIs:
    - `http://localhost:5173/__/auth/handler` (Local development)
-   - `https://stall-bokning-dev.web.app/__/auth/handler` (Firebase Hosting dev)
+   - `https://equiduty-dev.web.app/__/auth/handler` (Firebase Hosting dev)
 
 **Add OAuth Client ID to .env**:
 
 ```bash
 # packages/frontend/.env.development
-VITE_FIREBASE_AUTH_DOMAIN=stall-bokning-dev.firebaseapp.com
+VITE_FIREBASE_AUTH_DOMAIN=equiduty-dev.firebaseapp.com
 VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 ```
 
@@ -249,7 +249,7 @@ gcloud --version
 
 ```bash
 gcloud auth login
-gcloud config set project stall-bokning-dev
+gcloud config set project equiduty-dev
 
 # Enable required APIs
 gcloud services enable run.googleapis.com
@@ -310,7 +310,7 @@ firebase apps:sdkconfig web
 ```bash
 VITE_FIREBASE_API_KEY=your-api-key
 VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=stall-bokning-dev
+VITE_FIREBASE_PROJECT_ID=equiduty-dev
 VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
 VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
@@ -322,7 +322,7 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
 ```bash
 NODE_ENV=development
 PORT=8080
-FIREBASE_PROJECT_ID=stall-bokning-dev
+FIREBASE_PROJECT_ID=equiduty-dev
 FIREBASE_SERVICE_ACCOUNT=./service-account-dev.json
 
 # External APIs
@@ -348,12 +348,12 @@ TWILIO_AUTH_TOKEN=...
 
 ```bash
 # Via gcloud
-gcloud iam service-accounts create stall-bokning-dev \
-  --display-name="Stall Bokning Dev Service Account"
+gcloud iam service-accounts create equiduty-dev \
+  --display-name="EquiDuty Dev Service Account"
 
 # Grant roles
-gcloud projects add-iam-policy-binding stall-bokning-dev \
-  --member="serviceAccount:stall-bokning-dev@stall-bokning-dev.iam.gserviceaccount.com" \
+gcloud projects add-iam-policy-binding equiduty-dev \
+  --member="serviceAccount:equiduty-dev@equiduty-dev.iam.gserviceaccount.com" \
   --role="roles/firebase.admin"
 ```
 
@@ -361,7 +361,7 @@ gcloud projects add-iam-policy-binding stall-bokning-dev \
 
 ```bash
 gcloud iam service-accounts keys create ./packages/api/service-account-dev.json \
-  --iam-account=stall-bokning-dev@stall-bokning-dev.iam.gserviceaccount.com
+  --iam-account=equiduty-dev@equiduty-dev.iam.gserviceaccount.com
 
 # IMPORTANT: Add to .gitignore
 echo "service-account-*.json" >> .gitignore
@@ -685,7 +685,7 @@ stripe listen --forward-to localhost:8080/api/v1/webhooks/stripe
 firebase projects:list
 
 # Ensure using dev project
-firebase use stall-bokning-dev
+firebase use equiduty-dev
 
 # Deploy specific service
 firebase deploy --only hosting

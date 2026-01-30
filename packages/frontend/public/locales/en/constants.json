@@ -72,9 +72,7 @@
   },
   "activityTypes": {
     "dentist": "Dentist",
-    "deworm": "Deworm",
     "farrier": "Farrier",
-    "influenza": "Influenza",
     "rhino": "Rhino",
     "vet": "Vet",
     "veterinarian": "Veterinarian",

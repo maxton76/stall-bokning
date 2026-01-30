@@ -78,6 +78,12 @@ variable "cors_origins" {
   default     = ["http://localhost:5555"]
 }
 
+variable "create_storage_bucket" {
+  description = "Whether to create the Firebase Storage bucket via Terraform (set false if Firebase manages it)"
+  type        = bool
+  default     = false
+}
+
 # =============================================================================
 # Hosting Configuration
 # =============================================================================

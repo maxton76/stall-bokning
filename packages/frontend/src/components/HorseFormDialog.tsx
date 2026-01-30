@@ -23,7 +23,7 @@ import {
 import { ChevronDown, Bell } from "lucide-react";
 import { EquipmentListEditor } from "@/components/EquipmentListEditor";
 import { CategoryInstructionsDropdown } from "@/components/CategoryInstructionsDropdown";
-import type { EquipmentItem } from "@stall-bokning/shared";
+import type { EquipmentItem } from "@equiduty/shared";
 import type { RoutineCategory } from "@shared/types";
 import type { Horse, HorseColor, HorseGroup } from "@/types/roles";
 import {
@@ -82,7 +82,10 @@ const horseSchema = z
     sire: z.string().optional(),
     dam: z.string().optional(),
     damsire: z.string().optional(),
-    withersHeight: z.number().min(0).optional(),
+    withersHeight: z.preprocess(
+      (val) => (val === "" || val === undefined ? undefined : Number(val)),
+      z.number().min(0).optional(),
+    ),
     dateOfBirth: z.preprocess(
       (val) => (val === "" ? undefined : val),
       z.coerce.date().optional(),

@@ -1,6 +1,6 @@
-# Stall-Bokning Documentation
+# EquiDuty Documentation
 
-Comprehensive documentation for the Stall-Bokning project - a modern SaaS platform for stable owners and guests to manage and fairly distribute daily chores.
+Comprehensive documentation for the EquiDuty project - a modern SaaS platform for stable owners and guests to manage and fairly distribute daily chores.
 
 ---
 

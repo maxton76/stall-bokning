@@ -10,7 +10,7 @@ import { logger } from "firebase-functions";
 import * as crypto from "crypto";
 
 import { db, Timestamp } from "../lib/firebase.js";
-import { formatErrorMessage } from "@stall-bokning/shared";
+import { formatErrorMessage } from "@equiduty/shared";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -135,7 +135,7 @@ ${shiftList}
 View the full schedule: ${actionUrl}
 
 Best regards,
-Stallbokning`,
+EquiDuty`,
     };
   }
 
@@ -152,7 +152,7 @@ ${shiftList}
 Se hela schemat: ${actionUrl}
 
 Med vänliga hälsningar,
-Stallbokning`,
+EquiDuty`,
   };
 }
 
@@ -203,7 +203,7 @@ async function createUserNotification(
   const { userId, email, shifts } = userSummary;
 
   // Generate action URL
-  const baseUrl = process.env.FRONTEND_URL || "https://app.stallbokning.se";
+  const baseUrl = process.env.FRONTEND_URL || "https://app.equiduty.se";
   const actionUrl = `${baseUrl}/schedules/${scheduleId}`;
 
   // Build email content

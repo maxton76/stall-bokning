@@ -29,8 +29,8 @@ import {
   RRULE_DAYS,
   RECURRING_ACTIVITY_CATEGORIES,
   type RecurrencePreset,
-} from "@stall-bokning/shared";
-import type { RecurringActivityCategory } from "@stall-bokning/shared";
+} from "@equiduty/shared";
+import type { RecurringActivityCategory } from "@equiduty/shared";
 
 interface RecurrencePickerProps {
   value: {

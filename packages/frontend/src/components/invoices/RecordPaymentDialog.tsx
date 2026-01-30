@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { recordPayment, formatCurrency } from "@/services/invoiceService";
-import type { Invoice, PaymentMethod } from "@stall-bokning/shared";
+import type { Invoice, PaymentMethod } from "@equiduty/shared";
 import { cn } from "@/lib/utils";
 
 const PAYMENT_METHODS: PaymentMethod[] = [

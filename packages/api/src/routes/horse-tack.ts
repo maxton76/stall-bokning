@@ -5,7 +5,7 @@ import type {
   TackItem,
   CreateTackItemInput,
   UpdateTackItemInput,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import type { AuthenticatedRequest } from "../types/index.js";
 
 interface TackParams {

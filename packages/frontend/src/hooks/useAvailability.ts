@@ -20,7 +20,7 @@ import type {
   WorkScheduleDisplay,
   TimeBalanceDisplay,
   DaySchedule,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 // ============================================================================
 // USER HOOKS

@@ -34,12 +34,12 @@ import {
 } from "date-fns";
 import { sv, enUS } from "date-fns/locale";
 import { authFetch } from "@/lib/authFetch";
-import { toDate } from "@stall-bokning/shared";
+import { toDate } from "@equiduty/shared";
 import type {
   CommunicationRecord,
   CommunicationType,
   CommunicationDirection,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import {
   getCommunicationIcon,
   getCommunicationColor,

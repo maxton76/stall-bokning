@@ -39,7 +39,7 @@ import { queryKeys } from "@/lib/queryClient";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { getStaffAvailabilityMatrix } from "@/services/availabilityService";
 import { StaffMatrixGrid } from "@/components/availability/StaffMatrixGrid";
-import type { StaffAvailabilityMatrix } from "@stall-bokning/shared";
+import type { StaffAvailabilityMatrix } from "@equiduty/shared";
 import { cn } from "@/lib/utils";
 
 type DateRangePreset = "thisWeek" | "nextWeek" | "twoWeeks" | "thisMonth";

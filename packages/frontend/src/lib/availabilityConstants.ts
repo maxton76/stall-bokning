@@ -5,11 +5,7 @@
  * This prevents duplication across components and pages.
  */
 
-import type {
-  LeaveType,
-  LeaveStatus,
-  DaySchedule,
-} from "@stall-bokning/shared";
+import type { LeaveType, LeaveStatus, DaySchedule } from "@equiduty/shared";
 
 /**
  * Human-readable labels for leave request types

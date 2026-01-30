@@ -33,7 +33,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import type { Instructor } from "@stall-bokning/shared";
+import type { Instructor } from "@equiduty/shared";
 import type { CreateInstructorData } from "@/services/lessonService";
 
 const instructorSchema = z.object({

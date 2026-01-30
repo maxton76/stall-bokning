@@ -10,7 +10,7 @@ import {
   parseShiftStartTime,
   createDateThreshold,
   holidayService,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import {
   createTrackingContext,
   updateMemberTracking,

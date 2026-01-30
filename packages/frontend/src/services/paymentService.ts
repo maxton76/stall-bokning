@@ -9,7 +9,7 @@ import type {
   CreateCheckoutSessionData,
   CreatePaymentIntentData,
   CreateRefundData,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 // ============================================
 // Types

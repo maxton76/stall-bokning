@@ -25,11 +25,11 @@ import type { AuthenticatedRequest } from "../types/index.js";
 import type {
   CommunicationRecord,
   CommunicationTemplate,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import {
   extractTemplateVariables,
   substituteTemplateVariables,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import {
   createCommunicationSchema,
   updateCommunicationSchema,

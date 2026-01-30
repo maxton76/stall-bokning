@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2 } from "lucide-react";
-import type { EquipmentItem } from "@stall-bokning/shared";
+import type { EquipmentItem } from "@equiduty/shared";
 
 interface EquipmentListEditorProps {
   value: EquipmentItem[];

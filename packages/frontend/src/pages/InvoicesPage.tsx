@@ -63,7 +63,7 @@ import {
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { RecordPaymentDialog } from "@/components/invoices/RecordPaymentDialog";
 import { InvoiceDetailDialog } from "@/components/invoices/InvoiceDetailDialog";
-import type { Invoice, InvoiceStatus } from "@stall-bokning/shared";
+import type { Invoice, InvoiceStatus } from "@equiduty/shared";
 import { cn, toDate } from "@/lib/utils";
 
 const STATUS_OPTIONS: InvoiceStatus[] = [

@@ -34,7 +34,7 @@ import type {
   ReplyToTicketResponse,
   UpdateTicketStatusResponse,
   SupportTicketComment,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 /**
  * Paid subscription tiers that have access to support

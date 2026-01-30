@@ -2,7 +2,7 @@
 
 ## Overview
 
-The StallBokning system implements a comprehensive role-based access control (RBAC) system with:
+The EquiDuty system implements a comprehensive role-based access control (RBAC) system with:
 
 1. **System Roles** - Platform-wide permissions via Firebase custom claims
 2. **Organization Roles** - Professional roles within organizations (10 specialized roles)

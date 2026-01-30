@@ -6,7 +6,7 @@ import type {
   RecordPaymentData,
   PaymentMethod,
   ContactInvoiceSummary,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import { apiClient } from "@/lib/apiClient";
 
 // ============================================================================

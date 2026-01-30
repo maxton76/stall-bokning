@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { AdminUserDetail } from "@stall-bokning/shared";
+import type { AdminUserDetail } from "@equiduty/shared";
 import { getUser, updateUser } from "@/services/adminService";
 
 function UserDetailSkeleton() {

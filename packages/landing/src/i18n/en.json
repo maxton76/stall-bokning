@@ -1,0 +1,214 @@
+{
+  "navigation": {
+    "features": "Features",
+    "modules": "Modules",
+    "pricing": "Pricing",
+    "documentation": "Documentation",
+    "login": "Log in",
+    "register": "Get Started"
+  },
+  "hero": {
+    "badge": "Smart Stable Management",
+    "badgeDescription": "Fair task distribution with weight-based system",
+    "title": "Smart scheduling for",
+    "titleHighlight": "fair task distribution",
+    "description": "A modern SaaS platform for stables that automates scheduling and ensures fair distribution of daily chores through an intelligent, weight-based booking system.",
+    "cta": "Get started for free",
+    "ctaSecondary": "See how it works"
+  },
+  "features": {
+    "title": "Powerful features for your stable",
+    "subtitle": "Everything you need for efficient stable management and fair task distribution",
+    "fairness": {
+      "title": "Fair task distribution",
+      "description": "Our weight-based system ensures everyone contributes equally over time. Each task has a weight based on time and effort.",
+      "features": ["Weight-based algorithm", "Automatic balancing", "Monthly resets"]
+    },
+    "automation": {
+      "title": "Automated scheduling",
+      "description": "Smart suggestions based on user availability and workload distribution. Saves time and reduces conflicts.",
+      "features": ["Intelligent suggestions", "Collision handling", "Availability integration"]
+    },
+    "notifications": {
+      "title": "Smart reminders",
+      "description": "Keep everyone updated with notifications via email, SMS, Telegram, and push notifications.",
+      "features": ["Email & SMS", "Telegram bot", "Push notifications"]
+    },
+    "mobile": {
+      "title": "Mobile-friendly PWA",
+      "description": "Works perfectly on all devices. Install as an app and use offline.",
+      "features": ["Responsive design", "Offline support", "Installable app"]
+    },
+    "analytics": {
+      "title": "Statistics & reports",
+      "description": "Track task distribution with detailed reports and fairness index.",
+      "features": ["Fairness index", "Trend analysis", "Exportable data"]
+    },
+    "security": {
+      "title": "Secure & reliable",
+      "description": "Role-based access control and secure data handling. GDPR compliant.",
+      "features": ["Role-based access", "Encrypted data", "GDPR compliant"]
+    }
+  },
+  "modules": {
+    "title": "Complete modules for stable management",
+    "subtitle": "From scheduling to horse health - everything in one system",
+    "shifts": {
+      "title": "Shift management",
+      "description": "Manage shifts and work schedules with weight-based distribution for fairness.",
+      "features": ["Weight-based distribution", "Shift swaps", "Availability management", "Automatic reminders"]
+    },
+    "horses": {
+      "title": "Horse management",
+      "description": "Complete horse registry with health logs, vaccinations, and documentation.",
+      "features": ["Horse profiles", "Vaccination schedule", "Health history", "Document management"]
+    },
+    "feeding": {
+      "title": "Feeding management",
+      "description": "Individual feeding plans and schedules for each horse.",
+      "features": ["Feeding plans", "Scheduling", "Allergies & restrictions", "Inventory management"]
+    },
+    "activities": {
+      "title": "Activity planning",
+      "description": "Plan and track daily activities and care routines.",
+      "features": ["Activity log", "Routine schedules", "Follow-up", "History"]
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Flexible notifications via multiple channels based on user preferences.",
+      "features": ["Email & SMS", "Telegram integration", "Push notifications", "Customizable preferences"]
+    },
+    "organizations": {
+      "title": "Organization management",
+      "description": "Manage multiple stables, teams, and roles in a hierarchical structure.",
+      "features": ["Multiple stables", "Role management", "Team invitations", "Permission levels"]
+    },
+    "reporting": {
+      "title": "Reporting & analytics",
+      "description": "Comprehensive reports to track task distribution and trends.",
+      "features": ["Fairness index", "Task distribution", "Trend analysis", "Export function"]
+    },
+    "assistant": {
+      "title": "AI assistant",
+      "description": "Natural language to quickly find information and get smart suggestions.",
+      "features": ["Natural language", "Smart suggestions", "Quick search", "Context-aware"]
+    }
+  },
+  "documentation": {
+    "title": "Documentation & guides",
+    "subtitle": "Learn how to get the most out of StableBook",
+    "gettingStarted": {
+      "title": "Getting started",
+      "description": "Step-by-step guide to set up your stable and invite members.",
+      "link": "Read the guide"
+    },
+    "fairnessAlgorithm": {
+      "title": "The fairness system",
+      "description": "Understand how our weight-based algorithm ensures fair task distribution.",
+      "link": "Learn more"
+    },
+    "scheduling": {
+      "title": "Scheduling",
+      "description": "Complete guide to managing schedules, shifts, and availability.",
+      "link": "Read the guide"
+    }
+  },
+  "testimonials": {
+    "title": "What our customers say",
+    "subtitle": "Stables across Sweden use StableBook for their daily operations",
+    "testimonial1": {
+      "title": "Finally fair!",
+      "content": "We always had problems with some people doing more than others. Now everything is transparent and fair. The system automatically suggests who should take the next shift based on workload.",
+      "author": "Anna Lindqvist",
+      "role": "Stable owner, Ängsdalen Riding Club"
+    },
+    "testimonial2": {
+      "title": "Saves so much time",
+      "content": "I used to spend hours coordinating schedules via group chat. Now everything runs automatically and everyone gets reminders in time.",
+      "author": "Erik Johansson",
+      "role": "Stable manager, Hästgården"
+    },
+    "testimonial3": {
+      "title": "Perfect for us",
+      "content": "With 15 horses and 20 active members, it was chaos before. Now we have full control and everyone knows exactly what to do and when.",
+      "author": "Maria Svensson",
+      "role": "Operations manager, Skogsgläntan"
+    }
+  },
+  "pricing": {
+    "title": "Choose the right plan for your stable",
+    "subtitle": "Start free and upgrade as you grow",
+    "monthly": "month",
+    "perMonth": "/month",
+    "free": {
+      "name": "Free",
+      "description": "Perfect for small stables wanting to try the system",
+      "price": "0",
+      "cta": "Get started for free",
+      "features": [
+        "Up to 5 users",
+        "Basic scheduling",
+        "Email notifications",
+        "1 stable"
+      ]
+    },
+    "pro": {
+      "name": "Pro",
+      "badge": "Most popular",
+      "description": "For growing stables with more needs",
+      "price": "299",
+      "cta": "Try free for 14 days",
+      "features": [
+        "Up to 25 users",
+        "All notification channels",
+        "Horse management",
+        "Reports & analytics",
+        "Priority support",
+        "Up to 3 stables"
+      ]
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "description": "For large facilities and riding clubs",
+      "price": "Contact us",
+      "cta": "Contact sales",
+      "features": [
+        "Unlimited users",
+        "API access",
+        "Dedicated support",
+        "Custom integrations",
+        "SLA guarantee",
+        "Unlimited stables"
+      ]
+    }
+  },
+  "cta": {
+    "title": "Ready to simplify stable work?",
+    "description": "Join thousands of stables already using StableBook for fair and efficient task distribution.",
+    "button": "Get started for free",
+    "noCreditCard": "No credit card required"
+  },
+  "footer": {
+    "description": "Smart scheduling for stables with fair task distribution.",
+    "product": {
+      "title": "Product",
+      "features": "Features",
+      "pricing": "Pricing",
+      "documentation": "Documentation"
+    },
+    "company": {
+      "title": "Company",
+      "about": "About us",
+      "contact": "Contact",
+      "privacy": "Privacy policy",
+      "terms": "Terms of service"
+    },
+    "support": {
+      "title": "Support",
+      "help": "Help center",
+      "guides": "Guides",
+      "api": "API documentation"
+    },
+    "copyright": "StableBook. All rights reserved."
+  }
+}

@@ -6,6 +6,14 @@ import { useFormDialog } from "@/hooks/useFormDialog";
 import { FormInput, FormSelect, FormTextarea } from "@/components/form";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import type {
   Facility,
   FacilityType,
@@ -54,6 +62,7 @@ type FacilityFormData = {
   maxHorsesPerReservation: number;
   minTimeSlotDuration: TimeSlotDuration;
   maxHoursPerReservation: number;
+  maxDurationUnit: "hours" | "days";
   availableFrom: string;
   availableTo: string;
   daysAvailable: {
@@ -152,7 +161,8 @@ export function FacilityFormDialog({
         minTimeSlotDuration: z
           .enum(["15", "30", "60"])
           .transform((val) => parseInt(val, 10) as TimeSlotDuration),
-        maxHoursPerReservation: z.coerce.number().min(1).max(24),
+        maxHoursPerReservation: z.coerce.number().min(1).max(720),
+        maxDurationUnit: z.enum(["hours", "days"]),
         availableFrom: z
           .string()
           .regex(
@@ -190,6 +200,7 @@ export function FacilityFormDialog({
       maxHorsesPerReservation: 1,
       minTimeSlotDuration: 30 as 15 | 30 | 60,
       maxHoursPerReservation: 2,
+      maxDurationUnit: "hours",
       availableFrom: "08:00",
       availableTo: "20:00",
       daysAvailable: {
@@ -203,7 +214,15 @@ export function FacilityFormDialog({
       },
     },
     onSubmit: async (data) => {
-      await onSave(data);
+      const { maxDurationUnit, ...rest } = data;
+      const submitData = {
+        ...rest,
+        maxHoursPerReservation:
+          maxDurationUnit === "days"
+            ? rest.maxHoursPerReservation * 24
+            : rest.maxHoursPerReservation,
+      };
+      await onSave(submitData as FacilityFormData);
     },
     onSuccess: () => {
       onOpenChange(false);
@@ -221,6 +240,8 @@ export function FacilityFormDialog({
   // Reset form when dialog opens with facility data
   useEffect(() => {
     if (facility) {
+      const hours = facility.maxHoursPerReservation;
+      const useDays = hours >= 24 && hours % 24 === 0;
       resetForm({
         name: facility.name,
         type: facility.type,
@@ -230,7 +251,8 @@ export function FacilityFormDialog({
         planningWindowCloses: facility.planningWindowCloses,
         maxHorsesPerReservation: facility.maxHorsesPerReservation,
         minTimeSlotDuration: facility.minTimeSlotDuration as 15 | 30 | 60,
-        maxHoursPerReservation: facility.maxHoursPerReservation,
+        maxHoursPerReservation: useDays ? hours / 24 : hours,
+        maxDurationUnit: useDays ? "days" : "hours",
         availableFrom: facility.availableFrom,
         availableTo: facility.availableTo,
         daysAvailable: facility.daysAvailable,
@@ -343,13 +365,56 @@ export function FacilityFormDialog({
           options={timeSlotOptions}
         />
 
-        <FormInput
-          name="maxHoursPerReservation"
-          label={t("bookingRules.maxHoursPerReservation")}
-          form={form}
-          type="number"
-          placeholder="2"
-        />
+        <div className="space-y-2">
+          <Label>{t("bookingRules.maxDurationPerReservation")}</Label>
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              min={1}
+              className="flex-1"
+              placeholder="2"
+              {...form.register("maxHoursPerReservation", {
+                valueAsNumber: true,
+              })}
+            />
+            <Select
+              value={form.watch("maxDurationUnit")}
+              onValueChange={(value: "hours" | "days") => {
+                const currentValue = form.getValues("maxHoursPerReservation");
+                const currentUnit = form.getValues("maxDurationUnit");
+                if (currentUnit === "hours" && value === "days") {
+                  // Convert hours to days if evenly divisible, otherwise reset
+                  form.setValue(
+                    "maxHoursPerReservation",
+                    currentValue >= 24 && currentValue % 24 === 0
+                      ? currentValue / 24
+                      : 1,
+                  );
+                } else if (currentUnit === "days" && value === "hours") {
+                  form.setValue("maxHoursPerReservation", currentValue * 24);
+                }
+                form.setValue("maxDurationUnit", value);
+              }}
+            >
+              <SelectTrigger className="w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="hours">
+                  {t("bookingRules.durationUnit.hours")}
+                </SelectItem>
+                <SelectItem value="days">
+                  {t("bookingRules.durationUnit.days")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {form.formState.errors.maxHoursPerReservation && (
+            <p className="text-sm text-destructive">
+              {form.formState.errors.maxHoursPerReservation.message}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Section 3: Availability */}

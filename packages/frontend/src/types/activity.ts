@@ -5,7 +5,6 @@ export type ActivityType =
   | "dentist"
   | "farrier"
   | "vet"
-  | "deworm"
   | "vaccination"
   | "chiropractic"
   | "massage"
@@ -172,7 +171,6 @@ export const ACTIVITY_TYPES = [
   { value: "dentist" as const, label: "Dentist", icon: "🦷", isCare: true },
   { value: "farrier" as const, label: "Farrier", icon: "🔨", isCare: true },
   { value: "vet" as const, label: "Veterinarian", icon: "🏥", isCare: true },
-  { value: "deworm" as const, label: "Deworming", icon: "💊", isCare: true },
   {
     value: "vaccination" as const,
     label: "Vaccination",

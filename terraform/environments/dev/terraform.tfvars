@@ -8,7 +8,7 @@
 # Core Configuration
 # =============================================================================
 
-project_id  = "stall-bokning-dev"
+project_id  = "equiduty-dev"
 region      = "europe-west1"
 environment = "dev"
 
@@ -16,8 +16,8 @@ environment = "dev"
 # Cloud Run Configuration
 # =============================================================================
 
-# Initial placeholder image - will be updated by CI/CD
-cloud_run_container_image = "gcr.io/cloudrun/placeholder"
+# Container image - updated by deploy:api task
+cloud_run_container_image = "gcr.io/equiduty-dev/api-service:latest"
 
 # Dev environment: scale to zero, limited max instances
 cloud_run_min_instances = 0
@@ -32,7 +32,7 @@ cloud_run_cpu           = "1"
 functions_max_instances = 10
 
 # Source bucket/object will be set when deploying functions
-# functions_source_bucket = "stall-bokning-dev-functions-source"
+# functions_source_bucket = "equiduty-dev-functions-source"
 # functions_source_object = "functions-v1.0.0.zip"
 
 # =============================================================================
@@ -61,8 +61,10 @@ github_repository        = ""
 cors_origins = [
   "http://localhost:5555",
   "http://localhost:5173",
-  "https://stall-bokning-dev.web.app",
-  "https://stall-bokning-dev.firebaseapp.com"
+  "https://equiduty-dev.web.app",
+  "https://equiduty-dev.firebaseapp.com",
+  "https://equiduty-dev-app.web.app",
+  "https://equiduty-dev-app.firebaseapp.com"
 ]
 
 # =============================================================================

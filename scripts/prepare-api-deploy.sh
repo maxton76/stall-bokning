@@ -13,7 +13,7 @@ echo "Preparing API for deployment..."
 # Build shared package if dist doesn't exist or is stale
 if [ ! -d "$SHARED_DIR/dist" ] || [ "$SHARED_DIR/src" -nt "$SHARED_DIR/dist" ]; then
     echo "Building shared package..."
-    npm run build --workspace=@stall-bokning/shared
+    npm run build --workspace=@equiduty/shared
 fi
 
 # Remove old shared directory in API if exists

@@ -31,14 +31,14 @@ import type {
   ModuleFlags,
   SubscriptionLimits,
   SubscriptionAddons,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import {
   MODULE_LABELS,
   LIMIT_LABELS,
   ADDON_LABELS,
   DEFAULT_TIER_DEFINITIONS,
   SUBSCRIPTION_TIERS,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import {
   getOrganization,
   updateOrganizationSubscription,

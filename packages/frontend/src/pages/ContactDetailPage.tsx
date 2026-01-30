@@ -41,7 +41,7 @@ import { useApiQuery } from "@/hooks/useApiQuery";
 import { useDialog } from "@/hooks/useDialog";
 import { queryKeys } from "@/lib/queryClient";
 import { getContact } from "@/services/contactService";
-import type { Contact, ContactBadge } from "@stall-bokning/shared";
+import type { Contact, ContactBadge } from "@equiduty/shared";
 
 function ContactBadgeDisplay({ badge }: { badge?: ContactBadge }) {
   const { t } = useTranslation("contacts");

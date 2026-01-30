@@ -44,7 +44,7 @@ import {
 } from "@/services/feedAnalyticsService";
 import { FeedingCostChart } from "@/components/feeding/FeedingCostChart";
 import { FeedConsumptionTable } from "@/components/feeding/FeedConsumptionTable";
-import type { FeedAnalytics } from "@stall-bokning/shared";
+import type { FeedAnalytics } from "@equiduty/shared";
 import { cn } from "@/lib/utils";
 
 function SummaryCard({

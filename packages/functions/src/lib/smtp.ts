@@ -12,7 +12,7 @@ import { logger } from "firebase-functions";
 // SMTP Configuration from environment variables
 const SMTP_HOST = process.env.EMAIL_SMTP_SERVER || "send.one.com";
 const SMTP_PORT = parseInt(process.env.EMAIL_SMTP_PORT || "587", 10);
-const SMTP_USER = process.env.EMAIL_SMTP_USER || "info@stallbokning.se";
+const SMTP_USER = process.env.EMAIL_SMTP_USER || "info@equiduty.se";
 const SMTP_SECURE = process.env.EMAIL_SMTP_SECURE === "true"; // true for port 465
 
 // Secret Manager client
@@ -210,7 +210,7 @@ export async function sendViaSMTP(
     }
 
     // Format the from address
-    const defaultFrom = `"Stallbokning" <${SMTP_USER}>`;
+    const defaultFrom = `"EquiDuty" <${SMTP_USER}>`;
     let fromAddress: string;
 
     if (!emailData.from) {

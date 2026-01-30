@@ -1,6 +1,6 @@
 import * as organizationRepository from "../repositories/organizationRepository.js";
 import * as memberRepository from "../repositories/memberRepository.js";
-import type { OrganizationRole } from "@stall-bokning/shared/types/organization";
+import type { OrganizationRole } from "@equiduty/shared/types/organization";
 
 /**
  * Organization Service

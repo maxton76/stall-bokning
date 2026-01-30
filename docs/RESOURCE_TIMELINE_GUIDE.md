@@ -807,7 +807,7 @@ interface FacilityReservation {
 
 ## License
 
-This component is part of the Stall-Bokning project and follows the same license.
+This component is part of the EquiDuty project and follows the same license.
 
 ---
 

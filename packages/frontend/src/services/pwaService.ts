@@ -445,7 +445,7 @@ export async function storeOfflineData<T>(
   data: T,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("stallbokning-offline", 1);
+    const request = indexedDB.open("equiduty-offline", 1);
 
     request.onerror = () => reject(request.error);
 
@@ -475,7 +475,7 @@ export async function storeOfflineData<T>(
  */
 export async function getOfflineData<T>(storeName: string): Promise<T[]> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("stallbokning-offline", 1);
+    const request = indexedDB.open("equiduty-offline", 1);
 
     request.onerror = () => reject(request.error);
 

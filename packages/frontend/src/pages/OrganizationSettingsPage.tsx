@@ -39,11 +39,8 @@ import {
   upgradeOrganization,
 } from "@/services/organizationService";
 import { useToast } from "@/hooks/use-toast";
-import type {
-  Organization,
-  HolidayCalendarSettings,
-} from "@stall-bokning/shared";
-import { DEFAULT_HOLIDAY_SETTINGS } from "@stall-bokning/shared";
+import type { Organization, HolidayCalendarSettings } from "@equiduty/shared";
+import { DEFAULT_HOLIDAY_SETTINGS } from "@equiduty/shared";
 import { HolidaySettingsTab } from "@/components/settings";
 
 const organizationSettingsSchema = z.object({

@@ -31,7 +31,7 @@ import {
   formatCurrency,
   getInvoiceStatusVariant,
 } from "@/services/portalService";
-import type { PortalDashboardData } from "@stall-bokning/shared";
+import type { PortalDashboardData } from "@equiduty/shared";
 import { cn } from "@/lib/utils";
 
 export default function PortalDashboard() {

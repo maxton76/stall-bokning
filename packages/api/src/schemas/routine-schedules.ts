@@ -1,7 +1,7 @@
 /**
  * Routine Schedule Schemas - Re-export from shared package
  *
- * This file re-exports schemas from @stall-bokning/shared for backward compatibility.
+ * This file re-exports schemas from @equiduty/shared for backward compatibility.
  * All schema definitions are now maintained in the shared package.
  */
 
@@ -21,9 +21,9 @@ export {
   updateRoutineScheduleSchema,
   listRoutineSchedulesQuerySchema,
   toggleRoutineScheduleSchema,
-} from "@stall-bokning/shared/schemas";
+} from "@equiduty/shared/schemas";
 
-// Types from @stall-bokning/shared/types
+// Types from @equiduty/shared/types
 export type {
   // Core types
   RoutineSchedule,
@@ -36,4 +36,4 @@ export type {
 
   // Query types
   ListRoutineSchedulesQuery,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";

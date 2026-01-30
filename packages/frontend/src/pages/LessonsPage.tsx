@@ -53,7 +53,7 @@ import { LessonDetailDialog } from "@/components/lessons/LessonDetailDialog";
 import { LessonTypesTab } from "@/components/lessons/LessonTypesTab";
 import { InstructorsTab } from "@/components/lessons/InstructorsTab";
 import { ScheduleTemplatesTab } from "@/components/lessons/ScheduleTemplatesTab";
-import type { Lesson, LessonType, Instructor } from "@stall-bokning/shared";
+import type { Lesson, LessonType, Instructor } from "@equiduty/shared";
 
 export default function LessonsPage() {
   const { t, i18n } = useTranslation(["lessons", "common"]);

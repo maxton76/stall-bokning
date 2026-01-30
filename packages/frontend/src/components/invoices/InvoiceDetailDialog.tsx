@@ -30,7 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCurrency, getStatusColor } from "@/services/invoiceService";
-import type { Invoice } from "@stall-bokning/shared";
+import type { Invoice } from "@equiduty/shared";
 
 interface InvoiceDetailDialogProps {
   open: boolean;

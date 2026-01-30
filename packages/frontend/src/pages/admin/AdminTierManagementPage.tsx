@@ -23,13 +23,13 @@ import type {
   ModuleFlags,
   SubscriptionLimits,
   SubscriptionAddons,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import {
   MODULE_LABELS,
   LIMIT_LABELS,
   ADDON_LABELS,
   SUBSCRIPTION_TIERS,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import {
   getTierDefinitions,
   updateTierDefinition,

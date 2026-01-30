@@ -11,7 +11,7 @@ import type {
   UserPreferences,
   UpdateUserPreferencesInput,
   UserPreferencesResponse,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 /**
  * Get user preferences

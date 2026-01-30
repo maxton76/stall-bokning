@@ -1722,7 +1722,7 @@ const fairnessIndex = Math.max(0, 100 - (stdDev / mean) * 100);
 ## 🔄 Data Migration Strategy
 
 ### Phase 1: Initial Setup
-1. Create Firebase development project (`stall-bokning-dev`)
+1. Create Firebase development project (`equiduty-dev`)
 2. Deploy initial Firestore Security Rules
 3. Create composite indexes via `firestore.indexes.json`
 4. Seed test data for development
@@ -1748,7 +1748,7 @@ const fairnessIndex = Math.max(0, 100 - (stdDev / mean) * 100);
 ### Automated Backups
 ```bash
 # Daily export to Cloud Storage
-gcloud firestore export gs://stall-bokning-backups/$(date +%Y-%m-%d)
+gcloud firestore export gs://equiduty-backups/$(date +%Y-%m-%d)
 
 # Retention: 30 days
 ```

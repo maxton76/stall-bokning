@@ -39,13 +39,13 @@ export interface CreateActivityTypeData {
 }
 
 /**
- * 16 standard activity types organized by category
+ * 14 standard activity types organized by category
  * Care: Healthcare and maintenance activities
  * Sport: Training and competition activities
  * Breeding: Reproduction-related activities
  */
 export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
-  // === Care Category (sortOrder 1-6) ===
+  // === Care Category (sortOrder 1-4) ===
   {
     name: "Dentist",
     key: "dentist",
@@ -56,31 +56,13 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
     sortOrder: 1,
   },
   {
-    name: "Deworm",
-    key: "deworm",
-    color: "#a855f7", // purple
-    category: "Care",
-    roles: ["veterinarian", "stable-hand"],
-    icon: "💊",
-    sortOrder: 2,
-  },
-  {
     name: "Farrier",
     key: "farrier",
     color: "#f97316", // orange
     category: "Care",
     roles: ["farrier"],
     icon: "🔨",
-    sortOrder: 3,
-  },
-  {
-    name: "Influenza",
-    key: "influenza",
-    color: "#3b82f6", // blue
-    category: "Care",
-    roles: ["veterinarian"],
-    icon: "💉",
-    sortOrder: 4,
+    sortOrder: 2,
   },
   {
     name: "Rhino",
@@ -89,7 +71,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
     category: "Care",
     roles: ["veterinarian"],
     icon: "💉",
-    sortOrder: 5,
+    sortOrder: 3,
   },
   {
     name: "Vet",
@@ -98,10 +80,10 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
     category: "Care",
     roles: ["veterinarian"],
     icon: "🏥",
-    sortOrder: 6,
+    sortOrder: 4,
   },
 
-  // === Sport Category (sortOrder 7-12) ===
+  // === Sport Category (sortOrder 5-10) ===
   {
     name: "Client",
     key: "client",
@@ -109,7 +91,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
     category: "Sport",
     roles: ["rider", "instructor"],
     icon: "👤",
-    sortOrder: 7,
+    sortOrder: 5,
   },
   {
     name: "Lesson",
@@ -118,7 +100,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
     category: "Sport",
     roles: ["instructor", "rider"],
     icon: "📚",
-    sortOrder: 8,
+    sortOrder: 6,
   },
   {
     name: "Lunging",
@@ -127,7 +109,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
     category: "Sport",
     roles: ["trainer", "rider"],
     icon: "🎯",
-    sortOrder: 9,
+    sortOrder: 7,
   },
   {
     name: "Paddock",
@@ -136,7 +118,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
     category: "Sport",
     roles: ["stable-hand"],
     icon: "🏞️",
-    sortOrder: 10,
+    sortOrder: 8,
   },
   {
     name: "Riding",
@@ -145,7 +127,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
     category: "Sport",
     roles: ["rider"],
     icon: "🏇",
-    sortOrder: 11,
+    sortOrder: 9,
   },
   {
     name: "Show",
@@ -154,10 +136,10 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
     category: "Sport",
     roles: ["rider", "trainer"],
     icon: "🏆",
-    sortOrder: 12,
+    sortOrder: 10,
   },
 
-  // === Breeding Category (sortOrder 13-16) ===
+  // === Breeding Category (sortOrder 11-14) ===
   {
     name: "Foaling",
     key: "foaling",
@@ -165,7 +147,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
     category: "Breeding",
     roles: ["veterinarian", "breeder"],
     icon: "🐴",
-    sortOrder: 13,
+    sortOrder: 11,
   },
   {
     name: "Insemination",
@@ -174,7 +156,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
     category: "Breeding",
     roles: ["veterinarian", "breeder"],
     icon: "🧬",
-    sortOrder: 14,
+    sortOrder: 12,
   },
   {
     name: "Mare Cycle Check",
@@ -183,7 +165,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
     category: "Breeding",
     roles: ["veterinarian", "breeder"],
     icon: "📅",
-    sortOrder: 15,
+    sortOrder: 13,
   },
   {
     name: "Stallion Mount",
@@ -192,7 +174,7 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
     category: "Breeding",
     roles: ["breeder", "handler"],
     icon: "🐎",
-    sortOrder: 16,
+    sortOrder: 14,
   },
 ];
 

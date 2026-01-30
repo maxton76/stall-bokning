@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Stallbokningssystem** - A modern SaaS platform for stable owners and guests to manage and fairly distribute daily chores through an intelligent, weight-based booking system.
+**EquiDuty** - A modern SaaS platform for stable owners and guests to manage and fairly distribute daily chores through an intelligent, weight-based booking system.
 
 **Status**: Phase 1 - Foundation (Planning stage)
 **Default Language**: Swedish (sv) with English (en) support
@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Monorepo Structure
 ```
-stall-bokning/
+equiduty/
 ├── packages/
 │   ├── frontend/          # React 19 SPA (Vite + TypeScript)
 │   ├── api/               # Cloud Run service (Node.js 24, Fastify)
@@ -176,7 +176,7 @@ npm run build:all                        # Build all packages
 
 ### Firebase Operations
 ```bash
-firebase use stall-bokning-dev           # Switch to dev environment
+firebase use equiduty-dev           # Switch to dev environment
 firebase deploy --only firestore:rules   # Deploy security rules
 firebase deploy --only firestore:indexes # Deploy database indexes
 firebase deploy --only hosting           # Deploy frontend
@@ -219,7 +219,7 @@ terraform state list
 terraform state show <resource-address>
 
 # Import existing resources
-./scripts/import-existing.sh stall-bokning-dev dev
+./scripts/import-existing.sh equiduty-dev dev
 ```
 
 **Managed Resources**: Cloud Run, Cloud Functions, Service Accounts, Secrets, Monitoring
@@ -250,7 +250,7 @@ stripe listen --forward-to localhost:5003/api/v1/webhooks/stripe
 
 **Google OAuth Setup**:
 - OAuth Client ID configured in GCP Console → APIs & Services → Credentials
-- Authorized JavaScript origins: `http://localhost:5173`, `https://stall-bokning-dev.web.app`
+- Authorized JavaScript origins: `http://localhost:5173`, `https://equiduty-dev.web.app`
 - Authorized redirect URIs: `http://localhost:5173/__/auth/handler`
 - Firebase SDK handles OAuth flow automatically
 
@@ -459,6 +459,7 @@ Comprehensive documentation located in `docs/`:
 - **[RBAC.md](./docs/RBAC.md)**: Role-based access control system, field-level permissions, API reference
 - **[SETUP.md](./docs/SETUP.md)**: Complete development setup guide, troubleshooting
 - **[IMPLEMENTATION_PLAN.md](./docs/IMPLEMENTATION_PLAN.md)**: 4-phase roadmap, 46 user stories, sprint planning
+- **[NAMING_STANDARDS.md](./docs/NAMING_STANDARDS.md)**: Resource naming conventions for all environments
 
 ## Common Development Tasks
 

@@ -63,8 +63,8 @@ All project documentation is located in the [`docs/`](./docs/) directory:
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/your-org/stall-bokning.git
-cd stall-bokning
+git clone https://github.com/your-org/equiduty.git
+cd equiduty
 
 # 2. Install dependencies
 npm install
@@ -86,7 +86,7 @@ Detailed setup guide can be found in [SETUP.md](./docs/SETUP.md).
 ## 🏗️ Project Structure
 
 ```
-stall-bokning/
+equiduty/
 ├── docs/                          # 📚 Documentation
 │   ├── PRD.md                     # Product requirements
 │   ├── TECH_STACK.md              # Technical stack
@@ -166,8 +166,8 @@ See [IMPLEMENTATION_PLAN.md](./docs/IMPLEMENTATION_PLAN.md) for details.
 ## 📞 Support & Contact
 
 - **Documentation**: See [`docs/`](./docs/) directory
-- **Issues**: [GitHub Issues](https://github.com/your-org/stall-bokning/issues)
-- **Email**: support@stallbokning.se (coming soon)
+- **Issues**: [GitHub Issues](https://github.com/your-org/equiduty/issues)
+- **Email**: support@equiduty.se (coming soon)
 
 ## 📄 License
 

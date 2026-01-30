@@ -12,7 +12,7 @@ import {
 import type {
   RoutineCategory,
   HorseActivityHistoryEntry,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 /**
  * Horse Activity History Routes

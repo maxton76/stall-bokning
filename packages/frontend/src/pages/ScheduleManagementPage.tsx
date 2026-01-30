@@ -30,7 +30,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { WorkScheduleDialog } from "@/components/availability/WorkScheduleDialog";
 import { BalanceAdjustmentDialog } from "@/components/availability/BalanceAdjustmentDialog";
-import type { DaySchedule, WorkScheduleDisplay } from "@stall-bokning/shared";
+import type { DaySchedule, WorkScheduleDisplay } from "@equiduty/shared";
 
 interface TimeBalance {
   id: string;

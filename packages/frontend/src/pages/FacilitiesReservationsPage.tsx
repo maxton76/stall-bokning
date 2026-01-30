@@ -34,7 +34,7 @@ import { getFacilitiesByStable } from "@/services/facilityService";
 import { getUserHorsesAtStable } from "@/services/horseService";
 import type { FacilityReservation } from "@/types/facilityReservation";
 import type { Facility, FacilityType } from "@/types/facility";
-import type { Horse } from "@stall-bokning/shared/types/domain";
+import type { Horse } from "@equiduty/shared/types/domain";
 import { FacilityReservationDialog } from "@/components/FacilityReservationDialog";
 import { FacilityCalendarView } from "@/components/FacilityCalendarView";
 import { Timestamp } from "firebase/firestore";

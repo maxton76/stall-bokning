@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 import { useStablePlanningMembers } from "@/hooks/useOrganizationMembers";
 import { useCreateSelectionProcess } from "@/hooks/useSelectionProcess";
 import { TurnOrderEditor } from "@/components/selectionProcess/TurnOrderEditor";
-import type { CreateSelectionProcessMember } from "@stall-bokning/shared";
+import type { CreateSelectionProcessMember } from "@equiduty/shared";
 import i18next from "i18next";
 
 /**

@@ -52,7 +52,7 @@ import { chromium } from "playwright";
 
     // Capture matrix view screenshot
     await page.screenshot({
-      path: "/Users/p950xam/Utv/stall-bokning/packages/frontend/test-screenshots/matrix-view.png",
+      path: "/Users/p950xam/Utv/equiduty/packages/frontend/test-screenshots/matrix-view.png",
       fullPage: true,
     });
     console.log("  📸 Screenshot saved: matrix-view.png");
@@ -114,7 +114,7 @@ import { chromium } from "playwright";
 
       // Capture popover screenshot
       await page.screenshot({
-        path: "/Users/p950xam/Utv/stall-bokning/packages/frontend/test-screenshots/quick-add-popover.png",
+        path: "/Users/p950xam/Utv/equiduty/packages/frontend/test-screenshots/quick-add-popover.png",
         fullPage: true,
       });
       console.log("  📸 Screenshot saved: quick-add-popover.png");
@@ -174,7 +174,7 @@ import { chromium } from "playwright";
 
         // Capture dialog screenshot
         await page.screenshot({
-          path: "/Users/p950xam/Utv/stall-bokning/packages/frontend/test-screenshots/activity-form-dialog.png",
+          path: "/Users/p950xam/Utv/equiduty/packages/frontend/test-screenshots/activity-form-dialog.png",
           fullPage: true,
         });
         console.log("  📸 Screenshot saved: activity-form-dialog.png");
@@ -209,7 +209,7 @@ import { chromium } from "playwright";
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.waitForTimeout(500);
     await page.screenshot({
-      path: "/Users/p950xam/Utv/stall-bokning/packages/frontend/test-screenshots/matrix-tablet.png",
+      path: "/Users/p950xam/Utv/equiduty/packages/frontend/test-screenshots/matrix-tablet.png",
       fullPage: true,
     });
     console.log("  ✓ Tablet viewport (768×1024) tested");
@@ -219,7 +219,7 @@ import { chromium } from "playwright";
     await page.setViewportSize({ width: 375, height: 667 });
     await page.waitForTimeout(500);
     await page.screenshot({
-      path: "/Users/p950xam/Utv/stall-bokning/packages/frontend/test-screenshots/matrix-mobile.png",
+      path: "/Users/p950xam/Utv/equiduty/packages/frontend/test-screenshots/matrix-mobile.png",
       fullPage: true,
     });
     console.log("  ✓ Mobile viewport (375×667) tested");
@@ -245,7 +245,7 @@ import { chromium } from "playwright";
 
     console.log("\n🎉 All tests completed successfully!");
     console.log(
-      "\n📁 Screenshots saved in: /Users/p950xam/Utv/stall-bokning/packages/frontend/test-screenshots/",
+      "\n📁 Screenshots saved in: /Users/p950xam/Utv/equiduty/packages/frontend/test-screenshots/",
     );
   } catch (error) {
     console.error("\n❌ Test failed:", error);

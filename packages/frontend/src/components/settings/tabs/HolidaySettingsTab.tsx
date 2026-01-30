@@ -9,7 +9,7 @@ import {
   holidayService,
   type HolidayCalendarSettings,
   DEFAULT_HOLIDAY_SETTINGS,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 export interface HolidaySettings extends HolidayCalendarSettings {}
 

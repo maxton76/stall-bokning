@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Filter, Search } from "lucide-react";
 import type { HorseFilters, FilterConfig } from "@shared/types/filters";
-import type { HorseUsage } from "@stall-bokning/shared/types/domain";
+import type { HorseUsage } from "@equiduty/shared/types/domain";
 import type { Stable, HorseGroup } from "@/types/roles";
 
 interface HorseFilterPopoverProps {

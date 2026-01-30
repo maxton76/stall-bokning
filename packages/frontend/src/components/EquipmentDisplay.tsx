@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import type { EquipmentItem } from "@stall-bokning/shared";
+import type { EquipmentItem } from "@equiduty/shared";
 
 interface EquipmentDisplayProps {
   equipment: EquipmentItem[];

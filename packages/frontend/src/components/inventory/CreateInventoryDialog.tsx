@@ -27,7 +27,7 @@ import { useApiQuery } from "@/hooks/useApiQuery";
 import { queryKeys } from "@/lib/queryClient";
 import { createInventoryItem } from "@/services/inventoryService";
 import { getFeedTypesByOrganization } from "@/services/feedTypeService";
-import type { FeedType } from "@stall-bokning/shared";
+import type { FeedType } from "@equiduty/shared";
 
 const createInventorySchema = z.object({
   feedTypeId: z.string().min(1, "Feed type is required"),

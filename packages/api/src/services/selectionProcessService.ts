@@ -5,7 +5,7 @@ import type {
   SelectionProcessTurn,
   SelectionEntry,
   FirestoreTimestamp,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 /**
  * Selection Process Service

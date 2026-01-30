@@ -10,7 +10,7 @@ import {
   getDefaultClassNames,
   type Modifiers,
 } from "react-day-picker";
-import type { Holiday } from "@stall-bokning/shared";
+import type { Holiday } from "@equiduty/shared";
 
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";

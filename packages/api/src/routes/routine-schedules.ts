@@ -21,7 +21,7 @@ import type {
   CreateRoutineScheduleInput,
   UpdateRoutineScheduleInput,
   ListRoutineSchedulesQuery,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 /**
  * Get stable name by ID

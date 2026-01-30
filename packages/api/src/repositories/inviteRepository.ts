@@ -3,7 +3,7 @@ import { db } from "../utils/firebase.js";
 import type {
   OrganizationInvite,
   InviteStatus,
-} from "@stall-bokning/shared/types/organization";
+} from "@equiduty/shared/types/organization";
 
 /**
  * Invite Repository

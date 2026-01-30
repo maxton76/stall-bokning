@@ -3,7 +3,7 @@ import type {
   AssistantQuery,
   AssistantResponse,
   AssistantConversation,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 /**
  * Query the AI assistant

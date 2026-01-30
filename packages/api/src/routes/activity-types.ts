@@ -22,31 +22,13 @@ const STANDARD_ACTIVITY_TYPES = [
     sortOrder: 1,
   },
   {
-    name: "Deworm",
-    key: "deworm",
-    color: "#a855f7",
-    category: "Care",
-    roles: ["veterinarian", "stable-hand"],
-    icon: "💊",
-    sortOrder: 2,
-  },
-  {
     name: "Farrier",
     key: "farrier",
     color: "#f97316",
     category: "Care",
     roles: ["farrier"],
     icon: "🔨",
-    sortOrder: 3,
-  },
-  {
-    name: "Influenza",
-    key: "influenza",
-    color: "#3b82f6",
-    category: "Care",
-    roles: ["veterinarian"],
-    icon: "💉",
-    sortOrder: 4,
+    sortOrder: 2,
   },
   {
     name: "Rhino",
@@ -55,7 +37,7 @@ const STANDARD_ACTIVITY_TYPES = [
     category: "Care",
     roles: ["veterinarian"],
     icon: "💉",
-    sortOrder: 5,
+    sortOrder: 3,
   },
   {
     name: "Vet",
@@ -64,7 +46,7 @@ const STANDARD_ACTIVITY_TYPES = [
     category: "Care",
     roles: ["veterinarian"],
     icon: "🏥",
-    sortOrder: 6,
+    sortOrder: 4,
   },
   // === Sport Category (sortOrder 7-12) ===
   {
@@ -74,7 +56,7 @@ const STANDARD_ACTIVITY_TYPES = [
     category: "Sport",
     roles: ["rider", "instructor"],
     icon: "👤",
-    sortOrder: 7,
+    sortOrder: 5,
   },
   {
     name: "Lesson",
@@ -83,7 +65,7 @@ const STANDARD_ACTIVITY_TYPES = [
     category: "Sport",
     roles: ["instructor", "rider"],
     icon: "📚",
-    sortOrder: 8,
+    sortOrder: 6,
   },
   {
     name: "Lunging",
@@ -92,7 +74,7 @@ const STANDARD_ACTIVITY_TYPES = [
     category: "Sport",
     roles: ["trainer", "rider"],
     icon: "🎯",
-    sortOrder: 9,
+    sortOrder: 7,
   },
   {
     name: "Paddock",
@@ -101,7 +83,7 @@ const STANDARD_ACTIVITY_TYPES = [
     category: "Sport",
     roles: ["stable-hand"],
     icon: "🏞️",
-    sortOrder: 10,
+    sortOrder: 8,
   },
   {
     name: "Riding",
@@ -110,7 +92,7 @@ const STANDARD_ACTIVITY_TYPES = [
     category: "Sport",
     roles: ["rider"],
     icon: "🏇",
-    sortOrder: 11,
+    sortOrder: 9,
   },
   {
     name: "Show",
@@ -119,9 +101,9 @@ const STANDARD_ACTIVITY_TYPES = [
     category: "Sport",
     roles: ["rider", "trainer"],
     icon: "🏆",
-    sortOrder: 12,
+    sortOrder: 10,
   },
-  // === Breeding Category (sortOrder 13-16) ===
+  // === Breeding Category (sortOrder 11-14) ===
   {
     name: "Foaling",
     key: "foaling",
@@ -129,7 +111,7 @@ const STANDARD_ACTIVITY_TYPES = [
     category: "Breeding",
     roles: ["veterinarian", "breeder"],
     icon: "🐴",
-    sortOrder: 13,
+    sortOrder: 11,
   },
   {
     name: "Insemination",
@@ -138,7 +120,7 @@ const STANDARD_ACTIVITY_TYPES = [
     category: "Breeding",
     roles: ["veterinarian", "breeder"],
     icon: "🧬",
-    sortOrder: 14,
+    sortOrder: 12,
   },
   {
     name: "Mare Cycle Check",
@@ -147,7 +129,7 @@ const STANDARD_ACTIVITY_TYPES = [
     category: "Breeding",
     roles: ["veterinarian", "breeder"],
     icon: "📅",
-    sortOrder: 15,
+    sortOrder: 13,
   },
   {
     name: "Stallion Mount",
@@ -156,7 +138,7 @@ const STANDARD_ACTIVITY_TYPES = [
     category: "Breeding",
     roles: ["breeder", "handler"],
     icon: "🐎",
-    sortOrder: 16,
+    sortOrder: 14,
   },
 ];
 

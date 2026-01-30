@@ -36,8 +36,9 @@ const feedTypeSchema = z.object({
     .max(100, "Name must be 100 characters or less"),
   brand: z
     .string()
-    .min(1, "Brand is required")
-    .max(100, "Brand must be 100 characters or less"),
+    .max(100, "Brand must be 100 characters or less")
+    .optional()
+    .or(z.literal("")),
   category: z.enum(["roughage", "concentrate", "supplement", "medicine"]),
   quantityMeasure: z.enum([
     "scoop",
@@ -178,7 +179,6 @@ export function FeedTypeFormDialog({
         label={t("feeding:feedTypes.form.labels.brand")}
         form={form}
         placeholder={t("feeding:feedTypes.form.placeholders.brand")}
-        required
       />
 
       <FormSelect

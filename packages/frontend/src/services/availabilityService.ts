@@ -11,7 +11,7 @@ import type {
   StaffAvailabilityMatrix,
   StaffAvailabilityRow,
   CalendarLeaveStatus,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import { format, differenceInDays } from "date-fns";
 import { apiClient } from "@/lib/apiClient";
 

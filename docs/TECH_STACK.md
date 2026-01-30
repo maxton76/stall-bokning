@@ -219,7 +219,7 @@ POST   /api/v1/reports/export       - Export to PDF/Excel
 
 **Environment Variables**:
 ```bash
-FIREBASE_PROJECT_ID=stall-bokning-prod
+FIREBASE_PROJECT_ID=equiduty-prod
 FIREBASE_SERVICE_ACCOUNT=./service-account.json
 STRIPE_SECRET_KEY=sk_live_...
 TWILIO_ACCOUNT_SID=...
@@ -491,7 +491,7 @@ jobs:
 ### Environments
 - **Development**:
   - Local development with Firebase Emulators
-  - Firebase project: `stall-bokning-dev`
+  - Firebase project: `equiduty-dev`
 - **Future**: Staging and production environments will be created as needed
 
 ### Versioning & Rollback
@@ -679,8 +679,8 @@ firebase emulators:start
 ### Local Development
 ```bash
 # 1. Clone repo
-git clone https://github.com/your-org/stall-bokning.git
-cd stall-bokning
+git clone https://github.com/your-org/equiduty.git
+cd equiduty
 
 # 2. Install dependencies
 npm install

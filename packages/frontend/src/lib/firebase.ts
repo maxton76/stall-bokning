@@ -6,12 +6,10 @@ import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "demo-api-key",
   authDomain:
-    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ||
-    "stall-bokning-dev.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "stall-bokning-dev",
+    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "equiduty-dev.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "equiduty-dev",
   storageBucket:
-    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ||
-    "stall-bokning-dev.appspot.com",
+    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "equiduty-dev.appspot.com",
   messagingSenderId:
     import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "123456789",
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:123456789:web:abcdef",

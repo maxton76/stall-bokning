@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /**
  * Zod schemas for notifications API validation
- * Based on shared types from @stall-bokning/shared
+ * Based on shared types from @equiduty/shared
  */
 
 // Enums as Zod schemas

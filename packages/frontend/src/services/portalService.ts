@@ -9,7 +9,7 @@ import type {
   PortalNotificationPreferences,
   CreatePortalThreadData,
   UpdatePortalNotificationPreferencesData,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 // ============================================
 // Dashboard

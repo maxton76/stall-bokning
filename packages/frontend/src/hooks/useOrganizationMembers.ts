@@ -4,7 +4,7 @@ import {
   getOrganizationMembers,
   getActiveOrganizationMembers,
 } from "@/services/organizationMemberService";
-import type { OrganizationMember } from "@stall-bokning/shared";
+import type { OrganizationMember } from "@equiduty/shared";
 
 /**
  * Helper function to check if a member has access to a specific stable

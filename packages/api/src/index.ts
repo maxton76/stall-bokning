@@ -104,7 +104,7 @@ fastify.get("/health", async () => {
 fastify.get("/api/v1", async () => {
   return {
     version: "1.0.0",
-    name: "Stall Bokning API",
+    name: "EquiDuty API",
     documentation: "/api/v1/docs",
   };
 });

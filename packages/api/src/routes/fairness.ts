@@ -16,7 +16,7 @@ import type {
   StableFairnessSummary,
   TemplatePointsBreakdown,
   RoutineType,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 /**
  * Infer template type from template name using Swedish naming patterns

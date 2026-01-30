@@ -39,8 +39,8 @@ import { FacilityCalendarView } from "@/components/FacilityCalendarView";
 import { FacilityReservationDialog } from "@/components/FacilityReservationDialog";
 import type { Facility, FacilityType } from "@/types/facility";
 import type { FacilityReservation } from "@/types/facilityReservation";
-import type { Horse } from "@stall-bokning/shared/types/domain";
-import { getWeekNumber } from "@stall-bokning/shared";
+import type { Horse } from "@equiduty/shared/types/domain";
+import { getWeekNumber } from "@equiduty/shared";
 
 export default function FacilityAvailabilityPage() {
   const { t } = useTranslation(["facilities", "common", "constants"]);

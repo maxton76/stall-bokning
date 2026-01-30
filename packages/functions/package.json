@@ -1,7 +1,7 @@
 {
-  "name": "@stall-bokning/functions",
+  "name": "@equiduty/functions",
   "version": "1.0.0",
-  "description": "Cloud Functions for Stall Bokning",
+  "description": "Cloud Functions for EquiDuty",
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@google-cloud/secret-manager": "^6.1.1",
-    "@stall-bokning/shared": "*",
+    "@equiduty/shared": "*",
     "firebase-admin": "^13.0.2",
     "firebase-functions": "^6.3.0",
     "nodemailer": "^7.0.12"

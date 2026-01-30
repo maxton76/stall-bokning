@@ -1,0 +1,95 @@
+---
+import { useTranslations } from '../i18n';
+
+interface Props {
+  lang?: string;
+}
+
+const { lang = 'sv' } = Astro.props;
+const { t } = useTranslations(lang);
+const appUrl = import.meta.env.PUBLIC_APP_URL;
+---
+
+<section class="flex min-h-[calc(100dvh-4rem)] flex-1 flex-col justify-between gap-12 overflow-x-hidden pt-8 sm:gap-16 sm:pt-16 lg:gap-24 lg:pt-24">
+  <!-- Hero Content -->
+  <div class="mx-auto flex max-w-7xl flex-col items-center gap-8 px-4 text-center sm:px-6 lg:px-8">
+    <div class="bg-muted flex items-center gap-2.5 rounded-full border px-3 py-2">
+      <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-primary text-primary-foreground">
+        {t('hero.badge')}
+      </span>
+      <span class="text-muted-foreground text-sm">
+        {t('hero.badgeDescription')}
+      </span>
+    </div>
+
+    <h1 class="text-3xl leading-[1.29167] font-bold text-balance sm:text-4xl lg:text-5xl">
+      {t('hero.title')}
+      <br />
+      <span class="relative text-primary">
+        {t('hero.titleHighlight')}
+        <svg
+          width="280"
+          height="12"
+          viewBox="0 0 280 12"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          class="absolute inset-x-0 bottom-0 w-full translate-y-1/2 max-sm:hidden"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="M1.11716 10.428C49.7835 4.97282 95.9074 2.70494 144.894 1.98894C180.706 1.45983 220.684 0.313587 256.212 3.31596C263.925 3.60546 271.144 4.59884 278.535 5.74551"
+            stroke="url(#paint0_linear_hero)"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+          <defs>
+            <linearGradient
+              id="paint0_linear_hero"
+              x1="18.8541"
+              y1="3.72033"
+              x2="42.6487"
+              y2="66.6308"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="hsl(var(--primary))" />
+              <stop offset="1" stop-color="hsl(var(--primary) / 0.5)" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </span>
+    </h1>
+
+    <p class="text-muted-foreground max-w-2xl text-lg">
+      {t('hero.description')}
+    </p>
+
+    <div class="flex flex-col gap-4 sm:flex-row">
+      <a
+        href={`${appUrl}/register`}
+        class="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition-colors"
+      >
+        {t('hero.cta')}
+        <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+        </svg>
+      </a>
+      <a
+        href="#features"
+        class="inline-flex items-center justify-center rounded-md border border-input bg-background px-6 py-3 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+      >
+        <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+        </svg>
+        {t('hero.ctaSecondary')}
+      </a>
+    </div>
+  </div>
+
+  <!-- Image -->
+  <img
+    src="https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=1200&h=600&fit=crop"
+    alt="Modern stable management"
+    class="min-h-67 w-full object-cover"
+    loading="eager"
+  />
+</section>

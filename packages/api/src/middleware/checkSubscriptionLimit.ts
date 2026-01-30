@@ -7,11 +7,8 @@
 
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../utils/firebase.js";
-import type {
-  SubscriptionLimits,
-  SubscriptionTier,
-} from "@stall-bokning/shared";
-import { TIER_LIMITS } from "@stall-bokning/shared";
+import type { SubscriptionLimits, SubscriptionTier } from "@equiduty/shared";
+import { TIER_LIMITS } from "@equiduty/shared";
 
 /**
  * Get the effective limit for a resource type.

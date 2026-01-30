@@ -32,7 +32,6 @@ function InlineLoader() {
 }
 
 // Lazy-loaded components
-const LandingPage = lazy(() => import("./pages/LandingPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const SignupPage = lazy(() => import("./pages/SignupPage"));
@@ -257,8 +256,8 @@ export const router = createBrowserRouter([
   {
     element: <RootLayout />,
     children: [
-      // Public routes
-      { path: "/", element: withSuspense(LandingPage, <PageLoader />) },
+      // Public routes — landing page is now served by the Astro site
+      { path: "/", element: <Navigate to="/login" replace /> },
       { path: "/login", element: withSuspense(LoginPage, <PageLoader />) },
       {
         path: "/register",

@@ -7,4 +7,4 @@
 export * from "./firebase.js";
 export * from "./text.js";
 export * from "./smtp.js";
-// Error and validation utilities now imported from @stall-bokning/shared
+// Error and validation utilities now imported from @equiduty/shared

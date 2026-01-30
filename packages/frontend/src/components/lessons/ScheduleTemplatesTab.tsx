@@ -59,7 +59,7 @@ import type {
   LessonScheduleTemplate,
   LessonType,
   Instructor,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import type { CreateScheduleTemplateData } from "@/services/lessonService";
 
 const templateSchema = z.object({

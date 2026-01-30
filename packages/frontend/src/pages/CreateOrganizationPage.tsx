@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/AuthContext";
 import { createOrganization } from "@/services/organizationService";
-import type { ContactType } from "@stall-bokning/shared/types/organization";
+import type { ContactType } from "@equiduty/shared/types/organization";
 
 export default function CreateOrganizationPage() {
   const { t } = useTranslation(["organizations", "common"]);

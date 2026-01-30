@@ -103,7 +103,7 @@
     "disconnect": "Koppla bort Telegram",
     "connected": "Telegram anslutet",
     "notConnected": "Telegram inte anslutet",
-    "verifyInstructions": "1. Öppna Telegram\n2. Sök efter @StallbokningBot\n3. Skicka /start\n4. Ange verifieringskoden nedan",
+    "verifyInstructions": "1. Öppna Telegram\n2. Sök efter @EquiDutyBot\n3. Skicka /start\n4. Ange verifieringskoden nedan",
     "verificationCode": "Verifieringskod",
     "verifying": "Verifierar...",
     "verified": "Verifierad",

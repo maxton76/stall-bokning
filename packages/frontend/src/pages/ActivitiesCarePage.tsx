@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Heart, Grid3x3, Table2, Search } from "lucide-react";
+import { Heart, Search } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -27,7 +26,6 @@ import {
 } from "@/services/activityService";
 import { seedStandardActivityTypes } from "@/services/activityTypeService";
 import { CareMatrixView } from "@/components/CareMatrixView";
-import { CareTableView } from "@/components/CareTableView";
 import { QuickAddDialog } from "@/components/QuickAddDialog";
 import { ActivityFormDialog } from "@/components/ActivityFormDialog";
 import type { Activity } from "@/types/activity";
@@ -38,10 +36,6 @@ import { toDate } from "@/utils/timestampUtils";
 export default function ActivitiesCarePage() {
   const { t } = useTranslation(["activities", "common"]);
   const { user } = useAuth();
-
-  // State for view mode
-  type CareViewMode = "matrix" | "table";
-  const [viewMode, setViewMode] = useState<CareViewMode>("matrix");
 
   // State for quick add dialog
   const [quickAddDialog, setQuickAddDialog] = useState<{
@@ -76,18 +70,6 @@ export default function ActivitiesCarePage() {
     activityLoader: getCareActivities,
     includeGroups: true,
   });
-
-  // Persist view preference in localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("care-view-mode");
-    if (saved === "matrix" || saved === "table") {
-      setViewMode(saved);
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("care-view-mode", viewMode);
-  }, [viewMode]);
 
   // Track whether we've attempted seeding to prevent infinite loops
   const [seedingAttempted, setSeedingAttempted] = useState(false);
@@ -338,23 +320,6 @@ export default function ActivitiesCarePage() {
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* View Mode Toggle */}
-              <Tabs
-                value={viewMode}
-                onValueChange={(v) => setViewMode(v as CareViewMode)}
-              >
-                <TabsList>
-                  <TabsTrigger value="matrix">
-                    <Grid3x3 className="h-4 w-4 mr-2" />
-                    {t("activities:care.viewMode.matrix")}
-                  </TabsTrigger>
-                  <TabsTrigger value="table">
-                    <Table2 className="h-4 w-4 mr-2" />
-                    {t("activities:care.viewMode.table")}
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
             </div>
 
             {/* Filters Row */}
@@ -404,15 +369,8 @@ export default function ActivitiesCarePage() {
                 {t("activities:care.loading")}
               </p>
             </div>
-          ) : viewMode === "matrix" ? (
-            <CareMatrixView
-              horses={filteredHorses.map((h) => ({ id: h.id, name: h.name }))}
-              activityTypes={activityTypes.data || []}
-              activities={activities.data || []}
-              onCellClick={handleCellClick}
-            />
           ) : (
-            <CareTableView
+            <CareMatrixView
               horses={filteredHorses.map((h) => ({ id: h.id, name: h.name }))}
               activityTypes={activityTypes.data || []}
               activities={activities.data || []}

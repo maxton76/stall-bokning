@@ -1,7 +1,7 @@
 import { logger } from "firebase-functions";
 
 import { escapeMarkdown } from "../lib/text.js";
-import { formatErrorMessage, isValidChatId } from "@stall-bokning/shared";
+import { formatErrorMessage, isValidChatId } from "@equiduty/shared";
 
 /**
  * Telegram message payload

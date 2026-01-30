@@ -1,7 +1,7 @@
 {
-  "name": "@stall-bokning/shared",
-  "version": "1.0.11",
-  "description": "Shared types, utilities, and schemas for stall-bokning monorepo",
+  "name": "@equiduty/shared",
+  "version": "1.0.12",
+  "description": "Shared types, utilities, and schemas for equiduty monorepo",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -82,6 +82,6 @@
     "typescript": "^5.7.2"
   },
   "publishConfig": {
-    "registry": "https://europe-west1-npm.pkg.dev/stall-bokning-dev/npm-packages/"
+    "registry": "https://europe-west1-npm.pkg.dev/equiduty-dev/npm-packages/"
   }
 }

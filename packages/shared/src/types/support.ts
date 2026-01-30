@@ -183,3 +183,17 @@ export interface ReplyToTicketInput {
 export interface ReplyToTicketResponse {
   success: boolean;
 }
+
+/**
+ * Input for PUT /support/tickets/:ticketId/status
+ */
+export interface UpdateTicketStatusInput {
+  status: "solved" | "open";
+}
+
+/**
+ * Response for PUT /support/tickets/:ticketId/status
+ */
+export interface UpdateTicketStatusResponse {
+  success: boolean;
+}

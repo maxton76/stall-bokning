@@ -19,7 +19,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, User } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { CreateSelectionProcessMember } from "@stall-bokning/shared";
+import type { CreateSelectionProcessMember } from "@equiduty/shared";
 
 /**
  * Props for a member item in the turn order list

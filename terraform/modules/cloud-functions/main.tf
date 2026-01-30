@@ -25,7 +25,7 @@ locals {
 resource "google_storage_bucket" "function_source" {
   count = var.create_source_bucket ? 1 : 0
 
-  name     = "${var.project_id}-${var.environment}-functions-source"
+  name     = "${var.project_id}-functions-source"
   location = var.source_bucket_location
   project  = var.project_id
 
@@ -165,8 +165,8 @@ resource "google_cloud_scheduler_job" "scheduled_functions" {
   schedule  = each.value.schedule.cron
   time_zone = each.value.schedule.timezone
 
-  # Pause scheduler in non-prod environments if requested
-  paused = var.environment != "prod" && each.value.schedule.pause_in_non_prod
+  # Pause scheduler: force-pause if requested, otherwise pause in non-prod
+  paused = var.pause_all_schedulers || (var.environment != "prod" && each.value.schedule.pause_in_non_prod)
 
   http_target {
     uri         = google_cloudfunctions2_function.functions[each.key].url

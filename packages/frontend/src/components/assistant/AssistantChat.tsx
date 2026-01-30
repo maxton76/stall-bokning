@@ -38,7 +38,7 @@ import type {
   InvoicesData,
   AnalyticsData,
   RecommendationsData,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 interface Message {
   id: string;
@@ -196,7 +196,7 @@ export function AssistantChat({ open, onOpenChange }: AssistantChatProps) {
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5" />
           <span className="font-semibold">
-            {t("assistant:title", "Stallbokning Assistant")}
+            {t("assistant:title", "EquiDuty Assistant")}
           </span>
         </div>
         <div className="flex items-center gap-2">

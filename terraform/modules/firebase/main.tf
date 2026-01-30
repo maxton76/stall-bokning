@@ -14,6 +14,14 @@ resource "google_project_service" "firebase" {
     "firebasestorage.googleapis.com",
     "identitytoolkit.googleapis.com",
     "cloudresourcemanager.googleapis.com",
+    # Cloud Functions Gen2 requirements
+    "cloudfunctions.googleapis.com",
+    "cloudbuild.googleapis.com",
+    "eventarc.googleapis.com",
+    "cloudscheduler.googleapis.com",
+    "run.googleapis.com",
+    "artifactregistry.googleapis.com",
+    "pubsub.googleapis.com",
   ])
 
   project = var.project_id
@@ -42,7 +50,7 @@ resource "google_firebase_project" "default" {
 resource "google_firebase_web_app" "frontend" {
   provider     = google-beta
   project      = var.project_id
-  display_name = "${var.environment}-stall-bokning-web"
+  display_name = "${var.environment}-equiduty-web"
 
   deletion_policy = var.environment == "prod" ? "DELETE" : "ABANDON"
 
@@ -113,9 +121,10 @@ resource "google_identity_platform_config" "default" {
 # =============================================================================
 
 resource "google_identity_platform_default_supported_idp_config" "google" {
+  count    = var.enable_google_oauth && var.google_oauth_client_id != "" ? 1 : 0
   provider = google-beta
   project  = var.project_id
-  enabled  = var.enable_google_oauth
+  enabled  = true
   idp_id   = "google.com"
 
   client_id     = var.google_oauth_client_id
@@ -155,9 +164,10 @@ resource "google_firestore_database" "default" {
 # =============================================================================
 
 resource "google_firebase_storage_bucket" "default" {
+  count     = var.create_storage_bucket ? 1 : 0
   provider  = google-beta
   project   = var.project_id
-  bucket_id = google_storage_bucket.firebase_storage.name
+  bucket_id = google_storage_bucket.firebase_storage[0].name
 
   depends_on = [
     google_firebase_project.default
@@ -165,7 +175,8 @@ resource "google_firebase_storage_bucket" "default" {
 }
 
 resource "google_storage_bucket" "firebase_storage" {
-  name     = "${var.project_id}.appspot.com"
+  count    = var.create_storage_bucket ? 1 : 0
+  name     = "${var.project_id}.firebasestorage.app"
   location = var.storage_location
   project  = var.project_id
 

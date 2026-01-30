@@ -19,7 +19,7 @@ import { useUserStables } from "@/hooks/useUserStables";
 import { useSelectionProcesses } from "@/hooks/useSelectionProcess";
 import { useCanManageSelectionProcesses } from "@/hooks/useCanManageSelectionProcesses";
 import { CreateSelectionProcessModal } from "@/components/schedule/CreateSelectionProcessModal";
-import type { SelectionProcessStatus } from "@stall-bokning/shared";
+import type { SelectionProcessStatus } from "@equiduty/shared";
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
 

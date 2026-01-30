@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { recordRestock } from "@/services/inventoryService";
-import type { FeedInventory } from "@stall-bokning/shared";
+import type { FeedInventory } from "@equiduty/shared";
 
 const restockSchema = z.object({
   quantity: z.number().positive("Quantity must be positive"),

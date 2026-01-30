@@ -11,7 +11,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { TemplatePointsBreakdown } from "@stall-bokning/shared";
+import type { TemplatePointsBreakdown } from "@equiduty/shared";
 
 // Color palette for template types
 const TEMPLATE_COLORS: Record<string, string> = {

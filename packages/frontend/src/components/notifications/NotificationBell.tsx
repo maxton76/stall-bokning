@@ -28,7 +28,7 @@ import type {
   Notification,
   NotificationType,
   NotificationPriority,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import { formatDistanceToNow } from "date-fns";
 import { sv, enUS } from "date-fns/locale";
 

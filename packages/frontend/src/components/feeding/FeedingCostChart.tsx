@@ -15,7 +15,7 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { FeedAnalytics } from "@stall-bokning/shared";
+import type { FeedAnalytics } from "@equiduty/shared";
 
 // Color palette for charts
 const COLORS = [

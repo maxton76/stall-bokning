@@ -1,7 +1,7 @@
 {
-  "name": "@stall-bokning/api",
+  "name": "@equiduty/api",
   "version": "1.0.0",
-  "description": "Cloud Run API Gateway for Stall Bokning using Fastify",
+  "description": "Cloud Run API Gateway for EquiDuty using Fastify",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {

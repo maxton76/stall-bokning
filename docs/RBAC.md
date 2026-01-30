@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Stallbokningssystem implements a comprehensive **field-level RBAC system** for horse data, ensuring that users only see information appropriate to their role and relationship with each horse.
+The EquiDuty implements a comprehensive **field-level RBAC system** for horse data, ensuring that users only see information appropriate to their role and relationship with each horse.
 
 **Core Principle**: "Trust no one" - lock down by default, expose specific fields based on role.
 

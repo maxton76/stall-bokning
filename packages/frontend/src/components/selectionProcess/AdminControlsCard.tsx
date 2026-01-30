@@ -29,8 +29,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { SelectionProcessWithContext } from "@stall-bokning/shared";
-import { toDate } from "@stall-bokning/shared";
+import type { SelectionProcessWithContext } from "@equiduty/shared";
+import { toDate } from "@equiduty/shared";
 import { DateEditSection } from "./DateEditSection";
 
 interface AdminControlsCardProps {

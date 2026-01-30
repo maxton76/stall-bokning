@@ -28,7 +28,7 @@ import {
 import type {
   ActivityInstance,
   ActivityInstanceStatus,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import { ProgressBadge } from "./ProgressIndicator";
 
 export type GroupByOption =

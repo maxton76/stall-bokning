@@ -25,7 +25,7 @@ import {
   listSelectionProcessesQuerySchema,
   selectionProcessParamsSchema,
   cancelSelectionProcessSchema,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import type {
   SelectionProcess,
   SelectionProcessWithContext,
@@ -34,7 +34,7 @@ import type {
   UpdateSelectionProcessInput,
   ListSelectionProcessesQuery,
   CompleteTurnResult,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import {
   getActiveSelectionProcessForStable,
   validateStableMembers,

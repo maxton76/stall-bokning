@@ -957,6 +957,15 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "stableId", "order": "ASCENDING" },
+        { "fieldPath": "assignedTo", "order": "ASCENDING" },
+        { "fieldPath": "scheduledDate", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "routineInstances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "stableId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "scheduledDate", "order": "DESCENDING" }
       ]

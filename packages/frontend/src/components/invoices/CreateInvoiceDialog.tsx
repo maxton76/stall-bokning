@@ -36,7 +36,7 @@ import { useApiQuery } from "@/hooks/useApiQuery";
 import { queryKeys } from "@/lib/queryClient";
 import { createInvoice, formatCurrency } from "@/services/invoiceService";
 import { getOrganizationContacts } from "@/services/contactService";
-import type { Contact, InvoiceItemType } from "@stall-bokning/shared";
+import type { Contact, InvoiceItemType } from "@equiduty/shared";
 import { cn } from "@/lib/utils";
 
 const ITEM_TYPES: InvoiceItemType[] = [

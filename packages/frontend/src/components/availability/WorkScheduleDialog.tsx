@@ -17,7 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import type { DaySchedule, WorkScheduleDisplay } from "@stall-bokning/shared";
+import type { DaySchedule, WorkScheduleDisplay } from "@equiduty/shared";
 import { DEFAULT_SCHEDULE } from "@/lib/availabilityConstants";
 
 // Weekday keys for translation lookup (Sunday-first order)

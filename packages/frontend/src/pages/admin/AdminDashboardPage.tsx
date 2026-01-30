@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/PageHeader";
 import { QueryBoundary } from "@/components/ui/QueryBoundary";
 import { useApiQuery } from "@/hooks/useApiQuery";
-import type { AdminDashboardMetrics } from "@stall-bokning/shared";
+import type { AdminDashboardMetrics } from "@equiduty/shared";
 import { getDashboardMetrics } from "@/services/adminService";
 
 function DashboardLoadingSkeleton() {

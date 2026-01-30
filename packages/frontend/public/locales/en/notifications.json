@@ -103,7 +103,7 @@
     "disconnect": "Disconnect Telegram",
     "connected": "Telegram connected",
     "notConnected": "Telegram not connected",
-    "verifyInstructions": "1. Open Telegram\n2. Search for @StallbokningBot\n3. Send /start\n4. Enter the verification code below",
+    "verifyInstructions": "1. Open Telegram\n2. Search for @EquiDutyBot\n3. Send /start\n4. Enter the verification code below",
     "verificationCode": "Verification code",
     "verifying": "Verifying...",
     "verified": "Verified",

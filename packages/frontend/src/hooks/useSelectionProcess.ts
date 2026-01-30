@@ -7,7 +7,7 @@ import type {
   UpdateSelectionProcessInput,
   ListSelectionProcessesQuery,
   CompleteTurnResult,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import {
   listSelectionProcesses,
   getSelectionProcess,

@@ -43,8 +43,8 @@ import {
   SelectionWeekView,
   AdminControlsCard,
 } from "@/components/selectionProcess";
-import type { SelectionProcessTurn } from "@stall-bokning/shared";
-import { toDate } from "@stall-bokning/shared";
+import type { SelectionProcessTurn } from "@equiduty/shared";
+import { toDate } from "@equiduty/shared";
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
 

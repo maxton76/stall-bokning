@@ -15,7 +15,7 @@ import type {
   CreateRefundData,
   PrepaidAccount,
   PrepaidTransaction,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 // Note: Stripe would be imported and configured here in production
 // import Stripe from 'stripe';

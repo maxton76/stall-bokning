@@ -78,7 +78,7 @@ import type {
   FeedInventory,
   InventoryStatus,
   InventorySummary as ISummary,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import { cn } from "@/lib/utils";
 
 type StatusFilter = "all" | InventoryStatus;

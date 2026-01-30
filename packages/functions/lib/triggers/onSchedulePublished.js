@@ -67,7 +67,7 @@ const firestore_1 = require("firebase-functions/v2/firestore");
 const firebase_functions_1 = require("firebase-functions");
 const crypto = __importStar(require("crypto"));
 const firebase_js_1 = require("../lib/firebase.js");
-const shared_1 = require("@stall-bokning/shared");
+const shared_1 = require("@equiduty/shared");
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
@@ -126,7 +126,7 @@ ${shiftList}
 View the full schedule: ${actionUrl}
 
 Best regards,
-Stallbokning`,
+EquiDuty`,
     };
   }
   // Default to Swedish
@@ -142,7 +142,7 @@ ${shiftList}
 Se hela schemat: ${actionUrl}
 
 Med vänliga hälsningar,
-Stallbokning`,
+EquiDuty`,
   };
 }
 /**
@@ -186,7 +186,7 @@ async function createUserNotification(
 ) {
   const { userId, email, shifts } = userSummary;
   // Generate action URL
-  const baseUrl = process.env.FRONTEND_URL || "https://app.stallbokning.se";
+  const baseUrl = process.env.FRONTEND_URL || "https://app.equiduty.se";
   const actionUrl = `${baseUrl}/schedules/${scheduleId}`;
   // Build email content
   const { subject, body } = buildEmailBody(

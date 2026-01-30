@@ -5,7 +5,7 @@
 locals {
   # Common labels applied to all resources
   common_labels = {
-    project     = "stall-bokning"
+    project     = "equiduty"
     environment = var.environment
     managed_by  = "terraform"
   }
@@ -215,6 +215,97 @@ locals {
         max_retry_duration = 1800
         payload            = {}
       }
+      allow_unauthenticated = false
+    }
+
+    # =========================================================================
+    # Firestore Trigger Functions
+    # =========================================================================
+
+    "on-schedule-published" = {
+      description                  = "Notify assigned users when schedule is published"
+      runtime                      = "nodejs22"
+      entry_point                  = "onSchedulePublished"
+      memory                       = "512Mi"
+      cpu                          = "1"
+      timeout_seconds              = 300
+      max_instances                = var.functions_max_instances
+      min_instances                = 0
+      max_concurrency              = 1
+      ingress_settings             = "ALLOW_INTERNAL_ONLY"
+      source_archive_bucket        = var.functions_source_bucket
+      source_archive_object        = var.functions_source_object
+      environment_variables        = {}
+      build_environment_variables  = {}
+      secret_environment_variables = {}
+      event_trigger = {
+        event_type   = "google.cloud.firestore.document.v1.updated"
+        region       = ""
+        retry_policy = "RETRY_POLICY_DO_NOT_RETRY"
+        filters = [
+          { attribute = "database", value = "(default)", operator = "" },
+          { attribute = "document", value = "schedules/{scheduleId}", operator = "match-path-pattern" }
+        ]
+      }
+      schedule              = null
+      allow_unauthenticated = false
+    }
+
+    "on-routine-schedule-created" = {
+      description                  = "Generate routine instances when schedule is created"
+      runtime                      = "nodejs22"
+      entry_point                  = "onRoutineScheduleCreated"
+      memory                       = "512Mi"
+      cpu                          = "1"
+      timeout_seconds              = 540
+      max_instances                = var.functions_max_instances
+      min_instances                = 0
+      max_concurrency              = 1
+      ingress_settings             = "ALLOW_INTERNAL_ONLY"
+      source_archive_bucket        = var.functions_source_bucket
+      source_archive_object        = var.functions_source_object
+      environment_variables        = {}
+      build_environment_variables  = {}
+      secret_environment_variables = {}
+      event_trigger = {
+        event_type   = "google.cloud.firestore.document.v1.created"
+        region       = ""
+        retry_policy = "RETRY_POLICY_RETRY"
+        filters = [
+          { attribute = "database", value = "(default)", operator = "" },
+          { attribute = "document", value = "routineSchedules/{scheduleId}", operator = "match-path-pattern" }
+        ]
+      }
+      schedule              = null
+      allow_unauthenticated = false
+    }
+
+    "on-routine-schedule-deleted" = {
+      description                  = "Remove non-completed instances when schedule is deleted"
+      runtime                      = "nodejs22"
+      entry_point                  = "onRoutineScheduleDeleted"
+      memory                       = "512Mi"
+      cpu                          = "1"
+      timeout_seconds              = 300
+      max_instances                = var.functions_max_instances
+      min_instances                = 0
+      max_concurrency              = 1
+      ingress_settings             = "ALLOW_INTERNAL_ONLY"
+      source_archive_bucket        = var.functions_source_bucket
+      source_archive_object        = var.functions_source_object
+      environment_variables        = {}
+      build_environment_variables  = {}
+      secret_environment_variables = {}
+      event_trigger = {
+        event_type   = "google.cloud.firestore.document.v1.deleted"
+        region       = ""
+        retry_policy = "RETRY_POLICY_RETRY"
+        filters = [
+          { attribute = "database", value = "(default)", operator = "" },
+          { attribute = "document", value = "routineSchedules/{scheduleId}", operator = "match-path-pattern" }
+        ]
+      }
+      schedule              = null
       allow_unauthenticated = false
     }
   }

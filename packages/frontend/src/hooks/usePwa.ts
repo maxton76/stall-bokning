@@ -156,7 +156,7 @@ export function usePwa(): UsePwaReturn {
 
   // Send test notification
   const sendTestNotification = useCallback(async () => {
-    await showNotification("Stallbokning Test", {
+    await showNotification("EquiDuty Test", {
       body: "Push notifications are working!",
       icon: "/icons/icon-192x192.png",
       tag: "test",

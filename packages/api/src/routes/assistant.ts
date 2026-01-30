@@ -20,8 +20,8 @@ import type {
   AvailabilityData,
   AnalyticsData,
   RecommendationsData,
-} from "@stall-bokning/shared";
-import { DEFAULT_QUICK_ACTIONS } from "@stall-bokning/shared";
+} from "@equiduty/shared";
+import { DEFAULT_QUICK_ACTIONS } from "@equiduty/shared";
 import type { AuthenticatedRequest } from "../types/index.js";
 
 // Query schema
@@ -469,7 +469,7 @@ export async function assistantRoutes(fastify: FastifyInstance) {
           content: message,
           timestamp: Timestamp.now(),
           metadata: {
-            model: "stallbokning-assistant-v1",
+            model: "equiduty-assistant-v1",
           },
         };
 

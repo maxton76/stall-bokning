@@ -1,8 +1,8 @@
-// Service Worker for Stallbokning PWA
+// Service Worker for EquiDuty PWA
 const CACHE_VERSION = "v3";
-const STATIC_CACHE = `stallbokning-static-${CACHE_VERSION}`;
-const DYNAMIC_CACHE = `stallbokning-dynamic-${CACHE_VERSION}`;
-const API_CACHE = `stallbokning-api-${CACHE_VERSION}`;
+const STATIC_CACHE = `equiduty-static-${CACHE_VERSION}`;
+const DYNAMIC_CACHE = `equiduty-dynamic-${CACHE_VERSION}`;
+const API_CACHE = `equiduty-api-${CACHE_VERSION}`;
 
 // Static assets to cache on install
 const STATIC_ASSETS = ["/", "/index.html", "/manifest.json", "/offline.html"];
@@ -42,7 +42,7 @@ self.addEventListener("activate", (event) => {
           cacheNames
             .filter((name) => {
               return (
-                name.startsWith("stallbokning-") &&
+                name.startsWith("equiduty-") &&
                 name !== STATIC_CACHE &&
                 name !== DYNAMIC_CACHE &&
                 name !== API_CACHE
@@ -260,7 +260,7 @@ self.addEventListener("push", (event) => {
   console.log("[SW] Push notification received");
 
   let data = {
-    title: "Stallbokning",
+    title: "EquiDuty",
     body: "You have a new notification",
     icon: "/icons/icon-192x192.png",
     badge: "/icons/badge-72x72.png",
@@ -389,7 +389,7 @@ async function syncBookings() {
 // IndexedDB helpers for offline storage
 function openIndexedDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("stallbokning-offline", 1);
+    const request = indexedDB.open("equiduty-offline", 1);
 
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);

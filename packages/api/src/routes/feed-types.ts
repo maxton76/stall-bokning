@@ -158,21 +158,20 @@ export async function feedTypesRoutes(fastify: FastifyInstance) {
         // Validate required fields
         if (
           !data.name ||
-          !data.brand ||
           !data.category ||
           !data.quantityMeasure ||
           data.defaultQuantity === undefined
         ) {
           return badRequest(
             reply,
-            "name, brand, category, quantityMeasure, and defaultQuantity are required",
+            "name, category, quantityMeasure, and defaultQuantity are required",
           );
         }
 
         const feedTypeData = {
           organizationId: data.organizationId,
           name: data.name,
-          brand: data.brand,
+          brand: data.brand || null,
           category: data.category,
           quantityMeasure: data.quantityMeasure,
           defaultQuantity: data.defaultQuantity,

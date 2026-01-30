@@ -5,7 +5,7 @@ exports.verifyTelegramWebhook = verifyTelegramWebhook;
 exports.getTelegramChatInfo = getTelegramChatInfo;
 const firebase_functions_1 = require("firebase-functions");
 const text_js_1 = require("../lib/text.js");
-const shared_1 = require("@stall-bokning/shared");
+const shared_1 = require("@equiduty/shared");
 /**
  * Get Telegram Bot configuration from environment
  */

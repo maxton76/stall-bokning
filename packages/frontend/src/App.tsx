@@ -16,7 +16,6 @@ import { prewarmApi } from "./services/apiWarmup";
 import { useLanguageSync } from "./hooks/useLanguageSync";
 
 // Lazy-load public pages
-const LandingPage = lazy(() => import("./pages/LandingPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const SignupPage = lazy(() => import("./pages/SignupPage"));
@@ -266,8 +265,8 @@ function App() {
           <div className="min-h-screen bg-background">
             <Suspense fallback={<PageLoader />}>
               <Routes>
-                {/* Public routes - lazy loaded */}
-                <Route path="/" element={<LandingPage />} />
+                {/* Public routes - landing page is now served by the Astro site */}
+                <Route path="/" element={<Navigate to="/login" replace />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/signup" element={<SignupPage />} />

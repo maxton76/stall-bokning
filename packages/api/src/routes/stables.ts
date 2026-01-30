@@ -7,7 +7,7 @@ import {
   requireStableOwnership,
 } from "../middleware/auth.js";
 import type { AuthenticatedRequest, Stable } from "../types/index.js";
-import { canCreateStable, getMaxStables } from "@stall-bokning/shared";
+import { canCreateStable, getMaxStables } from "@equiduty/shared";
 
 const pointsSystemSchema = z
   .object({

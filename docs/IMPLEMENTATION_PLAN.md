@@ -84,7 +84,7 @@ This document describes the implementation roadmap for MVP1 of the Stable Bookin
 **STORY-001**: Setup Firebase Project (Development)
 - **Description**: Create Firebase development environment
 - **Acceptance Criteria**:
-  - [ ] Firebase development project created (`stall-bokning-dev`)
+  - [ ] Firebase development project created (`equiduty-dev`)
   - [ ] Firestore enabled in test mode
   - [ ] Authentication enabled (Email/Password + Google Sign-In providers)
   - [ ] Google OAuth configured (authorized domains + redirect URIs)
@@ -987,7 +987,7 @@ This document describes the implementation roadmap for MVP1 of the Stable Bookin
 - **Acceptance Criteria**:
   - [ ] Firebase production project created (optionally staging)
   - [ ] GCP production project configured
-  - [ ] Production domain configured (e.g. app.stallbokning.se)
+  - [ ] Production domain configured (e.g. app.equiduty.se)
   - [ ] SSL certificates
   - [ ] Production Stripe account (live mode)
   - [ ] Monitoring and alerting setup
@@ -1015,7 +1015,7 @@ This document describes the implementation roadmap for MVP1 of the Stable Bookin
 - **Tasks**:
   - Write user guide (Markdown or Notion)
   - Create FAQ page in the app
-  - Setup support email (support@stallbokning.se)
+  - Setup support email (support@equiduty.se)
   - Create onboarding flow for new users
 - **Estimate**: 10h
 

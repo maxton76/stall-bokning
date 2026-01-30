@@ -11,10 +11,7 @@ import {
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { authFetch } from "@/lib/authFetch";
-import type {
-  Notification,
-  NotificationPreferences,
-} from "@stall-bokning/shared";
+import type { Notification, NotificationPreferences } from "@equiduty/shared";
 
 interface UseNotificationsOptions {
   limit?: number;

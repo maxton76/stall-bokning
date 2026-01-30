@@ -44,7 +44,7 @@ import type {
   LessonBooking,
   LessonType,
   Instructor,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 export interface LessonDetailDialogProps {
   open: boolean;

@@ -5,7 +5,7 @@
 
 terraform {
   backend "gcs" {
-    bucket = "stall-bokning-terraform-state"
+    bucket = "equiduty-terraform-state"
     prefix = "environments/dev"
   }
 }

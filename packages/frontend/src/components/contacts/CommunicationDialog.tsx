@@ -30,14 +30,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { authFetch } from "@/lib/authFetch";
-import { toDate } from "@stall-bokning/shared";
+import { toDate } from "@equiduty/shared";
 import type {
   CommunicationRecord,
   CommunicationType,
   CommunicationDirection,
   CreateCommunicationInput,
   UpdateCommunicationInput,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import {
   communicationTypeIcons,
   communicationTypesOrdered,

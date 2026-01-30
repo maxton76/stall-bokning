@@ -14,8 +14,8 @@ COPY package-lock.json ./
 RUN npm install --legacy-peer-deps
 
 # Copy shared package to node_modules manually
-RUN mkdir -p node_modules/@stall-bokning && \
-    cp -r shared node_modules/@stall-bokning/
+RUN mkdir -p node_modules/@equiduty && \
+    cp -r shared node_modules/@equiduty/
 
 # Copy source code
 COPY src/ ./src/
@@ -40,8 +40,8 @@ COPY package-lock.json ./
 RUN npm install --production --legacy-peer-deps
 
 # Copy shared package to node_modules
-RUN mkdir -p node_modules/@stall-bokning && \
-    cp -r shared node_modules/@stall-bokning/
+RUN mkdir -p node_modules/@equiduty && \
+    cp -r shared node_modules/@equiduty/
 
 # Copy built API application from builder
 COPY --from=builder /app/dist ./dist

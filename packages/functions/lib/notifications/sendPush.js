@@ -4,7 +4,7 @@ exports.sendPushNotification = sendPushNotification;
 exports.sendMulticastPush = sendMulticastPush;
 const messaging_1 = require("firebase-admin/messaging");
 const firebase_functions_1 = require("firebase-functions");
-const shared_1 = require("@stall-bokning/shared");
+const shared_1 = require("@equiduty/shared");
 /**
  * Send push notification via Firebase Cloud Messaging
  */
@@ -38,7 +38,7 @@ async function sendPushNotification(fcmToken, payload) {
           icon: "notification_icon",
           color: "#4F46E5",
           sound: "default",
-          channelId: "stallbokning_notifications",
+          channelId: "equiduty_notifications",
           clickAction: "FLUTTER_NOTIFICATION_CLICK",
         },
       },

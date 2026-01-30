@@ -12,7 +12,7 @@ module "storage" {
   project_id        = var.project_id
   location          = "EU"
   environment       = var.environment
-  state_bucket_name = "stall-bokning-terraform-state"
+  state_bucket_name = "equiduty-terraform-state"
 
   # State bucket is created separately via init-backend.sh
   create_state_bucket     = false
@@ -86,6 +86,12 @@ module "firebase" {
   # CORS
   cors_origins = var.cors_origins
 
+  # App hosting site uses a separate subdomain
+  additional_authorized_domains = [
+    "${var.project_id}-app.web.app",
+    "${var.project_id}-app.firebaseapp.com",
+  ]
+
   depends_on = [module.iam]
 }
 
@@ -125,7 +131,7 @@ module "cloud_run" {
   telegram_bot_token_id    = module.secrets.telegram_bot_token_id
 
   # Application configuration
-  frontend_url = "https://stall-bokning-dev.web.app"
+  frontend_url = "https://equiduty-dev-app.web.app"
 
   # Environment variables
   cors_origins = var.cors_origins

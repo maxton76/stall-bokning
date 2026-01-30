@@ -20,8 +20,8 @@ import type {
   OrganizationSubscription,
   PaginatedResponse,
   SubscriptionTier,
-} from "@stall-bokning/shared";
-import { DEFAULT_TIER_DEFINITIONS } from "@stall-bokning/shared";
+} from "@equiduty/shared";
+import { DEFAULT_TIER_DEFINITIONS } from "@equiduty/shared";
 
 const adminPreHandler = [authenticate, requireSystemAdmin];
 

@@ -35,12 +35,12 @@ output "firestore_database_id" {
 
 output "storage_bucket_name" {
   description = "Firebase Storage bucket name"
-  value       = google_storage_bucket.firebase_storage.name
+  value       = var.create_storage_bucket ? google_storage_bucket.firebase_storage[0].name : "${var.project_id}.firebasestorage.app"
 }
 
 output "storage_bucket_url" {
   description = "Firebase Storage bucket URL"
-  value       = google_storage_bucket.firebase_storage.url
+  value       = var.create_storage_bucket ? google_storage_bucket.firebase_storage[0].url : "gs://${var.project_id}.firebasestorage.app"
 }
 
 output "hosting_site_id" {

@@ -1,7 +1,7 @@
 import { getMessaging } from "firebase-admin/messaging";
 import { logger } from "firebase-functions";
 
-import { formatErrorMessage } from "@stall-bokning/shared";
+import { formatErrorMessage } from "@equiduty/shared";
 
 /**
  * Push notification payload
@@ -52,7 +52,7 @@ export async function sendPushNotification(
           icon: "notification_icon",
           color: "#4F46E5",
           sound: "default",
-          channelId: "stallbokning_notifications",
+          channelId: "equiduty_notifications",
           clickAction: "FLUTTER_NOTIFICATION_CLICK",
         },
       },

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useMemo } from "react";
 import type { HorseColor, HorseUsage } from "@/types/roles";
-import type { FeedCategory, QuantityMeasure } from "@stall-bokning/shared";
+import type { FeedCategory, QuantityMeasure } from "@equiduty/shared";
 import type { FacilityType, FacilityStatus } from "@/types/facility";
 import type { ReservationStatus } from "@/types/facilityReservation";
 

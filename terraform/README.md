@@ -1,6 +1,6 @@
 # Terraform Infrastructure
 
-This directory contains Terraform configuration for managing the stall-bokning infrastructure on Google Cloud Platform.
+This directory contains Terraform configuration for managing the equiduty infrastructure on Google Cloud Platform.
 
 ## Directory Structure
 
@@ -45,7 +45,7 @@ terraform/
 ```bash
 gcloud auth login
 gcloud auth application-default login
-gcloud config set project stall-bokning-dev
+gcloud config set project equiduty-dev
 ```
 
 ### 2. Initialize the State Bucket
@@ -55,7 +55,7 @@ First-time setup only - creates the GCS bucket for storing Terraform state:
 ```bash
 cd terraform
 chmod +x scripts/init-backend.sh
-./scripts/init-backend.sh stall-bokning-dev
+./scripts/init-backend.sh equiduty-dev
 ```
 
 ### 3. Initialize Terraform
@@ -83,7 +83,7 @@ Located in `environments/dev/`:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `project_id` | GCP project ID | `stall-bokning-dev` |
+| `project_id` | GCP project ID | `equiduty-dev` |
 | `region` | GCP region | `europe-west1` |
 | `cloud_run_min_instances` | Min Cloud Run instances | `0` |
 | `cloud_run_max_instances` | Max Cloud Run instances | `2` |
@@ -272,7 +272,7 @@ terraform state show module.cloud_run.google_cloud_run_v2_service.api
 
 ```bash
 terraform import module.iam.google_service_account.cloud_run_api \
-  projects/stall-bokning-dev/serviceAccounts/dev-cloud-run-api@stall-bokning-dev.iam.gserviceaccount.com
+  projects/equiduty-dev/serviceAccounts/dev-cloud-run-api@equiduty-dev.iam.gserviceaccount.com
 ```
 
 ### Destroy Resources (Caution!)
@@ -305,7 +305,7 @@ terraform import <resource_address> <resource_id>
 
 Ensure you have the required IAM roles:
 ```bash
-gcloud projects add-iam-policy-binding stall-bokning-dev \
+gcloud projects add-iam-policy-binding equiduty-dev \
   --member="user:your-email@example.com" \
   --role="roles/owner"
 ```
@@ -317,7 +317,7 @@ For GitHub Actions, enable Workload Identity:
 ```hcl
 # In terraform.tfvars
 create_workload_identity = true
-github_repository        = "owner/stall-bokning"
+github_repository        = "owner/equiduty"
 ```
 
 Then use in GitHub Actions:

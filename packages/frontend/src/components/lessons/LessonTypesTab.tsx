@@ -58,7 +58,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { LessonType } from "@stall-bokning/shared";
+import type { LessonType } from "@equiduty/shared";
 import type { CreateLessonTypeData } from "@/services/lessonService";
 
 const lessonTypeSchema = z.object({

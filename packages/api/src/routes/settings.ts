@@ -7,7 +7,7 @@ import { serializeTimestamps } from "../utils/serialization.js";
 import type {
   UserPreferences,
   UpdateUserPreferencesInput,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 // Default preferences when none exist
 const DEFAULT_PREFERENCES: Omit<UserPreferences, "updatedAt"> = {

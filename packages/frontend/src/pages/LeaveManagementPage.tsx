@@ -48,7 +48,7 @@ import type {
   LeaveRequestDisplay,
   LeaveType,
   LeaveStatus,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 import { STATUS_BADGES } from "@/lib/availabilityConstants";
 
 export default function LeaveManagementPage() {

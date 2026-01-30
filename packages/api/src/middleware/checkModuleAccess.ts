@@ -11,8 +11,8 @@ import type {
   ModuleFlags,
   SubscriptionAddons,
   SubscriptionTier,
-} from "@stall-bokning/shared";
-import { TIER_MODULES, TIER_ADDONS } from "@stall-bokning/shared";
+} from "@equiduty/shared";
+import { TIER_MODULES, TIER_ADDONS } from "@equiduty/shared";
 
 type ModuleOrAddonKey = keyof ModuleFlags | keyof SubscriptionAddons;
 

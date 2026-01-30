@@ -1,5 +1,5 @@
 import { Timestamp } from "firebase/firestore";
-import { getWeekNumber } from "@stall-bokning/shared";
+import { getWeekNumber } from "@equiduty/shared";
 import { toDate } from "./timestampUtils";
 
 /**

@@ -15,7 +15,7 @@ import type {
 import type { EventResizeDoneArg } from "@fullcalendar/interaction";
 import type { Facility } from "@/types/facility";
 import type { FacilityReservation } from "@/types/facilityReservation";
-import type { Holiday } from "@stall-bokning/shared";
+import type { Holiday } from "@equiduty/shared";
 import { toDate } from "@/utils/timestampUtils";
 
 // Default status colors using Tailwind palette

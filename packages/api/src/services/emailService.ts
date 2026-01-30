@@ -5,14 +5,14 @@
  * Password configured via Secret Manager (mounted as environment variable)
  */
 import nodemailer from "nodemailer";
-import type { OrganizationInvite } from "@stall-bokning/shared/types/organization";
+import type { OrganizationInvite } from "@equiduty/shared/types/organization";
 
 // SMTP Configuration from environment variables
 const SMTP_HOST = process.env.EMAIL_SMTP_SERVER || "send.one.com";
 const SMTP_PORT = parseInt(process.env.EMAIL_SMTP_PORT || "587", 10);
-const SMTP_USER = process.env.EMAIL_SMTP_USER || "info@stallbokning.se";
+const SMTP_USER = process.env.EMAIL_SMTP_USER || "info@equiduty.se";
 const SMTP_SECURE = process.env.EMAIL_SMTP_SECURE === "true"; // true for port 465
-const FROM_EMAIL = `"Stallbokning" <${SMTP_USER}>`;
+const FROM_EMAIL = `"EquiDuty" <${SMTP_USER}>`;
 
 // Transporter singleton
 let smtpTransporter: nodemailer.Transporter | null = null;
@@ -129,7 +129,7 @@ function buildInviteEmailHtml(data: {
         font-weight: 600;
         color: #111827;
         margin: 0;
-      ">🐴 Stallbokning</h1>
+      ">🐴 EquiDuty</h1>
     </div>
 
     <h2 style="
@@ -184,7 +184,7 @@ function buildInviteEmailHtml(data: {
       color: #9ca3af;
     ">
       <p style="margin: 0;">
-        Detta meddelande skickades automatiskt från Stallbokning.
+        Detta meddelande skickades automatiskt från EquiDuty.
       </p>
       <p style="margin: 8px 0 0 0;">
         Om du inte förväntade dig denna inbjudan kan du ignorera detta meddelande.
@@ -246,7 +246,7 @@ function buildSignupInviteEmailHtml(data: {
         font-weight: 600;
         color: #111827;
         margin: 0;
-      ">🐴 Stallbokning</h1>
+      ">🐴 EquiDuty</h1>
     </div>
 
     <h2 style="
@@ -254,7 +254,7 @@ function buildSignupInviteEmailHtml(data: {
       font-weight: 600;
       color: #111827;
       margin: 0 0 16px 0;
-    ">Välkommen till Stallbokning!</h2>
+    ">Välkommen till EquiDuty!</h2>
 
     <p style="margin: 0 0 16px 0; color: #4b5563;">
       ${safeInviterName} har bjudit in dig att gå med i organisationen <strong>${safeOrgName}</strong>.
@@ -293,7 +293,7 @@ function buildSignupInviteEmailHtml(data: {
       color: #9ca3af;
     ">
       <p style="margin: 0;">
-        Detta meddelande skickades automatiskt från Stallbokning.
+        Detta meddelande skickades automatiskt från EquiDuty.
       </p>
       <p style="margin: 8px 0 0 0;">
         Om du inte förväntade dig denna inbjudan kan du ignorera detta meddelande.
@@ -334,7 +334,7 @@ Inbjudan gäller till: ${invite.expiresAt.toDate().toLocaleDateString("sv-SE")}
 Acceptera inbjudan: ${acceptUrl}
 Avböj: ${declineUrl}
 
-Detta meddelande skickades automatiskt från Stallbokning.
+Detta meddelande skickades automatiskt från EquiDuty.
   `.trim();
 
   try {
@@ -376,7 +376,7 @@ export async function sendSignupInviteEmail(
   });
 
   const plainText = `
-Välkommen till Stallbokning!
+Välkommen till EquiDuty!
 
 ${invite.inviterName} har bjudit in dig att gå med i organisationen ${invite.organizationName}.
 
@@ -387,14 +387,14 @@ Inbjudan gäller till: ${invite.expiresAt.toDate().toLocaleDateString("sv-SE")}
 
 Skapa konto och acceptera: ${signupUrl}
 
-Detta meddelande skickades automatiskt från Stallbokning.
+Detta meddelande skickades automatiskt från EquiDuty.
   `.trim();
 
   try {
     const info = await transporter.sendMail({
       from: FROM_EMAIL,
       to: invite.email,
-      subject: `Inbjudan till Stallbokning - ${invite.organizationName}`,
+      subject: `Inbjudan till EquiDuty - ${invite.organizationName}`,
       text: plainText,
       html: htmlContent,
     });
@@ -447,7 +447,7 @@ Inbjudan gäller till: ${expiresAt}
 Acceptera inbjudan: ${data.acceptUrl}
 Avböj: ${data.declineUrl}
 
-Detta meddelande skickades automatiskt från Stallbokning.
+Detta meddelande skickades automatiskt från EquiDuty.
   `.trim();
 
   try {

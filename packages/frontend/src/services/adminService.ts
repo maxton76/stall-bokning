@@ -15,7 +15,7 @@ import type {
   TierDefinition,
   OrganizationSubscription,
   PaginatedResponse,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 // ============================================
 // DASHBOARD

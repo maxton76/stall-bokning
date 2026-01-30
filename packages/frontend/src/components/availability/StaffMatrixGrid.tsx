@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import type {
   StaffAvailabilityMatrix,
   CalendarLeaveStatus,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 interface StaffMatrixGridProps {
   matrix: StaffAvailabilityMatrix;

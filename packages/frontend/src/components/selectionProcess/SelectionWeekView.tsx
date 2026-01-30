@@ -29,7 +29,7 @@ import {
   type ScheduleSlot,
   type DaySchedule,
 } from "@/hooks/useScheduledRoutines";
-import type { SelectionProcessWithContext } from "@stall-bokning/shared";
+import type { SelectionProcessWithContext } from "@equiduty/shared";
 
 /**
  * Props for a routine slot in selection mode

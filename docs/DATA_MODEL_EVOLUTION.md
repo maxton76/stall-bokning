@@ -1,6 +1,6 @@
 # Data Model Evolution Plan
 
-This document describes the planned evolution of the StallBokning data model to support:
+This document describes the planned evolution of the EquiDuty data model to support:
 1. **Personal vs Business Organizations** - Two distinct organization types with different feature sets
 2. **Horse Ownership vs Placement** - Separating who owns a horse from where it's physically located
 3. **Contact Visibility** - Clear rules for private vs organization-shared contacts

@@ -61,6 +61,16 @@
     "ticketClosed": "This ticket is closed and cannot be replied to.",
     "back": "Back"
   },
+  "actions": {
+    "closeTicket": "Close ticket",
+    "reopenTicket": "Reopen ticket",
+    "confirmClose": "Are you sure you want to close this ticket?",
+    "confirmReopen": "Do you want to reopen this ticket?",
+    "closeSuccess": "Ticket has been closed.",
+    "reopenSuccess": "Ticket has been reopened.",
+    "statusChangeFailed": "Failed to change status. Please try again.",
+    "pendingReplyHint": "Your reply will reactivate this ticket."
+  },
   "status": {
     "new": "New",
     "open": "Open",

@@ -3,7 +3,7 @@ import { db } from "./firebase.js";
 import type {
   VaccinationStatus,
   HorseVaccinationAssignment,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 /**
  * Days threshold for "expiring soon" status

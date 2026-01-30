@@ -16,7 +16,7 @@ import {
   type HolidayCalendarSettings,
   type SupportedCountryCode,
   DEFAULT_HOLIDAY_SETTINGS,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 // ============= Types =============
 

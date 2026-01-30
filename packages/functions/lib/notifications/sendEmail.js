@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendEmail = sendEmail;
 const firebase_functions_1 = require("firebase-functions");
 const text_js_1 = require("../lib/text.js");
-const shared_1 = require("@stall-bokning/shared");
+const shared_1 = require("@equiduty/shared");
 const smtp_js_1 = require("../lib/smtp.js");
 /**
  * Get the configured email provider
@@ -23,9 +23,8 @@ function getEmailProvider() {
  */
 function getSendGridConfig() {
   const apiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail =
-    process.env.SENDGRID_FROM_EMAIL || "noreply@stallbokning.se";
-  const fromName = process.env.SENDGRID_FROM_NAME || "Stallbokning";
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL || "noreply@equiduty.se";
+  const fromName = process.env.SENDGRID_FROM_NAME || "EquiDuty";
   if (!apiKey) {
     firebase_functions_1.logger.warn("SENDGRID_API_KEY not configured");
     return null;
@@ -102,7 +101,7 @@ function buildHtmlBody(title, body, actionUrl) {
             font-weight: 600;
             color: #111827;
             margin: 0;
-          ">🐴 Stallbokning</h1>
+          ">🐴 EquiDuty</h1>
         </div>
 
         <h2 style="
@@ -128,7 +127,7 @@ function buildHtmlBody(title, body, actionUrl) {
           color: #9ca3af;
         ">
           <p style="margin: 0;">
-            Detta meddelande skickades automatiskt från Stallbokning.
+            Detta meddelande skickades automatiskt från EquiDuty.
           </p>
           <p style="margin: 8px 0 0 0;">
             Du kan ändra dina aviseringsinställningar i appen.

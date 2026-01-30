@@ -9,7 +9,7 @@ import type {
   SelectionProcessWithContext,
   SelectionProcessTurn,
   SelectionTurnStatus,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 /**
  * Props for a single turn item in the queue

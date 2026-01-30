@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Firebase Free Tier Setup Script for stall-bokning-dev
+# Firebase Free Tier Setup Script for equiduty-dev
 # This script only enables services that don't require billing
 
 set -e  # Exit on error
 
-PROJECT_ID="stall-bokning-dev"
+PROJECT_ID="equiduty-dev"
 REGION="europe-west1"
 
 echo "🚀 Firebase Free Tier Setup Script"
@@ -78,12 +78,12 @@ echo ""
 
 # Create service account
 echo "📋 Creating service account..."
-SERVICE_ACCOUNT_NAME="stall-bokning-dev-sa"
+SERVICE_ACCOUNT_NAME="equiduty-dev-sa"
 SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 
 if ! gcloud iam service-accounts describe $SERVICE_ACCOUNT_EMAIL --project=$PROJECT_ID &> /dev/null; then
     gcloud iam service-accounts create $SERVICE_ACCOUNT_NAME \
-        --display-name="Stall Bokning Development Service Account" \
+        --display-name="EquiDuty Development Service Account" \
         --project=$PROJECT_ID
     echo "✅ Service account created: $SERVICE_ACCOUNT_EMAIL"
 else

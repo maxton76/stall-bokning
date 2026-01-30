@@ -27,7 +27,7 @@ export interface FeedType {
   id: string;
   organizationId: string;
   name: string;
-  brand: string;
+  brand?: string | null;
   category: FeedCategory;
   quantityMeasure: QuantityMeasure;
   defaultQuantity: number;
@@ -86,7 +86,7 @@ export interface HorseFeeding {
 
 export interface CreateFeedTypeData {
   name: string;
-  brand: string;
+  brand?: string | null;
   category: FeedCategory;
   quantityMeasure: QuantityMeasure;
   defaultQuantity: number;

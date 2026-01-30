@@ -5,7 +5,7 @@ import type {
   CreateHorseActivityHistoryInput,
   HorseActivityHistoryFilters,
   HorseActivityHistoryResponse,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 const COLLECTION_NAME = "horseActivityHistory";
 const BATCH_CHUNK_SIZE = 450; // Firestore batch limit is 500, keep some buffer

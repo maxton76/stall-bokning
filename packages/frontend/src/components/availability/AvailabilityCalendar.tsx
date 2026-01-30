@@ -30,7 +30,7 @@ import type {
   AvailabilityCalendarDay,
   LeaveRequest,
   AvailabilityConstraint,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 interface AvailabilityCalendarProps {
   leaveRequests: LeaveRequest[];

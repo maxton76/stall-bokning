@@ -15,7 +15,7 @@ import {
   recalculateHorseVaccinationStatus,
   calculateAssignmentStatus,
 } from "../utils/vaccinationStatusCalculator.js";
-import type { Horse, HorseVaccinationAssignment } from "@stall-bokning/shared";
+import type { Horse, HorseVaccinationAssignment } from "@equiduty/shared";
 
 /**
  * Check if user has organization membership with stable access

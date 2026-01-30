@@ -19,6 +19,9 @@ import {
   MessageSquare,
   Plus,
   Loader2,
+  Info,
+  Lock,
+  RotateCcw,
 } from "lucide-react";
 
 import { BaseFormDialog } from "@/components/BaseFormDialog";
@@ -38,17 +41,29 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   checkSupportAccess,
   createSupportTicket,
   listSupportTickets,
   getTicketConversation,
   replyToTicket,
+  updateTicketStatus,
 } from "@/services/supportService";
 import type {
   SupportTicketCategory,
   SupportTicketStatus,
   SupportTicketComment,
-} from "@stall-bokning/shared";
+} from "@equiduty/shared";
 
 // =============================================================================
 // Types
@@ -210,6 +225,19 @@ function ConversationView({
     },
   });
 
+  const statusMutation = useMutation({
+    mutationFn: (status: "solved" | "open") =>
+      updateTicketStatus(ticketId, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["ticket-conversation", ticketId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["support-tickets"],
+      });
+    },
+  });
+
   // Scroll to bottom when comments load or new reply is added
   useEffect(() => {
     if (scrollRef.current) {
@@ -218,6 +246,12 @@ function ConversationView({
   }, [conversation?.comments]);
 
   const isClosed = conversation?.status === "closed";
+  const isSolved = conversation?.status === "solved";
+  const isPending = conversation?.status === "pending";
+  const canClose = ["new", "open", "pending"].includes(
+    conversation?.status || "",
+  );
+  const canReopen = isSolved;
   const canSend = replyText.trim().length >= 10 && !replyMutation.isPending;
 
   if (isLoading) {
@@ -256,6 +290,102 @@ function ConversationView({
         <StatusBadge status={conversation.status} />
       </div>
 
+      {/* Status actions */}
+      {(canClose || canReopen) && (
+        <div className="flex items-center gap-2">
+          {canClose && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={statusMutation.isPending}
+                >
+                  {statusMutation.isPending ? (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Lock className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  {t("support:actions.closeTicket")}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    {t("support:actions.closeTicket")}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t("support:actions.confirmClose")}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>
+                    {t("common:buttons.cancel")}
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => statusMutation.mutate("solved")}
+                  >
+                    {t("support:actions.closeTicket")}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+
+          {canReopen && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={statusMutation.isPending}
+                >
+                  {statusMutation.isPending ? (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  {t("support:actions.reopenTicket")}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    {t("support:actions.reopenTicket")}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t("support:actions.confirmReopen")}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>
+                    {t("common:buttons.cancel")}
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => statusMutation.mutate("open")}
+                  >
+                    {t("support:actions.reopenTicket")}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+
+          {statusMutation.isError && (
+            <p className="text-sm text-destructive">
+              {t("support:actions.statusChangeFailed")}
+            </p>
+          )}
+          {statusMutation.isSuccess && (
+            <p className="text-sm text-green-600">
+              {statusMutation.variables === "solved"
+                ? t("support:actions.closeSuccess")
+                : t("support:actions.reopenSuccess")}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Messages */}
       <div
         ref={scrollRef}
@@ -275,6 +405,12 @@ function ConversationView({
         </Alert>
       ) : (
         <div className="flex flex-col gap-2">
+          {isPending && (
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Info className="h-3.5 w-3.5" />
+              {t("support:actions.pendingReplyHint")}
+            </p>
+          )}
           {replyMutation.isError && (
             <p className="text-sm text-destructive">
               {t("support:errors.replyFailed")}

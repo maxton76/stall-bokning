@@ -3,50 +3,52 @@
  * Run with: npx tsx scripts/fix-stable-org.ts
  */
 
-import { initializeApp } from 'firebase/app'
-import { getFirestore, doc, updateDoc } from 'firebase/firestore'
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, updateDoc } from "firebase/firestore";
 
 // Firebase emulator configuration
 const firebaseConfig = {
-  apiKey: 'demo-api-key',
-  projectId: 'stall-bokning-dev',
-}
+  apiKey: "demo-api-key",
+  projectId: "equiduty-dev",
+};
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig)
-const db = getFirestore(app)
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 // Connect to emulator (always connect when using demo project)
-const { connectFirestoreEmulator } = await import('firebase/firestore')
-connectFirestoreEmulator(db, '127.0.0.1', 5081)
-console.log('📡 Connected to Firestore emulator')
+const { connectFirestoreEmulator } = await import("firebase/firestore");
+connectFirestoreEmulator(db, "127.0.0.1", 5081);
+console.log("📡 Connected to Firestore emulator");
 
 async function fixStableOrganization() {
-  const stableId = 'HlsUJOJJ9UEinWNNwToc'
-  const organizationId = 'GIlPalwerOdpy1dxouul'
+  const stableId = "HlsUJOJJ9UEinWNNwToc";
+  const organizationId = "GIlPalwerOdpy1dxouul";
 
   try {
-    console.log(`🔧 Updating stable ${stableId} with organizationId: ${organizationId}`)
+    console.log(
+      `🔧 Updating stable ${stableId} with organizationId: ${organizationId}`,
+    );
 
-    const stableRef = doc(db, 'stables', stableId)
+    const stableRef = doc(db, "stables", stableId);
     await updateDoc(stableRef, {
-      organizationId
-    })
+      organizationId,
+    });
 
-    console.log('✅ Successfully updated stable with organizationId')
+    console.log("✅ Successfully updated stable with organizationId");
   } catch (error) {
-    console.error('❌ Error updating stable:', error)
-    throw error
+    console.error("❌ Error updating stable:", error);
+    throw error;
   }
 }
 
 // Run the fix
 fixStableOrganization()
   .then(() => {
-    console.log('🎉 Migration complete!')
-    process.exit(0)
+    console.log("🎉 Migration complete!");
+    process.exit(0);
   })
   .catch((error) => {
-    console.error('💥 Migration failed:', error)
-    process.exit(1)
-  })
+    console.error("💥 Migration failed:", error);
+    process.exit(1);
+  });
