@@ -526,6 +526,44 @@ export async function findOrCreateZendeskUser(
 }
 
 /**
+ * Update a ticket's status in ZenDesk
+ */
+export async function updateTicketStatus(
+  ticketId: number,
+  status: "solved" | "open",
+): Promise<void> {
+  const authHeader = await getAuthHeader();
+  const apiUrl = getZendeskApiUrl();
+
+  const response = await fetch(`${apiUrl}/tickets/${ticketId}.json`, {
+    method: "PUT",
+    headers: {
+      Authorization: authHeader,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      ticket: { status },
+    }),
+  });
+
+  if (response.status === 404) {
+    throw new Error("Ticket not found");
+  }
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    console.error("ZenDesk API error:", {
+      status: response.status,
+      statusText: response.statusText,
+      body: errorBody,
+    });
+    throw new Error(
+      `ZenDesk API error: ${response.status} ${response.statusText}`,
+    );
+  }
+}
+
+/**
  * Clear cached secrets (useful for testing or forcing refresh)
  */
 export function clearSecretCache(): void {

@@ -6,8 +6,10 @@
  */
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import { z } from "zod";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
+import { validateBody } from "../middleware/validation.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import {
   createTicket,
@@ -18,6 +20,7 @@ import {
   getTicketComments,
   addTicketReply,
   findOrCreateZendeskUser,
+  updateTicketStatus,
   type CreateTicketParams,
 } from "../services/zendeskService.js";
 import type {
@@ -29,6 +32,7 @@ import type {
   SupportTicketCategory,
   TicketConversationResponse,
   ReplyToTicketResponse,
+  UpdateTicketStatusResponse,
   SupportTicketComment,
 } from "@stall-bokning/shared";
 
@@ -146,6 +150,20 @@ async function verifyTicketOwnership(
   return { ticket: ticketResult.ticket, requesterId };
 }
 
+const createTicketSchema = z.object({
+  subject: z.string().min(5).max(200),
+  message: z.string().min(20).max(10000),
+  category: z.enum(["booking", "billing", "technical", "other"]),
+});
+
+const replySchema = z.object({
+  message: z.string().min(10).max(10000),
+});
+
+const updateStatusSchema = z.object({
+  status: z.enum(["solved", "open"]),
+});
+
 export async function supportRoutes(fastify: FastifyInstance) {
   // ============================================================================
   // SUPPORT ACCESS CHECK
@@ -196,21 +214,12 @@ export async function supportRoutes(fastify: FastifyInstance) {
   }>(
     "/tickets",
     {
-      preHandler: [authenticate],
+      preHandler: [authenticate, validateBody(createTicketSchema)],
     },
     async (request, reply) => {
       try {
         const user = (request as AuthenticatedRequest).user!;
-        const { subject, message, category } = request.body;
-
-        // Validate input
-        if (!subject || !message || !category) {
-          return reply.status(400).send({
-            ticketId: 0,
-            status: "error",
-            message: "Subject, message, and category are required",
-          });
-        }
+        const { subject, message, category } = (request as any).validatedBody;
 
         // Check support access
         const accessResult = await checkSupportAccess(user.uid);
@@ -437,7 +446,7 @@ export async function supportRoutes(fastify: FastifyInstance) {
   }>(
     "/tickets/:ticketId/reply",
     {
-      preHandler: [authenticate],
+      preHandler: [authenticate, validateBody(replySchema)],
     },
     async (request, reply) => {
       try {
@@ -448,20 +457,7 @@ export async function supportRoutes(fastify: FastifyInstance) {
           return reply.status(400).send({ success: false });
         }
 
-        // Validate message
-        const { message } = request.body || {};
-        if (
-          !message ||
-          typeof message !== "string" ||
-          message.trim().length < 10
-        ) {
-          return reply.status(400).send({ success: false });
-        }
-
-        // Cap message length
-        if (message.length > 10000) {
-          return reply.status(400).send({ success: false });
-        }
+        const { message } = (request as any).validatedBody;
 
         // Check support access
         const accessResult = await checkSupportAccess(user.uid);
@@ -495,6 +491,84 @@ export async function supportRoutes(fastify: FastifyInstance) {
         return { success: true };
       } catch (error) {
         request.log.error({ error }, "Failed to reply to ticket");
+        return reply.status(500).send({ success: false });
+      }
+    },
+  );
+
+  // ============================================================================
+  // TICKET STATUS UPDATE
+  // ============================================================================
+
+  /**
+   * PUT /api/v1/support/tickets/:ticketId/status
+   * Update ticket status (close/reopen)
+   * Requires paid subscription and ticket ownership
+   *
+   * Allowed transitions:
+   *   new / open / pending → solved (user closes their ticket)
+   *   solved → open (user reopens)
+   *   closed → nothing (closed is final in Zendesk)
+   */
+  fastify.put<{
+    Params: { ticketId: string };
+    Body: { status: "solved" | "open" };
+    Reply: UpdateTicketStatusResponse;
+  }>(
+    "/tickets/:ticketId/status",
+    {
+      preHandler: [authenticate, validateBody(updateStatusSchema)],
+    },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+        const ticketId = parseInt(request.params.ticketId, 10);
+
+        if (isNaN(ticketId)) {
+          return reply.status(400).send({ success: false });
+        }
+
+        const { status } = (request as any).validatedBody;
+
+        // Check support access
+        const accessResult = await checkSupportAccess(user.uid);
+        if (!accessResult.hasAccess) {
+          return reply.status(403).send({ success: false });
+        }
+
+        // Verify ticket ownership
+        const ticketResult = await verifyTicketOwnership(
+          ticketId,
+          user.email || "",
+          request.log,
+        );
+        if (!ticketResult) {
+          return reply.status(404).send({ success: false });
+        }
+
+        // Enforce allowed transitions
+        const currentStatus = ticketResult.ticket.status;
+
+        if (currentStatus === "closed") {
+          return reply.status(400).send({ success: false });
+        }
+
+        if (
+          status === "solved" &&
+          !["new", "open", "pending"].includes(currentStatus)
+        ) {
+          return reply.status(400).send({ success: false });
+        }
+
+        if (status === "open" && currentStatus !== "solved") {
+          return reply.status(400).send({ success: false });
+        }
+
+        await updateTicketStatus(ticketId, status);
+
+        return { success: true };
+      } catch (error) {
+        request.log.error({ error }, "Failed to update ticket status");
         return reply.status(500).send({ success: false });
       }
     },
