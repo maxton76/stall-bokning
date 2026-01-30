@@ -90,6 +90,7 @@
     "title": "Short description of your idea",
     "description": "Describe your idea in detail. What would you like to be able to do and why?",
     "category": "Select category",
+    "comment": "Write a comment...",
     "adminResponse": "Write a response to the user..."
   },
   "card": {
@@ -127,6 +128,13 @@
     "hoursAgo": "{{count}}h ago",
     "daysAgo": "{{count}}d ago"
   },
+  "ai": {
+    "refine": "Improve with AI",
+    "refining": "Improving...",
+    "refineSuccess": "Text has been improved",
+    "refineError": "Could not improve text",
+    "revert": "Revert to original"
+  },
   "validation": {
     "titleMin": "Title must be at least 5 characters",
     "descriptionMin": "Description must be at least 20 characters"
@@ -140,5 +148,6 @@
   "loadMoreComments": "Load more comments",
   "adminActions": "Admin Actions",
   "adminUpdateSuccess": "Changes saved successfully.",
-  "noChanges": "No changes to save."
+  "noChanges": "No changes to save.",
+  "addComment": "Add Comment"
 }

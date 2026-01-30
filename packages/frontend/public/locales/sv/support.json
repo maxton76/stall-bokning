@@ -35,6 +35,13 @@
     "message": "Support är tillgängligt för betalande kunder. Uppgradera din prenumeration för att få tillgång till support.",
     "button": "Uppgradera nu"
   },
+  "ai": {
+    "refine": "Förbättra med AI",
+    "refining": "Förbättrar...",
+    "refineSuccess": "Texten har förbättrats",
+    "refineError": "Kunde inte förbättra texten",
+    "revert": "Återställ original"
+  },
   "validation": {
     "subjectRequired": "Ämne krävs",
     "subjectMinLength": "Ämnet måste vara minst 5 tecken",

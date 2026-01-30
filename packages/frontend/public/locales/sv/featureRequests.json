@@ -90,6 +90,7 @@
     "title": "Kort beskrivning av din idé",
     "description": "Beskriv din idé i detalj. Vad vill du kunna göra och varför?",
     "category": "Välj kategori",
+    "comment": "Skriv en kommentar...",
     "adminResponse": "Skriv ett svar till användaren..."
   },
   "card": {
@@ -127,6 +128,13 @@
     "hoursAgo": "{{count}}t sedan",
     "daysAgo": "{{count}}d sedan"
   },
+  "ai": {
+    "refine": "Förbättra med AI",
+    "refining": "Förbättrar...",
+    "refineSuccess": "Texten har förbättrats",
+    "refineError": "Kunde inte förbättra texten",
+    "revert": "Återställ original"
+  },
   "validation": {
     "titleMin": "Titeln måste vara minst 5 tecken",
     "descriptionMin": "Beskrivningen måste vara minst 20 tecken"
@@ -140,5 +148,6 @@
   "loadMoreComments": "Ladda fler kommentarer",
   "adminActions": "Administratörsåtgärder",
   "adminUpdateSuccess": "Ändringar har sparats.",
-  "noChanges": "Inga ändringar att spara."
+  "noChanges": "Inga ändringar att spara.",
+  "addComment": "Lägg till kommentar"
 }

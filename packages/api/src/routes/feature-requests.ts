@@ -15,6 +15,7 @@ import { validateBody, validateQuery } from "../middleware/validation.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 import { stripHtml } from "../utils/sanitization.js";
+import { refineFeatureRequestText } from "../utils/gemini.js";
 import type {
   FeatureRequest,
   FeatureRequestComment,
@@ -96,6 +97,11 @@ const listQuerySchema = z.object({
     .string()
     .optional()
     .transform((v) => Math.min(Number(v) || 20, 50)),
+});
+
+const refineSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  description: z.string().trim().min(1).max(5000),
 });
 
 const commentsQuerySchema = z.object({
@@ -291,6 +297,33 @@ export async function featureRequestsRoutes(fastify: FastifyInstance) {
       const data = serializeRequest(created);
 
       return reply.status(201).send({ ...data, hasVoted: false });
+    },
+  );
+
+  // ─── REFINE WITH AI ──────────────────────────────────────────────────
+  fastify.post(
+    "/refine",
+    {
+      preHandler: [authenticate, validateBody(refineSchema)],
+    },
+    async (request, reply) => {
+      const input = (request as any).validatedBody as z.infer<
+        typeof refineSchema
+      >;
+
+      try {
+        const refined = await refineFeatureRequestText(
+          input.title,
+          input.description,
+        );
+        return reply.send(refined);
+      } catch (error) {
+        request.log.error(error, "Failed to refine feature request text");
+        return reply.status(502).send({
+          error: "AI Service Error",
+          message: "Could not refine text. Please try again.",
+        });
+      }
     },
   );
 

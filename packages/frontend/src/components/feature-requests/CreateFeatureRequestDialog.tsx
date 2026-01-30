@@ -23,8 +23,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Sparkles, Loader2, Undo2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { createFeatureRequest } from "@/services/featureRequestService";
+import {
+  createFeatureRequest,
+  refineFeatureRequestText,
+} from "@/services/featureRequestService";
 import type { FeatureRequestCategory } from "@equiduty/shared";
 
 import type { TFunction } from "i18next";
@@ -71,11 +75,19 @@ export function CreateFeatureRequestDialog({
   const { toast } = useToast();
   const schema = createFormSchema(t);
 
+  const [isRefining, setIsRefining] = useState(false);
+  const [originalText, setOriginalText] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
+
   const {
     register,
     handleSubmit,
     control,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema as any) as any,
@@ -85,6 +97,42 @@ export function CreateFeatureRequestDialog({
       category: "improvement",
     },
   });
+
+  const watchTitle = watch("title");
+  const watchDescription = watch("description");
+  const canRefine =
+    watchTitle.length > 3 && watchDescription.length > 10 && !isRefining;
+
+  async function handleRefine() {
+    setIsRefining(true);
+    try {
+      setOriginalText({ title: watchTitle, description: watchDescription });
+      const refined = await refineFeatureRequestText(
+        watchTitle,
+        watchDescription,
+      );
+      setValue("title", refined.title, { shouldValidate: true });
+      setValue("description", refined.description, { shouldValidate: true });
+      toast({
+        title: t("featureRequests:ai.refineSuccess"),
+      });
+    } catch {
+      setOriginalText(null);
+      toast({
+        title: t("featureRequests:ai.refineError"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefining(false);
+    }
+  }
+
+  function handleRevert() {
+    if (!originalText) return;
+    setValue("title", originalText.title, { shouldValidate: true });
+    setValue("description", originalText.description, { shouldValidate: true });
+    setOriginalText(null);
+  }
 
   const mutation = useMutation({
     mutationFn: createFeatureRequest,
@@ -152,6 +200,37 @@ export function CreateFeatureRequestDialog({
                 {errors.description.message}
               </p>
             )}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!canRefine || mutation.isPending}
+                onClick={handleRefine}
+                className="gap-1.5"
+              >
+                {isRefining ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                {isRefining
+                  ? t("featureRequests:ai.refining")
+                  : t("featureRequests:ai.refine")}
+              </Button>
+              {originalText && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRevert}
+                  className="gap-1.5"
+                >
+                  <Undo2 className="h-4 w-4" />
+                  {t("featureRequests:ai.revert")}
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">

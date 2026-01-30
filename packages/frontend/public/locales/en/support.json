@@ -35,6 +35,13 @@
     "message": "Support is available for paying customers. Upgrade your subscription to access support.",
     "button": "Upgrade Now"
   },
+  "ai": {
+    "refine": "Improve with AI",
+    "refining": "Improving...",
+    "refineSuccess": "Text has been improved",
+    "refineError": "Could not improve text",
+    "revert": "Revert to original"
+  },
   "validation": {
     "subjectRequired": "Subject is required",
     "subjectMinLength": "Subject must be at least 5 characters",

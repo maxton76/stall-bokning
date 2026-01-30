@@ -69,6 +69,30 @@ export async function replyToTicket(
 }
 
 /**
+ * Refine support ticket text using AI
+ */
+export async function refineSupportTicketText(
+  subject: string,
+  message: string,
+): Promise<{ subject: string; message: string }> {
+  return apiClient.post<{ subject: string; message: string }>(
+    "/support/refine-ticket",
+    { subject, message },
+  );
+}
+
+/**
+ * Refine support reply text using AI
+ */
+export async function refineSupportReplyText(
+  message: string,
+): Promise<{ message: string }> {
+  return apiClient.post<{ message: string }>("/support/refine-reply", {
+    message,
+  });
+}
+
+/**
  * Update ticket status (close/reopen)
  */
 export async function updateTicketStatus(

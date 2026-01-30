@@ -99,6 +99,19 @@ export async function addComment(
 }
 
 /**
+ * Refine feature request text using AI
+ */
+export async function refineFeatureRequestText(
+  title: string,
+  description: string,
+): Promise<{ title: string; description: string }> {
+  return apiClient.post<{ title: string; description: string }>(
+    "/feature-requests/refine",
+    { title, description },
+  );
+}
+
+/**
  * Update the status of a feature request (admin only)
  */
 export async function updateFeatureRequestStatus(

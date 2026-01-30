@@ -22,6 +22,8 @@ import {
   Info,
   Lock,
   RotateCcw,
+  Sparkles,
+  Undo2,
 } from "lucide-react";
 
 import { BaseFormDialog } from "@/components/BaseFormDialog";
@@ -51,6 +53,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 import {
   checkSupportAccess,
   createSupportTicket,
@@ -58,6 +61,8 @@ import {
   getTicketConversation,
   replyToTicket,
   updateTicketStatus,
+  refineSupportTicketText,
+  refineSupportReplyText,
 } from "@/services/supportService";
 import type {
   SupportTicketCategory,
@@ -202,8 +207,13 @@ function ConversationView({
   onBack: () => void;
 }) {
   const { t } = useTranslation(["support", "common"]);
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [replyText, setReplyText] = useState("");
+  const [isRefiningReply, setIsRefiningReply] = useState(false);
+  const [originalReplyText, setOriginalReplyText] = useState<string | null>(
+    null,
+  );
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -429,18 +439,61 @@ function ConversationView({
               rows={3}
               className="flex-1 resize-none"
             />
-            <Button
-              size="icon"
-              disabled={!canSend}
-              onClick={() => replyMutation.mutate(replyText.trim())}
-              className="self-end"
-            >
-              {replyMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
+            <div className="flex flex-col gap-1 self-end">
+              <Button
+                size="icon"
+                variant="outline"
+                disabled={replyText.trim().length < 10 || isRefiningReply}
+                onClick={async () => {
+                  setIsRefiningReply(true);
+                  try {
+                    setOriginalReplyText(replyText);
+                    const refined = await refineSupportReplyText(replyText);
+                    setReplyText(refined.message);
+                    toast({ title: t("support:ai.refineSuccess") });
+                  } catch {
+                    setOriginalReplyText(null);
+                    toast({
+                      title: t("support:ai.refineError"),
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setIsRefiningReply(false);
+                  }
+                }}
+                title={t("support:ai.refine")}
+              >
+                {isRefiningReply ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+              </Button>
+              {originalReplyText !== null && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => {
+                    setReplyText(originalReplyText);
+                    setOriginalReplyText(null);
+                  }}
+                  title={t("support:ai.revert")}
+                >
+                  <Undo2 className="h-4 w-4" />
+                </Button>
               )}
-            </Button>
+              <Button
+                size="icon"
+                disabled={!canSend}
+                onClick={() => replyMutation.mutate(replyText.trim())}
+              >
+                {replyMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
           {replyText.length > 0 && replyText.trim().length < 10 && (
             <p className="text-xs text-muted-foreground">
@@ -500,6 +553,12 @@ function CreateTicketView({
   onSuccess: (ticketId: number) => void;
 }) {
   const { t } = useTranslation(["support", "common"]);
+  const { toast } = useToast();
+  const [isRefining, setIsRefining] = useState(false);
+  const [originalText, setOriginalText] = useState<{
+    subject: string;
+    message: string;
+  } | null>(null);
 
   const categoryOptions = useMemo(
     () => [
@@ -582,6 +641,75 @@ function CreateTicketView({
           placeholder={t("support:fields.messagePlaceholder")}
           rows={6}
         />
+
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={
+              isRefining ||
+              (form.watch("subject") || "").length <= 3 ||
+              (form.watch("message") || "").length <= 10
+            }
+            onClick={async () => {
+              setIsRefining(true);
+              try {
+                setOriginalText({
+                  subject: form.getValues("subject"),
+                  message: form.getValues("message"),
+                });
+                const refined = await refineSupportTicketText(
+                  form.getValues("subject"),
+                  form.getValues("message"),
+                );
+                form.setValue("subject", refined.subject, {
+                  shouldValidate: true,
+                });
+                form.setValue("message", refined.message, {
+                  shouldValidate: true,
+                });
+                toast({ title: t("support:ai.refineSuccess") });
+              } catch {
+                setOriginalText(null);
+                toast({
+                  title: t("support:ai.refineError"),
+                  variant: "destructive",
+                });
+              } finally {
+                setIsRefining(false);
+              }
+            }}
+            className="gap-1.5"
+          >
+            {isRefining ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {isRefining ? t("support:ai.refining") : t("support:ai.refine")}
+          </Button>
+          {originalText && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                form.setValue("subject", originalText.subject, {
+                  shouldValidate: true,
+                });
+                form.setValue("message", originalText.message, {
+                  shouldValidate: true,
+                });
+                setOriginalText(null);
+              }}
+              className="gap-1.5"
+            >
+              <Undo2 className="h-4 w-4" />
+              {t("support:ai.revert")}
+            </Button>
+          )}
+        </div>
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onBack}>

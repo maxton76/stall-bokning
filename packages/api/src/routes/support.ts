@@ -12,6 +12,10 @@ import { authenticate } from "../middleware/auth.js";
 import { validateBody } from "../middleware/validation.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import {
+  refineSupportTicketText,
+  refineSupportReplyText,
+} from "../utils/gemini.js";
+import {
   createTicket,
   searchTicketsByEmail,
   verifyWebhookSecret,
@@ -160,6 +164,15 @@ const replySchema = z.object({
   message: z.string().min(10).max(10000),
 });
 
+const refineTicketSchema = z.object({
+  subject: z.string().trim().min(1).max(200),
+  message: z.string().trim().min(1).max(10000),
+});
+
+const refineReplySchema = z.object({
+  message: z.string().trim().min(1).max(10000),
+});
+
 const updateStatusSchema = z.object({
   status: z.enum(["solved", "open"]),
 });
@@ -195,6 +208,67 @@ export async function supportRoutes(fastify: FastifyInstance) {
           hasAccess: false,
           reason: "no_organization",
         } as SupportAccessResponse);
+      }
+    },
+  );
+
+  // ============================================================================
+  // AI TEXT REFINEMENT
+  // ============================================================================
+
+  /**
+   * POST /api/v1/support/refine-ticket
+   * Refine support ticket subject and message using AI
+   */
+  fastify.post(
+    "/refine-ticket",
+    {
+      preHandler: [authenticate, validateBody(refineTicketSchema)],
+    },
+    async (request, reply) => {
+      const input = (request as any).validatedBody as z.infer<
+        typeof refineTicketSchema
+      >;
+
+      try {
+        const refined = await refineSupportTicketText(
+          input.subject,
+          input.message,
+        );
+        return reply.send(refined);
+      } catch (error) {
+        request.log.error(error, "Failed to refine support ticket text");
+        return reply.status(502).send({
+          error: "AI Service Error",
+          message: "Could not refine text. Please try again.",
+        });
+      }
+    },
+  );
+
+  /**
+   * POST /api/v1/support/refine-reply
+   * Refine support ticket reply using AI
+   */
+  fastify.post(
+    "/refine-reply",
+    {
+      preHandler: [authenticate, validateBody(refineReplySchema)],
+    },
+    async (request, reply) => {
+      const input = (request as any).validatedBody as z.infer<
+        typeof refineReplySchema
+      >;
+
+      try {
+        const refined = await refineSupportReplyText(input.message);
+        return reply.send(refined);
+      } catch (error) {
+        request.log.error(error, "Failed to refine support reply text");
+        return reply.status(502).send({
+          error: "AI Service Error",
+          message: "Could not refine text. Please try again.",
+        });
       }
     },
   );
