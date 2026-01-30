@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { Save, RotateCcw, CheckCircle2, XCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import {
+  Save,
+  RotateCcw,
+  CheckCircle2,
+  XCircle,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -21,6 +29,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { PageHeader } from "@/components/PageHeader";
 import { QueryBoundary } from "@/components/ui/QueryBoundary";
 import { useApiQuery } from "@/hooks/useApiQuery";
@@ -28,21 +46,23 @@ import { useApiMutation } from "@/hooks/useApiMutation";
 import { SubscriptionLimitsEditor } from "@/components/subscription/SubscriptionLimitsEditor";
 import { SubscriptionModulesEditor } from "@/components/subscription/SubscriptionModulesEditor";
 import { SubscriptionAddonsEditor } from "@/components/subscription/SubscriptionAddonsEditor";
+import { CreateTierDialog } from "@/components/subscription/CreateTierDialog";
 import type {
   TierDefinition,
-  SubscriptionTier,
   SubscriptionLimits,
   ModuleFlags,
   SubscriptionAddons,
   StripeProductMapping,
 } from "@equiduty/shared";
-import { SUBSCRIPTION_TIERS, DEFAULT_TIER_DEFINITIONS } from "@equiduty/shared";
+import { SUBSCRIPTION_TIERS } from "@equiduty/shared";
 import {
   getTierDefinitions,
   updateTierDefinition,
   resetTierDefaults,
   getStripeProducts,
   updateStripeProduct,
+  createTier,
+  deleteTier,
 } from "@/services/adminService";
 
 // ---------- Types ----------
@@ -68,7 +88,6 @@ interface TierFormData {
 
 function buildFormData(
   tier: TierDefinition,
-  tierIndex: number,
   stripe?: StripeProductMapping,
 ): TierFormData {
   return {
@@ -80,7 +99,7 @@ function buildFormData(
     addons: { ...tier.addons },
     enabled: tier.enabled ?? true,
     isBillable: tier.isBillable ?? tier.price > 0,
-    sortOrder: tier.sortOrder ?? tierIndex,
+    sortOrder: tier.sortOrder ?? 99,
     visibility: tier.visibility ?? "public",
     stripeProductId: stripe?.stripeProductId ?? "",
     monthPriceId: stripe?.prices?.month ?? "",
@@ -108,41 +127,47 @@ function TierLoadingSkeleton() {
 function TierManagementContent({
   initialTiers,
   initialStripeProducts,
+  onRefresh,
 }: {
   initialTiers: TierDefinition[];
   initialStripeProducts: StripeProductMapping[];
+  onRefresh: () => void;
 }) {
-  const [selectedTier, setSelectedTier] = useState<SubscriptionTier>(
-    SUBSCRIPTION_TIERS[0] as SubscriptionTier,
-  );
+  const { t } = useTranslation(["admin", "common"]);
 
-  const [forms, setForms] = useState<Record<SubscriptionTier, TierFormData>>(
-    () => {
-      const result = {} as Record<SubscriptionTier, TierFormData>;
-      for (const [index, tierKey] of SUBSCRIPTION_TIERS.entries()) {
-        const tierDef =
-          initialTiers.find((t) => t.tier === tierKey) ??
-          DEFAULT_TIER_DEFINITIONS[tierKey];
-        const stripe = initialStripeProducts.find((p) => p.tier === tierKey);
-        result[tierKey] = buildFormData(tierDef, index, stripe);
-      }
-      return result;
-    },
+  const tierKeys = initialTiers.map((t) => t.tier);
+  const [selectedTier, setSelectedTier] = useState<string>(
+    tierKeys[0] ?? "free",
   );
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const [forms, setForms] = useState<Record<string, TierFormData>>(() => {
+    const result: Record<string, TierFormData> = {};
+    for (const tierDef of initialTiers) {
+      const stripe = initialStripeProducts.find((p) => p.tier === tierDef.tier);
+      result[tierDef.tier] = buildFormData(tierDef, stripe);
+    }
+    return result;
+  });
 
   const form = forms[selectedTier];
 
   const updateForm = (patch: Partial<TierFormData>) => {
-    setForms((prev) => ({
-      ...prev,
-      [selectedTier]: { ...prev[selectedTier], ...patch },
-    }));
+    setForms((prev) => {
+      const current = prev[selectedTier];
+      if (!current) return prev;
+      return {
+        ...prev,
+        [selectedTier]: { ...current, ...patch },
+      };
+    });
   };
 
   // --- Mutations ---
 
   const saveMutation = useApiMutation(
-    async ({ tier, data }: { tier: SubscriptionTier; data: TierFormData }) => {
+    async ({ tier, data }: { tier: string; data: TierFormData }) => {
       const tierPayload: Partial<TierDefinition> = {
         name: data.name,
         description: data.description,
@@ -156,54 +181,80 @@ function TierManagementContent({
         visibility: data.visibility,
       };
 
-      const promises: Promise<unknown>[] = [
-        updateTierDefinition(tier, tierPayload),
-      ];
+      // Save tier definition FIRST — the stripe endpoint validates
+      // isBillable from Firestore, so the tier must be persisted before
+      // the stripe mapping can succeed.
+      await updateTierDefinition(tier, tierPayload);
 
       if (data.isBillable && isStripeConfigured(data)) {
-        promises.push(
-          updateStripeProduct(tier, {
-            stripeProductId: data.stripeProductId,
-            prices: {
-              month: data.monthPriceId,
-              year: data.yearPriceId,
-            },
-          }),
-        );
+        await updateStripeProduct(tier, {
+          stripeProductId: data.stripeProductId,
+          prices: {
+            month: data.monthPriceId,
+            year: data.yearPriceId,
+          },
+        });
       }
 
-      await Promise.all(promises);
       return { success: true };
     },
     {
-      successMessage: "Tier saved successfully",
-      errorMessage: "Failed to save tier",
+      successMessage: t("admin:tiers.messages.saveSuccess"),
+      errorMessage: t("admin:tiers.messages.saveError"),
+      onSuccess: () => onRefresh(),
     },
   );
 
   const resetMutation = useApiMutation(
-    (tier: SubscriptionTier) => resetTierDefaults(tier),
+    (tier: string) => resetTierDefaults(tier),
     {
-      successMessage: "Tier reset to defaults",
-      errorMessage: "Failed to reset tier",
+      successMessage: t("admin:tiers.messages.resetSuccess"),
+      errorMessage: t("admin:tiers.messages.resetError"),
       onSuccess: (result, tier) => {
         if (result.definition) {
-          const index = SUBSCRIPTION_TIERS.indexOf(tier);
           const stripe = initialStripeProducts.find((p) => p.tier === tier);
           setForms((prev) => ({
             ...prev,
-            [tier]: buildFormData(result.definition, index, stripe),
+            [tier]: buildFormData(result.definition, stripe),
           }));
         }
       },
     },
   );
 
-  const isBusy = saveMutation.isPending || resetMutation.isPending;
+  const createMutation = useApiMutation(
+    (definition: TierDefinition) => createTier(definition),
+    {
+      successMessage: t("admin:tiers.messages.createSuccess"),
+      errorMessage: t("admin:tiers.messages.createError"),
+      onSuccess: () => {
+        setShowCreateDialog(false);
+        onRefresh();
+      },
+    },
+  );
+
+  const deleteMutation = useApiMutation((tier: string) => deleteTier(tier), {
+    successMessage: t("admin:tiers.messages.deleteSuccess"),
+    errorMessage: t("admin:tiers.messages.deleteError"),
+    onSuccess: () => {
+      setShowDeleteDialog(false);
+      onRefresh();
+    },
+  });
+
+  const isBusy =
+    saveMutation.isPending ||
+    resetMutation.isPending ||
+    createMutation.isPending ||
+    deleteMutation.isPending;
+
+  const isBuiltinTier = SUBSCRIPTION_TIERS.includes(selectedTier);
 
   // --- Handlers ---
 
   const handleLimitChange = (key: keyof SubscriptionLimits, value: string) => {
+    if (!form) return;
     const numValue = value === "" ? 0 : parseInt(value, 10);
     updateForm({
       limits: { ...form.limits, [key]: numValue },
@@ -211,12 +262,14 @@ function TierManagementContent({
   };
 
   const handleModuleToggle = (key: keyof ModuleFlags) => {
+    if (!form) return;
     updateForm({
       modules: { ...form.modules, [key]: !form.modules[key] },
     });
   };
 
   const handleAddonToggle = (key: keyof SubscriptionAddons) => {
+    if (!form) return;
     updateForm({
       addons: { ...form.addons, [key]: !form.addons[key] },
     });
@@ -226,33 +279,30 @@ function TierManagementContent({
 
   return (
     <div className="space-y-6">
-      {/* Tier selector */}
+      {/* Tier selector + Create button */}
       <div className="flex items-center gap-4">
         <Label htmlFor="tier-select" className="text-sm font-medium">
-          Tier
+          {t("admin:tiers.labels.tier")}
         </Label>
-        <Select
-          value={selectedTier}
-          onValueChange={(v) => setSelectedTier(v as SubscriptionTier)}
-        >
+        <Select value={selectedTier} onValueChange={(v) => setSelectedTier(v)}>
           <SelectTrigger id="tier-select" className="w-64">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {SUBSCRIPTION_TIERS.map((tier) => {
-              const f = forms[tier];
+            {initialTiers.map((tierDef) => {
+              const f = forms[tierDef.tier];
               return (
-                <SelectItem key={tier} value={tier}>
+                <SelectItem key={tierDef.tier} value={tierDef.tier}>
                   <span className="flex items-center gap-2">
-                    {f?.name || tier}
+                    {f?.name || tierDef.tier}
                     {f && !f.enabled && (
                       <Badge variant="secondary" className="text-[10px] px-1">
-                        Disabled
+                        {t("admin:tiers.badges.disabled")}
                       </Badge>
                     )}
                     {f?.visibility === "hidden" && (
                       <Badge variant="outline" className="text-[10px] px-1">
-                        Hidden
+                        {t("admin:tiers.badges.hidden")}
                       </Badge>
                     )}
                   </span>
@@ -261,6 +311,15 @@ function TierManagementContent({
             })}
           </SelectContent>
         </Select>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowCreateDialog(true)}
+          disabled={isBusy}
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          {t("admin:tiers.actions.create")}
+        </Button>
       </div>
 
       {/* Detail card */}
@@ -272,11 +331,21 @@ function TierManagementContent({
               <CardDescription>{form.description}</CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              {!form.enabled && <Badge variant="destructive">Disabled</Badge>}
-              {form.visibility === "hidden" && (
-                <Badge variant="outline">Hidden</Badge>
+              {!form.enabled && (
+                <Badge variant="destructive">
+                  {t("admin:tiers.badges.disabled")}
+                </Badge>
               )}
-              {form.isBillable && <Badge variant="secondary">Billable</Badge>}
+              {form.visibility === "hidden" && (
+                <Badge variant="outline">
+                  {t("admin:tiers.badges.hidden")}
+                </Badge>
+              )}
+              {form.isBillable && (
+                <Badge variant="secondary">
+                  {t("admin:tiers.badges.billable")}
+                </Badge>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -285,11 +354,11 @@ function TierManagementContent({
           {/* General */}
           <section className="space-y-4">
             <h3 className="text-sm font-semibold uppercase text-muted-foreground">
-              General
+              {t("admin:tiers.sections.general")}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <Label>Name</Label>
+                <Label>{t("admin:tiers.labels.name")}</Label>
                 <Input
                   value={form.name}
                   onChange={(e) => updateForm({ name: e.target.value })}
@@ -297,7 +366,7 @@ function TierManagementContent({
                 />
               </div>
               <div className="space-y-1">
-                <Label>Description</Label>
+                <Label>{t("admin:tiers.labels.description")}</Label>
                 <Input
                   value={form.description}
                   onChange={(e) => updateForm({ description: e.target.value })}
@@ -305,7 +374,7 @@ function TierManagementContent({
                 />
               </div>
               <div className="space-y-1">
-                <Label>Price (SEK/month)</Label>
+                <Label>{t("admin:tiers.labels.price")}</Label>
                 <Input
                   type="number"
                   value={form.price}
@@ -328,12 +397,12 @@ function TierManagementContent({
           {/* Status */}
           <section className="space-y-4">
             <h3 className="text-sm font-semibold uppercase text-muted-foreground">
-              Status
+              {t("admin:tiers.sections.status")}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <Label htmlFor="tier-enabled" className="cursor-pointer">
-                  Enabled
+                  {t("admin:tiers.labels.enabled")}
                 </Label>
                 <Switch
                   id="tier-enabled"
@@ -344,7 +413,7 @@ function TierManagementContent({
               </div>
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <Label htmlFor="tier-billable" className="cursor-pointer">
-                  Billable
+                  {t("admin:tiers.labels.billable")}
                 </Label>
                 <Switch
                   id="tier-billable"
@@ -354,7 +423,7 @@ function TierManagementContent({
                 />
               </div>
               <div className="space-y-1">
-                <Label>Sort Order</Label>
+                <Label>{t("admin:tiers.labels.sortOrder")}</Label>
                 <Input
                   type="number"
                   value={form.sortOrder}
@@ -370,7 +439,7 @@ function TierManagementContent({
                 />
               </div>
               <div className="space-y-1">
-                <Label>Visibility</Label>
+                <Label>{t("admin:tiers.labels.visibility")}</Label>
                 <Select
                   value={form.visibility}
                   onValueChange={(v) =>
@@ -382,8 +451,12 @@ function TierManagementContent({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="public">Public</SelectItem>
-                    <SelectItem value="hidden">Hidden</SelectItem>
+                    <SelectItem value="public">
+                      {t("admin:tiers.labels.visibilityPublic")}
+                    </SelectItem>
+                    <SelectItem value="hidden">
+                      {t("admin:tiers.labels.visibilityHidden")}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -397,7 +470,7 @@ function TierManagementContent({
               <section className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold uppercase text-muted-foreground">
-                    Stripe Billing
+                    {t("admin:tiers.sections.stripeBilling")}
                   </h3>
                   <Badge
                     variant={isStripeConfigured(form) ? "default" : "secondary"}
@@ -405,19 +478,19 @@ function TierManagementContent({
                     {isStripeConfigured(form) ? (
                       <span className="flex items-center gap-1">
                         <CheckCircle2 className="h-3 w-3" />
-                        Configured
+                        {t("admin:tiers.badges.configured")}
                       </span>
                     ) : (
                       <span className="flex items-center gap-1">
                         <XCircle className="h-3 w-3" />
-                        Not configured
+                        {t("admin:tiers.badges.notConfigured")}
                       </span>
                     )}
                   </Badge>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-1">
-                    <Label>Stripe Product ID</Label>
+                    <Label>{t("admin:tiers.labels.stripeProductId")}</Label>
                     <Input
                       placeholder="prod_xxx"
                       value={form.stripeProductId}
@@ -428,7 +501,7 @@ function TierManagementContent({
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label>Monthly Price ID</Label>
+                    <Label>{t("admin:tiers.labels.monthlyPriceId")}</Label>
                     <Input
                       placeholder="price_xxx"
                       value={form.monthPriceId}
@@ -439,7 +512,7 @@ function TierManagementContent({
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label>Annual Price ID</Label>
+                    <Label>{t("admin:tiers.labels.annualPriceId")}</Label>
                     <Input
                       placeholder="price_xxx"
                       value={form.yearPriceId}
@@ -459,7 +532,7 @@ function TierManagementContent({
           {/* Limits */}
           <section className="space-y-4">
             <h3 className="text-sm font-semibold uppercase text-muted-foreground">
-              Numeric Limits
+              {t("admin:tiers.sections.numericLimits")}
             </h3>
             <SubscriptionLimitsEditor
               limits={form.limits}
@@ -473,7 +546,7 @@ function TierManagementContent({
           {/* Modules */}
           <section className="space-y-4">
             <h3 className="text-sm font-semibold uppercase text-muted-foreground">
-              Module Flags
+              {t("admin:tiers.sections.moduleFlags")}
             </h3>
             <SubscriptionModulesEditor
               modules={form.modules}
@@ -487,7 +560,7 @@ function TierManagementContent({
           {/* Add-ons */}
           <section className="space-y-4">
             <h3 className="text-sm font-semibold uppercase text-muted-foreground">
-              Add-ons
+              {t("admin:tiers.sections.addons")}
             </h3>
             <SubscriptionAddonsEditor
               addons={form.addons}
@@ -499,27 +572,83 @@ function TierManagementContent({
           <Separator />
 
           {/* Actions */}
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={() => resetMutation.mutate(selectedTier)}
-              disabled={isBusy}
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Reset to Defaults
-            </Button>
-            <Button
-              onClick={() =>
-                saveMutation.mutate({ tier: selectedTier, data: form })
-              }
-              disabled={isBusy}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Save Changes
-            </Button>
+          <div className="flex justify-between">
+            <div>
+              {selectedTier !== "free" && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteDialog(true)}
+                  disabled={isBusy}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {t("admin:tiers.actions.delete")}
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-3">
+              {isBuiltinTier && (
+                <Button
+                  variant="outline"
+                  onClick={() => resetMutation.mutate(selectedTier)}
+                  disabled={isBusy}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  {t("admin:tiers.actions.reset")}
+                </Button>
+              )}
+              <Button
+                onClick={() =>
+                  saveMutation.mutate({ tier: selectedTier, data: form })
+                }
+                disabled={isBusy}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {t("admin:tiers.actions.save")}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Create Dialog */}
+      <CreateTierDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onSubmit={(def) => createMutation.mutate(def)}
+        existingTierKeys={tierKeys}
+        isPending={createMutation.isPending}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("admin:tiers.dialogs.deleteTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedTier === "free"
+                ? t("admin:tiers.dialogs.deleteCannotFree")
+                : t("admin:tiers.dialogs.deleteConfirm", {
+                    name: form?.name ?? selectedTier,
+                  })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {t("common:buttons.cancel", { defaultValue: "Cancel" })}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate(selectedTier)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMutation.isPending}
+            >
+              {t("admin:tiers.actions.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -527,6 +656,8 @@ function TierManagementContent({
 // ---------- Page Component ----------
 
 export default function AdminTierManagementPage() {
+  const { t } = useTranslation(["admin"]);
+
   const tiersQuery = useApiQuery<TierDefinition[]>(
     ["admin-tiers"],
     getTierDefinitions,
@@ -540,8 +671,8 @@ export default function AdminTierManagementPage() {
   return (
     <div className="p-6 space-y-6">
       <PageHeader
-        title="Tier Management"
-        description="Define what each subscription tier includes, configure Stripe billing, and manage tier visibility."
+        title={t("admin:tiers.title")}
+        description={t("admin:tiers.description")}
       />
 
       <QueryBoundary
@@ -557,6 +688,10 @@ export default function AdminTierManagementPage() {
               <TierManagementContent
                 initialTiers={tiers}
                 initialStripeProducts={stripeProducts}
+                onRefresh={() => {
+                  tiersQuery.refetch();
+                  stripeQuery.refetch();
+                }}
               />
             )}
           </QueryBoundary>
