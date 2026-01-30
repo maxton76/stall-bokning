@@ -9,9 +9,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/PageHeader";
 import { QueryBoundary } from "@/components/ui/QueryBoundary";
@@ -24,6 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SubscriptionLimitsEditor } from "@/components/subscription/SubscriptionLimitsEditor";
+import { SubscriptionModulesEditor } from "@/components/subscription/SubscriptionModulesEditor";
+import { SubscriptionAddonsEditor } from "@/components/subscription/SubscriptionAddonsEditor";
 import type {
   AdminOrganizationDetail,
   OrganizationSubscription,
@@ -32,13 +33,7 @@ import type {
   SubscriptionLimits,
   SubscriptionAddons,
 } from "@equiduty/shared";
-import {
-  MODULE_LABELS,
-  LIMIT_LABELS,
-  ADDON_LABELS,
-  DEFAULT_TIER_DEFINITIONS,
-  SUBSCRIPTION_TIERS,
-} from "@equiduty/shared";
+import { DEFAULT_TIER_DEFINITIONS, SUBSCRIPTION_TIERS } from "@equiduty/shared";
 import {
   getOrganization,
   updateOrganizationSubscription,
@@ -176,24 +171,10 @@ function OrgDetailContent({ org }: { org: AdminOrganizationDetail }) {
           <CardDescription>-1 = unlimited</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {(
-              Object.keys(subscription.limits) as Array<
-                keyof SubscriptionLimits
-              >
-            ).map((key) => (
-              <div key={key} className="space-y-1">
-                <Label htmlFor={`limit-${key}`}>{LIMIT_LABELS[key]}</Label>
-                <Input
-                  id={`limit-${key}`}
-                  type="number"
-                  value={subscription.limits[key]}
-                  onChange={(e) => handleLimitChange(key, e.target.value)}
-                  className="w-full"
-                />
-              </div>
-            ))}
-          </div>
+          <SubscriptionLimitsEditor
+            limits={subscription.limits}
+            onChange={handleLimitChange}
+          />
         </CardContent>
       </Card>
 
@@ -204,25 +185,10 @@ function OrgDetailContent({ org }: { org: AdminOrganizationDetail }) {
           <CardDescription>Enable or disable feature modules</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {(
-              Object.keys(subscription.modules) as Array<keyof ModuleFlags>
-            ).map((key) => (
-              <div
-                key={key}
-                className="flex items-center justify-between rounded-lg border p-3"
-              >
-                <Label htmlFor={`module-${key}`} className="cursor-pointer">
-                  {MODULE_LABELS[key]}
-                </Label>
-                <Switch
-                  id={`module-${key}`}
-                  checked={subscription.modules[key]}
-                  onCheckedChange={() => handleModuleToggle(key)}
-                />
-              </div>
-            ))}
-          </div>
+          <SubscriptionModulesEditor
+            modules={subscription.modules}
+            onToggle={handleModuleToggle}
+          />
         </CardContent>
       </Card>
 
@@ -233,27 +199,10 @@ function OrgDetailContent({ org }: { org: AdminOrganizationDetail }) {
           <CardDescription>Business add-on features</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {(
-              Object.keys(subscription.addons) as Array<
-                keyof SubscriptionAddons
-              >
-            ).map((key) => (
-              <div
-                key={key}
-                className="flex items-center justify-between rounded-lg border p-3"
-              >
-                <Label htmlFor={`addon-${key}`} className="cursor-pointer">
-                  {ADDON_LABELS[key]}
-                </Label>
-                <Switch
-                  id={`addon-${key}`}
-                  checked={subscription.addons[key]}
-                  onCheckedChange={() => handleAddonToggle(key)}
-                />
-              </div>
-            ))}
-          </div>
+          <SubscriptionAddonsEditor
+            addons={subscription.addons}
+            onToggle={handleAddonToggle}
+          />
         </CardContent>
       </Card>
     </div>

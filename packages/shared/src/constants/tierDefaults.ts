@@ -154,6 +154,10 @@ export const DEFAULT_TIER_DEFINITIONS: Record<
     limits: TIER_LIMITS.free,
     modules: TIER_MODULES.free,
     addons: TIER_ADDONS.free,
+    enabled: true,
+    isBillable: false,
+    sortOrder: 0,
+    visibility: "public",
   },
   standard: {
     tier: "standard",
@@ -163,6 +167,10 @@ export const DEFAULT_TIER_DEFINITIONS: Record<
     limits: TIER_LIMITS.standard,
     modules: TIER_MODULES.standard,
     addons: TIER_ADDONS.standard,
+    enabled: true,
+    isBillable: true,
+    sortOrder: 1,
+    visibility: "public",
   },
   pro: {
     tier: "pro",
@@ -172,6 +180,10 @@ export const DEFAULT_TIER_DEFINITIONS: Record<
     limits: TIER_LIMITS.pro,
     modules: TIER_MODULES.pro,
     addons: TIER_ADDONS.pro,
+    enabled: true,
+    isBillable: true,
+    sortOrder: 2,
+    visibility: "public",
   },
   enterprise: {
     tier: "enterprise",
@@ -181,6 +193,10 @@ export const DEFAULT_TIER_DEFINITIONS: Record<
     limits: TIER_LIMITS.enterprise,
     modules: TIER_MODULES.enterprise,
     addons: TIER_ADDONS.enterprise,
+    enabled: true,
+    isBillable: false,
+    sortOrder: 3,
+    visibility: "public",
   },
 };
 

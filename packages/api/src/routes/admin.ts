@@ -163,6 +163,10 @@ const putTierSchema = {
           invoicing: { type: "boolean" as const },
         },
       },
+      enabled: { type: "boolean" as const },
+      isBillable: { type: "boolean" as const },
+      sortOrder: { type: "number" as const },
+      visibility: { type: "string" as const, enum: ["public", "hidden"] },
     },
   },
 };

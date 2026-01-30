@@ -74,6 +74,14 @@ export interface TierDefinition {
   limits: SubscriptionLimits;
   modules: ModuleFlags;
   addons: SubscriptionAddons;
+  /** Whether tier is active for new subscriptions */
+  enabled?: boolean;
+  /** Whether tier requires Stripe billing */
+  isBillable?: boolean;
+  /** Display order (lower = first) */
+  sortOrder?: number;
+  /** Hidden tiers are admin-only assignment */
+  visibility?: "public" | "hidden";
   updatedAt?: Timestamp;
   updatedBy?: string;
 }

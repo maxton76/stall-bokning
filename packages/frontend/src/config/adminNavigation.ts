@@ -7,7 +7,6 @@ import {
   Activity,
   HeadsetIcon,
   Lightbulb,
-  Package,
 } from "lucide-react";
 
 export interface AdminNavigationItem {
@@ -41,12 +40,6 @@ export const adminNavigation: AdminNavigationItem[] = [
     label: "Users",
     href: "/admin/users",
     icon: Users,
-  },
-  {
-    id: "admin-stripe-products",
-    label: "Stripe Products",
-    href: "/admin/stripe-products",
-    icon: Package,
   },
   {
     id: "admin-payments",
