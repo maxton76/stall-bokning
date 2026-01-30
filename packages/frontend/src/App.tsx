@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import { AuthProvider } from "./contexts/AuthContext";
 import { OrganizationProvider } from "./contexts/OrganizationContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AdminProtectedRoute } from "./components/AdminProtectedRoute";
 import AuthenticatedLayout from "./layouts/AuthenticatedLayout";
 import { prewarmApi } from "./services/apiWarmup";
 import { useLanguageSync } from "./hooks/useLanguageSync";
@@ -153,6 +154,30 @@ const ScheduleManagementPage = lazy(
 // Contact pages
 const ContactsPage = lazy(() => import("./pages/ContactsPage"));
 const ContactDetailPage = lazy(() => import("./pages/ContactDetailPage"));
+
+// Admin pages (System Admin Portal)
+const AdminLayout = lazy(() => import("./layouts/AdminLayout"));
+const AdminDashboardPage = lazy(
+  () => import("./pages/admin/AdminDashboardPage"),
+);
+const AdminOrganizationsPage = lazy(
+  () => import("./pages/admin/AdminOrganizationsPage"),
+);
+const AdminOrganizationDetailPage = lazy(
+  () => import("./pages/admin/AdminOrganizationDetailPage"),
+);
+const AdminTierManagementPage = lazy(
+  () => import("./pages/admin/AdminTierManagementPage"),
+);
+const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"));
+const AdminUserDetailPage = lazy(
+  () => import("./pages/admin/AdminUserDetailPage"),
+);
+const AdminPaymentsPage = lazy(() => import("./pages/admin/AdminPaymentsPage"));
+const AdminSystemHealthPage = lazy(
+  () => import("./pages/admin/AdminSystemHealthPage"),
+);
+const AdminSupportPage = lazy(() => import("./pages/admin/AdminSupportPage"));
 
 // Portal pages (Client Self-Service)
 const PortalLayout = lazy(() => import("./layouts/PortalLayout"));
@@ -902,6 +927,90 @@ function App() {
                     element={
                       <Suspense fallback={<InlineLoader />}>
                         <PortalProfilePage />
+                      </Suspense>
+                    }
+                  />
+                </Route>
+
+                {/* Admin routes (System Admin Portal) - separate layout */}
+                <Route
+                  element={
+                    <AdminProtectedRoute>
+                      <Suspense fallback={<PageLoader />}>
+                        <AdminLayout />
+                      </Suspense>
+                    </AdminProtectedRoute>
+                  }
+                >
+                  <Route
+                    path="/admin"
+                    element={
+                      <Suspense fallback={<InlineLoader />}>
+                        <AdminDashboardPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="/admin/organizations"
+                    element={
+                      <Suspense fallback={<InlineLoader />}>
+                        <AdminOrganizationsPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="/admin/organizations/:id"
+                    element={
+                      <Suspense fallback={<InlineLoader />}>
+                        <AdminOrganizationDetailPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="/admin/tiers"
+                    element={
+                      <Suspense fallback={<InlineLoader />}>
+                        <AdminTierManagementPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="/admin/users"
+                    element={
+                      <Suspense fallback={<InlineLoader />}>
+                        <AdminUsersPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="/admin/users/:id"
+                    element={
+                      <Suspense fallback={<InlineLoader />}>
+                        <AdminUserDetailPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="/admin/payments"
+                    element={
+                      <Suspense fallback={<InlineLoader />}>
+                        <AdminPaymentsPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="/admin/system"
+                    element={
+                      <Suspense fallback={<InlineLoader />}>
+                        <AdminSystemHealthPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="/admin/support"
+                    element={
+                      <Suspense fallback={<InlineLoader />}>
+                        <AdminSupportPage />
                       </Suspense>
                     }
                   />

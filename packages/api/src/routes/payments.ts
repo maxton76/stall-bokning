@@ -3,6 +3,7 @@ import { z } from "zod";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
+import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import type {
   OrganizationStripeSettings,
@@ -131,6 +132,9 @@ async function requireOrgAccess(
 // ============================================
 
 export async function paymentsRoutes(fastify: FastifyInstance) {
+  // Addon gate: invoicing addon required
+  fastify.addHook("preHandler", checkModuleAccess("invoicing"));
+
   // ============================================
   // Stripe Connect Account
   // ============================================

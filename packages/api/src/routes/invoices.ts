@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
+import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import {
   canAccessOrganization,
@@ -106,6 +107,9 @@ function calculateInvoiceTotals(items: any[]): {
 }
 
 export async function invoicesRoutes(fastify: FastifyInstance) {
+  // Addon gate: invoicing addon required
+  fastify.addHook("preHandler", checkModuleAccess("invoicing"));
+
   /**
    * GET /api/v1/invoices/organization/:organizationId
    * Get all invoices for an organization

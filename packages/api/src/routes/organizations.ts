@@ -3,6 +3,7 @@ import { z } from "zod";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
 import { authenticate, requireRole } from "../middleware/auth.js";
+import { checkSubscriptionLimit } from "../middleware/checkSubscriptionLimit.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import {
   createOrganizationInvite,
@@ -691,7 +692,10 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
   fastify.post(
     "/:id/members",
     {
-      preHandler: [authenticate],
+      preHandler: [
+        authenticate,
+        checkSubscriptionLimit("members", "organizationMembers"),
+      ],
     },
     async (request, reply) => {
       try {

@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
+import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 
@@ -74,6 +75,9 @@ async function hasHorseAccess(
 }
 
 export async function locationHistoryRoutes(fastify: FastifyInstance) {
+  // Module gate: locationHistory module required
+  fastify.addHook("preHandler", checkModuleAccess("locationHistory"));
+
   /**
    * GET /api/v1/location-history/horse/:horseId
    * Get location history for a horse

@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
+import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import {
   canAccessStable,
@@ -27,6 +28,9 @@ function calculateInventoryStatus(
 }
 
 export async function inventoryRoutes(fastify: FastifyInstance) {
+  // Module gate: inventory module required
+  fastify.addHook("preHandler", checkModuleAccess("inventory"));
+
   /**
    * GET /api/v1/inventory/stable/:stableId
    * Get all inventory items for a stable

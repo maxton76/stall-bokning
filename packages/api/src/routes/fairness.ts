@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
+import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import {
   hasStableAccess,
@@ -251,6 +252,9 @@ function getPeriodMidpoint(startDate: Date, endDate: Date): Date {
 // ==================== Routes ====================
 
 export async function fairnessRoutes(fastify: FastifyInstance) {
+  // Module gate: analytics module required
+  fastify.addHook("preHandler", checkModuleAccess("analytics"));
+
   /**
    * GET /api/v1/fairness/distribution/:stableId
    * Get fairness distribution data for a stable

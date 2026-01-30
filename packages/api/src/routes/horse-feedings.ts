@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
+import { checkSubscriptionLimit } from "../middleware/checkSubscriptionLimit.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { Timestamp } from "firebase-admin/firestore";
 import { canAccessStable, isSystemAdmin } from "../utils/authorization.js";
@@ -260,7 +261,10 @@ export async function horseFeedingsRoutes(fastify: FastifyInstance) {
   fastify.post(
     "/",
     {
-      preHandler: [authenticate],
+      preHandler: [
+        authenticate,
+        checkSubscriptionLimit("feedingPlans", "horseFeedings"),
+      ],
     },
     async (request, reply) => {
       try {

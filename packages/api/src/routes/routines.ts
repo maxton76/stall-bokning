@@ -3,6 +3,7 @@ import { Timestamp } from "firebase-admin/firestore";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
+import { checkSubscriptionLimit } from "../middleware/checkSubscriptionLimit.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 import {
@@ -632,7 +633,10 @@ export async function routinesRoutes(fastify: FastifyInstance) {
   fastify.post(
     "/templates",
     {
-      preHandler: [authenticate],
+      preHandler: [
+        authenticate,
+        checkSubscriptionLimit("routineTemplates", "routineTemplates"),
+      ],
     },
     async (request, reply) => {
       try {

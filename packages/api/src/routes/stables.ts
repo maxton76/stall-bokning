@@ -250,9 +250,9 @@ export async function stablesRoutes(fastify: FastifyInstance) {
               });
             }
 
-            // Check stable creation limits
-            if (!canCreateStable(org as any)) {
-              const maxStables = getMaxStables(org as any);
+            // Check stable creation limits (use subscription obj if available)
+            if (!canCreateStable(org as any, org.subscription)) {
+              const maxStables = getMaxStables(org as any, org.subscription);
               return reply.status(403).send({
                 error: "Forbidden",
                 message:

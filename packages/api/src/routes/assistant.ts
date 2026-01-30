@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
 import { authenticate, requireOrganizationAccess } from "../middleware/auth.js";
+import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
 import type {
   AssistantResponse,
   AssistantIntent,
@@ -408,6 +409,9 @@ function generateResponseMessage(
 }
 
 export async function assistantRoutes(fastify: FastifyInstance) {
+  // Module gate: aiAssistant module required
+  fastify.addHook("preHandler", checkModuleAccess("aiAssistant"));
+
   // Query the assistant
   fastify.post<{
     Params: { organizationId: string };

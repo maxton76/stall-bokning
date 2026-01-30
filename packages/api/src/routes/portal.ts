@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
+import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { Timestamp } from "firebase-admin/firestore";
 
@@ -149,6 +150,9 @@ function serializeTimestamps(obj: any): any {
 }
 
 export async function portalRoutes(fastify: FastifyInstance) {
+  // Addon gate: portal addon required
+  fastify.addHook("preHandler", checkModuleAccess("portal"));
+
   // ============================================
   // DASHBOARD
   // ============================================

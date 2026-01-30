@@ -11,6 +11,7 @@ import type { FastifyInstance } from "fastify";
 import { Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
+import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 import {
@@ -46,6 +47,9 @@ import {
 } from "../services/selectionProcessService.js";
 
 export async function selectionProcessesRoutes(fastify: FastifyInstance) {
+  // Module gate: selectionProcess module required
+  fastify.addHook("preHandler", checkModuleAccess("selectionProcess"));
+
   // ============================================================================
   // LIST SELECTION PROCESSES
   // ============================================================================

@@ -11,6 +11,7 @@ import { OrganizationProvider } from "./contexts/OrganizationContext";
 import { useLanguageSync } from "./hooks/useLanguageSync";
 import { prewarmApi } from "./services/apiWarmup";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AdminProtectedRoute } from "./components/AdminProtectedRoute";
 import AuthenticatedLayout from "./layouts/AuthenticatedLayout";
 
 // Loading components
@@ -155,6 +156,30 @@ const PortalPaymentPage = lazy(
   () => import("./pages/portal/PortalPaymentPage"),
 );
 
+// Admin pages (System Admin Portal)
+const AdminLayout = lazy(() => import("./layouts/AdminLayout"));
+const AdminDashboardPage = lazy(
+  () => import("./pages/admin/AdminDashboardPage"),
+);
+const AdminOrganizationsPage = lazy(
+  () => import("./pages/admin/AdminOrganizationsPage"),
+);
+const AdminOrganizationDetailPage = lazy(
+  () => import("./pages/admin/AdminOrganizationDetailPage"),
+);
+const AdminTierManagementPage = lazy(
+  () => import("./pages/admin/AdminTierManagementPage"),
+);
+const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"));
+const AdminUserDetailPage = lazy(
+  () => import("./pages/admin/AdminUserDetailPage"),
+);
+const AdminPaymentsPage = lazy(() => import("./pages/admin/AdminPaymentsPage"));
+const AdminSystemHealthPage = lazy(
+  () => import("./pages/admin/AdminSystemHealthPage"),
+);
+const AdminSupportPage = lazy(() => import("./pages/admin/AdminSupportPage"));
+
 // Helper to wrap lazy components with Suspense
 function withSuspense(
   Component: React.LazyExoticComponent<React.ComponentType<unknown>>,
@@ -215,6 +240,16 @@ function ProtectedPortalLayout() {
         <PortalLayout />
       </Suspense>
     </ProtectedRoute>
+  );
+}
+
+function ProtectedAdminLayout() {
+  return (
+    <AdminProtectedRoute>
+      <Suspense fallback={<PageLoader />}>
+        <AdminLayout />
+      </Suspense>
+    </AdminProtectedRoute>
   );
 }
 
@@ -531,6 +566,37 @@ export const router = createBrowserRouter([
             element: withSuspense(PortalMessagesPage),
           },
           { path: "/portal/profile", element: withSuspense(PortalProfilePage) },
+        ],
+      },
+
+      // Admin routes (System Admin Portal)
+      {
+        element: <ProtectedAdminLayout />,
+        children: [
+          { path: "/admin", element: withSuspense(AdminDashboardPage) },
+          {
+            path: "/admin/organizations",
+            element: withSuspense(AdminOrganizationsPage),
+          },
+          {
+            path: "/admin/organizations/:id",
+            element: withSuspense(AdminOrganizationDetailPage),
+          },
+          {
+            path: "/admin/tiers",
+            element: withSuspense(AdminTierManagementPage),
+          },
+          { path: "/admin/users", element: withSuspense(AdminUsersPage) },
+          {
+            path: "/admin/users/:id",
+            element: withSuspense(AdminUserDetailPage),
+          },
+          { path: "/admin/payments", element: withSuspense(AdminPaymentsPage) },
+          {
+            path: "/admin/system",
+            element: withSuspense(AdminSystemHealthPage),
+          },
+          { path: "/admin/support", element: withSuspense(AdminSupportPage) },
         ],
       },
     ],

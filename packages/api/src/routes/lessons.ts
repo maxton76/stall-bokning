@@ -7,6 +7,7 @@ import {
   requireOrganizationAccess,
   type AuthenticatedRequest,
 } from "../middleware/auth.js";
+import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
 import type {
   LessonType,
   Lesson,
@@ -184,6 +185,9 @@ function toFirestoreTimestamp(dateString: string): Timestamp {
 // ============================================
 
 export async function lessonRoutes(fastify: FastifyInstance) {
+  // Module gate: lessons module required
+  fastify.addHook("preHandler", checkModuleAccess("lessons"));
+
   // ==========================================
   // Lesson Types
   // ==========================================

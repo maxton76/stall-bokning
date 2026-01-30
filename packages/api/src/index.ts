@@ -50,6 +50,7 @@ import { fairnessRoutes } from "./routes/fairness.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { selectionProcessesRoutes } from "./routes/selectionProcesses.js";
 import { supportRoutes } from "./routes/support.js";
+import { adminRoutes } from "./routes/admin.js";
 
 const PORT = Number(process.env.PORT) || 8080;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -191,6 +192,7 @@ await fastify.register(selectionProcessesRoutes, {
   prefix: "/api/v1/selection-processes",
 });
 await fastify.register(supportRoutes, { prefix: "/api/v1/support" });
+await fastify.register(adminRoutes, { prefix: "/api/v1/admin" });
 
 // 404 handler
 fastify.setNotFoundHandler((request, reply) => {

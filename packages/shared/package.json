@@ -1,6 +1,6 @@
 {
   "name": "@stall-bokning/shared",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "Shared types, utilities, and schemas for stall-bokning monorepo",
   "type": "module",
   "main": "./dist/index.js",

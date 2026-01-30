@@ -501,8 +501,13 @@ service cloud.firestore {
       // organizationType cannot be changed once set (upgrade uses special endpoint)
       allow update: if isAuthenticated() && (
         isSystemAdmin() ||
-        isOrganizationOwner(organizationId) ||
-        isOrganizationAdministrator(organizationId)
+        (
+          (isOrganizationOwner(organizationId) ||
+           isOrganizationAdministrator(organizationId)) &&
+          // Block client-side subscription modification (admin API only)
+          !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['subscriptionTier', 'subscription'])
+        )
       ) &&
       request.resource.data.ownerId == resource.data.ownerId && // ownerId immutable
       isOrganizationTypeUnchanged(); // organizationType immutable (use upgrade endpoint)

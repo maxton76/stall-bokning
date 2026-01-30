@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
+import { checkSubscriptionLimit } from "../middleware/checkSubscriptionLimit.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 
@@ -74,7 +75,10 @@ export async function facilitiesRoutes(fastify: FastifyInstance) {
   fastify.post(
     "/",
     {
-      preHandler: [authenticate],
+      preHandler: [
+        authenticate,
+        checkSubscriptionLimit("facilities", "facilities"),
+      ],
     },
     async (request, reply) => {
       try {

@@ -1,8 +1,17 @@
-import type { Organization, SubscriptionTier } from "../types/organization.js";
+import type { Organization } from "../types/organization.js";
+import type {
+  SubscriptionTier,
+  OrganizationSubscription,
+} from "../types/admin.js";
+import { TIER_LIMITS, TIER_MODULES } from "../constants/tierDefaults.js";
 
 /**
  * Feature gating utilities for organization type-based features
  * Personal organizations have limited features compared to business organizations
+ *
+ * Functions accept an optional `subscription` parameter to read custom limits
+ * from the org's subscription object (set by admin). Falls back to hardcoded
+ * tier defaults based on `org.subscriptionTier`.
  */
 
 /**
@@ -31,36 +40,46 @@ export function canCreateMultipleStables(org: Organization): boolean {
 
 /**
  * Get the maximum number of stables allowed for an organization
- * Based on organization type and subscription tier
+ * Uses subscription limits if available, otherwise falls back to tier defaults
  */
-export function getMaxStables(org: Organization): number {
+export function getMaxStables(
+  org: Organization,
+  subscription?: OrganizationSubscription,
+): number {
   if (org.organizationType === "personal") {
     return 1;
   }
 
-  switch (org.subscriptionTier) {
-    case "free":
-      return 2;
-    case "professional":
-      return 10;
-    case "enterprise":
-      return Infinity;
-    default:
-      return 2; // Default to free tier limits
+  // Use subscription limits if provided
+  if (subscription?.limits?.stables !== undefined) {
+    return subscription.limits.stables === -1
+      ? Infinity
+      : subscription.limits.stables;
   }
+
+  // Fall back to tier defaults
+  const tierLimits = TIER_LIMITS[org.subscriptionTier];
+  if (tierLimits) {
+    return tierLimits.stables === -1 ? Infinity : tierLimits.stables;
+  }
+
+  return 1; // Default to free tier limits
 }
 
 /**
  * Check if an organization can create more stables
  * Considers both organization type and current stable count
  */
-export function canCreateStable(org: Organization): boolean {
+export function canCreateStable(
+  org: Organization,
+  subscription?: OrganizationSubscription,
+): boolean {
   if (org.organizationType === "personal") {
     return false; // Personal orgs have implicit stable only
   }
 
   const currentCount = org.stats?.stableCount ?? 0;
-  const maxAllowed = getMaxStables(org);
+  const maxAllowed = getMaxStables(org, subscription);
   return currentCount < maxAllowed;
 }
 
@@ -75,15 +94,27 @@ export interface FeatureLimits {
   canViewAnalytics: boolean;
 }
 
-export function getFeatureLimits(org: Organization): FeatureLimits {
+export function getFeatureLimits(
+  org: Organization,
+  subscription?: OrganizationSubscription,
+): FeatureLimits {
   const isPersonal = org.organizationType === "personal";
 
+  // Check analytics module from subscription or tier defaults
+  let hasAnalytics = false;
+  if (subscription?.modules?.analytics !== undefined) {
+    hasAnalytics = subscription.modules.analytics;
+  } else {
+    const tierModules = TIER_MODULES[org.subscriptionTier];
+    hasAnalytics = tierModules?.analytics ?? false;
+  }
+
   return {
-    maxStables: getMaxStables(org),
+    maxStables: getMaxStables(org, subscription),
     canInviteMembers: !isPersonal,
     canCreateOrgContacts: !isPersonal,
     canManageRoles: !isPersonal,
-    canViewAnalytics: !isPersonal && org.subscriptionTier !== "free",
+    canViewAnalytics: !isPersonal && hasAnalytics,
   };
 }
 

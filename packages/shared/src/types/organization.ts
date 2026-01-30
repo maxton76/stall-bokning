@@ -28,10 +28,8 @@ export type OrganizationRole =
  */
 export type ContactType = "Personal" | "Business";
 
-/**
- * Subscription tiers for organizations
- */
-export type SubscriptionTier = "free" | "professional" | "enterprise";
+// SubscriptionTier moved to admin.ts: "free" | "standard" | "pro" | "enterprise"
+import type { SubscriptionTier } from "./admin.js";
 
 /**
  * Organization type - determines feature availability and behavior
