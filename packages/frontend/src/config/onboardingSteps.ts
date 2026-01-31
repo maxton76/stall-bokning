@@ -4,24 +4,41 @@ import type { OnboardingSection, OnboardingStep } from "@/types/onboarding";
  * Onboarding sections - groups of related steps
  */
 export const onboardingSections: OnboardingSection[] = [
+  // ── Shared section ──
   {
     id: "getting-started",
     titleKey: "onboarding:sections.gettingStarted",
     order: 1,
     variants: ["stable_owner", "guest"],
   },
+
+  // ── stable_owner sections ──
   {
-    id: "setup-stable",
-    titleKey: "onboarding:sections.setupStable",
+    id: "stable-team",
+    titleKey: "onboarding:sections.stableTeam",
     order: 2,
     variants: ["stable_owner"],
   },
   {
-    id: "build-team",
-    titleKey: "onboarding:sections.buildTeam",
+    id: "horses-activities",
+    titleKey: "onboarding:sections.horsesActivities",
     order: 3,
     variants: ["stable_owner"],
   },
+  {
+    id: "feeding",
+    titleKey: "onboarding:sections.feeding",
+    order: 4,
+    variants: ["stable_owner"],
+  },
+  {
+    id: "routines",
+    titleKey: "onboarding:sections.routines",
+    order: 5,
+    variants: ["stable_owner"],
+  },
+
+  // ── Guest section ──
   {
     id: "explore",
     titleKey: "onboarding:sections.explore",
@@ -34,7 +51,9 @@ export const onboardingSections: OnboardingSection[] = [
  * Onboarding steps - individual tasks within sections
  */
 export const onboardingSteps: OnboardingStep[] = [
-  // ── Getting Started (both variants) ──
+  // ══════════════════════════════════════════════════════════════════════════
+  // Section 1: Kom igång / Getting Started (stable_owner + guest)
+  // ══════════════════════════════════════════════════════════════════════════
   {
     id: "complete-profile",
     titleKey: "onboarding:steps.completeProfile.title",
@@ -47,14 +66,15 @@ export const onboardingSteps: OnboardingStep[] = [
     order: 1,
   },
   {
-    id: "name-organization",
-    titleKey: "onboarding:steps.nameOrganization.title",
-    descriptionKey: "onboarding:steps.nameOrganization.description",
+    id: "org-settings",
+    titleKey: "onboarding:steps.orgSettings.title",
+    descriptionKey: "onboarding:steps.orgSettings.description",
     sectionId: "getting-started",
     actionRoute: "/organizations",
-    actionLabelKey: "onboarding:steps.nameOrganization.action",
+    actionLabelKey: "onboarding:steps.orgSettings.action",
     detectCompletion: (ctx) => {
-      // Check if organization has been renamed from the default
+      // Check if organization has been renamed from the default OR contactType is set
+      if (ctx.organizationContactType) return true;
       if (!ctx.organizationName) return false;
       const defaultPatterns = [
         "Min organisation",
@@ -69,44 +89,135 @@ export const onboardingSteps: OnboardingStep[] = [
     order: 2,
   },
 
-  // ── Setup Stable (stable_owner only) ──
+  // ══════════════════════════════════════════════════════════════════════════
+  // Section 2: Stall & Team (stable_owner only)
+  // ══════════════════════════════════════════════════════════════════════════
   {
-    id: "create-stable",
-    titleKey: "onboarding:steps.createStable.title",
-    descriptionKey: "onboarding:steps.createStable.description",
-    sectionId: "setup-stable",
+    id: "stable-choice",
+    titleKey: "onboarding:steps.stableChoice.title",
+    descriptionKey: "onboarding:steps.stableChoice.description",
+    sectionId: "stable-team",
     actionRoute: "/stables",
-    actionLabelKey: "onboarding:steps.createStable.action",
-    detectCompletion: (ctx) => ctx.stableCount > 0,
+    actionLabelKey: "onboarding:steps.stableChoice.action",
+    detectCompletion: (ctx) =>
+      ctx.stableCount > 0 || ctx.visitedRoutes.has("/stables"),
     variants: ["stable_owner"],
     order: 1,
   },
-  {
-    id: "add-horse",
-    titleKey: "onboarding:steps.addHorse.title",
-    descriptionKey: "onboarding:steps.addHorse.description",
-    sectionId: "setup-stable",
-    actionRoute: "/horses",
-    actionLabelKey: "onboarding:steps.addHorse.action",
-    detectCompletion: (ctx) => ctx.horseCount > 0,
-    variants: ["stable_owner"],
-    order: 2,
-  },
-
-  // ── Build Team (stable_owner only) ──
   {
     id: "invite-member",
     titleKey: "onboarding:steps.inviteMember.title",
     descriptionKey: "onboarding:steps.inviteMember.description",
-    sectionId: "build-team",
+    sectionId: "stable-team",
     actionRoute: "/organizations",
     actionLabelKey: "onboarding:steps.inviteMember.action",
     detectCompletion: (ctx) => ctx.memberCount > 1,
     variants: ["stable_owner"],
-    order: 1,
+    order: 2,
   },
 
-  // ── Explore (guest only) ──
+  // ══════════════════════════════════════════════════════════════════════════
+  // Section 3: Hästar & Aktiviteter (stable_owner only)
+  // ══════════════════════════════════════════════════════════════════════════
+  {
+    id: "add-horse",
+    titleKey: "onboarding:steps.addHorse.title",
+    descriptionKey: "onboarding:steps.addHorse.description",
+    sectionId: "horses-activities",
+    actionRoute: "/horses",
+    actionLabelKey: "onboarding:steps.addHorse.action",
+    detectCompletion: (ctx) => ctx.horseCount > 0,
+    variants: ["stable_owner"],
+    order: 1,
+  },
+  {
+    id: "health-activities",
+    titleKey: "onboarding:steps.healthActivities.title",
+    descriptionKey: "onboarding:steps.healthActivities.description",
+    sectionId: "horses-activities",
+    actionRoute: "/activities/care",
+    actionLabelKey: "onboarding:steps.healthActivities.action",
+    detectCompletion: (ctx) =>
+      ctx.healthActivityCount > 0 || ctx.visitedRoutes.has("/activities/care"),
+    variants: ["stable_owner"],
+    order: 2,
+  },
+  {
+    id: "planning-activities",
+    titleKey: "onboarding:steps.planningActivities.title",
+    descriptionKey: "onboarding:steps.planningActivities.description",
+    sectionId: "horses-activities",
+    actionRoute: "/activities/planning",
+    actionLabelKey: "onboarding:steps.planningActivities.action",
+    detectCompletion: (ctx) =>
+      ctx.planningActivityCount > 0 ||
+      ctx.visitedRoutes.has("/activities/planning"),
+    variants: ["stable_owner"],
+    order: 3,
+  },
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // Section 4: Utfodring / Feeding (stable_owner only)
+  // ══════════════════════════════════════════════════════════════════════════
+  {
+    id: "feeding-settings",
+    titleKey: "onboarding:steps.feedingSettings.title",
+    descriptionKey: "onboarding:steps.feedingSettings.description",
+    sectionId: "feeding",
+    actionRoute: "/feeding/settings",
+    actionLabelKey: "onboarding:steps.feedingSettings.action",
+    detectCompletion: (ctx) =>
+      ctx.feedTypeCount > 0 || ctx.visitedRoutes.has("/feeding/settings"),
+    variants: ["stable_owner"],
+    order: 1,
+  },
+  {
+    id: "feeding-schedule",
+    titleKey: "onboarding:steps.feedingSchedule.title",
+    descriptionKey: "onboarding:steps.feedingSchedule.description",
+    sectionId: "feeding",
+    actionRoute: "/feeding/schedule",
+    actionLabelKey: "onboarding:steps.feedingSchedule.action",
+    detectCompletion: (ctx) =>
+      ctx.feedingScheduleCount > 0 ||
+      ctx.visitedRoutes.has("/feeding/schedule"),
+    variants: ["stable_owner"],
+    order: 2,
+  },
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // Section 5: Rutiner / Routines (stable_owner only)
+  // ══════════════════════════════════════════════════════════════════════════
+  {
+    id: "routine-templates",
+    titleKey: "onboarding:steps.routineTemplates.title",
+    descriptionKey: "onboarding:steps.routineTemplates.description",
+    sectionId: "routines",
+    actionRoute: "/schedule/routinetemplates",
+    actionLabelKey: "onboarding:steps.routineTemplates.action",
+    detectCompletion: (ctx) =>
+      ctx.routineTemplateCount > 0 ||
+      ctx.visitedRoutes.has("/schedule/routinetemplates"),
+    variants: ["stable_owner"],
+    order: 1,
+  },
+  {
+    id: "schedule-routines",
+    titleKey: "onboarding:steps.scheduleRoutines.title",
+    descriptionKey: "onboarding:steps.scheduleRoutines.description",
+    sectionId: "routines",
+    actionRoute: "/schedule/routines",
+    actionLabelKey: "onboarding:steps.scheduleRoutines.action",
+    detectCompletion: (ctx) =>
+      ctx.routineScheduleCount > 0 ||
+      ctx.visitedRoutes.has("/schedule/routines"),
+    variants: ["stable_owner"],
+    order: 2,
+  },
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // Guest: Explore section (unchanged)
+  // ══════════════════════════════════════════════════════════════════════════
   {
     id: "join-stable",
     titleKey: "onboarding:steps.joinStable.title",

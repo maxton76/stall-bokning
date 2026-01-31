@@ -14,6 +14,13 @@ export interface DetectionContext {
   horseCount: number;
   memberCount: number;
   organizationName?: string;
+  organizationContactType?: string;
+  healthActivityCount: number;
+  planningActivityCount: number;
+  feedTypeCount: number;
+  feedingScheduleCount: number;
+  routineTemplateCount: number;
+  routineScheduleCount: number;
   hasStableMembership: boolean;
   visitedRoutes: Set<string>;
 }

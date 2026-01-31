@@ -12,8 +12,10 @@
   },
   "sections": {
     "gettingStarted": "Getting started",
-    "setupStable": "Set up your stable",
-    "buildTeam": "Build your team",
+    "stableTeam": "Stable & Team",
+    "horsesActivities": "Horses & Activities",
+    "feeding": "Feeding",
+    "routines": "Routines",
     "explore": "Explore"
   },
   "steps": {
@@ -22,25 +24,55 @@
       "description": "Add your first and last name.",
       "action": "Go to profile"
     },
-    "nameOrganization": {
-      "title": "Name your organization",
-      "description": "Give your organization a descriptive name.",
+    "orgSettings": {
+      "title": "Organization settings",
+      "description": "Set your organization name and contact details.",
       "action": "Go to organizations"
     },
-    "createStable": {
-      "title": "Create your first stable",
-      "description": "Add a stable to start managing horses and schedules.",
+    "stableChoice": {
+      "title": "Register a stable or use \"My horses\"",
+      "description": "Create a stable or start directly with your horses.",
       "action": "Go to stables"
-    },
-    "addHorse": {
-      "title": "Add your first horse",
-      "description": "Register a horse with basic information.",
-      "action": "Go to horses"
     },
     "inviteMember": {
       "title": "Invite a member",
       "description": "Invite stable members to start sharing chores.",
       "action": "Invite"
+    },
+    "addHorse": {
+      "title": "Add horse(s)",
+      "description": "Register a horse with basic information.",
+      "action": "Go to horses"
+    },
+    "healthActivities": {
+      "title": "Health activities",
+      "description": "Set up health and care activities for your horses.",
+      "action": "Go to health activities"
+    },
+    "planningActivities": {
+      "title": "Planning",
+      "description": "Configure planning activities and tasks.",
+      "action": "Go to planning"
+    },
+    "feedingSettings": {
+      "title": "Feed types & feeding times",
+      "description": "Set up which feed types are used and when feeding occurs.",
+      "action": "Go to feed settings"
+    },
+    "feedingSchedule": {
+      "title": "Feeding schedule",
+      "description": "Create a feeding schedule for your horses.",
+      "action": "Go to feeding schedule"
+    },
+    "routineTemplates": {
+      "title": "Create routine template",
+      "description": "Define templates for daily stable routines.",
+      "action": "Go to routine templates"
+    },
+    "scheduleRoutines": {
+      "title": "Schedule routines",
+      "description": "Add routines to the schedule.",
+      "action": "Go to routine schedule"
     },
     "joinStable": {
       "title": "Join a stable",

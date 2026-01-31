@@ -12,15 +12,32 @@ import type {
 
 /** Allowlist of valid onboarding step IDs to prevent Firestore path injection */
 const VALID_STEP_IDS = new Set([
+  // Current step IDs
   "complete-profile",
-  "name-organization",
-  "create-stable",
-  "add-horse",
+  "org-settings",
+  "stable-choice",
   "invite-member",
+  "add-horse",
+  "health-activities",
+  "planning-activities",
+  "feeding-settings",
+  "feeding-schedule",
+  "routine-templates",
+  "schedule-routines",
+  // Guest steps
   "join-stable",
   "view-horses",
   "view-schedule",
+  // Deprecated IDs kept for backwards compatibility
+  "name-organization",
+  "create-stable",
 ]);
+
+/** Migration map: old step IDs → new step IDs */
+const STEP_MIGRATION_MAP: Record<string, string> = {
+  "name-organization": "org-settings",
+  "create-stable": "stable-choice",
+};
 
 /**
  * Determine guide variant from user's Firestore profile
@@ -81,7 +98,25 @@ export async function onboardingRoutes(fastify: FastifyInstance) {
           return { onboarding: serializeTimestamps(defaultState) };
         }
 
-        return { onboarding: serializeTimestamps(doc.data()) };
+        // One-time migration: remap deprecated step IDs to new ones
+        const data = doc.data() as OnboardingState;
+        const completedSteps = data?.completedSteps || {};
+        const migrationUpdates: Record<string, unknown> = {};
+
+        for (const [oldId, newId] of Object.entries(STEP_MIGRATION_MAP)) {
+          if (completedSteps[oldId] && !completedSteps[newId]) {
+            migrationUpdates[`completedSteps.${newId}`] = completedSteps[oldId];
+          }
+        }
+
+        if (Object.keys(migrationUpdates).length > 0) {
+          migrationUpdates.updatedAt = Timestamp.now();
+          await docRef.update(migrationUpdates);
+          const migratedDoc = await docRef.get();
+          return { onboarding: serializeTimestamps(migratedDoc.data()) };
+        }
+
+        return { onboarding: serializeTimestamps(data) };
       } catch (error) {
         request.log.error({ error }, "Failed to fetch onboarding state");
         return reply.status(500).send({

@@ -112,6 +112,12 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
     stableCount: 0,
     horseCount: 0,
     memberCount: 0,
+    healthActivityCount: 0,
+    planningActivityCount: 0,
+    feedTypeCount: 0,
+    feedingScheduleCount: 0,
+    routineTemplateCount: 0,
+    routineScheduleCount: 0,
     hasStableMembership: false,
     visitedRoutes: new Set(),
   });

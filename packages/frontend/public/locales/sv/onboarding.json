@@ -12,8 +12,10 @@
   },
   "sections": {
     "gettingStarted": "Kom igång",
-    "setupStable": "Ställ in ditt stall",
-    "buildTeam": "Bygg ditt team",
+    "stableTeam": "Stall & Team",
+    "horsesActivities": "Hästar & Aktiviteter",
+    "feeding": "Utfodring",
+    "routines": "Rutiner",
     "explore": "Utforska"
   },
   "steps": {
@@ -22,25 +24,55 @@
       "description": "Lägg till ditt för- och efternamn.",
       "action": "Gå till profil"
     },
-    "nameOrganization": {
-      "title": "Namnge din organisation",
-      "description": "Ge din organisation ett beskrivande namn.",
+    "orgSettings": {
+      "title": "Organisationsinställningar",
+      "description": "Ange organisationens namn och kontaktuppgifter.",
       "action": "Gå till organisationer"
     },
-    "createStable": {
-      "title": "Skapa ditt första stall",
-      "description": "Lägg till ett stall för att börja hantera hästar och schema.",
+    "stableChoice": {
+      "title": "Registrera stall eller använd \"Mina hästar\"",
+      "description": "Skapa ett stall eller börja direkt med dina hästar.",
       "action": "Gå till stall"
-    },
-    "addHorse": {
-      "title": "Lägg till din första häst",
-      "description": "Registrera en häst med grundläggande information.",
-      "action": "Gå till hästar"
     },
     "inviteMember": {
       "title": "Bjud in en medlem",
       "description": "Bjud in stallmedlemmar för att börja dela på sysslorna.",
       "action": "Bjud in"
+    },
+    "addHorse": {
+      "title": "Lägg till häst(ar)",
+      "description": "Registrera en häst med grundläggande information.",
+      "action": "Gå till hästar"
+    },
+    "healthActivities": {
+      "title": "Hälsoaktiviteter",
+      "description": "Ställ in hälso- och vårdaktiviteter för dina hästar.",
+      "action": "Gå till hälsoaktiviteter"
+    },
+    "planningActivities": {
+      "title": "Planering",
+      "description": "Konfigurera planeringsaktiviteter och uppgifter.",
+      "action": "Gå till planering"
+    },
+    "feedingSettings": {
+      "title": "Fodertyper & utfodringstider",
+      "description": "Ställ in vilka fodertyper som används och när utfodring sker.",
+      "action": "Gå till foderinställningar"
+    },
+    "feedingSchedule": {
+      "title": "Utfodringsschema",
+      "description": "Skapa ett utfodringsschema för dina hästar.",
+      "action": "Gå till utfodringsschema"
+    },
+    "routineTemplates": {
+      "title": "Skapa rutinmall",
+      "description": "Definiera mallar för dagliga stallrutiner.",
+      "action": "Gå till rutinmallar"
+    },
+    "scheduleRoutines": {
+      "title": "Schemalägg rutiner",
+      "description": "Lägg in rutinerna i schemat.",
+      "action": "Gå till rutinschema"
     },
     "joinStable": {
       "title": "Gå med i ett stall",
