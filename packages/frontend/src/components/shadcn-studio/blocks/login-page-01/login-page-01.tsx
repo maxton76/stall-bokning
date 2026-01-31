@@ -23,26 +23,7 @@ const Login = () => {
   const { signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [quickLoginCredentials, setQuickLoginCredentials] = useState<{
-    email: string;
-    password: string;
-  } | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
-
-  const handleQuickLogin = (type: "user" | "admin") => {
-    if (type === "admin") {
-      setQuickLoginCredentials({
-        email: "maxkrax@gmail.com",
-        password: "Admin123!",
-      });
-    } else {
-      // For demo purposes, you can add a test user here
-      setQuickLoginCredentials({
-        email: "user@example.com",
-        password: "User123!",
-      });
-    }
-  };
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
@@ -105,37 +86,8 @@ const Login = () => {
         </CardHeader>
 
         <CardContent>
-          <p className="text-muted-foreground mb-6">
-            {t("login.quickLogin")}{" "}
-            <span className="text-card-foreground text-xs">
-              {t("login.demoOnly")}
-            </span>
-          </p>
-
-          {/* Quick Login Buttons */}
-          <div className="mb-6 flex flex-wrap gap-4 sm:gap-6">
-            <Button
-              variant="outline"
-              className="grow"
-              onClick={() => handleQuickLogin("user")}
-            >
-              {t("login.loginAsUser")}
-            </Button>
-            <Button
-              variant="outline"
-              className="grow"
-              onClick={() => handleQuickLogin("admin")}
-            >
-              {t("login.loginAsAdmin")}
-            </Button>
-          </div>
-
-          {/* Login Form */}
           <div className="space-y-4">
-            <LoginForm
-              email={quickLoginCredentials?.email}
-              password={quickLoginCredentials?.password}
-            />
+            <LoginForm />
 
             <p className="text-muted-foreground text-center">
               {t("login.noAccount")}{" "}

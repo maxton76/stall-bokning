@@ -1,4 +1,4 @@
-import { useState, FormEvent, useEffect } from "react";
+import { useState, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { EyeIcon, EyeOffIcon, Loader2 } from "lucide-react";
@@ -9,30 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 
-interface LoginFormProps {
-  email?: string;
-  password?: string;
-}
-
-const LoginForm = ({
-  email: initialEmail,
-  password: initialPassword,
-}: LoginFormProps) => {
+const LoginForm = () => {
   const { t } = useTranslation("auth");
   const [isVisible, setIsVisible] = useState(false);
-  const [email, setEmail] = useState(initialEmail || "");
-  const [password, setPassword] = useState(initialPassword || "");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const { signIn } = useAuth();
   const navigate = useNavigate();
-
-  // Update form values when props change (for quick login buttons)
-  useEffect(() => {
-    if (initialEmail) setEmail(initialEmail);
-    if (initialPassword) setPassword(initialPassword);
-  }, [initialEmail, initialPassword]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
