@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
 import { getStableHorses } from "@/services/horseService";
 import type { Horse } from "@/types/roles";
 
@@ -50,28 +52,13 @@ export function HorseMultiSelect({
 }: HorseMultiSelectProps) {
   const { t } = useTranslation(["horses", "common"]);
   const [open, setOpen] = useState(false);
-  const [horses, setHorses] = useState<Horse[]>([]);
-  const [loading, setLoading] = useState(false);
 
-  // Load horses from stable
-  useEffect(() => {
-    const loadHorses = async () => {
-      if (!stableId) return;
-
-      setLoading(true);
-      try {
-        const horseList = await getStableHorses(stableId);
-        setHorses(horseList);
-      } catch (error) {
-        console.error("Error loading horses:", error);
-        setHorses([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadHorses();
-  }, [stableId]);
+  // Load horses from stable using TanStack Query (receives cache updates)
+  const { data: horses = [], isLoading: loading } = useApiQuery<Horse[]>(
+    queryKeys.horses.byStable(stableId),
+    () => getStableHorses(stableId),
+    { enabled: !!stableId },
+  );
 
   // Get selected horses for display
   const selectedHorses = horses.filter((horse) =>

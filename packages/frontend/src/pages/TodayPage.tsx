@@ -58,6 +58,7 @@ import { SpecialInstructionsPopover } from "@/components/activities/SpecialInstr
 import { Timestamp } from "firebase/firestore";
 import { cn } from "@/lib/utils";
 import { toDate } from "@/utils/timestampUtils";
+import { cacheInvalidation } from "@/lib/queryClient";
 import {
   createActivity,
   createTask,
@@ -232,16 +233,8 @@ export default function TodayPage() {
   const stableIdForQuery = activeStableId || undefined;
 
   // Load activities for selected stable and period using new hook
-  const {
-    activities: activitiesData,
-    loading: activitiesLoading,
-    refetch: reloadActivities,
-  } = useActivitiesForPeriod(
-    selectedStableId,
-    stables,
-    currentDate,
-    periodType,
-  );
+  const { activities: activitiesData, loading: activitiesLoading } =
+    useActivitiesForPeriod(selectedStableId, stables, currentDate, periodType);
 
   // Load routine instances for selected stable or all stables using new hook
   const {
@@ -344,7 +337,7 @@ export default function TodayPage() {
       await deleteActivity(id);
     },
     onSuccess: async () => {
-      await reloadActivities();
+      await cacheInvalidation.activities.all();
     },
     successMessages: {
       create: t("activities:messages.createSuccess"),
@@ -388,10 +381,10 @@ export default function TodayPage() {
         description: t("activities:actionList.entryCompleted"),
       });
 
-      await reloadActivities();
+      await cacheInvalidation.activities.all();
     } catch (error) {
       console.error("Failed to complete:", error);
-      await reloadActivities();
+      await cacheInvalidation.activities.all();
       toast({
         title: t("common:messages.error"),
         description: t("activities:messages.completeError"),

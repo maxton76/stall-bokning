@@ -39,7 +39,7 @@ import {
   getHorseVaccinationRecords,
   deleteVaccinationRecord,
 } from "@/services/vaccinationService";
-import { queryKeys } from "@/lib/queryClient";
+import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import { useDialog } from "@/hooks/useDialog";
 import { useCRUD } from "@/hooks/useCRUD";
 import { useHorseFilters } from "@/hooks/useHorseFilters";
@@ -57,7 +57,6 @@ export default function MyHorsesPage() {
   const {
     horses: horsesData,
     loading: horsesLoading,
-    reload: reloadHorses,
     query: horsesQuery,
   } = useMyHorses();
   const { stables } = useUserStables(user?.uid);
@@ -135,7 +134,7 @@ export default function MyHorsesPage() {
       ),
     deleteFn: (id) => deleteHorse(id),
     onSuccess: async () => {
-      await reloadHorses();
+      await cacheInvalidation.horses.all();
     },
     successMessages: {
       create: t("horses:messages.addSuccess"),
@@ -194,7 +193,7 @@ export default function MyHorsesPage() {
 
     try {
       await assignHorseToStable(horseId, stableId, stableName, user.uid);
-      reloadHorses();
+      await cacheInvalidation.horses.all();
       assignmentDialog.closeDialog();
     } catch (error) {
       console.error("Error assigning horse:", error);
@@ -212,7 +211,7 @@ export default function MyHorsesPage() {
 
     try {
       await unassignHorseFromStable(horse.id, user.uid);
-      reloadHorses();
+      await cacheInvalidation.horses.all();
     } catch (error) {
       console.error("Error unassigning horse:", error);
     }
@@ -254,7 +253,7 @@ export default function MyHorsesPage() {
       }
 
       // Reload horses to update vaccination status
-      await reloadHorses();
+      await cacheInvalidation.horses.all();
     } catch (error) {
       console.error("Error deleting vaccination record:", error);
     }
@@ -273,7 +272,7 @@ export default function MyHorsesPage() {
     }
 
     // Reload horses to update vaccination status
-    await reloadHorses();
+    await cacheInvalidation.horses.all();
   };
 
   // Navigation Handler
