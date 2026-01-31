@@ -10,6 +10,9 @@
  * - customer.subscription.deleted → downgrade to free
  * - invoice.paid → record payment
  * - invoice.payment_failed → mark past_due, notify
+ * - invoice.payment_action_required → log SCA/3DS action needed
+ * - invoice.finalization_failed → log finalization error (revenue risk)
+ * - invoice.upcoming → log upcoming renewal
  */
 
 import type { FastifyInstance } from "fastify";
@@ -24,7 +27,8 @@ import {
 import type { StripeSubscriptionStatus } from "@equiduty/shared";
 
 export async function stripeWebhookRoutes(fastify: FastifyInstance) {
-  // Register a scoped content-type parser to preserve raw body for signature verification
+  // Remove inherited JSON parser and re-register as raw buffer for Stripe signature verification
+  fastify.removeContentTypeParser("application/json");
   fastify.addContentTypeParser(
     "application/json",
     { parseAs: "buffer" },
@@ -115,6 +119,27 @@ export async function stripeWebhookRoutes(fastify: FastifyInstance) {
 
         case "invoice.payment_failed":
           await handleInvoicePaymentFailed(
+            event.data.object as Stripe.Invoice,
+            request.log,
+          );
+          break;
+
+        case "invoice.payment_action_required":
+          await handleInvoicePaymentActionRequired(
+            event.data.object as Stripe.Invoice,
+            request.log,
+          );
+          break;
+
+        case "invoice.finalization_failed":
+          await handleInvoiceFinalizationFailed(
+            event.data.object as Stripe.Invoice,
+            request.log,
+          );
+          break;
+
+        case "invoice.upcoming":
+          await handleInvoiceUpcoming(
             event.data.object as Stripe.Invoice,
             request.log,
           );
@@ -370,4 +395,92 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, log: any) {
   // plus in-app via Firestore notifications collection).
   // Include: invoice amount, failure reason, link to update payment method.
   // See docs/IMPLEMENTATION_PLAN.md for notification system roadmap.
+}
+
+/**
+ * Handle invoice.payment_action_required
+ *
+ * Fires when the customer's bank requires additional authentication (3D Secure / SCA).
+ * The subscription status change (incomplete/past_due) is already synced by
+ * customer.subscription.updated — this handler logs the event for visibility.
+ *
+ * Future: send notification with hosted_invoice_url so the user can complete authentication.
+ */
+async function handleInvoicePaymentActionRequired(
+  invoice: Stripe.Invoice,
+  log: any,
+) {
+  const organizationId = invoice.customer
+    ? await findOrgByCustomerId(invoice.customer as string)
+    : null;
+
+  log.warn(
+    {
+      organizationId: organizationId ?? "unknown",
+      invoiceId: invoice.id,
+      hostedInvoiceUrl: invoice.hosted_invoice_url,
+    },
+    "Invoice requires payment action (3D Secure / SCA)",
+  );
+
+  // TODO(Phase 8 — Notification System Integration):
+  // Send notification to org owner with hosted_invoice_url so they can
+  // complete 3D Secure authentication. Include: amount, due date, action link.
+}
+
+/**
+ * Handle invoice.finalization_failed
+ *
+ * Fires when Stripe cannot finalize an invoice (e.g., tax calculation failure,
+ * invalid customer data). No payment is collected but the subscription may stay
+ * active — this is a potential revenue leak that requires admin attention.
+ */
+async function handleInvoiceFinalizationFailed(
+  invoice: Stripe.Invoice,
+  log: any,
+) {
+  const organizationId = invoice.customer
+    ? await findOrgByCustomerId(invoice.customer as string)
+    : null;
+
+  log.error(
+    {
+      organizationId: organizationId ?? "unknown",
+      invoiceId: invoice.id,
+      lastFinalizationError: invoice.last_finalization_error,
+    },
+    "Invoice finalization failed — revenue at risk",
+  );
+
+  // TODO(Phase 8 — Notification System Integration):
+  // Alert admin/system operators about the finalization failure.
+  // This is a revenue-critical event that may require manual intervention.
+}
+
+/**
+ * Handle invoice.upcoming
+ *
+ * Fires X days before a subscription renews (configurable in Stripe Dashboard).
+ * Logged for visibility. Future: trigger renewal reminder notification to org owner.
+ */
+async function handleInvoiceUpcoming(invoice: Stripe.Invoice, log: any) {
+  const organizationId = invoice.customer
+    ? await findOrgByCustomerId(invoice.customer as string)
+    : null;
+
+  log.info(
+    {
+      organizationId: organizationId ?? "unknown",
+      invoiceId: invoice.id,
+      amountDue: invoice.amount_due,
+      currency: invoice.currency,
+      periodStart: invoice.period_start,
+      periodEnd: invoice.period_end,
+    },
+    "Upcoming invoice for subscription renewal",
+  );
+
+  // TODO(Phase 8 — Notification System Integration):
+  // Send renewal reminder notification to org owner.
+  // Include: amount, billing date, link to manage subscription.
 }
