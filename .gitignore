@@ -1,3 +1,6 @@
+# Xcode
+*.xcuserstate
+
 # Dependencies
 node_modules/
 .pnp
