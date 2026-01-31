@@ -444,7 +444,10 @@
       "processingDescription": "Vänta medan vi bekräftar din betalning.",
       "plan": "Plan",
       "status": "Status",
-      "goToSubscription": "Gå till prenumeration"
+      "goToSubscription": "Gå till prenumeration",
+      "timeoutTitle": "Aktivering tar längre tid än väntat",
+      "timeoutDescription": "Din betalning har genomförts men aktiveringen dröjer. Din prenumeration aktiveras inom kort.",
+      "retry": "Försök igen"
     },
     "cancel": {
       "title": "Utcheckningen avbröts",

@@ -11,6 +11,7 @@ import type {
   BillingHistoryResponse,
   CheckoutSessionResponse,
   CustomerPortalResponse,
+  VerifyCheckoutResponse,
 } from "@equiduty/shared";
 
 export async function getSubscriptionDetails(
@@ -62,5 +63,15 @@ export async function getBillingHistory(
   return apiClient.get<BillingHistoryResponse>(
     `/organizations/${orgId}/subscription/invoices`,
     params,
+  );
+}
+
+export async function verifyCheckoutSession(
+  orgId: string,
+  sessionId: string,
+): Promise<VerifyCheckoutResponse> {
+  return apiClient.post<VerifyCheckoutResponse>(
+    `/organizations/${orgId}/subscription/verify-checkout`,
+    { sessionId },
   );
 }

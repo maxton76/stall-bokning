@@ -444,7 +444,10 @@
       "processingDescription": "Please wait while we confirm your payment.",
       "plan": "Plan",
       "status": "Status",
-      "goToSubscription": "Go to subscription"
+      "goToSubscription": "Go to subscription",
+      "timeoutTitle": "Activation is taking longer than expected",
+      "timeoutDescription": "Your payment was processed but activation is delayed. Your subscription will be activated shortly.",
+      "retry": "Try again"
     },
     "cancel": {
       "title": "Checkout cancelled",

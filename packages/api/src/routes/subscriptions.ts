@@ -10,10 +10,15 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { stripe } from "../utils/stripe.js";
+import { db } from "../utils/firebase.js";
 import { authenticate, requireOrganizationAdmin } from "../middleware/auth.js";
 import { getPriceIdForTier } from "../utils/stripeTierMapping.js";
 import { getOrganizationOrThrow } from "../utils/organizationHelpers.js";
-import { TRIAL_DAYS } from "@equiduty/shared";
+import {
+  resolveTierFromSubscription,
+  buildStripeSubscriptionData,
+} from "../utils/stripeSubscriptionHelpers.js";
+import { TRIAL_DAYS, getDefaultTierDefinition } from "@equiduty/shared";
 import type {
   SubscriptionDetailsResponse,
   BillingHistoryResponse,
@@ -21,6 +26,7 @@ import type {
   CheckoutSessionResponse,
   CustomerPortalResponse,
   OrganizationStripeSubscription,
+  VerifyCheckoutResponse,
 } from "@equiduty/shared";
 
 // ============================================
@@ -28,8 +34,12 @@ import type {
 // ============================================
 
 const checkoutSchema = z.object({
-  tier: z.enum(["standard", "pro"]),
+  tier: z.string().min(1),
   billingInterval: z.enum(["month", "year"]),
+});
+
+const verifyCheckoutSchema = z.object({
+  sessionId: z.string().min(1),
 });
 
 function getFrontendUrl(): string {
@@ -80,7 +90,7 @@ export async function subscriptionRoutes(fastify: FastifyInstance) {
         | undefined;
       const response: SubscriptionDetailsResponse = {
         subscription: rawSub ? toSafeSubscription(rawSub) : null,
-        tier: orgData.subscriptionTier || "free",
+        tier: orgData.subscriptionTier || getDefaultTierDefinition().tier,
       };
 
       return response;
@@ -110,7 +120,7 @@ export async function subscriptionRoutes(fastify: FastifyInstance) {
 
       const { tier, billingInterval } = result.data;
       const frontendUrl = getFrontendUrl();
-      const successUrl = `${frontendUrl}/organizations/${organizationId}/subscription/success`;
+      const successUrl = `${frontendUrl}/organizations/${organizationId}/subscription/success?session_id={CHECKOUT_SESSION_ID}`;
       const cancelUrl = `${frontendUrl}/organizations/${organizationId}/subscription/cancel`;
 
       // Look up Stripe Price ID
@@ -137,6 +147,12 @@ export async function subscriptionRoutes(fastify: FastifyInstance) {
           },
         });
         customerId = customer.id;
+
+        // Persist customer ID immediately (don't wait for webhook)
+        await db.collection("organizations").doc(organizationId).update({
+          "stripeSubscription.customerId": customerId,
+          updatedAt: new Date(),
+        });
       }
 
       // Determine trial eligibility (first time only)
@@ -168,6 +184,109 @@ export async function subscriptionRoutes(fastify: FastifyInstance) {
       const response: CheckoutSessionResponse = {
         sessionId: session.id,
         url: session.url!,
+      };
+
+      return response;
+    },
+  );
+
+  /**
+   * POST /organizations/:organizationId/subscription/verify-checkout
+   * Fallback endpoint to verify and sync a checkout session.
+   * Used when the webhook is slow or fails to fire.
+   */
+  fastify.post<{
+    Params: { organizationId: string };
+    Body: z.infer<typeof verifyCheckoutSchema>;
+  }>(
+    "/organizations/:organizationId/subscription/verify-checkout",
+    { preHandler: orgAdminPreHandler },
+    async (request, reply) => {
+      const { organizationId } = request.params;
+      const result = verifyCheckoutSchema.safeParse(request.body);
+
+      if (!result.success) {
+        return reply.status(400).send({
+          error: "Validation failed",
+          details: result.error.flatten().fieldErrors,
+        });
+      }
+
+      const { sessionId } = result.data;
+
+      // Fetch the checkout session from Stripe
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+      // Validate session belongs to this organization
+      if (session.metadata?.organizationId !== organizationId) {
+        return reply
+          .status(403)
+          .send({ error: "Session does not belong to this organization" });
+      }
+
+      const { data: orgData } = await getOrganizationOrThrow(organizationId);
+
+      // If subscription is already synced, return current state
+      if (orgData.stripeSubscription?.subscriptionId) {
+        const rawSub =
+          orgData.stripeSubscription as OrganizationStripeSubscription;
+        const response: VerifyCheckoutResponse = {
+          synced: true,
+          subscription: toSafeSubscription(rawSub),
+          tier: orgData.subscriptionTier || getDefaultTierDefinition().tier,
+        };
+        return response;
+      }
+
+      // Session not complete yet - nothing to sync
+      if (session.status !== "complete" || !session.subscription) {
+        const response: VerifyCheckoutResponse = {
+          synced: false,
+          subscription: null,
+          tier: orgData.subscriptionTier || getDefaultTierDefinition().tier,
+        };
+        return response;
+      }
+
+      // Session is complete but webhook hasn't synced yet - do it now
+      const subscription = await stripe.subscriptions.retrieve(
+        session.subscription as string,
+      );
+
+      const tierInfo = await resolveTierFromSubscription(subscription);
+      if (!tierInfo) {
+        return reply
+          .status(500)
+          .send({ error: "Could not resolve tier from subscription" });
+      }
+
+      const stripeSubscription = buildStripeSubscriptionData(
+        subscription,
+        tierInfo.tier,
+        tierInfo.billingInterval,
+        true,
+      );
+      if (!stripeSubscription) {
+        return reply
+          .status(500)
+          .send({ error: "Could not build subscription data" });
+      }
+
+      await db.collection("organizations").doc(organizationId).update({
+        subscriptionTier: tierInfo.tier,
+        stripeSubscription,
+        updatedAt: new Date(),
+      });
+
+      request.log.info(
+        { organizationId, tier: tierInfo.tier },
+        "Subscription synced via verify-checkout fallback",
+      );
+
+      const response: VerifyCheckoutResponse = {
+        synced: true,
+        subscription: toSafeSubscription(stripeSubscription),
+        tier: tierInfo.tier,
       };
 
       return response;

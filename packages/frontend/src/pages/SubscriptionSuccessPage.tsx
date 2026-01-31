@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,33 +11,80 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useSubscriptionDetails } from "@/hooks/useSubscription";
+import { verifyCheckoutSession } from "@/services/subscriptionService";
+
+const MAX_POLL_ATTEMPTS = 15;
+const POLL_INTERVAL_MS = 2000;
+
+type PageState = "polling" | "verifying" | "ready" | "timeout";
 
 export default function SubscriptionSuccessPage() {
   const { organizationId } = useParams<{ organizationId: string }>();
+  const [searchParams] = useSearchParams();
+  const sessionId = searchParams.get("session_id");
   const { t } = useTranslation(["organizations", "common"]);
-  const { data, isLoading, refetch } = useSubscriptionDetails(
-    organizationId ?? null,
-  );
+  const { data, refetch } = useSubscriptionDetails(organizationId ?? null);
   const [pollingCount, setPollingCount] = useState(0);
+  const [pageState, setPageState] = useState<PageState>("polling");
+
+  const isReady = !!data?.subscription?.status;
+
+  // Mark as ready when subscription data arrives
+  useEffect(() => {
+    if (isReady) {
+      setPageState("ready");
+    }
+  }, [isReady]);
+
+  const attemptVerify = useCallback(async () => {
+    if (!organizationId || !sessionId) {
+      setPageState("timeout");
+      return;
+    }
+
+    setPageState("verifying");
+    try {
+      const result = await verifyCheckoutSession(organizationId, sessionId);
+      if (result.synced) {
+        // Refetch to get updated data through the normal hook
+        await refetch();
+        setPageState("ready");
+      } else {
+        setPageState("timeout");
+      }
+    } catch {
+      setPageState("timeout");
+    }
+  }, [organizationId, sessionId, refetch]);
 
   // Poll until webhook has processed the subscription
   useEffect(() => {
-    if (!data?.subscription?.status && pollingCount < 10) {
-      const timer = setTimeout(() => {
-        refetch();
-        setPollingCount((c) => c + 1);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [data, pollingCount, refetch]);
+    if (pageState !== "polling" || isReady) return;
 
-  const isReady = !!data?.subscription?.status;
+    if (pollingCount >= MAX_POLL_ATTEMPTS) {
+      // Polling exhausted — try verify-checkout fallback
+      attemptVerify();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      refetch();
+      setPollingCount((c) => c + 1);
+    }, POLL_INTERVAL_MS);
+    return () => clearTimeout(timer);
+  }, [pageState, isReady, pollingCount, refetch, attemptVerify]);
+
+  const handleRetry = () => {
+    setPollingCount(0);
+    setPageState("polling");
+    refetch();
+  };
 
   return (
     <div className="container mx-auto p-6 flex items-center justify-center min-h-[60vh]">
       <Card className="max-w-md w-full text-center">
         <CardHeader>
-          {isReady ? (
+          {pageState === "ready" ? (
             <>
               <CheckCircle className="mx-auto h-12 w-12 text-green-600 mb-2" />
               <CardTitle>
@@ -45,6 +92,16 @@ export default function SubscriptionSuccessPage() {
               </CardTitle>
               <CardDescription>
                 {t("organizations:subscription.success.description")}
+              </CardDescription>
+            </>
+          ) : pageState === "timeout" ? (
+            <>
+              <AlertTriangle className="mx-auto h-12 w-12 text-amber-500 mb-2" />
+              <CardTitle>
+                {t("organizations:subscription.success.timeoutTitle")}
+              </CardTitle>
+              <CardDescription>
+                {t("organizations:subscription.success.timeoutDescription")}
               </CardDescription>
             </>
           ) : (
@@ -59,8 +116,8 @@ export default function SubscriptionSuccessPage() {
             </>
           )}
         </CardHeader>
-        <CardContent>
-          {isReady && data?.subscription && (
+        <CardContent className="space-y-4">
+          {pageState === "ready" && data?.subscription && (
             <div className="mb-4 text-sm text-muted-foreground">
               <p>
                 {t("organizations:subscription.success.plan")}:{" "}
@@ -73,6 +130,12 @@ export default function SubscriptionSuccessPage() {
                 </span>
               </p>
             </div>
+          )}
+          {pageState === "timeout" && (
+            <Button variant="outline" onClick={handleRetry} className="w-full">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              {t("organizations:subscription.success.retry")}
+            </Button>
           )}
           <Button asChild className="w-full">
             <Link to={`/organizations/${organizationId}/subscription`}>

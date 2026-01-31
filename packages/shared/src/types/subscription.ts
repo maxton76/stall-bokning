@@ -132,3 +132,15 @@ export interface CheckoutSessionResponse {
 export interface CustomerPortalResponse {
   url: string;
 }
+
+export interface VerifyCheckoutRequest {
+  sessionId: string;
+}
+
+export interface VerifyCheckoutResponse {
+  /** Whether the checkout session was successfully synced */
+  synced: boolean;
+  /** Current subscription status after verification */
+  subscription: SafeSubscription | null;
+  tier: SubscriptionTier;
+}
