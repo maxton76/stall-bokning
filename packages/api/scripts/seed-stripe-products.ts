@@ -45,7 +45,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 interface TierConfig {
-  tier: "standard" | "pro";
+  tier: string;
   name: string;
   description: string;
 }

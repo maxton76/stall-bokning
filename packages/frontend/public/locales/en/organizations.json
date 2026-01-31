@@ -155,6 +155,10 @@
       "inseminator": {
         "label": "Inseminator",
         "description": "Breeding services"
+      },
+      "support_contact": {
+        "label": "Support Contact",
+        "description": "Delegated access to support tickets"
       }
     }
   },

@@ -7,8 +7,9 @@
 
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../utils/firebase.js";
-import type { SubscriptionLimits, SubscriptionTier } from "@equiduty/shared";
-import { TIER_LIMITS } from "@equiduty/shared";
+import type { SubscriptionLimits } from "@equiduty/shared";
+import { getDefaultTierDefinition } from "@equiduty/shared";
+import { getTierDefaults } from "../utils/tierDefaults.js";
 
 /**
  * Get the effective limit for a resource type.
@@ -29,10 +30,13 @@ async function getEffectiveLimit(
     return subLimit;
   }
 
-  // Fall back to tier defaults
-  const tier: SubscriptionTier =
-    data.subscriptionTier || data.subscription?.tier || "free";
-  return TIER_LIMITS[tier]?.[limitKey] ?? 0;
+  // Fall back to tier defaults from Firestore/cache
+  const tier: string =
+    data.subscriptionTier ||
+    data.subscription?.tier ||
+    getDefaultTierDefinition().tier;
+  const tierDef = await getTierDefaults(tier);
+  return tierDef?.limits?.[limitKey] ?? 0;
 }
 
 /**

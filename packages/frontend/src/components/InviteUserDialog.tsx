@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import type {
   OrganizationRole,
   StableAccessLevel,
@@ -48,7 +49,7 @@ type InviteUserFormData = {
   assignedStableIds?: string[];
 };
 
-const ROLE_KEYS = [
+const BASE_ROLE_KEYS = [
   "administrator",
   "schedule_planner",
   "veterinarian",
@@ -76,16 +77,26 @@ export function InviteUserDialog({
   const { t } = useTranslation(["organizations", "common"]);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [addressOpen, setAddressOpen] = useState(false);
+  const { modules } = useSubscription();
+
+  // Build role keys — include support_contact only when the tier has supportAccess
+  const roleKeys = useMemo(() => {
+    const keys: string[] = [...BASE_ROLE_KEYS];
+    if (modules.supportAccess) {
+      keys.push("support_contact");
+    }
+    return keys;
+  }, [modules.supportAccess]);
 
   // Build translated organization roles
   const organizationRoles = useMemo(
     () =>
-      ROLE_KEYS.map((key) => ({
+      roleKeys.map((key) => ({
         value: key as OrganizationRole,
         label: t(`organizations:invite.roles.${key}.label`),
         description: t(`organizations:invite.roles.${key}.description`),
       })),
-    [t],
+    [t, roleKeys],
   );
 
   // Create schema with translated validation messages

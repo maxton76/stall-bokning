@@ -77,6 +77,7 @@ terraform/**/.terraform/
 crash.log
 crash.*.log
 *.tfvars.local
+terraform.auto.tfvars
 override.tf
 override.tf.json
 *_override.tf

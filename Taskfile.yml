@@ -39,6 +39,10 @@ vars:
   SHARED_DIR: '{{.ROOT_DIR}}/packages/shared'
   TERRAFORM_DIR: '{{.ROOT_DIR}}/terraform'
 
+  # Stripe publishable keys (public, safe to commit)
+  STRIPE_PK_SANDBOX: '{{.STRIPE_PK_SANDBOX | default "pk_test_51SvOKYRe707ulauR6wteInnjHqyd65Zy5BZ5IfykIMl22kjr3bhhzenU5kVOqk07OIJYGi0QkMX60RIoFfpIzBmL00V9oFGpmj"}}'
+  STRIPE_PK_LIVE: '{{.STRIPE_PK_LIVE | default "pk_live_51SvOKSDzuNNi4kYmWDy7buPhoobdJisni6K8D8y1irIFnIoyXzFXjgwe0rpftvweyaY1V0sbqF0Bq0RoO5VoeKGG005cKBSy5q"}}'
+
 # =============================================================================
 # Environment Configuration
 # =============================================================================
@@ -133,7 +137,7 @@ tasks:
     cmds:
       - bash ./scripts/build-functions-source.sh {{.ENV}}
       - echo "Deploying functions via Terraform..."
-      - cd {{.TERRAFORM_DIR}}/environments/{{.ENV}} && terraform apply -target=module.cloud_functions
+      - cd {{.TERRAFORM_DIR}}/environments/{{.ENV}} && terraform apply -auto-approve -input=false -target=module.cloud_functions
       - echo "All functions deployed to {{.ENV}}"
 
   deploy:firestore:rules:
@@ -639,21 +643,25 @@ tasks:
         echo "Landing .env synced: PUBLIC_APP_URL=${APP_URL}"
 
   config:sync-frontend-env:
-    desc: Sync frontend environment variables (VITE_LANDING_URL) for current environment
+    desc: Sync frontend environment variables (VITE_LANDING_URL, VITE_STRIPE_PUBLISHABLE_KEY) for current environment
     cmds:
       - |
         case "{{.ENV}}" in
           dev)
             LANDING_URL="https://equiduty-dev.web.app"
+            STRIPE_PK="{{.STRIPE_PK_SANDBOX}}"
             ;;
           staging)
             LANDING_URL="https://equiduty-staging.web.app"
+            STRIPE_PK="{{.STRIPE_PK_SANDBOX}}"
             ;;
           prod)
             LANDING_URL="https://equiduty-prod.web.app"
+            STRIPE_PK="{{.STRIPE_PK_LIVE}}"
             ;;
           *)
             LANDING_URL="http://localhost:4321"
+            STRIPE_PK="{{.STRIPE_PK_SANDBOX}}"
             ;;
         esac
         if grep -q "^VITE_LANDING_URL=" {{.FRONTEND_DIR}}/.env 2>/dev/null; then
@@ -663,6 +671,16 @@ tasks:
         else
           echo "VITE_LANDING_URL=${LANDING_URL}" >> {{.FRONTEND_DIR}}/.env
           echo "Added VITE_LANDING_URL=${LANDING_URL}"
+        fi
+        if [ -n "${STRIPE_PK}" ]; then
+          if grep -q "^VITE_STRIPE_PUBLISHABLE_KEY=" {{.FRONTEND_DIR}}/.env 2>/dev/null; then
+            sed -i.bak "s|^VITE_STRIPE_PUBLISHABLE_KEY=.*|VITE_STRIPE_PUBLISHABLE_KEY=${STRIPE_PK}|" {{.FRONTEND_DIR}}/.env
+            rm -f {{.FRONTEND_DIR}}/.env.bak
+            echo "Updated VITE_STRIPE_PUBLISHABLE_KEY"
+          else
+            echo "VITE_STRIPE_PUBLISHABLE_KEY=${STRIPE_PK}" >> {{.FRONTEND_DIR}}/.env
+            echo "Added VITE_STRIPE_PUBLISHABLE_KEY"
+          fi
         fi
 
   config:show-api-url:

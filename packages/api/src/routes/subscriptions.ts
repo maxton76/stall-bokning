@@ -65,6 +65,66 @@ function toSafeSubscription(
 }
 
 // ============================================
+// Helpers
+// ============================================
+
+/**
+ * Verify an existing Stripe customer ID is still valid, or create a new one.
+ * Handles stale/deleted customer IDs stored in Firestore.
+ */
+async function getOrCreateStripeCustomer(
+  orgData: Record<string, any>,
+  organizationId: string,
+  log: { warn: Function; info: Function },
+): Promise<string> {
+  let customerId = orgData.stripeSubscription?.customerId as
+    | string
+    | null
+    | undefined;
+
+  if (customerId) {
+    try {
+      const existing = await stripe.customers.retrieve(customerId);
+      if ((existing as any).deleted) {
+        log.warn(
+          { customerId, organizationId },
+          "Stripe customer was deleted, creating new one",
+        );
+        customerId = null;
+      }
+    } catch (err: any) {
+      if (err.code === "resource_missing") {
+        log.warn(
+          { customerId, organizationId },
+          "Stripe customer not found, creating new one",
+        );
+        customerId = null;
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: orgData.ownerEmail || orgData.primaryEmail,
+      name: orgData.name,
+      metadata: { organizationId, platform: "equiduty" },
+    });
+    customerId = customer.id;
+
+    await db.collection("organizations").doc(organizationId).update({
+      "stripeSubscription.customerId": customerId,
+      updatedAt: new Date(),
+    });
+
+    log.info({ customerId, organizationId }, "Created new Stripe customer");
+  }
+
+  return customerId;
+}
+
+// ============================================
 // Routes
 // ============================================
 
@@ -134,26 +194,12 @@ export async function subscriptionRoutes(fastify: FastifyInstance) {
       // Get organization
       const { data: orgData } = await getOrganizationOrThrow(organizationId);
 
-      // Get or create Stripe Customer
-      let customerId = orgData.stripeSubscription?.customerId;
-
-      if (!customerId) {
-        const customer = await stripe.customers.create({
-          email: orgData.ownerEmail || orgData.primaryEmail,
-          name: orgData.name,
-          metadata: {
-            organizationId,
-            platform: "equiduty",
-          },
-        });
-        customerId = customer.id;
-
-        // Persist customer ID immediately (don't wait for webhook)
-        await db.collection("organizations").doc(organizationId).update({
-          "stripeSubscription.customerId": customerId,
-          updatedAt: new Date(),
-        });
-      }
+      // Get or create Stripe Customer (validates stale IDs)
+      const customerId = await getOrCreateStripeCustomer(
+        orgData,
+        organizationId,
+        request.log,
+      );
 
       // Determine trial eligibility (first time only)
       const hasHadTrial = orgData.stripeSubscription?.hasHadTrial === true;
@@ -308,13 +354,19 @@ export async function subscriptionRoutes(fastify: FastifyInstance) {
       const returnUrl = `${frontendUrl}/organizations/${organizationId}/subscription`;
 
       const { data: orgData } = await getOrganizationOrThrow(organizationId);
-      const customerId = orgData.stripeSubscription?.customerId;
 
-      if (!customerId) {
+      if (!orgData.stripeSubscription?.customerId) {
         return reply.status(400).send({
           error: "No active subscription. Subscribe first.",
         });
       }
+
+      // Validate customer still exists in Stripe
+      const customerId = await getOrCreateStripeCustomer(
+        orgData,
+        organizationId,
+        request.log,
+      );
 
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: customerId,
@@ -425,15 +477,21 @@ export async function subscriptionRoutes(fastify: FastifyInstance) {
       const { limit, starting_after } = queryResult.data;
 
       const { data: orgData } = await getOrganizationOrThrow(organizationId);
-      const customerId = orgData.stripeSubscription?.customerId;
 
-      if (!customerId) {
+      if (!orgData.stripeSubscription?.customerId) {
         const response: BillingHistoryResponse = {
           invoices: [],
           hasMore: false,
         };
         return response;
       }
+
+      // Validate customer still exists in Stripe
+      const customerId = await getOrCreateStripeCustomer(
+        orgData,
+        organizationId,
+        request.log,
+      );
 
       const stripeInvoices = await stripe.invoices.list({
         customer: customerId,

@@ -1,6 +1,7 @@
 import type { Organization } from "../types/organization.js";
 import type {
-  SubscriptionTier,
+  SubscriptionLimits,
+  ModuleFlags,
   OrganizationSubscription,
 } from "../types/admin.js";
 import { TIER_LIMITS, TIER_MODULES } from "../constants/tierDefaults.js";
@@ -12,6 +13,9 @@ import { TIER_LIMITS, TIER_MODULES } from "../constants/tierDefaults.js";
  * Functions accept an optional `subscription` parameter to read custom limits
  * from the org's subscription object (set by admin). Falls back to hardcoded
  * tier defaults based on `org.subscriptionTier`.
+ *
+ * An optional `tierLimits` / `tierModules` parameter allows callers to pass
+ * dynamically-loaded tier data instead of relying on the deprecated constants.
  */
 
 /**
@@ -45,6 +49,7 @@ export function canCreateMultipleStables(org: Organization): boolean {
 export function getMaxStables(
   org: Organization,
   subscription?: OrganizationSubscription,
+  tierLimits?: Record<string, SubscriptionLimits>,
 ): number {
   if (org.organizationType === "personal") {
     return 1;
@@ -57,10 +62,11 @@ export function getMaxStables(
       : subscription.limits.stables;
   }
 
-  // Fall back to tier defaults
-  const tierLimits = TIER_LIMITS[org.subscriptionTier];
-  if (tierLimits) {
-    return tierLimits.stables === -1 ? Infinity : tierLimits.stables;
+  // Fall back to tier defaults (dynamic or static)
+  const limitsMap = tierLimits ?? TIER_LIMITS;
+  const limits = limitsMap[org.subscriptionTier];
+  if (limits) {
+    return limits.stables === -1 ? Infinity : limits.stables;
   }
 
   return 1; // Default to free tier limits
@@ -73,13 +79,14 @@ export function getMaxStables(
 export function canCreateStable(
   org: Organization,
   subscription?: OrganizationSubscription,
+  tierLimits?: Record<string, SubscriptionLimits>,
 ): boolean {
   if (org.organizationType === "personal") {
     return false; // Personal orgs have implicit stable only
   }
 
   const currentCount = org.stats?.stableCount ?? 0;
-  const maxAllowed = getMaxStables(org, subscription);
+  const maxAllowed = getMaxStables(org, subscription, tierLimits);
   return currentCount < maxAllowed;
 }
 
@@ -97,6 +104,8 @@ export interface FeatureLimits {
 export function getFeatureLimits(
   org: Organization,
   subscription?: OrganizationSubscription,
+  tierModules?: Record<string, ModuleFlags>,
+  tierLimits?: Record<string, SubscriptionLimits>,
 ): FeatureLimits {
   const isPersonal = org.organizationType === "personal";
 
@@ -105,17 +114,44 @@ export function getFeatureLimits(
   if (subscription?.modules?.analytics !== undefined) {
     hasAnalytics = subscription.modules.analytics;
   } else {
-    const tierModules = TIER_MODULES[org.subscriptionTier];
-    hasAnalytics = tierModules?.analytics ?? false;
+    const modulesMap = tierModules ?? TIER_MODULES;
+    const modules = modulesMap[org.subscriptionTier];
+    hasAnalytics = modules?.analytics ?? false;
   }
 
   return {
-    maxStables: getMaxStables(org, subscription),
+    maxStables: getMaxStables(org, subscription, tierLimits),
     canInviteMembers: !isPersonal,
     canCreateOrgContacts: !isPersonal,
     canManageRoles: !isPersonal,
     canViewAnalytics: !isPersonal && hasAnalytics,
   };
+}
+
+/**
+ * Get the maximum number of support contacts allowed for an organization.
+ * Uses subscription limits if available, otherwise falls back to tier defaults.
+ */
+export function getMaxSupportContacts(
+  org: Organization,
+  subscription?: OrganizationSubscription,
+  tierLimits?: Record<string, SubscriptionLimits>,
+): number {
+  // Use subscription limits if provided
+  if (subscription?.limits?.supportContacts !== undefined) {
+    return subscription.limits.supportContacts === -1
+      ? Infinity
+      : subscription.limits.supportContacts;
+  }
+
+  // Fall back to tier defaults (dynamic or static)
+  const limitsMap = tierLimits ?? TIER_LIMITS;
+  const limits = limitsMap[org.subscriptionTier];
+  if (limits?.supportContacts !== undefined) {
+    return limits.supportContacts === -1 ? Infinity : limits.supportContacts;
+  }
+
+  return 0; // Default to no support contacts
 }
 
 /**

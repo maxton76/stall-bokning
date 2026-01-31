@@ -1,9 +1,11 @@
 import type { Timestamp } from "firebase/firestore";
 
 /**
- * Subscription tier levels
+ * Subscription tier levels.
+ * Widened to `string` to support dynamic/custom tiers created via admin.
+ * Built-in tiers: "free", "standard", "pro", "enterprise".
  */
-export type SubscriptionTier = "free" | "standard" | "pro" | "enterprise";
+export type SubscriptionTier = string;
 
 /**
  * Numeric limits for organization subscriptions
@@ -18,6 +20,7 @@ export interface SubscriptionLimits {
   feedingPlans: number;
   facilities: number;
   contacts: number;
+  supportContacts: number;
 }
 
 /**
@@ -38,6 +41,7 @@ export interface ModuleFlags {
   integrations: boolean;
   manure: boolean;
   aiAssistant: boolean;
+  supportAccess: boolean;
 }
 
 /**
@@ -82,8 +86,33 @@ export interface TierDefinition {
   sortOrder?: number;
   /** Hidden tiers are admin-only assignment */
   visibility?: "public" | "hidden";
+  /** Feature bullet points for pricing display (i18n keys or raw strings) */
+  features?: string[];
+  /** Mark as "popular" for pricing page highlight */
+  popular?: boolean;
+  /** Whether this is the system default tier assigned to new organizations */
+  isDefault?: boolean;
   updatedAt?: Timestamp;
   updatedBy?: string;
+}
+
+/**
+ * Public tier definition — stripped of admin metadata.
+ * Returned by the public GET /tiers endpoint.
+ */
+export interface TierDefinitionPublic {
+  tier: string;
+  name: string;
+  description: string;
+  price: number;
+  limits: SubscriptionLimits;
+  modules: ModuleFlags;
+  addons: SubscriptionAddons;
+  sortOrder: number;
+  features?: string[];
+  popular?: boolean;
+  isBillable?: boolean;
+  isDefault?: boolean;
 }
 
 /**
@@ -93,12 +122,7 @@ export interface AdminDashboardMetrics {
   totalOrganizations: number;
   totalUsers: number;
   totalHorses: number;
-  activeSubscriptions: {
-    free: number;
-    standard: number;
-    pro: number;
-    enterprise: number;
-  };
+  activeSubscriptions: Record<string, number>;
   mrr: number;
   newSignups30d: number;
   activeUsers7d: number;

@@ -13,6 +13,12 @@ if (!process.env.STRIPE_SECRET_KEY) {
   );
 }
 
+if (!process.env.STRIPE_WEBHOOK_SECRET) {
+  console.warn(
+    "STRIPE_WEBHOOK_SECRET not set. Stripe webhook verification will fail at runtime.",
+  );
+}
+
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   typescript: true,
 });

@@ -22,7 +22,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@equiduty/shared": "^1.0.16",
+    "@equiduty/shared": "^1.1.1",
     "@fastify/cors": "^10.0.1",
     "@fastify/jwt": "^9.0.1",
     "@fastify/rate-limit": "^10.1.1",

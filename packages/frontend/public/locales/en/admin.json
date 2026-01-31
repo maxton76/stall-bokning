@@ -1,0 +1,61 @@
+{
+  "tiers": {
+    "title": "Tier Management",
+    "description": "Define what each subscription tier includes, configure Stripe billing, and manage tier visibility.",
+    "sections": {
+      "general": "General",
+      "status": "Status",
+      "stripeBilling": "Stripe Billing",
+      "numericLimits": "Numeric Limits",
+      "moduleFlags": "Module Flags",
+      "addons": "Add-ons"
+    },
+    "labels": {
+      "tier": "Tier",
+      "name": "Name",
+      "description": "Description",
+      "price": "Price (SEK/month)",
+      "enabled": "Enabled",
+      "billable": "Billable",
+      "sortOrder": "Sort Order",
+      "visibility": "Visibility",
+      "visibilityPublic": "Public",
+      "visibilityHidden": "Hidden",
+      "tierKey": "Tier Key",
+      "stripeProductId": "Stripe Product ID",
+      "monthlyPriceId": "Monthly Price ID",
+      "annualPriceId": "Annual Price ID"
+    },
+    "badges": {
+      "disabled": "Disabled",
+      "hidden": "Hidden",
+      "billable": "Billable",
+      "configured": "Configured",
+      "notConfigured": "Not configured"
+    },
+    "actions": {
+      "save": "Save Changes",
+      "reset": "Reset to Defaults",
+      "create": "Create Tier",
+      "delete": "Delete Tier"
+    },
+    "messages": {
+      "saveSuccess": "Tier saved successfully",
+      "saveError": "Failed to save tier",
+      "resetSuccess": "Tier reset to defaults",
+      "resetError": "Failed to reset tier",
+      "createSuccess": "Tier created successfully",
+      "createError": "Failed to create tier",
+      "deleteSuccess": "Tier deleted successfully",
+      "deleteError": "Failed to delete tier"
+    },
+    "dialogs": {
+      "createTitle": "Create New Tier",
+      "createDescription": "Define a new subscription tier with limits, modules, and add-ons.",
+      "deleteTitle": "Delete Tier",
+      "deleteConfirm": "Are you sure you want to delete the \"{{name}}\" tier?",
+      "deleteHasOrgs": "{{count}} organization(s) are using this tier. The tier will be disabled and hidden instead of deleted.",
+      "deleteCannotDefault": "The default tier cannot be deleted."
+    }
+  }
+}

@@ -16,6 +16,7 @@ import type {
   OrganizationSubscription,
   PaginatedResponse,
   StripeProductMapping,
+  SubscriptionTier,
 } from "@equiduty/shared";
 
 // ============================================
@@ -109,6 +110,24 @@ export async function resetTierDefaults(
   return apiClient.post<{ success: boolean; definition: TierDefinition }>(
     `/admin/tiers/${tier}/reset`,
   );
+}
+
+export async function createTier(
+  definition: TierDefinition,
+): Promise<{ success: boolean; tier: SubscriptionTier }> {
+  return apiClient.post<{ success: boolean; tier: SubscriptionTier }>(
+    "/admin/tiers",
+    definition,
+  );
+}
+
+export async function deleteTier(tier: string): Promise<{
+  success: boolean;
+  softDeleted?: boolean;
+  organizationCount?: number;
+  message?: string;
+}> {
+  return apiClient.delete(`/admin/tiers/${tier}`);
 }
 
 // ============================================

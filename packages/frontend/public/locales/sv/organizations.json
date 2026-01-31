@@ -155,6 +155,10 @@
       "inseminator": {
         "label": "Seminör",
         "description": "Aveltjänster"
+      },
+      "support_contact": {
+        "label": "Supportkontakt",
+        "description": "Delegerad åtkomst till supportärenden"
       }
     }
   },

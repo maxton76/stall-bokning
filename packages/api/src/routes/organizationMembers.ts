@@ -24,6 +24,38 @@ async function updateOrganizationStats(organizationId: string): Promise<void> {
 export default async function organizationMemberRoutes(
   fastify: FastifyInstance,
 ) {
+  // GET /api/v1/organization-members - Get authenticated user's active memberships
+  fastify.get(
+    "/",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+
+        const membersSnapshot = await db
+          .collection("organizationMembers")
+          .where("userId", "==", user.uid)
+          .where("status", "==", "active")
+          .get();
+
+        const members = membersSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        return reply.send({ members });
+      } catch (error) {
+        request.log.error({ error }, "Failed to fetch organization members");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to fetch organization members",
+        });
+      }
+    },
+  );
+
   // POST /api/v1/organization-members/:memberId/accept - Accept membership invite
   fastify.post(
     "/:memberId/accept",

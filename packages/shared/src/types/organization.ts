@@ -21,7 +21,8 @@ export type OrganizationRole =
   | "saddle_maker" // Tack and saddle services
   | "horse_owner" // External horse owner
   | "rider" // Professional rider
-  | "inseminator"; // Breeding services
+  | "inseminator" // Breeding services
+  | "support_contact"; // Delegated access to support tickets
 
 /**
  * Contact type for organizations and members

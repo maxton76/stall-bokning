@@ -7,12 +7,9 @@
 
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../utils/firebase.js";
-import type {
-  ModuleFlags,
-  SubscriptionAddons,
-  SubscriptionTier,
-} from "@equiduty/shared";
-import { TIER_MODULES, TIER_ADDONS } from "@equiduty/shared";
+import type { ModuleFlags, SubscriptionAddons } from "@equiduty/shared";
+import { getDefaultTierDefinition } from "@equiduty/shared";
+import { getTierDefaults } from "../utils/tierDefaults.js";
 
 type ModuleOrAddonKey = keyof ModuleFlags | keyof SubscriptionAddons;
 
@@ -56,8 +53,10 @@ export function checkModuleAccess(moduleKey: ModuleOrAddonKey) {
       }
 
       const data = orgDoc.data()!;
-      const tier: SubscriptionTier =
-        data.subscriptionTier || data.subscription?.tier || "free";
+      const tier: string =
+        data.subscriptionTier ||
+        data.subscription?.tier ||
+        getDefaultTierDefinition().tier;
 
       // Check module flags first (from subscription object)
       const subModules = data.subscription?.modules;
@@ -71,14 +70,14 @@ export function checkModuleAccess(moduleKey: ModuleOrAddonKey) {
       } else if (subAddons && moduleKey in subAddons) {
         isEnabled = subAddons[moduleKey as keyof SubscriptionAddons];
       } else {
-        // Fall back to tier defaults
-        const tierModules = TIER_MODULES[tier];
-        const tierAddons = TIER_ADDONS[tier];
-
-        if (moduleKey in (tierModules || {})) {
-          isEnabled = tierModules[moduleKey as keyof ModuleFlags];
-        } else if (moduleKey in (tierAddons || {})) {
-          isEnabled = tierAddons[moduleKey as keyof SubscriptionAddons];
+        // Fall back to tier defaults from Firestore/cache
+        const tierDef = await getTierDefaults(tier);
+        if (tierDef) {
+          if (moduleKey in (tierDef.modules || {})) {
+            isEnabled = tierDef.modules[moduleKey as keyof ModuleFlags];
+          } else if (moduleKey in (tierDef.addons || {})) {
+            isEnabled = tierDef.addons[moduleKey as keyof SubscriptionAddons];
+          }
         }
       }
 

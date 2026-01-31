@@ -48,6 +48,7 @@ import {
   statusBadgeVariant,
   getTrialDaysRemaining,
 } from "@/lib/subscriptionUI";
+import { useTierDefinitions } from "@/hooks/useTierDefinitions";
 import type { SubscriptionTier, BillingInterval } from "@equiduty/shared";
 
 export default function OrganizationSubscriptionPage() {
@@ -64,6 +65,7 @@ export default function OrganizationSubscriptionPage() {
   const portalMutation = useCustomerPortal(organizationId ?? "");
   const cancelMutation = useCancelSubscription(organizationId ?? "");
   const resumeMutation = useResumeSubscription(organizationId ?? "");
+  const { getTier } = useTierDefinitions();
 
   if (isLoading) {
     return (
@@ -74,8 +76,10 @@ export default function OrganizationSubscriptionPage() {
   }
 
   const subscription = subData?.subscription;
-  const tier = subData?.tier ?? "free";
-  const isFreeTier = tier === "free" && !subscription?.status;
+  const tier = subData?.tier ?? "";
+  const tierDef = tier ? getTier(tier) : undefined;
+  const isFreeTier =
+    !subscription?.status && (!tier || tierDef?.isBillable === false);
   const isTrialing = subscription?.status === "trialing";
   const isPastDue = subscription?.status === "past_due";
   const isCanceling = subscription?.cancelAtPeriodEnd === true;

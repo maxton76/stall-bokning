@@ -4,6 +4,7 @@ import { ArrowUpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useOrganizationContext } from "@/contexts/OrganizationContext";
+import { useTierDefinitions } from "@/hooks/useTierDefinitions";
 import { getMinimumTierForModule } from "@/lib/tierUtils";
 import type { ModuleFlags, SubscriptionLimits } from "@equiduty/shared";
 
@@ -18,8 +19,11 @@ export function UpgradePrompt({ module, limit }: UpgradePromptProps) {
   const { t } = useTranslation(["organizations"]);
   const navigate = useNavigate();
   const { currentOrganizationId } = useOrganizationContext();
+  const { tiers } = useTierDefinitions();
 
-  const requiredTier = module ? getMinimumTierForModule(module) : "standard";
+  const requiredTier = module
+    ? getMinimumTierForModule(module, tiers)
+    : "standard";
 
   const handleUpgrade = () => {
     if (currentOrganizationId) {

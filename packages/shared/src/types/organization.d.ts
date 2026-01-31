@@ -13,15 +13,12 @@ export type OrganizationRole =
   | "saddle_maker"
   | "horse_owner"
   | "rider"
-  | "inseminator";
+  | "inseminator"
+  | "support_contact";
 /**
  * Contact type for organizations and members
  */
 export type ContactType = "Personal" | "Business";
-/**
- * Subscription tiers for organizations
- */
-export type SubscriptionTier = "free" | "professional" | "enterprise";
 /**
  * Membership status
  */

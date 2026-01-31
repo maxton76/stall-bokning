@@ -115,30 +115,16 @@ function DashboardContent({ metrics }: { metrics: AdminDashboardMetrics }) {
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary">Free</Badge>
-              <span className="text-lg font-semibold">
-                {metrics.activeSubscriptions.free}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="default">Standard</Badge>
-              <span className="text-lg font-semibold">
-                {metrics.activeSubscriptions.standard}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge className="bg-purple-600">Pro</Badge>
-              <span className="text-lg font-semibold">
-                {metrics.activeSubscriptions.pro}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge className="bg-amber-600">Enterprise</Badge>
-              <span className="text-lg font-semibold">
-                {metrics.activeSubscriptions.enterprise}
-              </span>
-            </div>
+            {Object.entries(metrics.activeSubscriptions).map(
+              ([tier, count]) => (
+                <div key={tier} className="flex items-center gap-2">
+                  <Badge variant="outline" className="capitalize">
+                    {tier}
+                  </Badge>
+                  <span className="text-lg font-semibold">{count}</span>
+                </div>
+              ),
+            )}
           </div>
         </CardContent>
       </Card>

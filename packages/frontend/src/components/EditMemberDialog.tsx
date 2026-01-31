@@ -7,6 +7,7 @@ import { FormInput } from "@/components/form";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import type {
   OrganizationMember,
   OrganizationRole,
@@ -23,7 +24,7 @@ type EditMemberFormData = {
   assignedStableIds?: string[];
 };
 
-const ROLE_KEYS = [
+const BASE_ROLE_KEYS = [
   "administrator",
   "schedule_planner",
   "veterinarian",
@@ -52,16 +53,26 @@ export function EditMemberDialog({
 }: EditMemberDialogProps) {
   const { t } = useTranslation(["organizations", "common"]);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const { modules } = useSubscription();
+
+  // Build role keys — include support_contact only when the tier has supportAccess
+  const roleKeys = useMemo(() => {
+    const keys: string[] = [...BASE_ROLE_KEYS];
+    if (modules.supportAccess) {
+      keys.push("support_contact");
+    }
+    return keys;
+  }, [modules.supportAccess]);
 
   // Build translated organization roles
   const organizationRoles = useMemo(
     () =>
-      ROLE_KEYS.map((key) => ({
+      roleKeys.map((key) => ({
         value: key as OrganizationRole,
         label: t(`organizations:invite.roles.${key}.label`),
         description: t(`organizations:invite.roles.${key}.description`),
       })),
-    [t],
+    [t, roleKeys],
   );
 
   // Create schema with translated validation messages

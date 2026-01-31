@@ -28,12 +28,12 @@ import { SubscriptionAddonsEditor } from "@/components/subscription/Subscription
 import type {
   AdminOrganizationDetail,
   OrganizationSubscription,
-  SubscriptionTier,
   ModuleFlags,
   SubscriptionLimits,
   SubscriptionAddons,
 } from "@equiduty/shared";
-import { DEFAULT_TIER_DEFINITIONS, SUBSCRIPTION_TIERS } from "@equiduty/shared";
+import { DEFAULT_TIER_DEFINITIONS } from "@equiduty/shared";
+import { useAdminTierDefinitions } from "@/hooks/useTierDefinitions";
 import {
   getOrganization,
   updateOrganizationSubscription,
@@ -51,6 +51,7 @@ function DetailLoadingSkeleton() {
 }
 
 function OrgDetailContent({ org }: { org: AdminOrganizationDetail }) {
+  const { tiers: adminTiers, getTier } = useAdminTierDefinitions();
   const [subscription, setSubscription] = useState<OrganizationSubscription>(
     org.subscription,
   );
@@ -64,8 +65,9 @@ function OrgDetailContent({ org }: { org: AdminOrganizationDetail }) {
     },
   );
 
-  const handleTierChange = (tier: SubscriptionTier) => {
-    const defaults = DEFAULT_TIER_DEFINITIONS[tier];
+  const handleTierChange = (tier: string) => {
+    const defaults = getTier(tier) ?? DEFAULT_TIER_DEFINITIONS[tier];
+    if (!defaults) return;
     setSubscription({
       tier,
       limits: { ...defaults.limits },
@@ -148,15 +150,15 @@ function OrgDetailContent({ org }: { org: AdminOrganizationDetail }) {
         <CardContent>
           <Select
             value={subscription.tier}
-            onValueChange={(v) => handleTierChange(v as SubscriptionTier)}
+            onValueChange={(v) => handleTierChange(v)}
           >
             <SelectTrigger className="w-48">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {SUBSCRIPTION_TIERS.map((tier) => (
-                <SelectItem key={tier} value={tier}>
-                  {tier.charAt(0).toUpperCase() + tier.slice(1)}
+              {adminTiers.map((tierDef) => (
+                <SelectItem key={tierDef.tier} value={tierDef.tier}>
+                  {tierDef.name}
                 </SelectItem>
               ))}
             </SelectContent>

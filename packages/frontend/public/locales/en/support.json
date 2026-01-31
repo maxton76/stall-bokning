@@ -28,7 +28,8 @@
     "submitFailed": "Failed to submit support request. Please try again.",
     "loadFailed": "Failed to load support status",
     "replyFailed": "Failed to send reply. Please try again.",
-    "conversationFailed": "Failed to load conversation."
+    "conversationFailed": "Failed to load conversation.",
+    "supportContactLimit": "Support contact limit reached. Remove an existing support contact or upgrade your plan."
   },
   "upgrade": {
     "title": "Support for Paid Customers",

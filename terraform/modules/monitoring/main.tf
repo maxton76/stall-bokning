@@ -33,7 +33,7 @@ resource "google_monitoring_notification_channel" "email" {
 # =============================================================================
 
 resource "google_monitoring_uptime_check_config" "cloud_run_health" {
-  count = var.enable_uptime_checks ? 1 : 0
+  count = var.enable_uptime_checks && var.enable_cloud_run_monitoring ? 1 : 0
 
   display_name = "${var.environment}-api-health-check"
   project      = var.project_id
@@ -82,7 +82,7 @@ resource "google_monitoring_uptime_check_config" "cloud_run_health" {
 
 # Cloud Run Latency Alert
 resource "google_monitoring_alert_policy" "cloud_run_latency" {
-  count = var.enable_alerting && var.cloud_run_service_name != "" ? 1 : 0
+  count = var.enable_alerting && var.enable_cloud_run_monitoring ? 1 : 0
 
   display_name = "${var.environment}-api-high-latency"
   project      = var.project_id
@@ -121,10 +121,6 @@ resource "google_monitoring_alert_policy" "cloud_run_latency" {
 
   alert_strategy {
     auto_close = "1800s" # 30 minutes
-
-    notification_rate_limit {
-      period = "300s" # 5 minutes between notifications
-    }
   }
 
   documentation {
@@ -141,7 +137,7 @@ resource "google_monitoring_alert_policy" "cloud_run_latency" {
 
 # Cloud Run Error Rate Alert
 resource "google_monitoring_alert_policy" "cloud_run_errors" {
-  count = var.enable_alerting && var.cloud_run_service_name != "" ? 1 : 0
+  count = var.enable_alerting && var.enable_cloud_run_monitoring ? 1 : 0
 
   display_name = "${var.environment}-api-high-error-rate"
   project      = var.project_id
@@ -181,10 +177,6 @@ resource "google_monitoring_alert_policy" "cloud_run_errors" {
 
   alert_strategy {
     auto_close = "1800s"
-
-    notification_rate_limit {
-      period = "300s"
-    }
   }
 
   documentation {
@@ -201,7 +193,7 @@ resource "google_monitoring_alert_policy" "cloud_run_errors" {
 
 # Uptime Check Failure Alert
 resource "google_monitoring_alert_policy" "uptime_failure" {
-  count = var.enable_alerting && var.enable_uptime_checks && var.cloud_run_service_url != "" ? 1 : 0
+  count = var.enable_alerting && var.enable_uptime_checks && var.enable_cloud_run_monitoring ? 1 : 0
 
   display_name = "${var.environment}-api-uptime-failure"
   project      = var.project_id
@@ -240,10 +232,6 @@ resource "google_monitoring_alert_policy" "uptime_failure" {
 
   alert_strategy {
     auto_close = "1800s"
-
-    notification_rate_limit {
-      period = "300s"
-    }
   }
 
   documentation {
@@ -263,7 +251,7 @@ resource "google_monitoring_alert_policy" "uptime_failure" {
 # =============================================================================
 
 resource "google_logging_metric" "api_errors" {
-  count = var.enable_log_metrics ? 1 : 0
+  count = var.enable_log_metrics && var.enable_cloud_run_monitoring ? 1 : 0
 
   name    = "${var.environment}-api-error-count"
   project = var.project_id

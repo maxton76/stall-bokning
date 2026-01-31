@@ -17,6 +17,7 @@ import {
 } from "../services/emailService.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 import { canInviteMembers, DEFAULT_HOLIDAY_SETTINGS } from "@equiduty/shared";
+import { getTierDefaults } from "../utils/tierDefaults.js";
 
 // Zod schemas for validation
 const supportedCountryCodeSchema = z.enum(["SE"]);
@@ -57,6 +58,7 @@ const organizationRoleSchema = z.enum([
   "horse_owner",
   "rider",
   "inseminator",
+  "support_contact",
 ]);
 
 const createOrganizationSchema = z.object({
@@ -105,6 +107,80 @@ const updateMemberRolesSchema = z.object({
   stableAccess: z.enum(["all", "specific"]).optional(),
   assignedStableIds: z.array(z.string()).optional(),
 });
+
+/**
+ * Count existing support_contact members + pending invites for an organization.
+ * The org owner is never counted against the limit.
+ */
+async function countSupportContacts(
+  organizationId: string,
+  ownerId: string,
+  excludeMemberId?: string,
+): Promise<number> {
+  // Count active/pending members with support_contact role (excluding owner)
+  const membersSnapshot = await db
+    .collection("organizationMembers")
+    .where("organizationId", "==", organizationId)
+    .get();
+
+  let count = 0;
+  for (const doc of membersSnapshot.docs) {
+    if (excludeMemberId && doc.id === excludeMemberId) continue;
+    const data = doc.data();
+    if (data.userId === ownerId) continue;
+    if (
+      (data.status === "active" || data.status === "pending") &&
+      data.roles?.includes("support_contact")
+    ) {
+      count++;
+    }
+  }
+
+  // Count pending invites with support_contact role
+  const invitesSnapshot = await db
+    .collection("invites")
+    .where("organizationId", "==", organizationId)
+    .where("status", "==", "pending")
+    .get();
+
+  for (const doc of invitesSnapshot.docs) {
+    const data = doc.data();
+    if (data.roles?.includes("support_contact")) {
+      count++;
+    }
+  }
+
+  return count;
+}
+
+/**
+ * Validate that assigning support_contact role doesn't exceed the tier limit.
+ * Returns null if OK, or an error message string if the limit would be exceeded.
+ */
+async function validateSupportContactLimit(
+  organizationId: string,
+  ownerId: string,
+  subscriptionTier: string,
+  excludeMemberId?: string,
+): Promise<string | null> {
+  const tierDef = await getTierDefaults(subscriptionTier);
+  if (!tierDef) return null; // Unknown tier, allow
+
+  const maxContacts = tierDef.limits.supportContacts;
+  if (maxContacts === -1) return null; // Unlimited
+
+  const currentCount = await countSupportContacts(
+    organizationId,
+    ownerId,
+    excludeMemberId,
+  );
+
+  if (currentCount >= maxContacts) {
+    return `Support contact limit reached (${maxContacts}). Remove an existing support contact or upgrade your plan.`;
+  }
+
+  return null;
+}
 
 export async function organizationsRoutes(fastify: FastifyInstance) {
   // List all organizations for authenticated user
@@ -760,6 +836,22 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
           });
         }
 
+        // Enforce support_contact delegate limit when inviting with that role
+        if (inviteData.roles.includes("support_contact")) {
+          const limitError = await validateSupportContactLimit(
+            organizationId,
+            org.ownerId,
+            org.subscriptionTier,
+          );
+          if (limitError) {
+            return reply.status(403).send({
+              error: "Forbidden",
+              message: limitError,
+              code: "SUPPORT_CONTACT_LIMIT",
+            });
+          }
+        }
+
         // Check if email is already a member (by email, regardless of userId)
         const existingMemberSnapshot = await db
           .collection("organizationMembers")
@@ -1016,6 +1108,29 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
             error: "Not Found",
             message: "Member not found",
           });
+        }
+
+        // Enforce support_contact delegate limit when adding the role
+        const existingRoles: string[] = memberDoc.data()?.roles ?? [];
+        const newRoles: string[] = validation.data.roles;
+        const addingSupportContact =
+          newRoles.includes("support_contact") &&
+          !existingRoles.includes("support_contact");
+
+        if (addingSupportContact) {
+          const limitError = await validateSupportContactLimit(
+            id,
+            org.ownerId,
+            org.subscriptionTier,
+            memberId,
+          );
+          if (limitError) {
+            return reply.status(403).send({
+              error: "Forbidden",
+              message: limitError,
+              code: "SUPPORT_CONTACT_LIMIT",
+            });
+          }
         }
 
         await db

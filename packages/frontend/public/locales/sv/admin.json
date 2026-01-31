@@ -1,0 +1,61 @@
+{
+  "tiers": {
+    "title": "Nivåhantering",
+    "description": "Definiera vad varje prenumerationsnivå inkluderar, konfigurera Stripe-fakturering och hantera synlighet.",
+    "sections": {
+      "general": "Allmänt",
+      "status": "Status",
+      "stripeBilling": "Stripe-fakturering",
+      "numericLimits": "Numeriska gränser",
+      "moduleFlags": "Modulflaggor",
+      "addons": "Tillägg"
+    },
+    "labels": {
+      "tier": "Nivå",
+      "name": "Namn",
+      "description": "Beskrivning",
+      "price": "Pris (SEK/mån)",
+      "enabled": "Aktiverad",
+      "billable": "Fakturerbar",
+      "sortOrder": "Sorteringsordning",
+      "visibility": "Synlighet",
+      "visibilityPublic": "Publik",
+      "visibilityHidden": "Dold",
+      "tierKey": "Nivånyckel",
+      "stripeProductId": "Stripe Product-ID",
+      "monthlyPriceId": "Månads-pris-ID",
+      "annualPriceId": "Års-pris-ID"
+    },
+    "badges": {
+      "disabled": "Inaktiverad",
+      "hidden": "Dold",
+      "billable": "Fakturerbar",
+      "configured": "Konfigurerad",
+      "notConfigured": "Ej konfigurerad"
+    },
+    "actions": {
+      "save": "Spara ändringar",
+      "reset": "Återställ till standard",
+      "create": "Skapa nivå",
+      "delete": "Ta bort nivå"
+    },
+    "messages": {
+      "saveSuccess": "Nivå sparad",
+      "saveError": "Kunde inte spara nivå",
+      "resetSuccess": "Nivå återställd till standard",
+      "resetError": "Kunde inte återställa nivå",
+      "createSuccess": "Nivå skapad",
+      "createError": "Kunde inte skapa nivå",
+      "deleteSuccess": "Nivå borttagen",
+      "deleteError": "Kunde inte ta bort nivå"
+    },
+    "dialogs": {
+      "createTitle": "Skapa ny nivå",
+      "createDescription": "Definiera en ny prenumerationsnivå med gränser, moduler och tillägg.",
+      "deleteTitle": "Ta bort nivå",
+      "deleteConfirm": "Är du säker på att du vill ta bort nivån \"{{name}}\"?",
+      "deleteHasOrgs": "{{count}} organisation(er) använder denna nivå. Nivån kommer att inaktiveras och döljas istället för att tas bort.",
+      "deleteCannotDefault": "Standardnivån kan inte tas bort."
+    }
+  }
+}

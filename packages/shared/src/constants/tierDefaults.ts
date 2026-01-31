@@ -1,6 +1,5 @@
 import type {
   TierDefinition,
-  SubscriptionTier,
   SubscriptionLimits,
   ModuleFlags,
   SubscriptionAddons,
@@ -10,8 +9,9 @@ import type { BillingInterval } from "../types/subscription.js";
 /**
  * Default limits for each tier
  * -1 = unlimited
+ * @deprecated Use `DEFAULT_TIER_DEFINITIONS[tier].limits` or fetch from Firestore via `getTierDefaults()`.
  */
-export const TIER_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
+export const TIER_LIMITS: Record<string, SubscriptionLimits> = {
   free: {
     members: 3,
     stables: 1,
@@ -21,6 +21,7 @@ export const TIER_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
     feedingPlans: 5,
     facilities: 1,
     contacts: 5,
+    supportContacts: 0,
   },
   standard: {
     members: 15,
@@ -31,6 +32,7 @@ export const TIER_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
     feedingPlans: 30,
     facilities: 5,
     contacts: 30,
+    supportContacts: 0,
   },
   pro: {
     members: 50,
@@ -41,6 +43,7 @@ export const TIER_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
     feedingPlans: 100,
     facilities: 20,
     contacts: 100,
+    supportContacts: 2,
   },
   enterprise: {
     members: -1,
@@ -51,13 +54,15 @@ export const TIER_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
     feedingPlans: -1,
     facilities: -1,
     contacts: -1,
+    supportContacts: -1,
   },
 };
 
 /**
  * Default module flags for each tier
+ * @deprecated Use `DEFAULT_TIER_DEFINITIONS[tier].modules` or fetch from Firestore via `getTierDefaults()`.
  */
-export const TIER_MODULES: Record<SubscriptionTier, ModuleFlags> = {
+export const TIER_MODULES: Record<string, ModuleFlags> = {
   free: {
     analytics: false,
     selectionProcess: false,
@@ -71,6 +76,7 @@ export const TIER_MODULES: Record<SubscriptionTier, ModuleFlags> = {
     integrations: false,
     manure: false,
     aiAssistant: false,
+    supportAccess: false,
   },
   standard: {
     analytics: true,
@@ -85,6 +91,7 @@ export const TIER_MODULES: Record<SubscriptionTier, ModuleFlags> = {
     integrations: false,
     manure: false,
     aiAssistant: false,
+    supportAccess: false,
   },
   pro: {
     analytics: true,
@@ -99,6 +106,7 @@ export const TIER_MODULES: Record<SubscriptionTier, ModuleFlags> = {
     integrations: true,
     manure: true,
     aiAssistant: true,
+    supportAccess: true,
   },
   enterprise: {
     analytics: true,
@@ -113,14 +121,16 @@ export const TIER_MODULES: Record<SubscriptionTier, ModuleFlags> = {
     integrations: true,
     manure: true,
     aiAssistant: true,
+    supportAccess: true,
   },
 };
 
 /**
  * Default add-on flags for each tier
  * Enterprise gets everything included
+ * @deprecated Use `DEFAULT_TIER_DEFINITIONS[tier].addons` or fetch from Firestore via `getTierDefaults()`.
  */
-export const TIER_ADDONS: Record<SubscriptionTier, SubscriptionAddons> = {
+export const TIER_ADDONS: Record<string, SubscriptionAddons> = {
   free: {
     portal: false,
     invoicing: false,
@@ -140,12 +150,10 @@ export const TIER_ADDONS: Record<SubscriptionTier, SubscriptionAddons> = {
 };
 
 /**
- * Default tier definitions with pricing
+ * Default tier definitions with pricing.
+ * Keyed by `string` to support dynamic tiers; built-in keys are "free", "standard", "pro", "enterprise".
  */
-export const DEFAULT_TIER_DEFINITIONS: Record<
-  SubscriptionTier,
-  TierDefinition
-> = {
+export const DEFAULT_TIER_DEFINITIONS: Record<string, TierDefinition> = {
   free: {
     tier: "free",
     name: "Free",
@@ -156,8 +164,16 @@ export const DEFAULT_TIER_DEFINITIONS: Record<
     addons: TIER_ADDONS.free,
     enabled: true,
     isBillable: false,
+    isDefault: true,
     sortOrder: 0,
     visibility: "public",
+    features: [
+      "subscription.features.members_3",
+      "subscription.features.stables_1",
+      "subscription.features.horses_5",
+      "subscription.features.basicScheduling",
+    ],
+    popular: false,
   },
   standard: {
     tier: "standard",
@@ -171,6 +187,16 @@ export const DEFAULT_TIER_DEFINITIONS: Record<
     isBillable: true,
     sortOrder: 1,
     visibility: "public",
+    features: [
+      "subscription.features.members_15",
+      "subscription.features.stables_3",
+      "subscription.features.horses_25",
+      "subscription.features.analytics",
+      "subscription.features.selectionProcess",
+      "subscription.features.locationHistory",
+      "subscription.features.photoEvidence",
+    ],
+    popular: true,
   },
   pro: {
     tier: "pro",
@@ -184,6 +210,19 @@ export const DEFAULT_TIER_DEFINITIONS: Record<
     isBillable: true,
     sortOrder: 2,
     visibility: "public",
+    features: [
+      "subscription.features.members_50",
+      "subscription.features.stables_10",
+      "subscription.features.horses_75",
+      "subscription.features.allStandardFeatures",
+      "subscription.features.leaveManagement",
+      "subscription.features.inventory",
+      "subscription.features.lessons",
+      "subscription.features.staffMatrix",
+      "subscription.features.integrations",
+      "subscription.features.aiAssistant",
+    ],
+    popular: false,
   },
   enterprise: {
     tier: "enterprise",
@@ -197,17 +236,24 @@ export const DEFAULT_TIER_DEFINITIONS: Record<
     isBillable: false,
     sortOrder: 3,
     visibility: "public",
+    features: [
+      "subscription.features.unlimitedEverything",
+      "subscription.features.allProFeatures",
+      "subscription.features.portal",
+      "subscription.features.invoicing",
+      "subscription.features.dedicatedSupport",
+      "subscription.features.customIntegrations",
+    ],
+    popular: false,
   },
 };
 
 /**
  * Tier pricing in ore (smallest currency unit for SEK).
  * 29900 = 299 SEK, 79900 = 799 SEK.
+ * @deprecated Pricing should be fetched from Stripe product mappings in Firestore.
  */
-export const TIER_PRICING: Record<
-  "standard" | "pro",
-  Record<BillingInterval, number>
-> = {
+export const TIER_PRICING: Record<string, Record<BillingInterval, number>> = {
   standard: {
     month: 29900, // 299 SEK/month
     year: 298800, // 2988 SEK/year (~249 SEK/month, ~17% discount)
@@ -225,9 +271,10 @@ export const ANNUAL_DISCOUNT_PERCENT = 17;
 export const TRIAL_DAYS = 14;
 
 /**
- * All subscription tiers in order
+ * Built-in subscription tiers in display order.
+ * Custom tiers created via admin are not included here — fetch from API/Firestore.
  */
-export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
+export const SUBSCRIPTION_TIERS: string[] = [
   "free",
   "standard",
   "pro",
@@ -250,6 +297,7 @@ export const MODULE_LABELS: Record<keyof ModuleFlags, string> = {
   integrations: "External Integrations",
   manure: "Manure Management",
   aiAssistant: "AI Assistant",
+  supportAccess: "Support Ticket Access",
 };
 
 /**
@@ -264,6 +312,7 @@ export const LIMIT_LABELS: Record<keyof SubscriptionLimits, string> = {
   feedingPlans: "Feeding Plans",
   facilities: "Facilities",
   contacts: "Contacts",
+  supportContacts: "Support Contacts",
 };
 
 /**
@@ -273,3 +322,14 @@ export const ADDON_LABELS: Record<keyof SubscriptionAddons, string> = {
   portal: "Client Portal",
   invoicing: "Invoicing & Payments",
 };
+
+/**
+ * Returns the built-in default tier definition (the one with isDefault: true).
+ * Used as the fallback when no tier data is available.
+ */
+export function getDefaultTierDefinition(): TierDefinition {
+  const def = Object.values(DEFAULT_TIER_DEFINITIONS).find((t) => t.isDefault);
+  return (
+    def ?? (DEFAULT_TIER_DEFINITIONS[SUBSCRIPTION_TIERS[0]] as TierDefinition)
+  );
+}

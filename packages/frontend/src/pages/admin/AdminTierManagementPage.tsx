@@ -136,9 +136,7 @@ function TierManagementContent({
   const { t } = useTranslation(["admin", "common"]);
 
   const tierKeys = initialTiers.map((t) => t.tier);
-  const [selectedTier, setSelectedTier] = useState<string>(
-    tierKeys[0] ?? "free",
-  );
+  const [selectedTier, setSelectedTier] = useState<string>(tierKeys[0] ?? "");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -574,7 +572,8 @@ function TierManagementContent({
           {/* Actions */}
           <div className="flex justify-between">
             <div>
-              {selectedTier !== "free" && (
+              {!initialTiers.find((td) => td.tier === selectedTier)
+                ?.isDefault && (
                 <Button
                   variant="destructive"
                   size="sm"
@@ -628,8 +627,8 @@ function TierManagementContent({
               {t("admin:tiers.dialogs.deleteTitle")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {selectedTier === "free"
-                ? t("admin:tiers.dialogs.deleteCannotFree")
+              {initialTiers.find((td) => td.tier === selectedTier)?.isDefault
+                ? t("admin:tiers.dialogs.deleteCannotDefault")
                 : t("admin:tiers.dialogs.deleteConfirm", {
                     name: form?.name ?? selectedTier,
                   })}

@@ -36,6 +36,12 @@ variable "enable_log_metrics" {
 # Cloud Run Configuration
 # =============================================================================
 
+variable "enable_cloud_run_monitoring" {
+  description = "Whether to create Cloud Run monitoring resources (set to true when Cloud Run service exists)"
+  type        = bool
+  default     = true
+}
+
 variable "cloud_run_service_name" {
   description = "Name of the Cloud Run service to monitor"
   type        = string

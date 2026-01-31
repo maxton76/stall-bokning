@@ -28,7 +28,8 @@
     "submitFailed": "Kunde inte skicka supportärende. Försök igen.",
     "loadFailed": "Kunde inte ladda supportstatus",
     "replyFailed": "Kunde inte skicka svar. Försök igen.",
-    "conversationFailed": "Kunde inte ladda konversationen."
+    "conversationFailed": "Kunde inte ladda konversationen.",
+    "supportContactLimit": "Gränsen för supportkontakter har nåtts. Ta bort en befintlig supportkontakt eller uppgradera din plan."
   },
   "upgrade": {
     "title": "Support för betalande kunder",

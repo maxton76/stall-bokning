@@ -22,17 +22,22 @@ import type {
   SubscriptionTier,
   StripeProductMapping,
 } from "@equiduty/shared";
-import { DEFAULT_TIER_DEFINITIONS, SUBSCRIPTION_TIERS } from "@equiduty/shared";
+import {
+  DEFAULT_TIER_DEFINITIONS,
+  SUBSCRIPTION_TIERS,
+  getDefaultTierDefinition,
+} from "@equiduty/shared";
 import { stripe } from "../utils/stripe.js";
 import {
   getPriceIdForTier,
   invalidateTierCache,
 } from "../utils/stripeTierMapping.js";
+import {
+  getTierDefaults,
+  invalidateTierDefaultsCache,
+} from "../utils/tierDefaults.js";
 
 const adminPreHandler = [authenticate, requireSystemAdmin];
-
-// Valid tier values derived from shared constants
-const VALID_TIERS: string[] = [...SUBSCRIPTION_TIERS];
 
 // Valid system roles for user updates
 const VALID_SYSTEM_ROLES = ["system_admin", "stable_owner", "member"];
@@ -53,7 +58,7 @@ const patchSubscriptionSchema = {
     type: "object" as const,
     additionalProperties: false,
     properties: {
-      tier: { type: "string" as const, enum: VALID_TIERS },
+      tier: { type: "string" as const, minLength: 1, maxLength: 32 },
       limits: {
         type: "object" as const,
         additionalProperties: false,
@@ -66,6 +71,7 @@ const patchSubscriptionSchema = {
           feedingPlans: { type: "number" as const },
           facilities: { type: "number" as const },
           contacts: { type: "number" as const },
+          supportContacts: { type: "number" as const },
         },
       },
       modules: {
@@ -84,6 +90,7 @@ const patchSubscriptionSchema = {
           integrations: { type: "boolean" as const },
           manure: { type: "boolean" as const },
           aiAssistant: { type: "boolean" as const },
+          supportAccess: { type: "boolean" as const },
         },
       },
       addons: {
@@ -135,6 +142,7 @@ const putTierSchema = {
           feedingPlans: { type: "number" as const },
           facilities: { type: "number" as const },
           contacts: { type: "number" as const },
+          supportContacts: { type: "number" as const },
         },
       },
       modules: {
@@ -153,6 +161,7 @@ const putTierSchema = {
           integrations: { type: "boolean" as const },
           manure: { type: "boolean" as const },
           aiAssistant: { type: "boolean" as const },
+          supportAccess: { type: "boolean" as const },
         },
       },
       addons: {
@@ -246,7 +255,10 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
           return {
             id: doc.id,
             name: data.name || "",
-            tier: data.subscriptionTier || data.subscription?.tier || "free",
+            tier:
+              data.subscriptionTier ||
+              data.subscription?.tier ||
+              getDefaultTierDefinition().tier,
             memberCount: data.memberCount || data.stats?.totalMemberCount || 0,
             horseCount: data.horseCount || 0,
             stableCount: data.stableCount || data.stats?.stableCount || 0,
@@ -315,17 +327,19 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
         const data = orgDoc.data()!;
 
         // Build default subscription if none exists
+        const defaultDef = getDefaultTierDefinition();
         const defaultSub: OrganizationSubscription = {
-          tier: "free" as SubscriptionTier,
-          limits: DEFAULT_TIER_DEFINITIONS.free.limits,
-          modules: DEFAULT_TIER_DEFINITIONS.free.modules,
-          addons: DEFAULT_TIER_DEFINITIONS.free.addons,
+          tier: defaultDef.tier,
+          limits: defaultDef.limits,
+          modules: defaultDef.modules,
+          addons: defaultDef.addons,
         };
 
         const detail: AdminOrganizationDetail = {
           id: orgDoc.id,
           name: data.name || "",
-          tier: data.subscriptionTier || data.subscription?.tier || "free",
+          tier:
+            data.subscriptionTier || data.subscription?.tier || defaultDef.tier,
           memberCount: data.memberCount || data.stats?.totalMemberCount || 0,
           horseCount: data.horseCount || 0,
           stableCount: data.stableCount || data.stats?.stableCount || 0,
@@ -413,17 +427,18 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
             currentData.stripeSubscription.billingInterval || "month";
 
           try {
-            if (subscription.tier === "free") {
+            const newTierDef = await getTierDefaults(subscription.tier);
+            if (newTierDef && !newTierDef.isBillable) {
               await stripe.subscriptions.update(stripeSubId, {
                 cancel_at_period_end: true,
               });
               request.log.info(
                 { orgId: id, tier: subscription.tier },
-                "Admin set tier to free — Stripe subscription set to cancel at period end",
+                "Admin set tier to non-billable — Stripe subscription set to cancel at period end",
               );
             } else {
               const newPriceId = await getPriceIdForTier(
-                subscription.tier as "standard" | "pro",
+                subscription.tier,
                 billingInterval,
               );
 
@@ -723,16 +738,8 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
           tier: doc.id,
         })) as TierDefinition[];
 
-        // Sort by tier order
-        const tierOrder: Record<string, number> = {
-          free: 0,
-          standard: 1,
-          pro: 2,
-          enterprise: 3,
-        };
-        tiers.sort(
-          (a, b) => (tierOrder[a.tier] || 0) - (tierOrder[b.tier] || 0),
-        );
+        // Sort by sortOrder field
+        tiers.sort((a, b) => (a.sortOrder ?? 99) - (b.sortOrder ?? 99));
 
         return reply.send(tiers);
       } catch (error) {
@@ -754,10 +761,12 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
     async (request: FastifyRequest, reply: FastifyReply) => {
       const { tier } = request.params as { tier: string };
 
-      if (!VALID_TIERS.includes(tier)) {
+      // Validate tier key format (slug: lowercase alphanumeric + hyphens, max 32 chars)
+      if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(tier) || tier.length > 32) {
         return reply.status(400).send({
           error: "Bad Request",
-          message: `Invalid tier: ${tier}. Must be one of: ${VALID_TIERS.join(", ")}`,
+          message:
+            "Tier key must be lowercase alphanumeric with hyphens, max 32 characters",
         });
       }
 
@@ -777,6 +786,8 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
           },
           { merge: true },
         );
+
+        invalidateTierDefaultsCache(tier);
 
         return reply.send({ success: true });
       } catch (error) {
@@ -798,7 +809,7 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
     async (request: FastifyRequest, reply: FastifyReply) => {
       const { tier } = request.params as { tier: string };
 
-      if (!VALID_TIERS.includes(tier)) {
+      if (!SUBSCRIPTION_TIERS.includes(tier)) {
         return reply.status(400).send({
           error: "Bad Request",
           message: `Invalid tier: ${tier}`,
@@ -817,12 +828,181 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
           updatedBy: user?.uid || "unknown",
         });
 
+        invalidateTierDefaultsCache(tier);
+
         return reply.send({ success: true, definition: defaults });
       } catch (error) {
         request.log.error({ error }, "Failed to reset tier definition");
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to reset tier definition",
+        });
+      }
+    },
+  );
+
+  /**
+   * POST /tiers - Create a new tier definition
+   */
+  const createTierSchema = {
+    body: {
+      type: "object" as const,
+      required: [
+        "tier",
+        "name",
+        "description",
+        "price",
+        "limits",
+        "modules",
+        "addons",
+      ],
+      additionalProperties: false,
+      properties: {
+        tier: { type: "string" as const, minLength: 1, maxLength: 32 },
+        name: { type: "string" as const, minLength: 1, maxLength: 100 },
+        description: { type: "string" as const, maxLength: 500 },
+        price: { type: "number" as const, minimum: 0 },
+        limits: putTierSchema.body.properties.limits,
+        modules: putTierSchema.body.properties.modules,
+        addons: putTierSchema.body.properties.addons,
+        enabled: { type: "boolean" as const },
+        isBillable: { type: "boolean" as const },
+        sortOrder: { type: "number" as const },
+        visibility: { type: "string" as const, enum: ["public", "hidden"] },
+        features: {
+          type: "array" as const,
+          items: { type: "string" as const },
+        },
+        popular: { type: "boolean" as const },
+      },
+    },
+  };
+
+  fastify.post(
+    "/tiers",
+    { preHandler: adminPreHandler, schema: createTierSchema },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const body = request.body as TierDefinition;
+      const tierKey = body.tier.trim().toLowerCase();
+
+      // Validate slug format
+      if (
+        !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(tierKey) ||
+        tierKey.length > 32
+      ) {
+        return reply.status(400).send({
+          error: "Bad Request",
+          message:
+            "Tier key must be lowercase alphanumeric with hyphens, max 32 characters",
+        });
+      }
+
+      try {
+        // Check if tier already exists
+        const existing = await db
+          .collection("tierDefinitions")
+          .doc(tierKey)
+          .get();
+        if (existing.exists) {
+          return reply.status(409).send({
+            error: "Conflict",
+            message: `Tier "${tierKey}" already exists`,
+          });
+        }
+
+        const user = (request as AuthenticatedRequest).user;
+
+        await db
+          .collection("tierDefinitions")
+          .doc(tierKey)
+          .set({
+            ...body,
+            tier: tierKey,
+            updatedAt: new Date(),
+            updatedBy: user?.uid || "unknown",
+          });
+
+        invalidateTierDefaultsCache();
+
+        return reply.status(201).send({ success: true, tier: tierKey });
+      } catch (error) {
+        request.log.error({ error }, "Failed to create tier");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to create tier",
+        });
+      }
+    },
+  );
+
+  /**
+   * DELETE /tiers/:tier - Delete or soft-delete a tier
+   */
+  fastify.delete(
+    "/tiers/:tier",
+    { preHandler: adminPreHandler },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const { tier } = request.params as { tier: string };
+
+      // Check if this is the default tier (cannot be deleted)
+      const tierDef = await getTierDefaults(tier);
+      if (tierDef?.isDefault) {
+        return reply.status(400).send({
+          error: "Bad Request",
+          message: "The default tier cannot be deleted",
+        });
+      }
+
+      try {
+        const tierRef = db.collection("tierDefinitions").doc(tier);
+        const tierDoc = await tierRef.get();
+
+        if (!tierDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: `Tier "${tier}" not found`,
+          });
+        }
+
+        // Check if any organizations use this tier
+        const orgCount = await db
+          .collection("organizations")
+          .where("subscriptionTier", "==", tier)
+          .count()
+          .get();
+
+        const count = orgCount.data().count;
+
+        if (count > 0) {
+          // Soft-delete: disable and hide
+          const user = (request as AuthenticatedRequest).user;
+          await tierRef.update({
+            enabled: false,
+            visibility: "hidden",
+            updatedAt: new Date(),
+            updatedBy: user?.uid || "unknown",
+          });
+
+          invalidateTierDefaultsCache(tier);
+
+          return reply.send({
+            success: true,
+            softDeleted: true,
+            organizationCount: count,
+            message: `Tier disabled and hidden (${count} organization(s) still reference it)`,
+          });
+        }
+
+        // Hard delete
+        await tierRef.delete();
+        invalidateTierDefaultsCache(tier);
+
+        return reply.send({ success: true, softDeleted: false });
+      } catch (error) {
+        request.log.error({ error }, "Failed to delete tier");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to delete tier",
         });
       }
     },
@@ -886,12 +1066,21 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
     { preHandler: adminPreHandler, schema: putStripeProductSchema },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const { tier } = request.params as { tier: string };
-      const BILLABLE_TIERS = ["standard", "pro"];
-
-      if (!BILLABLE_TIERS.includes(tier)) {
+      // Validate tier exists and is billable
+      const tierDoc = await db.collection("tierDefinitions").doc(tier).get();
+      const tierDef = tierDoc.exists
+        ? tierDoc.data()
+        : DEFAULT_TIER_DEFINITIONS[tier];
+      if (!tierDef) {
+        return reply.status(404).send({
+          error: "Not Found",
+          message: `Tier "${tier}" not found`,
+        });
+      }
+      if (!tierDef.isBillable) {
         return reply.status(400).send({
           error: "Bad Request",
-          message: `Invalid tier: ${tier}. Only ${BILLABLE_TIERS.join(", ")} can have Stripe products.`,
+          message: `Tier "${tier}" is not billable. Enable billing in tier settings first.`,
         });
       }
 

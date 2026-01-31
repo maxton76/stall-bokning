@@ -27,6 +27,7 @@ import {
   updateTicketStatus,
   type CreateTicketParams,
 } from "../services/zendeskService.js";
+import { getTierDefaults } from "../utils/tierDefaults.js";
 import type {
   CreateSupportTicketInput,
   CreateSupportTicketResponse,
@@ -41,12 +42,23 @@ import type {
 } from "@equiduty/shared";
 
 /**
- * Paid subscription tiers that have access to support
+ * Check if a tier has the supportAccess module enabled.
+ * Resolves dynamically via Firestore tier definitions with built-in fallback.
  */
-const PAID_TIERS = ["professional", "enterprise"];
+async function tierHasSupportAccess(
+  subscriptionTier: string,
+): Promise<boolean> {
+  const tierDef = await getTierDefaults(subscriptionTier);
+  return tierDef?.modules?.supportAccess === true;
+}
 
 /**
- * Check if user has access to support (has a paid organization)
+ * Check if user has access to support.
+ *
+ * Access is granted if the user:
+ *   1. Owns an org whose tier has supportAccess enabled, OR
+ *   2. Has administrator role in an org whose tier has supportAccess, OR
+ *   3. Has support_contact role in an org whose tier has supportAccess
  */
 async function checkSupportAccess(userId: string): Promise<{
   hasAccess: boolean;
@@ -58,43 +70,7 @@ async function checkSupportAccess(userId: string): Promise<{
   userRole?: string;
   reason?: "no_paid_plan" | "no_organization";
 }> {
-  // Get user's organization memberships
-  const membershipsSnapshot = await db
-    .collection("organizationMembers")
-    .where("userId", "==", userId)
-    .where("status", "==", "active")
-    .get();
-
-  if (membershipsSnapshot.empty) {
-    return { hasAccess: false, reason: "no_organization" };
-  }
-
-  // Check each organization for a paid plan
-  for (const memberDoc of membershipsSnapshot.docs) {
-    const member = memberDoc.data();
-    const orgId = member.organizationId;
-
-    const orgDoc = await db.collection("organizations").doc(orgId).get();
-    if (!orgDoc.exists) continue;
-
-    const org = orgDoc.data();
-    if (!org) continue;
-
-    // Check if this organization has a paid subscription
-    if (PAID_TIERS.includes(org.subscriptionTier)) {
-      return {
-        hasAccess: true,
-        organization: {
-          id: orgId,
-          name: org.name,
-          subscriptionTier: org.subscriptionTier,
-        },
-        userRole: member.primaryRole || member.roles?.[0] || "member",
-      };
-    }
-  }
-
-  // Also check if user owns any organization with a paid plan
+  // Check owned organizations first (owner always has access if tier qualifies)
   const ownedOrgsSnapshot = await db
     .collection("organizations")
     .where("ownerId", "==", userId)
@@ -102,7 +78,7 @@ async function checkSupportAccess(userId: string): Promise<{
 
   for (const orgDoc of ownedOrgsSnapshot.docs) {
     const org = orgDoc.data();
-    if (PAID_TIERS.includes(org.subscriptionTier)) {
+    if (await tierHasSupportAccess(org.subscriptionTier)) {
       return {
         hasAccess: true,
         organization: {
@@ -111,6 +87,48 @@ async function checkSupportAccess(userId: string): Promise<{
           subscriptionTier: org.subscriptionTier,
         },
         userRole: "owner",
+      };
+    }
+  }
+
+  // Check memberships: administrator or support_contact role required
+  const membershipsSnapshot = await db
+    .collection("organizationMembers")
+    .where("userId", "==", userId)
+    .where("status", "==", "active")
+    .get();
+
+  if (membershipsSnapshot.empty && ownedOrgsSnapshot.empty) {
+    return { hasAccess: false, reason: "no_organization" };
+  }
+
+  for (const memberDoc of membershipsSnapshot.docs) {
+    const member = memberDoc.data();
+    const roles: string[] = member.roles ?? [];
+
+    // Only administrators and support_contact delegates get access
+    const hasQualifyingRole =
+      roles.includes("administrator") || roles.includes("support_contact");
+    if (!hasQualifyingRole) continue;
+
+    const orgDoc = await db
+      .collection("organizations")
+      .doc(member.organizationId)
+      .get();
+    if (!orgDoc.exists) continue;
+
+    const org = orgDoc.data();
+    if (!org) continue;
+
+    if (await tierHasSupportAccess(org.subscriptionTier)) {
+      return {
+        hasAccess: true,
+        organization: {
+          id: member.organizationId,
+          name: org.name,
+          subscriptionTier: org.subscriptionTier,
+        },
+        userRole: member.primaryRole || roles[0] || "member",
       };
     }
   }

@@ -126,7 +126,10 @@ export default function SubscriptionSuccessPage() {
               <p>
                 {t("organizations:subscription.success.status")}:{" "}
                 <span className="font-semibold">
-                  {data.subscription.status}
+                  {t(
+                    `organizations:subscription.status.${data.subscription.status}`,
+                    { defaultValue: data.subscription.status },
+                  )}
                 </span>
               </p>
             </div>
