@@ -82,6 +82,250 @@ tasks:
       - echo "Switched to {{.ENV}} environment ({{.PROJECT_ID}})"
 
   # ===========================================================================
+  # Version & Release Tasks
+  # ===========================================================================
+
+  version:
+    desc: Show current app version, latest tag, and shared package version
+    silent: true
+    vars:
+      APP_VERSION:
+        sh: cat VERSION 2>/dev/null || echo "unknown"
+      LATEST_TAG:
+        sh: git tag --sort=-v:refname | head -1 2>/dev/null || echo "none"
+      SHARED_VERSION:
+        sh: node -p "require('./packages/shared/package.json').version" 2>/dev/null || echo "unknown"
+    cmds:
+      - echo "App{{":"}} {{.APP_VERSION}} | Tag{{":"}} {{.LATEST_TAG}} | Shared{{":"}} {{.SHARED_VERSION}}"
+
+  version:bump:
+    desc: Bump app version (BUMP=patch|minor|major)
+    vars:
+      BUMP: '{{.BUMP | default "patch"}}'
+      CURRENT:
+        sh: cat VERSION
+    cmds:
+      - |
+        IFS='.' read -r MAJOR MINOR PATCH <<< "{{.CURRENT}}"
+        case "{{.BUMP}}" in
+          major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+          minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+          patch) PATCH=$((PATCH + 1)) ;;
+          *) echo "Invalid BUMP={{.BUMP}}. Use patch|minor|major"; exit 1 ;;
+        esac
+        NEW="${MAJOR}.${MINOR}.${PATCH}"
+        echo "${NEW}" > VERSION
+        echo "Version bumped: {{.CURRENT}} → ${NEW}"
+
+  release:
+    desc: "Create a release: bump VERSION, merge develop→main, tag, push (BUMP=patch|minor|major)"
+    silent: true
+    vars:
+      BUMP: '{{.BUMP | default "patch"}}'
+    cmds:
+      - |
+        set -euo pipefail
+
+        # Colors
+        RED='\033[0;31m'
+        GREEN='\033[0;32m'
+        YELLOW='\033[1;33m'
+        CYAN='\033[0;36m'
+        BOLD='\033[1m'
+        DIM='\033[2m'
+        NC='\033[0m'
+
+        fail() {
+          echo ""
+          echo -e "${RED}${BOLD}RELEASE BLOCKED${NC}"
+          echo -e "${RED}$1${NC}"
+          if [ -n "${2:-}" ]; then
+            echo -e "${YELLOW}Fix:${NC} $2"
+          fi
+          echo ""
+          exit 1
+        }
+
+        echo -e "${BOLD}Pre-flight checks${NC}"
+        echo -e "${DIM}─────────────────${NC}"
+
+        # 1. Must be on develop
+        BRANCH=$(git rev-parse --abbrev-ref HEAD)
+        if [ "$BRANCH" != "develop" ]; then
+          fail "Must be on 'develop' branch (currently on '${BRANCH}')." \
+               "git checkout develop"
+        fi
+        echo -e "  ${GREEN}✓${NC} On branch develop"
+
+        # 2. Clean working tree (tracked files)
+        if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
+          echo -e "  ${RED}✗${NC} Working tree dirty"
+          echo ""
+          echo -e "${DIM}Uncommitted changes:${NC}"
+          git status --short | grep -v '^??' | head -15
+          echo ""
+          fail "Working tree has uncommitted changes." \
+               "git stash  OR  git commit your changes first"
+        fi
+
+        # 2b. Check for untracked files that matter (ignore common noise)
+        UNTRACKED=$(git ls-files --others --exclude-standard | grep -v -E '\.(xcuserstate|DS_Store)$' | head -10)
+        if [ -n "$UNTRACKED" ]; then
+          echo -e "  ${YELLOW}⚠${NC} Untracked files found:"
+          echo "$UNTRACKED" | sed 's/^/      /'
+          echo ""
+          echo -e "  ${DIM}These won't be included in the release.${NC}"
+          echo -e "  ${DIM}If they should be, commit them first. Otherwise, continue.${NC}"
+        fi
+        echo -e "  ${GREEN}✓${NC} Working tree clean"
+
+        # 3. Fetch latest from origin
+        echo -e "  ${DIM}Fetching origin...${NC}"
+        git fetch origin --quiet 2>/dev/null || fail "Cannot reach origin." "Check your network connection."
+
+        # 4. develop must be up-to-date with origin/develop
+        LOCAL_DEV=$(git rev-parse develop)
+        REMOTE_DEV=$(git rev-parse origin/develop 2>/dev/null || echo "none")
+        if [ "$REMOTE_DEV" = "none" ]; then
+          fail "Cannot find origin/develop." \
+               "git fetch origin"
+        fi
+        AHEAD_DEV=$(git rev-list origin/develop..develop --count)
+        BEHIND_DEV=$(git rev-list develop..origin/develop --count)
+        if [ "$BEHIND_DEV" != "0" ]; then
+          fail "develop is ${BEHIND_DEV} commit(s) behind origin/develop." \
+               "git pull origin develop"
+        fi
+        if [ "$AHEAD_DEV" != "0" ]; then
+          echo -e "  ${YELLOW}⚠${NC} develop is ${AHEAD_DEV} commit(s) ahead of origin (will be pushed)"
+        else
+          echo -e "  ${GREEN}✓${NC} develop is up-to-date with origin"
+        fi
+
+        # 5. main branch must exist locally
+        if ! git rev-parse --verify main >/dev/null 2>&1; then
+          fail "Local 'main' branch not found." \
+               "git checkout main && git pull origin main && git checkout develop"
+        fi
+
+        # 6. main must be up-to-date with origin/main
+        LOCAL_MAIN=$(git rev-parse main)
+        REMOTE_MAIN=$(git rev-parse origin/main 2>/dev/null || echo "none")
+        if [ "$REMOTE_MAIN" = "none" ]; then
+          fail "Cannot find origin/main." \
+               "git fetch origin"
+        fi
+        BEHIND_MAIN=$(git rev-list main..origin/main --count)
+        if [ "$BEHIND_MAIN" != "0" ]; then
+          fail "Local main is ${BEHIND_MAIN} commit(s) behind origin/main." \
+               "git checkout main && git pull origin main && git checkout develop"
+        fi
+        echo -e "  ${GREEN}✓${NC} main is up-to-date with origin"
+
+        # 7. main must be ancestor of develop (fast-forward possible)
+        if ! git merge-base --is-ancestor main develop; then
+          fail "main has diverged from develop (fast-forward not possible)." \
+               "git checkout develop && git merge main  OR  rebase"
+        fi
+        echo -e "  ${GREEN}✓${NC} Fast-forward merge possible"
+
+        # 8. Calculate new version
+        CURRENT=$(cat VERSION)
+        IFS='.' read -r MAJOR MINOR PATCH <<< "${CURRENT}"
+        case "{{.BUMP}}" in
+          major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+          minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+          patch) PATCH=$((PATCH + 1)) ;;
+          *) fail "Invalid BUMP={{.BUMP}}." "Use BUMP=patch|minor|major" ;;
+        esac
+        NEW="${MAJOR}.${MINOR}.${PATCH}"
+
+        # 9. Check tag doesn't already exist
+        if git rev-parse "v${NEW}" >/dev/null 2>&1; then
+          fail "Tag v${NEW} already exists." \
+               "Use a different BUMP level or delete the tag first."
+        fi
+        echo -e "  ${GREEN}✓${NC} Tag v${NEW} is available"
+
+        # 10. Show what will be released
+        COMMITS_AHEAD=$(git rev-list main..develop --count)
+        echo ""
+        echo -e "${BOLD}Release summary${NC}"
+        echo -e "${DIM}───────────────${NC}"
+        echo -e "  Version:  ${CYAN}v${CURRENT}${NC} → ${GREEN}${BOLD}v${NEW}${NC} ({{.BUMP}})"
+        echo -e "  Commits:  ${COMMITS_AHEAD} commit(s) since last release"
+        if [ "$COMMITS_AHEAD" -gt 0 ]; then
+          echo -e "  ${DIM}Changes:${NC}"
+          git log main..develop --oneline --no-decorate | head -15 | sed 's/^/    /'
+          if [ "$COMMITS_AHEAD" -gt 15 ]; then
+            echo -e "    ${DIM}... and $((COMMITS_AHEAD - 15)) more${NC}"
+          fi
+        fi
+        echo ""
+
+        # 11. Confirm
+        if [ -t 0 ]; then
+          echo -ne "${YELLOW}Proceed with release v${NEW}? [y/N]${NC} "
+          read -r CONFIRM
+          if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
+            echo "Release cancelled."
+            exit 1
+          fi
+          echo ""
+        fi
+
+        # === Execute release ===
+
+        echo -e "${BOLD}Releasing v${NEW}${NC}"
+        echo -e "${DIM}─────────────${NC}"
+
+        # Bump VERSION
+        echo "${NEW}" > VERSION
+        git add VERSION
+        git commit -m "release: v${NEW}" --quiet
+        echo -e "  ${GREEN}✓${NC} Committed VERSION bump on develop"
+
+        # Merge develop → main
+        git checkout main --quiet
+        git merge develop --ff-only --quiet
+        echo -e "  ${GREEN}✓${NC} Merged develop → main (fast-forward)"
+
+        # Tag
+        git tag -a "v${NEW}" -m "Release v${NEW}"
+        echo -e "  ${GREEN}✓${NC} Tagged v${NEW}"
+
+        # Push everything
+        git push origin main --quiet
+        git push origin "v${NEW}" --quiet
+        git checkout develop --quiet
+        git push origin develop --quiet
+        echo -e "  ${GREEN}✓${NC} Pushed main, tag, and develop"
+
+        echo ""
+        echo -e "${GREEN}${BOLD}Released v${NEW}${NC}"
+        echo ""
+        echo -e "  Deploy staging:  ${CYAN}task deploy:api ENV=staging TAG=v${NEW}${NC}"
+        echo -e "  Deploy prod:     ${CYAN}task deploy:api ENV=prod TAG=v${NEW}${NC}"
+        echo ""
+
+  release:tag-only:
+    desc: Create a tag from current VERSION without merging (for manual merge workflows)
+    cmds:
+      - |
+        set -euo pipefail
+        VERSION=$(cat VERSION)
+        TAG="v${VERSION}"
+
+        if git rev-parse "${TAG}" >/dev/null 2>&1; then
+          echo "Tag ${TAG} already exists."
+          exit 1
+        fi
+
+        git tag -a "${TAG}" -m "Release ${TAG}"
+        git push origin "${TAG}"
+        echo "Created and pushed tag ${TAG}"
+
+  # ===========================================================================
   # Deploy Safety Gates
   # ===========================================================================
 
@@ -118,10 +362,11 @@ tasks:
   deploy:frontend:
     desc: Build and deploy React app to Firebase Hosting (app target)
     dir: '{{.FRONTEND_DIR}}'
-    deps: [deploy:gate, env:switch, config:validate-frontend-env]
+    deps: [deploy:gate, config:validate-frontend-env]
     cmds:
       - echo "Building frontend for {{.ENV}} (mode={{.VITE_MODE}})..."
-      - npm run build -- --mode {{.VITE_MODE}}
+      - npx vite build --mode {{.VITE_MODE}} --outDir {{.ROOT_DIR}}/.build/frontend-{{.ENV}} --emptyOutDir
+      - rm -rf dist && cp -r {{.ROOT_DIR}}/.build/frontend-{{.ENV}} dist
       - echo "Deploying app to Firebase Hosting..."
       - firebase deploy --only hosting:app --project {{.PROJECT_ID}}
       - echo "Frontend app deployed to {{.ENV}}"
@@ -129,25 +374,26 @@ tasks:
   deploy:landing:
     desc: Build and deploy Astro landing site to Firebase Hosting (landing target)
     dir: '{{.LANDING_DIR}}'
-    deps: [deploy:gate, env:switch]
+    deps: [deploy:gate]
     cmds:
       - echo "Building landing site for {{.ENV}} (mode={{.VITE_MODE}})..."
-      - npm run build -- --mode {{.VITE_MODE}}
+      - npx astro build --mode {{.VITE_MODE}} --outDir {{.ROOT_DIR}}/.build/landing-{{.ENV}}
+      - rm -rf dist && cp -r {{.ROOT_DIR}}/.build/landing-{{.ENV}} dist
       - echo "Deploying landing to Firebase Hosting..."
       - cd {{.ROOT_DIR}} && firebase deploy --only hosting:landing --project {{.PROJECT_ID}}
       - echo "Landing site deployed to {{.ENV}}"
 
   deploy:api:
     desc: Deploy API to Cloud Run
-    dir: '{{.API_DIR}}'
-    deps: [deploy:gate, env:switch]
+    deps: [deploy:gate]
     vars:
       IMAGE: gcr.io/{{.PROJECT_ID}}/api-service:{{.TAG | default "latest"}}
+      STAGE_DIR: '{{.ROOT_DIR}}/.build/api-{{.ENV}}'
     cmds:
-      - bash ../../scripts/prepare-api-deploy.sh
-      - defer: bash ../../scripts/cleanup-api-deploy.sh
+      - bash scripts/prepare-api-deploy.sh {{.ENV}}
+      - defer: bash scripts/cleanup-api-deploy.sh {{.ENV}}
       - echo "Building API container..."
-      - gcloud builds submit --tag {{.IMAGE}} --project {{.PROJECT_ID}}
+      - gcloud builds submit --tag {{.IMAGE}} --project {{.PROJECT_ID}} {{.STAGE_DIR}}
       - echo "Deploying to Cloud Run..."
       - gcloud run deploy {{.API_SERVICE}} --image {{.IMAGE}} --region {{.REGION}} --platform managed --allow-unauthenticated --project {{.PROJECT_ID}}
       - echo "API deployed to {{.ENV}}"
@@ -155,7 +401,7 @@ tasks:
   deploy:api:source:
     desc: Deploy API directly from source (no container build)
     dir: '{{.API_DIR}}'
-    deps: [deploy:gate, env:switch]
+    deps: [deploy:gate]
     cmds:
       - echo "Deploying API from source..."
       - gcloud run deploy {{.API_SERVICE}} --source . --region {{.REGION}} --platform managed --allow-unauthenticated --project {{.PROJECT_ID}}
@@ -172,7 +418,7 @@ tasks:
 
   deploy:firestore:rules:
     desc: Deploy Firestore security rules
-    deps: [deploy:gate, env:switch]
+    deps: [deploy:gate]
     cmds:
       - echo "Deploying Firestore rules..."
       - firebase deploy --only firestore:rules --project {{.PROJECT_ID}}
@@ -180,7 +426,7 @@ tasks:
 
   deploy:firestore:indexes:
     desc: Deploy Firestore indexes
-    deps: [deploy:gate, env:switch]
+    deps: [deploy:gate]
     cmds:
       - echo "Deploying Firestore indexes..."
       - firebase deploy --only firestore:indexes --project {{.PROJECT_ID}}
@@ -188,7 +434,7 @@ tasks:
 
   deploy:storage:rules:
     desc: Deploy Storage security rules
-    deps: [deploy:gate, env:switch]
+    deps: [deploy:gate]
     cmds:
       - echo "Deploying Storage rules..."
       - firebase deploy --only storage --project {{.PROJECT_ID}}
@@ -643,6 +889,7 @@ tasks:
   clean:
     desc: Clean build artifacts
     cmds:
+      - rm -rf .build
       - rm -rf packages/landing/dist
       - rm -rf packages/frontend/dist
       - rm -rf packages/api/dist

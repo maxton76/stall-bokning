@@ -5,8 +5,8 @@
 #   env: dev (default), staging, prod
 #
 # This script:
-# 1. Builds the shared package (dependency)
-# 2. Builds the functions package
+# 1. Builds the shared package (with lock for parallel safety)
+# 2. Builds the functions package to an env-isolated lib dir
 # 3. Creates an env-isolated staging directory with shared bundled via file: protocol
 # 4. Creates a ZIP archive of the built output
 # 5. Uploads to the GCS functions source bucket
@@ -23,34 +23,40 @@ SHARED_DIR="${ROOT_DIR}/packages/shared"
 TF_DIR="${ROOT_DIR}/terraform/environments/${ENV}"
 BUILD_DIR="${ROOT_DIR}/.build"
 STAGE_DIR="${BUILD_DIR}/functions-${ENV}"
+FUNCTIONS_LIB_DIR="${BUILD_DIR}/functions-lib-${ENV}"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 ARCHIVE_NAME="functions-${TIMESTAMP}.zip"
 ARCHIVE_PATH="${BUILD_DIR}/${ARCHIVE_NAME}"
 
 cleanup() {
   rm -rf "${STAGE_DIR}"
+  rm -rf "${FUNCTIONS_LIB_DIR}"
 }
 trap cleanup EXIT
 
 echo "=== Building Functions Source for ${ENV} ==="
 
-# Step 1: Build shared package
-echo "Building shared package..."
-cd "${SHARED_DIR}"
-npm run build
+mkdir -p "${BUILD_DIR}"
 
-# Step 2: Build functions package
+# Step 1: Build shared package (serialized with mkdir-based lock for parallel safety)
+echo "Building shared package..."
+LOCK_DIR="${BUILD_DIR}/shared-build.lock"
+while ! mkdir "$LOCK_DIR" 2>/dev/null; do sleep 0.5; done
+cd "${SHARED_DIR}" && npm run build
+rmdir "$LOCK_DIR" 2>/dev/null
+
+# Step 2: Build functions package to env-isolated lib dir
 echo "Building functions package..."
 cd "${FUNCTIONS_DIR}"
-npm run build
+npx tsc --outDir "${FUNCTIONS_LIB_DIR}"
 
 # Step 3: Create env-isolated staging directory
 echo "Preparing staging directory: ${STAGE_DIR}"
 rm -rf "${STAGE_DIR}"
 mkdir -p "${STAGE_DIR}"
 
-# Copy built functions output
-cp -r "${FUNCTIONS_DIR}/lib" "${STAGE_DIR}/lib"
+# Copy built functions output from env-isolated dir
+cp -r "${FUNCTIONS_LIB_DIR}" "${STAGE_DIR}/lib"
 
 # Copy shared package (dist + package.json) for file: protocol resolution
 mkdir -p "${STAGE_DIR}/shared"
