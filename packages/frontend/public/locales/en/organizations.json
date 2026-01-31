@@ -343,21 +343,25 @@
       "paused": "Paused"
     },
     "tiers": {
-      "free": {
-        "name": "Free",
-        "description": "Try it — basic features with limited resources"
+      "starter": {
+        "name": "Starter",
+        "description": "Starter subscription for basic stable management and routines."
       },
-      "standard": {
-        "name": "Standard",
-        "description": "Collaborate — scale up and get an overview"
+      "essentials": {
+        "name": "Essentials",
+        "description": "Essentials subscription with planning tools and shared routines."
       },
-      "pro": {
-        "name": "Pro",
-        "description": "Full operation — complete toolbox"
+      "stable": {
+        "name": "Stable",
+        "description": "Stable subscription for daily operations and staff coordination."
       },
-      "enterprise": {
-        "name": "Enterprise",
-        "description": "Business — everything included with custom solutions"
+      "stable-plus": {
+        "name": "Stable Plus",
+        "description": "Advanced subscription with analytics, scheduling, and permissions."
+      },
+      "organization": {
+        "name": "Organization",
+        "description": "Organization subscription for multi-stable management and integrations."
       }
     },
     "features": {

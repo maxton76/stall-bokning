@@ -343,21 +343,25 @@
       "paused": "Pausad"
     },
     "tiers": {
-      "free": {
-        "name": "Gratis",
-        "description": "Testa — grundläggande funktioner med begränsade resurser"
+      "starter": {
+        "name": "Starter",
+        "description": "Startprenumeration för grundläggande stallhantering och rutiner."
       },
-      "standard": {
-        "name": "Standard",
-        "description": "Samarbeta — skala upp och få överblick"
+      "essentials": {
+        "name": "Essentials",
+        "description": "Essentials-prenumeration med planeringsverktyg och delade rutiner."
       },
-      "pro": {
-        "name": "Pro",
-        "description": "Full drift — komplett verktygslåda"
+      "stable": {
+        "name": "Stable",
+        "description": "Stable-prenumeration för daglig drift och personalsamordning."
       },
-      "enterprise": {
-        "name": "Enterprise",
-        "description": "Företag — allt inkluderat med skräddarsydda lösningar"
+      "stable-plus": {
+        "name": "Stable Plus",
+        "description": "Avancerad prenumeration med analys, schemaläggning och behörigheter."
+      },
+      "organization": {
+        "name": "Organization",
+        "description": "Organisationsprenumeration för hantering av flera stall och integrationer."
       }
     },
     "features": {

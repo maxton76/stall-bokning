@@ -221,7 +221,8 @@ export default function OrganizationSubscriptionPage() {
                 </Badge>
               )}
               <Badge variant="outline" className="text-lg px-4 py-2 capitalize">
-                {t(`organizations:subscription.tiers.${tier}.name`)}
+                {tierDef?.name ??
+                  t(`organizations:subscription.tiers.${tier}.name`)}
               </Badge>
             </div>
           </div>
