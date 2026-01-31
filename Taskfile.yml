@@ -39,9 +39,8 @@ vars:
   SHARED_DIR: '{{.ROOT_DIR}}/packages/shared'
   TERRAFORM_DIR: '{{.ROOT_DIR}}/terraform'
 
-  # Stripe publishable keys (public, safe to commit)
-  STRIPE_PK_SANDBOX: '{{.STRIPE_PK_SANDBOX | default "pk_test_51SvOKYRe707ulauR6wteInnjHqyd65Zy5BZ5IfykIMl22kjr3bhhzenU5kVOqk07OIJYGi0QkMX60RIoFfpIzBmL00V9oFGpmj"}}'
-  STRIPE_PK_LIVE: '{{.STRIPE_PK_LIVE | default "pk_live_51SvOKSDzuNNi4kYmWDy7buPhoobdJisni6K8D8y1irIFnIoyXzFXjgwe0rpftvweyaY1V0sbqF0Bq0RoO5VoeKGG005cKBSy5q"}}'
+  # Vite build mode (maps ENV to Vite --mode flag)
+  VITE_MODE: '{{if eq .ENV "prod"}}production{{else if eq .ENV "staging"}}staging{{else}}development{{end}}'
 
 # =============================================================================
 # Environment Configuration
@@ -119,10 +118,10 @@ tasks:
   deploy:frontend:
     desc: Build and deploy React app to Firebase Hosting (app target)
     dir: '{{.FRONTEND_DIR}}'
-    deps: [deploy:gate, env:switch, config:check, config:sync-frontend-env]
+    deps: [deploy:gate, env:switch, config:validate-frontend-env]
     cmds:
-      - echo "Building frontend..."
-      - npm run build
+      - echo "Building frontend for {{.ENV}} (mode={{.VITE_MODE}})..."
+      - npm run build -- --mode {{.VITE_MODE}}
       - echo "Deploying app to Firebase Hosting..."
       - firebase deploy --only hosting:app --project {{.PROJECT_ID}}
       - echo "Frontend app deployed to {{.ENV}}"
@@ -130,10 +129,10 @@ tasks:
   deploy:landing:
     desc: Build and deploy Astro landing site to Firebase Hosting (landing target)
     dir: '{{.LANDING_DIR}}'
-    deps: [deploy:gate, env:switch, config:sync-landing-env]
+    deps: [deploy:gate, env:switch]
     cmds:
-      - echo "Building landing site..."
-      - npm run build
+      - echo "Building landing site for {{.ENV}} (mode={{.VITE_MODE}})..."
+      - npm run build -- --mode {{.VITE_MODE}}
       - echo "Deploying landing to Firebase Hosting..."
       - cd {{.ROOT_DIR}} && firebase deploy --only hosting:landing --project {{.PROJECT_ID}}
       - echo "Landing site deployed to {{.ENV}}"
@@ -598,121 +597,37 @@ tasks:
       - echo "Seed complete for {{.ENV}}"
 
   # ===========================================================================
-  # Config Tasks (API URL Synchronization)
+  # Config Tasks (Environment Validation)
   # ===========================================================================
 
-  config:check:
-    desc: Check if frontend .env has correct API URL
-    vars:
-      EXPECTED_URL:
-        sh: gcloud run services describe {{.API_SERVICE}} --region {{.REGION}} --project {{.PROJECT_ID}} --format="value(status.url)" 2>/dev/null || echo "SERVICE_NOT_FOUND"
-      CURRENT_URL:
-        sh: grep "^VITE_API_URL=" {{.FRONTEND_DIR}}/.env 2>/dev/null | cut -d'=' -f2 || echo "NOT_SET"
+  config:validate-frontend-env:
+    desc: Validate frontend env file API URL is reachable
+    internal: true
     cmds:
       - |
-        if [ "{{.EXPECTED_URL}}" = "SERVICE_NOT_FOUND" ]; then
-          echo "⚠️  Cloud Run service {{.API_SERVICE}} not found. Deploy API first."
+        if [ "{{.VITE_MODE}}" = "development" ]; then
+          echo "ℹ️  Dev environment uses local .env — skipping API URL validation."
+          exit 0
+        fi
+        ENV_FILE="{{.FRONTEND_DIR}}/.env.{{.VITE_MODE}}"
+        if [ ! -f "${ENV_FILE}" ]; then
+          echo "❌ Missing env file: ${ENV_FILE}"
+          echo "   Create it with the correct VITE_* variables for {{.ENV}}."
           exit 1
         fi
-        if [ "{{.CURRENT_URL}}" = "NOT_SET" ]; then
-          echo "⚠️  VITE_API_URL not set in frontend .env"
-          echo "   Expected: {{.EXPECTED_URL}}"
-          echo "   Run: task config:sync-api-url"
+        API_URL=$(grep "^VITE_API_URL=" "${ENV_FILE}" | cut -d'=' -f2)
+        if [ -z "${API_URL}" ]; then
+          echo "❌ VITE_API_URL not set in ${ENV_FILE}"
           exit 1
         fi
-        if [ "{{.CURRENT_URL}}" != "{{.EXPECTED_URL}}" ]; then
-          echo "⚠️  API URL mismatch!"
-          echo "   Current:  {{.CURRENT_URL}}"
-          echo "   Expected: {{.EXPECTED_URL}}"
-          echo "   Run: task config:sync-api-url"
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${API_URL}/health" --max-time 10 2>/dev/null)
+        if [ "$HTTP_CODE" != "200" ]; then
+          echo "⚠️  API URL ${API_URL} returned HTTP ${HTTP_CODE}"
+          echo "   The API URL in .env.{{.VITE_MODE}} may have changed."
+          echo "   Verify the Cloud Run URL: task run:url ENV={{.ENV}}"
           exit 1
         fi
-        echo "✅ API URL is correct: {{.EXPECTED_URL}}"
-
-  config:sync-api-url:
-    desc: Update frontend .env with correct API URL from Cloud Run
-    vars:
-      API_URL:
-        sh: gcloud run services describe {{.API_SERVICE}} --region {{.REGION}} --project {{.PROJECT_ID}} --format="value(status.url)"
-    cmds:
-      - |
-        if [ -z "{{.API_URL}}" ]; then
-          echo "❌ Could not get API URL. Is {{.API_SERVICE}} deployed?"
-          exit 1
-        fi
-        if grep -q "^VITE_API_URL=" {{.FRONTEND_DIR}}/.env 2>/dev/null; then
-          sed -i.bak "s|^VITE_API_URL=.*|VITE_API_URL={{.API_URL}}|" {{.FRONTEND_DIR}}/.env
-          rm -f {{.FRONTEND_DIR}}/.env.bak
-          echo "✅ Updated VITE_API_URL={{.API_URL}}"
-        else
-          echo "VITE_API_URL={{.API_URL}}" >> {{.FRONTEND_DIR}}/.env
-          echo "✅ Added VITE_API_URL={{.API_URL}}"
-        fi
-
-  config:sync-landing-env:
-    desc: Sync landing site environment variables for current environment
-    cmds:
-      - |
-        case "{{.ENV}}" in
-          dev)
-            APP_URL="https://equiduty-dev-app.web.app"
-            ;;
-          staging)
-            APP_URL="https://equiduty-staging-app.web.app"
-            ;;
-          prod)
-            APP_URL="https://app.equiduty.se"
-            ;;
-          *)
-            APP_URL="http://localhost:5173"
-            ;;
-        esac
-        cat > {{.LANDING_DIR}}/.env <<EOF
-        PUBLIC_APP_URL=${APP_URL}
-        PUBLIC_ENVIRONMENT={{.ENV}}
-        EOF
-        echo "Landing .env synced: PUBLIC_APP_URL=${APP_URL}"
-
-  config:sync-frontend-env:
-    desc: Sync frontend environment variables (VITE_LANDING_URL, VITE_STRIPE_PUBLISHABLE_KEY) for current environment
-    cmds:
-      - |
-        case "{{.ENV}}" in
-          dev)
-            LANDING_URL="https://equiduty-dev.web.app"
-            STRIPE_PK="{{.STRIPE_PK_SANDBOX}}"
-            ;;
-          staging)
-            LANDING_URL="https://equiduty-staging.web.app"
-            STRIPE_PK="{{.STRIPE_PK_SANDBOX}}"
-            ;;
-          prod)
-            LANDING_URL="https://equiduty.se"
-            STRIPE_PK="{{.STRIPE_PK_LIVE}}"
-            ;;
-          *)
-            LANDING_URL="http://localhost:4321"
-            STRIPE_PK="{{.STRIPE_PK_SANDBOX}}"
-            ;;
-        esac
-        if grep -q "^VITE_LANDING_URL=" {{.FRONTEND_DIR}}/.env 2>/dev/null; then
-          sed -i.bak "s|^VITE_LANDING_URL=.*|VITE_LANDING_URL=${LANDING_URL}|" {{.FRONTEND_DIR}}/.env
-          rm -f {{.FRONTEND_DIR}}/.env.bak
-          echo "Updated VITE_LANDING_URL=${LANDING_URL}"
-        else
-          echo "VITE_LANDING_URL=${LANDING_URL}" >> {{.FRONTEND_DIR}}/.env
-          echo "Added VITE_LANDING_URL=${LANDING_URL}"
-        fi
-        if [ -n "${STRIPE_PK}" ]; then
-          if grep -q "^VITE_STRIPE_PUBLISHABLE_KEY=" {{.FRONTEND_DIR}}/.env 2>/dev/null; then
-            sed -i.bak "s|^VITE_STRIPE_PUBLISHABLE_KEY=.*|VITE_STRIPE_PUBLISHABLE_KEY=${STRIPE_PK}|" {{.FRONTEND_DIR}}/.env
-            rm -f {{.FRONTEND_DIR}}/.env.bak
-            echo "Updated VITE_STRIPE_PUBLISHABLE_KEY"
-          else
-            echo "VITE_STRIPE_PUBLISHABLE_KEY=${STRIPE_PK}" >> {{.FRONTEND_DIR}}/.env
-            echo "Added VITE_STRIPE_PUBLISHABLE_KEY"
-          fi
-        fi
+        echo "✅ API URL verified: ${API_URL} (HTTP ${HTTP_CODE})"
 
   config:show-api-url:
     desc: Show the current Cloud Run API URL
