@@ -23,6 +23,7 @@ export interface DetectionContext {
   routineScheduleCount: number;
   hasStableMembership: boolean;
   visitedRoutes: Set<string>;
+  organizationId?: string;
 }
 
 /** Definition of an onboarding section (group of steps) */
@@ -41,7 +42,7 @@ export interface OnboardingStep {
   descriptionKey: string;
   sectionId: string;
   /** Route to navigate to when user clicks the action button */
-  actionRoute?: string;
+  actionRoute?: string | ((ctx: DetectionContext) => string);
   /** i18n key for the action button label */
   actionLabelKey?: string;
   /** Function to auto-detect if step is complete */

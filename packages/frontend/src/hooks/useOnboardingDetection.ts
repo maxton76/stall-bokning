@@ -118,6 +118,7 @@ export function useOnboardingDetection() {
         const org = res.organizations?.[0];
         if (org) {
           updateDetectionContext({
+            organizationId: org.id,
             organizationName: org.name,
             organizationContactType: org.contactType,
           });

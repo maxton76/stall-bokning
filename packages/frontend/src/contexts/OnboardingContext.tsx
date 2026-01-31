@@ -242,12 +242,17 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
             foundCurrent = true;
           }
 
+          const resolvedRoute =
+            typeof step.actionRoute === "function"
+              ? step.actionRoute(detectionCtx)
+              : step.actionRoute;
+
           stepsWithStatus.push({
             id: step.id,
             titleKey: step.titleKey,
             descriptionKey: step.descriptionKey,
             sectionId: step.sectionId,
-            actionRoute: step.actionRoute,
+            actionRoute: resolvedRoute,
             actionLabelKey: step.actionLabelKey,
             status,
             order: step.order,
@@ -273,7 +278,7 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
           totalSteps > 0 ? Math.round((totalCompleted / totalSteps) * 100) : 0,
         allComplete: totalSteps > 0 && totalCompleted === totalSteps,
       };
-    }, [state]);
+    }, [state, detectionCtx]);
 
   // Determine panel visibility
   const isExcludedRoute = EXCLUDED_ROUTE_PREFIXES.some((prefix) =>

@@ -70,7 +70,10 @@ export const onboardingSteps: OnboardingStep[] = [
     titleKey: "onboarding:steps.orgSettings.title",
     descriptionKey: "onboarding:steps.orgSettings.description",
     sectionId: "getting-started",
-    actionRoute: "/organizations",
+    actionRoute: (ctx) =>
+      ctx.organizationId
+        ? `/organizations/${ctx.organizationId}/settings`
+        : "/organizations",
     actionLabelKey: "onboarding:steps.orgSettings.action",
     detectCompletion: (ctx) => {
       // Check if organization has been renamed from the default OR contactType is set
@@ -109,7 +112,10 @@ export const onboardingSteps: OnboardingStep[] = [
     titleKey: "onboarding:steps.inviteMember.title",
     descriptionKey: "onboarding:steps.inviteMember.description",
     sectionId: "stable-team",
-    actionRoute: "/organizations",
+    actionRoute: (ctx) =>
+      ctx.organizationId
+        ? `/organizations/${ctx.organizationId}/users`
+        : "/organizations",
     actionLabelKey: "onboarding:steps.inviteMember.action",
     detectCompletion: (ctx) => ctx.memberCount > 1,
     variants: ["stable_owner"],
