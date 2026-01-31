@@ -410,11 +410,26 @@ ComponentName/
 
 ### Git Workflow
 
+**Branching Model** (see `docs/GIT_BRANCHING_STRATEGY.md` for full details):
+- **`develop`**: Default branch. Daily work, deploys to dev.
+- **`main`**: Release-ready. Merges from `develop`. Tags created here.
+- **`feature/*`**: Larger features off `develop`. Small work directly on `develop`.
+- **`hotfix/*`**: Urgent fixes off `main`. Merge to `main`, tag, deploy, then back-merge to `develop`.
+
+**Deployment Safety**:
+- **dev**: `task deploy:api` — works from any branch, no checks.
+- **staging**: `task deploy:api ENV=staging` (must be on synced `main`) or `task deploy:api ENV=staging TAG=v0.x.y`.
+- **prod**: `task deploy:api ENV=prod TAG=v0.x.y` — TAG is mandatory.
+- Staging/prod block on dirty working tree. TAG deploys auto-checkout the tag and restore your branch.
+
 **Branch Naming**:
 - `feature/feature-name` - New features
+- `hotfix/bug-description` - Urgent fixes off `main`
 - `fix/bug-description` - Bug fixes
 - `docs/update-description` - Documentation
 - `refactor/description` - Code restructuring
+
+**Tag Naming**: Semantic versioning on `main` — `v0.13.0`, `v0.13.1`, `v1.0.0`
 
 **Commit Message Format**:
 ```
@@ -460,6 +475,7 @@ Comprehensive documentation located in `docs/`:
 - **[SETUP.md](./docs/SETUP.md)**: Complete development setup guide, troubleshooting
 - **[IMPLEMENTATION_PLAN.md](./docs/IMPLEMENTATION_PLAN.md)**: 4-phase roadmap, 46 user stories, sprint planning
 - **[NAMING_STANDARDS.md](./docs/NAMING_STANDARDS.md)**: Resource naming conventions for all environments
+- **[GIT_BRANCHING_STRATEGY.md](./docs/GIT_BRANCHING_STRATEGY.md)**: Branch model, deployment rules, tag conventions, workflow examples
 
 ## Common Development Tasks
 
