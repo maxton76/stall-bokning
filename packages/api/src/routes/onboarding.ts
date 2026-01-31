@@ -42,11 +42,9 @@ const STEP_MIGRATION_MAP: Record<string, string> = {
 /**
  * Determine guide variant from user's Firestore profile
  */
-async function getGuideVariant(uid: string): Promise<OnboardingGuideVariant> {
-  const userDoc = await db.collection("users").doc(uid).get();
-  if (!userDoc.exists) return "guest";
-  const data = userDoc.data();
-  return data?.systemRole === "stable_owner" ? "stable_owner" : "guest";
+async function getGuideVariant(_uid: string): Promise<OnboardingGuideVariant> {
+  // All users get the full 11-step onboarding flow
+  return "stable_owner";
 }
 
 /**
@@ -98,8 +96,17 @@ export async function onboardingRoutes(fastify: FastifyInstance) {
           return { onboarding: serializeTimestamps(defaultState) };
         }
 
-        // One-time migration: remap deprecated step IDs to new ones
         const data = doc.data() as OnboardingState;
+        const currentVariant = await getGuideVariant(user.uid);
+
+        if (data.guideVariant !== currentVariant) {
+          // Variant changed — reset to new variant with fresh state
+          const freshState = createDefaultState(currentVariant);
+          await docRef.set(freshState);
+          return { onboarding: serializeTimestamps(freshState) };
+        }
+
+        // One-time migration: remap deprecated step IDs to new ones
         const completedSteps = data?.completedSteps || {};
         const migrationUpdates: Record<string, unknown> = {};
 

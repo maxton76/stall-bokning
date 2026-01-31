@@ -70,3 +70,13 @@ output "smtp_password_id" {
   description = "Secret ID for SMTP password"
   value       = google_secret_manager_secret.secrets["smtp-password"].id
 }
+
+output "zendesk_api_token_id" {
+  description = "Secret ID for ZenDesk API token"
+  value       = google_secret_manager_secret.secrets["zendesk-api-token"].id
+}
+
+output "zendesk_webhook_secret_id" {
+  description = "Secret ID for ZenDesk webhook secret"
+  value       = google_secret_manager_secret.secrets["zendesk-webhook-secret"].id
+}

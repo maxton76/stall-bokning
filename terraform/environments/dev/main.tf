@@ -129,6 +129,8 @@ module "cloud_run" {
   twilio_account_sid_id    = module.secrets.twilio_account_sid_id
   twilio_auth_token_id     = module.secrets.twilio_auth_token_id
   telegram_bot_token_id    = module.secrets.telegram_bot_token_id
+  zendesk_api_token_id      = module.secrets.zendesk_api_token_id
+  zendesk_webhook_secret_id = module.secrets.zendesk_webhook_secret_id
 
   # Application configuration
   frontend_url = "https://equiduty-dev-app.web.app"

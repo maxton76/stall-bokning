@@ -37,7 +37,9 @@ locals {
     EMAIL_SMTP_PASSWORD   = var.smtp_password_id
     TWILIO_ACCOUNT_SID    = var.twilio_account_sid_id
     TWILIO_AUTH_TOKEN     = var.twilio_auth_token_id
-    TELEGRAM_BOT_TOKEN    = var.telegram_bot_token_id
+    TELEGRAM_BOT_TOKEN     = var.telegram_bot_token_id
+    ZENDESK_API_TOKEN      = var.zendesk_api_token_id
+    ZENDESK_WEBHOOK_SECRET = var.zendesk_webhook_secret_id
   }
 
   # Filter out empty secret IDs

@@ -175,6 +175,18 @@ variable "telegram_bot_token_id" {
   default     = ""
 }
 
+variable "zendesk_api_token_id" {
+  description = "Secret Manager secret ID for ZenDesk API token"
+  type        = string
+  default     = ""
+}
+
+variable "zendesk_webhook_secret_id" {
+  description = "Secret Manager secret ID for ZenDesk webhook secret"
+  type        = string
+  default     = ""
+}
+
 # =============================================================================
 # Access Control
 # =============================================================================

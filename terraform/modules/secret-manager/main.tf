@@ -56,6 +56,16 @@ locals {
       description = "Telegram bot token for notifications"
       labels      = { type = "notification", service = "telegram", sensitivity = "high" }
     }
+
+    # ZenDesk Secrets
+    "zendesk-api-token" = {
+      description = "ZenDesk API token for support ticket management"
+      labels      = { type = "integration", service = "zendesk", sensitivity = "high" }
+    }
+    "zendesk-webhook-secret" = {
+      description = "ZenDesk webhook signing secret"
+      labels      = { type = "integration", service = "zendesk", sensitivity = "high" }
+    }
   }
 
   # Merge default secrets with any additional custom secrets
