@@ -82,6 +82,14 @@ module "firebase" {
   # CORS
   cors_origins = var.cors_origins
 
+  # Custom domains for Firebase Auth
+  additional_authorized_domains = [
+    "equiduty.se",
+    "www.equiduty.se",
+    "app.equiduty.se",
+    "api.equiduty.se",
+  ]
+
   depends_on = [module.iam]
 }
 
@@ -121,7 +129,10 @@ module "cloud_run" {
   telegram_bot_token_id    = module.secrets.telegram_bot_token_id
 
   # Application configuration
-  frontend_url = "https://equiduty-prod-app.web.app"
+  frontend_url = "https://app.equiduty.se"
+
+  # Custom domain mapping
+  custom_domain = "api.equiduty.se"
 
   # Environment variables
   cors_origins = var.cors_origins

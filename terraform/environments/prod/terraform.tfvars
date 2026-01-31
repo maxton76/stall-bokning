@@ -62,9 +62,11 @@ cors_origins = [
   "https://equiduty-prod.web.app",
   "https://equiduty-prod.firebaseapp.com",
   "https://equiduty-prod-app.web.app",
-  "https://equiduty-prod-app.firebaseapp.com"
-  # Add custom domain when configured:
-  # "https://app.equicare.se"
+  "https://equiduty-prod-app.firebaseapp.com",
+  # Custom domains
+  "https://equiduty.se",
+  "https://www.equiduty.se",
+  "https://app.equiduty.se"
 ]
 
 # =============================================================================
