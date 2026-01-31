@@ -313,7 +313,14 @@
     "includedFeatures": "Inkluderade funktioner:",
     "trial": {
       "title": "Provperiod",
-      "description": "Din prenumeration är för närvarande i provperiod med alla funktioner. Du har {{days}} dagar kvar att testa alla funktioner."
+      "description": "Din prenumeration är för närvarande i provperiod med alla funktioner. Du har {{days}} dagar kvar att testa alla funktioner.",
+      "descriptionNoCard": "Din provperiod är aktiv med alla funktioner. Du har {{days}} dagar kvar. Lägg till en betalningsmetod innan provperioden slutar för att fortsätta utan avbrott.",
+      "addPaymentMethod": "Lägg till betalningsmetod"
+    },
+    "paused": {
+      "title": "Prenumeration pausad",
+      "description": "Din provperiod har avslutats utan en registrerad betalningsmetod. Lägg till en betalningsmetod för att återuppta din prenumeration.",
+      "addPaymentMethod": "Lägg till betalningsmetod"
     },
     "pastDue": {
       "title": "Betalning misslyckades",

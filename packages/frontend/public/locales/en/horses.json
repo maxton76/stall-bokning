@@ -19,6 +19,8 @@
       "gender": "Gender",
       "dateOfBirth": "Date of Birth",
       "dateOfArrival": "Date of Arrival",
+      "boxName": "Box",
+      "paddockName": "Paddock",
       "location": "Location (Stable)",
       "usage": "Usage",
       "group": "Horse Group",
@@ -600,7 +602,9 @@
       "shareComingSoon": "Share (coming soon)",
       "removeComingSoon": "Remove (coming soon)",
       "editHorse": "Edit horse",
-      "copyToClipboard": "Copy to clipboard"
+      "copyToClipboard": "Copy to clipboard",
+      "boxName": "Box",
+      "paddockName": "Paddock"
     }
   },
   "transport": {

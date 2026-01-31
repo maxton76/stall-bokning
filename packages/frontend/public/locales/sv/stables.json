@@ -40,7 +40,8 @@
     "updateSuccess": "Stall har uppdaterats",
     "deleteSuccess": "Stall har tagits bort",
     "noOrganization": "Kan inte skapa stall: Ingen organisation vald. Välj en organisation först.",
-    "createFailed": "Kunde inte skapa stall. Försök igen."
+    "createFailed": "Kunde inte skapa stall. Försök igen.",
+    "stableLimitReached": "Du har nått maximalt antal stall för din prenumerationsnivå. Uppgradera för att skapa fler stall."
   },
   "actions": {
     "createStable": "Skapa stall",

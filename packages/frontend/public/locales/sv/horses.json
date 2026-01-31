@@ -19,6 +19,8 @@
       "gender": "Kön",
       "dateOfBirth": "Födelsedatum",
       "dateOfArrival": "Ankomstdatum",
+      "boxName": "Box",
+      "paddockName": "Paddock/Hage",
       "location": "Placering (Stall)",
       "usage": "Användning",
       "group": "Hästgrupp",
@@ -600,7 +602,9 @@
       "shareComingSoon": "Dela (kommer snart)",
       "removeComingSoon": "Ta bort (kommer snart)",
       "editHorse": "Redigera häst",
-      "copyToClipboard": "Kopiera till urklipp"
+      "copyToClipboard": "Kopiera till urklipp",
+      "boxName": "Box",
+      "paddockName": "Paddock"
     }
   },
   "transport": {

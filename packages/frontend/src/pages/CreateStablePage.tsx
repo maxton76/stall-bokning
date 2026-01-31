@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, CircleAlert, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +29,7 @@ export default function CreateStablePage() {
     currentOrganizationId || searchParams.get("organizationId");
 
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -45,11 +47,11 @@ export default function CreateStablePage() {
       return;
     }
 
+    setError(null);
+
     // Validate that we have an organization ID
     if (!organizationId) {
-      const errorMsg = t("stables:messages.noOrganization");
-      console.error("❌ CreateStablePage:", errorMsg);
-      alert(errorMsg);
+      setError(t("stables:messages.noOrganization"));
       return;
     }
 
@@ -71,9 +73,11 @@ export default function CreateStablePage() {
 
       // Navigate to the new stable's detail page
       navigate(`/stables/${stableId}`);
-    } catch (error) {
-      console.error("❌ Error creating stable:", error);
-      alert(t("stables:messages.createFailed"));
+    } catch (err) {
+      console.error("❌ Error creating stable:", err);
+      const message =
+        err instanceof Error ? err.message : t("stables:messages.createFailed");
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -202,6 +206,14 @@ export default function CreateStablePage() {
                 />
               </div>
             </div>
+
+            {/* Error Alert */}
+            {error && (
+              <Alert className="border-destructive bg-destructive/10 text-destructive rounded-none border-0 border-l-6">
+                <CircleAlert />
+                <AlertTitle>{error}</AlertTitle>
+              </Alert>
+            )}
 
             {/* Submit Buttons */}
             <div className="flex gap-4 pt-4">

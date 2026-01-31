@@ -17,6 +17,7 @@ export function statusBadgeVariant(status: string): BadgeVariant {
       return "secondary";
     case "past_due":
     case "unpaid":
+    case "paused":
       return "destructive";
     case "canceled":
       return "outline";

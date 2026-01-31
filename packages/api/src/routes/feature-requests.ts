@@ -10,7 +10,8 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../utils/firebase.js";
 import { FieldValue } from "firebase-admin/firestore";
-import { authenticate, requireRole } from "../middleware/auth.js";
+import { authenticate } from "../middleware/auth.js";
+import { requireSystemAdmin } from "../middleware/requireSystemAdmin.js";
 import { validateBody, validateQuery } from "../middleware/validation.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
@@ -529,7 +530,7 @@ export async function featureRequestsRoutes(fastify: FastifyInstance) {
     {
       preHandler: [
         authenticate,
-        requireRole(["system_admin"]),
+        requireSystemAdmin,
         validateBody(updateStatusSchema),
       ],
     },
@@ -571,7 +572,7 @@ export async function featureRequestsRoutes(fastify: FastifyInstance) {
     {
       preHandler: [
         authenticate,
-        requireRole(["system_admin"]),
+        requireSystemAdmin,
         validateBody(setPrioritySchema),
       ],
     },

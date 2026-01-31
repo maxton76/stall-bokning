@@ -255,10 +255,7 @@ export async function stablesRoutes(fastify: FastifyInstance) {
               const maxStables = getMaxStables(org as any, org.subscription);
               return reply.status(403).send({
                 error: "Forbidden",
-                message:
-                  org.organizationType === "personal"
-                    ? "Personal organizations cannot create additional stables. Upgrade to a business organization to create multiple stables."
-                    : `You have reached the maximum number of stables (${maxStables}) for your subscription tier. Please upgrade to create more stables.`,
+                message: `You have reached the maximum number of stables (${maxStables}) for your subscription tier. Please upgrade to create more stables.`,
                 code: "STABLE_LIMIT_REACHED",
               });
             }

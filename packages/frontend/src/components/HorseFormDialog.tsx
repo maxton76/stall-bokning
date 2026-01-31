@@ -69,6 +69,8 @@ const horseSchema = z
       z.coerce.date().optional(),
     ),
     currentStableId: z.string().optional(),
+    boxName: z.string().optional(),
+    paddockName: z.string().optional(),
     usage: z.array(z.string()),
     horseGroupId: z.string().optional(),
     ueln: z.string().optional(),
@@ -157,6 +159,8 @@ export function HorseFormDialog({
       isExternal: false,
       dateOfArrival: undefined,
       currentStableId: "none",
+      boxName: "",
+      paddockName: "",
       usage: [],
       horseGroupId: "none",
       ueln: "",
@@ -253,6 +257,8 @@ export function HorseFormDialog({
             ? horse?.assignedAt || Timestamp.now()
             : undefined;
         horseData.usage = data.usage.length > 0 ? data.usage : undefined;
+        horseData.boxName = data.boxName?.trim() || undefined;
+        horseData.paddockName = data.paddockName?.trim() || undefined;
 
         // Group assignment
         if (data.horseGroupId && data.horseGroupId !== "none") {
@@ -295,6 +301,8 @@ export function HorseFormDialog({
         isExternal: horse.isExternal ?? false,
         dateOfArrival: formatDateForInput(horse.dateOfArrival) as any,
         currentStableId: horse.currentStableId || "none",
+        boxName: horse.boxName || "",
+        paddockName: horse.paddockName || "",
         usage: horse.usage || [],
         horseGroupId: horse.horseGroupId || "none",
         ueln: horse.ueln || "",
@@ -425,6 +433,22 @@ export function HorseFormDialog({
           form={form}
           required
         />
+      )}
+
+      {/* Box & Paddock - Hidden for external horses */}
+      {!isExternal && (
+        <div className="grid grid-cols-2 gap-4">
+          <FormInput
+            name="boxName"
+            label={t("horses:form.labels.boxName")}
+            form={form}
+          />
+          <FormInput
+            name="paddockName"
+            label={t("horses:form.labels.paddockName")}
+            form={form}
+          />
+        </div>
       )}
 
       {/* Location/Stable Assignment - Hidden for external horses */}

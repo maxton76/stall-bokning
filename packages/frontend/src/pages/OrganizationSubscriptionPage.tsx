@@ -82,7 +82,9 @@ export default function OrganizationSubscriptionPage() {
     !subscription?.status && (!tier || tierDef?.isBillable === false);
   const isTrialing = subscription?.status === "trialing";
   const isPastDue = subscription?.status === "past_due";
+  const isPaused = subscription?.status === "paused";
   const isCanceling = subscription?.cancelAtPeriodEnd === true;
+  const hasNoPaymentMethod = !subscription?.paymentMethod;
 
   const trialDaysLeft = getTrialDaysRemaining(subscription?.trialEnd);
 
@@ -112,9 +114,44 @@ export default function OrganizationSubscriptionPage() {
           <Clock className="h-4 w-4" />
           <AlertTitle>{t("organizations:subscription.trial.title")}</AlertTitle>
           <AlertDescription>
-            {t("organizations:subscription.trial.description", {
-              days: trialDaysLeft,
-            })}
+            {hasNoPaymentMethod
+              ? t("organizations:subscription.trial.descriptionNoCard", {
+                  days: trialDaysLeft,
+                })
+              : t("organizations:subscription.trial.description", {
+                  days: trialDaysLeft,
+                })}
+            {hasNoPaymentMethod && (
+              <Button
+                variant="link"
+                className="p-0 h-auto ml-1"
+                onClick={() => portalMutation.mutate()}
+                disabled={portalMutation.isPending}
+              >
+                {t("organizations:subscription.trial.addPaymentMethod")}
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Paused Alert (trial ended without payment method) */}
+      {isPaused && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>
+            {t("organizations:subscription.paused.title")}
+          </AlertTitle>
+          <AlertDescription>
+            {t("organizations:subscription.paused.description")}
+            <Button
+              variant="link"
+              className="p-0 h-auto ml-1"
+              onClick={() => portalMutation.mutate()}
+              disabled={portalMutation.isPending}
+            >
+              {t("organizations:subscription.paused.addPaymentMethod")}
+            </Button>
           </AlertDescription>
         </Alert>
       )}

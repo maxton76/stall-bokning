@@ -197,6 +197,13 @@ export function HorseContextCard({
                       </Badge>
                     )}
                   </CardTitle>
+                  {(horse.boxName || horse.paddockName) && (
+                    <CardDescription>
+                      {[horse.boxName, horse.paddockName]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </CardDescription>
+                  )}
                   {isSkipped && progress?.skipReason && (
                     <CardDescription>
                       {t("routines:horse.skipReason")}: {progress.skipReason}

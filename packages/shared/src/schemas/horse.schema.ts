@@ -16,6 +16,8 @@ const baseHorseSchema = z.object({
     z.coerce.date().optional(),
   ),
   currentStableId: z.string().optional(),
+  boxName: z.string().optional(),
+  paddockName: z.string().optional(),
   usage: z.array(z.string()),
   horseGroupId: z.string().optional(),
   vaccinationRuleId: z.string().optional(),

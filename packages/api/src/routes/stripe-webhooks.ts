@@ -10,7 +10,7 @@
  * - checkout.session.async_payment_failed → log failed async payment
  * - checkout.session.expired → log abandoned checkout
  * - customer.subscription.updated → sync status/tier/period
- * - customer.subscription.deleted → downgrade to free
+ * - customer.subscription.deleted → downgrade to starter
  * - invoice.paid → record payment
  * - invoice.payment_failed → mark past_due, notify
  * - invoice.payment_action_required → log SCA/3DS action needed
@@ -356,14 +356,23 @@ async function handleSubscriptionUpdated(
     return;
   }
 
+  // Paused subscriptions (e.g. trial ended without payment method) get downgraded to starter
+  const effectiveTier =
+    subscription.status === "paused" ? "starter" : tierInfo.tier;
+
   await db.collection("organizations").doc(organizationId).update({
-    subscriptionTier: tierInfo.tier,
+    subscriptionTier: effectiveTier,
     stripeSubscription,
     updatedAt: new Date(),
   });
 
   log.info(
-    { organizationId, tier: tierInfo.tier, status: subscription.status },
+    {
+      organizationId,
+      tier: effectiveTier,
+      resolvedTier: tierInfo.tier,
+      status: subscription.status,
+    },
     "Subscription updated",
   );
 }
@@ -398,7 +407,7 @@ async function handleSubscriptionDeleted(
     .collection("organizations")
     .doc(organizationId)
     .update({
-      subscriptionTier: "free",
+      subscriptionTier: "starter",
       stripeSubscription: {
         customerId:
           existingSub?.customerId ?? (subscription.customer as string),
@@ -414,7 +423,7 @@ async function handleSubscriptionDeleted(
       updatedAt: new Date(),
     });
 
-  log.info({ organizationId }, "Subscription deleted, downgraded to free");
+  log.info({ organizationId }, "Subscription deleted, downgraded to starter");
 }
 
 async function handleInvoicePaid(invoice: Stripe.Invoice, log: any) {

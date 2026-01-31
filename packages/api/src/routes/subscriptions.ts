@@ -216,7 +216,15 @@ export async function subscriptionRoutes(fastify: FastifyInstance) {
         ],
         ...(hasHadTrial
           ? {}
-          : { subscription_data: { trial_period_days: TRIAL_DAYS } }),
+          : {
+              subscription_data: {
+                trial_period_days: TRIAL_DAYS,
+                trial_settings: {
+                  end_behavior: { missing_payment_method: "pause" },
+                },
+              },
+              payment_method_collection: "if_required",
+            }),
         success_url: successUrl,
         cancel_url: cancelUrl,
         locale: "sv",

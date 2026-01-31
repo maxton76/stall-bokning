@@ -165,10 +165,10 @@ export function BasicInfoCard({
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* 1. Basic Info Grid (3 columns) */}
-        <div className="grid grid-cols-3 gap-4">
+        {/* 1. Basic Info Grid */}
+        <div className="flex flex-wrap gap-x-6 gap-y-3">
           {horse.gender && (
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">
                 {t("horses:detail.basicInfo.gender")}
               </p>
@@ -176,7 +176,7 @@ export function BasicInfoCard({
             </div>
           )}
           {horse.color && (
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">
                 {t("horses:detail.basicInfo.color")}
               </p>
@@ -184,7 +184,7 @@ export function BasicInfoCard({
             </div>
           )}
           {horse.studbook && (
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">
                 {t("horses:detail.basicInfo.studbook")}
               </p>
@@ -193,14 +193,17 @@ export function BasicInfoCard({
           )}
         </div>
 
-        {/* 2. Birth Info */}
-        {(horse.dateOfBirth || horse.horseGroupName) && (
-          <div className="border-t pt-4 grid grid-cols-2 gap-4">
+        {/* 2. Birth, Location & Group Info */}
+        {(horse.dateOfBirth ||
+          horse.horseGroupName ||
+          horse.boxName ||
+          horse.paddockName) && (
+          <div className="border-t pt-4 flex flex-wrap gap-x-6 gap-y-3">
             {horse.dateOfBirth &&
               (() => {
                 const birthDate = toDate(horse.dateOfBirth);
                 return birthDate ? (
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-sm text-muted-foreground">
                       {t("horses:detail.basicInfo.dateOfBirth")}
                     </p>
@@ -212,8 +215,24 @@ export function BasicInfoCard({
                   </div>
                 ) : null;
               })()}
+            {horse.boxName && (
+              <div className="min-w-0">
+                <p className="text-sm text-muted-foreground">
+                  {t("horses:detail.basicInfo.boxName")}
+                </p>
+                <p className="font-medium">{horse.boxName}</p>
+              </div>
+            )}
+            {horse.paddockName && (
+              <div className="min-w-0">
+                <p className="text-sm text-muted-foreground">
+                  {t("horses:detail.basicInfo.paddockName")}
+                </p>
+                <p className="font-medium">{horse.paddockName}</p>
+              </div>
+            )}
             {horse.horseGroupName && (
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm text-muted-foreground">
                   {t("horses:detail.basicInfo.group")}
                 </p>

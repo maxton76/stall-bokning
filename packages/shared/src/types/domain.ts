@@ -262,6 +262,8 @@ export interface Horse {
   currentStableId?: string; // OPTIONAL - horse may be unassigned or assigned to a stable
   currentStableName?: string; // Cached for display
   assignedAt?: Timestamp; // When assigned to current stable
+  boxName?: string; // Box/stall name or number
+  paddockName?: string; // Paddock/pasture name
 
   // External Location Tracking - For horses moved to external locations
   externalContactId?: string; // Reference to contact document (if contact selected)

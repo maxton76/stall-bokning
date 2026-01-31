@@ -313,7 +313,14 @@
     "includedFeatures": "Included features:",
     "trial": {
       "title": "Trial Period",
-      "description": "Your subscription is currently in trial with all features. You have {{days}} days left to test all features."
+      "description": "Your subscription is currently in trial with all features. You have {{days}} days left to test all features.",
+      "descriptionNoCard": "Your trial is active with all features. You have {{days}} days left. Add a payment method before the trial ends to continue without interruption.",
+      "addPaymentMethod": "Add payment method"
+    },
+    "paused": {
+      "title": "Subscription paused",
+      "description": "Your trial has ended without a payment method on file. Add a payment method to resume your subscription.",
+      "addPaymentMethod": "Add payment method"
     },
     "pastDue": {
       "title": "Payment failed",

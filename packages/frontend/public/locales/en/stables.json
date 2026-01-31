@@ -40,7 +40,8 @@
     "updateSuccess": "Stable updated successfully",
     "deleteSuccess": "Stable deleted successfully",
     "noOrganization": "Cannot create stable: No organization selected. Please select an organization first.",
-    "createFailed": "Failed to create stable. Please try again."
+    "createFailed": "Failed to create stable. Please try again.",
+    "stableLimitReached": "You have reached the maximum number of stables for your subscription tier. Please upgrade to create more stables."
   },
   "actions": {
     "createStable": "Create Stable",
