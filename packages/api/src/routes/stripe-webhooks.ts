@@ -6,6 +6,9 @@
  *
  * Events handled:
  * - checkout.session.completed → activate subscription
+ * - checkout.session.async_payment_succeeded → activate subscription (delayed payment)
+ * - checkout.session.async_payment_failed → log failed async payment
+ * - checkout.session.expired → log abandoned checkout
  * - customer.subscription.updated → sync status/tier/period
  * - customer.subscription.deleted → downgrade to free
  * - invoice.paid → record payment
@@ -90,7 +93,22 @@ export async function stripeWebhookRoutes(fastify: FastifyInstance) {
     try {
       switch (event.type) {
         case "checkout.session.completed":
+        case "checkout.session.async_payment_succeeded":
           await handleCheckoutCompleted(
+            event.data.object as Stripe.Checkout.Session,
+            request.log,
+          );
+          break;
+
+        case "checkout.session.async_payment_failed":
+          await handleCheckoutAsyncPaymentFailed(
+            event.data.object as Stripe.Checkout.Session,
+            request.log,
+          );
+          break;
+
+        case "checkout.session.expired":
+          await handleCheckoutExpired(
             event.data.object as Stripe.Checkout.Session,
             request.log,
           );
@@ -244,6 +262,52 @@ async function handleCheckoutCompleted(
   log.info(
     { organizationId, tier: tierInfo.tier },
     "Subscription activated via checkout",
+  );
+}
+
+/**
+ * Handle checkout.session.async_payment_failed
+ *
+ * Fires when a delayed payment method (e.g., bank transfer) fails after the
+ * checkout session was created. No subscription should be activated.
+ */
+async function handleCheckoutAsyncPaymentFailed(
+  session: Stripe.Checkout.Session,
+  log: any,
+) {
+  const organizationId = session.metadata?.organizationId;
+
+  log.warn(
+    {
+      organizationId: organizationId ?? "unknown",
+      sessionId: session.id,
+      paymentStatus: session.payment_status,
+    },
+    "Checkout async payment failed — subscription not activated",
+  );
+
+  // TODO(Phase 8 — Notification System Integration):
+  // Notify org owner that their payment method failed and they need to retry.
+}
+
+/**
+ * Handle checkout.session.expired
+ *
+ * Fires when a Checkout Session expires (default 24h) without being completed.
+ * The user abandoned the checkout flow. Logged for analytics/visibility.
+ */
+async function handleCheckoutExpired(
+  session: Stripe.Checkout.Session,
+  log: any,
+) {
+  const organizationId = session.metadata?.organizationId;
+
+  log.info(
+    {
+      organizationId: organizationId ?? "unknown",
+      sessionId: session.id,
+    },
+    "Checkout session expired — user abandoned checkout",
   );
 }
 
