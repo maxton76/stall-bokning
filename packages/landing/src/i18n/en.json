@@ -96,7 +96,7 @@
   },
   "documentation": {
     "title": "Documentation & guides",
-    "subtitle": "Learn how to get the most out of StableBook",
+    "subtitle": "Learn how to get the most out of EquiDuty",
     "gettingStarted": {
       "title": "Getting started",
       "description": "Step-by-step guide to set up your stable and invite members.",
@@ -115,7 +115,7 @@
   },
   "testimonials": {
     "title": "What our customers say",
-    "subtitle": "Stables across Sweden use StableBook for their daily operations",
+    "subtitle": "Stables across Sweden use EquiDuty for their daily operations",
     "testimonial1": {
       "title": "Finally fair!",
       "content": "We always had problems with some people doing more than others. Now everything is transparent and fair. The system automatically suggests who should take the next shift based on workload.",
@@ -184,7 +184,7 @@
   },
   "cta": {
     "title": "Ready to simplify stable work?",
-    "description": "Join thousands of stables already using StableBook for fair and efficient task distribution.",
+    "description": "Join thousands of stables already using EquiDuty for fair and efficient task distribution.",
     "button": "Get started for free",
     "noCreditCard": "No credit card required"
   },
@@ -209,6 +209,6 @@
       "guides": "Guides",
       "api": "API documentation"
     },
-    "copyright": "StableBook. All rights reserved."
+    "copyright": "EquiDuty. All rights reserved."
   }
 }

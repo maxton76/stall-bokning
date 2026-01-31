@@ -90,16 +90,9 @@ const Register = () => {
           <div className="space-y-4">
             <RegisterForm />
 
-            <p className="text-muted-foreground text-center">
-              {t("register.alreadyHaveAccount")}{" "}
-              <a href="/login" className="text-card-foreground hover:underline">
-                {t("register.signIn")}
-              </a>
-            </p>
-
             <div className="flex items-center gap-4">
               <Separator className="flex-1" />
-              <p>{t("login.or")}</p>
+              <p>{t("register.or")}</p>
               <Separator className="flex-1" />
             </div>
 
@@ -110,9 +103,16 @@ const Register = () => {
               disabled={googleLoading}
             >
               {googleLoading
-                ? t("login.signingIn")
-                : t("login.continueWithGoogle")}
+                ? t("register.signingUp")
+                : t("register.continueWithGoogle")}
             </Button>
+
+            <p className="text-muted-foreground text-center">
+              {t("register.alreadyHaveAccount")}{" "}
+              <a href="/login" className="text-card-foreground hover:underline">
+                {t("register.signIn")}
+              </a>
+            </p>
           </div>
         </CardContent>
       </Card>
