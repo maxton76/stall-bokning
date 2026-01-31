@@ -169,7 +169,7 @@ tasks:
         fi
 
         # 2b. Check for untracked files that matter (ignore common noise)
-        UNTRACKED=$(git ls-files --others --exclude-standard | grep -v -E '\.(xcuserstate|DS_Store)$' | head -10)
+        UNTRACKED=$(git ls-files --others --exclude-standard | grep -v -E '\.(xcuserstate|DS_Store)$' | head -10 || true)
         if [ -n "$UNTRACKED" ]; then
           echo -e "  ${YELLOW}⚠${NC} Untracked files found:"
           echo "$UNTRACKED" | sed 's/^/      /'
