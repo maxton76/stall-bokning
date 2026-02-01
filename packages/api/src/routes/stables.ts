@@ -6,8 +6,8 @@ import {
   requireStableAccess,
   requireStableOwnership,
 } from "../middleware/auth.js";
+import { checkSubscriptionLimit } from "../middleware/checkSubscriptionLimit.js";
 import type { AuthenticatedRequest, Stable } from "../types/index.js";
-import { canCreateStable, getMaxStables } from "@equiduty/shared";
 
 const pointsSystemSchema = z
   .object({
@@ -210,7 +210,7 @@ export async function stablesRoutes(fastify: FastifyInstance) {
   fastify.post(
     "/",
     {
-      preHandler: [authenticate],
+      preHandler: [authenticate, checkSubscriptionLimit("stables", "stables")],
     },
     async (request, reply) => {
       try {
@@ -226,39 +226,19 @@ export async function stablesRoutes(fastify: FastifyInstance) {
 
         const user = (request as AuthenticatedRequest).user!;
 
-        // Feature gate: Check if organization can create more stables
+        // Check if user has permission to create stables for this org
         if (validation.data.organizationId) {
-          const orgDoc = await db
-            .collection("organizations")
-            .doc(validation.data.organizationId)
+          const memberId = `${user.uid}_${validation.data.organizationId}`;
+          const memberDoc = await db
+            .collection("organizationMembers")
+            .doc(memberId)
             .get();
 
-          if (orgDoc.exists) {
-            const org = orgDoc.data()!;
-
-            // Check if user has permission to create stables for this org
-            const memberId = `${user.uid}_${validation.data.organizationId}`;
-            const memberDoc = await db
-              .collection("organizationMembers")
-              .doc(memberId)
-              .get();
-
-            if (!memberDoc.exists || memberDoc.data()?.status !== "active") {
-              return reply.status(403).send({
-                error: "Forbidden",
-                message: "You do not have access to this organization",
-              });
-            }
-
-            // Check stable creation limits (use subscription obj if available)
-            if (!canCreateStable(org as any, org.subscription)) {
-              const maxStables = getMaxStables(org as any, org.subscription);
-              return reply.status(403).send({
-                error: "Forbidden",
-                message: `You have reached the maximum number of stables (${maxStables}) for your subscription tier. Please upgrade to create more stables.`,
-                code: "STABLE_LIMIT_REACHED",
-              });
-            }
+          if (!memberDoc.exists || memberDoc.data()?.status !== "active") {
+            return reply.status(403).send({
+              error: "Forbidden",
+              message: "You do not have access to this organization",
+            });
           }
         }
 
