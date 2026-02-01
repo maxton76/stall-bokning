@@ -23,6 +23,7 @@ export type OrganizationRole =
   | "rider" // Professional rider
   | "inseminator" // Breeding services
   | "trainer" // Riding instructor / lesson trainer
+  | "training_admin" // Manages lesson schedules and training program
   | "support_contact"; // Delegated access to support tickets
 
 /**
@@ -44,7 +45,7 @@ export type OrganizationType = "personal" | "business";
 /**
  * Membership status
  */
-export type MembershipStatus = "active" | "inactive" | "pending";
+export type MembershipStatus = "active" | "inactive" | "pending" | "expired";
 
 /**
  * Stable access level for organization members
@@ -151,6 +152,11 @@ export interface OrganizationMember {
 
   // Fairness tracking statistics (moved from stableMembers)
   stats?: MemberStats;
+
+  // Invitation expiry
+  expiresAt?: Timestamp; // 7 days after invite creation
+  expiredAt?: Timestamp; // When it was actually expired
+  expiredReason?: "declined" | "timeout"; // Why it expired
 
   // Metadata
   joinedAt: Timestamp;

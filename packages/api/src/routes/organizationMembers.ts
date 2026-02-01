@@ -121,13 +121,45 @@ export default async function organizationMemberRoutes(
           });
         }
 
+        // Check if membership has expired
+        if (member?.expiresAt) {
+          const expiresAtDate = member.expiresAt.toDate
+            ? member.expiresAt.toDate()
+            : new Date(member.expiresAt._seconds * 1000);
+          if (expiresAtDate < new Date()) {
+            return reply.status(400).send({
+              error: "Bad Request",
+              message: "Membership invitation has expired",
+            });
+          }
+        }
+
+        // Use batch write for atomic operations
+        const batch = db.batch();
+        const now = Timestamp.now();
+
         // Update membership to active
-        await db.collection("organizationMembers").doc(memberId).update({
+        batch.update(db.collection("organizationMembers").doc(memberId), {
           status: "active",
-          inviteAcceptedAt: Timestamp.now(),
+          inviteAcceptedAt: now,
         });
 
-        // Update organization stats
+        // Mark the invite notification as read
+        const notifId = `membership_invite_${memberId}`;
+        const notifDoc = await db
+          .collection("notifications")
+          .doc(notifId)
+          .get();
+        if (notifDoc.exists) {
+          batch.update(db.collection("notifications").doc(notifId), {
+            read: true,
+            readAt: now,
+          });
+        }
+
+        await batch.commit();
+
+        // Update organization stats (non-critical, outside batch)
         await updateOrganizationStats(organizationId);
 
         return reply.send({
@@ -209,8 +241,67 @@ export default async function organizationMemberRoutes(
           });
         }
 
-        // Delete the membership document
-        await db.collection("organizationMembers").doc(memberId).delete();
+        // Use batch write for atomic operations
+        const batch = db.batch();
+        const now = Timestamp.now();
+
+        // Mark membership as expired (declined)
+        batch.update(db.collection("organizationMembers").doc(memberId), {
+          status: "expired",
+          expiredAt: now,
+          expiredReason: "declined",
+        });
+
+        // Mark the invite notification as read
+        const notifId = `membership_invite_${memberId}`;
+        const notifDoc = await db
+          .collection("notifications")
+          .doc(notifId)
+          .get();
+        if (notifDoc.exists) {
+          batch.update(db.collection("notifications").doc(notifId), {
+            read: true,
+            readAt: now,
+          });
+        }
+
+        // Notify the inviter about the decline
+        if (member?.invitedBy) {
+          // Get organization name for notification
+          const orgDoc = await db
+            .collection("organizations")
+            .doc(organizationId)
+            .get();
+          const orgName = orgDoc.data()?.name || "Unknown";
+
+          const responseNotifId = `membership_response_${memberId}_declined`;
+          batch.set(db.collection("notifications").doc(responseNotifId), {
+            id: responseNotifId,
+            userId: member.invitedBy,
+            organizationId,
+            type: "membership_invite_response",
+            priority: "normal",
+            title: "Invite Declined",
+            titleKey: "notifications.membershipInviteResponse.title",
+            body: `${member.userEmail} declined the invitation to ${orgName}`,
+            bodyKey: "notifications.membershipInviteResponse.body",
+            bodyParams: {
+              userEmail: member.userEmail,
+              organizationName: orgName,
+              reason: "declined",
+            },
+            entityType: "organizationMember",
+            entityId: memberId,
+            channels: ["inApp"],
+            deliveryStatus: { inApp: "sent" },
+            deliveryAttempts: 1,
+            read: false,
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+
+        await batch.commit();
 
         return reply.send({
           message: "Invitation declined successfully",

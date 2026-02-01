@@ -33,10 +33,12 @@ import {
   getLessons,
   getLessonTypes,
   getInstructors,
+  getLessonSettings,
   getLessonStatusVariant,
   type LessonsResponse,
   type LessonTypesResponse,
   type InstructorsResponse,
+  type LessonSettingsResponse,
 } from "@/services/lessonService";
 import { cn } from "@/lib/utils";
 import { CreateLessonDialog } from "@/components/lessons/CreateLessonDialog";
@@ -79,6 +81,12 @@ export default function ManageLessonsPage() {
   const instructorsQuery = useApiQuery<InstructorsResponse>(
     queryKeys.instructors.byOrganization(organizationId || ""),
     () => getInstructors(organizationId!),
+    { enabled: !!organizationId, staleTime: 5 * 60 * 1000 },
+  );
+
+  const lessonSettingsQuery = useApiQuery<LessonSettingsResponse>(
+    queryKeys.lessonSettings.byOrganization(organizationId || ""),
+    () => getLessonSettings(organizationId!),
     { enabled: !!organizationId, staleTime: 5 * 60 * 1000 },
   );
 
@@ -319,6 +327,7 @@ export default function ManageLessonsPage() {
         <TabsContent value="types">
           <LessonTypesTab
             lessonTypes={lessonTypesQuery.data?.lessonTypes || []}
+            skillLevels={lessonSettingsQuery.data?.settings?.skillLevels || []}
             isLoading={lessonTypesQuery.isLoading}
             onRefresh={async () => await cacheInvalidation.lessonTypes.all()}
           />

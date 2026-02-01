@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 import {
   acceptOrganizationInvite,
@@ -21,6 +23,7 @@ import {
 
 export default function SignupPage() {
   const { t } = useTranslation("auth");
+  const { signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get("invite");
@@ -34,6 +37,7 @@ export default function SignupPage() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Invite details state
@@ -71,7 +75,7 @@ export default function SignupPage() {
         lastName: details.lastName || "",
       }));
     } catch (err: any) {
-      setInviteError(err.message || "Failed to load invitation");
+      setInviteError(err.message || t("register.loadingInviteFailed"));
     } finally {
       setLoadingInvite(false);
     }
@@ -82,6 +86,56 @@ export default function SignupPage() {
       ...prev,
       [e.target.name]: e.target.value,
     }));
+  };
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    setError(null);
+    try {
+      await signInWithGoogle();
+
+      // Check if user already has a profile
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        throw new Error(t("errors.registrationFailed"));
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/v1/auth/me`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
+      if (response.status === 404) {
+        // No profile yet — redirect to complete profile with invite token
+        const params = inviteToken ? `?invite=${inviteToken}` : "";
+        navigate(`/complete-profile${params}`);
+      } else if (!response.ok) {
+        // Non-404 error (500, network issue, etc.)
+        throw new Error(t("errors.registrationFailed"));
+      } else {
+        // Profile exists — accept invite directly if present
+        if (inviteToken) {
+          try {
+            await acceptOrganizationInvite(inviteToken);
+          } catch (inviteErr) {
+            console.error("Failed to accept invite:", inviteErr);
+          }
+          navigate("/organizations");
+        } else {
+          navigate("/horses");
+        }
+      }
+    } catch (err: any) {
+      console.error("Google sign-in error:", err);
+      // Don't show error if user cancelled the popup
+      if (err.code !== "auth/popup-closed-by-user") {
+        setError(err.message || t("errors.registrationFailed"));
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -222,6 +276,30 @@ export default function SignupPage() {
               </AlertDescription>
             </Alert>
           ) : null}
+
+          {/* Google Sign-up */}
+          {!loadingInvite && (
+            <div className="space-y-4 mb-4">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleGoogleSignIn}
+                disabled={loadingInvite || googleLoading}
+              >
+                {googleLoading
+                  ? t("register.signingUp")
+                  : t("register.continueWithGoogle")}
+              </Button>
+
+              <div className="flex items-center gap-4">
+                <Separator className="flex-1" />
+                <p className="text-muted-foreground text-sm">
+                  {t("register.or")}
+                </p>
+                <Separator className="flex-1" />
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}

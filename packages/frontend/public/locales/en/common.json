@@ -80,7 +80,8 @@
     "loadMore": "Load More",
     "saving": "Saving...",
     "submitting": "Submitting...",
-    "cancelling": "Cancelling..."
+    "cancelling": "Cancelling...",
+    "print": "Print"
   },
   "labels": {
     "name": "Name",
@@ -94,6 +95,7 @@
     "type": "Type",
     "category": "Category",
     "loading": "Loading...",
+    "error": "Error",
     "noData": "No data available",
     "search": "Search",
     "actions": "Actions",
@@ -120,7 +122,11 @@
     "of": "of",
     "selectDate": "Select date",
     "you": "you",
-    "selected": "selected"
+    "selected": "selected",
+    "organization": "Organization",
+    "roles": "Roles",
+    "expires": "Expires",
+    "loginRequired": "You'll be redirected to sign up or log in to accept this invitation"
   },
   "status": {
     "active": "Active",
@@ -205,6 +211,7 @@
     "member": "Member",
     "admin": "Administrator",
     "trainer": "Trainer",
+    "training_admin": "Training Administrator",
     "rider": "Rider",
     "groom": "Groom",
     "veterinarian": "Veterinarian",

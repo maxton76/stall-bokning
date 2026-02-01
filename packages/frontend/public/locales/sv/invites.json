@@ -23,5 +23,18 @@
   "buttons": {
     "accept": "Acceptera",
     "decline": "Avböj"
+  },
+  "pendingBanner": {
+    "title": "Du har en väntande inbjudan",
+    "titlePlural": "Du har {{count}} väntande inbjudningar",
+    "message": "Du har bjudits in till {{organizationName}}",
+    "invitedBy": "Inbjuden av {{inviterName}}",
+    "invitedByLabel": "Inbjuden av",
+    "expiresIn": "Går ut {{timeLeft}}",
+    "accept": "Acceptera",
+    "decline": "Avböj",
+    "acceptSuccess": "Du är nu medlem i {{organizationName}}",
+    "declineConfirm": "Är du säker på att du vill avböja inbjudan till {{organizationName}}?",
+    "declineSuccess": "Inbjudan avböjd"
   }
 }

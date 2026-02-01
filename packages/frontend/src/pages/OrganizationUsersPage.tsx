@@ -1,7 +1,16 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Plus, Pencil, Trash2, Search, RefreshCw, X, Mail } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  RefreshCw,
+  X,
+  Mail,
+  Upload,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -37,6 +46,7 @@ import { useCRUD } from "@/hooks/useCRUD";
 import { useToast } from "@/hooks/use-toast";
 import { InviteUserDialog } from "@/components/InviteUserDialog";
 import { EditMemberDialog } from "@/components/EditMemberDialog";
+import { BulkImportWizard } from "@/components/bulk-import";
 import { getOrganization } from "@/services/organizationService";
 import {
   getOrganizationMembers,
@@ -71,6 +81,7 @@ export default function OrganizationUsersPage() {
   );
   const inviteDialog = useDialog();
   const editDialog = useDialog();
+  const bulkImportDialog = useDialog();
 
   // Security: Validate URL organizationId matches user's current organization context
   // This prevents URL manipulation attacks where users try to access other organizations
@@ -182,9 +193,13 @@ export default function OrganizationUsersPage() {
       await cacheInvalidation.organizationInvites.list(organizationId!);
     } catch (error: any) {
       if (error.response?.status === 409) {
+        const code = error.response?.data?.code;
         toast({
           title: t("common:labels.error"),
-          description: t("organizations:invite.alreadyMember"),
+          description:
+            code === "INVITE_ALREADY_PENDING"
+              ? t("organizations:invite.alreadyInvited")
+              : t("organizations:invite.alreadyMember"),
           variant: "destructive",
         });
       } else {
@@ -330,6 +345,18 @@ export default function OrganizationUsersPage() {
         }}
       />
 
+      {/* Bulk Import Button */}
+      <div className="flex justify-end -mt-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => bulkImportDialog.openDialog()}
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          {t("organizations:bulkImport.button")}
+        </Button>
+      </div>
+
       {/* Search and Filters */}
       <Card>
         <CardHeader>
@@ -426,7 +453,12 @@ export default function OrganizationUsersPage() {
                                 key={role}
                                 role={role}
                                 className="text-xs"
-                              />
+                              >
+                                {t(
+                                  `organizations:invite.roles.${role}.label`,
+                                  role,
+                                )}
+                              </RoleBadge>
                             ))}
                           </div>
                         </TableCell>
@@ -565,12 +597,32 @@ export default function OrganizationUsersPage() {
                               key={role}
                               role={role}
                               className="text-xs"
-                            />
+                            >
+                              {t(
+                                `organizations:invite.roles.${role}.label`,
+                                role,
+                              )}
+                            </RoleBadge>
                           ))}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={member.status} />
+                        <div>
+                          <StatusBadge status={member.status}>
+                            {t(
+                              `organizations:members.statuses.${member.status}`,
+                              member.status,
+                            )}
+                          </StatusBadge>
+                          {member.status === "expired" &&
+                            member.expiredReason && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {t(
+                                  `organizations:members.expiredReason.${member.expiredReason}`,
+                                )}
+                              </p>
+                            )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         {member.stableAccess === "all" ? (
@@ -586,30 +638,86 @@ export default function OrganizationUsersPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEditMember(member)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              if (
-                                confirm(
-                                  t("organizations:members.confirmRemove", {
-                                    email: member.userEmail,
-                                  }),
-                                )
-                              ) {
-                                handleRemoveMember(member.userId);
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          {member.status === "expired" ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  if (
+                                    confirm(
+                                      t(
+                                        "organizations:members.confirmReinvite",
+                                        {
+                                          email: member.userEmail,
+                                        },
+                                      ),
+                                    )
+                                  ) {
+                                    handleInviteUser({
+                                      email: member.userEmail,
+                                      firstName: member.firstName,
+                                      lastName: member.lastName,
+                                      phoneNumber: member.phoneNumber,
+                                      roles: member.roles,
+                                      primaryRole: member.primaryRole,
+                                      showInPlanning: member.showInPlanning,
+                                      stableAccess: member.stableAccess,
+                                      assignedStableIds:
+                                        member.assignedStableIds,
+                                    });
+                                  }
+                                }}
+                                title={t("organizations:members.reinvite")}
+                              >
+                                <RefreshCw className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  if (
+                                    confirm(
+                                      t("organizations:members.confirmRemove", {
+                                        email: member.userEmail,
+                                      }),
+                                    )
+                                  ) {
+                                    handleRemoveMember(member.userId);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleEditMember(member)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  if (
+                                    confirm(
+                                      t("organizations:members.confirmRemove", {
+                                        email: member.userEmail,
+                                      }),
+                                    )
+                                  ) {
+                                    handleRemoveMember(member.userId);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -628,6 +736,8 @@ export default function OrganizationUsersPage() {
           open ? inviteDialog.openDialog() : inviteDialog.closeDialog()
         }
         onSave={handleInviteUser}
+        existingEmails={membersData.map((m) => m.userEmail.toLowerCase())}
+        pendingInviteEmails={invitesData.map((i) => i.email.toLowerCase())}
       />
 
       {/* Edit Member Dialog */}
@@ -644,6 +754,23 @@ export default function OrganizationUsersPage() {
         member={editingMember}
         onSave={handleUpdateMember}
       />
+
+      {/* Bulk Import Wizard */}
+      {organizationId && (
+        <BulkImportWizard
+          open={bulkImportDialog.open}
+          onOpenChange={(open) =>
+            open
+              ? bulkImportDialog.openDialog()
+              : bulkImportDialog.closeDialog()
+          }
+          organizationId={organizationId}
+          existingMembers={membersData}
+          existingInvites={
+            invitesData as (OrganizationInvite & { id: string })[]
+          }
+        />
+      )}
     </div>
   );
 }

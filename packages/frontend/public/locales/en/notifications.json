@@ -18,7 +18,18 @@
     "health_overdue": "Health Care Overdue",
     "daily_summary": "Daily Summary",
     "weekly_summary": "Weekly Summary",
-    "system": "System Message"
+    "system": "System Message",
+    "membership_invite": "Organization Invite",
+    "membership_invite_response": "Invite Response"
+  },
+  "membershipInvite": {
+    "title": "Organization Invite",
+    "body": "You've been invited to {{organizationName}}",
+    "viewAction": "View Invitation"
+  },
+  "membershipInviteResponse": {
+    "title": "Invite Response",
+    "body": "{{userEmail}} {{reason}} the invitation to {{organizationName}}"
   },
   "priority": {
     "urgent": "Urgent",

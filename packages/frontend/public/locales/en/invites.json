@@ -23,5 +23,18 @@
   "buttons": {
     "accept": "Accept",
     "decline": "Decline"
+  },
+  "pendingBanner": {
+    "title": "You have a pending invitation",
+    "titlePlural": "You have {{count}} pending invitations",
+    "message": "You've been invited to join {{organizationName}}",
+    "invitedBy": "Invited by {{inviterName}}",
+    "invitedByLabel": "Invited by",
+    "expiresIn": "Expires {{timeLeft}}",
+    "accept": "Accept",
+    "decline": "Decline",
+    "acceptSuccess": "You are now a member of {{organizationName}}",
+    "declineConfirm": "Are you sure you want to decline the invitation to {{organizationName}}?",
+    "declineSuccess": "Invitation declined"
   }
 }

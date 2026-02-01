@@ -63,7 +63,20 @@
     "editDescription": "Uppdatera medlemsinformation och roller",
     "updateSuccess": "Medlem uppdaterad",
     "memberUpdated": "Medlemsinformationen har uppdaterats",
-    "updateError": "Kunde inte uppdatera medlem"
+    "updateError": "Kunde inte uppdatera medlem",
+    "statuses": {
+      "active": "Aktiv",
+      "inactive": "Inaktiv",
+      "pending": "Väntande",
+      "expired": "Utgången"
+    },
+    "expiredReason": {
+      "declined": "Avböjd av användare",
+      "timeout": "Utgått"
+    },
+    "reinvite": "Bjud in igen",
+    "confirmReinvite": "Bjud in {{email}} igen till denna organisation?",
+    "deleteMember": "Ta bort medlem"
   },
   "invite": {
     "title": "Bjud in användare till organisation",
@@ -105,6 +118,7 @@
     "error": "Kunde inte skicka inbjudan",
     "inviteSent": "Inbjudan skickad till {{email}}. De kommer att få ett e-postmeddelande för att gå med.",
     "alreadyMember": "Användaren är redan medlem i denna organisation",
+    "alreadyInvited": "En inbjudan har redan skickats till denna e-postadress",
     "inviteFailed": "Kunde inte skicka inbjudan. Försök igen.",
     "validation": {
       "invalidEmail": "Ogiltig e-postadress",
@@ -155,6 +169,14 @@
       "inseminator": {
         "label": "Seminör",
         "description": "Aveltjänster"
+      },
+      "trainer": {
+        "label": "Tränare",
+        "description": "Ridlärare/tränare för lektioner"
+      },
+      "training_admin": {
+        "label": "Utbildningsansvarig",
+        "description": "Hanterar lektionsscheman och utbildningsprogram"
       },
       "support_contact": {
         "label": "Supportkontakt",
@@ -501,6 +523,79 @@
     "createSuccess": "Organisation har skapats",
     "updateSuccess": "Organisation har uppdaterats",
     "deleteSuccess": "Organisation har tagits bort"
+  },
+  "bulkImport": {
+    "title": "Massimport av medlemmar",
+    "description": "Importera flera medlemmar samtidigt från en Excel- eller CSV-fil",
+    "button": "Massimport",
+    "steps": {
+      "upload": "Ladda upp",
+      "mapping": "Kolumnmappning",
+      "preview": "Förhandsgranskning",
+      "confirmation": "Klart"
+    },
+    "upload": {
+      "dropzone": "Dra och släpp din fil här, eller klicka för att bläddra",
+      "formats": "Format som stöds: .xlsx, .xls, .csv (max 5MB)",
+      "hasHeaders": "Första raden innehåller kolumnrubriker",
+      "hasHeadersTooltip": "Aktivera detta om första raden i din fil innehåller kolumnnamn som E-post, Namn osv.",
+      "googleSheetsTip": "Tips: För att importera från Google Kalkylark, exportera som CSV först (Arkiv → Ladda ner → CSV)",
+      "maxRows": "Maximalt {{max}} rader per import",
+      "changeFile": "Byt fil"
+    },
+    "errors": {
+      "fileTooLarge": "Filen är för stor. Maximal storlek är {{max}}MB.",
+      "invalidFileType": "Ogiltigt filformat. Ladda upp en Excel- (.xlsx, .xls) eller CSV-fil.",
+      "emptyFile": "Filen verkar vara tom.",
+      "noDataRows": "Inga datarader hittades. Filen innehåller bara rubriker.",
+      "parseError": "Kunde inte tolka filen. Kontrollera formatet.",
+      "readError": "Kunde inte läsa filen. Försök igen.",
+      "submitFailed": "Kunde inte skicka importen. Försök igen."
+    },
+    "mapping": {
+      "description": "Koppla dina filkolumner till medlemsfält. E-post krävs.",
+      "column": "Kolumn",
+      "sampleValues": "Exempelvärden",
+      "mapTo": "Koppla till",
+      "email": "E-post",
+      "firstName": "Förnamn",
+      "lastName": "Efternamn",
+      "phoneNumber": "Telefonnummer",
+      "skip": "-- Hoppa över --",
+      "noData": "Ingen data",
+      "emailRequired": "Kolumnmappning för e-post krävs"
+    },
+    "preview": {
+      "globalRoles": "Standardroller",
+      "globalRolesDescription": "Dessa roller tilldelas alla importerade medlemmar om de inte åsidosätts per rad.",
+      "valid": "giltiga",
+      "warnings": "varningar",
+      "errors": "fel",
+      "ofTotal": "av {{total}} totalt",
+      "customRoles": "Anpassad",
+      "resetToGlobal": "Återställ till standardroller",
+      "startImport": "Starta import"
+    },
+    "validation": {
+      "missingEmail": "E-postadress saknas",
+      "invalidEmail": "Ogiltig e-postadress",
+      "duplicateInFile": "Dubblett av e-post i filen",
+      "alreadyMember": "Är redan medlem i denna organisation",
+      "pendingInvite": "Har en väntande inbjudan",
+      "missingName": "Namn saknas (e-post används som visningsnamn)"
+    },
+    "confirmation": {
+      "submitted": "Import skickad",
+      "submittedDescription": "Din import har skickats och bearbetas. Du får en notis när den är klar.",
+      "processing": "Bearbetar import...",
+      "processingDescription": "Medlemmar bjuds in. Detta kan ta en stund.",
+      "progress": "{{processed}} av {{total}} bearbetade ({{succeeded}} lyckades, {{failed}} misslyckades)",
+      "failed": "Import misslyckades",
+      "failedDescription": "Något gick fel under bearbetningen av importen. Försök igen eller kontakta supporten om problemet kvarstår.",
+      "canClose": "Du kan stänga detta fönster. Importen fortsätter i bakgrunden och du får en notis när den är klar.",
+      "completed": "Import klar",
+      "completedDescription": "{{succeeded}} av {{total}} medlemmar bjöds in."
+    }
   },
   "emptyState": {
     "title": "Inga organisationer ännu",

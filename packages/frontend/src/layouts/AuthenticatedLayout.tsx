@@ -1,6 +1,7 @@
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
+import { PendingInviteBanner } from "@/components/PendingInviteBanner";
 import { useNavigation } from "@/hooks/useNavigation";
 import {
   SearchIcon,
@@ -365,6 +366,9 @@ export default function AuthenticatedLayout() {
               />
             </div>
           </header>
+
+          {/* Pending Invite Banner */}
+          <PendingInviteBanner />
 
           {/* Main Content */}
           <main className="flex-1 overflow-auto">

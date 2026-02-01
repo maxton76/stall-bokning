@@ -218,6 +218,34 @@ locals {
       allow_unauthenticated = false
     }
 
+    "expire-pending-memberships" = {
+      description                  = "Expire pending memberships after timeout"
+      runtime                      = "nodejs22"
+      entry_point                  = "expirePendingMemberships"
+      memory                       = "256Mi"
+      cpu                          = "1"
+      timeout_seconds              = 180
+      max_instances                = var.functions_max_instances
+      min_instances                = 0
+      max_concurrency              = 1
+      ingress_settings             = "ALLOW_INTERNAL_ONLY"
+      source_archive_bucket        = var.functions_source_bucket
+      source_archive_object        = var.functions_source_object
+      environment_variables        = {}
+      build_environment_variables  = {}
+      secret_environment_variables = {}
+      event_trigger                = null
+      schedule = {
+        cron               = "0 */6 * * *" # Every 6 hours
+        timezone           = "Europe/Stockholm"
+        pause_in_non_prod  = true
+        retry_count        = 2
+        max_retry_duration = 600
+        payload            = {}
+      }
+      allow_unauthenticated = false
+    }
+
     # =========================================================================
     # Firestore Trigger Functions
     # =========================================================================
@@ -303,6 +331,35 @@ locals {
         filters = [
           { attribute = "database", value = "(default)", operator = "" },
           { attribute = "document", value = "routineSchedules/{scheduleId}", operator = "match-path-pattern" }
+        ]
+      }
+      schedule              = null
+      allow_unauthenticated = false
+    }
+
+    "process-bulk-import" = {
+      description                  = "Process bulk member imports"
+      runtime                      = "nodejs22"
+      entry_point                  = "processBulkImport"
+      memory                       = "512Mi"
+      cpu                          = "1"
+      timeout_seconds              = 300
+      max_instances                = var.functions_max_instances
+      min_instances                = 0
+      max_concurrency              = 1
+      ingress_settings             = "ALLOW_INTERNAL_ONLY"
+      source_archive_bucket        = var.functions_source_bucket
+      source_archive_object        = var.functions_source_object
+      environment_variables        = {}
+      build_environment_variables  = {}
+      secret_environment_variables = {}
+      event_trigger = {
+        event_type   = "google.cloud.firestore.document.v1.created"
+        region       = ""
+        retry_policy = "RETRY_POLICY_RETRY"
+        filters = [
+          { attribute = "database", value = "(default)", operator = "" },
+          { attribute = "document", value = "bulkImportJobs/{jobId}", operator = "match-path-pattern" }
         ]
       }
       schedule              = null

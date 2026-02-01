@@ -118,6 +118,12 @@ export const queryKeys = {
     details: () => [...queryKeys.organizationMembers.all, "detail"] as const,
     detail: (id: string) =>
       [...queryKeys.organizationMembers.details(), id] as const,
+    trainers: (organizationId: string) =>
+      [
+        ...queryKeys.organizationMembers.all,
+        "trainers",
+        organizationId,
+      ] as const,
   },
 
   // Organization Invites

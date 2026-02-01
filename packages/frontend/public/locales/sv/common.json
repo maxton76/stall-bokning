@@ -80,7 +80,8 @@
     "loadMore": "Ladda fler",
     "saving": "Sparar...",
     "submitting": "Skickar...",
-    "cancelling": "Avbokar..."
+    "cancelling": "Avbokar...",
+    "print": "Skriv ut"
   },
   "labels": {
     "name": "Namn",
@@ -94,6 +95,7 @@
     "type": "Typ",
     "category": "Kategori",
     "loading": "Laddar...",
+    "error": "Fel",
     "noData": "Ingen data tillgänglig",
     "search": "Sök",
     "actions": "Åtgärder",
@@ -120,7 +122,11 @@
     "of": "av",
     "selectDate": "Välj datum",
     "you": "du",
-    "selected": "vald"
+    "selected": "vald",
+    "organization": "Organisation",
+    "roles": "Roller",
+    "expires": "Går ut",
+    "loginRequired": "Du kommer att omdirigeras för att registrera dig eller logga in för att acceptera denna inbjudan"
   },
   "status": {
     "active": "Aktiv",
@@ -246,6 +252,7 @@
     "member": "Medlem",
     "admin": "Administratör",
     "trainer": "Tränare",
+    "training_admin": "Utbildningsansvarig",
     "rider": "Ryttare",
     "groom": "Skötare",
     "veterinarian": "Veterinär",

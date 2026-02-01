@@ -93,16 +93,22 @@ export default async function inviteRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Verify email matches (security check)
+        // Log if authenticated email differs from invite email (audit trail)
+        // Token-based invites use a 256-bit cryptographic token as proof of identity,
+        // so email match is not required (allows Google OAuth with different email)
         if (invite.email.toLowerCase() !== user.email?.toLowerCase()) {
-          return reply.status(403).send({
-            error: "Forbidden",
-            message: "This invite was sent to a different email address",
-          });
+          request.log.info(
+            {
+              inviteEmail: invite.email,
+              userEmail: user.email,
+              userId: user.uid,
+            },
+            "Invite accepted with different email than invitation",
+          );
         }
 
         // Accept the invite
-        await acceptInvite(invite.id, user.uid);
+        await acceptInvite(invite.id, user.uid, user.email || invite.email);
 
         return reply.send({
           message: "Invite accepted successfully",
@@ -138,12 +144,18 @@ export default async function inviteRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Verify email matches (security check)
+        // Log if authenticated email differs from invite email (audit trail)
+        // Token-based invites use a 256-bit cryptographic token as proof of identity,
+        // so email match is not required (allows Google OAuth with different email)
         if (invite.email.toLowerCase() !== user.email?.toLowerCase()) {
-          return reply.status(403).send({
-            error: "Forbidden",
-            message: "This invite was sent to a different email address",
-          });
+          request.log.info(
+            {
+              inviteEmail: invite.email,
+              userEmail: user.email,
+              userId: user.uid,
+            },
+            "Invite declined with different email than invitation",
+          );
         }
 
         // Decline the invite
@@ -205,10 +217,68 @@ export default async function inviteRoutes(fastify: FastifyInstance) {
           ...doc.data(),
         }));
 
-        const pendingMemberships = memberSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        // Batch fetch organization and inviter data to avoid N+1 queries
+        const orgIds = [
+          ...new Set(memberSnapshot.docs.map((d) => d.data().organizationId)),
+        ];
+        const inviterIds = [
+          ...new Set(
+            memberSnapshot.docs.map((d) => d.data().invitedBy).filter(Boolean),
+          ),
+        ];
+
+        const orgMap = new Map<string, string>();
+        const inviterMap = new Map<string, string>();
+
+        // Batch fetch organizations (Firestore getAll supports up to 100 refs)
+        if (orgIds.length > 0) {
+          try {
+            const orgRefs = orgIds.map((id) =>
+              db.collection("organizations").doc(id),
+            );
+            const orgDocs = await db.getAll(...orgRefs);
+            for (const orgDoc of orgDocs) {
+              if (orgDoc.exists) {
+                orgMap.set(orgDoc.id, orgDoc.data()?.name || "");
+              }
+            }
+          } catch {
+            // Non-critical
+          }
+        }
+
+        // Batch fetch inviters
+        if (inviterIds.length > 0) {
+          try {
+            const inviterRefs = inviterIds.map((id) =>
+              db.collection("users").doc(id as string),
+            );
+            const inviterDocs = await db.getAll(...inviterRefs);
+            for (const inviterDoc of inviterDocs) {
+              if (inviterDoc.exists) {
+                const d = inviterDoc.data();
+                inviterMap.set(
+                  inviterDoc.id,
+                  `${d?.firstName || ""} ${d?.lastName || ""}`.trim(),
+                );
+              }
+            }
+          } catch {
+            // Non-critical
+          }
+        }
+
+        const pendingMemberships = memberSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            organizationName: orgMap.get(data.organizationId) || "",
+            inviterName: data.invitedBy
+              ? inviterMap.get(data.invitedBy) || ""
+              : "",
+          };
+        });
 
         return reply.send({
           invites,
@@ -344,12 +414,16 @@ export default async function inviteRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Verify email matches
+        // Log if authenticated email differs from invite email (audit trail)
         if (inviteData.email?.toLowerCase() !== user.email?.toLowerCase()) {
-          return reply.status(403).send({
-            error: "Forbidden",
-            message: "This invitation was sent to a different email address",
-          });
+          request.log.info(
+            {
+              inviteEmail: inviteData.email,
+              userEmail: user.email,
+              userId: user.uid,
+            },
+            "Stable invite accepted with different email than invitation",
+          );
         }
 
         // Get stable to find organization

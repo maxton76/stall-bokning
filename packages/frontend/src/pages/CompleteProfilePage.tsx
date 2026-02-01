@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -13,10 +14,14 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
+import { acceptOrganizationInvite } from "@/services/inviteService";
 
 export default function CompleteProfilePage() {
+  const { t } = useTranslation("auth");
   const { user, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get("invite");
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -51,12 +56,12 @@ export default function CompleteProfilePage() {
     setError(null);
 
     if (!formData.firstName || !formData.lastName) {
-      setError("Please fill in all required fields");
+      setError(t("completeProfile.requiredFields"));
       return;
     }
 
     if (!user) {
-      setError("Not authenticated");
+      setError(t("completeProfile.notAuthenticated"));
       return;
     }
 
@@ -66,7 +71,7 @@ export default function CompleteProfilePage() {
       // Call backend to create Firestore user document
       const token = await auth.currentUser?.getIdToken();
       if (!token) {
-        throw new Error("Not authenticated");
+        throw new Error(t("completeProfile.notAuthenticated"));
       }
 
       const response = await fetch(
@@ -89,17 +94,26 @@ export default function CompleteProfilePage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to complete profile");
+        throw new Error(errorData.message || t("completeProfile.failed"));
       }
 
       // Refresh user profile in AuthContext
       await refreshProfile();
 
-      // Navigate to horses page
-      navigate("/horses");
+      // If invite token, accept the invite and go to organizations
+      if (inviteToken) {
+        try {
+          await acceptOrganizationInvite(inviteToken);
+        } catch (inviteErr) {
+          console.error("Failed to accept invite:", inviteErr);
+        }
+        navigate("/organizations");
+      } else {
+        navigate("/horses");
+      }
     } catch (err: any) {
       console.error("Profile completion error:", err);
-      setError(err.message || "Failed to complete profile");
+      setError(err.message || t("completeProfile.failed"));
     } finally {
       setLoading(false);
     }
@@ -114,17 +128,15 @@ export default function CompleteProfilePage() {
     <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Complete Your Profile</CardTitle>
-          <CardDescription>
-            We need a bit more information to set up your account
-          </CardDescription>
+          <CardTitle>{t("completeProfile.title")}</CardTitle>
+          <CardDescription>{t("completeProfile.subtitle")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email (read-only) */}
             <div>
               <label htmlFor="email" className="text-sm font-medium">
-                Email
+                {t("completeProfile.emailLabel")}
               </label>
               <Input
                 id="email"
@@ -138,7 +150,8 @@ export default function CompleteProfilePage() {
             {/* First Name */}
             <div>
               <label htmlFor="firstName" className="text-sm font-medium">
-                First Name <span className="text-destructive">*</span>
+                {t("completeProfile.firstNameLabel")}{" "}
+                <span className="text-destructive">*</span>
               </label>
               <Input
                 id="firstName"
@@ -153,7 +166,8 @@ export default function CompleteProfilePage() {
             {/* Last Name */}
             <div>
               <label htmlFor="lastName" className="text-sm font-medium">
-                Last Name <span className="text-destructive">*</span>
+                {t("completeProfile.lastNameLabel")}{" "}
+                <span className="text-destructive">*</span>
               </label>
               <Input
                 id="lastName"
@@ -168,7 +182,7 @@ export default function CompleteProfilePage() {
             {/* Phone Number (optional) */}
             <div>
               <label htmlFor="phoneNumber" className="text-sm font-medium">
-                Phone Number (optional)
+                {t("completeProfile.phoneLabel")}
               </label>
               <Input
                 id="phoneNumber"
@@ -176,7 +190,7 @@ export default function CompleteProfilePage() {
                 type="tel"
                 value={formData.phoneNumber}
                 onChange={handleChange}
-                placeholder="+46 70 123 45 67"
+                placeholder={t("completeProfile.phonePlaceholder")}
               />
             </div>
 
@@ -192,10 +206,10 @@ export default function CompleteProfilePage() {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Completing Profile...
+                  {t("completeProfile.submitting")}
                 </>
               ) : (
-                "Complete Profile"
+                t("completeProfile.submit")
               )}
             </Button>
           </form>

@@ -63,7 +63,20 @@
     "editDescription": "Update member information and roles",
     "updateSuccess": "Member Updated",
     "memberUpdated": "Member information has been updated",
-    "updateError": "Failed to update member"
+    "updateError": "Failed to update member",
+    "statuses": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "pending": "Pending",
+      "expired": "Expired"
+    },
+    "expiredReason": {
+      "declined": "Declined by user",
+      "timeout": "Timed out"
+    },
+    "reinvite": "Re-invite",
+    "confirmReinvite": "Re-invite {{email}} to this organization?",
+    "deleteMember": "Delete Member"
   },
   "invite": {
     "title": "Invite User to Organization",
@@ -105,6 +118,7 @@
     "error": "Failed to send invitation",
     "inviteSent": "Invitation sent to {{email}}. They will receive an email to join.",
     "alreadyMember": "User is already a member of this organization",
+    "alreadyInvited": "An invitation has already been sent to this email address",
     "inviteFailed": "Failed to send invitation. Please try again.",
     "validation": {
       "invalidEmail": "Invalid email address",
@@ -155,6 +169,14 @@
       "inseminator": {
         "label": "Inseminator",
         "description": "Breeding services"
+      },
+      "trainer": {
+        "label": "Trainer",
+        "description": "Riding instructor/trainer for lessons"
+      },
+      "training_admin": {
+        "label": "Training Administrator",
+        "description": "Manages lesson schedules and training program"
       },
       "support_contact": {
         "label": "Support Contact",
@@ -501,6 +523,79 @@
     "createSuccess": "Organization created successfully",
     "updateSuccess": "Organization updated successfully",
     "deleteSuccess": "Organization deleted successfully"
+  },
+  "bulkImport": {
+    "title": "Bulk Import Members",
+    "description": "Import multiple members at once from an Excel or CSV file",
+    "button": "Bulk Import",
+    "steps": {
+      "upload": "Upload",
+      "mapping": "Mapping",
+      "preview": "Preview",
+      "confirmation": "Done"
+    },
+    "upload": {
+      "dropzone": "Drag and drop your file here, or click to browse",
+      "formats": "Supported formats: .xlsx, .xls, .csv (max 5MB)",
+      "hasHeaders": "First row contains column headers",
+      "hasHeadersTooltip": "Enable this if the first row of your file contains column names like Email, Name, etc.",
+      "googleSheetsTip": "Tip: To import from Google Sheets, export as CSV first (File → Download → CSV)",
+      "maxRows": "Maximum {{max}} rows per import",
+      "changeFile": "Change file"
+    },
+    "errors": {
+      "fileTooLarge": "File is too large. Maximum size is {{max}}MB.",
+      "invalidFileType": "Invalid file type. Please upload an Excel (.xlsx, .xls) or CSV file.",
+      "emptyFile": "The file appears to be empty.",
+      "noDataRows": "No data rows found. The file only contains headers.",
+      "parseError": "Could not parse the file. Please check the format.",
+      "readError": "Could not read the file. Please try again.",
+      "submitFailed": "Failed to submit import. Please try again."
+    },
+    "mapping": {
+      "description": "Map your file columns to member fields. Email is required.",
+      "column": "Column",
+      "sampleValues": "Sample Values",
+      "mapTo": "Map To",
+      "email": "Email",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "phoneNumber": "Phone Number",
+      "skip": "-- Skip --",
+      "noData": "No data",
+      "emailRequired": "Email column mapping is required"
+    },
+    "preview": {
+      "globalRoles": "Default Roles",
+      "globalRolesDescription": "These roles will be assigned to all imported members unless overridden per row.",
+      "valid": "valid",
+      "warnings": "warnings",
+      "errors": "errors",
+      "ofTotal": "of {{total}} total",
+      "customRoles": "Custom",
+      "resetToGlobal": "Reset to default roles",
+      "startImport": "Start Import"
+    },
+    "validation": {
+      "missingEmail": "Email address is missing",
+      "invalidEmail": "Invalid email address",
+      "duplicateInFile": "Duplicate email in file",
+      "alreadyMember": "Already a member of this organization",
+      "pendingInvite": "Has a pending invitation",
+      "missingName": "Name is missing (will use email as display name)"
+    },
+    "confirmation": {
+      "submitted": "Import Submitted",
+      "submittedDescription": "Your import has been submitted and is being processed. You will receive a notification when it's complete.",
+      "processing": "Processing Import...",
+      "processingDescription": "Members are being invited. This may take a moment.",
+      "progress": "{{processed}} of {{total}} processed ({{succeeded}} succeeded, {{failed}} failed)",
+      "failed": "Import Failed",
+      "failedDescription": "Something went wrong while processing the import. Please try again or contact support if the problem persists.",
+      "canClose": "You can close this window. The import continues in the background and you'll receive a notification when it's complete.",
+      "completed": "Import Complete",
+      "completedDescription": "{{succeeded}} of {{total}} members were invited."
+    }
   },
   "emptyState": {
     "title": "No organizations yet",

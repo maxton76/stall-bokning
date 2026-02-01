@@ -22,6 +22,8 @@ import {
   Calendar,
   Activity,
   Loader2,
+  UserPlus,
+  UserX,
 } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import type {
@@ -50,6 +52,10 @@ function getNotificationIcon(type: NotificationType): React.ReactNode {
     case "daily_summary":
     case "weekly_summary":
       return <Clock className="h-4 w-4" />;
+    case "membership_invite":
+      return <UserPlus className="h-4 w-4 text-blue-500" />;
+    case "membership_invite_response":
+      return <UserX className="h-4 w-4 text-orange-500" />;
     default:
       return <Bell className="h-4 w-4" />;
   }

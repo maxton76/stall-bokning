@@ -100,12 +100,18 @@ export default function FeedingSettingsPage() {
   }, [stables, selectedStableId]);
 
   // Load feed types for the organization (shared across all stables) - include inactive
-  const { feedTypes: feedTypesData, loading: feedTypesLoading } =
-    useFeedTypesQuery(organizationId, true);
+  const {
+    feedTypes: feedTypesData,
+    loading: feedTypesLoading,
+    refetch: refetchFeedTypes,
+  } = useFeedTypesQuery(organizationId, true);
 
   // Load feeding times for selected stable - include inactive
-  const { feedingTimes: feedingTimesData, loading: feedingTimesLoading } =
-    useFeedingTimesQuery(selectedStableId, true);
+  const {
+    feedingTimes: feedingTimesData,
+    loading: feedingTimesLoading,
+    refetch: refetchFeedingTimes,
+  } = useFeedingTimesQuery(selectedStableId, true);
 
   // Feed Types CRUD operations
   const feedTypeCRUD = useCRUD<FeedType>({
@@ -121,6 +127,7 @@ export default function FeedingSettingsPage() {
     },
     onSuccess: async () => {
       await cacheInvalidation.feedTypes.all();
+      await refetchFeedTypes();
     },
     successMessages: {
       create: t("feeding:feedTypes.messages.createSuccess"),
@@ -146,6 +153,7 @@ export default function FeedingSettingsPage() {
     },
     onSuccess: async () => {
       await cacheInvalidation.feedingTimes.all();
+      await refetchFeedingTimes();
     },
     successMessages: {
       create: t("feeding:feedingTimes.messages.createSuccess"),
@@ -204,11 +212,13 @@ export default function FeedingSettingsPage() {
   const handleReactivateFeedType = async (type: FeedType) => {
     await updateFeedType(type.id, { isActive: true });
     await cacheInvalidation.feedTypes.all();
+    await refetchFeedTypes();
   };
 
   const handleReactivateFeedingTime = async (time: FeedingTime) => {
     await updateFeedingTime(time.id, { isActive: true });
     await cacheInvalidation.feedingTimes.all();
+    await refetchFeedingTimes();
   };
 
   // Delete confirmation

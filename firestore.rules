@@ -329,13 +329,6 @@ service cloud.firestore {
         return resource.data.keys().hasAny(['organizationId']) && resource.data.organizationId != null;
       }
 
-      // Helper: Get invitee email (supports both field names)
-      function getInviteeEmail() {
-        return resource.data.keys().hasAny(['inviteeEmail'])
-          ? resource.data.inviteeEmail
-          : resource.data.email;
-      }
-
       // LIST: Blocked - use API /api/v1/invites for centralized authorization
       allow list: if false;
 
@@ -2037,6 +2030,24 @@ service cloud.firestore {
         isSystemAdmin() ||
         isOrganizationAdministrator(resource.data.organizationId)
       );
+    }
+
+    // ============================================================================
+    // BULK IMPORT JOBS COLLECTION - BACKEND-MANAGED
+    // ============================================================================
+    // Jobs are created by the API (service account context) and processed by
+    // Cloud Functions. Clients can only read their own jobs for progress tracking.
+
+    match /bulkImportJobs/{jobId} {
+      // READ: Only the user who created the job can read it (for progress tracking)
+      allow get: if isAuthenticated() &&
+        resource.data.createdBy == request.auth.uid;
+
+      // LIST: Blocked - use API for listing
+      allow list: if false;
+
+      // WRITES: Backend only (API creates, Cloud Functions update)
+      allow create, update, delete: if false;
     }
 
     // Default deny all

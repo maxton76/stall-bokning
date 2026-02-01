@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Printer } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -174,10 +174,13 @@ export default function ScheduleMonthPage() {
     );
   }
 
+  const selectedStable = stables.find((s) => s.id === activeStableId);
+  const monthLabel = format(currentMonth, "MMMM yyyy", { locale: sv });
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between no-print">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
             {t("common:schedule.month.title")}
@@ -202,6 +205,15 @@ export default function ScheduleMonthPage() {
               </SelectContent>
             </Select>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.print()}
+            className="no-print"
+          >
+            <Printer className="h-4 w-4 mr-2" />
+            {t("common:buttons.print")}
+          </Button>
           <Button variant="outline" size="sm" asChild>
             <Link to="/schedule/week">
               {t("common:navigation.scheduleWeek")}
@@ -216,7 +228,7 @@ export default function ScheduleMonthPage() {
       </div>
 
       {/* Month Navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between no-print">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={goToPreviousMonth}>
             <ChevronLeft className="h-4 w-4" />
@@ -229,91 +241,98 @@ export default function ScheduleMonthPage() {
           </Button>
         </div>
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold">
-            {format(currentMonth, "MMMM yyyy", { locale: sv })}
-          </h2>
+          <h2 className="text-lg font-semibold">{monthLabel}</h2>
           {isLoading && (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           )}
         </div>
       </div>
 
-      {/* Calendar Grid */}
-      <Card>
-        <CardContent className="p-4">
-          {/* Weekday Headers */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {["Mån", "Tis", "Ons", "Tor", "Fre", "Lör", "Sön"].map((day) => (
-              <div
-                key={day}
-                className="text-center text-sm font-medium text-muted-foreground py-2"
-              >
-                {day}
-              </div>
-            ))}
-          </div>
+      {/* Printable Area */}
+      <div className="printable-area">
+        {/* Print-only header */}
+        <div className="print-header hidden">
+          <h1 className="text-2xl font-bold">{selectedStable?.name}</h1>
+          <p className="text-lg capitalize">{monthLabel}</p>
+        </div>
 
-          {/* Calendar Days */}
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((date) => {
-              const isCurrentMonth = isSameMonth(date, currentMonth);
-              const isCurrentDay = isSameDay(date, today);
-              const routines = getRoutinesForDay(date);
-
-              return (
+        {/* Calendar Grid */}
+        <Card>
+          <CardContent className="p-4">
+            {/* Weekday Headers */}
+            <div className="grid grid-cols-7 gap-1 mb-2">
+              {["Mån", "Tis", "Ons", "Tor", "Fre", "Lör", "Sön"].map((day) => (
                 <div
-                  key={date.toISOString()}
-                  onClick={() => handleDayClick(date)}
-                  className={`
-                    min-h-[80px] p-2 rounded-md border transition-colors cursor-pointer
-                    ${isCurrentMonth ? "bg-background" : "bg-muted/30 text-muted-foreground"}
-                    ${isCurrentDay ? "border-primary ring-1 ring-primary" : "border-border"}
-                    hover:bg-muted/50
-                  `}
+                  key={day}
+                  className="text-center text-sm font-medium text-muted-foreground py-2"
                 >
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar Days */}
+            <div className="grid grid-cols-7 gap-1">
+              {calendarDays.map((date) => {
+                const isCurrentMonth = isSameMonth(date, currentMonth);
+                const isCurrentDay = isSameDay(date, today);
+                const routines = getRoutinesForDay(date);
+
+                return (
                   <div
+                    key={date.toISOString()}
+                    onClick={() => handleDayClick(date)}
                     className={`
-                      text-sm font-medium mb-1
-                      ${isCurrentDay ? "text-primary font-bold" : ""}
+                      min-h-[80px] p-2 rounded-md border transition-colors cursor-pointer
+                      ${isCurrentMonth ? "bg-background" : "bg-muted/30 text-muted-foreground"}
+                      ${isCurrentDay ? "border-primary ring-1 ring-primary" : "border-border"}
+                      hover:bg-muted/50
                     `}
                   >
-                    {format(date, "d")}
+                    <div
+                      className={`
+                        text-sm font-medium mb-1
+                        ${isCurrentDay ? "text-primary font-bold" : ""}
+                      `}
+                    >
+                      {format(date, "d")}
+                    </div>
+                    {isCurrentMonth && routines.length > 0 && (
+                      <div className="space-y-0.5 overflow-hidden">
+                        {routines.slice(0, 3).map((routine) => (
+                          <div
+                            key={routine.id}
+                            className={`text-[10px] truncate ${
+                              routine.status === "completed"
+                                ? "text-muted-foreground line-through"
+                                : "text-foreground"
+                            }`}
+                          >
+                            {routine.templateName || "Rutin"}
+                          </div>
+                        ))}
+                        {routines.length > 3 && (
+                          <div className="text-[10px] text-muted-foreground">
+                            +{routines.length - 3} till
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {isCurrentMonth && routines.length === 0 && (
+                      <div className="text-[10px] text-muted-foreground/50">
+                        Inga
+                      </div>
+                    )}
                   </div>
-                  {isCurrentMonth && routines.length > 0 && (
-                    <div className="space-y-0.5 overflow-hidden">
-                      {routines.slice(0, 3).map((routine) => (
-                        <div
-                          key={routine.id}
-                          className={`text-[10px] truncate ${
-                            routine.status === "completed"
-                              ? "text-muted-foreground line-through"
-                              : "text-foreground"
-                          }`}
-                        >
-                          {routine.templateName || "Rutin"}
-                        </div>
-                      ))}
-                      {routines.length > 3 && (
-                        <div className="text-[10px] text-muted-foreground">
-                          +{routines.length - 3} till
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {isCurrentMonth && routines.length === 0 && (
-                    <div className="text-[10px] text-muted-foreground/50">
-                      Inga
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+      <div className="flex items-center gap-4 text-sm text-muted-foreground no-print">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded border-2 border-primary" />
           <span>Idag</span>

@@ -55,14 +55,18 @@ export function EditMemberDialog({
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const { modules } = useSubscription();
 
-  // Build role keys — include support_contact only when the tier has supportAccess
+  // Build role keys — conditionally include module-gated roles
   const roleKeys = useMemo(() => {
     const keys: string[] = [...BASE_ROLE_KEYS];
+    if (modules.lessons) {
+      keys.push("trainer");
+      keys.push("training_admin");
+    }
     if (modules.supportAccess) {
       keys.push("support_contact");
     }
     return keys;
-  }, [modules.supportAccess]);
+  }, [modules.lessons, modules.supportAccess]);
 
   // Build translated organization roles
   const organizationRoles = useMemo(

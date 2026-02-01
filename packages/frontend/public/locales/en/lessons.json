@@ -76,7 +76,8 @@
       "novice": "Novice",
       "intermediate": "Intermediate",
       "advanced": "Advanced",
-      "professional": "Professional"
+      "professional": "Professional",
+      "expert": "Professional"
     },
     "fields": {
       "name": "Name",
@@ -107,6 +108,9 @@
     "empty": "No instructors registered",
     "availability": "Availability",
     "setAvailability": "Set Availability",
+    "selectMember": "Select member with trainer role",
+    "linkedMember": "Linked member",
+    "noTrainers": "No members with trainer role found",
     "fields": {
       "name": "Name",
       "email": "Email",
@@ -116,7 +120,8 @@
       "certifications": "Certifications",
       "defaultRate": "Default Rate",
       "color": "Color",
-      "isActive": "Active"
+      "isActive": "Active",
+      "specializationsPlaceholder": "Dressage, Jumping, Eventing..."
     }
   },
   "templates": {
@@ -249,7 +254,10 @@
       "name": "Name",
       "description_field": "Description",
       "sortOrder": "Sort order",
-      "empty": "No levels configured"
+      "empty": "No levels configured",
+      "systemBadge": "System",
+      "enabled": "Enabled",
+      "disabled": "Disabled"
     },
     "cancellation": {
       "title": "Cancellation Policy",

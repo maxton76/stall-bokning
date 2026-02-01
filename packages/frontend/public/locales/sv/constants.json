@@ -115,7 +115,9 @@
     "saddlemaker": "Sadelmakare",
     "horseowner": "Hästägare",
     "rider": "Ryttare",
-    "inseminator": "Seminör"
+    "inseminator": "Seminör",
+    "trainer": "Tränare",
+    "training_admin": "Utbildningsansvarig"
   },
   "userRoleDescriptions": {
     "administrator": "Full organisationsåtkomst",
@@ -127,7 +129,9 @@
     "saddlemaker": "Utrustning och sadeltjänster",
     "horseowner": "Extern hästägare",
     "rider": "Professionell ryttare",
-    "inseminator": "Aveltjänster"
+    "inseminator": "Aveltjänster",
+    "trainer": "Ridlärare/tränare för lektioner",
+    "training_admin": "Hanterar lektionsscheman och utbildningsprogram"
   },
   "facilityStatus": {
     "active": "Aktiv",

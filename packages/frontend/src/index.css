@@ -82,3 +82,32 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+@media print {
+  /* Hide everything except printable area */
+  body * {
+    visibility: hidden;
+  }
+  .printable-area,
+  .printable-area * {
+    visibility: visible;
+  }
+  .printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  /* Show print-only header */
+  .print-header {
+    display: block !important;
+    visibility: visible;
+    margin-bottom: 1rem;
+  }
+
+  /* Hide interactive elements within printable area */
+  .no-print {
+    display: none !important;
+  }
+}

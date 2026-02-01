@@ -115,7 +115,9 @@
     "saddlemaker": "Saddle Maker",
     "horseowner": "Horse Owner",
     "rider": "Rider",
-    "inseminator": "Inseminator"
+    "inseminator": "Inseminator",
+    "trainer": "Trainer",
+    "training_admin": "Training Administrator"
   },
   "userRoleDescriptions": {
     "administrator": "Full organization access",
@@ -127,7 +129,9 @@
     "saddlemaker": "Tack and saddle services",
     "horseowner": "External horse owner",
     "rider": "Professional rider",
-    "inseminator": "Breeding services"
+    "inseminator": "Breeding services",
+    "trainer": "Riding instructor/trainer for lessons",
+    "training_admin": "Manages lesson schedules and training program"
   },
   "facilityStatus": {
     "active": "Active",

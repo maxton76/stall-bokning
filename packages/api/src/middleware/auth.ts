@@ -1,5 +1,5 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
-import { auth } from "../utils/firebase.js";
+import { auth, db } from "../utils/firebase.js";
 import type {
   AuthenticatedRequest,
   StableContextRequest,
@@ -12,6 +12,7 @@ export type {
   StableContextRequest,
   OrganizationContextRequest,
 };
+import type { OrganizationRole } from "@equiduty/shared";
 import {
   canAccessStable,
   canManageStable,
@@ -430,3 +431,111 @@ export function requireOrganizationAdmin(
  * @param idSource - Where to extract the organizationId from: "query" | "params" | "body"
  */
 export const requireOrganizationMember = requireOrganizationAccess;
+
+// ============================================
+// LESSON MANAGEMENT MIDDLEWARE
+// ============================================
+
+const LESSON_MANAGEMENT_ROLES: OrganizationRole[] = [
+  "administrator",
+  "trainer",
+  "training_admin",
+];
+
+/**
+ * Middleware: Require lesson management permissions
+ * User must have administrator, trainer, or training_admin role in the organization
+ *
+ * @param idSource - Where to extract the organizationId from: "query" | "params" | "body"
+ */
+export function requireLessonManagement(
+  idSource: "query" | "params" | "body" = "params",
+) {
+  return async (
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> => {
+    const user = (request as AuthenticatedRequest).user;
+
+    if (!user) {
+      return reply.status(401).send({
+        error: "Unauthorized",
+        message: "Authentication required",
+      });
+    }
+
+    // Extract organizationId based on source
+    let organizationId: string | undefined;
+    if (idSource === "query") {
+      organizationId = (request.query as any)?.organizationId;
+    } else if (idSource === "params") {
+      organizationId = (request.params as any)?.organizationId;
+    } else if (idSource === "body") {
+      organizationId = (request.body as any)?.organizationId;
+    }
+
+    if (!organizationId) {
+      return reply.status(400).send({
+        error: "Bad Request",
+        message: "Organization ID required",
+      });
+    }
+
+    // System admins bypass checks
+    if (user.role === "system_admin") {
+      (request as OrganizationContextRequest).organizationId = organizationId;
+      (request as OrganizationContextRequest).isOrganizationAdmin = true;
+      return;
+    }
+
+    // Check if user is organization owner
+    const orgDoc = await db
+      .collection("organizations")
+      .doc(organizationId)
+      .get();
+    if (orgDoc.exists && orgDoc.data()?.ownerId === user.uid) {
+      (request as OrganizationContextRequest).organizationId = organizationId;
+      (request as OrganizationContextRequest).isOrganizationAdmin = true;
+      return;
+    }
+
+    // Check organization membership and roles
+    const memberDoc = await db
+      .collection("organizationMembers")
+      .doc(`${user.uid}_${organizationId}`)
+      .get();
+
+    if (!memberDoc.exists) {
+      return reply.status(403).send({
+        error: "Forbidden",
+        message: "You do not have access to this organization",
+      });
+    }
+
+    const memberData = memberDoc.data();
+    if (memberData?.status !== "active") {
+      return reply.status(403).send({
+        error: "Forbidden",
+        message: "Your membership is not active",
+      });
+    }
+
+    const memberRoles: string[] = memberData?.roles || [];
+    const hasLessonRole = memberRoles.some((role) =>
+      LESSON_MANAGEMENT_ROLES.includes(role as OrganizationRole),
+    );
+
+    if (!hasLessonRole) {
+      return reply.status(403).send({
+        error: "Forbidden",
+        message:
+          "Lesson management requires administrator, trainer, or training_admin role",
+      });
+    }
+
+    // Attach organization context
+    (request as OrganizationContextRequest).organizationId = organizationId;
+    (request as OrganizationContextRequest).isOrganizationAdmin =
+      memberRoles.includes("administrator");
+  };
+}

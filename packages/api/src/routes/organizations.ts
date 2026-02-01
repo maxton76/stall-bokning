@@ -49,6 +49,7 @@ const organizationSettingsSchema = z.object({
 
 const organizationRoleSchema = z.enum([
   "administrator",
+  "schedule_planner",
   "veterinarian",
   "dentist",
   "farrier",
@@ -58,6 +59,8 @@ const organizationRoleSchema = z.enum([
   "horse_owner",
   "rider",
   "inseminator",
+  "trainer",
+  "training_admin",
   "support_contact",
 ]);
 
@@ -864,6 +867,25 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
           return reply.status(409).send({
             error: "Conflict",
             message: "User is already a member of this organization",
+            code: "ALREADY_MEMBER",
+          });
+        }
+
+        // Check if there's already a pending invite for this email
+        const existingInviteSnapshot = await db
+          .collection("invites")
+          .where("organizationId", "==", organizationId)
+          .where("email", "==", inviteData.email.toLowerCase())
+          .where("status", "==", "pending")
+          .limit(1)
+          .get();
+
+        if (!existingInviteSnapshot.empty) {
+          return reply.status(409).send({
+            error: "Conflict",
+            message:
+              "An invitation has already been sent to this email address",
+            code: "INVITE_ALREADY_PENDING",
           });
         }
 
@@ -882,6 +904,9 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
           const memberId = `${userId}_${organizationId}`;
 
           // Create organizationMember with pending status
+          const expiresAt = Timestamp.fromDate(
+            new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          );
           const memberData = {
             id: memberId,
             organizationId,
@@ -896,6 +921,7 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
             showInPlanning: inviteData.showInPlanning,
             stableAccess: inviteData.stableAccess,
             assignedStableIds: inviteData.assignedStableIds || [],
+            expiresAt,
             joinedAt: Timestamp.now(),
             invitedBy: user.uid,
           };
@@ -904,6 +930,46 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
             .collection("organizationMembers")
             .doc(memberId)
             .set(memberData);
+
+          // Create in-app notification for the invited user
+          const inviterName =
+            `${inviterUserData?.firstName || ""} ${inviterUserData?.lastName || ""}`.trim();
+          const notificationId = `membership_invite_${memberId}`;
+          try {
+            await db
+              .collection("notifications")
+              .doc(notificationId)
+              .set({
+                id: notificationId,
+                userId,
+                organizationId,
+                type: "membership_invite",
+                priority: "high",
+                title: "Organization Invite",
+                titleKey: "notifications.membershipInvite.title",
+                body: `You've been invited to ${org.name}`,
+                bodyKey: "notifications.membershipInvite.body",
+                bodyParams: {
+                  organizationName: org.name,
+                  inviterName,
+                },
+                entityType: "organizationMember",
+                entityId: memberId,
+                channels: ["inApp", "email"],
+                deliveryStatus: { inApp: "sent" },
+                deliveryAttempts: 1,
+                read: false,
+                actionUrl: `/invites/accept?memberId=${memberId}`,
+                expiresAt,
+                createdAt: Timestamp.now(),
+                updatedAt: Timestamp.now(),
+              });
+          } catch (notifError) {
+            request.log.error(
+              { notifError },
+              "Failed to create invite notification",
+            );
+          }
 
           // Send email with accept/decline links
           const frontendUrl =

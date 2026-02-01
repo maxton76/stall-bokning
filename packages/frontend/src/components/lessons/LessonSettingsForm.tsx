@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -76,6 +77,8 @@ export function LessonSettingsForm() {
       id: crypto.randomUUID(),
       name: newLevelName.trim(),
       sortOrder: settings.skillLevels.length,
+      isSystem: false,
+      isEnabled: true,
     };
 
     setSettings({
@@ -83,6 +86,15 @@ export function LessonSettingsForm() {
       skillLevels: [...settings.skillLevels, newLevel],
     });
     setNewLevelName("");
+  };
+
+  const handleToggleSkillLevel = (id: string, isEnabled: boolean) => {
+    setSettings({
+      ...settings,
+      skillLevels: settings.skillLevels.map((l) =>
+        l.id === id ? { ...l, isEnabled } : l,
+      ),
+    });
   };
 
   const handleRemoveSkillLevel = (id: string) => {
@@ -126,14 +138,31 @@ export function LessonSettingsForm() {
                     className="flex items-center gap-3 rounded-md border p-2"
                   >
                     <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                    <span className="flex-1 text-sm">{level.name}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveSkillLevel(level.id)}
+                    <span
+                      className={`flex-1 text-sm ${!level.isEnabled ? "text-muted-foreground line-through" : ""}`}
                     >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                      {level.name}
+                    </span>
+                    {level.isSystem && (
+                      <Badge variant="outline" className="text-xs">
+                        {t("lessons:settings.skillLevels.systemBadge")}
+                      </Badge>
+                    )}
+                    <Switch
+                      checked={level.isEnabled !== false}
+                      onCheckedChange={(checked) =>
+                        handleToggleSkillLevel(level.id, checked)
+                      }
+                    />
+                    {!level.isSystem && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveSkillLevel(level.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
                   </div>
                 ))}
             </div>

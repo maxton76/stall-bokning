@@ -76,7 +76,8 @@
       "novice": "Lätt",
       "intermediate": "Medel",
       "advanced": "Avancerad",
-      "professional": "Professionell"
+      "professional": "Professionell",
+      "expert": "Professionell"
     },
     "fields": {
       "name": "Namn",
@@ -107,6 +108,9 @@
     "empty": "Inga instruktörer registrerade",
     "availability": "Tillgänglighet",
     "setAvailability": "Ange tillgänglighet",
+    "selectMember": "Välj medlem med tränarroll",
+    "linkedMember": "Kopplad medlem",
+    "noTrainers": "Inga medlemmar med tränarroll hittades",
     "fields": {
       "name": "Namn",
       "email": "E-post",
@@ -116,7 +120,8 @@
       "certifications": "Certifieringar",
       "defaultRate": "Standardarvode",
       "color": "Färg",
-      "isActive": "Aktiv"
+      "isActive": "Aktiv",
+      "specializationsPlaceholder": "Dressyr, Hoppning, Fälttävlan..."
     }
   },
   "templates": {
@@ -249,7 +254,10 @@
       "name": "Namn",
       "description_field": "Beskrivning",
       "sortOrder": "Sorteringsordning",
-      "empty": "Inga nivåer konfigurerade"
+      "empty": "Inga nivåer konfigurerade",
+      "systemBadge": "System",
+      "enabled": "Aktiverad",
+      "disabled": "Inaktiverad"
     },
     "cancellation": {
       "title": "Avbokningsregler",

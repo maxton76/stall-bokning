@@ -59,7 +59,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { LessonType } from "@equiduty/shared";
-import type { CreateLessonTypeData } from "@/services/lessonService";
+import type {
+  CreateLessonTypeData,
+  SkillLevel,
+} from "@/services/lessonService";
 
 const lessonTypeSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -72,9 +75,7 @@ const lessonTypeSchema = z.object({
     "assessment",
     "other",
   ]),
-  level: z
-    .enum(["beginner", "novice", "intermediate", "advanced", "expert"])
-    .optional(),
+  level: z.string().optional(),
   defaultDuration: z.coerce
     .number()
     .min(15, "Duration must be at least 15 minutes"),
@@ -93,6 +94,7 @@ type LessonTypeFormData = z.infer<typeof lessonTypeSchema>;
 
 export interface LessonTypesTabProps {
   lessonTypes: LessonType[];
+  skillLevels?: SkillLevel[];
   isLoading?: boolean;
   onRefresh?: () => Promise<unknown>;
   // Legacy props for direct control
@@ -122,6 +124,7 @@ const COLORS = [
 
 export function LessonTypesTab({
   lessonTypes,
+  skillLevels = [],
   onCreate,
   onUpdate,
   onDelete,
@@ -299,7 +302,9 @@ export function LessonTypesTab({
                     </TableCell>
                     <TableCell>
                       {lessonType.level
-                        ? t(`lessons:types.level.${lessonType.level}`)
+                        ? (skillLevels.find((sl) => sl.id === lessonType.level)
+                            ?.name ??
+                          t(`lessons:types.level.${lessonType.level}`))
                         : "-"}
                     </TableCell>
                     <TableCell className="text-right">
@@ -448,17 +453,14 @@ export function LessonTypesTab({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {[
-                            "beginner",
-                            "novice",
-                            "intermediate",
-                            "advanced",
-                            "expert",
-                          ].map((level) => (
-                            <SelectItem key={level} value={level}>
-                              {t(`lessons:types.level.${level}`)}
-                            </SelectItem>
-                          ))}
+                          {skillLevels
+                            .filter((l) => l.isEnabled !== false)
+                            .sort((a, b) => a.sortOrder - b.sortOrder)
+                            .map((level) => (
+                              <SelectItem key={level.id} value={level.id}>
+                                {level.name}
+                              </SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />

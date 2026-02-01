@@ -229,3 +229,22 @@ resource "google_cloudfunctions2_function_iam_member" "public_invoker" {
   role           = "roles/cloudfunctions.invoker"
   member         = "allUsers"
 }
+
+# =============================================================================
+# IAM - Allow Eventarc to invoke event-triggered functions
+# =============================================================================
+
+# For Cloud Functions Gen2 with Eventarc triggers, the trigger's service account
+# needs roles/run.invoker on the underlying Cloud Run service to deliver events.
+resource "google_cloud_run_v2_service_iam_member" "eventarc_invoker" {
+  for_each = {
+    for name, config in var.functions : name => config
+    if config.event_trigger != null
+  }
+
+  project  = var.project_id
+  location = var.region
+  name     = google_cloudfunctions2_function.functions[each.key].service_config[0].service
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${var.service_account_email}"
+}

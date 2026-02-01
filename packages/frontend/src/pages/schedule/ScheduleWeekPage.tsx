@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, ChevronRight, Plus, AlertCircle } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  AlertCircle,
+  Printer,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -252,10 +258,13 @@ export default function ScheduleWeekPage() {
       slots: [],
     }));
 
+  const selectedStable = stables.find((s) => s.id === activeStableId);
+  const weekDateRange = `${format(currentWeekStart, "d MMMM", { locale: sv })} – ${format(addDays(currentWeekStart, 6), "d MMMM yyyy", { locale: sv })}`;
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between no-print">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
             {t("common:schedule.week.title")}
@@ -280,6 +289,15 @@ export default function ScheduleWeekPage() {
               </SelectContent>
             </Select>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.print()}
+            className="no-print"
+          >
+            <Printer className="h-4 w-4 mr-2" />
+            {t("common:buttons.print")}
+          </Button>
           <Button variant="outline" size="sm" asChild>
             <Link to="/schedule/month">
               {t("common:navigation.scheduleMonth")}
@@ -295,7 +313,7 @@ export default function ScheduleWeekPage() {
 
       {/* Stats Summary */}
       {weekSchedule && weekSchedule.totalRoutines > 0 && (
-        <div className="flex gap-4 text-sm text-muted-foreground">
+        <div className="flex gap-4 text-sm text-muted-foreground no-print">
           <span>
             Totalt:{" "}
             <strong className="text-foreground">
@@ -327,7 +345,7 @@ export default function ScheduleWeekPage() {
       )}
 
       {/* Week Navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between no-print">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={goToPreviousWeek}>
             <ChevronLeft className="h-4 w-4" />
@@ -345,72 +363,81 @@ export default function ScheduleWeekPage() {
         </h2>
       </div>
 
-      {/* Week Grid */}
-      <div className="grid grid-cols-7 gap-2 overflow-x-auto">
-        {weekDays.map((day) => (
-          <Card
-            key={day.dateStr}
-            className={
-              isToday(day.date) ? "border-primary ring-1 ring-primary" : ""
-            }
-          >
-            <CardHeader className="p-3 pb-2">
-              <CardTitle
-                className={`text-sm ${isToday(day.date) ? "text-primary" : ""}`}
-              >
-                <div className="font-medium">
-                  {format(day.date, "EEEE", { locale: sv })}
-                </div>
-                <div
-                  className={`text-2xl ${isToday(day.date) ? "font-bold" : "font-normal"}`}
+      {/* Printable Area */}
+      <div className="printable-area">
+        {/* Print-only header */}
+        <div className="print-header hidden">
+          <h1 className="text-2xl font-bold">{selectedStable?.name}</h1>
+          <p className="text-lg">{weekDateRange}</p>
+        </div>
+
+        {/* Week Grid */}
+        <div className="grid grid-cols-7 gap-2 overflow-x-auto">
+          {weekDays.map((day) => (
+            <Card
+              key={day.dateStr}
+              className={
+                isToday(day.date) ? "border-primary ring-1 ring-primary" : ""
+              }
+            >
+              <CardHeader className="p-3 pb-2">
+                <CardTitle
+                  className={`text-sm ${isToday(day.date) ? "text-primary" : ""}`}
                 >
-                  {format(day.date, "d")}
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-2 space-y-1.5">
-              {day.slots.length === 0 ? (
-                <div className="text-xs text-muted-foreground text-center py-4">
-                  Inga rutiner
-                </div>
-              ) : (
-                day.slots.map((slot) => (
-                  <div
-                    key={slot.id}
-                    onClick={() => handleSlotClick(slot, day.date)}
-                    className={`p-2 rounded-md border text-xs cursor-pointer transition-colors hover:opacity-80 ${getSlotStatusColor(slot)}`}
-                  >
-                    <div className="font-medium truncate">{slot.title}</div>
-                    <div className="text-[10px] opacity-75">{slot.time}</div>
-                    {slot.assignee ? (
-                      <div className="text-[10px] font-bold mt-1">
-                        {formatAssigneeName(slot.assignee)}
-                      </div>
-                    ) : (
-                      <div className="text-[10px] text-muted-foreground mt-1">
-                        Ej tilldelad
-                      </div>
-                    )}
+                  <div className="font-medium">
+                    {format(day.date, "EEEE", { locale: sv })}
                   </div>
-                ))
-              )}
-              {/* Add routine button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full h-7 text-[10px] text-muted-foreground hover:text-foreground"
-                onClick={() => handleBookSlot(day)}
-              >
-                <Plus className="h-3 w-3 mr-0.5" />
-                Lägg till
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+                  <div
+                    className={`text-2xl ${isToday(day.date) ? "font-bold" : "font-normal"}`}
+                  >
+                    {format(day.date, "d")}
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-2 space-y-1.5">
+                {day.slots.length === 0 ? (
+                  <div className="text-xs text-muted-foreground text-center py-4">
+                    Inga rutiner
+                  </div>
+                ) : (
+                  day.slots.map((slot) => (
+                    <div
+                      key={slot.id}
+                      onClick={() => handleSlotClick(slot, day.date)}
+                      className={`p-2 rounded-md border text-xs cursor-pointer transition-colors hover:opacity-80 ${getSlotStatusColor(slot)}`}
+                    >
+                      <div className="font-medium truncate">{slot.title}</div>
+                      <div className="text-[10px] opacity-75">{slot.time}</div>
+                      {slot.assignee ? (
+                        <div className="text-[10px] font-bold mt-1">
+                          {formatAssigneeName(slot.assignee)}
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-muted-foreground mt-1">
+                          Ej tilldelad
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+                {/* Add routine button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full h-7 text-[10px] text-muted-foreground hover:text-foreground no-print"
+                  onClick={() => handleBookSlot(day)}
+                >
+                  <Plus className="h-3 w-3 mr-0.5" />
+                  Lägg till
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground no-print">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded bg-gray-100 border border-gray-200" />
           <span>Ej tilldelad</span>

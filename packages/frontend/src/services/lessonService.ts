@@ -72,6 +72,8 @@ export interface SkillLevel {
   name: string;
   description?: string;
   sortOrder: number;
+  isSystem: boolean;
+  isEnabled: boolean;
 }
 
 export interface LessonsFilters {
@@ -88,7 +90,7 @@ export interface CreateLessonTypeData {
   name: string;
   description?: string;
   category: "private" | "group" | "clinic" | "camp" | "assessment" | "other";
-  level?: "beginner" | "novice" | "intermediate" | "advanced" | "expert";
+  level?: string;
   defaultDuration: number;
   minParticipants?: number;
   maxParticipants: number;

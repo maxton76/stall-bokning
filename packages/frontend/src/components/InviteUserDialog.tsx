@@ -67,12 +67,16 @@ interface InviteUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (data: InviteUserFormData) => Promise<void>;
+  existingEmails?: string[];
+  pendingInviteEmails?: string[];
 }
 
 export function InviteUserDialog({
   open,
   onOpenChange,
   onSave,
+  existingEmails = [],
+  pendingInviteEmails = [],
 }: InviteUserDialogProps) {
   const { t } = useTranslation(["organizations", "common"]);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
@@ -82,11 +86,15 @@ export function InviteUserDialog({
   // Build role keys — include support_contact only when the tier has supportAccess
   const roleKeys = useMemo(() => {
     const keys: string[] = [...BASE_ROLE_KEYS];
+    if (modules.lessons) {
+      keys.push("trainer");
+      keys.push("training_admin");
+    }
     if (modules.supportAccess) {
       keys.push("support_contact");
     }
     return keys;
-  }, [modules.supportAccess]);
+  }, [modules.lessons, modules.supportAccess]);
 
   // Build translated organization roles
   const organizationRoles = useMemo(
@@ -157,6 +165,33 @@ export function InviteUserDialog({
     successMessage: t("organizations:invite.success"),
     errorMessage: t("organizations:invite.error"),
   });
+
+  // Check email against existing members and pending invites on blur
+  const checkEmailDuplicate = (email: string) => {
+    const normalized = email.toLowerCase().trim();
+    if (!normalized) return;
+    if (existingEmails.includes(normalized)) {
+      form.setError("email", {
+        message: t("organizations:invite.alreadyMember"),
+      });
+      return;
+    }
+    if (pendingInviteEmails.includes(normalized)) {
+      form.setError("email", {
+        message: t("organizations:invite.alreadyInvited"),
+      });
+      return;
+    }
+    // Clear only duplicate-related errors, keep zod validation errors
+    if (
+      form.formState.errors.email?.message ===
+        t("organizations:invite.alreadyMember") ||
+      form.formState.errors.email?.message ===
+        t("organizations:invite.alreadyInvited")
+    ) {
+      form.clearErrors("email");
+    }
+  };
 
   // Watch form fields for conditional rendering
   const roles = form.watch("roles");
@@ -234,6 +269,7 @@ export function InviteUserDialog({
         type="email"
         placeholder={t("organizations:invite.emailPlaceholder")}
         required
+        onBlur={(e) => checkEmailDuplicate(e.target.value)}
       />
 
       <div className="grid grid-cols-2 gap-4">

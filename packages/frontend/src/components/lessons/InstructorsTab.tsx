@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, User, Mail, Phone, Award } from "lucide-react";
+import { Plus, Edit, User, Mail, Phone, Award, Link } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,10 +40,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import type { Instructor } from "@equiduty/shared";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { queryKeys } from "@/lib/queryClient";
+import { getTrainerMembers } from "@/services/organizationMemberService";
+import type { Instructor, OrganizationMember } from "@equiduty/shared";
 import type { CreateInstructorData } from "@/services/lessonService";
 
 const instructorSchema = z.object({
+  userId: z.string().optional(),
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   phone: z.string().optional(),
@@ -83,6 +95,7 @@ export function InstructorsTab({
   onUpdate,
 }: InstructorsTabProps) {
   const { t } = useTranslation(["lessons", "common"]);
+  const { currentOrganization } = useOrganization();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingInstructor, setEditingInstructor] = useState<Instructor | null>(
     null,
@@ -93,6 +106,7 @@ export function InstructorsTab({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(instructorSchema as any),
     defaultValues: {
+      userId: "",
       name: "",
       email: "",
       phone: "",
@@ -104,8 +118,27 @@ export function InstructorsTab({
     },
   });
 
+  // Fetch trainer members when dialog opens
+  const trainerMembersQuery = useApiQuery<OrganizationMember[]>(
+    queryKeys.organizationMembers.trainers(currentOrganization || ""),
+    () => getTrainerMembers(currentOrganization!),
+    { enabled: !!currentOrganization && dialogOpen },
+  );
+
+  // Filter out members already linked to an instructor
+  const availableTrainers = useMemo(() => {
+    if (!trainerMembersQuery.data) return [];
+    return trainerMembersQuery.data.filter(
+      (m) => !instructors.some((i) => i.userId === m.userId),
+    );
+  }, [trainerMembersQuery.data, instructors]);
+
+  // Determine if editing a linked instructor (has userId)
+  const isLinkedInstructor = editingInstructor?.userId;
+
   function openCreateDialog() {
     form.reset({
+      userId: "",
       name: "",
       email: "",
       phone: "",
@@ -121,6 +154,7 @@ export function InstructorsTab({
 
   function openEditDialog(instructor: Instructor) {
     form.reset({
+      userId: instructor.userId || "",
       name: instructor.name,
       email: instructor.email || "",
       phone: instructor.phone || "",
@@ -134,10 +168,24 @@ export function InstructorsTab({
     setDialogOpen(true);
   }
 
+  function handleMemberSelect(memberId: string) {
+    const member = trainerMembersQuery.data?.find((m) => m.userId === memberId);
+    if (member) {
+      form.setValue("userId", member.userId);
+      form.setValue(
+        "name",
+        `${member.firstName || ""} ${member.lastName || ""}`.trim(),
+      );
+      form.setValue("email", member.userEmail || "");
+      form.setValue("phone", member.phoneNumber || "");
+    }
+  }
+
   async function handleSubmit(data: InstructorFormData) {
     setIsSubmitting(true);
     try {
       const payload: CreateInstructorData = {
+        userId: data.userId || undefined,
         name: data.name,
         email: data.email || undefined,
         phone: data.phone || undefined,
@@ -223,9 +271,14 @@ export function InstructorsTab({
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <h3 className="font-medium truncate">
-                            {instructor.name}
-                          </h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-medium truncate">
+                              {instructor.name}
+                            </h3>
+                            {instructor.userId && (
+                              <Link className="h-3 w-3 text-muted-foreground" />
+                            )}
+                          </div>
                           <Button
                             size="icon"
                             variant="ghost"
@@ -324,55 +377,110 @@ export function InstructorsTab({
               onSubmit={form.handleSubmit(handleSubmit)}
               className="space-y-4"
             >
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t("lessons:instructors.fields.name")}
-                    </FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Create mode: show member selector */}
+              {!editingInstructor && (
+                <div className="space-y-2">
+                  <FormLabel>{t("lessons:instructors.selectMember")}</FormLabel>
+                  <Select onValueChange={handleMemberSelect}>
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={t("lessons:instructors.selectMember")}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {trainerMembersQuery.isLoading ? (
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                          {t("common:loading")}
+                        </div>
+                      ) : availableTrainers.length === 0 ? (
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                          {t("lessons:instructors.noTrainers")}
+                        </div>
+                      ) : (
+                        availableTrainers.map((member) => (
+                          <SelectItem key={member.userId} value={member.userId}>
+                            {`${member.firstName || ""} ${member.lastName || ""}`.trim() ||
+                              member.userEmail}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {t("lessons:instructors.fields.email")}
-                      </FormLabel>
-                      <FormControl>
-                        <Input type="email" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+              {/* Edit mode (linked): show read-only member info */}
+              {editingInstructor && isLinkedInstructor && (
+                <div className="rounded-md border p-3 bg-muted/50">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Link className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">
+                      {t("lessons:instructors.linkedMember")}:
+                    </span>
+                    <span>{editingInstructor.name}</span>
+                  </div>
+                  {editingInstructor.email && (
+                    <p className="text-sm text-muted-foreground ml-6">
+                      {editingInstructor.email}
+                    </p>
                   )}
-                />
+                </div>
+              )}
 
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {t("lessons:instructors.fields.phone")}
-                      </FormLabel>
-                      <FormControl>
-                        <Input type="tel" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              {/* Editable name/email/phone: only for create (manual fill) or unlinked instructors */}
+              {(!editingInstructor || !isLinkedInstructor) && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {t("lessons:instructors.fields.name")}
+                        </FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t("lessons:instructors.fields.email")}
+                          </FormLabel>
+                          <FormControl>
+                            <Input type="email" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t("lessons:instructors.fields.phone")}
+                          </FormLabel>
+                          <FormControl>
+                            <Input type="tel" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </>
+              )}
 
               <FormField
                 control={form.control}
@@ -398,7 +506,9 @@ export function InstructorsTab({
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Dressage, Jumping, Eventing..."
+                        placeholder={t(
+                          "lessons:instructors.fields.specializationsPlaceholder",
+                        )}
                         {...field}
                       />
                     </FormControl>

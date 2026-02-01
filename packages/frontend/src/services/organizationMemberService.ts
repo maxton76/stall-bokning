@@ -188,6 +188,22 @@ export async function removeOrganizationMember(
 }
 
 /**
+ * Get active members with trainer or training_admin roles
+ * @param organizationId - Organization ID
+ * @returns Promise with array of members who have trainer roles
+ */
+export async function getTrainerMembers(
+  organizationId: string,
+): Promise<OrganizationMember[]> {
+  const members = await getActiveOrganizationMembers(organizationId);
+  return members.filter(
+    (m) =>
+      m.roles?.includes("trainer" as OrganizationRole) ||
+      m.roles?.includes("training_admin" as OrganizationRole),
+  );
+}
+
+/**
  * Get all organizations where user is a member
  * @param userId - User ID
  * @returns Promise with array of organization IDs

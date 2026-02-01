@@ -36,6 +36,8 @@ export interface FormInputProps<T extends FieldValues> {
   helperText?: string;
   /** Custom class name */
   className?: string;
+  /** Blur handler */
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
 }
 
 export function FormInput<T extends FieldValues>({
@@ -48,8 +50,10 @@ export function FormInput<T extends FieldValues>({
   disabled,
   helperText,
   className,
+  onBlur,
 }: FormInputProps<T>) {
   const error = form.formState.errors[name]?.message as string | undefined;
+  const registration = form.register(name);
 
   return (
     <FormField
@@ -65,7 +69,11 @@ export function FormInput<T extends FieldValues>({
         type={type}
         placeholder={placeholder}
         disabled={disabled}
-        {...form.register(name)}
+        {...registration}
+        onBlur={(e) => {
+          registration.onBlur(e);
+          onBlur?.(e);
+        }}
       />
     </FormField>
   );

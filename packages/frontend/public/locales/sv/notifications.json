@@ -18,7 +18,18 @@
     "health_overdue": "Försenad hälsovård",
     "daily_summary": "Daglig sammanfattning",
     "weekly_summary": "Veckosammanfattning",
-    "system": "Systemmeddelande"
+    "system": "Systemmeddelande",
+    "membership_invite": "Organisationsinbjudan",
+    "membership_invite_response": "Inbjudningssvar"
+  },
+  "membershipInvite": {
+    "title": "Organisationsinbjudan",
+    "body": "Du har bjudits in till {{organizationName}}",
+    "viewAction": "Visa inbjudan"
+  },
+  "membershipInviteResponse": {
+    "title": "Inbjudningssvar",
+    "body": "{{userEmail}} {{reason}} inbjudan till {{organizationName}}"
   },
   "priority": {
     "urgent": "Brådskande",

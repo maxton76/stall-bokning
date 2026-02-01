@@ -7,14 +7,22 @@ import type { RecurrencePattern } from "./recurring.js";
  */
 
 /**
- * Lesson difficulty level
+ * Skill level ID — references a SkillLevel from lesson settings.
+ * Widened from union to string to support dynamic org-level skill levels.
  */
-export type LessonLevel =
-  | "beginner"
-  | "novice"
-  | "intermediate"
-  | "advanced"
-  | "expert";
+export type LessonLevel = string;
+
+/**
+ * Dynamic skill level stored in org-level lesson settings.
+ */
+export interface SkillLevel {
+  id: string;
+  name: string;
+  description?: string;
+  sortOrder: number;
+  isSystem: boolean;
+  isEnabled: boolean;
+}
 
 /**
  * Lesson type category

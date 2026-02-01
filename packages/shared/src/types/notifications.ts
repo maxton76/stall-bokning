@@ -28,7 +28,9 @@ export type NotificationType =
   | "weekly_summary" // Weekly summary
   | "system_alert" // System-level alerts
   | "selection_turn_started" // User's turn to select routines has started
-  | "selection_process_completed"; // All members have completed their selections
+  | "selection_process_completed" // All members have completed their selections
+  | "membership_invite" // Existing user invited to organization
+  | "membership_invite_response"; // Admin notification: user declined or invite expired
 
 /**
  * Notification priority levels
@@ -71,7 +73,8 @@ export interface Notification {
     | "recurringActivity"
     | "instance"
     | "horse"
-    | "stable";
+    | "stable"
+    | "organizationMember";
   entityId?: string;
 
   // Delivery tracking
@@ -306,7 +309,8 @@ export interface CreateNotificationInput {
     | "recurringActivity"
     | "instance"
     | "horse"
-    | "stable";
+    | "stable"
+    | "organizationMember";
   entityId?: string;
   channels?: NotificationChannel[];
   scheduledFor?: Date | string;
@@ -383,5 +387,17 @@ export const NOTIFICATION_TEMPLATES = {
     bodyKey: "notifications.selectionProcessCompleted.body",
     priority: "normal" as NotificationPriority,
     defaultChannels: ["inApp", "email"] as NotificationChannel[],
+  },
+  membership_invite: {
+    titleKey: "notifications.membershipInvite.title",
+    bodyKey: "notifications.membershipInvite.body",
+    priority: "high" as NotificationPriority,
+    defaultChannels: ["inApp", "email"] as NotificationChannel[],
+  },
+  membership_invite_response: {
+    titleKey: "notifications.membershipInviteResponse.title",
+    bodyKey: "notifications.membershipInviteResponse.body",
+    priority: "normal" as NotificationPriority,
+    defaultChannels: ["inApp"] as NotificationChannel[],
   },
 } as const;

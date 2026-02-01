@@ -216,6 +216,7 @@ export async function getInviteByToken(
 export async function acceptInvite(
   inviteId: string,
   userId: string,
+  userEmail?: string,
 ): Promise<void> {
   const inviteDoc = await db.collection("invites").doc(inviteId).get();
 
@@ -235,7 +236,7 @@ export async function acceptInvite(
       id: memberId,
       organizationId: invite.organizationId,
       userId,
-      userEmail: invite.email,
+      userEmail: userEmail || invite.email,
       firstName: invite.firstName || "",
       lastName: invite.lastName || "",
       phoneNumber: invite.phoneNumber,

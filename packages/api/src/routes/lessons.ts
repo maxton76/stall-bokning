@@ -5,7 +5,7 @@ import { db } from "../utils/firebase.js";
 import {
   authenticate,
   requireOrganizationAccess,
-  requireOrganizationAdmin,
+  requireLessonManagement,
   type AuthenticatedRequest,
 } from "../middleware/auth.js";
 import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
@@ -16,7 +16,44 @@ import type {
   Instructor,
   LessonStatus,
   BookingStatus,
+  SkillLevel,
 } from "@equiduty/shared";
+
+// ============================================
+// System defaults
+// ============================================
+
+const SYSTEM_SKILL_LEVELS: SkillLevel[] = [
+  {
+    id: "beginner",
+    name: "Nybörjare",
+    sortOrder: 0,
+    isSystem: true,
+    isEnabled: true,
+  },
+  { id: "novice", name: "Lätt", sortOrder: 1, isSystem: true, isEnabled: true },
+  {
+    id: "intermediate",
+    name: "Medel",
+    sortOrder: 2,
+    isSystem: true,
+    isEnabled: true,
+  },
+  {
+    id: "advanced",
+    name: "Avancerad",
+    sortOrder: 3,
+    isSystem: true,
+    isEnabled: true,
+  },
+  {
+    id: "expert",
+    name: "Professionell",
+    sortOrder: 4,
+    isSystem: true,
+    isEnabled: true,
+  },
+];
 
 // ============================================
 // Schemas
@@ -33,9 +70,7 @@ const createLessonTypeSchema = z.object({
     "assessment",
     "other",
   ]),
-  level: z
-    .enum(["beginner", "novice", "intermediate", "advanced", "professional"])
-    .optional(),
+  level: z.string().optional(),
   defaultDuration: z.number().min(15).max(480),
   minParticipants: z.number().min(1).default(1),
   maxParticipants: z.number().min(1).max(50),
@@ -181,6 +216,8 @@ const lessonSettingsSchema = z.object({
         name: z.string(),
         description: z.string().optional(),
         sortOrder: z.number(),
+        isSystem: z.boolean().default(false),
+        isEnabled: z.boolean().default(true),
       }),
     )
     .optional(),
@@ -251,7 +288,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lesson-types",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requireLessonManagement("params")],
     },
     async (request, reply) => {
       const { organizationId } = request.params;
@@ -313,7 +350,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lesson-types/:lessonTypeId",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requireLessonManagement("params")],
     },
     async (request, reply) => {
       const { organizationId, lessonTypeId } = request.params;
@@ -346,7 +383,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lesson-types/:lessonTypeId",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requireLessonManagement("params")],
     },
     async (request, _reply) => {
       const { organizationId, lessonTypeId } = request.params;
@@ -410,7 +447,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/instructors",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requireLessonManagement("params")],
     },
     async (request, reply) => {
       const { organizationId } = request.params;
@@ -446,7 +483,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/instructors/:instructorId",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requireLessonManagement("params")],
     },
     async (request, reply) => {
       const { organizationId, instructorId } = request.params;
@@ -480,7 +517,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/instructors/:instructorId/availability",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requireLessonManagement("params")],
     },
     async (request, reply) => {
       const { organizationId, instructorId } = request.params;
@@ -663,7 +700,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requireLessonManagement("params")],
     },
     async (request, reply) => {
       const { organizationId } = request.params;
@@ -744,7 +781,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/:lessonId",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requireLessonManagement("params")],
     },
     async (request, reply) => {
       const { organizationId, lessonId } = request.params;
@@ -802,7 +839,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/:lessonId/cancel",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requireLessonManagement("params")],
     },
     async (request, reply) => {
       const { organizationId, lessonId } = request.params;
@@ -1009,7 +1046,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/:lessonId/bookings/:bookingId",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requireLessonManagement("params")],
     },
     async (request, reply) => {
       const { organizationId, lessonId, bookingId } = request.params;
@@ -1080,7 +1117,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/:lessonId/bookings/:bookingId/cancel",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requireLessonManagement("params")],
     },
     async (request, reply) => {
       const { organizationId, lessonId, bookingId } = request.params;
@@ -1186,7 +1223,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lesson-schedule-templates",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requireLessonManagement("params")],
     },
     async (request, reply) => {
       const { organizationId } = request.params;
@@ -1228,7 +1265,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/generate-from-templates",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requireLessonManagement("params")],
     },
     async (request, _reply) => {
       const { organizationId } = request.params;
@@ -1558,32 +1595,42 @@ export async function lessonRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { organizationId } = request.params as { organizationId: string };
 
-      const settingsDoc = await db
+      const settingsRef = db
         .collection("organizations")
         .doc(organizationId)
         .collection("lessonSettings")
-        .doc("config")
-        .get();
+        .doc("config");
+
+      const settingsDoc = await settingsRef.get();
 
       const defaultSettings = {
-        skillLevels: [],
+        skillLevels: [] as SkillLevel[],
         defaultCancellationDeadlineHours: 24,
         defaultMaxCancellationsPerTerm: 3,
         autoPromoteFromWaitlist: true,
       };
 
-      return {
-        settings: settingsDoc.exists
-          ? { ...defaultSettings, ...settingsDoc.data() }
-          : defaultSettings,
-      };
+      const settings = settingsDoc.exists
+        ? { ...defaultSettings, ...settingsDoc.data() }
+        : defaultSettings;
+
+      // Lazy-seed system skill levels if empty/missing
+      if (!settings.skillLevels || settings.skillLevels.length === 0) {
+        settings.skillLevels = SYSTEM_SKILL_LEVELS;
+        await settingsRef.set(
+          { skillLevels: SYSTEM_SKILL_LEVELS, updatedAt: Timestamp.now() },
+          { merge: true },
+        );
+      }
+
+      return { settings };
     },
   );
 
   fastify.put(
     "/organizations/:organizationId/lesson-settings",
     {
-      preHandler: [authenticate, requireOrganizationAdmin("params")],
+      preHandler: [authenticate, requireLessonManagement("params")],
     },
     async (request, _reply) => {
       const auth = request as AuthenticatedRequest;
@@ -1606,9 +1653,16 @@ export async function lessonRoutes(fastify: FastifyInstance) {
         { merge: true },
       );
 
+      const defaultSettings = {
+        skillLevels: [] as SkillLevel[],
+        defaultCancellationDeadlineHours: 24,
+        defaultMaxCancellationsPerTerm: 3,
+        autoPromoteFromWaitlist: true,
+      };
+
       const updated = await settingsRef.get();
 
-      return updated.data();
+      return { ...defaultSettings, ...updated.data() };
     },
   );
 }
