@@ -50,6 +50,30 @@ export interface GenerateLessonsResponse {
   lessonIds: string[];
 }
 
+export interface MyBookingsResponse {
+  bookings: LessonBooking[];
+}
+
+export interface LessonSettingsResponse {
+  settings: LessonSettings;
+}
+
+export interface LessonSettings {
+  skillLevels: SkillLevel[];
+  defaultCancellationDeadlineHours: number;
+  defaultMaxCancellationsPerTerm: number;
+  termStartDate?: string;
+  termEndDate?: string;
+  autoPromoteFromWaitlist: boolean;
+}
+
+export interface SkillLevel {
+  id: string;
+  name: string;
+  description?: string;
+  sortOrder: number;
+}
+
 export interface LessonsFilters {
   startDate?: string;
   endDate?: string;
@@ -431,6 +455,50 @@ export async function generateLessonsFromTemplates(
 }
 
 // ============================================
+// My Bookings (member self-service)
+// ============================================
+
+export async function getMyLessonBookings(
+  organizationId: string,
+): Promise<MyBookingsResponse> {
+  return apiClient.get<MyBookingsResponse>(
+    `/organizations/${organizationId}/my/lesson-bookings`,
+  );
+}
+
+export async function bookLessonSelf(
+  organizationId: string,
+  lessonId: string,
+): Promise<LessonBooking & { isWaitlisted: boolean }> {
+  return apiClient.post<LessonBooking & { isWaitlisted: boolean }>(
+    `/organizations/${organizationId}/lessons/${lessonId}/book`,
+    {},
+  );
+}
+
+// ============================================
+// Lesson Settings (org-level)
+// ============================================
+
+export async function getLessonSettings(
+  organizationId: string,
+): Promise<LessonSettingsResponse> {
+  return apiClient.get<LessonSettingsResponse>(
+    `/organizations/${organizationId}/lesson-settings`,
+  );
+}
+
+export async function updateLessonSettings(
+  organizationId: string,
+  data: Partial<LessonSettings>,
+): Promise<LessonSettings> {
+  return apiClient.put<LessonSettings>(
+    `/organizations/${organizationId}/lesson-settings`,
+    data,
+  );
+}
+
+// ============================================
 // Utility Functions
 // ============================================
 
@@ -468,40 +536,4 @@ export function getBookingStatusVariant(
     default:
       return "outline";
   }
-}
-
-export function getLessonCategoryLabel(category: string): string {
-  const labels: Record<string, string> = {
-    private: "Private",
-    group: "Group",
-    clinic: "Clinic",
-    camp: "Camp",
-    assessment: "Assessment",
-    other: "Other",
-  };
-  return labels[category] || category;
-}
-
-export function getLessonLevelLabel(level: string): string {
-  const labels: Record<string, string> = {
-    beginner: "Beginner",
-    novice: "Novice",
-    intermediate: "Intermediate",
-    advanced: "Advanced",
-    professional: "Professional",
-  };
-  return labels[level] || level;
-}
-
-export function getDayOfWeekLabel(day: number): string {
-  const days = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ];
-  return days[day] || "";
 }

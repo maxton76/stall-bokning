@@ -22,6 +22,7 @@ export type OrganizationRole =
   | "horse_owner" // External horse owner
   | "rider" // Professional rider
   | "inseminator" // Breeding services
+  | "trainer" // Riding instructor / lesson trainer
   | "support_contact"; // Delegated access to support tickets
 
 /**

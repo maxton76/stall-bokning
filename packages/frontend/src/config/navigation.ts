@@ -25,6 +25,8 @@ import {
   Bell,
   User,
   Lightbulb,
+  GraduationCap,
+  BookOpen,
 } from "lucide-react";
 import type {
   NavigationItem,
@@ -206,6 +208,34 @@ export const mainNavigation: NavigationItem[] = [
         labelKey: "common:navigation.routineSelection",
         href: "/schedule/selection",
         icon: ListOrdered,
+      },
+    ],
+  },
+  {
+    id: "lessons",
+    labelKey: "common:navigation.lessons",
+    href: "/lessons",
+    icon: GraduationCap,
+    moduleFlag: "lessons",
+    subItems: [
+      {
+        id: "lessons-calendar",
+        labelKey: "common:navigation.lessonsCalendar",
+        href: "/lessons/calendar",
+        icon: CalendarIcon,
+      },
+      {
+        id: "lessons-my-bookings",
+        labelKey: "common:navigation.lessonsMyBookings",
+        href: "/lessons/my-bookings",
+        icon: BookOpen,
+      },
+      {
+        id: "lessons-manage",
+        labelKey: "common:navigation.lessonsManage",
+        href: "/lessons/manage",
+        icon: Settings2Icon,
+        roles: ["trainer", "administrator"],
       },
     ],
   },

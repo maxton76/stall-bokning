@@ -175,6 +175,112 @@
       "amountDue": "Att betala"
     }
   },
+  "myBookings": {
+    "title": "Mina bokningar",
+    "description": "Dina kommande och tidigare lektionsbokningar",
+    "tabs": {
+      "upcoming": "Kommande",
+      "past": "Historik",
+      "cancelled": "Avbokade"
+    },
+    "empty": "Du har inga bokningar",
+    "emptyUpcoming": "Inga kommande bokningar",
+    "emptyPast": "Inga tidigare bokningar",
+    "emptyCancelled": "Inga avbokade bokningar",
+    "assignedHorse": "Tilldelad häst",
+    "noHorseAssigned": "Ingen häst tilldelad",
+    "cancelDeadlinePassed": "Avbokningstiden har passerat",
+    "cancelConfirmTitle": "Avboka lektion",
+    "cancelConfirmMessage": "Är du säker på att du vill avboka denna lektion? Avbokning måste göras senast {{hours}} timmar innan lektionen."
+  },
+  "bookingDialog": {
+    "title": "Boka lektion",
+    "book": "Boka",
+    "joinWaitlist": "Ställ mig i kö",
+    "spotsLeft": "{{count}} platser kvar",
+    "full": "Fullbokat",
+    "waitlistInfo": "Lektionen är fullbokad. Du kan ställa dig i kö och blir automatiskt bokad om en plats blir ledig.",
+    "cancellationNotice": "Avbokning senast {{hours}} timmar innan lektionen",
+    "alreadyBooked": "Du är redan bokad på denna lektion",
+    "onWaitlist": "Du står på väntelistan (position {{position}})",
+    "bookingSuccess": "Du är nu bokad!",
+    "waitlistSuccess": "Du står nu i kö (position {{position}})"
+  },
+  "participants": {
+    "title": "Deltagarlista",
+    "name": "Namn",
+    "email": "E-post",
+    "phone": "Telefon",
+    "horse": "Häst",
+    "status": "Status",
+    "bookedAt": "Bokad",
+    "assignHorse": "Tilldela häst",
+    "removeParticipant": "Ta bort deltagare",
+    "moveToWaitlist": "Flytta till väntelista",
+    "promoteFromWaitlist": "Flytta upp från väntelista",
+    "waitlistSection": "Väntelista",
+    "noParticipants": "Inga deltagare",
+    "noWaitlist": "Ingen på väntelistan"
+  },
+  "manage": {
+    "title": "Hantera lektioner",
+    "tabs": {
+      "myLessons": "Mina lektioner",
+      "allLessons": "Alla lektioner",
+      "settings": "Inställningar"
+    },
+    "publish": "Publicera",
+    "unpublish": "Avpublicera",
+    "publishConfirm": "Publicera lektionen så att medlemmar kan boka?",
+    "actions": {
+      "edit": "Redigera",
+      "cancel": "Avboka",
+      "delete": "Ta bort",
+      "viewParticipants": "Visa deltagare"
+    }
+  },
+  "settings": {
+    "title": "Lektionsinställningar",
+    "description": "Konfigurera standardinställningar för lektioner i denna organisation",
+    "skillLevels": {
+      "title": "Färdighetsnivåer",
+      "description": "Hantera nivåer som används vid lektionsskapande",
+      "add": "Lägg till nivå",
+      "name": "Namn",
+      "description_field": "Beskrivning",
+      "sortOrder": "Sorteringsordning",
+      "empty": "Inga nivåer konfigurerade"
+    },
+    "cancellation": {
+      "title": "Avbokningsregler",
+      "defaultDeadlineHours": "Standard avbokningsfrist (timmar)",
+      "maxCancellationsPerTerm": "Max avbokningar per termin",
+      "termStart": "Terminstart",
+      "termEnd": "Terminslut"
+    },
+    "waitlist": {
+      "title": "Väntelistinställningar",
+      "autoPromote": "Automatisk uppflyttning från väntelista"
+    },
+    "saved": "Inställningar sparade"
+  },
+  "trainerAvailability": {
+    "title": "Min tillgänglighet",
+    "description": "Ange vilka tider du är tillgänglig för lektioner",
+    "addWindow": "Lägg till tid",
+    "editWindow": "Redigera tid",
+    "deleteWindow": "Ta bort tid",
+    "dayOfWeek": "Veckodag",
+    "startTime": "Starttid",
+    "endTime": "Sluttid",
+    "exceptions": "Undantag",
+    "addException": "Lägg till undantag",
+    "exceptionDate": "Datum",
+    "noAvailability": "Ingen tillgänglighet inställd",
+    "saved": "Tillgänglighet sparad",
+    "deleted": "Tid borttagen",
+    "noInstructorProfile": "Du har ingen instruktörsprofil kopplad till ditt konto."
+  },
   "messages": {
     "created": "Lektion skapad",
     "updated": "Lektion uppdaterad",
@@ -186,6 +292,10 @@
     "instructorUpdated": "Instruktör uppdaterad",
     "templateCreated": "Mall skapad",
     "bookingCreated": "Bokning skapad",
-    "bookingCancelled": "Bokning avbokad"
+    "bookingCancelled": "Bokning avbokad",
+    "horseAssigned": "Häst tilldelad",
+    "participantRemoved": "Deltagare borttagen",
+    "promotedFromWaitlist": "Uppflyttad från väntelista",
+    "settingsSaved": "Inställningar sparade"
   }
 }

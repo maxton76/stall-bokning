@@ -2,6 +2,7 @@ import { useMemo, useState, useCallback, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useOrganizationContext } from "@/contexts/OrganizationContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import {
   mainNavigation,
   createOrganizationNavigation,
@@ -62,26 +63,35 @@ export function useNavigation(): UseNavigationReturn {
   const location = useLocation();
   const { t } = useTranslation(["common", "organizations"]);
   const { currentOrganizationId } = useOrganizationContext();
+  const { isFeatureAvailable } = useSubscription();
+
+  // Filter navigation items by module flag availability
+  const filteredNavigation = useMemo(() => {
+    return mainNavigation.filter((item) => {
+      if (!item.moduleFlag) return true;
+      return isFeatureAvailable(item.moduleFlag);
+    });
+  }, [isFeatureAvailable]);
 
   // Initialize expanded state based on current path
   const [expandedItem, setExpandedItem] = useState<string | null>(() => {
-    return findActiveNavigationItem(location.pathname, mainNavigation);
+    return findActiveNavigationItem(location.pathname, filteredNavigation);
   });
 
   // Sync expandedItem with location changes to ensure navigation works correctly
   useEffect(() => {
     const activeItem = findActiveNavigationItem(
       location.pathname,
-      mainNavigation,
+      filteredNavigation,
     );
     if (activeItem !== null) {
       setExpandedItem(activeItem);
     }
-  }, [location.pathname]);
+  }, [location.pathname, filteredNavigation]);
 
   // Create translated navigation items
   const navigation = useMemo((): TranslatedNavigationItem[] => {
-    return mainNavigation.map((item) => ({
+    return filteredNavigation.map((item) => ({
       ...item,
       label: t(item.labelKey),
       subItems: item.subItems?.map((subItem) => ({
@@ -89,7 +99,7 @@ export function useNavigation(): UseNavigationReturn {
         label: t(subItem.labelKey),
       })),
     }));
-  }, [t]);
+  }, [t, filteredNavigation]);
 
   // Create translated organization navigation
   const organizationNavigation =

@@ -175,6 +175,112 @@
       "amountDue": "Amount Due"
     }
   },
+  "myBookings": {
+    "title": "My Bookings",
+    "description": "Your upcoming and past lesson bookings",
+    "tabs": {
+      "upcoming": "Upcoming",
+      "past": "Past",
+      "cancelled": "Cancelled"
+    },
+    "empty": "You have no bookings",
+    "emptyUpcoming": "No upcoming bookings",
+    "emptyPast": "No past bookings",
+    "emptyCancelled": "No cancelled bookings",
+    "assignedHorse": "Assigned horse",
+    "noHorseAssigned": "No horse assigned",
+    "cancelDeadlinePassed": "Cancellation deadline has passed",
+    "cancelConfirmTitle": "Cancel lesson",
+    "cancelConfirmMessage": "Are you sure you want to cancel this lesson? Cancellation must be done at least {{hours}} hours before the lesson."
+  },
+  "bookingDialog": {
+    "title": "Book lesson",
+    "book": "Book",
+    "joinWaitlist": "Join waitlist",
+    "spotsLeft": "{{count}} spots left",
+    "full": "Fully booked",
+    "waitlistInfo": "This lesson is fully booked. You can join the waitlist and will be automatically booked if a spot becomes available.",
+    "cancellationNotice": "Cancellation at least {{hours}} hours before the lesson",
+    "alreadyBooked": "You are already booked for this lesson",
+    "onWaitlist": "You are on the waitlist (position {{position}})",
+    "bookingSuccess": "You are now booked!",
+    "waitlistSuccess": "You are now on the waitlist (position {{position}})"
+  },
+  "participants": {
+    "title": "Participant List",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "horse": "Horse",
+    "status": "Status",
+    "bookedAt": "Booked at",
+    "assignHorse": "Assign horse",
+    "removeParticipant": "Remove participant",
+    "moveToWaitlist": "Move to waitlist",
+    "promoteFromWaitlist": "Promote from waitlist",
+    "waitlistSection": "Waitlist",
+    "noParticipants": "No participants",
+    "noWaitlist": "No one on the waitlist"
+  },
+  "manage": {
+    "title": "Manage Lessons",
+    "tabs": {
+      "myLessons": "My Lessons",
+      "allLessons": "All Lessons",
+      "settings": "Settings"
+    },
+    "publish": "Publish",
+    "unpublish": "Unpublish",
+    "publishConfirm": "Publish this lesson so members can book?",
+    "actions": {
+      "edit": "Edit",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "viewParticipants": "View participants"
+    }
+  },
+  "settings": {
+    "title": "Lesson Settings",
+    "description": "Configure default settings for lessons in this organization",
+    "skillLevels": {
+      "title": "Skill Levels",
+      "description": "Manage levels used when creating lessons",
+      "add": "Add level",
+      "name": "Name",
+      "description_field": "Description",
+      "sortOrder": "Sort order",
+      "empty": "No levels configured"
+    },
+    "cancellation": {
+      "title": "Cancellation Policy",
+      "defaultDeadlineHours": "Default cancellation deadline (hours)",
+      "maxCancellationsPerTerm": "Max cancellations per term",
+      "termStart": "Term start",
+      "termEnd": "Term end"
+    },
+    "waitlist": {
+      "title": "Waitlist Settings",
+      "autoPromote": "Auto-promote from waitlist"
+    },
+    "saved": "Settings saved"
+  },
+  "trainerAvailability": {
+    "title": "My Availability",
+    "description": "Set your available times for lessons",
+    "addWindow": "Add time slot",
+    "editWindow": "Edit time slot",
+    "deleteWindow": "Delete time slot",
+    "dayOfWeek": "Day of week",
+    "startTime": "Start time",
+    "endTime": "End time",
+    "exceptions": "Exceptions",
+    "addException": "Add exception",
+    "exceptionDate": "Date",
+    "noAvailability": "No availability set",
+    "saved": "Availability saved",
+    "deleted": "Time slot deleted",
+    "noInstructorProfile": "You have no instructor profile linked to your account."
+  },
   "messages": {
     "created": "Lesson created",
     "updated": "Lesson updated",
@@ -186,6 +292,10 @@
     "instructorUpdated": "Instructor updated",
     "templateCreated": "Template created",
     "bookingCreated": "Booking created",
-    "bookingCancelled": "Booking cancelled"
+    "bookingCancelled": "Booking cancelled",
+    "horseAssigned": "Horse assigned",
+    "participantRemoved": "Participant removed",
+    "promotedFromWaitlist": "Promoted from waitlist",
+    "settingsSaved": "Settings saved"
   }
 }

@@ -5,6 +5,7 @@ import { db } from "../utils/firebase.js";
 import {
   authenticate,
   requireOrganizationAccess,
+  requireOrganizationAdmin,
   type AuthenticatedRequest,
 } from "../middleware/auth.js";
 import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
@@ -170,6 +171,24 @@ const createScheduleTemplateSchema = z.object({
   isActive: z.boolean().default(true),
   effectiveFrom: z.string().optional(),
   effectiveUntil: z.string().optional(),
+});
+
+const lessonSettingsSchema = z.object({
+  skillLevels: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        description: z.string().optional(),
+        sortOrder: z.number(),
+      }),
+    )
+    .optional(),
+  defaultCancellationDeadlineHours: z.number().min(0).max(168).optional(),
+  defaultMaxCancellationsPerTerm: z.number().min(0).max(100).optional(),
+  autoPromoteFromWaitlist: z.boolean().optional(),
+  termStartDate: z.string().optional(),
+  termEndDate: z.string().optional(),
 });
 
 // ============================================
@@ -622,7 +641,9 @@ export async function lessonRoutes(fastify: FastifyInstance) {
       }
 
       // Get bookings for this lesson
-      const bookingsSnapshot = await lessonRef.collection("bookings").get();
+      const bookingsSnapshot = await lessonRef
+        .collection("lessonBookings")
+        .get();
       const bookings = bookingsSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -807,7 +828,9 @@ export async function lessonRoutes(fastify: FastifyInstance) {
       });
 
       // Update all bookings to cancelled
-      const bookingsSnapshot = await lessonRef.collection("bookings").get();
+      const bookingsSnapshot = await lessonRef
+        .collection("lessonBookings")
+        .get();
       const batch = db.batch();
       bookingsSnapshot.docs.forEach((doc) => {
         batch.update(doc.ref, {
@@ -844,7 +867,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
         .doc(organizationId)
         .collection("lessons")
         .doc(lessonId)
-        .collection("bookings")
+        .collection("lessonBookings")
         .orderBy("createdAt")
         .get();
 
@@ -877,28 +900,13 @@ export async function lessonRoutes(fastify: FastifyInstance) {
         .collection("lessons")
         .doc(lessonId);
 
+      // Pre-flight: check lesson exists and get contact info before transaction
       const lessonDoc = await lessonRef.get();
       if (!lessonDoc.exists) {
         return reply.status(404).send({ error: "Lesson not found" });
       }
 
-      const lessonData = lessonDoc.data() as Lesson;
-
-      // Check if lesson is available
-      if (
-        lessonData.status !== "scheduled" &&
-        lessonData.status !== "confirmed"
-      ) {
-        return reply
-          .status(400)
-          .send({ error: "Lesson is not available for booking" });
-      }
-
-      // Check capacity
-      const isWaitlisted =
-        lessonData.currentParticipants >= lessonData.maxParticipants;
-
-      // Get contact info
+      // Get contact info (outside transaction - queries not supported in transactions)
       const contactDoc = await db
         .collection("organizations")
         .doc(organizationId)
@@ -910,50 +918,86 @@ export async function lessonRoutes(fastify: FastifyInstance) {
         ? `${contactDoc.data()?.firstName || ""} ${contactDoc.data()?.lastName || ""}`.trim()
         : "Unknown";
 
-      const bookingRef = lessonRef.collection("bookings").doc();
+      const bookingRef = lessonRef.collection("lessonBookings").doc();
 
-      // Get price from lesson data (stored as custom field on creation)
-      // Cast through unknown to access custom fields not in the Lesson type
-      const lessonDataRecord = lessonData as unknown as Record<string, unknown>;
-      const lessonPrice = (lessonDataRecord.price as number) || 0;
-      const lessonCurrency = (lessonDataRecord.currency as string) || "SEK";
-      const lessonWaitlistCount =
-        (lessonDataRecord.waitlistCount as number) || 0;
+      // Atomic booking creation with transaction to prevent race conditions
+      let result: { booking: Record<string, unknown>; isWaitlisted: boolean };
+      try {
+        result = await db.runTransaction(async (transaction) => {
+          const lessonSnap = await transaction.get(lessonRef);
+          if (!lessonSnap.exists) {
+            throw new Error("LESSON_NOT_FOUND");
+          }
 
-      // Build booking without explicit type annotation to avoid Timestamp incompatibility
-      const booking = {
-        lessonId,
-        organizationId,
-        participantContactId: validatedData.participantContactId,
-        participantName: contactName,
-        horseId: validatedData.horseId,
-        status: isWaitlisted ? "waitlisted" : ("pending" as BookingStatus),
-        paymentStatus: "pending",
-        amountDue: lessonPrice,
-        currency: lessonCurrency,
-        notes: validatedData.notes,
-        bookedBy: auth.user!.uid,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
-      };
+          const lessonData = lessonSnap.data() as Lesson;
 
-      await bookingRef.set(booking);
+          if (
+            lessonData.status !== "scheduled" &&
+            lessonData.status !== "confirmed"
+          ) {
+            throw new Error("LESSON_NOT_BOOKABLE");
+          }
 
-      // Update lesson participant count
-      await lessonRef.update({
-        currentParticipants: isWaitlisted
-          ? lessonData.currentParticipants
-          : lessonData.currentParticipants + 1,
-        waitlistCount: isWaitlisted
-          ? lessonWaitlistCount + 1
-          : lessonWaitlistCount,
-        updatedAt: Timestamp.now(),
-      });
+          const isWaitlisted =
+            lessonData.currentParticipants >= lessonData.maxParticipants;
+
+          const lessonDataRecord = lessonData as unknown as Record<
+            string,
+            unknown
+          >;
+          const lessonPrice = (lessonDataRecord.price as number) || 0;
+          const lessonCurrency = (lessonDataRecord.currency as string) || "SEK";
+          const lessonWaitlistCount =
+            (lessonDataRecord.waitlistCount as number) || 0;
+
+          const booking = {
+            lessonId,
+            organizationId,
+            participantContactId: validatedData.participantContactId,
+            participantName: contactName,
+            horseId: validatedData.horseId,
+            status: isWaitlisted ? "waitlisted" : ("pending" as BookingStatus),
+            paymentStatus: "pending",
+            amountDue: lessonPrice,
+            currency: lessonCurrency,
+            notes: validatedData.notes,
+            bookedBy: auth.user!.uid,
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+          };
+
+          transaction.set(bookingRef, booking);
+
+          transaction.update(lessonRef, {
+            currentParticipants: isWaitlisted
+              ? lessonData.currentParticipants
+              : lessonData.currentParticipants + 1,
+            waitlistCount: isWaitlisted
+              ? lessonWaitlistCount + 1
+              : lessonWaitlistCount,
+            updatedAt: Timestamp.now(),
+          });
+
+          return { booking, isWaitlisted };
+        });
+      } catch (error) {
+        if (error instanceof Error) {
+          if (error.message === "LESSON_NOT_FOUND") {
+            return reply.status(404).send({ error: "Lesson not found" });
+          }
+          if (error.message === "LESSON_NOT_BOOKABLE") {
+            return reply
+              .status(400)
+              .send({ error: "Lesson is not available for booking" });
+          }
+        }
+        throw error;
+      }
 
       return reply.status(201).send({
         id: bookingRef.id,
-        ...booking,
-        isWaitlisted,
+        ...result.booking,
+        isWaitlisted: result.isWaitlisted,
       });
     },
   );
@@ -976,7 +1020,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
         .doc(organizationId)
         .collection("lessons")
         .doc(lessonId)
-        .collection("bookings")
+        .collection("lessonBookings")
         .doc(bookingId);
 
       const bookingDoc = await bookingRef.get();
@@ -1047,7 +1091,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
         .doc(organizationId)
         .collection("lessons")
         .doc(lessonId)
-        .collection("bookings")
+        .collection("lessonBookings")
         .doc(bookingId);
 
       const bookingDoc = await bookingRef.get();
@@ -1298,6 +1342,273 @@ export async function lessonRoutes(fastify: FastifyInstance) {
         createdCount: createdLessons.length,
         lessonIds: createdLessons,
       };
+    },
+  );
+
+  // ============================================
+  // My Lesson Bookings (member self-service)
+  // ============================================
+
+  fastify.get(
+    "/organizations/:organizationId/my/lesson-bookings",
+    {
+      preHandler: [authenticate, requireOrganizationAccess("params")],
+    },
+    async (request) => {
+      const auth = request as AuthenticatedRequest;
+      const { organizationId } = request.params as { organizationId: string };
+
+      const bookingsSnap = await db
+        .collectionGroup("lessonBookings")
+        .where("organizationId", "==", organizationId)
+        .where("bookedByUserId", "==", auth.user!.uid)
+        .orderBy("createdAt", "desc")
+        .limit(100)
+        .get();
+
+      const bookings = bookingsSnap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      return { bookings };
+    },
+  );
+
+  // ============================================
+  // Self-Booking (member books themselves)
+  // ============================================
+
+  fastify.post(
+    "/organizations/:organizationId/lessons/:lessonId/book",
+    {
+      preHandler: [authenticate, requireOrganizationAccess("params")],
+    },
+    async (request, reply) => {
+      const auth = request as AuthenticatedRequest;
+      const { organizationId, lessonId } = request.params as {
+        organizationId: string;
+        lessonId: string;
+      };
+
+      const lessonRef = db
+        .collection("organizations")
+        .doc(organizationId)
+        .collection("lessons")
+        .doc(lessonId);
+
+      // Pre-flight checks outside transaction (queries not supported in transactions)
+      const lessonDoc = await lessonRef.get();
+      if (!lessonDoc.exists) {
+        return reply.code(404).send({ error: "Lesson not found" });
+      }
+
+      const lessonPrecheck = lessonDoc.data() as Lesson;
+
+      // Check lesson is bookable (positive check matching existing booking endpoint)
+      if (
+        lessonPrecheck.status !== "scheduled" &&
+        lessonPrecheck.status !== "confirmed"
+      ) {
+        return reply
+          .code(400)
+          .send({ error: "Lesson is not available for booking" });
+      }
+
+      // Check for duplicate booking
+      const existingBooking = await lessonRef
+        .collection("lessonBookings")
+        .where("bookedByUserId", "==", auth.user!.uid)
+        .where("status", "in", ["pending", "confirmed", "waitlisted"])
+        .limit(1)
+        .get();
+
+      if (!existingBooking.empty) {
+        return reply
+          .code(409)
+          .send({ error: "Already booked for this lesson" });
+      }
+
+      // Get user's contact info from membership
+      const memberSnap = await db
+        .collection("organizations")
+        .doc(organizationId)
+        .collection("members")
+        .where("userId", "==", auth.user!.uid)
+        .limit(1)
+        .get();
+
+      const member = memberSnap.empty ? null : memberSnap.docs[0].data();
+      const contactName = member
+        ? `${member.firstName} ${member.lastName}`
+        : auth.user!.email || "Unknown";
+      const contactEmail = member?.userEmail || auth.user!.email || "";
+
+      // Atomic booking creation with transaction to prevent race conditions
+      const bookingRef = lessonRef.collection("lessonBookings").doc();
+
+      let result: {
+        bookingData: Record<string, unknown>;
+        isWaitlisted: boolean;
+      };
+      try {
+        result = await db.runTransaction(async (transaction) => {
+          const lessonSnap = await transaction.get(lessonRef);
+          if (!lessonSnap.exists) {
+            throw new Error("LESSON_NOT_FOUND");
+          }
+
+          const lesson = lessonSnap.data() as Lesson;
+
+          if (lesson.status !== "scheduled" && lesson.status !== "confirmed") {
+            throw new Error("LESSON_NOT_BOOKABLE");
+          }
+
+          const isFull = lesson.currentParticipants >= lesson.maxParticipants;
+
+          // If full, check waitlist support
+          if (isFull) {
+            const lessonTypeRef = db
+              .collection("organizations")
+              .doc(organizationId)
+              .collection("lessonTypes")
+              .doc(lesson.lessonTypeId);
+            const lessonTypeDoc = await transaction.get(lessonTypeRef);
+            const lessonType = lessonTypeDoc.data() as LessonType | undefined;
+            if (!lessonType?.allowWaitlist) {
+              throw new Error("LESSON_FULL");
+            }
+          }
+
+          const isWaitlisted = isFull;
+
+          const bookingData = {
+            lessonId,
+            organizationId,
+            bookedByUserId: auth.user!.uid,
+            contactName,
+            contactEmail,
+            lessonDate: lesson.startTime,
+            startTime: lesson.startTime,
+            endTime: lesson.endTime,
+            instructorName: lesson.instructorName || "",
+            facilityName: lesson.facilityName || lesson.location || "",
+            status: isWaitlisted ? "waitlisted" : "pending",
+            waitlistPosition: null as number | null,
+            isSchoolHorse: false,
+            schoolHorseRequested: false,
+            price: lesson.priceOverride || 0,
+            schoolHorsePrice: 0,
+            totalPrice: lesson.priceOverride || 0,
+            currency: lesson.currency || "SEK",
+            isPaid: false,
+            requiresApproval: false,
+            createdBy: auth.user!.uid,
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+          };
+
+          transaction.set(bookingRef, bookingData);
+
+          if (!isWaitlisted) {
+            transaction.update(lessonRef, {
+              currentParticipants: (lesson.currentParticipants || 0) + 1,
+              updatedAt: Timestamp.now(),
+            });
+          }
+
+          return { bookingData, isWaitlisted };
+        });
+      } catch (error) {
+        if (error instanceof Error) {
+          if (error.message === "LESSON_NOT_FOUND") {
+            return reply.code(404).send({ error: "Lesson not found" });
+          }
+          if (error.message === "LESSON_NOT_BOOKABLE") {
+            return reply
+              .code(400)
+              .send({ error: "Lesson is not available for booking" });
+          }
+          if (error.message === "LESSON_FULL") {
+            return reply
+              .code(400)
+              .send({ error: "Lesson is full and waitlist is not enabled" });
+          }
+        }
+        throw error;
+      }
+
+      return {
+        id: bookingRef.id,
+        ...result.bookingData,
+        isWaitlisted: result.isWaitlisted,
+      };
+    },
+  );
+
+  // ============================================
+  // Lesson Settings (org-level defaults)
+  // ============================================
+
+  fastify.get(
+    "/organizations/:organizationId/lesson-settings",
+    {
+      preHandler: [authenticate, requireOrganizationAccess("params")],
+    },
+    async (request) => {
+      const { organizationId } = request.params as { organizationId: string };
+
+      const settingsDoc = await db
+        .collection("organizations")
+        .doc(organizationId)
+        .collection("lessonSettings")
+        .doc("config")
+        .get();
+
+      const defaultSettings = {
+        skillLevels: [],
+        defaultCancellationDeadlineHours: 24,
+        defaultMaxCancellationsPerTerm: 3,
+        autoPromoteFromWaitlist: true,
+      };
+
+      return {
+        settings: settingsDoc.exists
+          ? { ...defaultSettings, ...settingsDoc.data() }
+          : defaultSettings,
+      };
+    },
+  );
+
+  fastify.put(
+    "/organizations/:organizationId/lesson-settings",
+    {
+      preHandler: [authenticate, requireOrganizationAdmin("params")],
+    },
+    async (request, _reply) => {
+      const auth = request as AuthenticatedRequest;
+      const { organizationId } = request.params as { organizationId: string };
+
+      const validatedData = lessonSettingsSchema.parse(request.body);
+
+      const settingsRef = db
+        .collection("organizations")
+        .doc(organizationId)
+        .collection("lessonSettings")
+        .doc("config");
+
+      await settingsRef.set(
+        {
+          ...validatedData,
+          updatedBy: auth.user!.uid,
+          updatedAt: Timestamp.now(),
+        },
+        { merge: true },
+      );
+
+      const updated = await settingsRef.get();
+
+      return updated.data();
     },
   );
 }

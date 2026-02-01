@@ -46,7 +46,11 @@
     "myStatistics": "My Statistics",
     "myAccount": "My Account",
     "notifications": "Notifications",
-    "routineSchedules": "Routine Schedules"
+    "routineSchedules": "Routine Schedules",
+    "lessons": "Lessons",
+    "lessonsCalendar": "Lesson Calendar",
+    "lessonsMyBookings": "My Bookings",
+    "lessonsManage": "Manage Lessons"
   },
   "buttons": {
     "save": "Save",
@@ -75,7 +79,8 @@
     "retry": "Retry",
     "loadMore": "Load More",
     "saving": "Saving...",
-    "submitting": "Submitting..."
+    "submitting": "Submitting...",
+    "cancelling": "Cancelling..."
   },
   "labels": {
     "name": "Name",
@@ -188,6 +193,7 @@
     "title": "No {{items}} yet",
     "description": "Get started by creating your first {{item}}"
   },
+  "deleteWarning": "This will permanently delete {{name}}. This action cannot be undone.",
   "dialog": {
     "confirmTitle": "Confirm Action",
     "deleteTitle": "Confirm Deletion",

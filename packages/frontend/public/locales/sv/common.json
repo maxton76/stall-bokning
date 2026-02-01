@@ -46,7 +46,11 @@
     "myTasks": "Mina uppgifter",
     "myStatistics": "Min statistik",
     "myAccount": "Mitt konto",
-    "notifications": "Notiser"
+    "notifications": "Notiser",
+    "lessons": "Lektioner",
+    "lessonsCalendar": "Lektionskalender",
+    "lessonsMyBookings": "Mina bokningar",
+    "lessonsManage": "Hantera lektioner"
   },
   "buttons": {
     "save": "Spara",
@@ -75,7 +79,8 @@
     "retry": "Försök igen",
     "loadMore": "Ladda fler",
     "saving": "Sparar...",
-    "submitting": "Skickar..."
+    "submitting": "Skickar...",
+    "cancelling": "Avbokar..."
   },
   "labels": {
     "name": "Namn",
@@ -229,6 +234,7 @@
     "title": "Inga {{items}} ännu",
     "description": "Kom igång genom att skapa din första {{item}}"
   },
+  "deleteWarning": "Detta kommer permanent att ta bort {{name}}. Denna åtgärd kan inte ångras.",
   "dialog": {
     "confirmTitle": "Bekräfta åtgärd",
     "deleteTitle": "Bekräfta borttagning",

@@ -1797,6 +1797,248 @@ service cloud.firestore {
       );
     }
 
+    // ============================================================================
+    // LESSON TYPES COLLECTION - ORGANIZATION-SCOPED
+    // ============================================================================
+
+    match /lessonTypes/{lessonTypeId} {
+      // LIST/GET: Organization members can read lesson types
+      allow read: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationMember(resource.data.organizationId)
+      );
+
+      // CREATE: Trainers and admins
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(request.resource.data.organizationId) ||
+        hasOrganizationRole(request.resource.data.organizationId, 'trainer')
+      );
+
+      // UPDATE: Trainers and admins
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId) ||
+        hasOrganizationRole(resource.data.organizationId, 'trainer')
+      ) &&
+      request.resource.data.organizationId == resource.data.organizationId;
+
+      // DELETE: Admins only
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+    }
+
+    // ============================================================================
+    // LESSONS COLLECTION - ORGANIZATION-SCOPED
+    // ============================================================================
+
+    match /lessons/{lessonId} {
+      // LIST/GET: Members can read published lessons; trainers/admins can read all
+      allow read: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationMember(resource.data.organizationId)
+      );
+
+      // CREATE: Trainers and admins
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(request.resource.data.organizationId) ||
+        hasOrganizationRole(request.resource.data.organizationId, 'trainer')
+      );
+
+      // UPDATE: Instructor who owns the lesson, or admins
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId) ||
+        (hasOrganizationRole(resource.data.organizationId, 'trainer') &&
+         resource.data.instructorUserId == request.auth.uid)
+      ) &&
+      request.resource.data.organizationId == resource.data.organizationId;
+
+      // DELETE: Admins or owning instructor
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId) ||
+        (hasOrganizationRole(resource.data.organizationId, 'trainer') &&
+         resource.data.instructorUserId == request.auth.uid)
+      );
+    }
+
+    // ============================================================================
+    // LESSON BOOKINGS - SUBCOLLECTION UNDER LESSONS (collectionGroup: lessonBookings)
+    // ============================================================================
+
+    match /lessonBookings/{bookingId} {
+      // GET: User can read own bookings; instructor/admin can read lesson bookings
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        resource.data.bookedByUserId == request.auth.uid ||
+        isOrganizationAdministrator(resource.data.organizationId) ||
+        hasOrganizationRole(resource.data.organizationId, 'trainer')
+      );
+
+      // LIST: Disabled client-side — use API endpoints instead
+      allow list: if false;
+
+      // CREATE: Members can book for themselves
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        (isOrganizationMember(request.resource.data.organizationId) &&
+         request.resource.data.bookedByUserId == request.auth.uid)
+      );
+
+      // UPDATE: Instructor/admin can update (horse assignment, status changes)
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId) ||
+        hasOrganizationRole(resource.data.organizationId, 'trainer') ||
+        (resource.data.bookedByUserId == request.auth.uid &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'cancelledAt', 'cancellationReason']))
+      ) &&
+      request.resource.data.organizationId == resource.data.organizationId;
+
+      // DELETE: Admins only
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+    }
+
+    // ============================================================================
+    // INSTRUCTORS COLLECTION - ORGANIZATION-SCOPED
+    // ============================================================================
+
+    match /instructors/{instructorId} {
+      // READ: Organization members
+      allow read: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationMember(resource.data.organizationId)
+      );
+
+      // CREATE/UPDATE: Admins only
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(request.resource.data.organizationId)
+      );
+
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      ) &&
+      request.resource.data.organizationId == resource.data.organizationId;
+
+      // DELETE: Admins only
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+    }
+
+    // ============================================================================
+    // INSTRUCTOR AVAILABILITY COLLECTION - ORGANIZATION-SCOPED
+    // ============================================================================
+
+    match /instructorAvailability/{availabilityId} {
+      // GET: Trainers and admins can read individual availability docs
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId) ||
+        hasOrganizationRole(resource.data.organizationId, 'trainer')
+      );
+
+      // LIST: Disabled client-side — use API endpoints instead
+      allow list: if false;
+
+      // CREATE: Trainer (own) or admin
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(request.resource.data.organizationId) ||
+        (hasOrganizationRole(request.resource.data.organizationId, 'trainer') &&
+         request.resource.data.instructorUserId == request.auth.uid)
+      );
+
+      // UPDATE: Trainer (own) or admin
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId) ||
+        (hasOrganizationRole(resource.data.organizationId, 'trainer') &&
+         resource.data.instructorUserId == request.auth.uid)
+      ) &&
+      request.resource.data.organizationId == resource.data.organizationId;
+
+      // DELETE: Trainer (own) or admin
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId) ||
+        (hasOrganizationRole(resource.data.organizationId, 'trainer') &&
+         resource.data.instructorUserId == request.auth.uid)
+      );
+    }
+
+    // ============================================================================
+    // LESSON SETTINGS COLLECTION - ORGANIZATION-SCOPED (single doc per org)
+    // ============================================================================
+
+    match /lessonSettings/{settingsId} {
+      // READ: Organization members
+      allow read: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationMember(resource.data.organizationId)
+      );
+
+      // CREATE/UPDATE: Admins only
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(request.resource.data.organizationId)
+      );
+
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+
+      // DELETE: Admins only
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+    }
+
+    // ============================================================================
+    // LESSON SCHEDULE TEMPLATES COLLECTION - ORGANIZATION-SCOPED
+    // ============================================================================
+
+    match /lessonScheduleTemplates/{templateId} {
+      // READ: Organization members
+      allow read: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationMember(resource.data.organizationId)
+      );
+
+      // CREATE: Trainers and admins
+      allow create: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(request.resource.data.organizationId) ||
+        hasOrganizationRole(request.resource.data.organizationId, 'trainer')
+      );
+
+      // UPDATE: Trainers and admins
+      allow update: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId) ||
+        hasOrganizationRole(resource.data.organizationId, 'trainer')
+      ) &&
+      request.resource.data.organizationId == resource.data.organizationId;
+
+      // DELETE: Admins only
+      allow delete: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+    }
+
     // Default deny all
     match /{document=**} {
       allow read, write: if false;

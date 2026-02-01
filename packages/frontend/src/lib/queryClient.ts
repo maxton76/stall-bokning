@@ -468,6 +468,22 @@ export const queryKeys = {
       [...queryKeys.instructors.lists(), organizationId] as const,
   },
 
+  // Lesson Bookings
+  lessonBookings: {
+    all: ["lessonBookings"] as const,
+    myBookings: (organizationId: string) =>
+      [...queryKeys.lessonBookings.all, "my", organizationId] as const,
+    byLesson: (lessonId: string) =>
+      [...queryKeys.lessonBookings.all, "lesson", lessonId] as const,
+  },
+
+  // Lesson Settings
+  lessonSettings: {
+    all: ["lessonSettings"] as const,
+    byOrganization: (organizationId: string) =>
+      [...queryKeys.lessonSettings.all, organizationId] as const,
+  },
+
   // User Stables
   userStables: {
     all: ["userStables"] as const,
@@ -1050,6 +1066,34 @@ export const cacheInvalidation = {
     byOrganization: (organizationId: string) =>
       queryClient.invalidateQueries({
         queryKey: queryKeys.instructors.byOrganization(organizationId),
+      }),
+  },
+
+  /**
+   * Invalidate lesson booking queries
+   */
+  lessonBookings: {
+    all: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.lessonBookings.all,
+      }),
+    myBookings: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.lessonBookings.myBookings(organizationId),
+      }),
+    byLesson: (lessonId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.lessonBookings.byLesson(lessonId),
+      }),
+  },
+
+  /**
+   * Invalidate lesson settings queries
+   */
+  lessonSettings: {
+    all: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.lessonSettings.all,
       }),
   },
 

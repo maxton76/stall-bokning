@@ -84,6 +84,15 @@ const FeedingHistoryPage = lazy(() => import("./pages/FeedingHistoryPage"));
 const InventoryPage = lazy(() => import("./pages/InventoryPage"));
 const InvoicesPage = lazy(() => import("./pages/InvoicesPage"));
 const LessonsPage = lazy(() => import("./pages/LessonsPage"));
+const LessonsCalendarPage = lazy(
+  () => import("./pages/lessons/LessonsCalendarPage"),
+);
+const MyLessonBookingsPage = lazy(
+  () => import("./pages/lessons/MyLessonBookingsPage"),
+);
+const ManageLessonsPage = lazy(
+  () => import("./pages/lessons/ManageLessonsPage"),
+);
 const PaymentSettingsPage = lazy(() => import("./pages/PaymentSettingsPage"));
 const RoutineFlowPage = lazy(() => import("./pages/routines/RoutineFlowPage"));
 const RoutineTemplatesPage = lazy(
@@ -434,7 +443,22 @@ export const router = createBrowserRouter([
           { path: "/invoices", element: withSuspense(InvoicesPage) },
 
           // Lessons
-          { path: "/lessons", element: withSuspense(LessonsPage) },
+          {
+            path: "/lessons",
+            element: <Navigate to="/lessons/calendar" replace />,
+          },
+          {
+            path: "/lessons/calendar",
+            element: withSuspense(LessonsCalendarPage),
+          },
+          {
+            path: "/lessons/my-bookings",
+            element: withSuspense(MyLessonBookingsPage),
+          },
+          {
+            path: "/lessons/manage",
+            element: withSuspense(ManageLessonsPage),
+          },
 
           // Stables
           { path: "/stables", element: withSuspense(StablesPage) },
