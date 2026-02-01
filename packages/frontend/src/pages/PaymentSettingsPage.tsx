@@ -33,9 +33,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   getStripeSettings,
   connectStripeAccount,
+  disconnectStripeAccount,
   updateStripeSettings,
   type StripeSettingsResponse,
   type UpdateStripeSettingsData,
@@ -62,9 +66,9 @@ export default function PaymentSettingsPage() {
   const { currentOrganization } = useOrganization();
   const { organizationId } = useParams<{ organizationId: string }>();
 
-  const [settings, setSettings] = useState<StripeSettingsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [connecting, setConnecting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Form state
@@ -79,36 +83,48 @@ export default function PaymentSettingsPage() {
 
   const orgId = organizationId || currentOrganization;
 
+  const { data: settings, isLoading: loading } =
+    useApiQuery<StripeSettingsResponse>(
+      queryKeys.payments.stripeSettings(orgId ?? ""),
+      () => getStripeSettings(orgId!),
+      {
+        enabled: !!orgId,
+      },
+    );
+
+  // Sync fetched settings to form state
   useEffect(() => {
-    if (orgId) {
-      loadSettings();
-    }
-  }, [orgId]);
-
-  async function loadSettings() {
-    if (!orgId) return;
-
-    setLoading(true);
-    try {
-      const data = await getStripeSettings(orgId);
-      setSettings(data);
+    if (settings) {
       setAcceptedMethods(
-        (data.acceptedPaymentMethods as PaymentMethod[]) || ["card"],
+        (settings.acceptedPaymentMethods as PaymentMethod[]) || ["card"],
       );
-      setPassFeesToCustomer(data.passFeesToCustomer || false);
-      setPayoutSchedule(data.payoutSchedule || "daily");
-      setStatementDescriptor(data.statementDescriptor || "");
-    } catch (error) {
-      console.error("Failed to load payment settings:", error);
-      toast({
-        title: t("common:error"),
-        description: t("common:errorLoading"),
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+      setPassFeesToCustomer(settings.passFeesToCustomer || false);
+      setPayoutSchedule(settings.payoutSchedule || "daily");
+      setStatementDescriptor(settings.statementDescriptor || "");
     }
-  }
+  }, [settings]);
+
+  // Handle return from Stripe onboarding
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("connected") === "true") {
+      toast({
+        title: t("common:success"),
+        description: t("payments:messages.connectSuccess"),
+      });
+      // Clean up URL params
+      window.history.replaceState({}, "", window.location.pathname);
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.payments.stripeSettings(orgId ?? ""),
+      });
+    } else if (params.get("refresh") === "true") {
+      // User returned but onboarding not complete, reload to check status
+      window.history.replaceState({}, "", window.location.pathname);
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.payments.stripeSettings(orgId ?? ""),
+      });
+    }
+  }, []);
 
   async function handleConnect() {
     if (!orgId) return;
@@ -152,7 +168,9 @@ export default function PaymentSettingsPage() {
         description: t("payments:messages.settingsUpdated"),
       });
 
-      loadSettings();
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.payments.stripeSettings(orgId ?? ""),
+      });
     } catch (error) {
       console.error("Failed to save settings:", error);
       toast({
@@ -162,6 +180,35 @@ export default function PaymentSettingsPage() {
       });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDisconnect() {
+    if (!orgId) return;
+
+    if (!window.confirm(t("payments:settings.confirmDisconnect"))) {
+      return;
+    }
+
+    setDisconnecting(true);
+    try {
+      await disconnectStripeAccount(orgId);
+      toast({
+        title: t("common:success"),
+        description: t("payments:messages.disconnectSuccess"),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.payments.stripeSettings(orgId ?? ""),
+      });
+    } catch (error) {
+      console.error("Failed to disconnect Stripe account:", error);
+      toast({
+        title: t("common:error"),
+        description: t("payments:errors.disconnectFailed"),
+        variant: "destructive",
+      });
+    } finally {
+      setDisconnecting(false);
     }
   }
 
@@ -273,7 +320,29 @@ export default function PaymentSettingsPage() {
               ) : (
                 <>
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  {t("payments:settings.connectAccount")}
+                  {isPending
+                    ? t("payments:settings.continueOnboarding")
+                    : t("payments:settings.connectAccount")}
+                </>
+              )}
+            </Button>
+          )}
+
+          {isConnected && (
+            <Button
+              variant="destructive"
+              onClick={handleDisconnect}
+              disabled={disconnecting}
+            >
+              {disconnecting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t("common:loading.default")}
+                </>
+              ) : (
+                <>
+                  <X className="h-4 w-4 mr-2" />
+                  {t("payments:settings.disconnectAccount")}
                 </>
               )}
             </Button>
@@ -354,11 +423,13 @@ export default function PaymentSettingsPage() {
                 value={statementDescriptor}
                 onChange={(e) => setStatementDescriptor(e.target.value)}
                 maxLength={22}
-                placeholder="STABLE NAME"
+                placeholder={t(
+                  "payments:settings.statementDescriptorPlaceholder",
+                )}
                 className="md:w-[300px]"
               />
               <p className="text-xs text-muted-foreground">
-                Max 22 characters. Appears on customer bank statements.
+                {t("payments:settings.statementDescriptorHelp")}
               </p>
             </div>
 
@@ -367,7 +438,7 @@ export default function PaymentSettingsPage() {
               <div className="space-y-0.5">
                 <Label>{t("payments:settings.passFeesToCustomer")}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Add Stripe fees to the customer's total
+                  {t("payments:settings.passFeesDescription")}
                 </p>
               </div>
               <Switch

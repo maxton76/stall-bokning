@@ -14,7 +14,13 @@
     "defaultCurrency": "Standardvaluta",
     "payoutSchedule": "Utbetalningsschema",
     "statementDescriptor": "Kontoutdragsbeskrivning",
-    "passFeesToCustomer": "Överför avgifter till kund"
+    "passFeesToCustomer": "Överför avgifter till kund",
+    "disconnectAccount": "Koppla från Stripe-konto",
+    "continueOnboarding": "Fortsätt registrering",
+    "confirmDisconnect": "Är du säker på att du vill koppla från ditt Stripe-konto? Du kommer inte längre kunna ta emot onlinebetalningar.",
+    "statementDescriptorPlaceholder": "STALLNAMN",
+    "statementDescriptorHelp": "Max 22 tecken. Visas på kundens kontoutdrag.",
+    "passFeesDescription": "Lägg till Stripe-avgifter på kundens totalbelopp"
   },
   "status": {
     "not_connected": "Ej ansluten",
@@ -112,12 +118,45 @@
     "methodSaved": "Betalmetod sparad",
     "methodRemoved": "Betalmetod borttagen",
     "depositSuccess": "Insättning lyckades",
-    "connectSuccess": "Stripe-konto anslutet"
+    "connectSuccess": "Stripe-konto anslutet",
+    "disconnectSuccess": "Stripe-konto frånkopplat",
+    "paymentConfirmation": "Din betalning har tagits emot. Du kommer att få en bekräftelse via e-post.",
+    "paymentCancelled": "Betalningen avbröts. Inga pengar har dragits."
+  },
+  "dashboard": {
+    "title": "Betalningsöversikt",
+    "summary": "Sammanfattning",
+    "totalRevenue": "Totala intäkter",
+    "totalRefunds": "Totala återbetalningar",
+    "netAmount": "Nettobelopp",
+    "applicationFees": "Plattformsavgifter",
+    "byMethod": "Per betalmetod",
+    "byStatus": "Per status",
+    "recentPayments": "Senaste betalningar",
+    "dailyTrend": "Daglig trend",
+    "period": "Period",
+    "thisMonth": "Denna månad",
+    "lastMonth": "Förra månaden",
+    "last3Months": "Senaste 3 månaderna",
+    "custom": "Anpassat intervall",
+    "noData": "Ingen betalningsdata för denna period"
+  },
+  "packages": {
+    "title": "Paket",
+    "buyNow": "Köp nu",
+    "units": "{{count}} tillfällen",
+    "validFor": "Giltigt i {{days}} dagar",
+    "noExpiry": "Ingen utgång",
+    "price": "Pris",
+    "purchaseSuccess": "Omdirigerar till betalning...",
+    "purchaseFailed": "Kunde inte starta köp",
+    "noPackages": "Inga paket tillgängliga"
   },
   "errors": {
     "notEnabled": "Online-betalningar är inte aktiverade",
     "paymentFailed": "Betalningen misslyckades",
     "insufficientBalance": "Otillräckligt saldo",
-    "invalidAmount": "Ogiltigt belopp"
+    "invalidAmount": "Ogiltigt belopp",
+    "disconnectFailed": "Kunde inte koppla från Stripe-kontot"
   }
 }

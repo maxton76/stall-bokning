@@ -46,7 +46,6 @@ import {
   type LessonTypesResponse,
   type InstructorsResponse,
 } from "@/services/lessonService";
-import { formatCurrency } from "@/services/portalService";
 import { cn } from "@/lib/utils";
 import { CreateLessonDialog } from "@/components/lessons/CreateLessonDialog";
 import { LessonDetailDialog } from "@/components/lessons/LessonDetailDialog";

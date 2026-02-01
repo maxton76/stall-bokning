@@ -15,11 +15,16 @@ import type {
   CreateRefundData,
   PrepaidAccount,
   PrepaidTransaction,
+  PaymentDashboardData,
 } from "@equiduty/shared";
 
-// Note: Stripe would be imported and configured here in production
-// import Stripe from 'stripe';
-// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+import {
+  createConnectedAccount,
+  createAccountLink,
+  getAccountStatus,
+  disconnectAccount,
+} from "../utils/stripeConnect.js";
+import { createStripeRefund } from "../utils/stripeRefunds.js";
 
 // ============================================
 // Zod Schemas
@@ -175,6 +180,38 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
       }
 
       const data = settingsSnap.data() as OrganizationStripeSettings;
+
+      // If we have a stripeAccountId, sync live status from Stripe
+      if (data.stripeAccountId) {
+        try {
+          const liveStatus = await getAccountStatus(data.stripeAccountId);
+          // Update Firestore if status changed
+          if (
+            liveStatus.accountStatus !== data.accountStatus ||
+            liveStatus.chargesEnabled !== data.chargesEnabled ||
+            liveStatus.payoutsEnabled !== data.payoutsEnabled
+          ) {
+            await settingsRef.update({
+              ...liveStatus,
+              updatedAt: FieldValue.serverTimestamp(),
+            });
+          }
+          return {
+            ...data,
+            ...liveStatus,
+            connectedAt: data.connectedAt?.toDate?.(),
+            lastPayoutAt: data.lastPayoutAt?.toDate?.(),
+            createdAt: data.createdAt?.toDate?.(),
+            updatedAt: data.updatedAt?.toDate?.(),
+          };
+        } catch (err) {
+          request.log.warn(
+            { err, stripeAccountId: data.stripeAccountId },
+            "Failed to sync Stripe account status",
+          );
+        }
+      }
+
       return {
         ...data,
         connectedAt: data.connectedAt?.toDate?.(),
@@ -212,21 +249,24 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
       }
 
       const { organizationId } = request.params;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { returnUrl: _returnUrl, refreshUrl: _refreshUrl } = result.data;
+      const { returnUrl, refreshUrl } = result.data;
 
-      // In production, this would create a Stripe Connect account
-      // and generate an account link for onboarding
-      // const account = await stripe.accounts.create({ type: 'standard' });
-      // const accountLink = await stripe.accountLinks.create({
-      //   account: account.id,
-      //   refresh_url: refreshUrl,
-      //   return_url: returnUrl,
-      //   type: 'account_onboarding',
-      // });
+      // Get org email for Stripe account
+      const orgDoc = await db
+        .collection("organizations")
+        .doc(organizationId)
+        .get();
+      const orgEmail = orgDoc.data()?.email;
 
-      // Placeholder response for development
-      const mockAccountLinkUrl = `https://connect.stripe.com/setup/s/mock_${organizationId}`;
+      // Create or retrieve Stripe connected account
+      const account = await createConnectedAccount(organizationId, orgEmail);
+
+      // Generate onboarding link
+      const accountLink = await createAccountLink(
+        account.id,
+        returnUrl,
+        refreshUrl,
+      );
 
       // Store initial settings
       const settingsRef = db
@@ -235,6 +275,7 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
       await settingsRef.set(
         {
           organizationId,
+          stripeAccountId: account.id,
           accountStatus: "pending",
           chargesEnabled: false,
           payoutsEnabled: false,
@@ -253,8 +294,8 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
       );
 
       return {
-        accountLinkUrl: mockAccountLinkUrl,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+        accountLinkUrl: accountLink.url,
+        expiresAt: new Date(accountLink.expires_at * 1000),
       };
     },
   );
@@ -296,6 +337,44 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       const updated = await settingsRef.get();
       return updated.data();
+    },
+  );
+
+  // Disconnect Stripe account
+  fastify.post<{
+    Params: { organizationId: string };
+  }>(
+    "/organizations/:organizationId/payments/disconnect",
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const membership = await requireOrgAccess(request, reply);
+      if (!membership) return;
+
+      if (!["owner", "admin"].includes(membership.role)) {
+        return reply
+          .status(403)
+          .send({
+            error: "Only owners/admins can disconnect payment settings",
+          });
+      }
+
+      const { organizationId } = request.params;
+
+      const settingsRef = db
+        .collection("organizationStripeSettings")
+        .doc(organizationId);
+      const settingsSnap = await settingsRef.get();
+
+      if (!settingsSnap.exists || !settingsSnap.data()?.stripeAccountId) {
+        return reply.status(400).send({ error: "No Stripe account connected" });
+      }
+
+      await disconnectAccount(
+        organizationId,
+        settingsSnap.data()!.stripeAccountId,
+      );
+
+      return { success: true };
     },
   );
 
@@ -445,7 +524,7 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
       const membership = await requireOrgAccess(request, reply);
       if (!membership) return;
 
-      const { sessionId } = request.params;
+      const { organizationId, sessionId } = request.params;
 
       const sessionRef = db.collection("checkoutSessions").doc(sessionId);
       const sessionSnap = await sessionRef.get();
@@ -455,6 +534,12 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
       }
 
       const session = sessionSnap.data();
+
+      // Verify session belongs to this organization
+      if (session?.organizationId !== organizationId) {
+        return reply.status(404).send({ error: "Checkout session not found" });
+      }
+
       return {
         ...session,
         expiresAt: session?.expiresAt?.toDate?.(),
@@ -641,7 +726,7 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
   // Refunds
   // ============================================
 
-  // Create refund
+  // Create refund via Stripe on connected account
   fastify.post<{
     Params: { organizationId: string };
     Body: CreateRefundData;
@@ -668,8 +753,10 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       const { organizationId } = request.params;
       const { paymentIntentId, amount, reason } = result.data;
+      const performedBy =
+        (request as AuthenticatedRequest).user?.uid || "unknown";
 
-      // Get payment intent
+      // Validate payment intent exists and belongs to org before calling Stripe
       const intentRef = db.collection("paymentIntents").doc(paymentIntentId);
       const intentSnap = await intentRef.get();
 
@@ -682,62 +769,49 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
         return reply.status(403).send({ error: "Access denied" });
       }
 
-      if (intent.status !== "succeeded") {
+      if (
+        intent.status !== "succeeded" &&
+        intent.status !== "partially_refunded"
+      ) {
         return reply.status(400).send({
-          error: "Can only refund successful payments",
+          error: "Can only refund successful or partially refunded payments",
         });
       }
 
-      const refundAmount = amount || intent.amount - intent.totalRefunded;
-      if (refundAmount > intent.amount - intent.totalRefunded) {
-        return reply.status(400).send({
-          error: "Refund amount exceeds available balance",
+      try {
+        // Map "other" reason to "requested_by_customer" for Stripe compatibility
+        const stripeReason =
+          reason === "other" || !reason ? "requested_by_customer" : reason;
+
+        const refundResult = await createStripeRefund({
+          organizationId,
+          paymentIntentId,
+          amount: amount || undefined,
+          reason: stripeReason as
+            | "duplicate"
+            | "fraudulent"
+            | "requested_by_customer",
+          performedBy,
         });
+
+        return {
+          success: true,
+          refund: {
+            id: refundResult.refundId,
+            stripeRefundId: refundResult.stripeRefundId,
+            amount: refundResult.amount,
+            currency: intent.currency,
+            status: refundResult.status,
+          },
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Refund failed";
+        request.log.error(
+          { err, paymentIntentId, organizationId },
+          "Stripe refund failed",
+        );
+        return reply.status(400).send({ error: message });
       }
-
-      // In production, create Stripe refund
-      // const refund = await stripe.refunds.create({
-      //   payment_intent: intent.stripePaymentIntentId,
-      //   amount: refundAmount,
-      //   reason: reason === 'duplicate' ? 'duplicate' : reason === 'fraudulent' ? 'fraudulent' : 'requested_by_customer',
-      // });
-
-      // Mock refund for development
-      const refundId = `re_${Date.now()}`;
-      const refundRecord = {
-        id: refundId,
-        stripeRefundId: refundId,
-        amount: refundAmount,
-        currency: intent.currency,
-        reason,
-        status: "succeeded" as const,
-        createdAt: Timestamp.now(),
-        createdBy: (request as AuthenticatedRequest).user?.uid,
-      };
-
-      // Update payment intent
-      await intentRef.update({
-        refunds: FieldValue.arrayUnion(refundRecord),
-        totalRefunded: FieldValue.increment(refundAmount),
-        status:
-          refundAmount >= intent.amount - intent.totalRefunded
-            ? "refunded"
-            : "partially_refunded",
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-
-      // If linked to invoice, update invoice
-      if (intent.invoiceId) {
-        await db
-          .collection("invoices")
-          .doc(intent.invoiceId)
-          .update({
-            refundedAmount: FieldValue.increment(refundAmount),
-            updatedAt: FieldValue.serverTimestamp(),
-          });
-      }
-
-      return { success: true, refund: refundRecord };
     },
   );
 
@@ -880,6 +954,13 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
       const { organizationId, methodId } = request.params;
       const { contactId } = request.query;
 
+      // Only admins/owners can delete payment methods for contacts
+      if (!["owner", "admin"].includes(membership.role)) {
+        return reply
+          .status(403)
+          .send({ error: "Only owners/admins can delete payment methods" });
+      }
+
       const customerQuery = db
         .collection("stripeCustomers")
         .where("organizationId", "==", organizationId)
@@ -968,6 +1049,13 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const membership = await requireOrgAccess(request, reply);
       if (!membership) return;
+
+      // Only admins/owners can deposit to prepaid accounts
+      if (!["owner", "admin"].includes(membership.role)) {
+        return reply
+          .status(403)
+          .send({ error: "Only owners/admins can manage prepaid deposits" });
+      }
 
       const result = depositSchema.safeParse(request.body);
       if (!result.success) {
@@ -1090,6 +1178,266 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
       });
 
       return { transactions };
+    },
+  );
+
+  // ============================================
+  // Analytics
+  // ============================================
+
+  /**
+   * GET /organizations/:organizationId/payments/analytics
+   * Payment analytics dashboard data.
+   * Query params: startDate, endDate (ISO strings)
+   */
+  fastify.get<{
+    Params: { organizationId: string };
+    Querystring: {
+      startDate?: string;
+      endDate?: string;
+    };
+  }>(
+    "/organizations/:organizationId/payments/analytics",
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const membership = await requireOrgAccess(request, reply);
+      if (!membership) return;
+
+      // Admin/owner only
+      if (!["owner", "admin"].includes(membership.role)) {
+        return reply
+          .status(403)
+          .send({ error: "Only owners/admins can view payment analytics" });
+      }
+
+      const { organizationId } = request.params;
+      const { startDate, endDate } = request.query;
+
+      // Default to last 30 days if not provided
+      const end = endDate ? new Date(endDate) : new Date();
+      const start = startDate
+        ? new Date(startDate)
+        : new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+      let query = db
+        .collection("paymentIntents")
+        .where("organizationId", "==", organizationId)
+        .where("createdAt", ">=", Timestamp.fromDate(start))
+        .where("createdAt", "<=", Timestamp.fromDate(end))
+        .orderBy("createdAt", "desc");
+
+      const snap = await query.get();
+
+      const payments = snap.docs.map((doc) => doc.data() as PaymentIntent);
+
+      // Aggregate by payment method
+      const methodMap = new Map<string, { count: number; amount: number }>();
+      const statusMap = new Map<string, { count: number; amount: number }>();
+      const dailyMap = new Map<string, { count: number; amount: number }>();
+
+      let totalPayments = 0;
+      let totalAmount = 0;
+      let totalRefunds = 0;
+      let totalRefundAmount = 0;
+      let totalApplicationFees = 0;
+
+      for (const p of payments) {
+        totalPayments++;
+        totalAmount += p.amount || 0;
+        totalRefunds += p.refunds?.length || 0;
+        totalRefundAmount += p.totalRefunded || 0;
+        totalApplicationFees += p.applicationFeeAmount || 0;
+
+        // By method
+        const method = p.paymentMethodType || "unknown";
+        const methodEntry = methodMap.get(method) || { count: 0, amount: 0 };
+        methodEntry.count++;
+        methodEntry.amount += p.amount || 0;
+        methodMap.set(method, methodEntry);
+
+        // By status
+        const status = p.status || "unknown";
+        const statusEntry = statusMap.get(status) || { count: 0, amount: 0 };
+        statusEntry.count++;
+        statusEntry.amount += p.amount || 0;
+        statusMap.set(status, statusEntry);
+
+        // Daily trend
+        const dateKey = p.createdAt?.toDate?.()
+          ? p.createdAt.toDate().toISOString().substring(0, 10)
+          : "unknown";
+        const dailyEntry = dailyMap.get(dateKey) || { count: 0, amount: 0 };
+        dailyEntry.count++;
+        dailyEntry.amount += p.amount || 0;
+        dailyMap.set(dateKey, dailyEntry);
+      }
+
+      // Recent payments (top 10)
+      const recentPayments = payments.slice(0, 10).map((p) => ({
+        id: p.id,
+        amount: p.amount,
+        currency: p.currency,
+        status: p.status,
+        contactName: undefined as string | undefined,
+        invoiceNumber: p.invoiceNumber,
+        paymentMethodType: p.paymentMethodType,
+        createdAt: p.createdAt?.toDate?.()?.toISOString() || "",
+      }));
+
+      // Fetch contact names for recent payments
+      const contactIds = [
+        ...new Set(
+          payments
+            .slice(0, 10)
+            .map((p) => p.contactId)
+            .filter(Boolean),
+        ),
+      ];
+      const contactNameMap = new Map<string, string>();
+      for (const cid of contactIds) {
+        const contactDoc = await db.collection("contacts").doc(cid).get();
+        if (contactDoc.exists) {
+          const c = contactDoc.data()!;
+          const name =
+            c.contactType === "Personal"
+              ? `${c.firstName || ""} ${c.lastName || ""}`.trim()
+              : c.businessName || "";
+          contactNameMap.set(cid, name || c.email || cid);
+        }
+      }
+
+      for (let i = 0; i < Math.min(payments.length, 10); i++) {
+        recentPayments[i].contactName =
+          contactNameMap.get(payments[i].contactId) || undefined;
+      }
+
+      const netAmount = totalAmount - totalRefundAmount;
+
+      const result: PaymentDashboardData = {
+        organizationId,
+        period: {
+          start: start.toISOString(),
+          end: end.toISOString(),
+        },
+        summary: {
+          totalPayments,
+          totalAmount,
+          totalRefunds,
+          totalRefundAmount,
+          netAmount,
+          totalApplicationFees,
+          currency: "SEK",
+        },
+        byPaymentMethod: Array.from(methodMap.entries()).map(
+          ([method, data]) => ({
+            method,
+            count: data.count,
+            amount: data.amount,
+          }),
+        ),
+        byStatus: Array.from(statusMap.entries()).map(([status, data]) => ({
+          status,
+          count: data.count,
+          amount: data.amount,
+        })),
+        dailyTrend: Array.from(dailyMap.entries())
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, data]) => ({
+            date,
+            count: data.count,
+            amount: data.amount,
+          })),
+        recentPayments,
+      };
+
+      return result;
+    },
+  );
+
+  /**
+   * GET /organizations/:organizationId/payments/application-fees
+   * Application fee report.
+   * Query params: startDate, endDate (ISO strings)
+   */
+  fastify.get<{
+    Params: { organizationId: string };
+    Querystring: {
+      startDate?: string;
+      endDate?: string;
+    };
+  }>(
+    "/organizations/:organizationId/payments/application-fees",
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const membership = await requireOrgAccess(request, reply);
+      if (!membership) return;
+
+      // Admin/owner only
+      if (!["owner", "admin"].includes(membership.role)) {
+        return reply
+          .status(403)
+          .send({
+            error: "Only owners/admins can view application fee reports",
+          });
+      }
+
+      const { organizationId } = request.params;
+      const { startDate, endDate } = request.query;
+
+      const end = endDate ? new Date(endDate) : new Date();
+      const start = startDate
+        ? new Date(startDate)
+        : new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+      // Query payment intents with application fees
+      const snap = await db
+        .collection("paymentIntents")
+        .where("organizationId", "==", organizationId)
+        .where("createdAt", ">=", Timestamp.fromDate(start))
+        .where("createdAt", "<=", Timestamp.fromDate(end))
+        .orderBy("createdAt", "desc")
+        .get();
+
+      const payments = snap.docs.map((doc) => doc.data() as PaymentIntent);
+      const withFees = payments.filter(
+        (p) => (p.applicationFeeAmount || 0) > 0,
+      );
+
+      let totalFees = 0;
+      let totalPaymentAmount = 0;
+      const feeEntries = withFees.map((p) => {
+        const fee = p.applicationFeeAmount || 0;
+        totalFees += fee;
+        totalPaymentAmount += p.amount || 0;
+        return {
+          paymentIntentId: p.id,
+          paymentAmount: p.amount,
+          applicationFee: fee,
+          currency: p.currency,
+          status: p.status,
+          invoiceNumber: p.invoiceNumber,
+          createdAt: p.createdAt?.toDate?.()?.toISOString() || "",
+        };
+      });
+
+      return {
+        organizationId,
+        period: {
+          start: start.toISOString(),
+          end: end.toISOString(),
+        },
+        summary: {
+          totalPayments: withFees.length,
+          totalPaymentAmount,
+          totalApplicationFees: totalFees,
+          effectiveRate:
+            totalPaymentAmount > 0
+              ? Math.round((totalFees / totalPaymentAmount) * 10000) / 100
+              : 0,
+          currency: "SEK",
+        },
+        entries: feeEntries,
+      };
     },
   );
 }

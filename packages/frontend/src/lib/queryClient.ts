@@ -420,6 +420,87 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.invoices.details(), id] as const,
   },
 
+  // Payments
+  payments: {
+    all: ["payments"] as const,
+    byOrganization: (organizationId: string) =>
+      [...queryKeys.payments.all, "org", organizationId] as const,
+    invoicePaymentStatus: (organizationId: string, invoiceId: string) =>
+      [
+        ...queryKeys.payments.all,
+        "invoice-status",
+        organizationId,
+        invoiceId,
+      ] as const,
+    stripeSettings: (organizationId: string) =>
+      [...queryKeys.payments.all, "stripe-settings", organizationId] as const,
+  },
+
+  // Line Items
+  lineItems: {
+    all: ["lineItems"] as const,
+    byOrganization: (organizationId: string) =>
+      [...queryKeys.lineItems.all, organizationId] as const,
+  },
+
+  // Chargeable Items
+  chargeableItems: {
+    all: ["chargeableItems"] as const,
+    byOrganization: (organizationId: string) =>
+      [...queryKeys.chargeableItems.all, organizationId] as const,
+  },
+
+  // Billing Groups
+  billingGroups: {
+    all: ["billingGroups"] as const,
+    byOrganization: (organizationId: string) =>
+      [...queryKeys.billingGroups.all, organizationId] as const,
+  },
+
+  // Package Definitions
+  packageDefinitions: {
+    all: ["packageDefinitions"] as const,
+    byOrganization: (organizationId: string) =>
+      [...queryKeys.packageDefinitions.all, organizationId] as const,
+  },
+
+  // Member Packages
+  memberPackages: {
+    all: ["memberPackages"] as const,
+    byOrganization: (organizationId: string) =>
+      [...queryKeys.memberPackages.all, organizationId] as const,
+  },
+
+  // Commission Configs
+  commissionConfigs: {
+    all: ["commissionConfigs"] as const,
+    byOrganization: (organizationId: string) =>
+      [...queryKeys.commissionConfigs.all, organizationId] as const,
+  },
+
+  // Commissions
+  commissions: {
+    all: ["commissions"] as const,
+    byOrganization: (
+      organizationId: string,
+      filters?: Record<string, string | undefined>,
+    ) => [...queryKeys.commissions.all, organizationId, filters] as const,
+  },
+
+  // Disputes
+  disputes: {
+    all: ["disputes"] as const,
+    byOrganization: (organizationId: string, filters?: { status?: string }) =>
+      [
+        ...queryKeys.disputes.all,
+        "org",
+        organizationId,
+        { ...filters },
+      ] as const,
+    detail: (disputeId: string) =>
+      [...queryKeys.disputes.all, "detail", disputeId] as const,
+  },
+
   // Staff Availability
   staffAvailability: {
     all: ["staffAvailability"] as const,
@@ -984,6 +1065,128 @@ export const cacheInvalidation = {
     detail: (id: string) =>
       queryClient.invalidateQueries({
         queryKey: queryKeys.invoices.detail(id),
+      }),
+  },
+
+  /**
+   * Invalidate payment queries
+   */
+  payments: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.payments.all }),
+    byOrganization: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.payments.byOrganization(organizationId),
+      }),
+    stripeSettings: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.payments.stripeSettings(organizationId),
+      }),
+  },
+
+  /**
+   * Invalidate line item queries
+   */
+  lineItems: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.lineItems.all }),
+    byOrganization: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.lineItems.byOrganization(organizationId),
+      }),
+  },
+
+  /**
+   * Invalidate chargeable item queries
+   */
+  chargeableItems: {
+    all: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.chargeableItems.all,
+      }),
+    byOrganization: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.chargeableItems.byOrganization(organizationId),
+      }),
+  },
+
+  /**
+   * Invalidate billing group queries
+   */
+  billingGroups: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.billingGroups.all }),
+    byOrganization: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.billingGroups.byOrganization(organizationId),
+      }),
+  },
+
+  /**
+   * Invalidate package definition queries
+   */
+  packageDefinitions: {
+    all: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.packageDefinitions.all,
+      }),
+    byOrganization: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.packageDefinitions.byOrganization(organizationId),
+      }),
+  },
+
+  /**
+   * Invalidate member package queries
+   */
+  memberPackages: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.memberPackages.all }),
+    byOrganization: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.memberPackages.byOrganization(organizationId),
+      }),
+  },
+
+  /**
+   * Invalidate commission config queries
+   */
+  commissionConfigs: {
+    all: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.commissionConfigs.all,
+      }),
+    byOrganization: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.commissionConfigs.byOrganization(organizationId),
+      }),
+  },
+
+  /**
+   * Invalidate commission queries
+   */
+  commissions: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.commissions.all }),
+    byOrganization: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.commissions.byOrganization(organizationId),
+      }),
+  },
+
+  /**
+   * Invalidate dispute queries
+   */
+  disputes: {
+    all: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.disputes.all }),
+    byOrganization: (organizationId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.disputes.byOrganization(organizationId),
+      }),
+    detail: (disputeId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.disputes.detail(disputeId),
       }),
   },
 

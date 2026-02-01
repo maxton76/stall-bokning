@@ -29,7 +29,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrency, getStatusColor } from "@/services/invoiceService";
+import { getStatusColor } from "@/services/invoiceService";
+import { formatOre } from "@/utils/money";
 import type { Invoice } from "@equiduty/shared";
 
 interface InvoiceDetailDialogProps {
@@ -166,13 +167,13 @@ export function InvoiceDetailDialog({
                           t(`invoices:units.${item.unit}`, item.unit)}
                       </TableCell>
                       <TableCell className="text-right">
-                        {formatCurrency(item.unitPrice, invoice.currency)}
+                        {formatOre(item.unitPrice, invoice.currency)}
                       </TableCell>
                       <TableCell className="text-right">
                         {item.vatRate}%
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        {formatCurrency(item.lineTotal, invoice.currency)}
+                        {formatOre(item.lineTotal, invoice.currency)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -187,37 +188,33 @@ export function InvoiceDetailDialog({
                   <span className="text-muted-foreground">
                     {t("invoices:fields.subtotal")}
                   </span>
-                  <span>
-                    {formatCurrency(invoice.subtotal, invoice.currency)}
-                  </span>
+                  <span>{formatOre(invoice.subtotal, invoice.currency)}</span>
                 </div>
                 {invoice.vatBreakdown.map((vat, index) => (
                   <div key={index} className="flex justify-between text-sm">
                     <span className="text-muted-foreground">
                       {t("invoices:fields.vat")} ({vat.rate}%)
                     </span>
-                    <span>
-                      {formatCurrency(vat.vatAmount, invoice.currency)}
-                    </span>
+                    <span>{formatOre(vat.vatAmount, invoice.currency)}</span>
                   </div>
                 ))}
                 <Separator />
                 <div className="flex justify-between font-bold">
                   <span>{t("invoices:fields.total")}</span>
-                  <span>{formatCurrency(invoice.total, invoice.currency)}</span>
+                  <span>{formatOre(invoice.total, invoice.currency)}</span>
                 </div>
                 {invoice.amountPaid > 0 && (
                   <>
                     <div className="flex justify-between text-sm text-green-600">
                       <span>{t("invoices:fields.amountPaid")}</span>
                       <span>
-                        -{formatCurrency(invoice.amountPaid, invoice.currency)}
+                        -{formatOre(invoice.amountPaid, invoice.currency)}
                       </span>
                     </div>
                     <div className="flex justify-between font-bold text-amber-600">
                       <span>{t("invoices:fields.amountDue")}</span>
                       <span>
-                        {formatCurrency(invoice.amountDue, invoice.currency)}
+                        {formatOre(invoice.amountDue, invoice.currency)}
                       </span>
                     </div>
                   </>
@@ -258,7 +255,7 @@ export function InvoiceDetailDialog({
                             {payment.reference || "-"}
                           </TableCell>
                           <TableCell className="text-right text-green-600 font-medium">
-                            {formatCurrency(payment.amount, invoice.currency)}
+                            {formatOre(payment.amount, invoice.currency)}
                           </TableCell>
                         </TableRow>
                       ))}

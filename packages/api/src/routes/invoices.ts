@@ -10,12 +10,22 @@ import {
   isSystemAdmin,
 } from "../utils/authorization.js";
 import { serializeTimestamps } from "../utils/serialization.js";
-import type { InvoiceStatus } from "@equiduty/shared";
+import { logInvoiceEvent, getInvoiceEvents } from "../utils/invoiceAudit.js";
+import type { InvoiceStatus, InvoiceDocumentType } from "@equiduty/shared";
+import { generateOCR } from "@equiduty/shared";
 
 /**
- * Generate next invoice number for organization
+ * Generate next invoice number for organization using gap-free sequential numbering.
+ * Uses a Firestore transaction on the invoiceNumberSeries collection to guarantee
+ * no gaps and no duplicates even under concurrent access.
+ *
+ * @param organizationId - Organization to generate number for
+ * @param type - Document type: 'invoice' or 'credit_note' (credit notes use separate series)
  */
-async function generateInvoiceNumber(organizationId: string): Promise<string> {
+async function generateInvoiceNumber(
+  organizationId: string,
+  type: "invoice" | "credit_note" = "invoice",
+): Promise<string> {
   const year = new Date().getFullYear();
   const shortYear = year.toString().slice(-2);
 
@@ -25,36 +35,61 @@ async function generateInvoiceNumber(organizationId: string): Promise<string> {
     .doc(organizationId)
     .get();
 
-  let prefix = "INV";
+  let prefix = type === "credit_note" ? "KF" : "INV";
   let separator = "-";
   let paddingDigits = 4;
 
   if (settingsDoc.exists) {
     const settings = settingsDoc.data()!;
     if (settings.numbering) {
-      prefix = settings.numbering.prefix || "INV";
+      if (type === "credit_note") {
+        prefix = settings.numbering.creditNotePrefix || "KF";
+      } else {
+        prefix = settings.numbering.prefix || "INV";
+      }
       separator = settings.numbering.separator || "-";
       paddingDigits = settings.numbering.paddingDigits || 4;
     }
   }
 
-  // Count invoices for this year
-  const countSnapshot = await db
-    .collection("invoices")
-    .where("organizationId", "==", organizationId)
-    .where("issueDate", ">=", Timestamp.fromDate(new Date(`${year}-01-01`)))
-    .where("issueDate", "<", Timestamp.fromDate(new Date(`${year + 1}-01-01`)))
-    .count()
-    .get();
+  // Gap-free sequential numbering via Firestore transaction
+  const seriesField =
+    type === "credit_note" ? "nextCreditNoteNumber" : "nextInvoiceNumber";
+  const seriesRef = db.collection("invoiceNumberSeries").doc(organizationId);
 
-  const count = countSnapshot.data().count + 1;
-  const paddedNumber = count.toString().padStart(paddingDigits, "0");
+  const nextNumber = await db.runTransaction(async (transaction) => {
+    const seriesDoc = await transaction.get(seriesRef);
 
+    let currentNumber: number;
+    if (!seriesDoc.exists) {
+      // Initialize both series
+      currentNumber = 1;
+      transaction.set(seriesRef, {
+        nextInvoiceNumber: type === "invoice" ? 2 : 1,
+        nextCreditNoteNumber: type === "credit_note" ? 2 : 1,
+        organizationId,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+    } else {
+      currentNumber = seriesDoc.data()![seriesField] || 1;
+      transaction.update(seriesRef, {
+        [seriesField]: currentNumber + 1,
+        updatedAt: Timestamp.now(),
+      });
+    }
+
+    return currentNumber;
+  });
+
+  const paddedNumber = nextNumber.toString().padStart(paddingDigits, "0");
   return `${prefix}${separator}${shortYear}${separator}${paddedNumber}`;
 }
 
 /**
- * Calculate invoice totals from items
+ * Calculate invoice totals from items.
+ * All amounts are in ore (integer, 1 SEK = 100 ore).
+ * Applies oresavrundning: rounds total to nearest 100 ore (1 SEK).
  */
 function calculateInvoiceTotals(items: any[]): {
   subtotal: number;
@@ -62,6 +97,7 @@ function calculateInvoiceTotals(items: any[]): {
   vatBreakdown: { rate: number; baseAmount: number; vatAmount: number }[];
   totalVat: number;
   total: number;
+  roundingAmount: number;
 } {
   let subtotal = 0;
   let totalDiscount = 0;
@@ -70,10 +106,10 @@ function calculateInvoiceTotals(items: any[]): {
   items.forEach((item) => {
     const lineSubtotal = item.quantity * item.unitPrice;
     const discountAmount = item.discount
-      ? lineSubtotal * (item.discount / 100)
+      ? Math.round(lineSubtotal * (item.discount / 100))
       : 0;
     const lineTotal = lineSubtotal - discountAmount;
-    const vatAmount = lineTotal * (item.vatRate / 100);
+    const vatAmount = Math.round(lineTotal * (item.vatRate / 100));
 
     subtotal += lineTotal;
     totalDiscount += discountAmount;
@@ -89,26 +125,428 @@ function calculateInvoiceTotals(items: any[]): {
   const vatBreakdown = Array.from(vatByRate.entries()).map(
     ([rate, { base, vat }]) => ({
       rate,
-      baseAmount: Math.round(base * 100) / 100,
-      vatAmount: Math.round(vat * 100) / 100,
+      baseAmount: base,
+      vatAmount: vat,
     }),
   );
 
   const totalVat = vatBreakdown.reduce((sum, v) => sum + v.vatAmount, 0);
-  const total = Math.round((subtotal + totalVat) * 100) / 100;
+
+  // Oresavrundning: round to nearest 100 ore (1 SEK)
+  const exactTotal = subtotal + totalVat;
+  const roundedTotal = Math.round(exactTotal / 100) * 100;
+  const roundingAmount = roundedTotal - exactTotal;
 
   return {
-    subtotal: Math.round(subtotal * 100) / 100,
-    totalDiscount: Math.round(totalDiscount * 100) / 100,
+    subtotal,
+    totalDiscount,
     vatBreakdown,
-    totalVat: Math.round(totalVat * 100) / 100,
-    total,
+    totalVat,
+    total: roundedTotal,
+    roundingAmount,
   };
 }
 
 export async function invoicesRoutes(fastify: FastifyInstance) {
   // Addon gate: invoicing addon required
   fastify.addHook("preHandler", checkModuleAccess("invoicing"));
+
+  /**
+   * POST /api/v1/invoices/organization/:organizationId/generate
+   * Batch generate invoices from pending line items.
+   * Groups line items by billingContactId and creates one invoice per contact.
+   * Skips line items covered by klippkort (packageDeductionId set).
+   */
+  fastify.post(
+    "/organization/:organizationId/generate",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+        const { organizationId } = request.params as {
+          organizationId: string;
+        };
+        const body = request.body as
+          | {
+              from?: string;
+              to?: string;
+            }
+          | undefined;
+
+        // Check organization management access
+        if (!isSystemAdmin(user.role)) {
+          const canManage = await canManageOrganization(
+            user.uid,
+            organizationId,
+          );
+          if (!canManage) {
+            return reply.status(403).send({
+              error: "Forbidden",
+              message:
+                "You do not have permission to generate invoices for this organization",
+            });
+          }
+        }
+
+        // Fetch pending line items for this organization
+        let lineItemQuery = db
+          .collection("lineItems")
+          .where("organizationId", "==", organizationId)
+          .where("status", "==", "pending");
+
+        if (body?.from) {
+          lineItemQuery = lineItemQuery.where(
+            "date",
+            ">=",
+            Timestamp.fromDate(new Date(body.from)),
+          ) as any;
+        }
+        if (body?.to) {
+          lineItemQuery = lineItemQuery.where(
+            "date",
+            "<=",
+            Timestamp.fromDate(new Date(body.to)),
+          ) as any;
+        }
+
+        const lineItemSnapshot = await lineItemQuery.get();
+
+        if (lineItemSnapshot.empty) {
+          return reply.status(200).send({
+            invoicesCreated: 0,
+            lineItemsProcessed: 0,
+            invoices: [],
+          });
+        }
+
+        // Filter out klippkort-covered items and group by billingContactId
+        const groupedByContact: Map<
+          string,
+          Array<{ id: string; data: FirebaseFirestore.DocumentData }>
+        > = new Map();
+
+        for (const doc of lineItemSnapshot.docs) {
+          const data = doc.data();
+
+          // Skip line items covered by klippkort
+          if (data.packageDeductionId) {
+            continue;
+          }
+
+          const contactId = data.billingContactId;
+          if (!contactId) {
+            continue;
+          }
+
+          if (!groupedByContact.has(contactId)) {
+            groupedByContact.set(contactId, []);
+          }
+          groupedByContact.get(contactId)!.push({ id: doc.id, data });
+        }
+
+        if (groupedByContact.size === 0) {
+          return reply.status(200).send({
+            invoicesCreated: 0,
+            lineItemsProcessed: 0,
+            invoices: [],
+          });
+        }
+
+        // Fetch organization info
+        const orgDoc = await db
+          .collection("organizations")
+          .doc(organizationId)
+          .get();
+        if (!orgDoc.exists) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Organization not found",
+          });
+        }
+        const org = orgDoc.data()!;
+
+        // Fetch invoice settings
+        const invoiceSettingsDoc = await db
+          .collection("invoiceSettings")
+          .doc(organizationId)
+          .get();
+        const invoiceSettings = invoiceSettingsDoc.exists
+          ? invoiceSettingsDoc.data()!
+          : null;
+
+        const defaultDueDays = invoiceSettings?.defaultDueDays || 30;
+
+        // Collect unique horse IDs to batch-fetch names
+        const horseIds = new Set<string>();
+        Array.from(groupedByContact.values()).forEach((items) => {
+          items.forEach(({ data }) => {
+            if (data.horseId) {
+              horseIds.add(data.horseId);
+            }
+          });
+        });
+
+        // Fetch horse names for denormalization
+        const horseNameMap: Map<string, string> = new Map();
+        if (horseIds.size > 0) {
+          const horseIdArray = Array.from(horseIds);
+          // Firestore 'in' queries support max 30 items per batch
+          for (let i = 0; i < horseIdArray.length; i += 30) {
+            const batch = horseIdArray.slice(i, i + 30);
+            const horseSnapshot = await db
+              .collection("horses")
+              .where("__name__", "in", batch)
+              .get();
+            for (const horseDoc of horseSnapshot.docs) {
+              horseNameMap.set(horseDoc.id, horseDoc.data().name || "");
+            }
+          }
+        }
+
+        const now = Timestamp.now();
+        const issueDate = now;
+        const dueDateObj = new Date();
+        dueDateObj.setDate(dueDateObj.getDate() + defaultDueDays);
+        const dueDate = Timestamp.fromDate(dueDateObj);
+
+        const createdInvoices: Array<{
+          id: string;
+          invoiceNumber: string;
+          contactName: string;
+          total: number;
+        }> = [];
+        let totalLineItemsProcessed = 0;
+
+        // Generate one invoice per billing contact
+        const contactEntries = Array.from(groupedByContact.entries());
+        for (const [contactId, lineItems] of contactEntries) {
+          // Fetch contact for denormalization
+          const contactDoc = await db
+            .collection("contacts")
+            .doc(contactId)
+            .get();
+          if (!contactDoc.exists) {
+            request.log.warn(
+              { contactId },
+              "Billing contact not found, skipping group",
+            );
+            continue;
+          }
+          const contact = contactDoc.data()!;
+          const contactName =
+            contact.contactType === "Business"
+              ? contact.businessName
+              : `${contact.firstName} ${contact.lastName}`;
+
+          // Generate invoice number and OCR
+          const invoiceNumber = await generateInvoiceNumber(organizationId);
+          const ocrNumber = generateOCR(invoiceNumber);
+
+          // Group line items by memberId for structured invoicing
+          const byMember: Map<
+            string,
+            Array<{ id: string; data: FirebaseFirestore.DocumentData }>
+          > = new Map();
+          for (const item of lineItems) {
+            const memberId = item.data.memberId || "unknown";
+            if (!byMember.has(memberId)) {
+              byMember.set(memberId, []);
+            }
+            byMember.get(memberId)!.push(item);
+          }
+
+          // Convert line items to invoice items
+          const invoiceItems: any[] = [];
+          let itemIndex = 0;
+          for (const memberItems of Array.from(byMember.values())) {
+            for (const { data } of memberItems) {
+              const lineSubtotal = data.quantity * data.unitPrice;
+              const vatAmount = Math.round(lineSubtotal * (data.vatRate / 100));
+
+              invoiceItems.push({
+                id: `item-${Date.now()}-${itemIndex}`,
+                description: data.description || "",
+                itemType: data.chargeableItemId ? "service" : "other",
+                quantity: data.quantity,
+                unit: null,
+                unitPrice: data.unitPrice,
+                vatRate: data.vatRate,
+                discount: null,
+                discountAmount: 0,
+                lineTotal: lineSubtotal,
+                vatAmount,
+                horseId: data.horseId || null,
+                horseName: data.horseId
+                  ? horseNameMap.get(data.horseId) || null
+                  : null,
+                periodStart: null,
+                periodEnd: null,
+                serviceDate: data.date || null,
+                serviceName: null,
+              });
+              itemIndex++;
+            }
+          }
+
+          // Calculate totals
+          const totals = calculateInvoiceTotals(invoiceItems);
+
+          const invoiceData = {
+            invoiceNumber,
+            organizationId,
+            stableId: null,
+
+            type: "invoice" as InvoiceDocumentType,
+
+            // Customer info
+            contactId,
+            contactName,
+            contactEmail: contact.email || null,
+            contactAddress: contact.address
+              ? {
+                  street: contact.address.street,
+                  houseNumber: contact.address.houseNumber,
+                  postcode: contact.address.postcode,
+                  city: contact.address.city,
+                  country: contact.address.country,
+                }
+              : null,
+
+            // Organization info
+            organizationName: org.name,
+            organizationAddress: org.address || null,
+            organizationVatNumber: org.vatNumber || null,
+            organizationBankInfo: org.bankInfo || null,
+
+            // Swedish compliance fields
+            orgNumber: invoiceSettings?.orgNumber || org.orgNumber || null,
+            orgBankgiro: invoiceSettings?.bankgiro || null,
+            orgPlusgiro: invoiceSettings?.plusgiro || null,
+            orgSwish: invoiceSettings?.swishNumber || null,
+            ocrNumber,
+
+            // Dates
+            issueDate,
+            dueDate,
+            periodStart: body?.from
+              ? Timestamp.fromDate(new Date(body.from))
+              : null,
+            periodEnd: body?.to ? Timestamp.fromDate(new Date(body.to)) : null,
+
+            // Items and totals
+            items: invoiceItems,
+            ...totals,
+            currency: invoiceSettings?.defaultCurrency || "SEK",
+
+            // Payment tracking
+            amountPaid: 0,
+            amountDue: totals.total,
+            payments: [],
+
+            // Billing group reference
+            billingGroupId: null,
+
+            // Status: draft for admin review
+            status: "draft" as InvoiceStatus,
+            sentAt: null,
+            paidAt: null,
+            cancelledAt: null,
+            voidedAt: null,
+
+            // Document settings
+            language:
+              contact.invoiceLanguage ||
+              invoiceSettings?.defaultLanguage ||
+              "sv",
+            pdfUrl: null,
+            pdfGeneratedAt: null,
+
+            // External integrations
+            stripeInvoiceId: null,
+            stripeInvoiceUrl: null,
+            stripePaymentIntentId: null,
+
+            // Notes
+            internalNotes: null,
+            customerNotes: null,
+            paymentTerms: invoiceSettings?.defaultPaymentTerms || null,
+            footerText: invoiceSettings?.defaultFooterText || null,
+
+            // Credit note references
+            creditNoteNumber: null,
+            originalInvoiceId: null,
+
+            // References
+            relatedInvoiceId: null,
+            templateId: null,
+
+            // Metadata
+            createdAt: now,
+            createdBy: user.uid,
+            updatedAt: now,
+            updatedBy: user.uid,
+          };
+
+          // Create invoice document
+          const invoiceRef = await db.collection("invoices").add(invoiceData);
+
+          // Update line items in batches of 500 (Firestore batch limit)
+          const lineItemIds = lineItems.map((li) => li.id);
+          for (let i = 0; i < lineItemIds.length; i += 500) {
+            const batchIds = lineItemIds.slice(i, i + 500);
+            const writeBatch = db.batch();
+            for (const lineItemId of batchIds) {
+              writeBatch.update(db.collection("lineItems").doc(lineItemId), {
+                invoiceId: invoiceRef.id,
+                status: "invoiced",
+                updatedAt: now,
+                updatedBy: user.uid,
+              });
+            }
+            await writeBatch.commit();
+          }
+
+          totalLineItemsProcessed += lineItems.length;
+
+          // Audit trail
+          await logInvoiceEvent(
+            invoiceRef.id,
+            null,
+            "draft",
+            "created",
+            user.uid,
+            {
+              invoiceNumber,
+              generatedFrom: "batch",
+              lineItemCount: lineItems.length,
+              contactName,
+            },
+          );
+
+          createdInvoices.push({
+            id: invoiceRef.id,
+            invoiceNumber,
+            contactName,
+            total: totals.total,
+          });
+        }
+
+        return reply.status(201).send({
+          invoicesCreated: createdInvoices.length,
+          lineItemsProcessed: totalLineItemsProcessed,
+          invoices: createdInvoices,
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to generate invoices");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to generate invoices",
+        });
+      }
+    },
+  );
 
   /**
    * GET /api/v1/invoices/organization/:organizationId
@@ -210,16 +648,16 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         const invoice = doc.data()!;
 
-        // Check organization access
+        // Check organization access — return 404 (not 403) to prevent enumeration
         if (!isSystemAdmin(user.role)) {
           const hasAccess = await canAccessOrganization(
             user.uid,
             invoice.organizationId,
           );
           if (!hasAccess) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to access this invoice",
+            return reply.status(404).send({
+              error: "Not Found",
+              message: "Invoice not found",
             });
           }
         }
@@ -236,31 +674,28 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
   );
 
   /**
-   * POST /api/v1/invoices
+   * POST /api/v1/invoices/organization/:organizationId
    * Create a new invoice
    */
   fastify.post(
-    "/",
+    "/organization/:organizationId",
     {
       preHandler: [authenticate],
     },
     async (request, reply) => {
       try {
         const user = (request as AuthenticatedRequest).user!;
+        const { organizationId } = request.params as { organizationId: string };
         const data = request.body as any;
 
-        if (!data.organizationId) {
-          return reply.status(400).send({
-            error: "Bad Request",
-            message: "organizationId is required",
-          });
-        }
+        // Use organizationId from URL params, ignore body field
+        data.organizationId = organizationId;
 
         // Check organization management access
         if (!isSystemAdmin(user.role)) {
           const canManage = await canManageOrganization(
             user.uid,
-            data.organizationId,
+            organizationId,
           );
           if (!canManage) {
             return reply.status(403).send({
@@ -314,17 +749,24 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
         }
         const org = orgDoc.data()!;
 
-        // Generate invoice number
-        const invoiceNumber = await generateInvoiceNumber(data.organizationId);
+        // Generate invoice number (supports credit notes with separate series)
+        const invoiceType: InvoiceDocumentType = data.type || "invoice";
+        const invoiceNumber = await generateInvoiceNumber(
+          data.organizationId,
+          invoiceType,
+        );
 
-        // Process items with IDs and calculations
+        // Generate OCR payment reference
+        const ocrNumber = generateOCR(invoiceNumber);
+
+        // Process items with IDs and calculations (all amounts in ore)
         const processedItems = data.items.map((item: any, index: number) => {
           const lineSubtotal = item.quantity * item.unitPrice;
           const discountAmount = item.discount
-            ? lineSubtotal * (item.discount / 100)
+            ? Math.round(lineSubtotal * (item.discount / 100))
             : 0;
           const lineTotal = lineSubtotal - discountAmount;
-          const vatAmount = lineTotal * (item.vatRate / 100);
+          const vatAmount = Math.round(lineTotal * (item.vatRate / 100));
 
           return {
             id: `item-${Date.now()}-${index}`,
@@ -335,9 +777,9 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
             unitPrice: item.unitPrice,
             vatRate: item.vatRate,
             discount: item.discount || null,
-            discountAmount: Math.round(discountAmount * 100) / 100,
-            lineTotal: Math.round(lineTotal * 100) / 100,
-            vatAmount: Math.round(vatAmount * 100) / 100,
+            discountAmount,
+            lineTotal,
+            vatAmount,
             horseId: item.horseId || null,
             horseName: item.horseName || null,
             periodStart: item.periodStart
@@ -356,10 +798,22 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
         // Calculate totals
         const totals = calculateInvoiceTotals(processedItems);
 
+        // Fetch invoice settings for Swedish compliance fields
+        const invoiceSettingsDoc = await db
+          .collection("invoiceSettings")
+          .doc(data.organizationId)
+          .get();
+        const invoiceSettings = invoiceSettingsDoc.exists
+          ? invoiceSettingsDoc.data()!
+          : null;
+
         const invoiceData = {
           invoiceNumber,
           organizationId: data.organizationId,
           stableId: data.stableId || null,
+
+          // Document type
+          type: invoiceType,
 
           // Customer info
           contactId: data.contactId,
@@ -381,6 +835,13 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
           organizationVatNumber: org.vatNumber || null,
           organizationBankInfo: org.bankInfo || null,
 
+          // Swedish compliance fields
+          orgNumber: invoiceSettings?.orgNumber || org.orgNumber || null,
+          orgBankgiro: invoiceSettings?.bankgiro || null,
+          orgPlusgiro: invoiceSettings?.plusgiro || null,
+          orgSwish: invoiceSettings?.swishNumber || null,
+          ocrNumber,
+
           // Dates
           issueDate: Timestamp.fromDate(new Date(data.issueDate)),
           dueDate: Timestamp.fromDate(new Date(data.dueDate)),
@@ -391,18 +852,21 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
             ? Timestamp.fromDate(new Date(data.periodEnd))
             : null,
 
-          // Items and totals
+          // Items and totals (all amounts in ore)
           items: processedItems,
           ...totals,
           currency: data.currency || "SEK",
 
-          // Payment tracking
+          // Payment tracking (amounts in ore)
           amountPaid: 0,
           amountDue: totals.total,
           payments: [],
 
-          // Status
-          status: (data.status || "draft") as InvoiceStatus,
+          // Billing group reference
+          billingGroupId: data.billingGroupId || null,
+
+          // Status — always default to draft; never accept from client input
+          status: "draft" as InvoiceStatus,
           sentAt: null,
           paidAt: null,
           cancelledAt: null,
@@ -424,6 +888,11 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
           paymentTerms: data.paymentTerms || null,
           footerText: data.footerText || null,
 
+          // Credit note references
+          creditNoteNumber:
+            invoiceType === "credit_note" ? invoiceNumber : null,
+          originalInvoiceId: data.originalInvoiceId || null,
+
           // References
           relatedInvoiceId: null,
           templateId: data.templateId || null,
@@ -436,6 +905,15 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
         };
 
         const docRef = await db.collection("invoices").add(invoiceData);
+
+        await logInvoiceEvent(
+          docRef.id,
+          null,
+          invoiceData.status,
+          "created",
+          user.uid,
+          { invoiceNumber, type: invoiceType },
+        );
 
         return reply.status(201).send({
           id: docRef.id,
@@ -493,9 +971,9 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
             existing.organizationId,
           );
           if (!canManage) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to update this invoice",
+            return reply.status(404).send({
+              error: "Not Found",
+              message: "Invoice not found",
             });
           }
         }
@@ -508,16 +986,16 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
         delete updates.amountPaid;
         delete updates.payments;
 
-        // If items are updated, recalculate totals
+        // If items are updated, recalculate totals (all amounts in ore)
         if (updates.items) {
           const processedItems = updates.items.map(
             (item: any, index: number) => {
               const lineSubtotal = item.quantity * item.unitPrice;
               const discountAmount = item.discount
-                ? lineSubtotal * (item.discount / 100)
+                ? Math.round(lineSubtotal * (item.discount / 100))
                 : 0;
               const lineTotal = lineSubtotal - discountAmount;
-              const vatAmount = lineTotal * (item.vatRate / 100);
+              const vatAmount = Math.round(lineTotal * (item.vatRate / 100));
 
               return {
                 id: item.id || `item-${Date.now()}-${index}`,
@@ -528,9 +1006,9 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
                 unitPrice: item.unitPrice,
                 vatRate: item.vatRate,
                 discount: item.discount || null,
-                discountAmount: Math.round(discountAmount * 100) / 100,
-                lineTotal: Math.round(lineTotal * 100) / 100,
-                vatAmount: Math.round(vatAmount * 100) / 100,
+                discountAmount,
+                lineTotal,
+                vatAmount,
                 horseId: item.horseId || null,
                 horseName: item.horseName || null,
                 periodStart: item.periodStart
@@ -646,9 +1124,9 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
             existing.organizationId,
           );
           if (!canManage) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to send this invoice",
+            return reply.status(404).send({
+              error: "Not Found",
+              message: "Invoice not found",
             });
           }
         }
@@ -667,6 +1145,8 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
           updatedAt: Timestamp.now(),
           updatedBy: user.uid,
         });
+
+        await logInvoiceEvent(id, existing.status, "sent", "sent", user.uid);
 
         // TODO: Trigger email notification
 
@@ -732,10 +1212,9 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
             existing.organizationId,
           );
           if (!canManage) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message:
-                "You do not have permission to record payments for this invoice",
+            return reply.status(404).send({
+              error: "Not Found",
+              message: "Invoice not found",
             });
           }
         }
@@ -785,6 +1264,26 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
           updatedAt: Timestamp.now(),
           updatedBy: user.uid,
         });
+
+        await logInvoiceEvent(
+          id,
+          existing.status,
+          newStatus,
+          "payment_recorded",
+          user.uid,
+          { paymentId: payment.id, amount: data.amount, method: data.method },
+        );
+
+        if (newStatus === "paid" && existing.status !== "paid") {
+          await logInvoiceEvent(
+            id,
+            "partially_paid",
+            "paid",
+            "fully_paid",
+            user.uid,
+            { totalPaid: newAmountPaid },
+          );
+        }
 
         return {
           success: true,
@@ -838,9 +1337,9 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
             existing.organizationId,
           );
           if (!canManage) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to cancel this invoice",
+            return reply.status(404).send({
+              error: "Not Found",
+              message: "Invoice not found",
             });
           }
         }
@@ -859,6 +1358,14 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
           updatedAt: Timestamp.now(),
           updatedBy: user.uid,
         });
+
+        await logInvoiceEvent(
+          id,
+          existing.status,
+          "cancelled",
+          "cancelled",
+          user.uid,
+        );
 
         return { success: true, message: "Invoice cancelled" };
       } catch (error) {
@@ -897,17 +1404,16 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         const contact = contactDoc.data()!;
 
-        // Check organization access
+        // Check organization access — return 404 (not 403) to prevent enumeration
         if (!isSystemAdmin(user.role) && contact.organizationId) {
           const hasAccess = await canAccessOrganization(
             user.uid,
             contact.organizationId,
           );
           if (!hasAccess) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message:
-                "You do not have permission to view this contact's invoices",
+            return reply.status(404).send({
+              error: "Not Found",
+              message: "Contact not found",
             });
           }
         }
@@ -1059,6 +1565,316 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
   );
 
   /**
+   * POST /api/v1/invoices/:id/credit-note
+   * Create a credit note for an existing invoice.
+   * Optionally credit specific line items via `items` index array.
+   */
+  fastify.post(
+    "/:id/credit-note",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+        const { id } = request.params as { id: string };
+        const body = request.body as
+          | {
+              reason?: string;
+              items?: number[];
+            }
+          | undefined;
+
+        const docRef = db.collection("invoices").doc(id);
+        const doc = await docRef.get();
+
+        if (!doc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Invoice not found",
+          });
+        }
+
+        const original = doc.data()!;
+
+        // Check organization management access
+        if (!isSystemAdmin(user.role)) {
+          const canManage = await canManageOrganization(
+            user.uid,
+            original.organizationId,
+          );
+          if (!canManage) {
+            return reply.status(404).send({
+              error: "Not Found",
+              message: "Invoice not found",
+            });
+          }
+        }
+
+        // Only allow credit notes on eligible statuses
+        const creditableStatuses: InvoiceStatus[] = [
+          "sent",
+          "paid",
+          "partially_paid",
+          "overdue",
+        ];
+        if (!creditableStatuses.includes(original.status)) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: `Cannot create credit note for invoice with status: ${original.status}. Allowed: ${creditableStatuses.join(", ")}`,
+          });
+        }
+
+        // Determine which items to credit
+        const originalItems: any[] = original.items || [];
+        let itemsToCredit: any[];
+
+        if (body?.items && body.items.length > 0) {
+          // Validate indices
+          const invalidIndices = body.items.filter(
+            (i) => i < 0 || i >= originalItems.length,
+          );
+          if (invalidIndices.length > 0) {
+            return reply.status(400).send({
+              error: "Bad Request",
+              message: `Invalid item indices: ${invalidIndices.join(", ")}. Invoice has ${originalItems.length} items (0-indexed).`,
+            });
+          }
+          itemsToCredit = body.items.map((i) => originalItems[i]);
+        } else {
+          itemsToCredit = originalItems;
+        }
+
+        // Negate line item amounts
+        const creditItems = itemsToCredit.map((item: any, index: number) => ({
+          ...item,
+          id: `credit-item-${Date.now()}-${index}`,
+          unitPrice: -Math.abs(item.unitPrice),
+          lineTotal: -Math.abs(item.lineTotal),
+          vatAmount: -Math.abs(item.vatAmount),
+          discountAmount: item.discountAmount
+            ? -Math.abs(item.discountAmount)
+            : 0,
+        }));
+
+        // Calculate negated totals
+        const subtotal = creditItems.reduce(
+          (sum: number, item: any) => sum + item.lineTotal,
+          0,
+        );
+        const totalVat = creditItems.reduce(
+          (sum: number, item: any) => sum + item.vatAmount,
+          0,
+        );
+        const totalDiscount = creditItems.reduce(
+          (sum: number, item: any) => sum + item.discountAmount,
+          0,
+        );
+        const exactTotal = subtotal + totalVat;
+        const roundedTotal = Math.round(exactTotal / 100) * 100;
+        const roundingAmount = roundedTotal - exactTotal;
+
+        // Generate credit note number and OCR
+        const creditNoteNumber = await generateInvoiceNumber(
+          original.organizationId,
+          "credit_note",
+        );
+        const ocrNumber = generateOCR(creditNoteNumber);
+
+        const now = Timestamp.now();
+
+        const creditNoteData = {
+          invoiceNumber: creditNoteNumber,
+          organizationId: original.organizationId,
+          stableId: original.stableId || null,
+
+          // Document type
+          type: "credit_note" as InvoiceDocumentType,
+
+          // Customer info (copied from original)
+          contactId: original.contactId,
+          contactName: original.contactName,
+          contactEmail: original.contactEmail,
+          contactAddress: original.contactAddress || null,
+
+          // Organization info (copied from original)
+          organizationName: original.organizationName,
+          organizationAddress: original.organizationAddress || null,
+          organizationVatNumber: original.organizationVatNumber || null,
+          organizationBankInfo: original.organizationBankInfo || null,
+
+          // Swedish compliance fields (copied from original)
+          orgNumber: original.orgNumber || null,
+          orgBankgiro: original.orgBankgiro || null,
+          orgPlusgiro: original.orgPlusgiro || null,
+          orgSwish: original.orgSwish || null,
+          ocrNumber,
+
+          // Dates
+          issueDate: now,
+          dueDate: now, // Credit notes are immediately effective
+          periodStart: original.periodStart || null,
+          periodEnd: original.periodEnd || null,
+
+          // Items and totals (all negated, in ore)
+          items: creditItems,
+          subtotal,
+          totalDiscount,
+          vatBreakdown: [], // Simplified; individual item VAT is tracked
+          totalVat,
+          total: roundedTotal,
+          roundingAmount,
+          currency: original.currency || "SEK",
+
+          // Payment tracking
+          amountPaid: 0,
+          amountDue: roundedTotal,
+          payments: [],
+
+          // Billing group reference
+          billingGroupId: original.billingGroupId || null,
+
+          // Status: credit notes are immediately effective
+          status: "sent" as InvoiceStatus,
+          sentAt: now,
+          paidAt: null,
+          cancelledAt: null,
+          voidedAt: null,
+
+          // Document settings
+          language: original.language || "sv",
+          pdfUrl: null,
+          pdfGeneratedAt: null,
+
+          // External integrations
+          stripeInvoiceId: null,
+          stripeInvoiceUrl: null,
+          stripePaymentIntentId: null,
+
+          // Notes
+          internalNotes: null,
+          customerNotes: body?.reason || null,
+          paymentTerms: null,
+          footerText: original.footerText || null,
+
+          // Credit note references
+          creditNoteNumber,
+          originalInvoiceId: id,
+
+          // References
+          relatedInvoiceId: id,
+          templateId: original.templateId || null,
+
+          // Metadata
+          createdAt: now,
+          createdBy: user.uid,
+          updatedAt: now,
+          updatedBy: user.uid,
+        };
+
+        const creditNoteRef = await db
+          .collection("invoices")
+          .add(creditNoteData);
+
+        // Audit trail: log on original invoice
+        await logInvoiceEvent(
+          id,
+          original.status,
+          original.status,
+          "credit_note_issued",
+          user.uid,
+          {
+            creditNoteId: creditNoteRef.id,
+            creditNoteNumber,
+            creditTotal: roundedTotal,
+            reason: body?.reason || null,
+            partialCredit: !!(body?.items && body.items.length > 0),
+          },
+        );
+
+        // Audit trail: log on the new credit note
+        await logInvoiceEvent(
+          creditNoteRef.id,
+          null,
+          "sent",
+          "created",
+          user.uid,
+          {
+            originalInvoiceId: id,
+            originalInvoiceNumber: original.invoiceNumber,
+            creditTotal: roundedTotal,
+          },
+        );
+
+        return reply.status(201).send({
+          id: creditNoteRef.id,
+          ...serializeTimestamps(creditNoteData),
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to create credit note");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to create credit note",
+        });
+      }
+    },
+  );
+
+  /**
+   * GET /api/v1/invoices/:id/events
+   * Get the audit trail for an invoice
+   */
+  fastify.get(
+    "/:id/events",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+        const { id } = request.params as { id: string };
+
+        const doc = await db.collection("invoices").doc(id).get();
+
+        if (!doc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Invoice not found",
+          });
+        }
+
+        const invoice = doc.data()!;
+
+        // Check organization access — return 404 (not 403) to prevent enumeration
+        if (!isSystemAdmin(user.role)) {
+          const hasAccess = await canAccessOrganization(
+            user.uid,
+            invoice.organizationId,
+          );
+          if (!hasAccess) {
+            return reply.status(404).send({
+              error: "Not Found",
+              message: "Invoice not found",
+            });
+          }
+        }
+
+        const events = await getInvoiceEvents(id);
+
+        return {
+          events: events.map((event) => serializeTimestamps(event)),
+        };
+      } catch (error) {
+        request.log.error({ error }, "Failed to fetch invoice events");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to fetch invoice events",
+        });
+      }
+    },
+  );
+
+  /**
    * DELETE /api/v1/invoices/:id
    * Delete a draft invoice
    */
@@ -1091,9 +1907,9 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
             existing.organizationId,
           );
           if (!canManage) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to delete this invoice",
+            return reply.status(404).send({
+              error: "Not Found",
+              message: "Invoice not found",
             });
           }
         }

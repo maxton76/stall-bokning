@@ -28,8 +28,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   createCheckoutSession,
   getCheckoutSession,
-  formatCurrency,
 } from "@/services/paymentService";
+import { formatOre } from "@/utils/money";
 import {
   getPortalInvoice,
   type FlattenedPortalInvoice,
@@ -235,7 +235,7 @@ export default function PortalPaymentPage() {
                   )}
                 </div>
                 <span>
-                  {formatCurrency(
+                  {formatOre(
                     item.unitPrice * item.quantity * 100,
                     invoice.currency,
                   )}
@@ -252,41 +252,32 @@ export default function PortalPaymentPage() {
               <span className="text-muted-foreground">
                 {t("portal:invoices.subtotal")}
               </span>
-              <span>
-                {formatCurrency(invoice.subtotal * 100, invoice.currency)}
-              </span>
+              <span>{formatOre(invoice.subtotal * 100, invoice.currency)}</span>
             </div>
             {invoice.vatBreakdown?.map((vat, index) => (
               <div key={index} className="flex justify-between text-sm">
                 <span className="text-muted-foreground">
                   {t("portal:invoices.vat")} ({vat.rate}%)
                 </span>
-                <span>
-                  {formatCurrency(vat.amount * 100, invoice.currency)}
-                </span>
+                <span>{formatOre(vat.amount * 100, invoice.currency)}</span>
               </div>
             ))}
             <Separator />
             <div className="flex justify-between font-medium text-lg">
               <span>{t("portal:invoices.total")}</span>
-              <span>
-                {formatCurrency(invoice.total * 100, invoice.currency)}
-              </span>
+              <span>{formatOre(invoice.total * 100, invoice.currency)}</span>
             </div>
             {invoice.paidAmount && invoice.paidAmount > 0 && (
               <>
                 <div className="flex justify-between text-sm text-green-600">
                   <span>{t("portal:invoices.paid")}</span>
                   <span>
-                    -
-                    {formatCurrency(invoice.paidAmount * 100, invoice.currency)}
+                    -{formatOre(invoice.paidAmount * 100, invoice.currency)}
                   </span>
                 </div>
                 <div className="flex justify-between font-medium">
                   <span>{t("portal:invoices.amountDue")}</span>
-                  <span>
-                    {formatCurrency(amountDue * 100, invoice.currency)}
-                  </span>
+                  <span>{formatOre(amountDue * 100, invoice.currency)}</span>
                 </div>
               </>
             )}
@@ -310,7 +301,7 @@ export default function PortalPaymentPage() {
                   <>
                     <CreditCard className="h-4 w-4 mr-2" />
                     {t("payments:checkout.payNow")} -{" "}
-                    {formatCurrency(amountDue * 100, invoice.currency)}
+                    {formatOre(amountDue * 100, invoice.currency)}
                   </>
                 )}
               </Button>

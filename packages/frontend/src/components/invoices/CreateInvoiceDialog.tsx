@@ -34,7 +34,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { queryKeys } from "@/lib/queryClient";
-import { createInvoice, formatCurrency } from "@/services/invoiceService";
+import { createInvoice } from "@/services/invoiceService";
+import { formatOre } from "@/utils/money";
 import { getOrganizationContacts } from "@/services/contactService";
 import type { Contact, InvoiceItemType } from "@equiduty/shared";
 import { cn } from "@/lib/utils";
@@ -424,15 +425,15 @@ export function CreateInvoiceDialog({
             <div className="rounded-lg bg-muted p-4 space-y-2">
               <div className="flex justify-between">
                 <span>{t("invoices:fields.subtotal")}</span>
-                <span>{formatCurrency(totals.subtotal)}</span>
+                <span>{formatOre(totals.subtotal)}</span>
               </div>
               <div className="flex justify-between">
                 <span>{t("invoices:fields.vat")}</span>
-                <span>{formatCurrency(totals.totalVat)}</span>
+                <span>{formatOre(totals.totalVat)}</span>
               </div>
               <div className="flex justify-between font-bold text-lg border-t pt-2">
                 <span>{t("invoices:fields.total")}</span>
-                <span>{formatCurrency(totals.total)}</span>
+                <span>{formatOre(totals.total)}</span>
               </div>
             </div>
 

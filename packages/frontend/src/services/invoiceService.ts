@@ -8,7 +8,6 @@ import type {
   ContactInvoiceSummary,
 } from "@equiduty/shared";
 import { apiClient } from "@/lib/apiClient";
-
 // ============================================================================
 // Invoice CRUD Operations
 // ============================================================================
@@ -208,19 +207,6 @@ export async function getOverdueInvoices(organizationId: string): Promise<{
 // ============================================================================
 // Utility Functions
 // ============================================================================
-
-/**
- * Format currency amount for display
- * @param amount - Amount to format
- * @param currency - Currency code (default: SEK)
- * @returns Formatted string
- */
-export function formatCurrency(amount: number, currency = "SEK"): string {
-  return new Intl.NumberFormat("sv-SE", {
-    style: "currency",
-    currency,
-  }).format(amount);
-}
 
 /**
  * Get status color for UI styling

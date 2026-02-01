@@ -24,20 +24,16 @@ export function checkModuleAccess(moduleKey: ModuleOrAddonKey) {
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<void> => {
-    // Extract organizationId from query, params, or body
-    const query = request.query as Record<string, string>;
+    // Extract organizationId only from URL params (never from body to prevent spoofing)
     const params = request.params as Record<string, string>;
-    const body = request.body as Record<string, unknown> | null;
 
-    const organizationId =
-      query?.organizationId ||
-      params?.organizationId ||
-      (body?.organizationId as string) ||
-      undefined;
+    const organizationId = params?.organizationId || params?.orgId || undefined;
 
     if (!organizationId) {
-      // If no orgId available, skip the check
-      return;
+      return reply.status(400).send({
+        error: "Bad Request",
+        message: "Organization ID is required to check module access",
+      });
     }
 
     try {
@@ -93,7 +89,10 @@ export function checkModuleAccess(moduleKey: ModuleOrAddonKey) {
         { error, moduleKey, organizationId },
         "Failed to check module access",
       );
-      // Don't block on check failure — allow the request through
+      return reply.status(500).send({
+        error: "Internal Server Error",
+        message: "Failed to verify module access. Please try again.",
+      });
     }
   };
 }

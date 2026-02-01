@@ -57,9 +57,9 @@ import {
   sendInvoice,
   cancelInvoice,
   deleteInvoice,
-  formatCurrency,
   getStatusColor,
 } from "@/services/invoiceService";
+import { formatOre } from "@/utils/money";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { RecordPaymentDialog } from "@/components/invoices/RecordPaymentDialog";
 import { InvoiceDetailDialog } from "@/components/invoices/InvoiceDetailDialog";
@@ -246,7 +246,7 @@ export default function InvoicesPage() {
               {invoicesLoading ? (
                 <Skeleton className="h-8 w-24" />
               ) : (
-                formatCurrency(summary.totalInvoiced)
+                formatOre(summary.totalInvoiced)
               )}
             </CardTitle>
           </CardHeader>
@@ -259,7 +259,7 @@ export default function InvoicesPage() {
               {invoicesLoading ? (
                 <Skeleton className="h-8 w-24" />
               ) : (
-                formatCurrency(summary.totalPaid)
+                formatOre(summary.totalPaid)
               )}
             </CardTitle>
           </CardHeader>
@@ -274,7 +274,7 @@ export default function InvoicesPage() {
               {invoicesLoading ? (
                 <Skeleton className="h-8 w-24" />
               ) : (
-                formatCurrency(summary.totalOutstanding)
+                formatOre(summary.totalOutstanding)
               )}
             </CardTitle>
           </CardHeader>
@@ -300,7 +300,7 @@ export default function InvoicesPage() {
               {overdueQuery.isLoading ? (
                 <Skeleton className="h-8 w-24" />
               ) : (
-                formatCurrency(overdueData?.totalOverdue || 0)
+                formatOre(overdueData?.totalOverdue || 0)
               )}
             </CardTitle>
             {overdueData?.count && overdueData.count > 0 && (
@@ -431,12 +431,12 @@ export default function InvoicesPage() {
                       {format(toDate(invoice.dueDate), "PP", { locale })}
                     </TableCell>
                     <TableCell className="text-right">
-                      {formatCurrency(invoice.total, invoice.currency)}
+                      {formatOre(invoice.total, invoice.currency)}
                     </TableCell>
                     <TableCell className="text-right">
                       {invoice.amountDue > 0 ? (
                         <span className="text-amber-600">
-                          {formatCurrency(invoice.amountDue, invoice.currency)}
+                          {formatOre(invoice.amountDue, invoice.currency)}
                         </span>
                       ) : (
                         <span className="text-green-600">-</span>

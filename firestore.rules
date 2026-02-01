@@ -2050,6 +2050,225 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // ============================================================================
+    // INVOICING MODULE COLLECTIONS - BACKEND-MANAGED
+    // ============================================================================
+    // All invoicing data is managed by the API (Cloud Run service account).
+    // Client-side access is read-only for organization members.
+
+    // Invoices - Read by org members, write by backend only
+    match /invoices/{invoiceId} {
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId) ||
+        resource.data.contactId == request.auth.uid ||
+        resource.data.billingContactId == request.auth.uid
+      );
+      allow list: if false; // Use API for listing
+      allow create, update, delete: if false; // Backend only
+
+      // Invoice status events (audit trail) - immutable subcollection
+      match /statusEvents/{eventId} {
+        allow get, list: if isAuthenticated() && (
+          isSystemAdmin() ||
+          isOrganizationAdministrator(get(/databases/$(database)/documents/invoices/$(invoiceId)).data.organizationId)
+        );
+        allow create, update, delete: if false; // Backend only, immutable
+      }
+
+      // Invoice reminders subcollection
+      match /reminders/{reminderId} {
+        allow get, list: if isAuthenticated() && (
+          isSystemAdmin() ||
+          isOrganizationAdministrator(get(/databases/$(database)/documents/invoices/$(invoiceId)).data.organizationId)
+        );
+        allow create, update, delete: if false; // Backend only
+      }
+    }
+
+    // Chargeable Items - Read by org members, write by backend only
+    match /chargeableItems/{itemId} {
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+      allow list: if false;
+      allow create, update, delete: if false;
+    }
+
+    // Line Items - Read by org members/billing contacts, write by backend only
+    match /lineItems/{itemId} {
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId) ||
+        resource.data.memberId == request.auth.uid ||
+        isOrganizationMember(resource.data.organizationId)
+      );
+      allow list: if false;
+      allow create, update, delete: if false;
+    }
+
+    // Billing Groups - Read by org admins, write by backend only
+    match /billingGroups/{groupId} {
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+      allow list: if false;
+      allow create, update, delete: if false;
+    }
+
+    // Package Definitions - Read by org members, write by backend only
+    match /packageDefinitions/{packageId} {
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+      allow list: if false;
+      allow create, update, delete: if false;
+    }
+
+    // Member Packages - Read by owner/billing contact/org admin, write by backend only
+    match /memberPackages/{packageId} {
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId) ||
+        resource.data.memberId == request.auth.uid
+      );
+      allow list: if false;
+      allow create, update, delete: if false;
+    }
+
+    // Package Deductions - Read by org admin, write by backend only
+    match /packageDeductions/{deductionId} {
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+      allow list: if false;
+      allow create, update, delete: if false;
+    }
+
+    // Invoice Number Series - Backend only (sequential numbering)
+    match /invoiceNumberSeries/{orgId} {
+      allow read, write: if false; // Backend only via transactions
+    }
+
+    // Invoice Settings - Read by org admin, write by backend only
+    match /invoiceSettings/{orgId} {
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(orgId)
+      );
+      allow list: if false;
+      allow create, update, delete: if false;
+    }
+
+    // Trainer Attributions - Read by org admin, write by backend only
+    match /trainerAttributions/{attrId} {
+      allow get: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+      allow list: if false;
+      allow create, update, delete: if false;
+    }
+
+    // ============================================================================
+    // PAYMENT COLLECTIONS (Stripe Connect)
+    // ============================================================================
+
+    // Organization Stripe settings — org admins can read, writes via backend only
+    match /organizationStripeSettings/{settingsId} {
+      allow read: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(settingsId)
+      );
+      allow write: if false; // Backend-only writes via admin SDK
+    }
+
+    // Payment intents — org admins can read, writes via backend only
+    match /paymentIntents/{intentId} {
+      allow read: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+      allow write: if false;
+    }
+
+    // Stripe customers — org admins can read, writes via backend only
+    match /stripeCustomers/{customerId} {
+      allow read: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+      allow write: if false;
+    }
+
+    // Stripe webhook events — no client access
+    match /stripeWebhookEvents/{eventId} {
+      allow read, write: if false;
+    }
+
+    // Checkout sessions — org admins can read, writes via backend only
+    match /checkoutSessions/{sessionId} {
+      allow read: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+      allow write: if false;
+    }
+
+    // ============================================================================
+    // DISPUTES COLLECTION - INVOICE DISPUTES
+    // ============================================================================
+
+    match /disputes/{disputeId} {
+      // READ: Org admins see all, members see own disputes
+      allow read: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId) ||
+        isOrganizationMember(resource.data.organizationId) ||
+        resource.data.createdBy == request.auth.uid
+      );
+      // WRITES: Backend API only (uses service account)
+      allow create, update, delete: if false;
+
+      // Dispute messages subcollection
+      match /messages/{messageId} {
+        allow read: if isAuthenticated() && (
+          isSystemAdmin() ||
+          isOrganizationAdministrator(
+            get(/databases/$(database)/documents/disputes/$(disputeId)).data.organizationId
+          )
+        );
+        allow create, update, delete: if false;
+      }
+    }
+
+    // ============================================================================
+    // TRAINER COMMISSION COLLECTIONS
+    // ============================================================================
+
+    // Commission configs — org admins read, backend writes
+    match /trainerCommissionConfigs/{configId} {
+      allow read: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId)
+      );
+      allow write: if false;
+    }
+
+    // Commission records — org admins + trainer reads own, backend writes
+    match /trainerCommissions/{commissionId} {
+      allow read: if isAuthenticated() && (
+        isSystemAdmin() ||
+        isOrganizationAdministrator(resource.data.organizationId) ||
+        resource.data.trainerId == request.auth.uid
+      );
+      allow write: if false;
+    }
+
     // Default deny all
     match /{document=**} {
       allow read, write: if false;

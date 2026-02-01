@@ -14,7 +14,13 @@
     "defaultCurrency": "Default Currency",
     "payoutSchedule": "Payout Schedule",
     "statementDescriptor": "Statement Descriptor",
-    "passFeesToCustomer": "Pass Fees to Customer"
+    "passFeesToCustomer": "Pass Fees to Customer",
+    "disconnectAccount": "Disconnect Stripe Account",
+    "continueOnboarding": "Continue Onboarding",
+    "confirmDisconnect": "Are you sure you want to disconnect your Stripe account? You will no longer be able to accept online payments.",
+    "statementDescriptorPlaceholder": "STABLE NAME",
+    "statementDescriptorHelp": "Max 22 characters. Appears on customer bank statements.",
+    "passFeesDescription": "Add Stripe fees to the customer's total"
   },
   "status": {
     "not_connected": "Not Connected",
@@ -112,12 +118,45 @@
     "methodSaved": "Payment method saved",
     "methodRemoved": "Payment method removed",
     "depositSuccess": "Deposit successful",
-    "connectSuccess": "Stripe account connected"
+    "connectSuccess": "Stripe account connected",
+    "disconnectSuccess": "Stripe account disconnected",
+    "paymentConfirmation": "Your payment has been received. You will receive a confirmation via email.",
+    "paymentCancelled": "Payment was cancelled. No charges were made."
+  },
+  "dashboard": {
+    "title": "Payment Dashboard",
+    "summary": "Summary",
+    "totalRevenue": "Total Revenue",
+    "totalRefunds": "Total Refunds",
+    "netAmount": "Net Amount",
+    "applicationFees": "Application Fees",
+    "byMethod": "By Payment Method",
+    "byStatus": "By Status",
+    "recentPayments": "Recent Payments",
+    "dailyTrend": "Daily Trend",
+    "period": "Period",
+    "thisMonth": "This Month",
+    "lastMonth": "Last Month",
+    "last3Months": "Last 3 Months",
+    "custom": "Custom Range",
+    "noData": "No payment data for this period"
+  },
+  "packages": {
+    "title": "Packages",
+    "buyNow": "Buy Now",
+    "units": "{{count}} sessions",
+    "validFor": "Valid for {{days}} days",
+    "noExpiry": "No expiry",
+    "price": "Price",
+    "purchaseSuccess": "Redirecting to payment...",
+    "purchaseFailed": "Could not start purchase",
+    "noPackages": "No packages available"
   },
   "errors": {
     "notEnabled": "Online payments not enabled",
     "paymentFailed": "Payment failed",
     "insufficientBalance": "Insufficient balance",
-    "invalidAmount": "Invalid amount"
+    "invalidAmount": "Invalid amount",
+    "disconnectFailed": "Could not disconnect Stripe account"
   }
 }

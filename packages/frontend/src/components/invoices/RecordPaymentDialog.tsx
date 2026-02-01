@@ -31,7 +31,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
-import { recordPayment, formatCurrency } from "@/services/invoiceService";
+import { recordPayment } from "@/services/invoiceService";
+import { formatOre } from "@/utils/money";
 import type { Invoice, PaymentMethod } from "@equiduty/shared";
 import { cn } from "@/lib/utils";
 
@@ -145,12 +146,12 @@ export function RecordPaymentDialog({
             <span className="text-muted-foreground">
               {t("invoices:fields.total")}
             </span>
-            <span>{formatCurrency(invoice.total, invoice.currency)}</span>
+            <span>{formatOre(invoice.total, invoice.currency)}</span>
           </div>
           <div className="flex justify-between text-sm font-medium border-t pt-2 mt-2">
             <span>{t("invoices:fields.amountDue")}</span>
             <span className="text-amber-600">
-              {formatCurrency(invoice.amountDue, invoice.currency)}
+              {formatOre(invoice.amountDue, invoice.currency)}
             </span>
           </div>
         </div>

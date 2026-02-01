@@ -115,6 +115,14 @@ export async function connectStripeAccount(
   );
 }
 
+export async function disconnectStripeAccount(
+  organizationId: string,
+): Promise<{ success: boolean }> {
+  return apiClient.post<{ success: boolean }>(
+    `/organizations/${organizationId}/payments/disconnect`,
+  );
+}
+
 export async function updateStripeSettings(
   organizationId: string,
   data: UpdateStripeSettingsData,
@@ -288,20 +296,6 @@ export async function getPrepaidTransactions(
 // ============================================
 // Utility Functions
 // ============================================
-
-export function formatCurrency(
-  amount: number,
-  currency: string = "SEK",
-): string {
-  // Amount is in smallest unit (öre for SEK)
-  const value = amount / 100;
-  return new Intl.NumberFormat("sv-SE", {
-    style: "currency",
-    currency: currency.toUpperCase(),
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(value);
-}
 
 export function getPaymentStatusVariant(
   status: string,
