@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrganizationContext } from "@/contexts/OrganizationContext";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 import {
   Card,
   CardContent,
@@ -11,13 +13,57 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserIcon, Mail, Calendar } from "lucide-react";
+import { UserIcon, Mail, Calendar, Settings } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { getUserOrganizations } from "@/services/organizationService";
+import type { Organization } from "@shared/types";
 
 export default function AccountPage() {
   const { user } = useAuth();
   const { t, i18n } = useTranslation("account");
+  const { toast } = useToast();
+  const { currentOrganizationId, setCurrentOrganizationId } =
+    useOrganizationContext();
+  const { preferences, setDefaultOrganization } = useUserPreferences();
   const [isEditing, setIsEditing] = useState(false);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [orgsLoading, setOrgsLoading] = useState(true);
+
+  // Load user's organizations
+  useEffect(() => {
+    async function loadOrganizations() {
+      if (!user?.uid) return;
+      try {
+        const orgs = await getUserOrganizations(user.uid);
+        setOrganizations(orgs);
+      } catch (error) {
+        console.error("Failed to load organizations:", error);
+      } finally {
+        setOrgsLoading(false);
+      }
+    }
+    loadOrganizations();
+  }, [user?.uid]);
+
+  const handleDefaultOrgChange = async (orgId: string) => {
+    try {
+      await setDefaultOrganization(orgId);
+      setCurrentOrganizationId(orgId);
+      toast({
+        description: t("preferences.saved"),
+      });
+    } catch (error) {
+      console.error("Failed to set default organization:", error);
+    }
+  };
 
   const getJoinDate = () => {
     const locale = i18n.language === "sv" ? "sv-SE" : "en-US";
@@ -123,6 +169,48 @@ export default function AccountPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Preferences */}
+      {organizations.length > 1 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <CardTitle>{t("preferences.title")}</CardTitle>
+                <CardDescription>
+                  {t("preferences.description")}
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="default-org">
+                {t("preferences.defaultOrganization")}
+              </Label>
+              <Select
+                value={preferences?.defaultOrganizationId || ""}
+                onValueChange={handleDefaultOrgChange}
+              >
+                <SelectTrigger id="default-org" className="w-full max-w-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {organizations.map((org) => (
+                    <SelectItem key={org.id} value={org.id}>
+                      {org.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {t("preferences.defaultOrganizationHint")}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Danger Zone */}
       <Card className="border-destructive">

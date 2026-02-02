@@ -80,3 +80,6 @@ export * from "./bulkImport.js";
 // Trainer Attribution
 export * from "./trainerAttribution.js";
 export * from "./trainerCommission.js";
+
+// Facility Scheduling
+export * from "./facilitySchedule.js";

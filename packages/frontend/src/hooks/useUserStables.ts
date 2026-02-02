@@ -11,6 +11,8 @@ interface Stable {
   address?: string;
   ownerId?: string;
   organizationId?: string;
+  boxes?: string[];
+  paddocks?: string[];
   createdAt?: any;
 }
 

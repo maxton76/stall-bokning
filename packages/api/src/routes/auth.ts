@@ -161,6 +161,50 @@ export default async function authRoutes(fastify: FastifyInstance) {
           );
         }
 
+        // Auto-set defaultOrganizationId to the first non-personal organization
+        try {
+          const activeMemberships = await db
+            .collection("organizationMembers")
+            .where("userId", "==", user.uid)
+            .where("status", "==", "active")
+            .get();
+
+          for (const memberDoc of activeMemberships.docs) {
+            const membership = memberDoc.data();
+            const orgDoc = await db
+              .collection("organizations")
+              .doc(membership.organizationId)
+              .get();
+
+            if (
+              orgDoc.exists &&
+              orgDoc.data()?.organizationType !== "personal"
+            ) {
+              await db
+                .collection("users")
+                .doc(user.uid)
+                .collection("settings")
+                .doc("preferences")
+                .set({ defaultOrganizationId: orgDoc.id }, { merge: true });
+
+              request.log.info(
+                {
+                  userId: user.uid,
+                  defaultOrganizationId: orgDoc.id,
+                },
+                "Auto-set defaultOrganizationId to invited organization",
+              );
+              break;
+            }
+          }
+        } catch (prefError) {
+          // Log error but don't fail signup
+          request.log.error(
+            { error: prefError, userId: user.uid },
+            "Failed to auto-set default organization preference",
+          );
+        }
+
         return reply.status(201).send({
           user: {
             id: user.uid,

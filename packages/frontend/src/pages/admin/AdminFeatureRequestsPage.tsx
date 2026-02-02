@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
-import { listFeatureRequests } from "@/services/featureRequestService";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  listFeatureRequests,
+  deleteFeatureRequest,
+} from "@/services/featureRequestService";
 import { StatusBadge } from "@/components/feature-requests/StatusBadge";
 import { CategoryBadge } from "@/components/feature-requests/CategoryBadge";
 import { Badge } from "@/components/ui/badge";
@@ -18,14 +21,26 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Lightbulb,
   Loader2,
   ThumbsUp,
   MessageSquare,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
-import type { FeatureRequestStatus } from "@equiduty/shared";
+import type { FeatureRequest, FeatureRequestStatus } from "@equiduty/shared";
 import { PRIORITY_COLORS } from "@/components/feature-requests/constants";
+import { useToast } from "@/hooks/use-toast";
 
 const ALL_STATUSES: Array<{ value: string; labelKey: string }> = [
   { value: "all", labelKey: "featureRequests:filters.all" },
@@ -40,7 +55,28 @@ const ALL_STATUSES: Array<{ value: string; labelKey: string }> = [
 export default function AdminFeatureRequestsPage() {
   const { t } = useTranslation(["featureRequests", "common"]);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [deleteTarget, setDeleteTarget] = useState<FeatureRequest | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteFeatureRequest(id),
+    onSuccess: () => {
+      toast({ description: t("featureRequests:messages.deleteSuccess") });
+      queryClient.invalidateQueries({ queryKey: ["admin-featureRequests"] });
+      queryClient.invalidateQueries({
+        queryKey: ["admin-featureRequests-stats"],
+      });
+      setDeleteTarget(null);
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        description: t("featureRequests:errors.deleteFailed"),
+      });
+    },
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-featureRequests", statusFilter],
@@ -212,7 +248,20 @@ export default function AdminFeatureRequestsPage() {
                   </TableCell>
                   <TableCell>{request.commentCount}</TableCell>
                   <TableCell>
-                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex items-center gap-1">
+                      <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget(request);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -220,6 +269,40 @@ export default function AdminFeatureRequestsPage() {
           </Table>
         </div>
       )}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("featureRequests:admin.deleteTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("featureRequests:admin.deleteDescription", {
+                title: deleteTarget?.title,
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common:buttons.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() =>
+                deleteTarget && deleteMutation.mutate(deleteTarget.id)
+              }
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              {t("common:buttons.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

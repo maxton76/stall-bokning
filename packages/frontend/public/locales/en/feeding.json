@@ -34,10 +34,12 @@
     "settingsDescription": "Configure feed types and feeding times for your stable"
   },
   "labels": {
-    "stable": "Stable"
+    "stable": "Stable",
+    "organization": "Organization"
   },
   "placeholders": {
-    "selectStable": "Select a stable"
+    "selectStable": "Select a stable",
+    "selectOrganization": "Select organization"
   },
   "feedTypes": {
     "title": "Feed Types",

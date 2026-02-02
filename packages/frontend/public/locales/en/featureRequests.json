@@ -67,7 +67,9 @@
     "pageTitle": "Manage Feature Requests",
     "responsePlaceholder": "Write a response to the user...",
     "saveChanges": "Save Changes",
-    "noPriority": "No Priority"
+    "noPriority": "No Priority",
+    "deleteTitle": "Delete Feature Request",
+    "deleteDescription": "Are you sure you want to delete \"{{title}}\"? This will permanently remove the request, all votes, and all comments. This action cannot be undone."
   },
   "filters": {
     "all": "All",
@@ -113,14 +115,16 @@
     "generic": "Something went wrong. Please try again.",
     "createFailed": "Could not create request. Please try again.",
     "voteFailed": "Could not register your vote. Please try again.",
-    "commentFailed": "Could not submit comment. Please try again."
+    "commentFailed": "Could not submit comment. Please try again.",
+    "deleteFailed": "Could not delete request. Please try again."
   },
   "messages": {
     "createSuccess": "Request submitted successfully!",
     "voteSuccess": "Your vote has been registered!",
     "statusUpdated": "Status has been updated.",
     "priorityUpdated": "Priority has been updated.",
-    "commentAdded": "Comment has been added."
+    "commentAdded": "Comment has been added.",
+    "deleteSuccess": "Feature request has been deleted."
   },
   "time": {
     "justNow": "just now",

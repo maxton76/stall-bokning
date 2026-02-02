@@ -202,7 +202,12 @@
     "noGroup": "Ingen grupp",
     "noVaccinationRule": "Ingen vaccinationsregel",
     "selectColor": "Välj färg",
-    "selectGender": "Välj kön"
+    "selectGender": "Välj kön",
+    "noBoxesDefined": "Inga boxar definierade för stallet",
+    "noPaddocksDefined": "Inga hagar definierade för stallet",
+    "selectBox": "Välj box",
+    "selectPaddock": "Välj hage",
+    "noSelection": "Ingen"
   },
   "validation": {
     "nameRequired": "Hästens namn krävs",

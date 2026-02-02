@@ -1,11 +1,10 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { BaseFormDialog } from "@/components/BaseFormDialog";
 import { useFormDialog } from "@/hooks/useFormDialog";
 import { FormInput, FormSelect, FormTextarea } from "@/components/form";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -14,11 +13,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { FacilityScheduleEditor } from "@/components/facility/FacilityScheduleEditor";
+import { FacilityExceptionsManager } from "@/components/facility/FacilityExceptionsManager";
 import type {
   Facility,
   FacilityType,
   TimeSlotDuration,
+  FacilityAvailabilitySchedule,
+  WeeklySchedule,
+  ScheduleException,
+  TimeBlock,
 } from "@/types/facility";
+import { createDefaultSchedule } from "@equiduty/shared";
+import { migrateLegacyAvailability } from "@equiduty/shared/utils/facilityAvailability";
 
 const FACILITY_TYPE_KEYS: FacilityType[] = [
   "transport",
@@ -41,16 +48,6 @@ const TIME_SLOT_KEYS = ["15", "30", "60"] as const;
 
 const STATUS_KEYS = ["active", "inactive", "maintenance"] as const;
 
-const DAY_KEYS = [
-  "monday",
-  "tuesday",
-  "wednesday",
-  "thursday",
-  "friday",
-  "saturday",
-  "sunday",
-] as const;
-
 // Schema will be created with useMemo inside component for translations
 type FacilityFormData = {
   name: string;
@@ -63,24 +60,17 @@ type FacilityFormData = {
   minTimeSlotDuration: TimeSlotDuration;
   maxHoursPerReservation: number;
   maxDurationUnit: "hours" | "days";
-  availableFrom: string;
-  availableTo: string;
-  daysAvailable: {
-    monday: boolean;
-    tuesday: boolean;
-    wednesday: boolean;
-    thursday: boolean;
-    friday: boolean;
-    saturday: boolean;
-    sunday: boolean;
-  };
 };
 
 interface FacilityFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   facility?: Facility;
-  onSave: (data: FacilityFormData) => Promise<void>;
+  onSave: (
+    data: FacilityFormData & {
+      availabilitySchedule: FacilityAvailabilitySchedule;
+    },
+  ) => Promise<void>;
 }
 
 export function FacilityFormDialog({
@@ -91,6 +81,12 @@ export function FacilityFormDialog({
 }: FacilityFormDialogProps) {
   const { t } = useTranslation("facilities");
   const isEditMode = !!facility;
+
+  // Manage schedule state separately from form (not easily handled by react-hook-form)
+  const [weeklySchedule, setWeeklySchedule] = useState<WeeklySchedule>(
+    () => createDefaultSchedule().weeklySchedule,
+  );
+  const [exceptions, setExceptions] = useState<ScheduleException[]>([]);
 
   // Build translated facility type options
   const facilityTypeOptions = useMemo(
@@ -118,16 +114,6 @@ export function FacilityFormDialog({
       STATUS_KEYS.map((key) => ({
         value: key,
         label: t(`facilityStatus.${key}`),
-      })),
-    [t],
-  );
-
-  // Build translated day options
-  const dayOptions = useMemo(
-    () =>
-      DAY_KEYS.map((key) => ({
-        key,
-        label: t(`days.${key}`),
       })),
     [t],
   );
@@ -163,27 +149,6 @@ export function FacilityFormDialog({
           .transform((val) => parseInt(val, 10) as TimeSlotDuration),
         maxHoursPerReservation: z.coerce.number().min(1).max(720),
         maxDurationUnit: z.enum(["hours", "days"]),
-        availableFrom: z
-          .string()
-          .regex(
-            /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
-            t("form.validation.timeInvalid"),
-          ),
-        availableTo: z
-          .string()
-          .regex(
-            /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
-            t("form.validation.timeInvalid"),
-          ),
-        daysAvailable: z.object({
-          monday: z.boolean(),
-          tuesday: z.boolean(),
-          wednesday: z.boolean(),
-          thursday: z.boolean(),
-          friday: z.boolean(),
-          saturday: z.boolean(),
-          sunday: z.boolean(),
-        }),
       }),
     [t],
   );
@@ -201,17 +166,6 @@ export function FacilityFormDialog({
       minTimeSlotDuration: 30 as 15 | 30 | 60,
       maxHoursPerReservation: 2,
       maxDurationUnit: "hours",
-      availableFrom: "08:00",
-      availableTo: "20:00",
-      daysAvailable: {
-        monday: true,
-        tuesday: true,
-        wednesday: true,
-        thursday: true,
-        friday: true,
-        saturday: true,
-        sunday: false,
-      },
     },
     onSubmit: async (data) => {
       const { maxDurationUnit, ...rest } = data;
@@ -221,8 +175,16 @@ export function FacilityFormDialog({
           maxDurationUnit === "days"
             ? rest.maxHoursPerReservation * 24
             : rest.maxHoursPerReservation,
+        availabilitySchedule: {
+          weeklySchedule,
+          exceptions,
+        },
       };
-      await onSave(submitData as FacilityFormData);
+      await onSave(
+        submitData as FacilityFormData & {
+          availabilitySchedule: FacilityAvailabilitySchedule;
+        },
+      );
     },
     onSuccess: () => {
       onOpenChange(false);
@@ -253,23 +215,48 @@ export function FacilityFormDialog({
         minTimeSlotDuration: facility.minTimeSlotDuration as 15 | 30 | 60,
         maxHoursPerReservation: useDays ? hours / 24 : hours,
         maxDurationUnit: useDays ? "days" : "hours",
-        availableFrom: facility.availableFrom,
-        availableTo: facility.availableTo,
-        daysAvailable: facility.daysAvailable,
       });
+
+      // Load schedule from facility or migrate legacy fields
+      if (facility.availabilitySchedule) {
+        setWeeklySchedule(facility.availabilitySchedule.weeklySchedule);
+        setExceptions(facility.availabilitySchedule.exceptions || []);
+      } else {
+        // Migrate legacy fields
+        const migrated = migrateLegacyAvailability({
+          availableFrom: facility.availableFrom,
+          availableTo: facility.availableTo,
+          daysAvailable: facility.daysAvailable,
+        });
+        setWeeklySchedule(migrated.weeklySchedule);
+        setExceptions([]);
+      }
     } else {
       resetForm();
+      const defaultSchedule = createDefaultSchedule();
+      setWeeklySchedule(defaultSchedule.weeklySchedule);
+      setExceptions([]);
     }
   }, [facility, open]);
 
-  const daysAvailable = form.watch("daysAvailable") ?? {
-    monday: true,
-    tuesday: true,
-    wednesday: true,
-    thursday: true,
-    friday: true,
-    saturday: true,
-    sunday: false,
+  const handleAddException = async (exception: {
+    date: string;
+    type: "closed" | "modified";
+    timeBlocks: TimeBlock[];
+    reason?: string;
+  }) => {
+    setExceptions((prev) => [
+      ...prev,
+      {
+        ...exception,
+        createdBy: "",
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+  };
+
+  const handleRemoveException = (date: string) => {
+    setExceptions((prev) => prev.filter((e) => e.date !== date));
   };
 
   return (
@@ -383,7 +370,6 @@ export function FacilityFormDialog({
                 const currentValue = form.getValues("maxHoursPerReservation");
                 const currentUnit = form.getValues("maxDurationUnit");
                 if (currentUnit === "hours" && value === "days") {
-                  // Convert hours to days if evenly divisible, otherwise reset
                   form.setValue(
                     "maxHoursPerReservation",
                     currentValue >= 24 && currentValue % 24 === 0
@@ -417,47 +403,27 @@ export function FacilityFormDialog({
         </div>
       </div>
 
-      {/* Section 3: Availability */}
+      {/* Section 3: Availability Schedule */}
       <div className="space-y-4">
         <h3 className="font-semibold text-lg">
           {t("form.sections.availability")}
         </h3>
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormInput
-            name="availableFrom"
-            label={t("availability.availableFrom")}
-            form={form}
-            type="time"
-          />
+        <FacilityScheduleEditor
+          schedule={weeklySchedule}
+          onChange={setWeeklySchedule}
+        />
+      </div>
 
-          <FormInput
-            name="availableTo"
-            label={t("availability.availableTo")}
-            form={form}
-            type="time"
-          />
-        </div>
+      {/* Section 4: Exceptions */}
+      <div className="space-y-4">
+        <h3 className="font-semibold text-lg">{t("schedule.exceptions")}</h3>
 
-        <div className="space-y-2">
-          <Label>{t("availability.daysAvailable")}</Label>
-          <div className="flex gap-2 flex-wrap">
-            {dayOptions.map((day) => (
-              <div key={day.key} className="flex items-center space-x-2">
-                <Checkbox
-                  id={day.key}
-                  checked={daysAvailable[day.key]}
-                  onCheckedChange={(checked) =>
-                    form.setValue(`daysAvailable.${day.key}`, checked === true)
-                  }
-                />
-                <Label htmlFor={day.key} className="font-normal cursor-pointer">
-                  {day.label}
-                </Label>
-              </div>
-            ))}
-          </div>
-        </div>
+        <FacilityExceptionsManager
+          exceptions={exceptions}
+          onAdd={handleAddException}
+          onRemove={handleRemoveException}
+        />
       </div>
     </BaseFormDialog>
   );

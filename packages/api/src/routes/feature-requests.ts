@@ -599,4 +599,38 @@ export async function featureRequestsRoutes(fastify: FastifyInstance) {
       return reply.send(serializeRequest(updated));
     },
   );
+
+  // ─── DELETE (admin) ────────────────────────────────────────────────
+  fastify.delete(
+    "/:id",
+    {
+      preHandler: [authenticate, requireSystemAdmin],
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+
+      const requestRef = db.collection(COLLECTION).doc(id);
+      const requestDoc = await requestRef.get();
+      if (!requestDoc.exists) {
+        return sendNotFound(reply);
+      }
+
+      // Delete subcollections (votes, comments) in batches
+      const subcollections = ["votes", "comments"];
+      for (const sub of subcollections) {
+        const subRef = requestRef.collection(sub);
+        let snapshot = await subRef.limit(500).get();
+        while (!snapshot.empty) {
+          const batch = db.batch();
+          snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+          await batch.commit();
+          snapshot = await subRef.limit(500).get();
+        }
+      }
+
+      await requestRef.delete();
+
+      return reply.status(204).send();
+    },
+  );
 }

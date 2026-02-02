@@ -134,3 +134,10 @@ export async function setFeatureRequestPriority(
     input,
   );
 }
+
+/**
+ * Delete a feature request and all its data (admin only)
+ */
+export async function deleteFeatureRequest(id: string): Promise<void> {
+  return apiClient.delete(`/feature-requests/${id}`);
+}

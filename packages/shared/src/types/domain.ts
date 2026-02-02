@@ -84,6 +84,10 @@ export interface Stable {
   // Notification configuration
   notificationConfig?: NotificationConfig;
 
+  // Facility registry
+  boxes?: string[]; // Box/stall names for this stable
+  paddocks?: string[]; // Paddock/pasture names for this stable
+
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

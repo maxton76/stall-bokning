@@ -202,7 +202,12 @@
     "noGroup": "No group",
     "noVaccinationRule": "No vaccination rule",
     "selectColor": "Select color",
-    "selectGender": "Select gender"
+    "selectGender": "Select gender",
+    "noBoxesDefined": "No boxes defined for this stable",
+    "noPaddocksDefined": "No paddocks defined for this stable",
+    "selectBox": "Select box",
+    "selectPaddock": "Select paddock",
+    "noSelection": "None"
   },
   "validation": {
     "nameRequired": "Horse name is required",

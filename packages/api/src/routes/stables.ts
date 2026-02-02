@@ -38,6 +38,18 @@ const notificationConfigSchema = z
   })
   .optional();
 
+const facilityListSchema = z
+  .array(z.string().min(1).max(100))
+  .max(200)
+  .refine(
+    (items) => {
+      const lower = items.map((i) => i.toLowerCase().trim());
+      return new Set(lower).size === lower.length;
+    },
+    { message: "Duplicate names are not allowed (case-insensitive)" },
+  )
+  .optional();
+
 const createStableSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().optional(),
@@ -54,6 +66,9 @@ const createStableSchema = z.object({
   pointsSystem: pointsSystemSchema,
   schedulingConfig: schedulingConfigSchema,
   notificationConfig: notificationConfigSchema,
+  // Facility registry
+  boxes: facilityListSchema,
+  paddocks: facilityListSchema,
 });
 
 const updateStableSchema = createStableSchema.partial();
@@ -526,6 +541,163 @@ export async function stablesRoutes(fastify: FastifyInstance) {
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to remove stable access for member",
+        });
+      }
+    },
+  );
+
+  // Update boxes for a stable
+  fastify.put(
+    "/:id/boxes",
+    {
+      preHandler: [authenticate, requireStableOwnership()],
+    },
+    async (request, reply) => {
+      try {
+        const { id: stableId } = request.params as { id: string };
+        const bodySchema = z.object({
+          boxes: z
+            .array(z.string().min(1).max(100))
+            .max(200)
+            .refine(
+              (items) => {
+                const lower = items.map((i) => i.toLowerCase().trim());
+                return new Set(lower).size === lower.length;
+              },
+              { message: "Duplicate box names are not allowed" },
+            ),
+        });
+
+        const validation = bodySchema.safeParse(request.body);
+        if (!validation.success) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invalid input",
+            details: validation.error.errors,
+          });
+        }
+
+        const stableRef = db.collection("stables").doc(stableId);
+        const stableDoc = await stableRef.get();
+        const currentBoxes: string[] = stableDoc.data()?.boxes || [];
+
+        // Find removed boxes
+        const newBoxesLower = new Set(
+          validation.data.boxes.map((b) => b.toLowerCase().trim()),
+        );
+        const removedBoxes = currentBoxes.filter(
+          (b) => !newBoxesLower.has(b.toLowerCase().trim()),
+        );
+
+        // Update stable document
+        await stableRef.update({
+          boxes: validation.data.boxes,
+          updatedAt: new Date(),
+        });
+
+        // Clear box assignments for removed boxes
+        if (removedBoxes.length > 0) {
+          const horsesSnapshot = await db
+            .collection("horses")
+            .where("currentStableId", "==", stableId)
+            .where("boxName", "in", removedBoxes)
+            .get();
+
+          const batch = db.batch();
+          horsesSnapshot.docs.forEach((doc) => {
+            batch.update(doc.ref, { boxName: null, updatedAt: new Date() });
+          });
+          if (horsesSnapshot.docs.length > 0) {
+            await batch.commit();
+          }
+        }
+
+        return { boxes: validation.data.boxes };
+      } catch (error) {
+        request.log.error({ error }, "Failed to update boxes");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to update boxes",
+        });
+      }
+    },
+  );
+
+  // Update paddocks for a stable
+  fastify.put(
+    "/:id/paddocks",
+    {
+      preHandler: [authenticate, requireStableOwnership()],
+    },
+    async (request, reply) => {
+      try {
+        const { id: stableId } = request.params as { id: string };
+        const bodySchema = z.object({
+          paddocks: z
+            .array(z.string().min(1).max(100))
+            .max(200)
+            .refine(
+              (items) => {
+                const lower = items.map((i) => i.toLowerCase().trim());
+                return new Set(lower).size === lower.length;
+              },
+              { message: "Duplicate paddock names are not allowed" },
+            ),
+        });
+
+        const validation = bodySchema.safeParse(request.body);
+        if (!validation.success) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invalid input",
+            details: validation.error.errors,
+          });
+        }
+
+        const stableRef = db.collection("stables").doc(stableId);
+        const stableDoc = await stableRef.get();
+        const currentPaddocks: string[] = stableDoc.data()?.paddocks || [];
+
+        // Find removed paddocks
+        const newPaddocksLower = new Set(
+          validation.data.paddocks.map((p) => p.toLowerCase().trim()),
+        );
+        const removedPaddocks = currentPaddocks.filter(
+          (p) => !newPaddocksLower.has(p.toLowerCase().trim()),
+        );
+
+        // Update stable document
+        await stableRef.update({
+          paddocks: validation.data.paddocks,
+          updatedAt: new Date(),
+        });
+
+        // Clear paddock assignments for removed paddocks
+        if (removedPaddocks.length > 0) {
+          const horsesSnapshot = await db
+            .collection("horses")
+            .where("currentStableId", "==", stableId)
+            .where("paddockName", "in", removedPaddocks)
+            .get();
+
+          const batch = db.batch();
+          horsesSnapshot.docs.forEach((doc) => {
+            batch.update(doc.ref, {
+              paddockName: null,
+              updatedAt: new Date(),
+            });
+          });
+          if (horsesSnapshot.docs.length > 0) {
+            await batch.commit();
+          }
+        }
+
+        return { paddocks: validation.data.paddocks };
+      } catch (error) {
+        request.log.error({ error }, "Failed to update paddocks");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to update paddocks",
         });
       }
     },

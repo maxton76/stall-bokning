@@ -2,6 +2,8 @@ import type {
   Facility,
   CreateFacilityData,
   UpdateFacilityData,
+  TimeBlock,
+  ScheduleException,
 } from "@/types/facility";
 import { apiClient } from "@/lib/apiClient";
 
@@ -84,4 +86,39 @@ export async function deleteFacility(
   _userId?: string,
 ): Promise<void> {
   await apiClient.delete(`/facilities/${facilityId}`);
+}
+
+/**
+ * Get available time slots for a facility on a specific date
+ */
+export async function getAvailableSlots(
+  facilityId: string,
+  date: string,
+): Promise<{ date: string; timeBlocks: TimeBlock[] }> {
+  return apiClient.get(`/facilities/${facilityId}/available-slots`, { date });
+}
+
+/**
+ * Add a schedule exception to a facility
+ */
+export async function addScheduleException(
+  facilityId: string,
+  exception: {
+    date: string;
+    type: "closed" | "modified";
+    timeBlocks?: TimeBlock[];
+    reason?: string;
+  },
+): Promise<{ success: boolean; exception: ScheduleException }> {
+  return apiClient.post(`/facilities/${facilityId}/exceptions`, exception);
+}
+
+/**
+ * Remove a schedule exception
+ */
+export async function removeScheduleException(
+  facilityId: string,
+  date: string,
+): Promise<void> {
+  await apiClient.delete(`/facilities/${facilityId}/exceptions/${date}`);
 }

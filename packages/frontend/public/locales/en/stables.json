@@ -101,6 +101,35 @@
   "detail": {
     "clickToView": "Click to view details and manage this stable"
   },
+  "settings": {
+    "tabs": {
+      "facilities": "Facilities"
+    },
+    "facilities": {
+      "title": "Boxes & Paddocks",
+      "description": "Manage boxes and paddocks for your stable. These become selectable options when editing horses.",
+      "boxes": {
+        "title": "Boxes",
+        "add": "Add box",
+        "placeholder": "Box name or number",
+        "empty": "No boxes have been added yet.",
+        "confirmDelete": "Are you sure you want to remove \"{{name}}\"? Horses assigned to this box will have their box assignment cleared.",
+        "duplicate": "A box with this name already exists."
+      },
+      "paddocks": {
+        "title": "Paddocks",
+        "add": "Add paddock",
+        "placeholder": "Paddock name",
+        "empty": "No paddocks have been added yet.",
+        "confirmDelete": "Are you sure you want to remove \"{{name}}\"? Horses assigned to this paddock will have their paddock assignment cleared.",
+        "duplicate": "A paddock with this name already exists."
+      },
+      "messages": {
+        "saveSuccess": "Changes saved",
+        "saveError": "Failed to save changes"
+      }
+    }
+  },
   "emptyState": {
     "title": "No stables yet",
     "description": "Create your first stable to get started"

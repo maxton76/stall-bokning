@@ -65,8 +65,8 @@ export const STANDARD_ACTIVITY_TYPES: StandardActivityType[] = [
     sortOrder: 2,
   },
   {
-    name: "Rhino",
-    key: "rhino",
+    name: "Vaccination",
+    key: "vaccination",
     color: "#06b6d4", // cyan
     category: "Care",
     roles: ["veterinarian"],

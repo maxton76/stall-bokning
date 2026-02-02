@@ -31,8 +31,8 @@ const STANDARD_ACTIVITY_TYPES = [
     sortOrder: 2,
   },
   {
-    name: "Rhino",
-    key: "rhino",
+    name: "Vaccination",
+    key: "vaccination",
     color: "#06b6d4",
     category: "Care",
     roles: ["veterinarian"],

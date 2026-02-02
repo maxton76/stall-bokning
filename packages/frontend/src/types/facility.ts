@@ -1,4 +1,14 @@
 import { Timestamp } from "firebase/firestore";
+import type { FacilityAvailabilitySchedule } from "@equiduty/shared";
+
+export type { FacilityAvailabilitySchedule } from "@equiduty/shared";
+export type {
+  TimeBlock,
+  DayOfWeek,
+  FacilityDaySchedule,
+  WeeklySchedule,
+  ScheduleException,
+} from "@equiduty/shared";
 
 export type FacilityType =
   | "transport"
@@ -38,7 +48,10 @@ export interface Facility {
   minTimeSlotDuration: TimeSlotDuration; // minimum minutes per reservation
   maxHoursPerReservation: number;
 
-  // Availability
+  // New availability schedule
+  availabilitySchedule?: FacilityAvailabilitySchedule;
+
+  // Legacy availability fields (kept for backward compatibility)
   availableFrom: string; // HH:mm format (e.g., "08:00")
   availableTo: string; // HH:mm format (e.g., "20:00")
   daysAvailable: {

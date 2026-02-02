@@ -41,7 +41,7 @@ import { chromium } from "playwright";
       "influenza",
       "vet",
       "dentist",
-      "rhino",
+      "vaccination",
     ];
     for (const header of headers) {
       const headerCell = await page.locator(`th:has-text("${header}")`).first();

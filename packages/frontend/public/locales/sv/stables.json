@@ -101,6 +101,35 @@
   "detail": {
     "clickToView": "Klicka för att visa detaljer och hantera detta stall"
   },
+  "settings": {
+    "tabs": {
+      "facilities": "Anläggning"
+    },
+    "facilities": {
+      "title": "Boxar & Hagar",
+      "description": "Hantera boxar och hagar för ditt stall. Dessa blir valbara alternativ vid redigering av hästar.",
+      "boxes": {
+        "title": "Boxar",
+        "add": "Lägg till box",
+        "placeholder": "Boxnamn eller nummer",
+        "empty": "Inga boxar har lagts till ännu.",
+        "confirmDelete": "Är du säker på att du vill ta bort \"{{name}}\"? Hästar som är tilldelade denna box kommer att få sin boxtilldelning borttagen.",
+        "duplicate": "En box med detta namn finns redan."
+      },
+      "paddocks": {
+        "title": "Hagar",
+        "add": "Lägg till hage",
+        "placeholder": "Hagnamn",
+        "empty": "Inga hagar har lagts till ännu.",
+        "confirmDelete": "Är du säker på att du vill ta bort \"{{name}}\"? Hästar som är tilldelade denna hage kommer att få sin hagtilldelning borttagen.",
+        "duplicate": "En hage med detta namn finns redan."
+      },
+      "messages": {
+        "saveSuccess": "Ändringar sparade",
+        "saveError": "Kunde inte spara ändringar"
+      }
+    }
+  },
   "emptyState": {
     "title": "Inga stall ännu",
     "description": "Skapa ditt första stall för att komma igång"

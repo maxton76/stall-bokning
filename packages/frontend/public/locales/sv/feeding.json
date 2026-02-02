@@ -34,10 +34,12 @@
     "settingsDescription": "Konfigurera fodertyper och utfodringstider för ditt stall"
   },
   "labels": {
-    "stable": "Stall"
+    "stable": "Stall",
+    "organization": "Organisation"
   },
   "placeholders": {
-    "selectStable": "Välj ett stall"
+    "selectStable": "Välj ett stall",
+    "selectOrganization": "Välj organisation"
   },
   "feedTypes": {
     "title": "Fodertyper",

@@ -35,9 +35,14 @@ import {
 import type {
   Facility,
   FacilityType,
+  FacilityAvailabilitySchedule,
   CreateFacilityData,
   UpdateFacilityData,
 } from "@/types/facility";
+
+type FacilitySaveData = (CreateFacilityData | UpdateFacilityData) & {
+  availabilitySchedule?: FacilityAvailabilitySchedule;
+};
 import { useToast } from "@/hooks/use-toast";
 import { FacilityFormDialog } from "@/components/FacilityFormDialog";
 
@@ -138,9 +143,7 @@ export default function ManageFacilitiesPage() {
     }
   };
 
-  const handleSaveFacility = async (
-    data: CreateFacilityData | UpdateFacilityData,
-  ) => {
+  const handleSaveFacility = async (data: FacilitySaveData) => {
     try {
       if (facilityDialog.data) {
         // Update existing facility

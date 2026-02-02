@@ -67,7 +67,9 @@
     "pageTitle": "Hantera funktionsförfrågningar",
     "responsePlaceholder": "Skriv ett svar till användaren...",
     "saveChanges": "Spara ändringar",
-    "noPriority": "Ingen prioritet"
+    "noPriority": "Ingen prioritet",
+    "deleteTitle": "Ta bort funktionsförfrågan",
+    "deleteDescription": "Är du säker på att du vill ta bort \"{{title}}\"? Detta raderar förfrågan, alla röster och alla kommentarer permanent. Åtgärden kan inte ångras."
   },
   "filters": {
     "all": "Alla",
@@ -113,14 +115,16 @@
     "generic": "Något gick fel. Försök igen.",
     "createFailed": "Kunde inte skapa förfrågan. Försök igen.",
     "voteFailed": "Kunde inte registrera din röst. Försök igen.",
-    "commentFailed": "Kunde inte skicka kommentaren. Försök igen."
+    "commentFailed": "Kunde inte skicka kommentaren. Försök igen.",
+    "deleteFailed": "Kunde inte ta bort förfrågan. Försök igen."
   },
   "messages": {
     "createSuccess": "Förfrågan har skickats!",
     "voteSuccess": "Din röst har registrerats!",
     "statusUpdated": "Status har uppdaterats.",
     "priorityUpdated": "Prioritet har uppdaterats.",
-    "commentAdded": "Kommentaren har lagts till."
+    "commentAdded": "Kommentaren har lagts till.",
+    "deleteSuccess": "Funktionsförfrågan har tagits bort."
   },
   "time": {
     "justNow": "precis nu",

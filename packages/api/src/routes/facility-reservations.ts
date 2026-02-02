@@ -4,6 +4,12 @@ import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { QueryDocumentSnapshot, Timestamp } from "firebase-admin/firestore";
 import { serializeTimestamps } from "../utils/serialization.js";
+import {
+  getEffectiveTimeBlocks,
+  isTimeRangeAvailable,
+  createDefaultSchedule,
+  type FacilityAvailabilitySchedule,
+} from "../utils/facilityAvailability.js";
 
 /**
  * Check if user has organization membership with stable access
@@ -154,6 +160,62 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
             message:
               "You do not have permission to create reservations for this facility",
           });
+        }
+
+        // Enforce availability schedule
+        const schedule: FacilityAvailabilitySchedule =
+          facility.availabilitySchedule || createDefaultSchedule();
+
+        const requestedStart = new Date(data.startTime);
+        const requestedEnd = new Date(data.endTime);
+
+        const startHH = String(requestedStart.getHours()).padStart(2, "0");
+        const startMM = String(requestedStart.getMinutes()).padStart(2, "0");
+        const endHH = String(requestedEnd.getHours()).padStart(2, "0");
+        const endMM = String(requestedEnd.getMinutes()).padStart(2, "0");
+
+        const startTimeStr = `${startHH}:${startMM}`;
+        const endTimeStr = `${endHH}:${endMM}`;
+
+        const effectiveBlocks = getEffectiveTimeBlocks(
+          schedule,
+          requestedStart,
+        );
+
+        // Check if facility is closed on this date (no blocks at all)
+        const isClosed = effectiveBlocks.length === 0;
+        const withinAvailability =
+          !isClosed &&
+          isTimeRangeAvailable(effectiveBlocks, startTimeStr, endTimeStr);
+
+        if (isClosed || !withinAvailability) {
+          // Allow admin override
+          if (data.adminOverride === true) {
+            // Check if user has stable management access (owner, org admin, or system admin)
+            const canOverride = await hasStableAccess(
+              facility.stableId,
+              user.uid,
+              user.role,
+            );
+
+            if (!canOverride) {
+              return reply.status(403).send({
+                error: "Forbidden",
+                message:
+                  "Only stable owners or admins can override availability",
+              });
+            }
+            // Admin override accepted - proceed with reservation
+          } else {
+            const message = isClosed
+              ? "Facility is closed on this date"
+              : "Requested time is outside facility availability. Use adminOverride to bypass.";
+            return reply.status(409).send({
+              error: "Conflict",
+              message,
+              effectiveBlocks,
+            });
+          }
         }
 
         // Create reservation with denormalized data

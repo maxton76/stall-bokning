@@ -78,6 +78,12 @@ export const mainNavigation: NavigationItem[] = [
         href: "/location-history",
         icon: History,
       },
+      {
+        id: "horses-settings",
+        labelKey: "common:navigation.horseSettings",
+        href: "/horses/settings",
+        icon: Settings2Icon,
+      },
     ],
   },
   {

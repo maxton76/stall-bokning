@@ -21,6 +21,13 @@
     "emailVerified": "Email Verified",
     "verified": "Verified"
   },
+  "preferences": {
+    "title": "Preferences",
+    "description": "Manage your default settings",
+    "defaultOrganization": "Default Organization",
+    "defaultOrganizationHint": "This organization is automatically selected when you log in",
+    "saved": "Preferences saved"
+  },
   "danger": {
     "title": "Danger Zone",
     "description": "Irreversible actions",

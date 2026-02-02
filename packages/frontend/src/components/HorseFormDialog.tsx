@@ -52,7 +52,12 @@ interface HorseFormDialogProps {
   horse?: Horse | null;
   title?: string;
   allowStableAssignment?: boolean;
-  availableStables?: Array<{ id: string; name: string }>;
+  availableStables?: Array<{
+    id: string;
+    name: string;
+    boxes?: string[];
+    paddocks?: string[];
+  }>;
   availableGroups?: HorseGroup[];
 }
 
@@ -257,8 +262,12 @@ export function HorseFormDialog({
             ? horse?.assignedAt || Timestamp.now()
             : undefined;
         horseData.usage = data.usage.length > 0 ? data.usage : undefined;
-        horseData.boxName = data.boxName?.trim() || undefined;
-        horseData.paddockName = data.paddockName?.trim() || undefined;
+        const boxVal = data.boxName?.trim();
+        horseData.boxName =
+          boxVal && boxVal !== "__none__" ? boxVal : undefined;
+        const paddockVal = data.paddockName?.trim();
+        horseData.paddockName =
+          paddockVal && paddockVal !== "__none__" ? paddockVal : undefined;
 
         // Group assignment
         if (data.horseGroupId && data.horseGroupId !== "none") {
@@ -341,6 +350,42 @@ export function HorseFormDialog({
   }, [horse, open]);
 
   const isExternal = form.watch("isExternal");
+  const selectedStableId = form.watch("currentStableId");
+
+  // Get boxes/paddocks from the selected stable (or current horse's stable)
+  const currentStable = availableStables.find(
+    (s) =>
+      s.id ===
+      (selectedStableId === "none" ? horse?.currentStableId : selectedStableId),
+  );
+  const stableBoxes = currentStable?.boxes || [];
+  const stablePaddocks = currentStable?.paddocks || [];
+
+  // Build box options: include "None" + stable boxes + legacy value if not in list
+  const currentBoxName = form.watch("boxName") || "";
+  const boxOptions = [
+    { value: "__none__", label: t("horses:options.noSelection") },
+    ...stableBoxes
+      .slice()
+      .sort((a, b) => a.localeCompare(b, "sv"))
+      .map((b) => ({ value: b, label: b })),
+    ...(currentBoxName && !stableBoxes.some((b) => b === currentBoxName)
+      ? [{ value: currentBoxName, label: `${currentBoxName} ⚠️` }]
+      : []),
+  ];
+
+  const currentPaddockName = form.watch("paddockName") || "";
+  const paddockOptions = [
+    { value: "__none__", label: t("horses:options.noSelection") },
+    ...stablePaddocks
+      .slice()
+      .sort((a, b) => a.localeCompare(b, "sv"))
+      .map((p) => ({ value: p, label: p })),
+    ...(currentPaddockName &&
+    !stablePaddocks.some((p) => p === currentPaddockName)
+      ? [{ value: currentPaddockName, label: `${currentPaddockName} ⚠️` }]
+      : []),
+  ];
 
   // Debug: Log form validation errors
   useEffect(() => {
@@ -438,16 +483,38 @@ export function HorseFormDialog({
       {/* Box & Paddock - Hidden for external horses */}
       {!isExternal && (
         <div className="grid grid-cols-2 gap-4">
-          <FormInput
-            name="boxName"
-            label={t("horses:form.labels.boxName")}
-            form={form}
-          />
-          <FormInput
-            name="paddockName"
-            label={t("horses:form.labels.paddockName")}
-            form={form}
-          />
+          {stableBoxes.length > 0 || currentBoxName ? (
+            <FormSelect
+              name="boxName"
+              label={t("horses:form.labels.boxName")}
+              form={form}
+              options={boxOptions}
+              placeholder={t("horses:options.selectBox")}
+            />
+          ) : (
+            <FormInput
+              name="boxName"
+              label={t("horses:form.labels.boxName")}
+              form={form}
+              helperText={t("horses:options.noBoxesDefined")}
+            />
+          )}
+          {stablePaddocks.length > 0 || currentPaddockName ? (
+            <FormSelect
+              name="paddockName"
+              label={t("horses:form.labels.paddockName")}
+              form={form}
+              options={paddockOptions}
+              placeholder={t("horses:options.selectPaddock")}
+            />
+          ) : (
+            <FormInput
+              name="paddockName"
+              label={t("horses:form.labels.paddockName")}
+              form={form}
+              helperText={t("horses:options.noPaddocksDefined")}
+            />
+          )}
         </div>
       )}
 

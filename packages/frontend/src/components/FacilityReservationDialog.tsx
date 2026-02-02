@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, CalendarIcon, Trash2 } from "lucide-react";
+import { AlertCircle, CalendarIcon, Clock, Info, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { Timestamp } from "firebase/firestore";
 import { BaseFormDialog } from "@/components/BaseFormDialog";
@@ -10,7 +10,9 @@ import { useFormDialog } from "@/hooks/useFormDialog";
 import { FormInput, FormSelect, FormTextarea } from "@/components/form";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
+import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Popover,
@@ -19,10 +21,13 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { checkReservationConflicts } from "@/services/facilityReservationService";
+import { getAvailableSlots } from "@/services/facilityService";
+import { useAuth } from "@/contexts/AuthContext";
 import { queryKeys } from "@/lib/queryClient";
 import type { FacilityReservation } from "@/types/facilityReservation";
-import type { Facility } from "@/types/facility";
+import type { Facility, TimeBlock } from "@/types/facility";
 import { toDate } from "@/utils/timestampUtils";
+import { isTimeRangeAvailable } from "@equiduty/shared/utils/facilityAvailability";
 
 // Schema will be created with useMemo inside component for translations
 type ReservationFormData = {
@@ -41,8 +46,12 @@ interface FacilityReservationDialogProps {
   reservation?: FacilityReservation;
   facilities: Facility[];
   horses?: Array<{ id: string; name: string }>;
-  onSave: (data: ReservationFormData) => Promise<void>;
+  onSave: (
+    data: ReservationFormData & { adminOverride?: boolean },
+  ) => Promise<void>;
   onDelete?: (reservationId: string) => Promise<void>;
+  /** Owner ID of the stable these facilities belong to */
+  stableOwnerId?: string;
   initialValues?: {
     facilityId?: string;
     date?: Date;
@@ -59,12 +68,20 @@ export function FacilityReservationDialog({
   horses = [],
   onSave,
   onDelete,
+  stableOwnerId,
   initialValues,
 }: FacilityReservationDialogProps) {
   const { t } = useTranslation("facilities");
+  const { user } = useAuth();
   const isEditMode = !!reservation;
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [adminOverride, setAdminOverride] = useState(false);
+
+  // Determine if user can override availability
+  const canOverride =
+    user?.systemRole === "system_admin" ||
+    (stableOwnerId != null && user?.uid === stableOwnerId);
 
   // Create schema with translated messages
   const reservationSchema = useMemo(
@@ -112,11 +129,12 @@ export function FacilityReservationDialog({
     [t],
   );
 
-  // Reset delete state when dialog opens/closes
+  // Reset state when dialog opens/closes
   useEffect(() => {
     if (!open) {
       setShowDeleteConfirm(false);
       setIsDeleting(false);
+      setAdminOverride(false);
     }
   }, [open]);
 
@@ -147,7 +165,7 @@ export function FacilityReservationDialog({
       notes: "",
     },
     onSubmit: async (data) => {
-      await onSave(data);
+      await onSave({ ...data, adminOverride: adminOverride || undefined });
     },
     onSuccess: () => {
       onOpenChange(false);
@@ -244,6 +262,29 @@ export function FacilityReservationDialog({
     refetchOnWindowFocus: false,
   });
 
+  // Fetch available slots for selected facility + date
+  const dateStr = date ? format(date, "yyyy-MM-dd") : "";
+  const { data: slotsData, isLoading: loadingSlots } = useQuery({
+    queryKey: ["facility-available-slots", facilityId, dateStr],
+    queryFn: () => getAvailableSlots(facilityId!, dateStr),
+    enabled: !!facilityId && !!dateStr,
+    staleTime: 60 * 1000,
+  });
+
+  const effectiveBlocks: TimeBlock[] = slotsData?.timeBlocks ?? [];
+  const isClosed =
+    !!facilityId &&
+    !!dateStr &&
+    !loadingSlots &&
+    slotsData != null &&
+    effectiveBlocks.length === 0;
+
+  // Check if selected time is outside availability
+  const isOutsideAvailability = useMemo(() => {
+    if (!startTime || !endTime || effectiveBlocks.length === 0) return false;
+    return !isTimeRangeAvailable(effectiveBlocks, startTime, endTime);
+  }, [effectiveBlocks, startTime, endTime]);
+
   const facilityOptions = facilities.map((f) => ({
     value: f.id,
     label: f.name,
@@ -332,6 +373,56 @@ export function FacilityReservationDialog({
           required
         />
       </div>
+
+      {/* Available Slots Display */}
+      {facilityId && dateStr && !loadingSlots && slotsData != null && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            {t("schedule.enforcement.availableSlots")}
+          </div>
+          {isClosed ? (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {t("schedule.enforcement.facilityClosedOnDate")}
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {effectiveBlocks.map((block, idx) => (
+                <Badge key={idx} variant="secondary">
+                  {block.from} – {block.to}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Outside Availability Warning */}
+      {isOutsideAvailability && !isClosed && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            {t("schedule.enforcement.outsideAvailabilityWarning")}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Admin Override Checkbox */}
+      {canOverride && (isClosed || isOutsideAvailability) && (
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="adminOverride"
+            checked={adminOverride}
+            onCheckedChange={(checked) => setAdminOverride(checked === true)}
+          />
+          <Label htmlFor="adminOverride" className="text-sm font-normal">
+            {t("schedule.enforcement.adminOverrideLabel")}
+          </Label>
+        </div>
+      )}
 
       {/* Conflict Warning */}
       {conflicts.length > 0 && (

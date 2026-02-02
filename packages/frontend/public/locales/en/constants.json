@@ -73,7 +73,6 @@
   "activityTypes": {
     "dentist": "Dentist",
     "farrier": "Farrier",
-    "rhino": "Rhino",
     "vet": "Vet",
     "veterinarian": "Veterinarian",
     "vaccination": "Vaccination",

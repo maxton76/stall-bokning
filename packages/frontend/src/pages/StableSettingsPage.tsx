@@ -21,6 +21,10 @@ import {
   NotificationSettingsTab,
   type NotificationSettings,
 } from "@/components/settings/tabs/NotificationSettingsTab";
+import {
+  FacilitiesSettingsTab,
+  type FacilitiesSettings,
+} from "@/components/settings/tabs/FacilitiesSettingsTab";
 import { getStable, updateStable } from "@/services/stableService";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { queryKeys } from "@/lib/queryClient";
@@ -45,6 +49,8 @@ interface Stable {
   pointsSystem?: PointsSystemConfig;
   schedulingConfig?: SchedulingConfig;
   notificationConfig?: NotificationConfig;
+  boxes?: string[];
+  paddocks?: string[];
 }
 
 export default function StableSettingsPage() {
@@ -125,6 +131,12 @@ export default function StableSettingsPage() {
             stableQuery.data.notificationConfig.shiftSwapRequests ?? true,
         });
       }
+
+      // Load facilities
+      setFacilitiesSettings({
+        boxes: stableQuery.data.boxes || [],
+        paddocks: stableQuery.data.paddocks || [],
+      });
     }
   }, [stableQuery.data]);
 
@@ -151,6 +163,12 @@ export default function StableSettingsPage() {
       schedulePublished: true,
       memberJoined: true,
       shiftSwapRequests: true,
+    });
+
+  const [facilitiesSettings, setFacilitiesSettings] =
+    useState<FacilitiesSettings>({
+      boxes: [],
+      paddocks: [],
     });
 
   const handleSaveSettings = async (e: React.FormEvent) => {
@@ -249,6 +267,9 @@ export default function StableSettingsPage() {
           <TabsTrigger value="general">
             {t("settings:tabs.general")}
           </TabsTrigger>
+          <TabsTrigger value="facilities">
+            {t("settings:tabs.facilities")}
+          </TabsTrigger>
           <TabsTrigger value="horses" asChild>
             <Link to={`/stables/${stableId}/horses/settings`}>
               {t("common:navigation.horses")}
@@ -269,6 +290,15 @@ export default function StableSettingsPage() {
           <GeneralSettingsTab
             stableInfo={stableInfo}
             onChange={setStableInfo}
+            disabled={isLoading}
+          />
+        </TabsContent>
+
+        <TabsContent value="facilities" className="space-y-4">
+          <FacilitiesSettingsTab
+            stableId={stableId!}
+            settings={facilitiesSettings}
+            onChange={setFacilitiesSettings}
             disabled={isLoading}
           />
         </TabsContent>

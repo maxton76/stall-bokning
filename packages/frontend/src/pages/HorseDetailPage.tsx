@@ -17,6 +17,7 @@ import { useHorse } from "@/hooks/useHorses";
 import { queryKeys } from "@/lib/queryClient";
 import { updateHorse } from "@/services/horseService";
 import { getOrganizationHorseGroups } from "@/services/horseGroupService";
+import { getStable } from "@/services/stableService";
 import { HorseFormDialog } from "@/components/HorseFormDialog";
 import { BasicInfoCard } from "@/components/horse-detail/BasicInfoCard";
 import { LocationCard } from "@/components/horse-detail/LocationCard";
@@ -51,6 +52,27 @@ export default function HorseDetailPage() {
     },
   );
   const horseGroupsData = horseGroupsQuery.data ?? [];
+
+  // Fetch current stable data for boxes/paddocks
+  const currentStableQuery = useApiQuery<any>(
+    queryKeys.stables.detail(horseData?.currentStableId || ""),
+    () => getStable(horseData!.currentStableId!),
+    {
+      enabled: !!horseData?.currentStableId,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
+  const currentStableData = currentStableQuery.data;
+  const availableStablesForForm = currentStableData
+    ? [
+        {
+          id: currentStableData.id,
+          name: currentStableData.name,
+          boxes: currentStableData.boxes || [],
+          paddocks: currentStableData.paddocks || [],
+        },
+      ]
+    : [];
 
   // Dialog state for edit
   const formDialog = useDialog<Horse>();
@@ -186,7 +208,7 @@ export default function HorseDetailPage() {
             horse={formDialog.data}
             onSave={handleSave}
             allowStableAssignment={true}
-            availableStables={[]}
+            availableStables={availableStablesForForm}
             availableGroups={horseGroupsData}
           />
         </div>

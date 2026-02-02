@@ -21,6 +21,13 @@
     "emailVerified": "E-post verifierad",
     "verified": "Verifierad"
   },
+  "preferences": {
+    "title": "Preferenser",
+    "description": "Hantera dina standardinställningar",
+    "defaultOrganization": "Standardorganisation",
+    "defaultOrganizationHint": "Denna organisation väljs automatiskt när du loggar in",
+    "saved": "Preferenser sparade"
+  },
   "danger": {
     "title": "Riskzon",
     "description": "Oåterkalleliga åtgärder",

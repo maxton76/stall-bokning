@@ -47,6 +47,7 @@ import { Label } from "@/components/ui/label";
 import { FeedTypeFormDialog } from "@/components/FeedTypeFormDialog";
 import { FeedingTimeFormDialog } from "@/components/FeedingTimeFormDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrganizationContext } from "@/contexts/OrganizationContext";
 import { useUserStables } from "@/hooks/useUserStables";
 import { useFeedTypesQuery } from "@/hooks/useFeedTypesQuery";
 import { useFeedingTimesQuery } from "@/hooks/useFeedingTimesQuery";
@@ -70,11 +71,17 @@ import {
   updateFeedingTime,
   deleteFeedingTime,
 } from "@/services/feedingTimeService";
+import { getUserOrganizations } from "@/services/organizationService";
+import type { Organization } from "@shared/types";
 
 export default function FeedingSettingsPage() {
   const { t } = useTranslation(["feeding", "common"]);
   const { user } = useAuth();
+  const { currentOrganizationId, setCurrentOrganizationId } =
+    useOrganizationContext();
   const [selectedStableId, setSelectedStableId] = useState<string>("");
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [orgsLoading, setOrgsLoading] = useState(true);
 
   // Dialog state using useDialog hook
   const feedTypeDialog = useDialog<FeedType>();
@@ -85,17 +92,47 @@ export default function FeedingSettingsPage() {
     item: FeedType | FeedingTime;
   } | null>(null);
 
-  // Load user's stables
-  const { stables, loading: stablesLoading } = useUserStables(user?.uid);
-
-  // Get the selected stable's organizationId
-  const selectedStable = stables.find((s) => s.id === selectedStableId);
-  const organizationId = selectedStable?.organizationId;
-
-  // Auto-select first stable
+  // Load user's organizations
   useEffect(() => {
-    if (stables.length > 0 && !selectedStableId && stables[0]) {
-      setSelectedStableId(stables[0].id);
+    async function loadOrganizations() {
+      if (!user?.uid) return;
+      try {
+        const orgs = await getUserOrganizations(user.uid);
+        setOrganizations(orgs);
+      } catch (error) {
+        console.error("Failed to load organizations:", error);
+      } finally {
+        setOrgsLoading(false);
+      }
+    }
+    loadOrganizations();
+  }, [user?.uid]);
+
+  // Load user's stables
+  const { stables: allStables, loading: stablesLoading } = useUserStables(
+    user?.uid,
+  );
+
+  // Filter stables by current organization
+  const stables = currentOrganizationId
+    ? allStables.filter((s) => s.organizationId === currentOrganizationId)
+    : allStables;
+
+  // Use currentOrganizationId from context as the org for feed types
+  const organizationId = currentOrganizationId || undefined;
+
+  // Auto-select first stable when org changes or stables load
+  useEffect(() => {
+    if (stables.length > 0 && stables[0]) {
+      // If current stable isn't in the filtered list, reset
+      const currentStableInList = stables.find(
+        (s) => s.id === selectedStableId,
+      );
+      if (!currentStableInList) {
+        setSelectedStableId(stables[0].id);
+      }
+    } else {
+      setSelectedStableId("");
     }
   }, [stables, selectedStableId]);
 
@@ -283,31 +320,58 @@ export default function FeedingSettingsPage() {
           </div>
         </div>
 
-        {/* Stable Selector */}
-        {stables.length > 1 && (
-          <div className="flex items-center gap-2">
-            <Label htmlFor="stable-select" className="text-sm font-medium">
-              {t("feeding:labels.stable")}
-            </Label>
-            <Select
-              value={selectedStableId}
-              onValueChange={setSelectedStableId}
-            >
-              <SelectTrigger id="stable-select" className="w-[200px]">
-                <SelectValue
-                  placeholder={t("feeding:placeholders.selectStable")}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {stables.map((stable) => (
-                  <SelectItem key={stable.id} value={stable.id}>
-                    {stable.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        {/* Organization & Stable Selectors */}
+        <div className="flex items-center gap-4">
+          {organizations.length > 1 && (
+            <div className="flex items-center gap-2">
+              <Label htmlFor="org-select" className="text-sm font-medium">
+                {t("feeding:labels.organization")}
+              </Label>
+              <Select
+                value={currentOrganizationId || ""}
+                onValueChange={(value) => setCurrentOrganizationId(value)}
+              >
+                <SelectTrigger id="org-select" className="w-[200px]">
+                  <SelectValue
+                    placeholder={t("feeding:placeholders.selectOrganization")}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {organizations.map((org) => (
+                    <SelectItem key={org.id} value={org.id}>
+                      {org.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {stables.length > 1 && (
+            <div className="flex items-center gap-2">
+              <Label htmlFor="stable-select" className="text-sm font-medium">
+                {t("feeding:labels.stable")}
+              </Label>
+              <Select
+                value={selectedStableId}
+                onValueChange={setSelectedStableId}
+              >
+                <SelectTrigger id="stable-select" className="w-[200px]">
+                  <SelectValue
+                    placeholder={t("feeding:placeholders.selectStable")}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {stables.map((stable) => (
+                    <SelectItem key={stable.id} value={stable.id}>
+                      {stable.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Feed Types Card */}

@@ -192,6 +192,65 @@
     "saturday": "Lör",
     "sunday": "Sön"
   },
+  "daysLong": {
+    "monday": "Måndag",
+    "tuesday": "Tisdag",
+    "wednesday": "Onsdag",
+    "thursday": "Torsdag",
+    "friday": "Fredag",
+    "saturday": "Lördag",
+    "sunday": "Söndag"
+  },
+  "schedule": {
+    "from": "Från",
+    "to": "Till",
+    "addBlock": "Lägg till tidsblock",
+    "customHours": "Anpassade tider",
+    "usesDefault": "Använder standardtider",
+    "defaultHours": "Standardtider",
+    "defaultHoursDescription": "Tillämpas på alla tillgängliga dagar om inte annat anges",
+    "weeklySchedule": "Veckoschema",
+    "exceptions": "Schemaundantag",
+    "exceptionsDescription": "Lägg till helgdagar, underhållsdagar eller specialtider",
+    "addException": "Lägg till undantag",
+    "addExceptionDescription": "Lägg till ett datumspecifikt schemaundantag",
+    "noExceptions": "Inga undantag konfigurerade",
+    "exceptionTypeLabel": "Undantagstyp",
+    "exceptionType": {
+      "closed": "Stängd",
+      "modified": "Ändrade tider"
+    },
+    "reason": "Anledning",
+    "reasonPlaceholder": "t.ex. Helgdag, Underhåll",
+    "validation": {
+      "dateRequired": "Datum krävs",
+      "duplicateException": "Ett undantag finns redan för detta datum",
+      "tooManyBlocks": "Max 5 tidsblock per dag",
+      "invalidTimeFormat": "Ogiltigt tidsformat (HH:mm)",
+      "fromBeforeTo": "Starttid måste vara före sluttid",
+      "overlappingBlocks": "Tidsblock får inte överlappa",
+      "defaultBlockRequired": "Minst ett standardtidsblock krävs",
+      "atLeastOneDay": "Minst en dag måste vara tillgänglig",
+      "tooManyExceptions": "Max 365 undantag tillåtna",
+      "invalidExceptionDate": "Ogiltigt datumformat för undantag",
+      "duplicateExceptionDate": "Duplicerade undantagsdatum tillåts inte",
+      "modifiedNeedsBlocks": "Ändrade undantag kräver minst ett tidsblock",
+      "closedNoBlocks": "Stängda undantag ska inte ha tidsblock"
+    },
+    "messages": {
+      "exceptionAdded": "Schemaundantag tillagt",
+      "exceptionRemoved": "Schemaundantag borttaget",
+      "exceptionError": "Kunde inte lägga till schemaundantag"
+    },
+    "enforcement": {
+      "outsideAvailability": "Begärd tid är utanför anläggningens tillgänglighet",
+      "outsideAvailabilityWarning": "Vald tid ligger utanför tillgängliga tider för detta datum.",
+      "facilityClosedOnDate": "Denna anläggning är stängd på valt datum.",
+      "adminOverrideLabel": "Åsidosätt tillgänglighet (endast admin)",
+      "adminOverrideConfirm": "Denna bokning är utanför normala öppettider. Fortsätt ändå?",
+      "availableSlots": "Tillgängliga tider för detta datum"
+    }
+  },
   "status": {
     "confirmed": "Bekräftad",
     "pending": "Väntande",

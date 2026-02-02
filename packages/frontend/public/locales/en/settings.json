@@ -177,6 +177,7 @@
   },
   "tabs": {
     "general": "General",
+    "facilities": "Facilities",
     "weighting": "Fairness",
     "scheduling": "Scheduling",
     "notifications": "Notifications",

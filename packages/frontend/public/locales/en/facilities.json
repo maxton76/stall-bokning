@@ -192,6 +192,65 @@
     "saturday": "Sat",
     "sunday": "Sun"
   },
+  "daysLong": {
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday"
+  },
+  "schedule": {
+    "from": "From",
+    "to": "To",
+    "addBlock": "Add time block",
+    "customHours": "Custom hours",
+    "usesDefault": "Uses default hours",
+    "defaultHours": "Default hours",
+    "defaultHoursDescription": "Applied to all available days unless overridden",
+    "weeklySchedule": "Weekly schedule",
+    "exceptions": "Schedule Exceptions",
+    "exceptionsDescription": "Add holidays, maintenance days, or special hours",
+    "addException": "Add Exception",
+    "addExceptionDescription": "Add a date-specific schedule exception",
+    "noExceptions": "No exceptions configured",
+    "exceptionTypeLabel": "Exception type",
+    "exceptionType": {
+      "closed": "Closed",
+      "modified": "Modified hours"
+    },
+    "reason": "Reason",
+    "reasonPlaceholder": "e.g., Holiday, Maintenance",
+    "validation": {
+      "dateRequired": "Date is required",
+      "duplicateException": "An exception already exists for this date",
+      "tooManyBlocks": "Maximum 5 time blocks allowed per day",
+      "invalidTimeFormat": "Invalid time format (HH:mm)",
+      "fromBeforeTo": "Start time must be before end time",
+      "overlappingBlocks": "Time blocks must not overlap",
+      "defaultBlockRequired": "At least one default time block is required",
+      "atLeastOneDay": "At least one day must be available",
+      "tooManyExceptions": "Maximum 365 exceptions allowed",
+      "invalidExceptionDate": "Invalid exception date format",
+      "duplicateExceptionDate": "Duplicate exception dates not allowed",
+      "modifiedNeedsBlocks": "Modified exceptions require at least one time block",
+      "closedNoBlocks": "Closed exceptions should not have time blocks"
+    },
+    "messages": {
+      "exceptionAdded": "Schedule exception added",
+      "exceptionRemoved": "Schedule exception removed",
+      "exceptionError": "Failed to add schedule exception"
+    },
+    "enforcement": {
+      "outsideAvailability": "Requested time is outside facility availability",
+      "outsideAvailabilityWarning": "The selected time falls outside the available hours for this date.",
+      "facilityClosedOnDate": "This facility is closed on the selected date.",
+      "adminOverrideLabel": "Override availability (admin only)",
+      "adminOverrideConfirm": "This booking is outside normal availability hours. Proceed anyway?",
+      "availableSlots": "Available slots for this date"
+    }
+  },
   "status": {
     "confirmed": "Confirmed",
     "pending": "Pending",

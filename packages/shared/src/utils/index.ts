@@ -10,3 +10,4 @@ export * from "./holidayService.js";
 
 export * from "./money.js";
 export * from "./ocr.js";
+export * from "./facilityAvailability.js";
