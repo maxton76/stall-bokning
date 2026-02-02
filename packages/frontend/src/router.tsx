@@ -202,6 +202,23 @@ const AdminFeatureRequestsPage = lazy(
   () => import("./pages/admin/AdminFeatureRequestsPage"),
 );
 
+// Finance & Invoicing pages
+const PaymentDashboardPage = lazy(() => import("./pages/PaymentDashboardPage"));
+const LineItemsPage = lazy(() => import("./pages/LineItemsPage"));
+const DisputesPage = lazy(() => import("./pages/DisputesPage"));
+const PackagesPage = lazy(() => import("./pages/PackagesPage"));
+const BillingGroupsPage = lazy(() => import("./pages/BillingGroupsPage"));
+const ChargeableItemsPage = lazy(() => import("./pages/ChargeableItemsPage"));
+const TrainerCommissionPage = lazy(
+  () => import("./pages/TrainerCommissionPage"),
+);
+const InvoicePayPage = lazy(() => import("./pages/InvoicePayPage"));
+const PaymentSuccessPage = lazy(() => import("./pages/PaymentSuccessPage"));
+const PaymentCancelPage = lazy(() => import("./pages/PaymentCancelPage"));
+const PackagePurchasePage = lazy(
+  () => import("./pages/portal/PackagePurchasePage"),
+);
+
 // Helper to wrap lazy components with Suspense
 function withSuspense(
   Component: React.LazyExoticComponent<React.ComponentType<unknown>>,
@@ -298,6 +315,20 @@ export const router = createBrowserRouter([
         element: withSuspense(InviteAcceptPage, <PageLoader />),
       },
 
+      // Payment flow (accessible via invoice links)
+      {
+        path: "/pay/:invoiceId",
+        element: withSuspense(InvoicePayPage, <PageLoader />),
+      },
+      {
+        path: "/payment/success",
+        element: withSuspense(PaymentSuccessPage, <PageLoader />),
+      },
+      {
+        path: "/payment/cancel",
+        element: withSuspense(PaymentCancelPage, <PageLoader />),
+      },
+
       // Authenticated routes
       {
         element: <ProtectedAuthenticatedLayout />,
@@ -366,6 +397,18 @@ export const router = createBrowserRouter([
           {
             path: "/my-page/statistics",
             element: withSuspense(MyStatisticsPage),
+          },
+          {
+            path: "/my-page/invoices",
+            element: <Navigate to="/portal/invoices" replace />,
+          },
+          {
+            path: "/my-page/packages",
+            element: <Navigate to="/portal/packages" replace />,
+          },
+          {
+            path: "/my-page/commissions",
+            element: withSuspense(TrainerCommissionPage),
           },
           {
             path: "/my-availability",
@@ -441,6 +484,28 @@ export const router = createBrowserRouter([
 
           // Invoices
           { path: "/invoices", element: withSuspense(InvoicesPage) },
+
+          // Finance
+          {
+            path: "/finance",
+            element: <Navigate to="/finance/dashboard" replace />,
+          },
+          {
+            path: "/finance/dashboard",
+            element: withSuspense(PaymentDashboardPage),
+          },
+          {
+            path: "/finance/line-items",
+            element: withSuspense(LineItemsPage),
+          },
+          {
+            path: "/finance/disputes",
+            element: withSuspense(DisputesPage),
+          },
+          {
+            path: "/finance/packages",
+            element: withSuspense(PackagesPage),
+          },
 
           // Lessons
           {
@@ -546,6 +611,18 @@ export const router = createBrowserRouter([
             path: "/organizations/:organizationId/staff-matrix",
             element: withSuspense(StaffMatrixPage),
           },
+          {
+            path: "/organizations/:organizationId/chargeable-items",
+            element: withSuspense(ChargeableItemsPage),
+          },
+          {
+            path: "/organizations/:organizationId/billing-groups",
+            element: withSuspense(BillingGroupsPage),
+          },
+          {
+            path: "/organizations/:organizationId/trainer-commissions",
+            element: withSuspense(TrainerCommissionPage),
+          },
 
           // Contacts
           { path: "/contacts", element: withSuspense(ContactsPage) },
@@ -623,6 +700,10 @@ export const router = createBrowserRouter([
             element: withSuspense(PortalMessagesPage),
           },
           { path: "/portal/profile", element: withSuspense(PortalProfilePage) },
+          {
+            path: "/portal/packages/:packageId",
+            element: withSuspense(PackagePurchasePage),
+          },
         ],
       },
 

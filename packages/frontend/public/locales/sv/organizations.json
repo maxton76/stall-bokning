@@ -22,7 +22,10 @@
     "subscription": "Prenumeration",
     "settings": "Inställningar",
     "leaveManagement": "Ledighetshantering",
-    "scheduleManagement": "Schemahantering"
+    "scheduleManagement": "Schemahantering",
+    "chargeableItems": "Debiteringsbara poster",
+    "billingGroups": "Faktureringsgrupper",
+    "trainerCommissions": "Instruktörsarvoden"
   },
   "form": {
     "title": {
@@ -541,6 +544,7 @@
       "hasHeadersTooltip": "Aktivera detta om första raden i din fil innehåller kolumnnamn som E-post, Namn osv.",
       "googleSheetsTip": "Tips: För att importera från Google Kalkylark, exportera som CSV först (Arkiv → Ladda ner → CSV)",
       "maxRows": "Maximalt {{max}} rader per import",
+      "maxRowsDynamic": "Du kan importera upp till {{max}} medlemmar ({{remaining}} av {{limit}} platser kvar)",
       "changeFile": "Byt fil"
     },
     "errors": {
@@ -550,6 +554,7 @@
       "noDataRows": "Inga datarader hittades. Filen innehåller bara rubriker.",
       "parseError": "Kunde inte tolka filen. Kontrollera formatet.",
       "readError": "Kunde inte läsa filen. Försök igen.",
+      "memberLimitExceeded": "Din fil innehåller {{found}} medlemmar men du kan bara lägga till {{remaining}} till (gräns: {{limit}} medlemmar). Minska antalet rader i din fil.",
       "submitFailed": "Kunde inte skicka importen. Försök igen."
     },
     "mapping": {

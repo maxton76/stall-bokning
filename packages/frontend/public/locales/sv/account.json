@@ -1,0 +1,30 @@
+{
+  "page": {
+    "title": "Mitt konto",
+    "description": "Hantera dina kontoinställningar och preferenser"
+  },
+  "profile": {
+    "title": "Profilinformation",
+    "description": "Dina personuppgifter och kontouppgifter",
+    "changeAvatar": "Ändra avatar"
+  },
+  "fields": {
+    "email": "E-postadress",
+    "userId": "Användar-ID",
+    "memberSince": "Medlem sedan"
+  },
+  "status": {
+    "title": "Kontostatus",
+    "description": "Aktuell status och åtkomstnivå",
+    "accountStatus": "Kontostatus",
+    "active": "Aktiv",
+    "emailVerified": "E-post verifierad",
+    "verified": "Verifierad"
+  },
+  "danger": {
+    "title": "Riskzon",
+    "description": "Oåterkalleliga åtgärder",
+    "deleteAccount": "Radera konto",
+    "deleteWarning": "Denna åtgärd kan inte ångras. Det kommer permanent att radera ditt konto och ta bort all data."
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "title": "Trainer Commission",
+  "description": "Manage trainer commission configurations and payouts",
+  "tabs": {
+    "configuration": "Configuration",
+    "commissions": "Commissions"
+  },
+  "config": {
+    "title": "Commission Configurations",
+    "create": "Add Configuration",
+    "trainer": "Trainer",
+    "defaultRate": "Default Rate",
+    "rateType": "Rate Type",
+    "active": "Active",
+    "inactive": "Inactive",
+    "rules": "Rules",
+    "addRule": "Add Rule",
+    "lessonType": "Lesson Type",
+    "rate": "Rate",
+    "minAmount": "Min Amount",
+    "maxAmount": "Max Amount",
+    "percentage": "Percentage",
+    "fixedAmount": "Fixed Amount",
+    "noConfigs": "No commission configurations found",
+    "editConfig": "Edit Configuration"
+  },
+  "commission": {
+    "title": "Commissions",
+    "calculate": "Calculate",
+    "export": "Export CSV",
+    "period": "Period",
+    "lessons": "Lessons",
+    "revenue": "Revenue",
+    "amount": "Commission",
+    "status": "Status",
+    "approve": "Approve",
+    "reject": "Reject",
+    "rejectReason": "Rejection Reason",
+    "noCommissions": "No commissions found",
+    "periodStart": "Period Start",
+    "periodEnd": "Period End",
+    "filterByTrainer": "Filter by trainer",
+    "filterByStatus": "Filter by status",
+    "allTrainers": "All trainers",
+    "allStatuses": "All statuses"
+  },
+  "status": {
+    "draft": "Draft",
+    "pending_approval": "Pending Approval",
+    "approved": "Approved",
+    "paid": "Paid",
+    "rejected": "Rejected"
+  },
+  "toast": {
+    "configCreated": "Configuration created",
+    "configUpdated": "Configuration updated",
+    "calculated": "Commissions calculated",
+    "approved": "Commission approved",
+    "rejected": "Commission rejected",
+    "exported": "CSV exported",
+    "error": "Something went wrong"
+  },
+  "dialog": {
+    "createConfig": "Create Commission Config",
+    "editConfig": "Edit Commission Config",
+    "createConfigDescription": "Set up commission rates for a trainer",
+    "editConfigDescription": "Update commission rates for this trainer",
+    "rejectTitle": "Reject Commission",
+    "rejectDescription": "Provide a reason for rejecting this commission",
+    "calculateTitle": "Calculate Commissions",
+    "calculateDescription": "Select a period to calculate commissions for"
+  }
+}

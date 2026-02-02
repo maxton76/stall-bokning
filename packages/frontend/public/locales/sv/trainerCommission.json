@@ -1,0 +1,73 @@
+{
+  "title": "Instruktorsersattning",
+  "description": "Hantera ersattningskonfigurationer och utbetalningar for instruktorer",
+  "tabs": {
+    "configuration": "Konfiguration",
+    "commissions": "Ersattningar"
+  },
+  "config": {
+    "title": "Ersattningskonfigurationer",
+    "create": "Lagg till konfiguration",
+    "trainer": "Instruktor",
+    "defaultRate": "Standardsats",
+    "rateType": "Satstyp",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "rules": "Regler",
+    "addRule": "Lagg till regel",
+    "lessonType": "Lektionstyp",
+    "rate": "Sats",
+    "minAmount": "Minimibelopp",
+    "maxAmount": "Maxbelopp",
+    "percentage": "Procent",
+    "fixedAmount": "Fast belopp",
+    "noConfigs": "Inga ersattningskonfigurationer hittades",
+    "editConfig": "Redigera konfiguration"
+  },
+  "commission": {
+    "title": "Ersattningar",
+    "calculate": "Berakna",
+    "export": "Exportera CSV",
+    "period": "Period",
+    "lessons": "Lektioner",
+    "revenue": "Intakter",
+    "amount": "Ersattning",
+    "status": "Status",
+    "approve": "Godkann",
+    "reject": "Avvisa",
+    "rejectReason": "Anledning till avvisning",
+    "noCommissions": "Inga ersattningar hittades",
+    "periodStart": "Periodstart",
+    "periodEnd": "Periodslut",
+    "filterByTrainer": "Filtrera efter instruktor",
+    "filterByStatus": "Filtrera efter status",
+    "allTrainers": "Alla instruktorer",
+    "allStatuses": "Alla statusar"
+  },
+  "status": {
+    "draft": "Utkast",
+    "pending_approval": "Vantar pa godkannande",
+    "approved": "Godkand",
+    "paid": "Utbetald",
+    "rejected": "Avvisad"
+  },
+  "toast": {
+    "configCreated": "Konfiguration skapad",
+    "configUpdated": "Konfiguration uppdaterad",
+    "calculated": "Ersattningar beraknade",
+    "approved": "Ersattning godkand",
+    "rejected": "Ersattning avvisad",
+    "exported": "CSV exporterad",
+    "error": "Nagot gick fel"
+  },
+  "dialog": {
+    "createConfig": "Skapa ersattningskonfiguration",
+    "editConfig": "Redigera ersattningskonfiguration",
+    "createConfigDescription": "Stall in ersattningssatser for en instruktor",
+    "editConfigDescription": "Uppdatera ersattningssatser for denna instruktor",
+    "rejectTitle": "Avvisa ersattning",
+    "rejectDescription": "Ange en anledning till att avvisa denna ersattning",
+    "calculateTitle": "Berakna ersattningar",
+    "calculateDescription": "Valj en period att berakna ersattningar for"
+  }
+}

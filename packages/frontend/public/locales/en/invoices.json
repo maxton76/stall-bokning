@@ -196,5 +196,345 @@
 
   "addItem": "Add Item",
   "removeItem": "Remove Item",
-  "itemNumber": "Item {{number}}"
+  "itemNumber": "Item {{number}}",
+
+  "chargeableItems": {
+    "title": "Chargeable Items",
+    "description": "Manage products and services that can be charged",
+    "addItem": "Add Item",
+    "noItems": "No items have been created yet",
+    "allCategories": "All Categories",
+    "showAll": "Show All",
+    "showInactive": "Show Inactive",
+    "categories": {
+      "activity": "Activity",
+      "booking": "Booking",
+      "service": "Service",
+      "recurring": "Recurring",
+      "package": "Package"
+    },
+    "unitTypes": {
+      "fixed": "Fixed Price",
+      "per_hour": "Per Hour",
+      "per_session": "Per Session",
+      "per_quantity": "Per Quantity",
+      "per_day": "Per Day"
+    },
+    "fields": {
+      "name": "Name",
+      "description": "Description",
+      "unitType": "Unit Type",
+      "category": "Category",
+      "price": "Price",
+      "priceSEK": "Price (SEK)",
+      "vatRate": "VAT Rate",
+      "vatCategory": "VAT Category",
+      "accountingCode": "Accounting Code",
+      "costCenter": "Cost Center"
+    },
+    "table": {
+      "name": "Name",
+      "category": "Category",
+      "unitType": "Unit Type",
+      "price": "Price",
+      "vat": "VAT",
+      "status": "Status"
+    },
+    "statusLabels": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "edit": "Edit",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "delete": "Delete"
+    },
+    "dialogs": {
+      "create": {
+        "title": "New Item",
+        "description": "Add a new chargeable item"
+      },
+      "edit": {
+        "title": "Edit Item",
+        "description": "Update item information"
+      }
+    },
+    "placeholders": {
+      "name": "e.g. Group Jumping Course",
+      "description": "Optional description",
+      "vatCategory": "e.g. Service 25%",
+      "accountingCode": "Optional",
+      "costCenter": "Optional"
+    },
+    "messages": {
+      "created": "Item created",
+      "updated": "Item updated",
+      "deleted": "Item deleted",
+      "activated": "Item activated",
+      "deactivated": "Item deactivated"
+    },
+    "errors": {
+      "nameRequired": "Name is required",
+      "invalidPrice": "Invalid price",
+      "vatCategoryRequired": "VAT category is required",
+      "createFailed": "Failed to create item",
+      "updateFailed": "Failed to update item"
+    }
+  },
+
+  "billingGroups": {
+    "title": "Billing Groups",
+    "description": "Manage billing groups for families, companies and sponsors",
+    "createGroup": "Create Billing Group",
+    "noGroups": "No billing groups have been created yet",
+    "relationshipTypes": {
+      "parent": "Parent/Guardian",
+      "guardian": "Guardian",
+      "company": "Company",
+      "sponsor": "Sponsor",
+      "other": "Other"
+    },
+    "fields": {
+      "label": "Label",
+      "billingContact": "Billing Contact",
+      "billingContactId": "Billing Contact (ID)",
+      "relationshipType": "Relationship Type",
+      "memberCount": "Member Count",
+      "members": "Members (ID, comma-separated)"
+    },
+    "table": {
+      "label": "Label",
+      "billingContact": "Billing Contact",
+      "relationshipType": "Relationship Type",
+      "memberCount": "Member Count"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "dialogs": {
+      "create": {
+        "title": "New Billing Group",
+        "description": "Create a new billing group"
+      },
+      "edit": {
+        "title": "Edit Billing Group",
+        "description": "Update billing group information"
+      }
+    },
+    "placeholders": {
+      "label": "e.g. Andersson Family",
+      "billingContactId": "Member ID for billing contact",
+      "members": "id1, id2, id3"
+    },
+    "messages": {
+      "created": "Billing group created",
+      "updated": "Billing group updated",
+      "deleted": "Billing group deleted"
+    },
+    "errors": {
+      "billingContactRequired": "Billing contact is required",
+      "membersRequired": "At least one member is required",
+      "createFailed": "Failed to create billing group",
+      "updateFailed": "Failed to update billing group"
+    }
+  },
+
+  "packages": {
+    "title": "Packages (Punch Cards)",
+    "description": "Manage package definitions and purchased packages",
+    "newDefinition": "New Package Definition",
+    "noDefinitions": "No package definitions have been created yet",
+    "noPurchased": "No purchased packages",
+    "tabs": {
+      "definitions": "Package Definitions",
+      "purchased": "Purchased Packages"
+    },
+    "expiryPolicies": {
+      "expire": "Expire",
+      "rollover": "Rollover",
+      "partial_refund": "Partial Refund"
+    },
+    "cancellationPolicies": {
+      "no_refund": "No Refund",
+      "pro_rata_unit": "Pro Rata Per Unit",
+      "pro_rata_package": "Pro Rata Per Package",
+      "full_refund": "Full Refund"
+    },
+    "memberStatuses": {
+      "active": "Active",
+      "expired": "Expired",
+      "depleted": "Depleted",
+      "refunded": "Refunded",
+      "cancelled": "Cancelled"
+    },
+    "fields": {
+      "name": "Name",
+      "description": "Description",
+      "chargeableItemId": "Item ID",
+      "totalUnits": "Total Units",
+      "price": "Price",
+      "priceSEK": "Price (SEK)",
+      "validityDays": "Validity (days)",
+      "expiryPolicy": "Expiry Policy",
+      "cancellationPolicy": "Cancellation Policy",
+      "transferable": "Transferable within billing group"
+    },
+    "table": {
+      "name": "Name",
+      "chargeableItemId": "Item ID",
+      "units": "Units",
+      "price": "Price",
+      "validityDays": "Validity (days)",
+      "status": "Status",
+      "member": "Member",
+      "package": "Package",
+      "remaining": "Remaining / Total",
+      "expires": "Expires"
+    },
+    "statusLabels": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "edit": "Edit",
+      "activate": "Activate",
+      "deactivate": "Deactivate"
+    },
+    "dialogs": {
+      "create": {
+        "title": "New Package Definition",
+        "description": "Create a new package definition (punch card)"
+      },
+      "edit": {
+        "title": "Edit Package Definition",
+        "description": "Update package definition information"
+      }
+    },
+    "placeholders": {
+      "name": "e.g. 10-Card Jumping",
+      "description": "Optional description",
+      "chargeableItemId": "ID for chargeable item",
+      "validityDays": "Empty = no validity limit"
+    },
+    "messages": {
+      "created": "Package definition created",
+      "updated": "Package definition updated",
+      "activated": "Package definition activated",
+      "deactivated": "Package definition deactivated"
+    },
+    "errors": {
+      "nameRequired": "Name is required",
+      "chargeableItemRequired": "Item ID is required",
+      "invalidUnits": "Invalid number of units",
+      "invalidPrice": "Invalid price",
+      "createFailed": "Failed to create package definition",
+      "updateFailed": "Failed to update package definition"
+    }
+  },
+
+  "lineItems": {
+    "title": "Line Items",
+    "description": "Manage and review individual charge items",
+    "createItem": "Create Item",
+    "generateInvoices": "Generate Invoices",
+    "generating": "Generating...",
+    "noItems": "No line items found",
+    "allSources": "All Sources",
+    "sourceTypes": {
+      "activity": "Activity",
+      "booking": "Booking",
+      "recurring": "Recurring",
+      "manual": "Manual",
+      "package_purchase": "Package Purchase",
+      "cancellation_fee": "Cancellation Fee",
+      "no_show_fee": "No-Show Fee",
+      "reminder_fee": "Reminder Fee"
+    },
+    "statuses": {
+      "pending": "Pending",
+      "invoiced": "Invoiced",
+      "credited": "Credited",
+      "all": "All"
+    },
+    "fields": {
+      "memberId": "Member",
+      "billingContactId": "Billing Contact",
+      "date": "Date",
+      "description": "Description",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "unitPriceSEK": "Unit Price (SEK)",
+      "vatRate": "VAT Rate",
+      "total": "Total",
+      "sourceType": "Source Type",
+      "source": "Source",
+      "horseId": "Horse",
+      "from": "From",
+      "to": "To"
+    },
+    "table": {
+      "date": "Date",
+      "member": "Member",
+      "description": "Description",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "vatPercent": "VAT%",
+      "total": "Total",
+      "source": "Source",
+      "status": "Status"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "dialogs": {
+      "create": {
+        "title": "New Line Item",
+        "description": "Create a new manual line item"
+      },
+      "edit": {
+        "title": "Edit Line Item",
+        "description": "Update line item details"
+      }
+    },
+    "placeholders": {
+      "description": "e.g. Group Riding Lesson",
+      "selectMember": "Select member...",
+      "searchMember": "Search member...",
+      "noMembersFound": "No members found",
+      "selectContact": "Select contact...",
+      "searchContact": "Search contact...",
+      "noContactsFound": "No contacts found",
+      "selectHorse": "Select horse...",
+      "searchHorse": "Search horse...",
+      "noHorsesFound": "No horses found",
+      "noHorse": "No horse"
+    },
+    "messages": {
+      "created": "Item created",
+      "updated": "Item updated",
+      "deleted": "Item deleted",
+      "invoicesGenerated": "Invoices generated",
+      "invoicesGeneratedDescription": "{{invoiceCount}} invoices created from {{lineItemCount}} items"
+    },
+    "errors": {
+      "memberIdRequired": "Member is required",
+      "billingContactRequired": "Billing contact is required",
+      "descriptionRequired": "Description is required",
+      "invalidQuantity": "Invalid quantity",
+      "invalidPrice": "Invalid price",
+      "createFailed": "Failed to create item",
+      "updateFailed": "Failed to update item",
+      "generateFailed": "Failed to generate invoices"
+    }
+  },
+
+  "common": {
+    "saving": "Saving...",
+    "create": "Create",
+    "update": "Update",
+    "required": "*"
+  }
 }

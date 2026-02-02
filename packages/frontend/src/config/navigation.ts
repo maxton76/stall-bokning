@@ -27,6 +27,12 @@ import {
   Lightbulb,
   GraduationCap,
   BookOpen,
+  Receipt,
+  Wallet,
+  BadgeAlert,
+  Package,
+  FileText,
+  Coins,
 } from "lucide-react";
 import type {
   NavigationItem,
@@ -257,6 +263,25 @@ export const mainNavigation: NavigationItem[] = [
         href: "/my-page/statistics",
         icon: BarChart3,
       },
+      {
+        id: "myPage-invoices",
+        labelKey: "common:navigation.myInvoices",
+        href: "/my-page/invoices",
+        icon: Receipt,
+      },
+      {
+        id: "myPage-packages",
+        labelKey: "common:navigation.myPackages",
+        href: "/my-page/packages",
+        icon: Package,
+      },
+      {
+        id: "myPage-commissions",
+        labelKey: "common:navigation.myCommissions",
+        href: "/my-page/commissions",
+        icon: Coins,
+        roles: ["trainer"],
+      },
     ],
   },
   {
@@ -295,67 +320,127 @@ export const mainNavigation: NavigationItem[] = [
 
 /**
  * Create organization navigation based on organization ID
+ * Returns an array of expandable navigation groups under "Organisationer"
  */
 export function createOrganizationNavigation(
   organizationId: string | null,
-): OrganizationNavigation | null {
-  if (!organizationId) return null;
+): OrganizationNavigation[] {
+  if (!organizationId) return [];
 
-  return {
-    id: "organizationAdmin",
-    labelKey: "organizations:menu.settings",
-    icon: Building2,
-    subItems: [
-      {
-        id: "org-members",
-        labelKey: "organizations:menu.members",
-        href: `/organizations/${organizationId}/users`,
-        icon: UsersIcon,
-      },
-      {
-        id: "org-leaveManagement",
-        labelKey: "organizations:menu.leaveManagement",
-        href: `/organizations/${organizationId}/leave-management`,
-        icon: CalendarIcon,
-      },
-      {
-        id: "org-scheduleManagement",
-        labelKey: "organizations:menu.scheduleManagement",
-        href: `/organizations/${organizationId}/schedule-management`,
-        icon: ClipboardList,
-      },
-      {
-        id: "org-integrations",
-        labelKey: "organizations:menu.integrations",
-        href: `/organizations/${organizationId}/integrations`,
-        icon: Plug,
-      },
-      {
-        id: "org-manure",
-        labelKey: "organizations:menu.manure",
-        href: `/organizations/${organizationId}/manure`,
-        icon: Tractor,
-      },
-      {
-        id: "org-permissions",
-        labelKey: "organizations:menu.permissions",
-        href: `/organizations/${organizationId}/permissions`,
-        icon: Shield,
-      },
-      {
-        id: "org-subscription",
-        labelKey: "organizations:menu.subscription",
-        href: `/organizations/${organizationId}/subscription`,
-        icon: CreditCard,
-      },
-      {
-        id: "org-settings",
-        labelKey: "organizations:menu.settings",
-        href: `/organizations/${organizationId}/settings`,
-        icon: Settings2Icon,
-      },
-    ],
-  };
+  return [
+    {
+      id: "organizationAdmin",
+      labelKey: "organizations:menu.settings",
+      icon: Building2,
+      subItems: [
+        {
+          id: "org-members",
+          labelKey: "organizations:menu.members",
+          href: `/organizations/${organizationId}/users`,
+          icon: UsersIcon,
+        },
+        {
+          id: "org-leaveManagement",
+          labelKey: "organizations:menu.leaveManagement",
+          href: `/organizations/${organizationId}/leave-management`,
+          icon: CalendarIcon,
+        },
+        {
+          id: "org-scheduleManagement",
+          labelKey: "organizations:menu.scheduleManagement",
+          href: `/organizations/${organizationId}/schedule-management`,
+          icon: ClipboardList,
+        },
+        {
+          id: "org-integrations",
+          labelKey: "organizations:menu.integrations",
+          href: `/organizations/${organizationId}/integrations`,
+          icon: Plug,
+        },
+        {
+          id: "org-manure",
+          labelKey: "organizations:menu.manure",
+          href: `/organizations/${organizationId}/manure`,
+          icon: Tractor,
+        },
+        {
+          id: "org-permissions",
+          labelKey: "organizations:menu.permissions",
+          href: `/organizations/${organizationId}/permissions`,
+          icon: Shield,
+        },
+        {
+          id: "org-subscription",
+          labelKey: "organizations:menu.subscription",
+          href: `/organizations/${organizationId}/subscription`,
+          icon: CreditCard,
+        },
+        {
+          id: "org-chargeableItems",
+          labelKey: "organizations:menu.chargeableItems",
+          href: `/organizations/${organizationId}/chargeable-items`,
+          icon: FileText,
+        },
+        {
+          id: "org-billingGroups",
+          labelKey: "organizations:menu.billingGroups",
+          href: `/organizations/${organizationId}/billing-groups`,
+          icon: Receipt,
+        },
+        {
+          id: "org-trainerCommissions",
+          labelKey: "organizations:menu.trainerCommissions",
+          href: `/organizations/${organizationId}/trainer-commissions`,
+          icon: Coins,
+        },
+        {
+          id: "org-settings",
+          labelKey: "organizations:menu.settings",
+          href: `/organizations/${organizationId}/settings`,
+          icon: Settings2Icon,
+        },
+      ],
+    },
+    {
+      id: "organizationFinance",
+      labelKey: "common:navigation.finance",
+      icon: Wallet,
+      addonFlag: "invoicing",
+      roles: ["admin", "owner"],
+      subItems: [
+        {
+          id: "finance-dashboard",
+          labelKey: "common:navigation.financeDashboard",
+          href: "/finance/dashboard",
+          icon: Wallet,
+        },
+        {
+          id: "finance-invoices",
+          labelKey: "common:navigation.invoices",
+          href: "/invoices",
+          icon: Receipt,
+        },
+        {
+          id: "finance-lineItems",
+          labelKey: "common:navigation.lineItems",
+          href: "/finance/line-items",
+          icon: FileText,
+        },
+        {
+          id: "finance-disputes",
+          labelKey: "common:navigation.disputes",
+          href: "/finance/disputes",
+          icon: BadgeAlert,
+        },
+        {
+          id: "finance-packages",
+          labelKey: "common:navigation.packages",
+          href: "/finance/packages",
+          icon: Package,
+        },
+      ],
+    },
+  ];
 }
 
 /**
@@ -364,16 +449,29 @@ export function createOrganizationNavigation(
 export function findActiveNavigationItem(
   pathname: string,
   navigation: NavigationItem[],
+  orgNavigation?: OrganizationNavigation[],
 ): string | null {
   for (const item of navigation) {
     if (item.subItems?.some((subItem) => pathname === subItem.href)) {
       return item.id;
     }
-    // Also check if path starts with item href (for nested routes)
     if (
       item.subItems?.some((subItem) => pathname.startsWith(subItem.href + "/"))
     ) {
       return item.id;
+    }
+  }
+  // Also check organization navigation items
+  if (orgNavigation) {
+    for (const item of orgNavigation) {
+      if (item.subItems.some((subItem) => pathname === subItem.href)) {
+        return item.id;
+      }
+      if (
+        item.subItems.some((subItem) => pathname.startsWith(subItem.href + "/"))
+      ) {
+        return item.id;
+      }
     }
   }
   return null;

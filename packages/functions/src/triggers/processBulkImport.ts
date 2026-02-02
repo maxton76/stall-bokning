@@ -298,8 +298,8 @@ async function processSingleMember(
         accessLevel: "organization",
         organizationId,
         linkedInviteId: inviteId,
-        linkedMemberId: undefined,
-        linkedUserId: undefined,
+        linkedMemberId: null,
+        linkedUserId: null,
         badge: "member",
         source: "invite",
         hasLoginAccess: true,
@@ -596,42 +596,41 @@ export const processBulkImport = onDocumentCreated(
   async (event) => {
     const executionId = crypto.randomUUID();
 
-    // Debug: dump the raw event to understand what the framework passes
-    const rawKeys = Object.keys(event);
-    logger.info(
-      {
-        executionId,
-        rawKeys,
-        hasDocument: "document" in event,
-        document: (event as any).document,
-        hasData: "data" in event,
-        dataType: typeof (event as any).data,
-        hasSubject: "subject" in event,
-        subject: (event as any).subject,
-        hasSource: "source" in event,
-        source: (event as any).source,
-        type: (event as any).type,
-        datacontenttype: (event as any).datacontenttype,
-        hasParams: "params" in event,
-        params: event.params,
-        // Dump first 1000 chars of JSON to see structure
-        rawEventPreview: JSON.stringify(event, (_key, value) => {
-          if (Buffer.isBuffer(value)) return `<Buffer ${value.length} bytes>`;
-          if (typeof value === "string" && value.length > 200)
-            return value.substring(0, 200) + "...";
-          return value;
-        }).substring(0, 1000),
-      },
-      "DEBUG: Raw event received from Eventarc",
-    );
-
-    const jobId = event.params.jobId;
+    const jobId = event.params?.jobId;
 
     // If SDK couldn't parse the event, try to extract jobId and read from Firestore directly
     if (!event.data || !jobId) {
       // Attempt fallback: extract jobId from CloudEvent subject attribute
       const subject = (event as any).subject as string | undefined;
-      const extractedJobId = subject?.match(/bulkImportJobs\/([^/]+)/)?.[1];
+      let extractedJobId = subject?.match(/bulkImportJobs\/([^/]+)/)?.[1];
+
+      // If subject is missing, try to decode raw protobuf bytes from the event.
+      // Eventarc-triggered Gen2 functions may receive the event as a raw byte
+      // array (keys 0,1,2,...) when the SDK can't deserialize the protobuf.
+      if (!extractedJobId) {
+        try {
+          const rawEvent = event as unknown as Record<string, unknown>;
+          // Check if event looks like a byte array (has numeric keys)
+          if ("0" in rawEvent && typeof rawEvent["0"] === "number") {
+            const maxIndex = Object.keys(rawEvent)
+              .filter((k) => /^\d+$/.test(k))
+              .reduce((max, k) => Math.max(max, parseInt(k, 10)), -1);
+            if (maxIndex > 0) {
+              const bytes = new Uint8Array(maxIndex + 1);
+              for (let i = 0; i <= maxIndex; i++) {
+                bytes[i] = (rawEvent[String(i)] as number) & 0xff;
+              }
+              const decoded = Buffer.from(bytes).toString("utf-8");
+              const match = decoded.match(/bulkImportJobs\/([a-zA-Z0-9_-]+)/);
+              if (match) {
+                extractedJobId = match[1];
+              }
+            }
+          }
+        } catch {
+          // Ignore decode errors — we'll fall through to the error below
+        }
+      }
 
       logger.warn(
         {

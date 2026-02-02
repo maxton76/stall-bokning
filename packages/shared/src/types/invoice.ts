@@ -3,7 +3,8 @@ import type { InvoiceLanguage } from "./contact.js";
 
 /**
  * Invoice and Billing Types
- * Supports invoice creation, payment tracking, and recurring billing
+ * Supports invoice creation, payment tracking, and recurring billing.
+ * All monetary amounts stored in öre (1 SEK = 100 öre) as integers.
  */
 
 /**
@@ -26,6 +27,11 @@ export type InvoiceStatus =
   | "overdue"
   | "cancelled"
   | "void";
+
+/**
+ * Invoice document type discriminator
+ */
+export type InvoiceDocumentType = "invoice" | "credit_note";
 
 /**
  * Invoice item types (Swedish stable context)
@@ -65,6 +71,7 @@ export type PaymentMethod =
 
 /**
  * Invoice item - line item on invoice
+ * All monetary amounts in öre (integer).
  */
 export interface InvoiceItem {
   id: string; // UUID for React keys
@@ -72,12 +79,12 @@ export interface InvoiceItem {
   itemType: InvoiceItemType;
   quantity: number;
   unit?: string; // "month", "hour", "piece", etc.
-  unitPrice: number; // Price per unit (ex. VAT)
+  unitPrice: number; // Price per unit in öre (ex. VAT)
   vatRate: number; // VAT percentage (25%, 12%, 6%, 0%)
   discount?: number; // Discount percentage
-  discountAmount?: number; // Calculated discount amount
-  lineTotal: number; // quantity * unitPrice - discount
-  vatAmount: number; // Calculated VAT
+  discountAmount?: number; // Calculated discount amount in öre
+  lineTotal: number; // quantity * unitPrice - discount (öre)
+  vatAmount: number; // Calculated VAT in öre
 
   // Optional references
   horseId?: string; // If charge is for specific horse
@@ -92,11 +99,12 @@ export interface InvoiceItem {
 
 /**
  * Invoice payment record
+ * Amount in öre (integer).
  */
 export interface InvoicePayment {
   id: string;
   invoiceId: string;
-  amount: number;
+  amount: number; // In öre
   currency: string;
   method: PaymentMethod;
   reference?: string; // Bank reference, Swish number, etc.
@@ -112,22 +120,27 @@ export interface InvoicePayment {
 
 /**
  * VAT breakdown for invoice
+ * Amounts in öre (integer).
  */
 export interface VatBreakdown {
   rate: number; // VAT percentage
-  baseAmount: number; // Amount before VAT
-  vatAmount: number; // VAT amount
+  baseAmount: number; // Amount before VAT in öre
+  vatAmount: number; // VAT amount in öre
 }
 
 /**
  * Invoice document
+ * All monetary amounts in öre (integer, 1 SEK = 100 öre).
  * Stored in: invoices/{id}
  */
 export interface Invoice {
   id: string;
-  invoiceNumber: string; // Sequential: "INV-2026-0001"
+  invoiceNumber: string; // Sequential: "INV-26-0001"
   organizationId: string;
   stableId?: string; // Optional if org has single stable
+
+  /** Document type: invoice or credit_note (kreditfaktura) */
+  type: InvoiceDocumentType;
 
   // Customer information
   contactId: string;
@@ -158,6 +171,13 @@ export interface Invoice {
     bic?: string;
   };
 
+  // Swedish compliance fields
+  orgNumber?: string; // Organisationsnummer
+  orgBankgiro?: string; // Bankgiro number
+  orgPlusgiro?: string; // Plusgiro number
+  orgSwish?: string; // Swish number
+  ocrNumber?: string; // OCR payment reference (auto-generated)
+
   // Dates
   issueDate: Timestamp;
   dueDate: Timestamp;
@@ -167,18 +187,22 @@ export interface Invoice {
   // Line items
   items: InvoiceItem[];
 
-  // Totals (all in invoice currency)
-  subtotal: number; // Sum of line totals (ex. VAT)
-  totalDiscount: number; // Total discount amount
-  vatBreakdown: VatBreakdown[]; // VAT by rate
-  totalVat: number; // Total VAT amount
-  total: number; // Final amount inc. VAT
+  // Totals (all in öre, integer)
+  subtotal: number; // Sum of line totals (ex. VAT) in öre
+  totalDiscount: number; // Total discount amount in öre
+  vatBreakdown: VatBreakdown[]; // VAT by rate (amounts in öre)
+  totalVat: number; // Total VAT amount in öre
+  total: number; // Final amount inc. VAT in öre (after öresavrundning)
+  roundingAmount: number; // Öresavrundning: difference between exact and rounded total
   currency: string; // Default: "SEK"
 
-  // Payment tracking
+  // Payment tracking (amounts in öre)
   amountPaid: number;
   amountDue: number;
   payments: InvoicePayment[];
+
+  // Billing group reference
+  billingGroupId?: string;
 
   // Status
   status: InvoiceStatus;
@@ -197,14 +221,29 @@ export interface Invoice {
   stripeInvoiceUrl?: string;
   stripePaymentIntentId?: string;
 
+  // Checkout / online payment
+  checkoutSessionId?: string;
+  checkoutUrl?: string;
+  receiptUrl?: string;
+
+  // Email delivery tracking
+  emailSentAt?: Timestamp;
+  emailSentTo?: string;
+
   // Notes
   internalNotes?: string; // Not shown to customer
   customerNotes?: string; // Shown on invoice
   paymentTerms?: string; // Payment terms text
   footerText?: string; // Footer message
 
+  // Credit note references
+  /** Credit note number (separate series, e.g., "KF-26-0001") */
+  creditNoteNumber?: string;
+  /** Original invoice ID that this credit note references */
+  originalInvoiceId?: string;
+
   // References
-  relatedInvoiceId?: string; // For credit notes
+  relatedInvoiceId?: string; // Legacy: for credit notes
   templateId?: string; // Template used to create
 
   // Metadata
@@ -366,10 +405,39 @@ export interface InvoiceSettings {
   stripeEnabled: boolean;
   stripeAccountId?: string;
 
-  // Reminders
+  // Online payment settings
+  paymentMode?: "manual" | "online" | "both";
+  allowPartialPayments?: boolean;
+  acceptedPaymentMethods?: (
+    | "card"
+    | "klarna"
+    | "swish"
+    | "bank_transfer"
+    | "sepa_debit"
+  )[];
+  applicationFeePercent?: number;
+  passFeesToCustomer?: boolean;
+
+  // Reminders (legacy config)
   sendReminders: boolean;
   reminderDaysBefore: number[];
   reminderDaysAfter: number[];
+
+  // Enhanced reminder configuration (Swedish compliance)
+  /** Days after due date to send first reminder */
+  reminder1DaysAfterDue?: number;
+  /** Days after due date to send second reminder */
+  reminder2DaysAfterDue?: number;
+  /** Påminnelseavgift (reminder fee) in öre */
+  reminderFee?: number;
+  /** Dröjsmålsränta (late interest rate) as percentage */
+  lateInterestRate?: number;
+  /** Maximum number of reminders to send */
+  maxReminders?: number;
+
+  // Swedish compliance
+  /** Organisationsnummer */
+  orgNumber?: string;
 
   // Metadata
   updatedAt: Timestamp;
@@ -385,7 +453,7 @@ export interface CreateInvoiceItemData {
   itemType: InvoiceItemType;
   quantity: number;
   unit?: string;
-  unitPrice: number;
+  unitPrice: number; // In öre
   vatRate: number;
   discount?: number;
   horseId?: string;
@@ -410,6 +478,10 @@ export interface CreateInvoiceData {
   footerText?: string;
   templateId?: string;
   status?: "draft" | "pending";
+  /** Document type (defaults to "invoice") */
+  type?: InvoiceDocumentType;
+  /** Billing group ID for consolidated invoices */
+  billingGroupId?: string;
 }
 
 export interface UpdateInvoiceData {

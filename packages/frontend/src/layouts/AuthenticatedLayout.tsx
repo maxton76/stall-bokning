@@ -1,8 +1,15 @@
+import { useState, useEffect, useRef } from "react";
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { PendingInviteBanner } from "@/components/PendingInviteBanner";
 import { useNavigation } from "@/hooks/useNavigation";
+import { InlineSearch } from "@/components/CommandPalette/InlineSearch";
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+} from "@/components/ui/popover";
 import {
   SearchIcon,
   BellIcon,
@@ -15,7 +22,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,6 +69,40 @@ export default function AuthenticatedLayout() {
     isActive,
     pathname,
   } = useNavigation();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Global Cmd+K / Ctrl+K keyboard shortcut
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        setSearchOpen(true);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
+
+  // Clear search when dropdown closes
+  useEffect(() => {
+    if (!searchOpen) setSearchQuery("");
+  }, [searchOpen]);
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && searchQuery.trim()) {
+      setSearchOpen(false);
+      setSearchQuery("");
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+    if (e.key === "Escape") {
+      setSearchOpen(false);
+      setSearchQuery("");
+      searchInputRef.current?.blur();
+    }
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -184,60 +224,61 @@ export default function AuthenticatedLayout() {
             </SidebarGroup>
 
             {/* Organization Admin Section */}
-            {organizationNavigation && (
+            {organizationNavigation.length > 0 && (
               <SidebarGroup className="mt-auto">
                 <SidebarGroupLabel>
                   {t("common:navigation.organizations")}
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    <SidebarMenuItem>
-                      {/* Parent button - toggles expand */}
-                      <button
-                        type="button"
-                        onClick={() => toggleItem(organizationNavigation.id)}
-                        className={cn(
-                          "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium",
-                          "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                          "outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-                        )}
-                      >
-                        <organizationNavigation.icon className="size-5" />
-                        <span>{organizationNavigation.label}</span>
-                        <ChevronDown
+                    {organizationNavigation.map((orgItem) => (
+                      <SidebarMenuItem key={orgItem.id}>
+                        {/* Parent button - toggles expand */}
+                        <button
+                          type="button"
+                          onClick={() => toggleItem(orgItem.id)}
                           className={cn(
-                            "ml-auto size-4 transition-transform duration-200",
-                            expandedItem === organizationNavigation.id &&
-                              "rotate-180",
+                            "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium",
+                            "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                            "outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
                           )}
-                        />
-                      </button>
+                        >
+                          <orgItem.icon className="size-5" />
+                          <span>{orgItem.label}</span>
+                          <ChevronDown
+                            className={cn(
+                              "ml-auto size-4 transition-transform duration-200",
+                              expandedItem === orgItem.id && "rotate-180",
+                            )}
+                          />
+                        </button>
 
-                      {/* Sub-items - simple conditional render */}
-                      {expandedItem === organizationNavigation.id && (
-                        <ul className="mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l border-sidebar-border px-2.5 py-0.5">
-                          {organizationNavigation.subItems.map((subItem) => (
-                            <li key={subItem.id}>
-                              <Link
-                                to={subItem.href}
-                                className={cn(
-                                  "flex h-7 w-full min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sm text-left",
-                                  "text-sidebar-foreground outline-none ring-sidebar-ring",
-                                  "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                                  "focus-visible:ring-2",
-                                  "[&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground",
-                                  isActive(subItem.href) &&
-                                    "bg-sidebar-accent text-sidebar-accent-foreground",
-                                )}
-                              >
-                                <subItem.icon className="size-4" />
-                                <span>{subItem.label}</span>
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </SidebarMenuItem>
+                        {/* Sub-items - simple conditional render */}
+                        {expandedItem === orgItem.id && (
+                          <ul className="mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l border-sidebar-border px-2.5 py-0.5">
+                            {orgItem.subItems.map((subItem) => (
+                              <li key={subItem.id}>
+                                <Link
+                                  to={subItem.href}
+                                  className={cn(
+                                    "flex h-7 w-full min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sm text-left",
+                                    "text-sidebar-foreground outline-none ring-sidebar-ring",
+                                    "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                                    "focus-visible:ring-2",
+                                    "[&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground",
+                                    isActive(subItem.href) &&
+                                      "bg-sidebar-accent text-sidebar-accent-foreground",
+                                  )}
+                                >
+                                  <subItem.icon className="size-4" />
+                                  <span>{subItem.label}</span>
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </SidebarMenuItem>
+                    ))}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
@@ -305,19 +346,44 @@ export default function AuthenticatedLayout() {
           <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
             <SidebarTrigger />
 
-            {/* Search */}
-            <div className="flex-1 max-w-xl">
-              <div className="relative">
-                <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder={`${t("common:buttons.search")}...`}
-                  className="pl-9"
-                  onClick={() => {
-                    /* TODO: Open search dialog */
+            {/* Inline search with dropdown */}
+            <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+              <PopoverAnchor asChild>
+                <div className="flex flex-1 max-w-xl items-center gap-2 rounded-md border px-3 py-2 focus-within:ring-2 focus-within:ring-ring">
+                  <SearchIcon className="size-4 text-muted-foreground" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setSearchOpen(true);
+                    }}
+                    onFocus={() => setSearchOpen(true)}
+                    onKeyDown={handleSearchKeyDown}
+                    placeholder={t("common:buttons.search") + "..."}
+                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                  />
+                  <kbd className="ml-auto hidden sm:inline-flex rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px]">
+                    ⌘K
+                  </kbd>
+                </div>
+              </PopoverAnchor>
+              <PopoverContent
+                className="w-[--radix-popover-trigger-width] p-0"
+                align="start"
+                sideOffset={4}
+                onOpenAutoFocus={(e) => e.preventDefault()}
+              >
+                <InlineSearch
+                  searchQuery={searchQuery}
+                  onSelect={() => {
+                    setSearchOpen(false);
+                    setSearchQuery("");
                   }}
                 />
-              </div>
-            </div>
+              </PopoverContent>
+            </Popover>
 
             {/* Header Actions */}
             <div className="ml-auto flex items-center gap-2">

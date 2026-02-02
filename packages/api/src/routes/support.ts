@@ -185,10 +185,12 @@ const replySchema = z.object({
 const refineTicketSchema = z.object({
   subject: z.string().trim().min(1).max(200),
   message: z.string().trim().min(1).max(10000),
+  language: z.enum(["sv", "en"]).optional().default("sv"),
 });
 
 const refineReplySchema = z.object({
   message: z.string().trim().min(1).max(10000),
+  language: z.enum(["sv", "en"]).optional().default("sv"),
 });
 
 const updateStatusSchema = z.object({
@@ -252,6 +254,7 @@ export async function supportRoutes(fastify: FastifyInstance) {
         const refined = await refineSupportTicketText(
           input.subject,
           input.message,
+          input.language,
         );
         return reply.send(refined);
       } catch (error) {
@@ -279,7 +282,10 @@ export async function supportRoutes(fastify: FastifyInstance) {
       >;
 
       try {
-        const refined = await refineSupportReplyText(input.message);
+        const refined = await refineSupportReplyText(
+          input.message,
+          input.language,
+        );
         return reply.send(refined);
       } catch (error) {
         request.log.error(error, "Failed to refine support reply text");

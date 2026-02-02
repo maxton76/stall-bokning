@@ -1,5 +1,5 @@
 import { LucideIcon } from "lucide-react";
-import type { ModuleFlags } from "@equiduty/shared";
+import type { ModuleFlags, SubscriptionAddons } from "@equiduty/shared";
 
 /**
  * Navigation sub-item configuration
@@ -26,6 +26,8 @@ export interface NavigationItem {
   badge?: "new" | "beta";
   /** If set, item is only visible when this module is enabled */
   moduleFlag?: keyof ModuleFlags;
+  /** If set, item is only visible when this addon is enabled */
+  addonFlag?: keyof SubscriptionAddons;
 }
 
 /**
@@ -36,6 +38,10 @@ export interface OrganizationNavigation {
   labelKey: string;
   icon: LucideIcon;
   subItems: NavigationSubItem[];
+  /** If set, item is only visible when this addon is enabled */
+  addonFlag?: keyof SubscriptionAddons;
+  /** If set, item is only visible for these roles */
+  roles?: string[];
 }
 
 /**

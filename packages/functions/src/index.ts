@@ -9,6 +9,7 @@ import { formatErrorMessage, validateNumber } from "@equiduty/shared";
 export { generateActivityInstances } from "./scheduled/generateInstances.js";
 export { scanForReminders } from "./scheduled/reminderScanner.js";
 export { expirePendingMemberships } from "./scheduled/expirePendingMemberships.js";
+export { dailyInvoiceProcessing } from "./scheduled/dailyInvoiceProcessing.js";
 
 // Re-export notification functions
 export {
@@ -22,6 +23,7 @@ export { onSchedulePublished } from "./triggers/onSchedulePublished.js";
 export { onRoutineScheduleCreated } from "./triggers/onRoutineScheduleCreated.js";
 export { onRoutineScheduleDeleted } from "./triggers/onRoutineScheduleDeleted.js";
 export { processBulkImport } from "./triggers/processBulkImport.js";
+export { onInvoiceStatusChange } from "./triggers/onInvoiceStatusChange.js";
 
 // ============================================================================
 // TYPE DEFINITIONS

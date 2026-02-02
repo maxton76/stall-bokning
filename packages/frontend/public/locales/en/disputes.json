@@ -1,0 +1,62 @@
+{
+  "title": "Disputes",
+  "description": "Manage invoice disputes",
+  "create": "Raise Dispute",
+  "createTitle": "Raise a Dispute",
+  "subject": "Subject",
+  "subjectPlaceholder": "Brief description of the dispute",
+  "descriptionLabel": "Description",
+  "descriptionPlaceholder": "Describe the issue in detail...",
+  "status": {
+    "open": "Open",
+    "under_review": "Under Review",
+    "resolved": "Resolved",
+    "rejected": "Rejected"
+  },
+  "resolution": {
+    "title": "Resolution",
+    "type": "Resolution Type",
+    "notes": "Resolution Notes",
+    "notesPlaceholder": "Describe the resolution...",
+    "types": {
+      "credit_note": "Credit Note",
+      "adjustment": "Invoice Adjustment",
+      "explanation": "Explanation Provided",
+      "refund": "Refund",
+      "other": "Other"
+    }
+  },
+  "rejection": {
+    "reason": "Rejection Reason",
+    "reasonPlaceholder": "Explain why the dispute is being rejected..."
+  },
+  "actions": {
+    "review": "Mark Under Review",
+    "resolve": "Resolve Dispute",
+    "reject": "Reject Dispute"
+  },
+  "messages": {
+    "title": "Messages",
+    "placeholder": "Type a message...",
+    "send": "Send",
+    "noMessages": "No messages yet"
+  },
+  "table": {
+    "subject": "Subject",
+    "invoice": "Invoice",
+    "contact": "Contact",
+    "status": "Status",
+    "created": "Created",
+    "noDisputes": "No disputes found"
+  },
+  "filters": {
+    "allStatuses": "All Statuses"
+  },
+  "toast": {
+    "created": "Dispute created",
+    "resolved": "Dispute resolved",
+    "rejected": "Dispute rejected",
+    "messageSent": "Message sent",
+    "reviewStarted": "Dispute marked under review"
+  }
+}

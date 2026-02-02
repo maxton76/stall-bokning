@@ -50,7 +50,15 @@
     "lessons": "Lektioner",
     "lessonsCalendar": "Lektionskalender",
     "lessonsMyBookings": "Mina bokningar",
-    "lessonsManage": "Hantera lektioner"
+    "lessonsManage": "Hantera lektioner",
+    "finance": "Ekonomi",
+    "financeDashboard": "Översikt",
+    "lineItems": "Debiteringar",
+    "disputes": "Tvister",
+    "packages": "Klippkort",
+    "myInvoices": "Mina fakturor",
+    "myPackages": "Mina klippkort",
+    "myCommissions": "Mina arvoden"
   },
   "buttons": {
     "save": "Spara",
@@ -200,7 +208,18 @@
     "retry": "Försök igen"
   },
   "search": {
-    "placeholder": "Sök..."
+    "placeholder": "Sök eller skriv ett kommando...",
+    "noResults": "Inga resultat hittades.",
+    "recent": "Senaste",
+    "navigation": "Navigering",
+    "organization": "Organisation",
+    "close": "Stäng",
+    "navigate": "Navigera",
+    "select": "Välj",
+    "resultsTitle": "Sökresultat",
+    "resultsFor": "Sökresultat för",
+    "resultsCount_one": "{{count}} resultat hittades",
+    "resultsCount_other": "{{count}} resultat hittades"
   },
   "loading": {
     "default": "Laddar...",

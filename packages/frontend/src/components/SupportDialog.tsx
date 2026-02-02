@@ -206,7 +206,7 @@ function ConversationView({
   ticketId: number;
   onBack: () => void;
 }) {
-  const { t } = useTranslation(["support", "common"]);
+  const { t, i18n } = useTranslation(["support", "common"]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [replyText, setReplyText] = useState("");
@@ -448,7 +448,10 @@ function ConversationView({
                   setIsRefiningReply(true);
                   try {
                     setOriginalReplyText(replyText);
-                    const refined = await refineSupportReplyText(replyText);
+                    const refined = await refineSupportReplyText(
+                      replyText,
+                      i18n.language,
+                    );
                     setReplyText(refined.message);
                     toast({ title: t("support:ai.refineSuccess") });
                   } catch {
@@ -552,7 +555,7 @@ function CreateTicketView({
   onBack: () => void;
   onSuccess: (ticketId: number) => void;
 }) {
-  const { t } = useTranslation(["support", "common"]);
+  const { t, i18n } = useTranslation(["support", "common"]);
   const { toast } = useToast();
   const [isRefining, setIsRefining] = useState(false);
   const [originalText, setOriginalText] = useState<{
@@ -662,6 +665,7 @@ function CreateTicketView({
                 const refined = await refineSupportTicketText(
                   form.getValues("subject"),
                   form.getValues("message"),
+                  i18n.language,
                 );
                 form.setValue("subject", refined.subject, {
                   shouldValidate: true,

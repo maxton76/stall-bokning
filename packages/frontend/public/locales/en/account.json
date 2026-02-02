@@ -1,0 +1,30 @@
+{
+  "page": {
+    "title": "My Account",
+    "description": "Manage your account settings and preferences"
+  },
+  "profile": {
+    "title": "Profile Information",
+    "description": "Your personal information and account details",
+    "changeAvatar": "Change Avatar"
+  },
+  "fields": {
+    "email": "Email Address",
+    "userId": "User ID",
+    "memberSince": "Member Since"
+  },
+  "status": {
+    "title": "Account Status",
+    "description": "Current status and access level",
+    "accountStatus": "Account Status",
+    "active": "Active",
+    "emailVerified": "Email Verified",
+    "verified": "Verified"
+  },
+  "danger": {
+    "title": "Danger Zone",
+    "description": "Irreversible actions",
+    "deleteAccount": "Delete Account",
+    "deleteWarning": "This action cannot be undone. This will permanently delete your account and remove all data."
+  }
+}

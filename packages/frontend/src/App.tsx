@@ -26,6 +26,7 @@ const InviteAcceptPage = lazy(() => import("./pages/InviteAcceptPage"));
 // Lazy-load authenticated pages
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const OverviewPage = lazy(() => import("./pages/OverviewPage"));
+const SearchResultsPage = lazy(() => import("./pages/SearchResultsPage"));
 const AccountPage = lazy(() => import("./pages/AccountPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const SchedulePage = lazy(() => import("./pages/SchedulePage"));
@@ -86,6 +87,22 @@ const InventoryPage = lazy(() => import("./pages/InventoryPage"));
 
 // Invoice pages
 const InvoicesPage = lazy(() => import("./pages/InvoicesPage"));
+const InvoicePayPage = lazy(() => import("./pages/InvoicePayPage"));
+
+// Finance pages
+const PaymentDashboardPage = lazy(() => import("./pages/PaymentDashboardPage"));
+const LineItemsPage = lazy(() => import("./pages/LineItemsPage"));
+const DisputesPage = lazy(() => import("./pages/DisputesPage"));
+const PackagesPage = lazy(() => import("./pages/PackagesPage"));
+const BillingGroupsPage = lazy(() => import("./pages/BillingGroupsPage"));
+const ChargeableItemsPage = lazy(() => import("./pages/ChargeableItemsPage"));
+const TrainerCommissionPage = lazy(
+  () => import("./pages/TrainerCommissionPage"),
+);
+
+// Payment flow pages
+const PaymentSuccessPage = lazy(() => import("./pages/PaymentSuccessPage"));
+const PaymentCancelPage = lazy(() => import("./pages/PaymentCancelPage"));
 
 // Lessons pages
 const LessonsPage = lazy(() => import("./pages/LessonsPage"));
@@ -201,6 +218,9 @@ const PortalProfilePage = lazy(
 const PortalPaymentPage = lazy(
   () => import("./pages/portal/PortalPaymentPage"),
 );
+const PackagePurchasePage = lazy(
+  () => import("./pages/portal/PackagePurchasePage"),
+);
 
 // Full-page loading spinner for initial route load
 function PageLoader() {
@@ -295,6 +315,15 @@ function App() {
                       element={
                         <Suspense fallback={<InlineLoader />}>
                           <OverviewPage />
+                        </Suspense>
+                      }
+                    />
+                    {/* Search results page */}
+                    <Route
+                      path="/search"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <SearchResultsPage />
                         </Suspense>
                       }
                     />
@@ -433,6 +462,22 @@ function App() {
                       element={
                         <Suspense fallback={<InlineLoader />}>
                           <MyStatisticsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/my-page/invoices"
+                      element={<Navigate to="/portal/invoices" replace />}
+                    />
+                    <Route
+                      path="/my-page/packages"
+                      element={<Navigate to="/portal/packages" replace />}
+                    />
+                    <Route
+                      path="/my-page/commissions"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <TrainerCommissionPage />
                         </Suspense>
                       }
                     />
@@ -591,6 +636,70 @@ function App() {
                       element={
                         <Suspense fallback={<InlineLoader />}>
                           <InvoicesPage />
+                        </Suspense>
+                      }
+                    />
+
+                    {/* Finance routes */}
+                    <Route
+                      path="/finance"
+                      element={<Navigate to="/finance/dashboard" replace />}
+                    />
+                    <Route
+                      path="/finance/dashboard"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <PaymentDashboardPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/finance/line-items"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <LineItemsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/finance/disputes"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <DisputesPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/finance/packages"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <PackagesPage />
+                        </Suspense>
+                      }
+                    />
+
+                    {/* Payment flow routes */}
+                    <Route
+                      path="/pay/:invoiceId"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <InvoicePayPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/payment/success"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <PaymentSuccessPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/payment/cancel"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <PaymentCancelPage />
                         </Suspense>
                       }
                     />
@@ -776,6 +885,30 @@ function App() {
                         </Suspense>
                       }
                     />
+                    <Route
+                      path="/organizations/:organizationId/chargeable-items"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <ChargeableItemsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/organizations/:organizationId/billing-groups"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <BillingGroupsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/organizations/:organizationId/trainer-commissions"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <TrainerCommissionPage />
+                        </Suspense>
+                      }
+                    />
 
                     {/* Contact routes */}
                     <Route
@@ -931,6 +1064,14 @@ function App() {
                       element={
                         <Suspense fallback={<InlineLoader />}>
                           <PortalProfilePage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/portal/packages/:packageId"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <PackagePurchasePage />
                         </Suspense>
                       }
                     />

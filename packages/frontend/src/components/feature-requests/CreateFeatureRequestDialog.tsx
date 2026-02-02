@@ -71,7 +71,7 @@ export function CreateFeatureRequestDialog({
   onOpenChange,
   onSuccess,
 }: CreateFeatureRequestDialogProps) {
-  const { t } = useTranslation(["featureRequests", "common"]);
+  const { t, i18n } = useTranslation(["featureRequests", "common"]);
   const { toast } = useToast();
   const schema = createFormSchema(t);
 
@@ -110,6 +110,7 @@ export function CreateFeatureRequestDialog({
       const refined = await refineFeatureRequestText(
         watchTitle,
         watchDescription,
+        i18n.language,
       );
       setValue("title", refined.title, { shouldValidate: true });
       setValue("description", refined.description, { shouldValidate: true });

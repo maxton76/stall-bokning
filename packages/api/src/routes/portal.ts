@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
-import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
+import { isModuleEnabled } from "../middleware/checkModuleAccess.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { Timestamp } from "firebase-admin/firestore";
 
@@ -84,6 +84,20 @@ async function requirePortalAccess(
 
     const org = orgDoc.data();
 
+    // Check if portal module is enabled for this organization
+    const portalEnabled = await isModuleEnabled(
+      contact.organizationId,
+      "portal",
+    );
+    if (!portalEnabled) {
+      return reply.status(403).send({
+        error: "Module not available",
+        message:
+          'The "portal" feature is not included in your subscription. Please upgrade to access this feature.',
+        moduleKey: "portal",
+      });
+    }
+
     // Build contact display name
     const contactName =
       contact.contactType === "Personal"
@@ -150,9 +164,6 @@ function serializeTimestamps(obj: any): any {
 }
 
 export async function portalRoutes(fastify: FastifyInstance) {
-  // Addon gate: portal addon required
-  fastify.addHook("preHandler", checkModuleAccess("portal"));
-
   // ============================================
   // DASHBOARD
   // ============================================

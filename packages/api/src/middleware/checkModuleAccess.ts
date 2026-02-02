@@ -11,7 +11,51 @@ import type { ModuleFlags, SubscriptionAddons } from "@equiduty/shared";
 import { getDefaultTierDefinition } from "@equiduty/shared";
 import { getTierDefaults } from "../utils/tierDefaults.js";
 
-type ModuleOrAddonKey = keyof ModuleFlags | keyof SubscriptionAddons;
+export type ModuleOrAddonKey = keyof ModuleFlags | keyof SubscriptionAddons;
+
+/**
+ * Check if a module or addon is enabled for a given organization.
+ * Reusable logic that can be called from route handlers directly.
+ *
+ * @returns true if the module is enabled, false otherwise
+ */
+export async function isModuleEnabled(
+  organizationId: string,
+  moduleKey: ModuleOrAddonKey,
+): Promise<boolean> {
+  const orgDoc = await db.collection("organizations").doc(organizationId).get();
+  if (!orgDoc.exists) return true; // Org not found — don't gate
+
+  const data = orgDoc.data()!;
+  const tier: string =
+    data.subscriptionTier ||
+    data.subscription?.tier ||
+    getDefaultTierDefinition().tier;
+
+  const subModules = data.subscription?.modules;
+  const subAddons = data.subscription?.addons;
+
+  // Check in modules
+  if (subModules && moduleKey in subModules) {
+    return subModules[moduleKey as keyof ModuleFlags];
+  }
+  if (subAddons && moduleKey in subAddons) {
+    return subAddons[moduleKey as keyof SubscriptionAddons];
+  }
+
+  // Fall back to tier defaults from Firestore/cache
+  const tierDef = await getTierDefaults(tier);
+  if (tierDef) {
+    if (moduleKey in (tierDef.modules || {})) {
+      return tierDef.modules[moduleKey as keyof ModuleFlags];
+    }
+    if (moduleKey in (tierDef.addons || {})) {
+      return tierDef.addons[moduleKey as keyof SubscriptionAddons];
+    }
+  }
+
+  return false;
+}
 
 /**
  * Create a Fastify preHandler that checks if a module or addon is enabled
@@ -37,47 +81,9 @@ export function checkModuleAccess(moduleKey: ModuleOrAddonKey) {
     }
 
     try {
-      const orgDoc = await db
-        .collection("organizations")
-        .doc(organizationId)
-        .get();
-      if (!orgDoc.exists) {
-        return reply.status(404).send({
-          error: "Not Found",
-          message: "Organization not found",
-        });
-      }
+      const enabled = await isModuleEnabled(organizationId, moduleKey);
 
-      const data = orgDoc.data()!;
-      const tier: string =
-        data.subscriptionTier ||
-        data.subscription?.tier ||
-        getDefaultTierDefinition().tier;
-
-      // Check module flags first (from subscription object)
-      const subModules = data.subscription?.modules;
-      const subAddons = data.subscription?.addons;
-
-      let isEnabled = false;
-
-      // Check in modules
-      if (subModules && moduleKey in subModules) {
-        isEnabled = subModules[moduleKey as keyof ModuleFlags];
-      } else if (subAddons && moduleKey in subAddons) {
-        isEnabled = subAddons[moduleKey as keyof SubscriptionAddons];
-      } else {
-        // Fall back to tier defaults from Firestore/cache
-        const tierDef = await getTierDefaults(tier);
-        if (tierDef) {
-          if (moduleKey in (tierDef.modules || {})) {
-            isEnabled = tierDef.modules[moduleKey as keyof ModuleFlags];
-          } else if (moduleKey in (tierDef.addons || {})) {
-            isEnabled = tierDef.addons[moduleKey as keyof SubscriptionAddons];
-          }
-        }
-      }
-
-      if (!isEnabled) {
+      if (!enabled) {
         return reply.status(403).send({
           error: "Module not available",
           message: `The "${moduleKey}" feature is not included in your subscription. Please upgrade to access this feature.`,

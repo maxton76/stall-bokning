@@ -112,11 +112,15 @@ function generateColumnName(index: number): string {
 }
 
 /**
- * Parse an uploaded file (xlsx, xls, csv) into rows
+ * Parse an uploaded file (xlsx, xls, csv) into rows.
+ * @param maxRows - Maximum number of data rows allowed (default: MAX_ROWS).
+ *   When the file contains more rows than this, the promise rejects with
+ *   an error message in the format "MEMBER_LIMIT_EXCEEDED:<limit>:<found>".
  */
 export function parseImportFile(
   file: File,
   hasHeaders: boolean,
+  maxRows: number = MAX_ROWS,
 ): Promise<ParseResult> {
   return new Promise((resolve, reject) => {
     if (file.size > MAX_FILE_SIZE) {
@@ -175,11 +179,16 @@ export function parseImportFile(
           dataRows = rawData;
         }
 
-        // Truncate to MAX_ROWS
-        const truncated = dataRows.slice(0, MAX_ROWS);
+        // Reject if more data rows than allowed
+        if (dataRows.length > maxRows) {
+          reject(
+            new Error(`MEMBER_LIMIT_EXCEEDED:${maxRows}:${dataRows.length}`),
+          );
+          return;
+        }
 
         // Convert to ParsedRow objects, trimming and sanitizing all values
-        const rows: ParsedRow[] = truncated
+        const rows: ParsedRow[] = dataRows
           .map((row) => {
             const obj: ParsedRow = {};
             headers.forEach((header, i) => {

@@ -30,6 +30,7 @@ variable "cloud_run_api_roles" {
     "roles/logging.logWriter",            # Write logs
     "roles/cloudtrace.agent",             # Send traces
     "roles/monitoring.metricWriter",      # Write metrics
+    "roles/aiplatform.user",              # Vertex AI / Gemini access
   ]
 }
 

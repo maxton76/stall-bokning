@@ -1,0 +1,62 @@
+{
+  "title": "Tvister",
+  "description": "Hantera fakturaklagom\u00e5l",
+  "create": "Skapa tvist",
+  "createTitle": "Skapa en tvist",
+  "subject": "\u00c4mne",
+  "subjectPlaceholder": "Kort beskrivning av tvisten",
+  "descriptionLabel": "Beskrivning",
+  "descriptionPlaceholder": "Beskriv problemet i detalj...",
+  "status": {
+    "open": "\u00d6ppen",
+    "under_review": "Under granskning",
+    "resolved": "L\u00f6st",
+    "rejected": "Avvisad"
+  },
+  "resolution": {
+    "title": "L\u00f6sning",
+    "type": "L\u00f6sningstyp",
+    "notes": "L\u00f6sningsanteckningar",
+    "notesPlaceholder": "Beskriv l\u00f6sningen...",
+    "types": {
+      "credit_note": "Kreditnota",
+      "adjustment": "Fakturajustering",
+      "explanation": "F\u00f6rklaring",
+      "refund": "\u00c5terbetalning",
+      "other": "Annat"
+    }
+  },
+  "rejection": {
+    "reason": "Orsak till avvisning",
+    "reasonPlaceholder": "F\u00f6rklara varf\u00f6r tvisten avvisas..."
+  },
+  "actions": {
+    "review": "Markera som under granskning",
+    "resolve": "L\u00f6s tvist",
+    "reject": "Avvisa tvist"
+  },
+  "messages": {
+    "title": "Meddelanden",
+    "placeholder": "Skriv ett meddelande...",
+    "send": "Skicka",
+    "noMessages": "Inga meddelanden \u00e4nnu"
+  },
+  "table": {
+    "subject": "\u00c4mne",
+    "invoice": "Faktura",
+    "contact": "Kontakt",
+    "status": "Status",
+    "created": "Skapad",
+    "noDisputes": "Inga tvister hittades"
+  },
+  "filters": {
+    "allStatuses": "Alla statusar"
+  },
+  "toast": {
+    "created": "Tvist skapad",
+    "resolved": "Tvist l\u00f6st",
+    "rejected": "Tvist avvisad",
+    "messageSent": "Meddelande skickat",
+    "reviewStarted": "Tvist markerad som under granskning"
+  }
+}

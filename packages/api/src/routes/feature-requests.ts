@@ -103,6 +103,7 @@ const listQuerySchema = z.object({
 const refineSchema = z.object({
   title: z.string().trim().min(1).max(200),
   description: z.string().trim().min(1).max(5000),
+  language: z.enum(["sv", "en"]).optional().default("sv"),
 });
 
 const commentsQuerySchema = z.object({
@@ -316,6 +317,7 @@ export async function featureRequestsRoutes(fastify: FastifyInstance) {
         const refined = await refineFeatureRequestText(
           input.title,
           input.description,
+          input.language,
         );
         return reply.send(refined);
       } catch (error) {

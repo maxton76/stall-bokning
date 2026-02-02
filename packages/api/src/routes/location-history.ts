@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
-import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
+import { isModuleEnabled } from "../middleware/checkModuleAccess.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 
@@ -74,10 +74,39 @@ async function hasHorseAccess(
   return false;
 }
 
-export async function locationHistoryRoutes(fastify: FastifyInstance) {
-  // Module gate: locationHistory module required
-  fastify.addHook("preHandler", checkModuleAccess("locationHistory"));
+/**
+ * Resolve organization from horse → stable → org chain and check module access.
+ * Returns { allowed: true } if the module is enabled or no org gate applies.
+ */
+async function checkLocationHistoryModule(
+  horseId: string,
+): Promise<{ allowed: boolean; reason?: string }> {
+  const horseDoc = await db.collection("horses").doc(horseId).get();
+  if (!horseDoc.exists) return { allowed: false, reason: "Horse not found" };
 
+  const horse = horseDoc.data()!;
+  const stableId = horse.currentStableId;
+  if (!stableId) return { allowed: true }; // No stable = no org gate
+
+  const stableDoc = await db.collection("stables").doc(stableId).get();
+  if (!stableDoc.exists) return { allowed: true };
+
+  const organizationId = stableDoc.data()?.organizationId;
+  if (!organizationId) return { allowed: true }; // No org = no gate
+
+  const enabled = await isModuleEnabled(organizationId, "locationHistory");
+  if (!enabled) {
+    return {
+      allowed: false,
+      reason:
+        'The "locationHistory" feature is not included in your subscription. Please upgrade to access this feature.',
+    };
+  }
+
+  return { allowed: true };
+}
+
+export async function locationHistoryRoutes(fastify: FastifyInstance) {
   /**
    * GET /api/v1/location-history/horse/:horseId
    * Get location history for a horse
@@ -91,6 +120,15 @@ export async function locationHistoryRoutes(fastify: FastifyInstance) {
       try {
         const { horseId } = request.params as { horseId: string };
         const user = (request as AuthenticatedRequest).user!;
+
+        // Check module access via horse → stable → org
+        const moduleCheck = await checkLocationHistoryModule(horseId);
+        if (!moduleCheck.allowed) {
+          return reply.status(403).send({
+            error: "Module not available",
+            message: moduleCheck.reason,
+          });
+        }
 
         // Check access
         const hasAccess = await hasHorseAccess(horseId, user.uid, user.role);
@@ -156,6 +194,19 @@ export async function locationHistoryRoutes(fastify: FastifyInstance) {
           .where("ownerId", "==", userId)
           .get();
 
+        // Check module access using the first horse's org
+        if (!horsesSnapshot.empty) {
+          const moduleCheck = await checkLocationHistoryModule(
+            horsesSnapshot.docs[0].id,
+          );
+          if (!moduleCheck.allowed) {
+            return reply.status(403).send({
+              error: "Module not available",
+              message: moduleCheck.reason,
+            });
+          }
+        }
+
         const allHistory: any[] = [];
 
         // Get location history for each horse
@@ -211,6 +262,15 @@ export async function locationHistoryRoutes(fastify: FastifyInstance) {
         const { horseId } = request.params as { horseId: string };
         const user = (request as AuthenticatedRequest).user!;
         const data = request.body as any;
+
+        // Check module access via horse → stable → org
+        const moduleCheck = await checkLocationHistoryModule(horseId);
+        if (!moduleCheck.allowed) {
+          return reply.status(403).send({
+            error: "Module not available",
+            message: moduleCheck.reason,
+          });
+        }
 
         // Check access
         const hasAccess = await hasHorseAccess(horseId, user.uid, user.role);
@@ -325,6 +385,15 @@ export async function locationHistoryRoutes(fastify: FastifyInstance) {
         const user = (request as AuthenticatedRequest).user!;
         const data = request.body as any;
 
+        // Check module access via horse → stable → org
+        const moduleCheck = await checkLocationHistoryModule(horseId);
+        if (!moduleCheck.allowed) {
+          return reply.status(403).send({
+            error: "Module not available",
+            message: moduleCheck.reason,
+          });
+        }
+
         // Check access
         const hasAccess = await hasHorseAccess(horseId, user.uid, user.role);
         if (!hasAccess) {
@@ -387,6 +456,15 @@ export async function locationHistoryRoutes(fastify: FastifyInstance) {
       try {
         const { horseId } = request.params as { horseId: string };
         const user = (request as AuthenticatedRequest).user!;
+
+        // Check module access via horse → stable → org
+        const moduleCheck = await checkLocationHistoryModule(horseId);
+        if (!moduleCheck.allowed) {
+          return reply.status(403).send({
+            error: "Module not available",
+            message: moduleCheck.reason,
+          });
+        }
 
         // Check access
         const hasAccess = await hasHorseAccess(horseId, user.uid, user.role);

@@ -22,7 +22,10 @@
     "subscription": "Subscription",
     "settings": "Settings",
     "leaveManagement": "Leave Management",
-    "scheduleManagement": "Schedule Management"
+    "scheduleManagement": "Schedule Management",
+    "chargeableItems": "Chargeable Items",
+    "billingGroups": "Billing Groups",
+    "trainerCommissions": "Trainer Commissions"
   },
   "form": {
     "title": {
@@ -541,6 +544,7 @@
       "hasHeadersTooltip": "Enable this if the first row of your file contains column names like Email, Name, etc.",
       "googleSheetsTip": "Tip: To import from Google Sheets, export as CSV first (File → Download → CSV)",
       "maxRows": "Maximum {{max}} rows per import",
+      "maxRowsDynamic": "You can import up to {{max}} members ({{remaining}} of {{limit}} slots remaining)",
       "changeFile": "Change file"
     },
     "errors": {
@@ -550,6 +554,7 @@
       "noDataRows": "No data rows found. The file only contains headers.",
       "parseError": "Could not parse the file. Please check the format.",
       "readError": "Could not read the file. Please try again.",
+      "memberLimitExceeded": "Your file contains {{found}} members but you can only add {{remaining}} more (limit: {{limit}} members). Please reduce the number of rows in your file.",
       "submitFailed": "Failed to submit import. Please try again."
     },
     "mapping": {

@@ -26,6 +26,12 @@ export * from "./transport.js";
 // Business modules
 export * from "./inventory.js";
 export * from "./invoice.js";
+export * from "./chargeableItem.js";
+export * from "./lineItem.js";
+export * from "./billingGroup.js";
+export * from "./package.js";
+export * from "./invoiceEvent.js";
+export * from "./dispute.js";
 export * from "./communication.js";
 
 // Routine Flows
@@ -70,3 +76,7 @@ export * from "./onboarding.js";
 
 // Bulk Import
 export * from "./bulkImport.js";
+
+// Trainer Attribution
+export * from "./trainerAttribution.js";
+export * from "./trainerCommission.js";

@@ -1,5 +1,6 @@
-import { useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,10 +19,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import type {
   LineItem,
   LineItemSourceType,
   SwedishVatRate,
+  OrganizationMember,
+  Horse,
+  Contact,
 } from "@equiduty/shared";
 import { toDate } from "@/lib/utils";
 
@@ -87,6 +105,89 @@ export function formStateFromItem(item: LineItem): LineItemFormState {
 }
 
 // ============================================================================
+// Combobox Component
+// ============================================================================
+
+interface ComboboxOption {
+  value: string;
+  label: string;
+  searchText?: string;
+}
+
+function Combobox({
+  options,
+  value,
+  onChange,
+  placeholder,
+  searchPlaceholder,
+  emptyText,
+  disabled,
+}: {
+  options: ComboboxOption[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  searchPlaceholder: string;
+  emptyText: string;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const selectedLabel = useMemo(
+    () => options.find((o) => o.value === value)?.label,
+    [options, value],
+  );
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between font-normal"
+          disabled={disabled}
+        >
+          <span className="truncate">{selectedLabel || placeholder}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0"
+        align="start"
+      >
+        <Command>
+          <CommandInput placeholder={searchPlaceholder} />
+          <CommandList>
+            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandGroup>
+              {options.map((option) => (
+                <CommandItem
+                  key={option.value}
+                  value={option.searchText || option.label}
+                  onSelect={() => {
+                    onChange(option.value);
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === option.value ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                  {option.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// ============================================================================
 // Props
 // ============================================================================
 
@@ -98,6 +199,9 @@ interface LineItemFormDialogProps {
   onFormStateChange: (form: LineItemFormState) => void;
   onSave: () => void;
   isSaving: boolean;
+  members: OrganizationMember[];
+  contacts: Contact[];
+  horses: Horse[];
 }
 
 // ============================================================================
@@ -112,6 +216,9 @@ export function LineItemFormDialog({
   onFormStateChange,
   onSave,
   isSaving,
+  members,
+  contacts,
+  horses,
 }: LineItemFormDialogProps) {
   const { t } = useTranslation(["invoices", "common"]);
 
@@ -121,6 +228,53 @@ export function LineItemFormDialog({
       value: LineItemFormState[K],
     ) => {
       onFormStateChange({ ...formState, [field]: value });
+    },
+    [formState, onFormStateChange],
+  );
+
+  // Build member options
+  const memberOptions = useMemo(
+    (): ComboboxOption[] =>
+      members.map((m) => ({
+        value: m.userId,
+        label: `${m.firstName} ${m.lastName}`.trim() || m.userEmail,
+        searchText: `${m.firstName} ${m.lastName} ${m.userEmail}`,
+      })),
+    [members],
+  );
+
+  // Build contact options
+  const contactOptions = useMemo(
+    (): ComboboxOption[] =>
+      contacts.map((c) => {
+        const name =
+          c.contactType === "Personal"
+            ? `${c.firstName || ""} ${c.lastName || ""}`.trim()
+            : c.businessName || "";
+        return {
+          value: c.id || "",
+          label: name || c.email || c.id || "",
+          searchText: `${name} ${c.email}`,
+        };
+      }),
+    [contacts],
+  );
+
+  // Build horse options
+  const horseOptions = useMemo(
+    (): ComboboxOption[] =>
+      horses.map((h) => ({
+        value: h.id || "",
+        label: h.name || h.id || "",
+        searchText: `${h.name} ${h.breed || ""}`,
+      })),
+    [horses],
+  );
+
+  // When member changes, try to auto-set billing contact
+  const handleMemberChange = useCallback(
+    (userId: string) => {
+      onFormStateChange({ ...formState, memberId: userId });
     },
     [formState, onFormStateChange],
   );
@@ -142,32 +296,42 @@ export function LineItemFormDialog({
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* Member ID + Billing Contact ID row */}
+          {/* Member + Billing Contact row */}
           {!editingItem && (
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="li-member-id">
-                  {t("invoices:lineItems.fields.memberId")} *
-                </Label>
-                <Input
-                  id="li-member-id"
+                <Label>{t("invoices:lineItems.fields.memberId")} *</Label>
+                <Combobox
+                  options={memberOptions}
                   value={formState.memberId}
-                  onChange={(e) => updateField("memberId", e.target.value)}
-                  placeholder={t("invoices:lineItems.placeholders.memberId")}
+                  onChange={handleMemberChange}
+                  placeholder={t(
+                    "invoices:lineItems.placeholders.selectMember",
+                  )}
+                  searchPlaceholder={t(
+                    "invoices:lineItems.placeholders.searchMember",
+                  )}
+                  emptyText={t(
+                    "invoices:lineItems.placeholders.noMembersFound",
+                  )}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="li-billing-contact-id">
+                <Label>
                   {t("invoices:lineItems.fields.billingContactId")} *
                 </Label>
-                <Input
-                  id="li-billing-contact-id"
+                <Combobox
+                  options={contactOptions}
                   value={formState.billingContactId}
-                  onChange={(e) =>
-                    updateField("billingContactId", e.target.value)
-                  }
+                  onChange={(value) => updateField("billingContactId", value)}
                   placeholder={t(
-                    "invoices:lineItems.placeholders.billingContactId",
+                    "invoices:lineItems.placeholders.selectContact",
+                  )}
+                  searchPlaceholder={t(
+                    "invoices:lineItems.placeholders.searchContact",
+                  )}
+                  emptyText={t(
+                    "invoices:lineItems.placeholders.noContactsFound",
                   )}
                 />
               </div>
@@ -278,16 +442,24 @@ export function LineItemFormDialog({
             </Select>
           </div>
 
-          {/* Horse ID (optional) */}
+          {/* Horse (optional) */}
           <div className="grid gap-2">
-            <Label htmlFor="li-horse-id">
-              {t("invoices:lineItems.fields.horseId")}
-            </Label>
-            <Input
-              id="li-horse-id"
+            <Label>{t("invoices:lineItems.fields.horseId")}</Label>
+            <Combobox
+              options={[
+                {
+                  value: "",
+                  label: t("invoices:lineItems.placeholders.noHorse"),
+                },
+                ...horseOptions,
+              ]}
               value={formState.horseId}
-              onChange={(e) => updateField("horseId", e.target.value)}
-              placeholder={t("invoices:lineItems.placeholders.horseId")}
+              onChange={(value) => updateField("horseId", value)}
+              placeholder={t("invoices:lineItems.placeholders.selectHorse")}
+              searchPlaceholder={t(
+                "invoices:lineItems.placeholders.searchHorse",
+              )}
+              emptyText={t("invoices:lineItems.placeholders.noHorsesFound")}
             />
           </div>
         </div>

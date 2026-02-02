@@ -17,13 +17,16 @@ const model = vertexAI.getGenerativeModel({
   model: "gemini-2.0-flash",
 });
 
-const FEATURE_REQUEST_PROMPT = `You are a writing assistant for EquiDuty — a Swedish SaaS platform that helps stable owners and horse enthusiasts manage daily stable chores through a fair, weight-based booking system. Users include stable owners, riders, grooms, and other equestrian professionals. The platform handles scheduling, horse management, billing, and communication between stable members.
+const FEATURE_REQUEST_PROMPT_TEMPLATE = (
+  language: string,
+) => `You are a writing assistant for EquiDuty — a Swedish SaaS platform that helps stable owners and horse enthusiasts manage daily stable chores through a fair, weight-based booking system. Users include stable owners, riders, grooms, and other equestrian professionals. The platform handles scheduling, horse management, billing, and communication between stable members.
 
 Your task is to refine a feature request submitted by a user. Improve the clarity, structure, and readability while keeping the original intent.
 
 Rules:
 - Keep the original intent and meaning intact
-- Respond in the SAME language as the input (Swedish or English)
+- You MUST respond in ${language === "sv" ? "Swedish" : "English"} regardless of what language the user wrote in
+- Note: these system instructions are in English, but your output MUST be in ${language === "sv" ? "Swedish" : "English"}
 - Make the title concise and descriptive (max 200 characters)
 - Structure the description clearly, using short paragraphs if needed
 - Use equestrian terminology accurately when present in the original
@@ -31,13 +34,16 @@ Rules:
 - Do not add markdown formatting
 - Return ONLY valid JSON in this exact format: {"title": "...", "description": "..."}`;
 
-const SUPPORT_TICKET_PROMPT = `You are a writing assistant for EquiDuty — a Swedish SaaS platform that helps stable owners and horse enthusiasts manage daily stable chores through a fair, weight-based booking system. Users include stable owners, riders, grooms, and other equestrian professionals. The platform handles scheduling, horse management, billing, and communication between stable members.
+const SUPPORT_TICKET_PROMPT_TEMPLATE = (
+  language: string,
+) => `You are a writing assistant for EquiDuty — a Swedish SaaS platform that helps stable owners and horse enthusiasts manage daily stable chores through a fair, weight-based booking system. Users include stable owners, riders, grooms, and other equestrian professionals. The platform handles scheduling, horse management, billing, and communication between stable members.
 
 Your task is to refine a support ticket submission. Improve the clarity and structure so that the support team can understand and resolve the issue faster.
 
 Rules:
 - Keep the original intent and meaning intact
-- Respond in the SAME language as the input (Swedish or English)
+- You MUST respond in ${language === "sv" ? "Swedish" : "English"} regardless of what language the user wrote in
+- Note: these system instructions are in English, but your output MUST be in ${language === "sv" ? "Swedish" : "English"}
 - Make the subject concise and descriptive (max 200 characters)
 - Structure the message clearly: describe the problem, steps to reproduce if applicable, and expected behavior
 - Use equestrian terminology accurately when present in the original
@@ -45,13 +51,16 @@ Rules:
 - Do not add markdown formatting
 - Return ONLY valid JSON in this exact format: {"subject": "...", "message": "..."}`;
 
-const SUPPORT_REPLY_PROMPT = `You are a writing assistant for EquiDuty — a Swedish SaaS platform that helps stable owners and horse enthusiasts manage daily stable chores through a fair, weight-based booking system. Users include stable owners, riders, grooms, and other equestrian professionals. The platform handles scheduling, horse management, billing, and communication between stable members.
+const SUPPORT_REPLY_PROMPT_TEMPLATE = (
+  language: string,
+) => `You are a writing assistant for EquiDuty — a Swedish SaaS platform that helps stable owners and horse enthusiasts manage daily stable chores through a fair, weight-based booking system. Users include stable owners, riders, grooms, and other equestrian professionals. The platform handles scheduling, horse management, billing, and communication between stable members.
 
 Your task is to refine a user's reply in a support ticket conversation. Improve the clarity and professionalism of the message.
 
 Rules:
 - Keep the original intent and meaning intact
-- Respond in the SAME language as the input (Swedish or English)
+- You MUST respond in ${language === "sv" ? "Swedish" : "English"} regardless of what language the user wrote in
+- Note: these system instructions are in English, but your output MUST be in ${language === "sv" ? "Swedish" : "English"}
 - Make the message clear, polite, and well-structured
 - Use equestrian terminology accurately when present in the original
 - Do not add information that wasn't in the original
@@ -83,9 +92,10 @@ async function callGemini(
 export async function refineFeatureRequestText(
   title: string,
   description: string,
+  language: string = "sv",
 ): Promise<{ title: string; description: string }> {
   const parsed = await callGemini(
-    FEATURE_REQUEST_PROMPT,
+    FEATURE_REQUEST_PROMPT_TEMPLATE(language),
     `Refine this feature request:\n\nTitle: ${title}\n\nDescription: ${description}`,
   );
 
@@ -105,9 +115,10 @@ export async function refineFeatureRequestText(
 export async function refineSupportTicketText(
   subject: string,
   message: string,
+  language: string = "sv",
 ): Promise<{ subject: string; message: string }> {
   const parsed = await callGemini(
-    SUPPORT_TICKET_PROMPT,
+    SUPPORT_TICKET_PROMPT_TEMPLATE(language),
     `Refine this support ticket:\n\nSubject: ${subject}\n\nMessage: ${message}`,
   );
 
@@ -126,9 +137,10 @@ export async function refineSupportTicketText(
 
 export async function refineSupportReplyText(
   message: string,
+  language: string = "sv",
 ): Promise<{ message: string }> {
   const parsed = await callGemini(
-    SUPPORT_REPLY_PROMPT,
+    SUPPORT_REPLY_PROMPT_TEMPLATE(language),
     `Refine this support ticket reply:\n\n${message}`,
   );
 

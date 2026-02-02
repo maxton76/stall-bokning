@@ -104,10 +104,11 @@ export async function addComment(
 export async function refineFeatureRequestText(
   title: string,
   description: string,
+  language: string = "sv",
 ): Promise<{ title: string; description: string }> {
   return apiClient.post<{ title: string; description: string }>(
     "/feature-requests/refine",
-    { title, description },
+    { title, description, language },
   );
 }
 

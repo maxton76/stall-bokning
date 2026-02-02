@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { doc, onSnapshot } from "firebase/firestore";
 import {
@@ -11,7 +11,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/apiClient";
 import { db } from "@/lib/firebase";
+import { MAX_ROWS } from "@/lib/importParser";
 import { cacheInvalidation } from "@/lib/queryClient";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useBulkImport, type WizardStep } from "@/hooks/useBulkImport";
 import { BulkImportFileUpload } from "./BulkImportFileUpload";
 import { BulkImportColumnMapping } from "./BulkImportColumnMapping";
@@ -97,10 +99,27 @@ export function BulkImportWizard({
 }: BulkImportWizardProps) {
   const { t } = useTranslation(["organizations", "common"]);
   const { toast } = useToast();
+  const { limits } = useSubscription();
   const [jobProgress, setJobProgress] = useState<BulkImportProgress | null>(
     null,
   );
   const [jobStatus, setJobStatus] = useState<BulkImportJobStatus | null>(null);
+
+  // Compute remaining member slots based on tier limit and current counts
+  const { remainingSlots, effectiveMax } = useMemo(() => {
+    const currentCount =
+      existingMembers.filter(
+        (m) => m.status === "active" || m.status === "pending",
+      ).length + existingInvites.filter((i) => i.status === "pending").length;
+    const remaining =
+      limits.members === -1
+        ? MAX_ROWS
+        : Math.max(0, limits.members - currentCount);
+    return {
+      remainingSlots: remaining,
+      effectiveMax: Math.min(remaining, MAX_ROWS),
+    };
+  }, [limits.members, existingMembers, existingInvites]);
 
   const {
     state,
@@ -228,6 +247,9 @@ export function BulkImportWizard({
             file={state.file}
             hasHeaders={state.hasHeaders}
             parseError={state.parseError}
+            memberLimit={limits.members}
+            remainingSlots={remainingSlots}
+            effectiveMax={effectiveMax}
             onFileSelect={handleFileSelect}
             onHasHeadersChange={setHasHeaders}
             onNext={() => goToStep(2)}

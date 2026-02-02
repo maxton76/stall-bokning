@@ -44,8 +44,8 @@ export interface TranslatedOrganizationNavigation extends Omit<
 export interface UseNavigationReturn {
   /** Main navigation items with translated labels */
   navigation: TranslatedNavigationItem[];
-  /** Organization navigation (if organization is selected) */
-  organizationNavigation: TranslatedOrganizationNavigation | null;
+  /** Organization navigation items (if organization is selected) */
+  organizationNavigation: TranslatedOrganizationNavigation[];
   /** Currently expanded accordion item ID */
   expandedItem: string | null;
   /** Toggle accordion item */
@@ -63,19 +63,33 @@ export function useNavigation(): UseNavigationReturn {
   const location = useLocation();
   const { t } = useTranslation(["common", "organizations"]);
   const { currentOrganizationId } = useOrganizationContext();
-  const { isFeatureAvailable } = useSubscription();
+  const { isFeatureAvailable, addons } = useSubscription();
 
-  // Filter navigation items by module flag availability
+  // Filter navigation items by module flag and addon flag availability
   const filteredNavigation = useMemo(() => {
     return mainNavigation.filter((item) => {
-      if (!item.moduleFlag) return true;
-      return isFeatureAvailable(item.moduleFlag);
+      if (item.moduleFlag && !isFeatureAvailable(item.moduleFlag)) return false;
+      if (item.addonFlag && !addons[item.addonFlag]) return false;
+      return true;
     });
-  }, [isFeatureAvailable]);
+  }, [isFeatureAvailable, addons]);
+
+  // Create organization navigation items (filtered by addon/role)
+  const orgNavItems = useMemo(() => {
+    const items = createOrganizationNavigation(currentOrganizationId);
+    return items.filter((item) => {
+      if (item.addonFlag && !addons[item.addonFlag]) return false;
+      return true;
+    });
+  }, [currentOrganizationId, addons]);
 
   // Initialize expanded state based on current path
   const [expandedItem, setExpandedItem] = useState<string | null>(() => {
-    return findActiveNavigationItem(location.pathname, filteredNavigation);
+    return findActiveNavigationItem(
+      location.pathname,
+      filteredNavigation,
+      orgNavItems,
+    );
   });
 
   // Sync expandedItem with location changes to ensure navigation works correctly
@@ -83,11 +97,12 @@ export function useNavigation(): UseNavigationReturn {
     const activeItem = findActiveNavigationItem(
       location.pathname,
       filteredNavigation,
+      orgNavItems,
     );
     if (activeItem !== null) {
       setExpandedItem(activeItem);
     }
-  }, [location.pathname, filteredNavigation]);
+  }, [location.pathname, filteredNavigation, orgNavItems]);
 
   // Create translated navigation items
   const navigation = useMemo((): TranslatedNavigationItem[] => {
@@ -103,19 +118,16 @@ export function useNavigation(): UseNavigationReturn {
 
   // Create translated organization navigation
   const organizationNavigation =
-    useMemo((): TranslatedOrganizationNavigation | null => {
-      const orgNav = createOrganizationNavigation(currentOrganizationId);
-      if (!orgNav) return null;
-
-      return {
-        ...orgNav,
-        label: t(orgNav.labelKey),
-        subItems: orgNav.subItems.map((subItem) => ({
+    useMemo((): TranslatedOrganizationNavigation[] => {
+      return orgNavItems.map((item) => ({
+        ...item,
+        label: t(item.labelKey),
+        subItems: item.subItems.map((subItem) => ({
           ...subItem,
           label: t(subItem.labelKey),
         })),
-      };
-    }, [currentOrganizationId, t]);
+      }));
+    }, [orgNavItems, t]);
 
   // Toggle accordion item
   const toggleItem = useCallback((itemId: string) => {

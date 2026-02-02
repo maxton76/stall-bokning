@@ -420,6 +420,51 @@ export interface PaymentFailedWebhookData {
   bookingId?: string;
 }
 
+/**
+ * Payment dashboard analytics data
+ */
+export interface PaymentDashboardData {
+  organizationId: string;
+  period: {
+    start: string;
+    end: string;
+  };
+  summary: {
+    totalPayments: number;
+    totalAmount: number; // ore
+    totalRefunds: number;
+    totalRefundAmount: number; // ore
+    netAmount: number; // ore
+    totalApplicationFees: number; // ore
+    currency: string;
+  };
+  byPaymentMethod: {
+    method: string;
+    count: number;
+    amount: number; // ore
+  }[];
+  byStatus: {
+    status: string;
+    count: number;
+    amount: number; // ore
+  }[];
+  dailyTrend: {
+    date: string;
+    count: number;
+    amount: number; // ore
+  }[];
+  recentPayments: {
+    id: string;
+    amount: number;
+    currency: string;
+    status: string;
+    contactName?: string;
+    invoiceNumber?: string;
+    paymentMethodType?: string;
+    createdAt: string;
+  }[];
+}
+
 // ============================================================
 // Reports/Analytics
 // ============================================================

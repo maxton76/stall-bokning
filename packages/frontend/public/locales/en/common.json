@@ -50,7 +50,15 @@
     "lessons": "Lessons",
     "lessonsCalendar": "Lesson Calendar",
     "lessonsMyBookings": "My Bookings",
-    "lessonsManage": "Manage Lessons"
+    "lessonsManage": "Manage Lessons",
+    "finance": "Finance",
+    "financeDashboard": "Dashboard",
+    "lineItems": "Line Items",
+    "disputes": "Disputes",
+    "packages": "Packages",
+    "myInvoices": "My Invoices",
+    "myPackages": "My Packages",
+    "myCommissions": "My Commissions"
   },
   "buttons": {
     "save": "Save",
@@ -245,7 +253,18 @@
     "retry": "Retry"
   },
   "search": {
-    "placeholder": "Search..."
+    "placeholder": "Search or type a command...",
+    "noResults": "No results found.",
+    "recent": "Recent",
+    "navigation": "Navigation",
+    "organization": "Organization",
+    "close": "Close",
+    "navigate": "Navigate",
+    "select": "Select",
+    "resultsTitle": "Search results",
+    "resultsFor": "Search results for",
+    "resultsCount_one": "{{count}} result found",
+    "resultsCount_other": "{{count}} results found"
   },
   "loading": {
     "default": "Loading...",

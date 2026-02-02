@@ -74,10 +74,11 @@ export async function replyToTicket(
 export async function refineSupportTicketText(
   subject: string,
   message: string,
+  language: string = "sv",
 ): Promise<{ subject: string; message: string }> {
   return apiClient.post<{ subject: string; message: string }>(
     "/support/refine-ticket",
-    { subject, message },
+    { subject, message, language },
   );
 }
 
@@ -86,9 +87,11 @@ export async function refineSupportTicketText(
  */
 export async function refineSupportReplyText(
   message: string,
+  language: string = "sv",
 ): Promise<{ message: string }> {
   return apiClient.post<{ message: string }>("/support/refine-reply", {
     message,
+    language,
   });
 }
 

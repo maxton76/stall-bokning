@@ -37,8 +37,14 @@ import { pedigreeRoutes } from "./routes/pedigree.js";
 import { transportRoutes } from "./routes/transport.js";
 import { inventoryRoutes } from "./routes/inventory.js";
 import { invoicesRoutes } from "./routes/invoices.js";
+import { chargeableItemsRoutes } from "./routes/chargeableItems.js";
+import { invoiceSettingsRoutes } from "./routes/invoiceSettings.js";
+import { billingGroupsRoutes } from "./routes/billingGroups.js";
+import { packagesRoutes } from "./routes/packages.js";
+import { lineItemsRoutes } from "./routes/lineItems.js";
 import { communicationsRoutes } from "./routes/communications.js";
 import { portalRoutes } from "./routes/portal.js";
+import { portalPaymentsRoutes } from "./routes/portalPayments.js";
 import { lessonRoutes } from "./routes/lessons.js";
 import { paymentsRoutes } from "./routes/payments.js";
 import { assistantRoutes } from "./routes/assistant.js";
@@ -57,6 +63,11 @@ import { stripeWebhookRoutes } from "./routes/stripe-webhooks.js";
 import { featureRequestsRoutes } from "./routes/feature-requests.js";
 import { onboardingRoutes } from "./routes/onboarding.js";
 import { bulkImportRoutes } from "./routes/bulkImport.js";
+import { trainerAttributionRoutes } from "./routes/trainerAttribution.js";
+import { trainerCommissionRoutes } from "./routes/trainerCommission.js";
+import { disputesRoutes } from "./routes/disputes.js";
+import { exportsRoutes } from "./routes/exports.js";
+import { invoicePaymentsRoutes } from "./routes/invoicePayments.js";
 
 const PORT = Number(process.env.PORT) || 8080;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -179,8 +190,24 @@ await fastify.register(pedigreeRoutes, { prefix: "/api/v1" });
 await fastify.register(transportRoutes, { prefix: "/api/v1" });
 await fastify.register(inventoryRoutes, { prefix: "/api/v1/inventory" });
 await fastify.register(invoicesRoutes, { prefix: "/api/v1/invoices" });
+await fastify.register(chargeableItemsRoutes, {
+  prefix: "/api/v1/organizations",
+});
+await fastify.register(invoiceSettingsRoutes, {
+  prefix: "/api/v1/organizations",
+});
+await fastify.register(billingGroupsRoutes, {
+  prefix: "/api/v1/organizations",
+});
+await fastify.register(packagesRoutes, {
+  prefix: "/api/v1/organizations",
+});
+await fastify.register(lineItemsRoutes, {
+  prefix: "/api/v1/organizations",
+});
 await fastify.register(communicationsRoutes, { prefix: "/api/v1" });
 await fastify.register(portalRoutes, { prefix: "/api/v1/portal" });
+await fastify.register(portalPaymentsRoutes, { prefix: "/api/v1/portal" });
 await fastify.register(lessonRoutes, { prefix: "/api/v1" });
 await fastify.register(paymentsRoutes, { prefix: "/api/v1" });
 await fastify.register(assistantRoutes, { prefix: "/api/v1" });
@@ -207,6 +234,21 @@ await fastify.register(featureRequestsRoutes, {
 });
 await fastify.register(onboardingRoutes, { prefix: "/api/v1/settings" });
 await fastify.register(bulkImportRoutes, {
+  prefix: "/api/v1/organizations",
+});
+await fastify.register(trainerAttributionRoutes, {
+  prefix: "/api/v1/organizations",
+});
+await fastify.register(trainerCommissionRoutes, {
+  prefix: "/api/v1/organizations",
+});
+await fastify.register(disputesRoutes, {
+  prefix: "/api/v1/organizations",
+});
+await fastify.register(exportsRoutes, {
+  prefix: "/api/v1/organizations",
+});
+await fastify.register(invoicePaymentsRoutes, {
   prefix: "/api/v1/organizations",
 });
 

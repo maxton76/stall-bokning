@@ -10,13 +10,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { MAX_FILE_SIZE, MAX_ROWS } from "@/lib/importParser";
+import { MAX_FILE_SIZE } from "@/lib/importParser";
 
 interface BulkImportFileUploadProps {
   file: File | null;
   hasHeaders: boolean;
   parseError: string | null;
-  onFileSelect: (file: File, hasHeaders: boolean) => void;
+  memberLimit: number;
+  remainingSlots: number;
+  effectiveMax: number;
+  onFileSelect: (file: File, hasHeaders: boolean, maxRows?: number) => void;
   onHasHeadersChange: (hasHeaders: boolean) => void;
   onNext: () => void;
   canProceed: boolean;
@@ -28,6 +31,9 @@ export function BulkImportFileUpload({
   file,
   hasHeaders,
   parseError,
+  memberLimit,
+  remainingSlots,
+  effectiveMax,
   onFileSelect,
   onHasHeadersChange,
   onNext,
@@ -39,9 +45,9 @@ export function BulkImportFileUpload({
 
   const handleFile = useCallback(
     (selectedFile: File) => {
-      onFileSelect(selectedFile, hasHeaders);
+      onFileSelect(selectedFile, hasHeaders, effectiveMax);
     },
-    [onFileSelect, hasHeaders],
+    [onFileSelect, hasHeaders, effectiveMax],
   );
 
   const handleDrop = useCallback(
@@ -75,13 +81,23 @@ export function BulkImportFileUpload({
     (checked: boolean) => {
       onHasHeadersChange(checked);
       if (file) {
-        onFileSelect(file, checked);
+        onFileSelect(file, checked, effectiveMax);
       }
     },
-    [onHasHeadersChange, onFileSelect, file],
+    [onHasHeadersChange, onFileSelect, file, effectiveMax],
   );
 
   const getErrorMessage = (error: string) => {
+    if (error.startsWith("MEMBER_LIMIT_EXCEEDED:")) {
+      const parts = error.split(":");
+      const limit = Number(parts[1]);
+      const found = Number(parts[2]);
+      return t("organizations:bulkImport.errors.memberLimitExceeded", {
+        limit: memberLimit === -1 ? limit : memberLimit,
+        remaining: limit,
+        found,
+      });
+    }
     switch (error) {
       case "FILE_TOO_LARGE":
         return t("organizations:bulkImport.errors.fileTooLarge", {
@@ -193,7 +209,13 @@ export function BulkImportFileUpload({
 
       {/* Max rows info */}
       <p className="text-xs text-muted-foreground text-center">
-        {t("organizations:bulkImport.upload.maxRows", { max: MAX_ROWS })}
+        {memberLimit === -1
+          ? t("organizations:bulkImport.upload.maxRows", { max: effectiveMax })
+          : t("organizations:bulkImport.upload.maxRowsDynamic", {
+              max: effectiveMax,
+              remaining: remainingSlots,
+              limit: memberLimit,
+            })}
       </p>
 
       {/* Next button */}

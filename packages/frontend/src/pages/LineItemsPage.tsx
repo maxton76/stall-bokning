@@ -26,6 +26,9 @@ import {
   deleteLineItem,
   generateInvoicesFromLineItems,
 } from "@/services/lineItemService";
+import { getActiveOrganizationMembers } from "@/services/organizationMemberService";
+import { getOrganizationContacts } from "@/services/contactService";
+import { getAllAccessibleHorses } from "@/services/horseService";
 import type {
   LineItem,
   LineItemSourceType,
@@ -33,6 +36,9 @@ import type {
   CreateLineItemData,
   UpdateLineItemData,
   SwedishVatRate,
+  OrganizationMember,
+  Horse,
+  Contact,
 } from "@equiduty/shared";
 
 import { LineItemFilters } from "@/components/lineItems/LineItemFilters";
@@ -115,6 +121,33 @@ export default function LineItemsPage() {
   );
   const itemsData = itemsQuery.data;
   const itemsLoading = itemsQuery.isLoading;
+
+  const membersQuery = useApiQuery<OrganizationMember[]>(
+    queryKeys.organizationMembers.list(selectedOrganization ?? ""),
+    () => getActiveOrganizationMembers(selectedOrganization!),
+    {
+      enabled: !!selectedOrganization,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
+
+  const contactsQuery = useApiQuery<Contact[]>(
+    queryKeys.contacts.byOrganization(selectedOrganization ?? ""),
+    () => getOrganizationContacts(selectedOrganization!),
+    {
+      enabled: !!selectedOrganization,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
+
+  const horsesQuery = useApiQuery<Horse[]>(
+    queryKeys.horses.all,
+    () => getAllAccessibleHorses(),
+    {
+      enabled: !!selectedOrganization,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
 
   // Filtered items
   const filteredItems = useMemo(() => {
@@ -388,6 +421,9 @@ export default function LineItemsPage() {
         onFormStateChange={setFormState}
         onSave={handleSave}
         isSaving={isSaving}
+        members={membersQuery.data ?? []}
+        contacts={contactsQuery.data ?? []}
+        horses={horsesQuery.data ?? []}
       />
 
       {/* Delete Confirmation */}

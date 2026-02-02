@@ -246,6 +246,34 @@ locals {
       allow_unauthenticated = false
     }
 
+    "daily-invoice-processing" = {
+      description                  = "Daily invoice processing: recurring billing, overdue check, reminders"
+      runtime                      = "nodejs22"
+      entry_point                  = "dailyInvoiceProcessing"
+      memory                       = "256Mi"
+      cpu                          = "1"
+      timeout_seconds              = 540
+      max_instances                = var.functions_max_instances
+      min_instances                = 0
+      max_concurrency              = 1
+      ingress_settings             = "ALLOW_INTERNAL_ONLY"
+      source_archive_bucket        = var.functions_source_bucket
+      source_archive_object        = var.functions_source_object
+      environment_variables        = {}
+      build_environment_variables  = {}
+      secret_environment_variables = {}
+      event_trigger                = null
+      schedule = {
+        cron               = "0 2 * * *" # 2 AM daily
+        timezone           = "Europe/Stockholm"
+        pause_in_non_prod  = true
+        retry_count        = 2
+        max_retry_duration = 1800
+        payload            = {}
+      }
+      allow_unauthenticated = false
+    }
+
     # =========================================================================
     # Firestore Trigger Functions
     # =========================================================================

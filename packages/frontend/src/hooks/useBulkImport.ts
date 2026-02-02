@@ -80,7 +80,7 @@ export function useBulkImport(
   }, []);
 
   const handleFileSelect = useCallback(
-    async (file: File, hasHeaders: boolean) => {
+    async (file: File, hasHeaders: boolean, maxRows?: number) => {
       setState((prev) => ({
         ...prev,
         file,
@@ -88,7 +88,7 @@ export function useBulkImport(
         parseError: null,
       }));
       try {
-        const result = await parseImportFile(file, hasHeaders);
+        const result = await parseImportFile(file, hasHeaders, maxRows);
         const mappings = hasHeaders
           ? autoDetectMappings(result.headers)
           : result.headers.map((h) => ({

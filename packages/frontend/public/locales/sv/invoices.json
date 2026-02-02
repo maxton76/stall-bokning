@@ -196,5 +196,345 @@
 
   "addItem": "Lägg till rad",
   "removeItem": "Ta bort rad",
-  "itemNumber": "Rad {{number}}"
+  "itemNumber": "Rad {{number}}",
+
+  "chargeableItems": {
+    "title": "Debiteringsbara artiklar",
+    "description": "Hantera produkter och tjänster som kan debiteras",
+    "addItem": "Lägg till artikel",
+    "noItems": "Inga artiklar har skapats ännu",
+    "allCategories": "Alla kategorier",
+    "showAll": "Visa alla",
+    "showInactive": "Visa inaktiva",
+    "categories": {
+      "activity": "Aktivitet",
+      "booking": "Bokning",
+      "service": "Tjänst",
+      "recurring": "Återkommande",
+      "package": "Paket"
+    },
+    "unitTypes": {
+      "fixed": "Fast pris",
+      "per_hour": "Per timme",
+      "per_session": "Per tillfälle",
+      "per_quantity": "Per styck",
+      "per_day": "Per dag"
+    },
+    "fields": {
+      "name": "Namn",
+      "description": "Beskrivning",
+      "unitType": "Enhetstyp",
+      "category": "Kategori",
+      "price": "Pris",
+      "priceSEK": "Pris (SEK)",
+      "vatRate": "Momssats",
+      "vatCategory": "Momskategori",
+      "accountingCode": "Bokföringskod",
+      "costCenter": "Kostnadsställe"
+    },
+    "table": {
+      "name": "Namn",
+      "category": "Kategori",
+      "unitType": "Enhetstyp",
+      "price": "Pris",
+      "vat": "Moms",
+      "status": "Status"
+    },
+    "statusLabels": {
+      "active": "Aktiv",
+      "inactive": "Inaktiv"
+    },
+    "actions": {
+      "edit": "Redigera",
+      "activate": "Aktivera",
+      "deactivate": "Inaktivera",
+      "delete": "Ta bort"
+    },
+    "dialogs": {
+      "create": {
+        "title": "Ny artikel",
+        "description": "Lägg till en ny debiteringsbar artikel"
+      },
+      "edit": {
+        "title": "Redigera artikel",
+        "description": "Uppdatera artikelinformation"
+      }
+    },
+    "placeholders": {
+      "name": "t.ex. Hoppkurs grupplek",
+      "description": "Valfri beskrivning",
+      "vatCategory": "t.ex. Tjänst 25%",
+      "accountingCode": "Valfri",
+      "costCenter": "Valfritt"
+    },
+    "messages": {
+      "created": "Artikel skapad",
+      "updated": "Artikel uppdaterad",
+      "deleted": "Artikel borttagen",
+      "activated": "Artikel aktiverad",
+      "deactivated": "Artikel inaktiverad"
+    },
+    "errors": {
+      "nameRequired": "Namn krävs",
+      "invalidPrice": "Ogiltigt pris",
+      "vatCategoryRequired": "Momskategori krävs",
+      "createFailed": "Kunde inte skapa artikel",
+      "updateFailed": "Kunde inte uppdatera artikel"
+    }
+  },
+
+  "billingGroups": {
+    "title": "Faktureringsgrupper",
+    "description": "Hantera faktureringsgrupper för familjer, företag och sponsorer",
+    "createGroup": "Skapa faktureringsgrupp",
+    "noGroups": "Inga faktureringsgrupper har skapats ännu",
+    "relationshipTypes": {
+      "parent": "Förälder/Vårdnadshavare",
+      "guardian": "Vårdnadshavare",
+      "company": "Företag",
+      "sponsor": "Sponsor",
+      "other": "Övrigt"
+    },
+    "fields": {
+      "label": "Etikett",
+      "billingContact": "Faktureringskontakt",
+      "billingContactId": "Faktureringskontakt (ID)",
+      "relationshipType": "Relationstyp",
+      "memberCount": "Antal medlemmar",
+      "members": "Medlemmar (ID, kommaseparerade)"
+    },
+    "table": {
+      "label": "Etikett",
+      "billingContact": "Faktureringskontakt",
+      "relationshipType": "Relationstyp",
+      "memberCount": "Antal medlemmar"
+    },
+    "actions": {
+      "edit": "Redigera",
+      "delete": "Ta bort"
+    },
+    "dialogs": {
+      "create": {
+        "title": "Ny faktureringsgrupp",
+        "description": "Skapa en ny faktureringsgrupp"
+      },
+      "edit": {
+        "title": "Redigera faktureringsgrupp",
+        "description": "Uppdatera faktureringsgruppens information"
+      }
+    },
+    "placeholders": {
+      "label": "t.ex. Familjen Andersson",
+      "billingContactId": "Medlem-ID för faktureringskontakt",
+      "members": "id1, id2, id3"
+    },
+    "messages": {
+      "created": "Faktureringsgrupp skapad",
+      "updated": "Faktureringsgrupp uppdaterad",
+      "deleted": "Faktureringsgrupp borttagen"
+    },
+    "errors": {
+      "billingContactRequired": "Faktureringskontakt krävs",
+      "membersRequired": "Minst en medlem krävs",
+      "createFailed": "Kunde inte skapa faktureringsgrupp",
+      "updateFailed": "Kunde inte uppdatera faktureringsgrupp"
+    }
+  },
+
+  "packages": {
+    "title": "Paket (Klippkort)",
+    "description": "Hantera paketdefinitioner och köpta paket",
+    "newDefinition": "Ny paketdefinition",
+    "noDefinitions": "Inga paketdefinitioner har skapats ännu",
+    "noPurchased": "Inga köpta paket",
+    "tabs": {
+      "definitions": "Paketdefinitioner",
+      "purchased": "Köpta paket"
+    },
+    "expiryPolicies": {
+      "expire": "Förfall",
+      "rollover": "Överföring",
+      "partial_refund": "Delvis återbetalning"
+    },
+    "cancellationPolicies": {
+      "no_refund": "Ingen återbetalning",
+      "pro_rata_unit": "Proportionellt per enhet",
+      "pro_rata_package": "Proportionellt per paket",
+      "full_refund": "Full återbetalning"
+    },
+    "memberStatuses": {
+      "active": "Aktivt",
+      "expired": "Utgånget",
+      "depleted": "Förbrukat",
+      "refunded": "Återbetalt",
+      "cancelled": "Avbrutet"
+    },
+    "fields": {
+      "name": "Namn",
+      "description": "Beskrivning",
+      "chargeableItemId": "Artikel-ID",
+      "totalUnits": "Antal enheter",
+      "price": "Pris",
+      "priceSEK": "Pris (SEK)",
+      "validityDays": "Giltighet (dagar)",
+      "expiryPolicy": "Förfallspolicy",
+      "cancellationPolicy": "Avbokningspolicy",
+      "transferable": "Överförbar inom faktureringsgrupp"
+    },
+    "table": {
+      "name": "Namn",
+      "chargeableItemId": "Artikel-ID",
+      "units": "Enheter",
+      "price": "Pris",
+      "validityDays": "Giltighet (dagar)",
+      "status": "Status",
+      "member": "Medlem",
+      "package": "Paket",
+      "remaining": "Återstående / Totalt",
+      "expires": "Utgår"
+    },
+    "statusLabels": {
+      "active": "Aktiv",
+      "inactive": "Inaktiv"
+    },
+    "actions": {
+      "edit": "Redigera",
+      "activate": "Aktivera",
+      "deactivate": "Inaktivera"
+    },
+    "dialogs": {
+      "create": {
+        "title": "Ny paketdefinition",
+        "description": "Skapa en ny paketdefinition (klippkort)"
+      },
+      "edit": {
+        "title": "Redigera paketdefinition",
+        "description": "Uppdatera paketdefinitionens information"
+      }
+    },
+    "placeholders": {
+      "name": "t.ex. 10-kort Hoppning",
+      "description": "Valfri beskrivning",
+      "chargeableItemId": "ID för debiteringsbar artikel",
+      "validityDays": "Tomt = ingen giltighetsgräns"
+    },
+    "messages": {
+      "created": "Paketdefinition skapad",
+      "updated": "Paketdefinition uppdaterad",
+      "activated": "Paketdefinition aktiverad",
+      "deactivated": "Paketdefinition inaktiverad"
+    },
+    "errors": {
+      "nameRequired": "Namn krävs",
+      "chargeableItemRequired": "Artikel-ID krävs",
+      "invalidUnits": "Ogiltigt antal enheter",
+      "invalidPrice": "Ogiltigt pris",
+      "createFailed": "Kunde inte skapa paketdefinition",
+      "updateFailed": "Kunde inte uppdatera paketdefinition"
+    }
+  },
+
+  "lineItems": {
+    "title": "Debiterbara poster",
+    "description": "Hantera och granska enskilda debiteringsposter",
+    "createItem": "Skapa post",
+    "generateInvoices": "Generera fakturor",
+    "generating": "Genererar...",
+    "noItems": "Inga debiteringsposter hittades",
+    "allSources": "Alla källor",
+    "sourceTypes": {
+      "activity": "Aktivitet",
+      "booking": "Bokning",
+      "recurring": "Återkommande",
+      "manual": "Manuell",
+      "package_purchase": "Paketköp",
+      "cancellation_fee": "Avbokning",
+      "no_show_fee": "Uteblivendebot",
+      "reminder_fee": "Påminnelseavgift"
+    },
+    "statuses": {
+      "pending": "Väntande",
+      "invoiced": "Fakturerad",
+      "credited": "Krediterad",
+      "all": "Alla"
+    },
+    "fields": {
+      "memberId": "Medlem",
+      "billingContactId": "Fakturakontakt",
+      "date": "Datum",
+      "description": "Beskrivning",
+      "quantity": "Antal",
+      "unitPrice": "Styckpris",
+      "unitPriceSEK": "Styckpris (SEK)",
+      "vatRate": "Momssats",
+      "total": "Totalt",
+      "sourceType": "Källtyp",
+      "source": "Källa",
+      "horseId": "Häst",
+      "from": "Från",
+      "to": "Till"
+    },
+    "table": {
+      "date": "Datum",
+      "member": "Medlem",
+      "description": "Beskrivning",
+      "quantity": "Antal",
+      "unitPrice": "Styckpris",
+      "vatPercent": "Moms%",
+      "total": "Totalt",
+      "source": "Källa",
+      "status": "Status"
+    },
+    "actions": {
+      "edit": "Redigera",
+      "delete": "Ta bort"
+    },
+    "dialogs": {
+      "create": {
+        "title": "Ny debiteringspost",
+        "description": "Skapa en ny manuell debiteringspost"
+      },
+      "edit": {
+        "title": "Redigera post",
+        "description": "Uppdatera debiteringspostens uppgifter"
+      }
+    },
+    "placeholders": {
+      "description": "t.ex. Ridlektion grupp",
+      "selectMember": "Välj medlem...",
+      "searchMember": "Sök medlem...",
+      "noMembersFound": "Inga medlemmar hittades",
+      "selectContact": "Välj kontakt...",
+      "searchContact": "Sök kontakt...",
+      "noContactsFound": "Inga kontakter hittades",
+      "selectHorse": "Välj häst...",
+      "searchHorse": "Sök häst...",
+      "noHorsesFound": "Inga hästar hittades",
+      "noHorse": "Ingen häst"
+    },
+    "messages": {
+      "created": "Post skapad",
+      "updated": "Post uppdaterad",
+      "deleted": "Post borttagen",
+      "invoicesGenerated": "Fakturor genererade",
+      "invoicesGeneratedDescription": "{{invoiceCount}} fakturor skapade från {{lineItemCount}} poster"
+    },
+    "errors": {
+      "memberIdRequired": "Medlem krävs",
+      "billingContactRequired": "Fakturakontakt krävs",
+      "descriptionRequired": "Beskrivning krävs",
+      "invalidQuantity": "Ogiltigt antal",
+      "invalidPrice": "Ogiltigt pris",
+      "createFailed": "Kunde inte skapa post",
+      "updateFailed": "Kunde inte uppdatera post",
+      "generateFailed": "Kunde inte generera fakturor"
+    }
+  },
+
+  "common": {
+    "saving": "Sparar...",
+    "create": "Skapa",
+    "update": "Uppdatera",
+    "required": "*"
+  }
 }
