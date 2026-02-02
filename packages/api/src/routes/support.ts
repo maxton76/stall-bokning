@@ -223,7 +223,7 @@ export async function supportRoutes(fastify: FastifyInstance) {
           reason: accessResult.reason,
         };
       } catch (error) {
-        request.log.error({ error }, "Failed to check support access");
+        request.log.error({ err: error }, "Failed to check support access");
         return reply.status(500).send({
           hasAccess: false,
           reason: "no_organization",
@@ -371,7 +371,7 @@ export async function supportRoutes(fastify: FastifyInstance) {
           message: "Ticket created successfully",
         };
       } catch (error) {
-        request.log.error({ error }, "Failed to create support ticket");
+        request.log.error({ err: error }, "Failed to create support ticket");
         return reply.status(500).send({
           ticketId: 0,
           status: "error",
@@ -423,7 +423,7 @@ export async function supportRoutes(fastify: FastifyInstance) {
           count: tickets.length,
         };
       } catch (error) {
-        request.log.error({ error }, "Failed to list support tickets");
+        request.log.error({ err: error }, "Failed to list support tickets");
         return reply.status(500).send({
           tickets: [],
           count: 0,
@@ -521,7 +521,7 @@ export async function supportRoutes(fastify: FastifyInstance) {
           comments,
         };
       } catch (error) {
-        request.log.error({ error }, "Failed to fetch ticket comments");
+        request.log.error({ err: error }, "Failed to fetch ticket comments");
         return reply.status(500).send({
           ticketId: 0,
           subject: "",
@@ -588,7 +588,7 @@ export async function supportRoutes(fastify: FastifyInstance) {
 
         return { success: true };
       } catch (error) {
-        request.log.error({ error }, "Failed to reply to ticket");
+        request.log.error({ err: error }, "Failed to reply to ticket");
         return reply.status(500).send({ success: false });
       }
     },
@@ -666,7 +666,7 @@ export async function supportRoutes(fastify: FastifyInstance) {
 
         return { success: true };
       } catch (error) {
-        request.log.error({ error }, "Failed to update ticket status");
+        request.log.error({ err: error }, "Failed to update ticket status");
         return reply.status(500).send({ success: false });
       }
     },
@@ -687,7 +687,7 @@ export async function supportRoutes(fastify: FastifyInstance) {
     // Skip authentication - uses webhook signature instead
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const webhookSecret = request.headers["x-equicare-webhook-secret"] as
+        const webhookSecret = request.headers["x-equiduty-webhook-secret"] as
           | string
           | undefined;
 
@@ -784,7 +784,7 @@ export async function supportRoutes(fastify: FastifyInstance) {
 
         return { success: true };
       } catch (error) {
-        request.log.error({ error }, "Failed to process ZenDesk webhook");
+        request.log.error({ err: error }, "Failed to process ZenDesk webhook");
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to process webhook",

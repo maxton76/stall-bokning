@@ -9,9 +9,9 @@ import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 import crypto from "crypto";
 
 // ZenDesk configuration from environment
-const ZENDESK_SUBDOMAIN = process.env.ZENDESK_SUBDOMAIN || "equicare";
+const ZENDESK_SUBDOMAIN = process.env.ZENDESK_SUBDOMAIN || "equiduty";
 const ZENDESK_EMAIL =
-  process.env.ZENDESK_EMAIL || "support@equicare.zendesk.com";
+  process.env.ZENDESK_EMAIL || "support@equiduty.zendesk.com";
 
 // Custom field IDs (update after creating fields in ZenDesk Admin)
 const ZENDESK_FIELD_ORG_NAME = process.env.ZENDESK_FIELD_ORG_NAME;
