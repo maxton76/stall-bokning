@@ -11,7 +11,7 @@ import type { FastifyInstance } from "fastify";
 import { Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
-import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
+import { isModuleEnabled } from "../middleware/checkModuleAccess.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 import {
@@ -46,9 +46,60 @@ import {
   getSelectionsForProcess,
 } from "../services/selectionProcessService.js";
 
+/**
+ * Resolve organization ID from a stableId.
+ * Returns the organizationId or null if stable not found / has no org.
+ */
+async function getOrgIdFromStable(stableId: string): Promise<string | null> {
+  const stableDoc = await db.collection("stables").doc(stableId).get();
+  if (!stableDoc.exists) return null;
+  return stableDoc.data()?.organizationId || null;
+}
+
 export async function selectionProcessesRoutes(fastify: FastifyInstance) {
-  // Module gate: selectionProcess module required
-  fastify.addHook("preHandler", checkModuleAccess("selectionProcess"));
+  // Module gate: selectionProcess module required.
+  // Selection process routes don't have organizationId in the URL,
+  // so we resolve it from stableId (query param or process document).
+  fastify.addHook("preHandler", async (request, reply) => {
+    const query = request.query as Record<string, string>;
+    const params = request.params as Record<string, string>;
+
+    let organizationId: string | null = null;
+
+    // Try stableId from query params (used by list endpoint)
+    if (query.stableId) {
+      organizationId = await getOrgIdFromStable(query.stableId);
+    }
+    // Try processId from URL params (used by single-item endpoints)
+    else if (params.processId) {
+      const processDoc = await db
+        .collection("selectionProcesses")
+        .doc(params.processId)
+        .get();
+      if (processDoc.exists) {
+        const data = processDoc.data()!;
+        organizationId = data.organizationId || null;
+        if (!organizationId && data.stableId) {
+          organizationId = await getOrgIdFromStable(data.stableId);
+        }
+      }
+    }
+
+    if (!organizationId) {
+      // No org context — skip module check (will fail on auth/access later)
+      return;
+    }
+
+    const enabled = await isModuleEnabled(organizationId, "selectionProcess");
+    if (!enabled) {
+      return reply.status(403).send({
+        error: "Module not available",
+        message:
+          'The "selectionProcess" feature is not included in your subscription. Please upgrade to access this feature.',
+        moduleKey: "selectionProcess",
+      });
+    }
+  });
 
   // ============================================================================
   // LIST SELECTION PROCESSES
