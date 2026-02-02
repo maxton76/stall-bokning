@@ -4,6 +4,10 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
+import {
+  canManageOrganization,
+  isSystemAdmin,
+} from "../utils/authorization.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import type {
   OrganizationStripeSettings,
@@ -230,14 +234,21 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/payments/connect",
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const membership = await requireOrgAccess(request, reply);
-      if (!membership) return;
+      const user = (request as AuthenticatedRequest).user;
+      if (!user) return reply.status(401).send({ error: "Unauthorized" });
 
-      // Check for admin role
-      if (!["owner", "admin"].includes(membership.role)) {
-        return reply
-          .status(403)
-          .send({ error: "Only owners/admins can manage payment settings" });
+      const { organizationId } = request.params;
+
+      if (!isSystemAdmin(user.role)) {
+        const canManage = await canManageOrganization(user.uid, organizationId);
+        if (!canManage) {
+          return reply
+            .status(403)
+            .send({
+              error: "Forbidden",
+              message: "Only owners/admins can manage payment settings",
+            });
+        }
       }
 
       const result = connectAccountSchema.safeParse(request.body);
@@ -248,7 +259,6 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const { organizationId } = request.params;
       const { returnUrl, refreshUrl } = result.data;
 
       // Get org email for Stripe account
@@ -308,13 +318,21 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/payments/settings",
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const membership = await requireOrgAccess(request, reply);
-      if (!membership) return;
+      const user = (request as AuthenticatedRequest).user;
+      if (!user) return reply.status(401).send({ error: "Unauthorized" });
 
-      if (!["owner", "admin"].includes(membership.role)) {
-        return reply
-          .status(403)
-          .send({ error: "Only owners/admins can manage payment settings" });
+      const { organizationId } = request.params;
+
+      if (!isSystemAdmin(user.role)) {
+        const canManage = await canManageOrganization(user.uid, organizationId);
+        if (!canManage) {
+          return reply
+            .status(403)
+            .send({
+              error: "Forbidden",
+              message: "Only owners/admins can manage payment settings",
+            });
+        }
       }
 
       const result = updateStripeSettingsSchema.safeParse(request.body);
@@ -324,8 +342,6 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
           details: result.error.flatten().fieldErrors,
         });
       }
-
-      const { organizationId } = request.params;
 
       const settingsRef = db
         .collection("organizationStripeSettings")
@@ -347,18 +363,22 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/payments/disconnect",
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const membership = await requireOrgAccess(request, reply);
-      if (!membership) return;
-
-      if (!["owner", "admin"].includes(membership.role)) {
-        return reply
-          .status(403)
-          .send({
-            error: "Only owners/admins can disconnect payment settings",
-          });
-      }
+      const user = (request as AuthenticatedRequest).user;
+      if (!user) return reply.status(401).send({ error: "Unauthorized" });
 
       const { organizationId } = request.params;
+
+      if (!isSystemAdmin(user.role)) {
+        const canManage = await canManageOrganization(user.uid, organizationId);
+        if (!canManage) {
+          return reply
+            .status(403)
+            .send({
+              error: "Forbidden",
+              message: "Only owners/admins can disconnect payment settings",
+            });
+        }
+      }
 
       const settingsRef = db
         .collection("organizationStripeSettings")
@@ -734,13 +754,21 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/payments/refunds",
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const membership = await requireOrgAccess(request, reply);
-      if (!membership) return;
+      const user = (request as AuthenticatedRequest).user;
+      if (!user) return reply.status(401).send({ error: "Unauthorized" });
 
-      if (!["owner", "admin"].includes(membership.role)) {
-        return reply
-          .status(403)
-          .send({ error: "Only owners/admins can create refunds" });
+      const { organizationId } = request.params;
+
+      if (!isSystemAdmin(user.role)) {
+        const canManage = await canManageOrganization(user.uid, organizationId);
+        if (!canManage) {
+          return reply
+            .status(403)
+            .send({
+              error: "Forbidden",
+              message: "Only owners/admins can create refunds",
+            });
+        }
       }
 
       const result = createRefundSchema.safeParse(request.body);
@@ -751,10 +779,8 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const { organizationId } = request.params;
       const { paymentIntentId, amount, reason } = result.data;
-      const performedBy =
-        (request as AuthenticatedRequest).user?.uid || "unknown";
+      const performedBy = user.uid;
 
       // Validate payment intent exists and belongs to org before calling Stripe
       const intentRef = db.collection("paymentIntents").doc(paymentIntentId);
@@ -948,17 +974,22 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/payments/methods/:methodId",
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const membership = await requireOrgAccess(request, reply);
-      if (!membership) return;
+      const user = (request as AuthenticatedRequest).user;
+      if (!user) return reply.status(401).send({ error: "Unauthorized" });
 
       const { organizationId, methodId } = request.params;
       const { contactId } = request.query;
 
-      // Only admins/owners can delete payment methods for contacts
-      if (!["owner", "admin"].includes(membership.role)) {
-        return reply
-          .status(403)
-          .send({ error: "Only owners/admins can delete payment methods" });
+      if (!isSystemAdmin(user.role)) {
+        const canManage = await canManageOrganization(user.uid, organizationId);
+        if (!canManage) {
+          return reply
+            .status(403)
+            .send({
+              error: "Forbidden",
+              message: "Only owners/admins can delete payment methods",
+            });
+        }
       }
 
       const customerQuery = db
@@ -1047,14 +1078,21 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/contacts/:contactId/prepaid/deposit",
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const membership = await requireOrgAccess(request, reply);
-      if (!membership) return;
+      const user = (request as AuthenticatedRequest).user;
+      if (!user) return reply.status(401).send({ error: "Unauthorized" });
 
-      // Only admins/owners can deposit to prepaid accounts
-      if (!["owner", "admin"].includes(membership.role)) {
-        return reply
-          .status(403)
-          .send({ error: "Only owners/admins can manage prepaid deposits" });
+      const { organizationId, contactId } = request.params;
+
+      if (!isSystemAdmin(user.role)) {
+        const canManage = await canManageOrganization(user.uid, organizationId);
+        if (!canManage) {
+          return reply
+            .status(403)
+            .send({
+              error: "Forbidden",
+              message: "Only owners/admins can manage prepaid deposits",
+            });
+        }
       }
 
       const result = depositSchema.safeParse(request.body);
@@ -1065,7 +1103,6 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const { organizationId, contactId } = request.params;
       const { amount, currency } = result.data;
 
       // In production, this would create a Stripe checkout session
@@ -1134,7 +1171,7 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
           currency: currency || "sek",
           description: "Account deposit",
           createdAt: FieldValue.serverTimestamp(),
-          createdBy: (request as AuthenticatedRequest).user?.uid,
+          createdBy: user.uid,
         });
 
       return {
@@ -1200,17 +1237,23 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/payments/analytics",
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const membership = await requireOrgAccess(request, reply);
-      if (!membership) return;
-
-      // Admin/owner only
-      if (!["owner", "admin"].includes(membership.role)) {
-        return reply
-          .status(403)
-          .send({ error: "Only owners/admins can view payment analytics" });
-      }
+      const user = (request as AuthenticatedRequest).user;
+      if (!user) return reply.status(401).send({ error: "Unauthorized" });
 
       const { organizationId } = request.params;
+
+      if (!isSystemAdmin(user.role)) {
+        const canManage = await canManageOrganization(user.uid, organizationId);
+        if (!canManage) {
+          return reply
+            .status(403)
+            .send({
+              error: "Forbidden",
+              message: "Only owners/admins can view payment analytics",
+            });
+        }
+      }
+
       const { startDate, endDate } = request.query;
 
       // Default to last 30 days if not provided
@@ -1369,19 +1412,23 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/payments/application-fees",
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const membership = await requireOrgAccess(request, reply);
-      if (!membership) return;
-
-      // Admin/owner only
-      if (!["owner", "admin"].includes(membership.role)) {
-        return reply
-          .status(403)
-          .send({
-            error: "Only owners/admins can view application fee reports",
-          });
-      }
+      const user = (request as AuthenticatedRequest).user;
+      if (!user) return reply.status(401).send({ error: "Unauthorized" });
 
       const { organizationId } = request.params;
+
+      if (!isSystemAdmin(user.role)) {
+        const canManage = await canManageOrganization(user.uid, organizationId);
+        if (!canManage) {
+          return reply
+            .status(403)
+            .send({
+              error: "Forbidden",
+              message: "Only owners/admins can view application fee reports",
+            });
+        }
+      }
+
       const { startDate, endDate } = request.query;
 
       const end = endDate ? new Date(endDate) : new Date();
