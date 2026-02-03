@@ -316,12 +316,11 @@ export default function OrganizationUsersPage() {
     if (!confirm(t("organizations:invites.forceActivateConfirm", { count })))
       return;
 
+    const inviteIds = Array.from(selectedInviteIds);
+
     try {
       setForceActivating(true);
-      const { results } = await forceActivateInvites(
-        organizationId,
-        Array.from(selectedInviteIds),
-      );
+      const { results } = await forceActivateInvites(organizationId, inviteIds);
 
       const successCount = results.filter(
         (r) => r.status === "activated",
@@ -335,16 +334,20 @@ export default function OrganizationUsersPage() {
           }),
         });
       } else if (successCount > 0) {
+        const errors = results.filter((r) => r.status === "error");
         toast({
           title: t("organizations:invites.forceActivatePartial", {
             success: successCount,
             total: totalCount,
           }),
+          description: errors.map((e) => e.error).join(", "),
           variant: "destructive",
         });
       } else {
+        const errors = results.filter((r) => r.status === "error");
         toast({
           title: t("organizations:invites.forceActivateError"),
+          description: errors.map((e) => e.error).join(", "),
           variant: "destructive",
         });
       }
@@ -355,6 +358,7 @@ export default function OrganizationUsersPage() {
     } catch (error) {
       toast({
         title: t("organizations:invites.forceActivateError"),
+        description: error instanceof Error ? error.message : String(error),
         variant: "destructive",
       });
     } finally {
@@ -499,16 +503,6 @@ export default function OrganizationUsersPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-10">
-                        <Checkbox
-                          checked={
-                            invitesData.length > 0 &&
-                            selectedInviteIds.size === invitesData.length
-                          }
-                          onCheckedChange={toggleSelectAllInvites}
-                          aria-label={t("organizations:invites.selectAll")}
-                        />
-                      </TableHead>
                       <TableHead>
                         {t("organizations:form.labels.email")}
                       </TableHead>
@@ -524,19 +518,26 @@ export default function OrganizationUsersPage() {
                       <TableHead className="text-right">
                         {t("common:buttons.actions")}
                       </TableHead>
+                      <TableHead className="text-center w-16">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-xs">
+                            {t("organizations:invites.forceActivate")}
+                          </span>
+                          <Checkbox
+                            checked={
+                              invitesData.length > 0 &&
+                              selectedInviteIds.size === invitesData.length
+                            }
+                            onCheckedChange={toggleSelectAllInvites}
+                            aria-label={t("organizations:invites.selectAll")}
+                          />
+                        </div>
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {invitesData?.map((invite) => (
                       <TableRow key={invite.id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedInviteIds.has(invite.id!)}
-                            onCheckedChange={() =>
-                              toggleInviteSelection(invite.id!)
-                            }
-                          />
-                        </TableCell>
                         <TableCell className="font-medium">
                           {invite.email}
                         </TableCell>
@@ -641,6 +642,14 @@ export default function OrganizationUsersPage() {
                               </Tooltip>
                             </div>
                           </TooltipProvider>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Checkbox
+                            checked={selectedInviteIds.has(invite.id!)}
+                            onCheckedChange={() =>
+                              toggleInviteSelection(invite.id!)
+                            }
+                          />
                         </TableCell>
                       </TableRow>
                     ))}

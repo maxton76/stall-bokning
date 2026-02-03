@@ -1555,177 +1555,8 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // POST /api/v1/organizations/:id/invites/:inviteId/resend - Resend invite email
-  fastify.post(
-    "/:id/invites/:inviteId/resend",
-    {
-      preHandler: [authenticate],
-    },
-    async (request, reply) => {
-      try {
-        const { id, inviteId } = request.params as {
-          id: string;
-          inviteId: string;
-        };
-        const user = (request as AuthenticatedRequest).user!;
-
-        // Verify organization exists and user has admin access
-        const orgDoc = await db.collection("organizations").doc(id).get();
-        if (!orgDoc.exists) {
-          return reply.status(404).send({
-            error: "Not Found",
-            message: "Organization not found",
-          });
-        }
-
-        const org = orgDoc.data()!;
-
-        // Check permissions: owner, administrator, or system_admin
-        const userMemberId = `${user.uid}_${id}`;
-        const userMemberDoc = await db
-          .collection("organizationMembers")
-          .doc(userMemberId)
-          .get();
-        const userMemberData = userMemberDoc.data();
-        const isAdministrator =
-          userMemberData?.status === "active" &&
-          userMemberData?.roles?.includes("administrator");
-
-        if (
-          org.ownerId !== user.uid &&
-          !isAdministrator &&
-          user.role !== "system_admin"
-        ) {
-          return reply.status(403).send({
-            error: "Forbidden",
-            message: "You do not have permission to resend invites",
-          });
-        }
-
-        // Verify invite belongs to this organization
-        const inviteDoc = await db.collection("invites").doc(inviteId).get();
-        if (!inviteDoc.exists) {
-          return reply.status(404).send({
-            error: "Not Found",
-            message: "Invite not found",
-          });
-        }
-
-        const invite = inviteDoc.data()!;
-        if (invite.organizationId !== id) {
-          return reply.status(403).send({
-            error: "Forbidden",
-            message: "Invite does not belong to this organization",
-          });
-        }
-
-        // Resend the invite
-        const { token, expiresAt } = await resendInvite(inviteId);
-
-        // Send the email again
-        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5555";
-        const signupUrl = `${frontendUrl}/signup?invite=${token}`;
-
-        try {
-          await sendSignupInviteEmail(invite as any, signupUrl);
-        } catch (emailError) {
-          request.log.error({ emailError }, "Failed to send resend email");
-        }
-
-        return {
-          message: "Invite resent successfully",
-          inviteId,
-          expiresAt,
-        };
-      } catch (error) {
-        request.log.error({ error }, "Failed to resend invite");
-        return reply.status(500).send({
-          error: "Internal Server Error",
-          message: "Failed to resend invite",
-        });
-      }
-    },
-  );
-
-  // DELETE /api/v1/organizations/:id/invites/:inviteId - Cancel invite
-  fastify.delete(
-    "/:id/invites/:inviteId",
-    {
-      preHandler: [authenticate],
-    },
-    async (request, reply) => {
-      try {
-        const { id, inviteId } = request.params as {
-          id: string;
-          inviteId: string;
-        };
-        const user = (request as AuthenticatedRequest).user!;
-
-        // Verify organization exists and user has admin access
-        const orgDoc = await db.collection("organizations").doc(id).get();
-        if (!orgDoc.exists) {
-          return reply.status(404).send({
-            error: "Not Found",
-            message: "Organization not found",
-          });
-        }
-
-        const org = orgDoc.data()!;
-
-        // Check permissions: owner, administrator, or system_admin
-        const userMemberId = `${user.uid}_${id}`;
-        const userMemberDoc = await db
-          .collection("organizationMembers")
-          .doc(userMemberId)
-          .get();
-        const userMemberData = userMemberDoc.data();
-        const isAdministrator =
-          userMemberData?.status === "active" &&
-          userMemberData?.roles?.includes("administrator");
-
-        if (
-          org.ownerId !== user.uid &&
-          !isAdministrator &&
-          user.role !== "system_admin"
-        ) {
-          return reply.status(403).send({
-            error: "Forbidden",
-            message: "You do not have permission to cancel invites",
-          });
-        }
-
-        // Verify invite belongs to this organization
-        const inviteDoc = await db.collection("invites").doc(inviteId).get();
-        if (!inviteDoc.exists) {
-          return reply.status(404).send({
-            error: "Not Found",
-            message: "Invite not found",
-          });
-        }
-
-        const invite = inviteDoc.data()!;
-        if (invite.organizationId !== id) {
-          return reply.status(403).send({
-            error: "Forbidden",
-            message: "Invite does not belong to this organization",
-          });
-        }
-
-        // Cancel the invite
-        await cancelInvite(inviteId);
-
-        return reply.status(204).send();
-      } catch (error) {
-        request.log.error({ error }, "Failed to cancel invite");
-        return reply.status(500).send({
-          error: "Internal Server Error",
-          message: "Failed to cancel invite",
-        });
-      }
-    },
-  );
-
   // POST /api/v1/organizations/:id/invites/force-activate - Force activate pending invites
+  // NOTE: Must be registered BEFORE parameterized /:inviteId routes to avoid Fastify matching "force-activate" as :inviteId
   const forceActivateSchema = z.object({
     inviteIds: z.array(z.string()).min(1),
   });
@@ -2028,6 +1859,176 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to force-activate invites",
+        });
+      }
+    },
+  );
+
+  // POST /api/v1/organizations/:id/invites/:inviteId/resend - Resend invite email
+  fastify.post(
+    "/:id/invites/:inviteId/resend",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id, inviteId } = request.params as {
+          id: string;
+          inviteId: string;
+        };
+        const user = (request as AuthenticatedRequest).user!;
+
+        // Verify organization exists and user has admin access
+        const orgDoc = await db.collection("organizations").doc(id).get();
+        if (!orgDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Organization not found",
+          });
+        }
+
+        const org = orgDoc.data()!;
+
+        // Check permissions: owner, administrator, or system_admin
+        const userMemberId = `${user.uid}_${id}`;
+        const userMemberDoc = await db
+          .collection("organizationMembers")
+          .doc(userMemberId)
+          .get();
+        const userMemberData = userMemberDoc.data();
+        const isAdministrator =
+          userMemberData?.status === "active" &&
+          userMemberData?.roles?.includes("administrator");
+
+        if (
+          org.ownerId !== user.uid &&
+          !isAdministrator &&
+          user.role !== "system_admin"
+        ) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to resend invites",
+          });
+        }
+
+        // Verify invite belongs to this organization
+        const inviteDoc = await db.collection("invites").doc(inviteId).get();
+        if (!inviteDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Invite not found",
+          });
+        }
+
+        const invite = inviteDoc.data()!;
+        if (invite.organizationId !== id) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "Invite does not belong to this organization",
+          });
+        }
+
+        // Resend the invite
+        const { token, expiresAt } = await resendInvite(inviteId);
+
+        // Send the email again
+        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5555";
+        const signupUrl = `${frontendUrl}/signup?invite=${token}`;
+
+        try {
+          await sendSignupInviteEmail(invite as any, signupUrl);
+        } catch (emailError) {
+          request.log.error({ emailError }, "Failed to send resend email");
+        }
+
+        return {
+          message: "Invite resent successfully",
+          inviteId,
+          expiresAt,
+        };
+      } catch (error) {
+        request.log.error({ error }, "Failed to resend invite");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to resend invite",
+        });
+      }
+    },
+  );
+
+  // DELETE /api/v1/organizations/:id/invites/:inviteId - Cancel invite
+  fastify.delete(
+    "/:id/invites/:inviteId",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id, inviteId } = request.params as {
+          id: string;
+          inviteId: string;
+        };
+        const user = (request as AuthenticatedRequest).user!;
+
+        // Verify organization exists and user has admin access
+        const orgDoc = await db.collection("organizations").doc(id).get();
+        if (!orgDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Organization not found",
+          });
+        }
+
+        const org = orgDoc.data()!;
+
+        // Check permissions: owner, administrator, or system_admin
+        const userMemberId = `${user.uid}_${id}`;
+        const userMemberDoc = await db
+          .collection("organizationMembers")
+          .doc(userMemberId)
+          .get();
+        const userMemberData = userMemberDoc.data();
+        const isAdministrator =
+          userMemberData?.status === "active" &&
+          userMemberData?.roles?.includes("administrator");
+
+        if (
+          org.ownerId !== user.uid &&
+          !isAdministrator &&
+          user.role !== "system_admin"
+        ) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to cancel invites",
+          });
+        }
+
+        // Verify invite belongs to this organization
+        const inviteDoc = await db.collection("invites").doc(inviteId).get();
+        if (!inviteDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Invite not found",
+          });
+        }
+
+        const invite = inviteDoc.data()!;
+        if (invite.organizationId !== id) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "Invite does not belong to this organization",
+          });
+        }
+
+        // Cancel the invite
+        await cancelInvite(inviteId);
+
+        return reply.status(204).send();
+      } catch (error) {
+        request.log.error({ error }, "Failed to cancel invite");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to cancel invite",
         });
       }
     },

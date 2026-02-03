@@ -25,6 +25,7 @@ variable "cloud_run_api_roles" {
   type        = list(string)
   default = [
     "roles/datastore.user",               # Firestore access
+    "roles/firebaseauth.admin",           # Firebase Auth user management
     "roles/secretmanager.secretAccessor", # Access secrets
     "roles/storage.objectViewer",         # Read from storage
     "roles/logging.logWriter",            # Write logs
