@@ -10,6 +10,7 @@ import {
   X,
   Mail,
   Upload,
+  UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Tooltip,
   TooltipContent,
@@ -58,6 +60,7 @@ import {
   getOrganizationInvites,
   resendOrganizationInvite,
   cancelOrganizationInvite,
+  forceActivateInvites,
 } from "@/services/inviteService";
 import type {
   Organization,
@@ -82,6 +85,10 @@ export default function OrganizationUsersPage() {
   const inviteDialog = useDialog();
   const editDialog = useDialog();
   const bulkImportDialog = useDialog();
+  const [selectedInviteIds, setSelectedInviteIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [forceActivating, setForceActivating] = useState(false);
 
   // Security: Validate URL organizationId matches user's current organization context
   // This prevents URL manipulation attacks where users try to access other organizations
@@ -301,6 +308,84 @@ export default function OrganizationUsersPage() {
     }
   };
 
+  // Handle force activate invites
+  const handleForceActivate = async () => {
+    if (!organizationId || selectedInviteIds.size === 0) return;
+
+    const count = selectedInviteIds.size;
+    if (!confirm(t("organizations:invites.forceActivateConfirm", { count })))
+      return;
+
+    try {
+      setForceActivating(true);
+      const { results } = await forceActivateInvites(
+        organizationId,
+        Array.from(selectedInviteIds),
+      );
+
+      const successCount = results.filter(
+        (r) => r.status === "activated",
+      ).length;
+      const totalCount = results.length;
+
+      if (successCount === totalCount) {
+        toast({
+          title: t("organizations:invites.forceActivateSuccess", {
+            count: successCount,
+          }),
+        });
+      } else if (successCount > 0) {
+        toast({
+          title: t("organizations:invites.forceActivatePartial", {
+            success: successCount,
+            total: totalCount,
+          }),
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: t("organizations:invites.forceActivateError"),
+          variant: "destructive",
+        });
+      }
+
+      setSelectedInviteIds(new Set());
+      await cacheInvalidation.organizationInvites.list(organizationId);
+      await cacheInvalidation.organizationMembers.list(organizationId);
+    } catch (error) {
+      toast({
+        title: t("organizations:invites.forceActivateError"),
+        variant: "destructive",
+      });
+    } finally {
+      setForceActivating(false);
+    }
+  };
+
+  // Toggle invite selection
+  const toggleInviteSelection = (inviteId: string) => {
+    setSelectedInviteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(inviteId)) {
+        next.delete(inviteId);
+      } else {
+        next.add(inviteId);
+      }
+      return next;
+    });
+  };
+
+  // Toggle select all invites
+  const toggleSelectAllInvites = () => {
+    if (selectedInviteIds.size === (invitesData?.length ?? 0)) {
+      setSelectedInviteIds(new Set());
+    } else {
+      setSelectedInviteIds(
+        new Set(invitesData?.map((i) => i.id!).filter(Boolean)),
+      );
+    }
+  };
+
   // Filter members based on search query
   const filteredMembers = useMemo(
     () =>
@@ -378,13 +463,31 @@ export default function OrganizationUsersPage() {
       {(invitesData?.length ?? 0) > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              {t("organizations:invites.title")} ({invitesData?.length || 0})
-            </CardTitle>
-            <CardDescription>
-              {t("organizations:invites.description")}
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  {t("organizations:invites.title")} ({invitesData?.length || 0}
+                  )
+                </CardTitle>
+                <CardDescription>
+                  {t("organizations:invites.description")}
+                </CardDescription>
+              </div>
+              {selectedInviteIds.size > 0 && (
+                <Button
+                  size="sm"
+                  onClick={handleForceActivate}
+                  disabled={forceActivating}
+                >
+                  <UserPlus
+                    className={`h-4 w-4 mr-2 ${forceActivating ? "animate-spin" : ""}`}
+                  />
+                  {t("organizations:invites.forceActivate")} (
+                  {selectedInviteIds.size})
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {invitesLoading ? (
@@ -396,6 +499,16 @@ export default function OrganizationUsersPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={
+                            invitesData.length > 0 &&
+                            selectedInviteIds.size === invitesData.length
+                          }
+                          onCheckedChange={toggleSelectAllInvites}
+                          aria-label={t("organizations:invites.selectAll")}
+                        />
+                      </TableHead>
                       <TableHead>
                         {t("organizations:form.labels.email")}
                       </TableHead>
@@ -416,6 +529,14 @@ export default function OrganizationUsersPage() {
                   <TableBody>
                     {invitesData?.map((invite) => (
                       <TableRow key={invite.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedInviteIds.has(invite.id!)}
+                            onCheckedChange={() =>
+                              toggleInviteSelection(invite.id!)
+                            }
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">
                           {invite.email}
                         </TableCell>

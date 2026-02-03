@@ -1,13 +1,18 @@
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
-import type {
-  UserPreferences,
-  UpdateUserPreferencesInput,
-} from "@equiduty/shared";
+import type { UserPreferences } from "@equiduty/shared";
+
+// Zod schema for preferences update
+const preferencesUpdateSchema = z.object({
+  defaultStableId: z.string().nullable().optional(),
+  defaultOrganizationId: z.string().nullable().optional(),
+  language: z.enum(["sv", "en"]).optional(),
+});
 
 // Default preferences when none exist
 const DEFAULT_PREFERENCES: Omit<UserPreferences, "updatedAt"> = {
@@ -72,15 +77,17 @@ export async function settingsRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       try {
         const user = (request as AuthenticatedRequest).user!;
-        const input = request.body as UpdateUserPreferencesInput;
 
-        // Validate language if provided
-        if (input.language && !["sv", "en"].includes(input.language)) {
+        const validation = preferencesUpdateSchema.safeParse(request.body);
+        if (!validation.success) {
           return reply.status(400).send({
             error: "Bad Request",
-            message: "Invalid language. Must be 'sv' or 'en'",
+            message: "Invalid input",
+            details: validation.error.errors,
           });
         }
+
+        const input = validation.data;
 
         // Validate defaultStableId if provided (not null)
         if (input.defaultStableId) {

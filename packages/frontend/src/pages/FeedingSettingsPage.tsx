@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Settings,
@@ -81,7 +81,6 @@ export default function FeedingSettingsPage() {
     useOrganizationContext();
   const [selectedStableId, setSelectedStableId] = useState<string>("");
   const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [orgsLoading, setOrgsLoading] = useState(true);
 
   // Dialog state using useDialog hook
   const feedTypeDialog = useDialog<FeedType>();
@@ -101,8 +100,6 @@ export default function FeedingSettingsPage() {
         setOrganizations(orgs);
       } catch (error) {
         console.error("Failed to load organizations:", error);
-      } finally {
-        setOrgsLoading(false);
       }
     }
     loadOrganizations();
@@ -113,10 +110,14 @@ export default function FeedingSettingsPage() {
     user?.uid,
   );
 
-  // Filter stables by current organization
-  const stables = currentOrganizationId
-    ? allStables.filter((s) => s.organizationId === currentOrganizationId)
-    : allStables;
+  // Filter stables by current organization (memoized to prevent useEffect churn)
+  const stables = useMemo(
+    () =>
+      currentOrganizationId
+        ? allStables.filter((s) => s.organizationId === currentOrganizationId)
+        : allStables,
+    [allStables, currentOrganizationId],
+  );
 
   // Use currentOrganizationId from context as the org for feed types
   const organizationId = currentOrganizationId || undefined;
@@ -387,7 +388,11 @@ export default function FeedingSettingsPage() {
                 </CardDescription>
               </div>
             </div>
-            <Button onClick={handleAddFeedType} size="sm">
+            <Button
+              onClick={handleAddFeedType}
+              size="sm"
+              disabled={!organizationId}
+            >
               <Plus className="h-4 w-4 mr-2" />
               {t("feeding:actions.addFeedType")}
             </Button>

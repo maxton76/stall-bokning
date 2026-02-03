@@ -202,7 +202,13 @@
     "cancelled": "Invitation Cancelled",
     "cancelledDescription": "Invitation to {{email}} has been cancelled",
     "cancelFailed": "Failed to cancel invitation",
-    "confirmCancel": "Are you sure you want to cancel the invitation to {{email}}?"
+    "confirmCancel": "Are you sure you want to cancel the invitation to {{email}}?",
+    "forceActivate": "Force Activate",
+    "forceActivateConfirm": "Are you sure you want to force-activate {{count}} invitation(s)? This will create user accounts without passwords — users will need to use \"Forgot password\" to set their credentials.",
+    "forceActivateSuccess": "{{count}} invitation(s) have been activated",
+    "forceActivateError": "Failed to force-activate invitations",
+    "forceActivatePartial": "{{success}} of {{total}} invitations were activated",
+    "selectAll": "Select all"
   },
   "permissions": {
     "title": "Permissions",

@@ -310,8 +310,8 @@ export function HorseFormDialog({
         isExternal: horse.isExternal ?? false,
         dateOfArrival: formatDateForInput(horse.dateOfArrival) as any,
         currentStableId: horse.currentStableId || "none",
-        boxName: horse.boxName || "",
-        paddockName: horse.paddockName || "",
+        boxName: horse.boxName || "__none__",
+        paddockName: horse.paddockName || "__none__",
         usage: horse.usage || [],
         horseGroupId: horse.horseGroupId || "none",
         ueln: horse.ueln || "",
@@ -369,7 +369,9 @@ export function HorseFormDialog({
       .slice()
       .sort((a, b) => a.localeCompare(b, "sv"))
       .map((b) => ({ value: b, label: b })),
-    ...(currentBoxName && !stableBoxes.some((b) => b === currentBoxName)
+    ...(currentBoxName &&
+    currentBoxName !== "__none__" &&
+    !stableBoxes.some((b) => b === currentBoxName)
       ? [{ value: currentBoxName, label: `${currentBoxName} ⚠️` }]
       : []),
   ];
@@ -382,6 +384,7 @@ export function HorseFormDialog({
       .sort((a, b) => a.localeCompare(b, "sv"))
       .map((p) => ({ value: p, label: p })),
     ...(currentPaddockName &&
+    currentPaddockName !== "__none__" &&
     !stablePaddocks.some((p) => p === currentPaddockName)
       ? [{ value: currentPaddockName, label: `${currentPaddockName} ⚠️` }]
       : []),

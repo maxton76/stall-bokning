@@ -28,14 +28,13 @@ import type { Organization } from "@shared/types";
 
 export default function AccountPage() {
   const { user } = useAuth();
-  const { t, i18n } = useTranslation("account");
+  const { t, i18n } = useTranslation(["account", "common"]);
   const { toast } = useToast();
   const { currentOrganizationId, setCurrentOrganizationId } =
     useOrganizationContext();
   const { preferences, setDefaultOrganization } = useUserPreferences();
   const [isEditing, setIsEditing] = useState(false);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [orgsLoading, setOrgsLoading] = useState(true);
 
   // Load user's organizations
   useEffect(() => {
@@ -46,8 +45,6 @@ export default function AccountPage() {
         setOrganizations(orgs);
       } catch (error) {
         console.error("Failed to load organizations:", error);
-      } finally {
-        setOrgsLoading(false);
       }
     }
     loadOrganizations();
@@ -62,12 +59,17 @@ export default function AccountPage() {
       });
     } catch (error) {
       console.error("Failed to set default organization:", error);
+      toast({
+        variant: "destructive",
+        description: t("common:errors.generic"),
+      });
     }
   };
 
   const getJoinDate = () => {
     const locale = i18n.language === "sv" ? "sv-SE" : "en-US";
-    return new Date().toLocaleDateString(locale, {
+    const date = user?.createdAt ? user.createdAt.toDate() : new Date();
+    return date.toLocaleDateString(locale, {
       year: "numeric",
       month: "long",
       day: "numeric",

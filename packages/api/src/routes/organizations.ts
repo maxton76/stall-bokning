@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
-import { db } from "../utils/firebase.js";
+import { db, auth } from "../utils/firebase.js";
 import { authenticate, requireRole } from "../middleware/auth.js";
 import { checkSubscriptionLimit } from "../middleware/checkSubscriptionLimit.js";
 import type { AuthenticatedRequest } from "../types/index.js";
@@ -1720,6 +1720,314 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to cancel invite",
+        });
+      }
+    },
+  );
+
+  // POST /api/v1/organizations/:id/invites/force-activate - Force activate pending invites
+  const forceActivateSchema = z.object({
+    inviteIds: z.array(z.string()).min(1),
+  });
+
+  fastify.post(
+    "/:id/invites/force-activate",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id: organizationId } = request.params as { id: string };
+        const validation = forceActivateSchema.safeParse(request.body);
+
+        if (!validation.success) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invalid input",
+            details: validation.error.errors,
+          });
+        }
+
+        const user = (request as AuthenticatedRequest).user!;
+        const { inviteIds } = validation.data;
+
+        // Verify organization exists
+        const orgDoc = await db
+          .collection("organizations")
+          .doc(organizationId)
+          .get();
+        if (!orgDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Organization not found",
+          });
+        }
+
+        const org = orgDoc.data()!;
+
+        // Check permissions: owner, administrator, or system_admin
+        const userMemberId = `${user.uid}_${organizationId}`;
+        const userMemberDoc = await db
+          .collection("organizationMembers")
+          .doc(userMemberId)
+          .get();
+        const userMemberData = userMemberDoc.data();
+        const isAdministrator =
+          userMemberData?.status === "active" &&
+          userMemberData?.roles?.includes("administrator");
+
+        if (
+          org.ownerId !== user.uid &&
+          !isAdministrator &&
+          user.role !== "system_admin"
+        ) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to force-activate invites",
+          });
+        }
+
+        const results: Array<{
+          inviteId: string;
+          status: "activated" | "error";
+          userId?: string;
+          error?: string;
+        }> = [];
+
+        for (const inviteId of inviteIds) {
+          try {
+            // 1. Validate invite exists, belongs to org, status is pending
+            const inviteDoc = await db
+              .collection("invites")
+              .doc(inviteId)
+              .get();
+            if (!inviteDoc.exists) {
+              results.push({
+                inviteId,
+                status: "error",
+                error: "Invite not found",
+              });
+              continue;
+            }
+
+            const invite = inviteDoc.data()!;
+            if (invite.organizationId !== organizationId) {
+              results.push({
+                inviteId,
+                status: "error",
+                error: "Invite does not belong to this organization",
+              });
+              continue;
+            }
+
+            if (invite.status !== "pending") {
+              results.push({
+                inviteId,
+                status: "error",
+                error: `Invite is not pending (status: ${invite.status})`,
+              });
+              continue;
+            }
+
+            // 2. Create Firebase Auth user (no password — user uses "Forgot password" later)
+            const displayName =
+              [invite.firstName, invite.lastName].filter(Boolean).join(" ") ||
+              undefined;
+            const firebaseUser = await auth.createUser({
+              email: invite.email,
+              displayName,
+            });
+            const uid = firebaseUser.uid;
+
+            // 3. Create Firestore users/{uid} document
+            const userData = {
+              email: invite.email.toLowerCase(),
+              firstName: invite.firstName || "",
+              lastName: invite.lastName || "",
+              phoneNumber: invite.phoneNumber || null,
+              systemRole: "stable_user",
+              createdAt: Timestamp.now(),
+              updatedAt: Timestamp.now(),
+            };
+            await db.collection("users").doc(uid).set(userData);
+
+            // 4. Create personal organization + implicit stable + owner membership (batch)
+            const personalOrgRef = db.collection("organizations").doc();
+            const personalOrgId = personalOrgRef.id;
+            const implicitStableRef = db.collection("stables").doc();
+            const implicitStableId = implicitStableRef.id;
+            const personalMemberId = `${uid}_${personalOrgId}`;
+
+            const personalBatch = db.batch();
+            personalBatch.set(implicitStableRef, {
+              id: implicitStableId,
+              name: "My Horses",
+              description: "Auto-created stable for personal use",
+              ownerId: uid,
+              ownerEmail: invite.email.toLowerCase(),
+              organizationId: personalOrgId,
+              isImplicit: true,
+              createdAt: Timestamp.now(),
+              updatedAt: Timestamp.now(),
+            });
+            personalBatch.set(personalOrgRef, {
+              name: `${invite.firstName || invite.email.split("@")[0]}'s Organization`,
+              ownerId: uid,
+              ownerEmail: invite.email.toLowerCase(),
+              organizationType: "personal",
+              subscriptionTier: "free",
+              implicitStableId,
+              stats: { stableCount: 1, totalMemberCount: 1 },
+              createdAt: Timestamp.now(),
+              updatedAt: Timestamp.now(),
+            });
+            personalBatch.set(
+              db.collection("organizationMembers").doc(personalMemberId),
+              {
+                id: personalMemberId,
+                organizationId: personalOrgId,
+                userId: uid,
+                userEmail: invite.email.toLowerCase(),
+                firstName: invite.firstName || "",
+                lastName: invite.lastName || "",
+                phoneNumber: invite.phoneNumber || null,
+                roles: ["administrator"],
+                primaryRole: "administrator",
+                status: "active",
+                showInPlanning: true,
+                stableAccess: "all",
+                assignedStableIds: [],
+                joinedAt: Timestamp.now(),
+                invitedBy: "system",
+                inviteAcceptedAt: Timestamp.now(),
+              },
+            );
+            await personalBatch.commit();
+
+            // 5. Mark invite as accepted
+            await db.collection("invites").doc(inviteId).update({
+              status: "accepted",
+              respondedAt: Timestamp.now(),
+              acceptedByForceActivation: true,
+            });
+
+            // 6. Create organizationMember for the inviting org
+            const orgMemberId = `${uid}_${organizationId}`;
+            await db
+              .collection("organizationMembers")
+              .doc(orgMemberId)
+              .set({
+                id: orgMemberId,
+                organizationId,
+                userId: uid,
+                userEmail: invite.email.toLowerCase(),
+                firstName: invite.firstName || "",
+                lastName: invite.lastName || "",
+                phoneNumber: invite.phoneNumber || null,
+                roles: invite.roles || [],
+                primaryRole:
+                  invite.primaryRole || invite.roles?.[0] || "customer",
+                status: "active",
+                showInPlanning:
+                  invite.showInPlanning !== undefined
+                    ? invite.showInPlanning
+                    : true,
+                stableAccess: invite.stableAccess || "all",
+                assignedStableIds: invite.assignedStableIds || [],
+                joinedAt: Timestamp.now(),
+                invitedBy: invite.invitedBy || user.uid,
+                inviteAcceptedAt: Timestamp.now(),
+              });
+
+            // 7. Update linked contact document if exists
+            if (invite.contactId) {
+              try {
+                await db.collection("contacts").doc(invite.contactId).update({
+                  linkedUserId: uid,
+                  linkedMemberId: orgMemberId,
+                  updatedAt: Timestamp.now(),
+                });
+              } catch (contactError) {
+                request.log.warn(
+                  { contactError, contactId: invite.contactId },
+                  "Failed to update linked contact",
+                );
+              }
+            }
+
+            // 8. Set default organization preference
+            try {
+              await db
+                .collection("users")
+                .doc(uid)
+                .collection("settings")
+                .doc("preferences")
+                .set(
+                  { defaultOrganizationId: organizationId },
+                  { merge: true },
+                );
+            } catch (prefError) {
+              request.log.warn(
+                { prefError },
+                "Failed to set default organization preference",
+              );
+            }
+
+            results.push({
+              inviteId,
+              status: "activated",
+              userId: uid,
+            });
+
+            request.log.info(
+              { inviteId, userId: uid, organizationId },
+              "Force-activated invite",
+            );
+          } catch (inviteError: any) {
+            request.log.error(
+              { inviteError, inviteId },
+              "Failed to force-activate invite",
+            );
+            results.push({
+              inviteId,
+              status: "error",
+              error: inviteError.message || "Unknown error",
+            });
+          }
+        }
+
+        // Update org stats with new member count
+        try {
+          const activatedCount = results.filter(
+            (r) => r.status === "activated",
+          ).length;
+          if (activatedCount > 0) {
+            const memberCount = (
+              await db
+                .collection("organizationMembers")
+                .where("organizationId", "==", organizationId)
+                .where("status", "==", "active")
+                .get()
+            ).size;
+
+            await db.collection("organizations").doc(organizationId).update({
+              "stats.totalMemberCount": memberCount,
+              updatedAt: FieldValue.serverTimestamp(),
+            });
+          }
+        } catch (statsError) {
+          request.log.warn(
+            { statsError },
+            "Failed to update organization stats after force-activate",
+          );
+        }
+
+        return { results };
+      } catch (error) {
+        request.log.error({ error }, "Failed to force-activate invites");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to force-activate invites",
         });
       }
     },

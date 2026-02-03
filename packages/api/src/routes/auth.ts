@@ -12,9 +12,6 @@ const signupSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   phoneNumber: z.string().optional(),
-  systemRole: z
-    .enum(["stable_owner", "stable_user", "service_provider"])
-    .default("stable_user"),
 });
 
 export default async function authRoutes(fastify: FastifyInstance) {
@@ -39,8 +36,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const { email, firstName, lastName, phoneNumber, systemRole } =
-          validation.data;
+        const { email, firstName, lastName, phoneNumber } = validation.data;
 
         // Check if user document already exists
         const existingUserDoc = await db
@@ -61,7 +57,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
           firstName,
           lastName,
           phoneNumber,
-          systemRole,
+          systemRole: "stable_user",
           createdAt: Timestamp.now(),
           updatedAt: Timestamp.now(),
         };
@@ -82,8 +78,8 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
           const implicitStableData = {
             id: implicitStableId,
-            name: "Mina hästar", // "My Horses" in Swedish
-            description: "Automatiskt skapad stall för personlig användning",
+            name: "My Horses",
+            description: "Auto-created stable for personal use",
             ownerId: user.uid,
             ownerEmail: email.toLowerCase(),
             organizationId,
@@ -92,11 +88,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
             updatedAt: Timestamp.now(),
           };
 
-          await implicitStableRef.set(implicitStableData);
+          // Create organizationMember record for owner
+          const memberId = `${user.uid}_${organizationId}`;
 
-          // Now create the organization with reference to implicit stable
-          await orgRef.set({
-            name: `${firstName}s organisation`,
+          const orgData = {
+            name: `${firstName}'s Organization`,
             ownerId: user.uid,
             ownerEmail: email.toLowerCase(),
             organizationType: "personal" as const,
@@ -108,31 +104,36 @@ export default async function authRoutes(fastify: FastifyInstance) {
             },
             createdAt: Timestamp.now(),
             updatedAt: Timestamp.now(),
-          });
+          };
 
-          // Create organizationMember record for owner
-          const memberId = `${user.uid}_${organizationId}`;
-          await db
-            .collection("organizationMembers")
-            .doc(memberId)
-            .set({
-              id: memberId,
-              organizationId,
-              userId: user.uid,
-              userEmail: email.toLowerCase(),
-              firstName,
-              lastName,
-              phoneNumber: phoneNumber || null,
-              roles: ["administrator"],
-              primaryRole: "administrator",
-              status: "active",
-              showInPlanning: true,
-              stableAccess: "all",
-              assignedStableIds: [],
-              joinedAt: Timestamp.now(),
-              invitedBy: "system",
-              inviteAcceptedAt: Timestamp.now(),
-            });
+          const memberData = {
+            id: memberId,
+            organizationId,
+            userId: user.uid,
+            userEmail: email.toLowerCase(),
+            firstName,
+            lastName,
+            phoneNumber: phoneNumber || null,
+            roles: ["administrator"],
+            primaryRole: "administrator",
+            status: "active",
+            showInPlanning: true,
+            stableAccess: "all",
+            assignedStableIds: [],
+            joinedAt: Timestamp.now(),
+            invitedBy: "system",
+            inviteAcceptedAt: Timestamp.now(),
+          };
+
+          // Atomic batch write — all three documents succeed or none do
+          const batch = db.batch();
+          batch.set(implicitStableRef, implicitStableData);
+          batch.set(orgRef, orgData);
+          batch.set(
+            db.collection("organizationMembers").doc(memberId),
+            memberData,
+          );
+          await batch.commit();
 
           request.log.info(
             { userId: user.uid, organizationId, implicitStableId },

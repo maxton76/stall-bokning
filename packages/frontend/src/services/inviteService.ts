@@ -131,6 +131,28 @@ export async function cancelOrganizationInvite(
   );
 }
 
+/**
+ * Force-activate pending invites by creating Firebase Auth users and completing onboarding
+ * @param organizationId - Organization ID
+ * @param inviteIds - Array of invite IDs to force-activate
+ * @returns Promise with activation results per invite
+ */
+export async function forceActivateInvites(
+  organizationId: string,
+  inviteIds: string[],
+) {
+  return await apiClient.post<{
+    results: Array<{
+      inviteId: string;
+      status: "activated" | "error";
+      userId?: string;
+      error?: string;
+    }>;
+  }>(`/organizations/${organizationId}/invites/force-activate`, {
+    inviteIds,
+  });
+}
+
 // ============================================================================
 // Stable Invite Operations (consolidated from invitationService.ts)
 // ============================================================================

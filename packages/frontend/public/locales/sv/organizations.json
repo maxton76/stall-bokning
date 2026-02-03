@@ -202,7 +202,13 @@
     "cancelled": "Inbjudan avbruten",
     "cancelledDescription": "Inbjudan till {{email}} har avbrutits",
     "cancelFailed": "Kunde inte avbryta inbjudan",
-    "confirmCancel": "Är du säker på att du vill avbryta inbjudan till {{email}}?"
+    "confirmCancel": "Är du säker på att du vill avbryta inbjudan till {{email}}?",
+    "forceActivate": "Tvångsaktivera",
+    "forceActivateConfirm": "Är du säker på att du vill tvångsaktivera {{count}} inbjudan(ar)? Detta skapar användarkonton utan lösenord — användarna får sätta sitt lösenord via \"Glömt lösenord\".",
+    "forceActivateSuccess": "{{count}} inbjudan(ar) har aktiverats",
+    "forceActivateError": "Kunde inte tvångsaktivera inbjudningar",
+    "forceActivatePartial": "{{success}} av {{total}} inbjudningar aktiverades",
+    "selectAll": "Välj alla"
   },
   "permissions": {
     "title": "Behörigheter",
