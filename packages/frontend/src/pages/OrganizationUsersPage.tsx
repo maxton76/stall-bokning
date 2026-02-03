@@ -49,7 +49,9 @@ import { useToast } from "@/hooks/use-toast";
 import { InviteUserDialog } from "@/components/InviteUserDialog";
 import { EditMemberDialog } from "@/components/EditMemberDialog";
 import { BulkImportWizard } from "@/components/bulk-import";
+import { HorseBulkImportWizard } from "@/components/horse-bulk-import";
 import { getOrganization } from "@/services/organizationService";
+import { getStablesByOrganization } from "@/services/stableService";
 import {
   getOrganizationMembers,
   removeOrganizationMember,
@@ -67,6 +69,7 @@ import type {
   OrganizationMember,
   OrganizationInvite,
 } from "../../../shared/src/types/organization";
+import type { Stable } from "@equiduty/shared";
 
 export default function OrganizationUsersPage() {
   const { t } = useTranslation(["organizations", "common"]);
@@ -85,6 +88,7 @@ export default function OrganizationUsersPage() {
   const inviteDialog = useDialog();
   const editDialog = useDialog();
   const bulkImportDialog = useDialog();
+  const horseBulkImportDialog = useDialog();
   const [selectedInviteIds, setSelectedInviteIds] = useState<Set<string>>(
     new Set(),
   );
@@ -145,6 +149,17 @@ export default function OrganizationUsersPage() {
   );
   const invitesData = invitesQuery.data ?? [];
   const invitesLoading = invitesQuery.isLoading;
+
+  // Stables data (for horse bulk import)
+  const stablesQuery = useApiQuery<Stable[]>(
+    queryKeys.stables.list(organizationId || ""),
+    () => getStablesByOrganization(organizationId!),
+    {
+      enabled: !!organizationId,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
+  const stablesData = stablesQuery.data ?? [];
 
   // CRUD operations
   const { remove: handleRemoveMember } = useCRUD({
@@ -434,8 +449,8 @@ export default function OrganizationUsersPage() {
         }}
       />
 
-      {/* Bulk Import Button */}
-      <div className="flex justify-end -mt-2">
+      {/* Bulk Import Buttons */}
+      <div className="flex justify-end gap-2 -mt-2">
         <Button
           variant="outline"
           size="sm"
@@ -443,6 +458,14 @@ export default function OrganizationUsersPage() {
         >
           <Upload className="h-4 w-4 mr-2" />
           {t("organizations:bulkImport.button")}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => horseBulkImportDialog.openDialog()}
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          {t("horses:bulkImport.button")}
         </Button>
       </div>
 
@@ -899,6 +922,20 @@ export default function OrganizationUsersPage() {
           existingInvites={
             invitesData as (OrganizationInvite & { id: string })[]
           }
+        />
+      )}
+
+      {/* Horse Bulk Import Wizard */}
+      {organizationId && (
+        <HorseBulkImportWizard
+          open={horseBulkImportDialog.open}
+          onOpenChange={(open) =>
+            open
+              ? horseBulkImportDialog.openDialog()
+              : horseBulkImportDialog.closeDialog()
+          }
+          organizationId={organizationId}
+          stables={stablesData}
         />
       )}
     </div>

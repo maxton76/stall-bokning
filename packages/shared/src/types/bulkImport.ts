@@ -33,6 +33,35 @@ export interface BulkImportResult {
 }
 
 /**
+ * Individual horse data for bulk import
+ */
+export interface BulkImportHorse {
+  name: string;
+  ownerEmail: string;
+  ownerId: string;
+  ownerName: string;
+  color: string;
+  currentStableId: string;
+  currentStableName: string;
+}
+
+/**
+ * Result of processing a single horse in a bulk import
+ */
+export interface BulkImportHorseResult {
+  horseName: string;
+  ownerEmail: string;
+  status: "success" | "error";
+  horseId?: string;
+  error?: string;
+}
+
+/**
+ * Bulk import job type discriminator
+ */
+export type BulkImportJobType = "members" | "horses";
+
+/**
  * Progress tracking for bulk import jobs
  */
 export interface BulkImportProgress {
@@ -47,12 +76,15 @@ export interface BulkImportProgress {
  */
 export interface BulkImportJob {
   id: string;
+  type?: BulkImportJobType;
   organizationId: string;
   createdBy: string;
   status: BulkImportJobStatus;
   members: BulkImportMember[];
+  horses?: BulkImportHorse[];
   progress: BulkImportProgress;
   results: BulkImportResult[];
+  horseResults?: BulkImportHorseResult[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -69,4 +101,26 @@ export interface BulkImportRequest {
  */
 export interface BulkImportResponse {
   jobId: string;
+}
+
+/**
+ * Request body for the horse bulk import API endpoint
+ */
+export interface HorseBulkImportRequest {
+  horses: BulkImportHorse[];
+}
+
+/**
+ * Request body for resolving member emails
+ */
+export interface ResolveMemberEmailsRequest {
+  emails: string[];
+}
+
+/**
+ * Response from resolving member emails
+ */
+export interface ResolveMemberEmailsResponse {
+  resolved: Array<{ email: string; userId: string; name: string }>;
+  unresolved: string[];
 }

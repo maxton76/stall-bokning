@@ -63,6 +63,7 @@ import { stripeWebhookRoutes } from "./routes/stripe-webhooks.js";
 import { featureRequestsRoutes } from "./routes/feature-requests.js";
 import { onboardingRoutes } from "./routes/onboarding.js";
 import { bulkImportRoutes } from "./routes/bulkImport.js";
+import { horseBulkImportRoutes } from "./routes/horseBulkImport.js";
 import { trainerAttributionRoutes } from "./routes/trainerAttribution.js";
 import { trainerCommissionRoutes } from "./routes/trainerCommission.js";
 import { disputesRoutes } from "./routes/disputes.js";
@@ -234,6 +235,9 @@ await fastify.register(featureRequestsRoutes, {
 });
 await fastify.register(onboardingRoutes, { prefix: "/api/v1/settings" });
 await fastify.register(bulkImportRoutes, {
+  prefix: "/api/v1/organizations",
+});
+await fastify.register(horseBulkImportRoutes, {
   prefix: "/api/v1/organizations",
 });
 await fastify.register(trainerAttributionRoutes, {

@@ -13,6 +13,7 @@ import { v4 as uuidv4 } from "uuid";
 import { db, Timestamp } from "../lib/firebase.js";
 import { formatErrorMessage } from "@equiduty/shared";
 import { sendEmail } from "../notifications/sendEmail.js";
+import { processHorseImportJob } from "./processHorseBulkImport.js";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -670,19 +671,35 @@ export const processBulkImport = onDocumentCreated(
       );
 
       // Re-enter the processing logic with the fallback data
-      await processJob(
-        extractedJobId,
-        fallbackDoc.data() as BulkImportJobData,
-        executionId,
-      );
+      const fallbackData = fallbackDoc.data() as BulkImportJobData & {
+        type?: string;
+      };
+
+      // Route to horse import if type is "horses"
+      if (fallbackData?.type === "horses") {
+        await processHorseImportJob(
+          extractedJobId,
+          fallbackData as any,
+          executionId,
+        );
+        return;
+      }
+
+      await processJob(extractedJobId, fallbackData, executionId);
       return;
     }
 
     // Normal path: SDK parsed the event successfully
-    await processJob(
-      jobId,
-      event.data.data() as BulkImportJobData,
-      executionId,
-    );
+    const eventData = event.data.data() as BulkImportJobData & {
+      type?: string;
+    };
+
+    // Route to horse import if type is "horses"
+    if (eventData?.type === "horses") {
+      await processHorseImportJob(jobId, eventData as any, executionId);
+      return;
+    }
+
+    await processJob(jobId, eventData, executionId);
   },
 );

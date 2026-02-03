@@ -816,6 +816,70 @@
     "noGroupsFound": "No groups found",
     "selected": "{{count}} selected"
   },
+  "bulkImport": {
+    "button": "Import horses",
+    "title": "Bulk Import Horses",
+    "description": "Import multiple horses from a CSV or Excel file and assign them to their owners.",
+    "steps": {
+      "upload": "Upload",
+      "preview": "Preview",
+      "confirmation": "Confirmation"
+    },
+    "upload": {
+      "formatTitle": "File format",
+      "formatDescription": "Column A = owner email (must be an existing member), Column B onwards = horse names. Each non-empty horse cell creates one horse.",
+      "dropzone": "Drag and drop your file here, or click to select",
+      "formats": "CSV, XLSX or XLS (max 5MB)",
+      "hasHeaders": "First row is header",
+      "hasHeadersTooltip": "If enabled, the first row is treated as column headers instead of data",
+      "changeFile": "Change file",
+      "horsesFound": "{{count}} horses found",
+      "truncationWarning": "The file contains {{fileCount}} horses but your subscription only allows {{remaining}} more. Only the first {{remaining}} horses will be imported.",
+      "unlimitedHorses": "Unlimited horses allowed",
+      "horseLimitInfo": "{{remaining}} horses remaining of {{limit}} allowed",
+      "resolving": "Checking email addresses..."
+    },
+    "preview": {
+      "defaultStable": "Default stable",
+      "selectStable": "Select stable...",
+      "summary": "{{horses}} horses for {{owners}} owners",
+      "errors": "{{count}} errors",
+      "warnings": "{{count}} warnings",
+      "ownerEmail": "Owner (email)",
+      "ownerName": "Owner name",
+      "horseName": "Horse name",
+      "stable": "Stable",
+      "valid": "Valid",
+      "importButton": "Import {{count}} horses",
+      "truncationWarning": "The file contained {{fileCount}} horses but only {{importCount}} will be imported due to subscription limit."
+    },
+    "confirmation": {
+      "submitted": "Import submitted",
+      "submittedDescription": "The horse import has started. You can close this dialog.",
+      "processing": "Importing horses...",
+      "processingDescription": "Horses are being created. Please wait while we process the import.",
+      "completed": "Import complete",
+      "completedDescription": "{{succeeded}} of {{total}} horses imported.",
+      "failed": "Import failed",
+      "failedDescription": "The import could not be processed. Please try again."
+    },
+    "validation": {
+      "memberNotFound": "Email does not belong to an organization member",
+      "emptyHorseName": "Horse name is empty",
+      "duplicateHorseForOwner": "Duplicate horse name for the same owner",
+      "invalidEmail": "Invalid email address"
+    },
+    "errors": {
+      "fileTooLarge": "File is too large (max {{maxSize}})",
+      "invalidFileType": "Invalid file type. Use CSV, XLSX or XLS",
+      "emptyFile": "File is empty",
+      "noDataRows": "No data rows found",
+      "parseError": "Could not parse the file",
+      "readError": "Could not read the file",
+      "resolveEmailsFailed": "Could not verify email addresses",
+      "submitFailed": "Could not start the import"
+    }
+  },
   "routineHistory": {
     "title": "Routine History",
     "description": "All completed routine activities for this horse",

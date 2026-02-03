@@ -816,6 +816,70 @@
     "noGroupsFound": "Inga grupper hittades",
     "selected": "{{count}} valda"
   },
+  "bulkImport": {
+    "button": "Importera hästar",
+    "title": "Massimport av hästar",
+    "description": "Importera flera hästar från en CSV- eller Excel-fil och tilldela dem till ägare.",
+    "steps": {
+      "upload": "Ladda upp",
+      "preview": "Förhandsgranska",
+      "confirmation": "Bekräftelse"
+    },
+    "upload": {
+      "formatTitle": "Filformat",
+      "formatDescription": "Kolumn A = ägarens e-postadress (måste vara befintlig medlem), Kolumn B och framåt = hästnamn. Varje cell med ett hästnamn skapar en häst.",
+      "dropzone": "Dra och släpp din fil här, eller klicka för att välja",
+      "formats": "CSV, XLSX eller XLS (max 5MB)",
+      "hasHeaders": "Första raden är rubrik",
+      "hasHeadersTooltip": "Om aktiverad tolkas första raden som kolumnrubriker istället för data",
+      "changeFile": "Byt fil",
+      "horsesFound": "{{count}} hästar hittade",
+      "truncationWarning": "Filen innehåller {{fileCount}} hästar men organisationens prenumeration tillåter bara {{remaining}} till. Endast de första {{remaining}} hästarna kommer att importeras.",
+      "unlimitedHorses": "Obegränsat antal hästar tillåtna",
+      "horseLimitInfo": "{{remaining}} hästar kvar av {{limit}} tillåtna",
+      "resolving": "Kontrollerar e-postadresser..."
+    },
+    "preview": {
+      "defaultStable": "Standardstall",
+      "selectStable": "Välj stall...",
+      "summary": "{{horses}} hästar för {{owners}} ägare",
+      "errors": "{{count}} fel",
+      "warnings": "{{count}} varningar",
+      "ownerEmail": "Ägare (e-post)",
+      "ownerName": "Ägarnamn",
+      "horseName": "Hästnamn",
+      "stable": "Stall",
+      "valid": "Giltigt",
+      "importButton": "Importera {{count}} hästar",
+      "truncationWarning": "Filen innehöll {{fileCount}} hästar men bara {{importCount}} importeras pga prenumerationsgräns."
+    },
+    "confirmation": {
+      "submitted": "Import skickad",
+      "submittedDescription": "Hästimporten har startats. Du kan stänga denna dialog.",
+      "processing": "Importerar hästar...",
+      "processingDescription": "Hästarna skapas. Vänta medan vi bearbetar importen.",
+      "completed": "Import klar",
+      "completedDescription": "{{succeeded}} av {{total}} hästar importerades.",
+      "failed": "Import misslyckades",
+      "failedDescription": "Importen kunde inte bearbetas. Försök igen."
+    },
+    "validation": {
+      "memberNotFound": "E-postadressen tillhör inte en medlem i organisationen",
+      "emptyHorseName": "Hästnamnet är tomt",
+      "duplicateHorseForOwner": "Duplicerat hästnamn för samma ägare",
+      "invalidEmail": "Ogiltig e-postadress"
+    },
+    "errors": {
+      "fileTooLarge": "Filen är för stor (max {{maxSize}})",
+      "invalidFileType": "Ogiltig filtyp. Använd CSV, XLSX eller XLS",
+      "emptyFile": "Filen är tom",
+      "noDataRows": "Inga datarader hittades",
+      "parseError": "Kunde inte tolka filen",
+      "readError": "Kunde inte läsa filen",
+      "resolveEmailsFailed": "Kunde inte kontrollera e-postadresser",
+      "submitFailed": "Kunde inte starta importen"
+    }
+  },
   "routineHistory": {
     "title": "Rutinhistorik",
     "description": "Alla utförda rutinaktiviteter för denna häst",
