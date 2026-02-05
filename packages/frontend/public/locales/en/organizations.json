@@ -45,7 +45,38 @@
     },
     "placeholders": {
       "name": "e.g., My Riding Center",
-      "description": "Brief description of your organization..."
+      "description": "Brief description of your organization...",
+      "timezone": "Select timezone"
+    },
+    "timezone": {
+      "label": "Timezone",
+      "description": "Timezone used for schedules and notifications",
+      "placeholder": "Select timezone",
+      "zones": {
+        "Europe/Stockholm": "Stockholm (CET/CEST)",
+        "Europe/London": "London (GMT/BST)",
+        "Europe/Paris": "Paris (CET/CEST)",
+        "Europe/Berlin": "Berlin (CET/CEST)",
+        "Europe/Amsterdam": "Amsterdam (CET/CEST)",
+        "Europe/Oslo": "Oslo (CET/CEST)",
+        "Europe/Copenhagen": "Copenhagen (CET/CEST)",
+        "Europe/Helsinki": "Helsinki (EET/EEST)",
+        "Europe/Warsaw": "Warsaw (CET/CEST)",
+        "Europe/Madrid": "Madrid (CET/CEST)",
+        "Europe/Rome": "Rome (CET/CEST)",
+        "Europe/Zurich": "Zurich (CET/CEST)",
+        "Europe/Vienna": "Vienna (CET/CEST)",
+        "America/New_York": "New York (EST/EDT)",
+        "America/Chicago": "Chicago (CST/CDT)",
+        "America/Denver": "Denver (MST/MDT)",
+        "America/Los_Angeles": "Los Angeles (PST/PDT)",
+        "America/Toronto": "Toronto (EST/EDT)",
+        "America/Vancouver": "Vancouver (PST/PDT)",
+        "Asia/Dubai": "Dubai (GST)",
+        "Asia/Singapore": "Singapore (SGT)",
+        "Asia/Tokyo": "Tokyo (JST)",
+        "Australia/Sydney": "Sydney (AEST/AEDT)"
+      }
     }
   },
   "members": {

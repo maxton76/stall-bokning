@@ -45,7 +45,38 @@
     },
     "placeholders": {
       "name": "t.ex. Mitt ridcenter",
-      "description": "Kort beskrivning av din organisation..."
+      "description": "Kort beskrivning av din organisation...",
+      "timezone": "Välj tidszon"
+    },
+    "timezone": {
+      "label": "Tidszon",
+      "description": "Tidszonen som används för scheman och notifieringar",
+      "placeholder": "Välj tidszon",
+      "zones": {
+        "Europe/Stockholm": "Stockholm (CET/CEST)",
+        "Europe/London": "London (GMT/BST)",
+        "Europe/Paris": "Paris (CET/CEST)",
+        "Europe/Berlin": "Berlin (CET/CEST)",
+        "Europe/Amsterdam": "Amsterdam (CET/CEST)",
+        "Europe/Oslo": "Oslo (CET/CEST)",
+        "Europe/Copenhagen": "Köpenhamn (CET/CEST)",
+        "Europe/Helsinki": "Helsingfors (EET/EEST)",
+        "Europe/Warsaw": "Warszawa (CET/CEST)",
+        "Europe/Madrid": "Madrid (CET/CEST)",
+        "Europe/Rome": "Rom (CET/CEST)",
+        "Europe/Zurich": "Zürich (CET/CEST)",
+        "Europe/Vienna": "Wien (CET/CEST)",
+        "America/New_York": "New York (EST/EDT)",
+        "America/Chicago": "Chicago (CST/CDT)",
+        "America/Denver": "Denver (MST/MDT)",
+        "America/Los_Angeles": "Los Angeles (PST/PDT)",
+        "America/Toronto": "Toronto (EST/EDT)",
+        "America/Vancouver": "Vancouver (PST/PDT)",
+        "Asia/Dubai": "Dubai (GST)",
+        "Asia/Singapore": "Singapore (SGT)",
+        "Asia/Tokyo": "Tokyo (JST)",
+        "Australia/Sydney": "Sydney (AEST/AEDT)"
+      }
     }
   },
   "members": {

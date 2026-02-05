@@ -28,6 +28,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
@@ -62,6 +69,33 @@ const featureIcons: Record<string, React.ElementType> = {
   shield: Shield,
   chart: BarChart3,
 };
+
+// Common timezone options (IANA identifiers)
+const TIMEZONE_OPTIONS = [
+  "Europe/Stockholm",
+  "Europe/London",
+  "Europe/Paris",
+  "Europe/Berlin",
+  "Europe/Amsterdam",
+  "Europe/Oslo",
+  "Europe/Copenhagen",
+  "Europe/Helsinki",
+  "Europe/Warsaw",
+  "Europe/Madrid",
+  "Europe/Rome",
+  "Europe/Zurich",
+  "Europe/Vienna",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "America/Toronto",
+  "America/Vancouver",
+  "Asia/Dubai",
+  "Asia/Singapore",
+  "Asia/Tokyo",
+  "Australia/Sydney",
+] as const;
 
 export default function OrganizationSettingsPage() {
   const { t } = useTranslation(["organizations", "common", "settings"]);
@@ -344,13 +378,13 @@ export default function OrganizationSettingsPage() {
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="Personal" id="personal" />
                       <Label htmlFor="personal" className="font-normal">
-                        Personal
+                        {t("organizations:invite.contactTypes.personal")}
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="Business" id="business" />
                       <Label htmlFor="business" className="font-normal">
-                        Business
+                        {t("organizations:invite.contactTypes.business")}
                       </Label>
                     </div>
                   </RadioGroup>
@@ -390,15 +424,32 @@ export default function OrganizationSettingsPage() {
 
                 {/* Timezone */}
                 <div className="space-y-2">
-                  <Label htmlFor="timezone">Timezone</Label>
-                  <Input
-                    id="timezone"
-                    placeholder="Europe/Stockholm"
-                    {...register("timezone")}
-                  />
+                  <Label htmlFor="timezone">
+                    {t("organizations:form.timezone.label")}
+                  </Label>
+                  <Select
+                    value={watch("timezone")}
+                    onValueChange={(value) => setValue("timezone", value)}
+                  >
+                    <SelectTrigger id="timezone">
+                      <SelectValue
+                        placeholder={t(
+                          "organizations:form.timezone.placeholder",
+                        )}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIMEZONE_OPTIONS.map((tz) => (
+                        <SelectItem key={tz} value={tz}>
+                          {t(`organizations:form.timezone.zones.${tz}`, {
+                            defaultValue: tz,
+                          })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-muted-foreground">
-                    IANA timezone identifier (e.g., Europe/Stockholm,
-                    America/New_York)
+                    {t("organizations:form.timezone.description")}
                   </p>
                 </div>
 
