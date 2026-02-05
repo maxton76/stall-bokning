@@ -270,41 +270,94 @@ export async function horsesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Find owner's personal organization to set ownerOrganizationId
+        // Determine ownership type and owner
+        let ownerId = user.uid;
         let ownerOrganizationId: string | undefined;
-        try {
-          // First, try to find a personal organization
-          const personalOrgsSnapshot = await db
+        let ownershipType = data.ownershipType || "member";
+
+        // Handle organization-owned horses
+        if (ownershipType === "organization" && data.organizationId) {
+          // Verify user is admin of the organization
+          const orgDoc = await db
             .collection("organizations")
-            .where("ownerId", "==", user.uid)
-            .where("organizationType", "==", "personal")
-            .limit(1)
+            .doc(data.organizationId)
             .get();
 
-          if (!personalOrgsSnapshot.empty) {
-            ownerOrganizationId = personalOrgsSnapshot.docs[0].id;
-          } else {
-            // Fall back to any organization owned by the user
-            const anyOrgSnapshot = await db
+          if (!orgDoc.exists) {
+            return reply.status(404).send({
+              error: "Not Found",
+              message: "Organization not found",
+            });
+          }
+
+          const org = orgDoc.data()!;
+
+          // Check if user is org owner or admin
+          const isOrgOwner = org.ownerId === user.uid;
+          let isAdmin = isOrgOwner;
+
+          if (!isOrgOwner) {
+            const memberDoc = await db
+              .collection("organizationMembers")
+              .doc(`${user.uid}_${data.organizationId}`)
+              .get();
+
+            if (memberDoc.exists) {
+              const memberData = memberDoc.data();
+              isAdmin =
+                memberData?.status === "active" &&
+                memberData?.roles?.includes("administrator");
+            }
+          }
+
+          if (!isAdmin && user.role !== "system_admin") {
+            return reply.status(403).send({
+              error: "Forbidden",
+              message:
+                "Only organization administrators can create organization-owned horses",
+            });
+          }
+
+          // For org-owned horses, set ownerId to the org owner
+          ownerId = org.ownerId;
+          ownerOrganizationId = data.organizationId;
+        } else {
+          // Regular member-owned horse - find owner's personal organization
+          try {
+            // First, try to find a personal organization
+            const personalOrgsSnapshot = await db
               .collection("organizations")
               .where("ownerId", "==", user.uid)
+              .where("organizationType", "==", "personal")
               .limit(1)
               .get();
 
-            if (!anyOrgSnapshot.empty) {
-              ownerOrganizationId = anyOrgSnapshot.docs[0].id;
+            if (!personalOrgsSnapshot.empty) {
+              ownerOrganizationId = personalOrgsSnapshot.docs[0].id;
+            } else {
+              // Fall back to any organization owned by the user
+              const anyOrgSnapshot = await db
+                .collection("organizations")
+                .where("ownerId", "==", user.uid)
+                .limit(1)
+                .get();
+
+              if (!anyOrgSnapshot.empty) {
+                ownerOrganizationId = anyOrgSnapshot.docs[0].id;
+              }
             }
+          } catch (orgError) {
+            request.log.warn(
+              { error: orgError },
+              "Failed to find owner organization for horse",
+            );
           }
-        } catch (orgError) {
-          request.log.warn(
-            { error: orgError },
-            "Failed to find owner organization for horse",
-          );
         }
 
         const horseData: Record<string, unknown> = {
           ...data,
-          ownerId: user.uid,
+          ownerId,
+          ownershipType,
           ownerOrganizationId: ownerOrganizationId || null,
           isExternal: data.isExternal ?? false,
           status: data.status || "active",
@@ -1184,6 +1237,276 @@ export async function horsesRoutes(fastify: FastifyInstance) {
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to transfer horse",
+        });
+      }
+    },
+  );
+
+  /**
+   * POST /api/v1/horses/batch/transfer-ownership
+   * Batch transfer horse ownership during member removal
+   * Used when removing a member who owns horses in an organization
+   */
+  fastify.post(
+    "/batch/transfer-ownership",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+        const data = request.body as {
+          horseIds: string[];
+          action: "transfer_to_stable" | "leave_with_member";
+          organizationId: string;
+          targetUserId?: string; // The member being removed
+        };
+
+        if (
+          !data.horseIds ||
+          !Array.isArray(data.horseIds) ||
+          data.horseIds.length === 0
+        ) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Missing or empty horseIds array",
+          });
+        }
+
+        // Firestore batch limit is 500 operations
+        if (data.horseIds.length > 500) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Maximum 500 horses per batch transfer",
+          });
+        }
+
+        if (
+          !data.action ||
+          !["transfer_to_stable", "leave_with_member"].includes(data.action)
+        ) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message:
+              "Invalid action. Must be 'transfer_to_stable' or 'leave_with_member'",
+          });
+        }
+
+        if (!data.organizationId) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Missing organizationId",
+          });
+        }
+
+        // Check if user is org admin or owner
+        const orgDoc = await db
+          .collection("organizations")
+          .doc(data.organizationId)
+          .get();
+        if (!orgDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Organization not found",
+          });
+        }
+
+        const org = orgDoc.data()!;
+        const userMemberId = `${user.uid}_${data.organizationId}`;
+        const userMemberDoc = await db
+          .collection("organizationMembers")
+          .doc(userMemberId)
+          .get();
+        const userMemberData = userMemberDoc.data();
+        const isAdministrator =
+          userMemberData?.status === "active" &&
+          userMemberData?.roles?.includes("administrator");
+        const isOrgOwner = org.ownerId === user.uid;
+
+        // Only org owners, admins, or system admins can transfer horse ownership
+        // Self-transfer bypass removed for security - use proper member removal workflow
+        if (!isOrgOwner && !isAdministrator && user.role !== "system_admin") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to transfer horse ownership",
+          });
+        }
+
+        // Validate targetUserId is provided and is an active member being removed
+        if (!data.targetUserId) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message:
+              "Missing targetUserId - the member whose horses are being transferred",
+          });
+        }
+
+        // Verify target user is actually a member of this organization
+        const targetMemberId = `${data.targetUserId}_${data.organizationId}`;
+        const targetMemberDoc = await db
+          .collection("organizationMembers")
+          .doc(targetMemberId)
+          .get();
+        if (!targetMemberDoc.exists) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Target user is not a member of this organization",
+          });
+        }
+
+        const batch = db.batch();
+        const results: Array<{
+          horseId: string;
+          success: boolean;
+          action: string;
+          error?: string;
+        }> = [];
+
+        for (const horseId of data.horseIds) {
+          try {
+            const horseDoc = await db.collection("horses").doc(horseId).get();
+            if (!horseDoc.exists) {
+              results.push({
+                horseId,
+                success: false,
+                action: data.action,
+                error: "Horse not found",
+              });
+              continue;
+            }
+
+            const horse = horseDoc.data()!;
+
+            // Verify horse is in this organization's stable
+            if (!horse.currentStableId) {
+              results.push({
+                horseId,
+                success: false,
+                action: data.action,
+                error: "Horse not assigned to a stable",
+              });
+              continue;
+            }
+
+            const stableDoc = await db
+              .collection("stables")
+              .doc(horse.currentStableId)
+              .get();
+            if (
+              !stableDoc.exists ||
+              stableDoc.data()?.organizationId !== data.organizationId
+            ) {
+              results.push({
+                horseId,
+                success: false,
+                action: data.action,
+                error: "Horse not in this organization",
+              });
+              continue;
+            }
+
+            // Security: Verify this horse belongs to the target user being removed
+            if (horse.ownerId !== data.targetUserId) {
+              results.push({
+                horseId,
+                success: false,
+                action: data.action,
+                error: "Horse does not belong to the target user",
+              });
+              continue;
+            }
+
+            if (data.action === "transfer_to_stable") {
+              // Transfer ownership to the organization
+              batch.update(db.collection("horses").doc(horseId), {
+                // Keep ownerId pointing to org owner for non-null constraint
+                ownerId: org.ownerId,
+                ownerName: null, // Will be shown as "Stable horse"
+                ownerEmail: org.ownerEmail,
+                ownershipType: "organization",
+                ownerOrganizationId: data.organizationId,
+                lastModifiedAt: Timestamp.now(),
+                lastModifiedBy: user.uid,
+              });
+              results.push({
+                horseId,
+                success: true,
+                action: "transferred_to_stable",
+              });
+            } else if (data.action === "leave_with_member") {
+              // Get the target user's personal organization
+              // targetUserId is already validated above
+              const personalOrgsSnapshot = await db
+                .collection("organizations")
+                .where("ownerId", "==", data.targetUserId)
+                .where("organizationType", "==", "personal")
+                .limit(1)
+                .get();
+
+              let personalOrgId: string | null = null;
+              if (!personalOrgsSnapshot.empty) {
+                personalOrgId = personalOrgsSnapshot.docs[0].id;
+              }
+
+              // Unassign from stable and update owner organization
+              batch.update(db.collection("horses").doc(horseId), {
+                currentStableId: null,
+                currentStableName: null,
+                assignedAt: null,
+                ownerOrganizationId: personalOrgId,
+                placementOrganizationId: null,
+                placementStableId: null,
+                placementDate: null,
+                lastModifiedAt: Timestamp.now(),
+                lastModifiedBy: user.uid,
+              });
+
+              // Close location history entry
+              const openEntriesSnapshot = await db
+                .collection("horses")
+                .doc(horseId)
+                .collection("locationHistory")
+                .where("departureDate", "==", null)
+                .get();
+
+              for (const doc of openEntriesSnapshot.docs) {
+                batch.update(doc.ref, {
+                  departureDate: Timestamp.now(),
+                  lastModifiedBy: user.uid,
+                });
+              }
+
+              results.push({
+                horseId,
+                success: true,
+                action: "left_with_member",
+              });
+            }
+          } catch (horseError) {
+            results.push({
+              horseId,
+              success: false,
+              action: data.action,
+              error: "Processing error",
+            });
+          }
+        }
+
+        await batch.commit();
+
+        return {
+          success: true,
+          processed: results.length,
+          results,
+        };
+      } catch (error) {
+        request.log.error(
+          { error },
+          "Failed to batch transfer horse ownership",
+        );
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to batch transfer horse ownership",
         });
       }
     },

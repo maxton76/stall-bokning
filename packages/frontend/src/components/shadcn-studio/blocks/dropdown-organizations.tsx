@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Building2,
   Plus,
@@ -10,6 +11,7 @@ import {
   CreditCard,
   Settings2,
   ChevronDown,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,14 +33,16 @@ import { useOrganizationContext } from "@/contexts/OrganizationContext";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { queryKeys } from "@/lib/queryClient";
 import { getUserOrganizations } from "@/services/organizationService";
+import type { Organization } from "@equiduty/shared";
 
 export function OrganizationsDropdown() {
   const navigate = useNavigate();
+  const { t } = useTranslation(["common", "organizations"]);
   const { user } = useAuth();
   const { currentOrganizationId, setCurrentOrganizationId } =
     useOrganizationContext();
 
-  const organizationsQuery = useApiQuery<any[]>(
+  const organizationsQuery = useApiQuery<Organization[]>(
     queryKeys.organizations.list(user?.uid || ""),
     () => getUserOrganizations(user!.uid),
     {
@@ -49,30 +53,65 @@ export function OrganizationsDropdown() {
   const organizationsData = organizationsQuery.data;
   const organizationsLoading = organizationsQuery.isLoading;
 
-  // Auto-select organization if user only has one
-  useEffect(() => {
-    if (
-      organizationsData &&
-      organizationsData.length === 1 &&
-      !currentOrganizationId
-    ) {
-      setCurrentOrganizationId(organizationsData[0].id);
+  // Separate personal and business organizations
+  const { personalOrgs, businessOrgs, visibleOrgs } = useMemo(() => {
+    if (!organizationsData) {
+      return { personalOrgs: [], businessOrgs: [], visibleOrgs: [] };
     }
-  }, [organizationsData, currentOrganizationId, setCurrentOrganizationId]);
 
-  // Find current organization name for display
+    const personal = organizationsData.filter(
+      (org) => org.organizationType === "personal",
+    );
+    const business = organizationsData.filter(
+      (org) => org.organizationType !== "personal",
+    );
+
+    // Filter out personal orgs that should be hidden
+    // Hide if: hideWhenEmpty is true AND user has business orgs
+    const visiblePersonal = personal.filter((org) => {
+      // Always show if it's the currently selected org
+      if (org.id === currentOrganizationId) return true;
+      // Hide if marked as hideWhenEmpty and user has other orgs
+      if (org.hideWhenEmpty && business.length > 0) return false;
+      return true;
+    });
+
+    return {
+      personalOrgs: personal,
+      businessOrgs: business,
+      visibleOrgs: [...visiblePersonal, ...business],
+    };
+  }, [organizationsData, currentOrganizationId]);
+
+  // Auto-select organization if user only has one visible org
+  useEffect(() => {
+    if (visibleOrgs.length === 1 && !currentOrganizationId) {
+      setCurrentOrganizationId(visibleOrgs[0]!.id);
+    }
+  }, [visibleOrgs, currentOrganizationId, setCurrentOrganizationId]);
+
+  // Find current organization for display
   const currentOrganization = organizationsData?.find(
-    (org: any) => org.id === currentOrganizationId,
+    (org) => org.id === currentOrganizationId,
   );
-  const displayName = currentOrganization?.name || "Organizations";
+  // Use displayName if available, otherwise fall back to name
+  const displayName =
+    currentOrganization?.displayName ||
+    currentOrganization?.name ||
+    t("common:navigation.organizations");
+
+  // Helper to get organization display name
+  const getOrgDisplayName = (org: Organization) => {
+    return org.displayName || org.name;
+  };
 
   const handleOrganizationClick = (orgId: string) => {
     setCurrentOrganizationId(orgId);
     // Don't navigate - just set as active so the menu appears
   };
 
-  // Don't show dropdown if user only has one organization
-  if (organizationsData && organizationsData.length <= 1) {
+  // Don't show dropdown if user only has one visible organization
+  if (visibleOrgs.length <= 1) {
     return null;
   }
 
@@ -91,48 +130,86 @@ export function OrganizationsDropdown() {
       <DropdownMenuContent className="w-80" align="start" side="right">
         {/* Header */}
         <div className="flex items-center justify-between px-2 py-1.5">
-          <DropdownMenuLabel>Organizations</DropdownMenuLabel>
+          <DropdownMenuLabel>
+            {t("organizations:dropdown.title")}
+          </DropdownMenuLabel>
           <Button
             size="sm"
             variant="ghost"
             onClick={() => navigate("/organizations/create")}
           >
             <Plus className="h-4 w-4 mr-1" />
-            Create
+            {t("organizations:dropdown.create")}
           </Button>
         </div>
 
         <DropdownMenuSeparator />
 
         {organizationsLoading ? (
-          <DropdownLoadingState message="Loading organizations..." />
+          <DropdownLoadingState message={t("organizations:dropdown.loading")} />
         ) : (
           <>
             {/* Organizations List */}
-            {organizationsData && organizationsData.length > 0 ? (
+            {visibleOrgs.length > 0 ? (
               <>
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">
-                    Select Organization
-                  </DropdownMenuLabel>
-                  {organizationsData.map((org: any) => (
-                    <DropdownMenuItem
-                      key={org.id}
-                      onClick={() => handleOrganizationClick(org.id)}
-                      className={
-                        currentOrganizationId === org.id ? "bg-accent" : ""
-                      }
-                    >
-                      <Building2 className="mr-2 h-4 w-4" />
-                      <span className="flex-1">{org.name}</span>
-                      {currentOrganizationId === org.id && (
-                        <Badge variant="default" className="ml-2">
-                          Active
-                        </Badge>
-                      )}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuGroup>
+                {/* Business Organizations */}
+                {businessOrgs.length > 0 && (
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel className="text-xs text-muted-foreground">
+                      {t("organizations:switcher.businessOrganizations")}
+                    </DropdownMenuLabel>
+                    {businessOrgs.map((org) => (
+                      <DropdownMenuItem
+                        key={org.id}
+                        onClick={() => handleOrganizationClick(org.id)}
+                        className={
+                          currentOrganizationId === org.id ? "bg-accent" : ""
+                        }
+                      >
+                        <Building2 className="mr-2 h-4 w-4" />
+                        <span className="flex-1">{getOrgDisplayName(org)}</span>
+                        {currentOrganizationId === org.id && (
+                          <Badge variant="default" className="ml-2">
+                            {t("organizations:switcher.active")}
+                          </Badge>
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuGroup>
+                )}
+
+                {/* Personal Organizations - only show if visible */}
+                {visibleOrgs.some(
+                  (org) => org.organizationType === "personal",
+                ) && (
+                  <DropdownMenuGroup>
+                    {businessOrgs.length > 0 && <DropdownMenuSeparator />}
+                    <DropdownMenuLabel className="text-xs text-muted-foreground">
+                      {t("organizations:switcher.personal")}
+                    </DropdownMenuLabel>
+                    {visibleOrgs
+                      .filter((org) => org.organizationType === "personal")
+                      .map((org) => (
+                        <DropdownMenuItem
+                          key={org.id}
+                          onClick={() => handleOrganizationClick(org.id)}
+                          className={
+                            currentOrganizationId === org.id ? "bg-accent" : ""
+                          }
+                        >
+                          <User className="mr-2 h-4 w-4" />
+                          <span className="flex-1">
+                            {getOrgDisplayName(org)}
+                          </span>
+                          {currentOrganizationId === org.id && (
+                            <Badge variant="default" className="ml-2">
+                              {t("organizations:switcher.active")}
+                            </Badge>
+                          )}
+                        </DropdownMenuItem>
+                      ))}
+                  </DropdownMenuGroup>
+                )}
 
                 {/* Organization Submenu - Only show if an organization is selected */}
                 {currentOrganizationId && (
@@ -140,7 +217,7 @@ export function OrganizationsDropdown() {
                     <DropdownMenuSeparator />
                     <DropdownMenuGroup>
                       <DropdownMenuLabel className="text-xs text-muted-foreground">
-                        Organization Menu
+                        {t("organizations:dropdown.menu")}
                       </DropdownMenuLabel>
                       <DropdownMenuItem
                         onClick={() =>
@@ -150,7 +227,7 @@ export function OrganizationsDropdown() {
                         }
                       >
                         <Users className="mr-2 h-4 w-4" />
-                        Members
+                        {t("organizations:menu.members")}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() =>
@@ -160,7 +237,7 @@ export function OrganizationsDropdown() {
                         }
                       >
                         <Plug className="mr-2 h-4 w-4" />
-                        Integrations
+                        {t("organizations:menu.integrations")}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() =>
@@ -170,7 +247,7 @@ export function OrganizationsDropdown() {
                         }
                       >
                         <Tractor className="mr-2 h-4 w-4" />
-                        Manure
+                        {t("organizations:menu.manure")}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() =>
@@ -180,7 +257,7 @@ export function OrganizationsDropdown() {
                         }
                       >
                         <Shield className="mr-2 h-4 w-4" />
-                        Permissions
+                        {t("organizations:menu.permissions")}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() =>
@@ -190,7 +267,7 @@ export function OrganizationsDropdown() {
                         }
                       >
                         <CreditCard className="mr-2 h-4 w-4" />
-                        Subscription
+                        {t("organizations:menu.subscription")}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() =>
@@ -200,7 +277,7 @@ export function OrganizationsDropdown() {
                         }
                       >
                         <Settings2 className="mr-2 h-4 w-4" />
-                        Settings
+                        {t("organizations:menu.settings")}
                       </DropdownMenuItem>
                     </DropdownMenuGroup>
                   </>
@@ -211,9 +288,9 @@ export function OrganizationsDropdown() {
             ) : (
               <DropdownEmptyState
                 icon={Building2}
-                message="No organizations yet"
+                message={t("organizations:dropdown.noOrganizations")}
                 action={{
-                  label: "Create Your First Organization",
+                  label: t("organizations:dropdown.createFirst"),
                   icon: Plus,
                   onClick: () => navigate("/organizations/create"),
                 }}
@@ -225,7 +302,7 @@ export function OrganizationsDropdown() {
         {/* Footer */}
         <DropdownMenuItem onClick={() => navigate("/organizations")}>
           <Building2 className="mr-2 h-4 w-4" />
-          View All Organizations
+          {t("organizations:dropdown.viewAll")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

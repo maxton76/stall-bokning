@@ -63,16 +63,44 @@ export function useNavigation(): UseNavigationReturn {
   const location = useLocation();
   const { t } = useTranslation(["common", "organizations"]);
   const { currentOrganizationId } = useOrganizationContext();
-  const { isFeatureAvailable, addons } = useSubscription();
+  const { isFeatureAvailable, addons, organizationType } = useSubscription();
 
-  // Filter navigation items by module flag and addon flag availability
+  // Filter navigation items by module flag, addon flag, and organization type
   const filteredNavigation = useMemo(() => {
-    return mainNavigation.filter((item) => {
-      if (item.moduleFlag && !isFeatureAvailable(item.moduleFlag)) return false;
-      if (item.addonFlag && !addons[item.addonFlag]) return false;
-      return true;
-    });
-  }, [isFeatureAvailable, addons]);
+    return mainNavigation
+      .filter((item) => {
+        // Filter by module flag
+        if (item.moduleFlag && !isFeatureAvailable(item.moduleFlag))
+          return false;
+        // Filter by addon flag
+        if (item.addonFlag && !addons[item.addonFlag]) return false;
+        // Filter by organization type (default: "any")
+        if (item.visibleForOrgType && item.visibleForOrgType !== "any") {
+          // If org type is not yet loaded, show all items (loading state)
+          if (!organizationType) return true;
+          if (item.visibleForOrgType !== organizationType) return false;
+        }
+        return true;
+      })
+      .map((item) => {
+        // Also filter sub-items by organization type
+        if (!item.subItems) return item;
+        return {
+          ...item,
+          subItems: item.subItems.filter((subItem) => {
+            if (
+              subItem.visibleForOrgType &&
+              subItem.visibleForOrgType !== "any"
+            ) {
+              // If org type is not yet loaded, show all items (loading state)
+              if (!organizationType) return true;
+              if (subItem.visibleForOrgType !== organizationType) return false;
+            }
+            return true;
+          }),
+        };
+      });
+  }, [isFeatureAvailable, addons, organizationType]);
 
   // Create organization navigation items (filtered by addon/role)
   const orgNavItems = useMemo(() => {

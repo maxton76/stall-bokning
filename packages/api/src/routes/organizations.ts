@@ -1222,6 +1222,108 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
     },
   );
 
+  // Check if member owns horses in organization (used before removal)
+  fastify.get(
+    "/:id/members/:userId/horses",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id, userId: targetUserId } = request.params as {
+          id: string;
+          userId: string;
+        };
+        const user = (request as AuthenticatedRequest).user!;
+
+        const orgDoc = await db.collection("organizations").doc(id).get();
+        if (!orgDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Organization not found",
+          });
+        }
+
+        // Check permissions: owner, administrator, system_admin, or self-check
+        const userMemberId = `${user.uid}_${id}`;
+        const userMemberDoc = await db
+          .collection("organizationMembers")
+          .doc(userMemberId)
+          .get();
+        const userMemberData = userMemberDoc.data();
+        const isAdministrator =
+          userMemberData?.status === "active" &&
+          userMemberData?.roles?.includes("administrator");
+        const isSelf = targetUserId === user.uid;
+        const org = orgDoc.data()!;
+
+        if (
+          org.ownerId !== user.uid &&
+          !isAdministrator &&
+          !isSelf &&
+          user.role !== "system_admin"
+        ) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to check this member's horses",
+          });
+        }
+
+        // Get all stables in this organization
+        const stablesSnapshot = await db
+          .collection("stables")
+          .where("organizationId", "==", id)
+          .get();
+        const orgStableIds = stablesSnapshot.docs.map((doc) => doc.id);
+
+        if (orgStableIds.length === 0) {
+          return { horses: [], hasHorses: false };
+        }
+
+        // Find horses owned by this user that are in any of these stables
+        // Need to query in batches since Firestore 'in' supports max 30 values
+        const ownedHorses: Array<{
+          id: string;
+          name: string;
+          stableId?: string;
+          stableName?: string;
+        }> = [];
+
+        for (let i = 0; i < orgStableIds.length; i += 30) {
+          const batchStableIds = orgStableIds.slice(i, i + 30);
+          const horsesSnapshot = await db
+            .collection("horses")
+            .where("ownerId", "==", targetUserId)
+            .where("currentStableId", "in", batchStableIds)
+            .get();
+
+          horsesSnapshot.docs.forEach((doc) => {
+            const data = doc.data();
+            ownedHorses.push({
+              id: doc.id,
+              name: data.name,
+              stableId: data.currentStableId,
+              stableName: data.currentStableName,
+            });
+          });
+        }
+
+        return {
+          horses: ownedHorses,
+          hasHorses: ownedHorses.length > 0,
+          organizationId: id,
+          userId: targetUserId,
+        };
+      } catch (error) {
+        request.log.error({ error }, "Failed to check member horses");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to check member horses",
+        });
+      }
+    },
+  );
+
   // Remove member from organization
   fastify.delete(
     "/:id/members/:userId",
@@ -1231,6 +1333,9 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       try {
         const { id, userId } = request.params as { id: string; userId: string };
+        const { forceRemove } = request.query as {
+          forceRemove?: string;
+        };
         const user = (request as AuthenticatedRequest).user!;
 
         const orgDoc = await db.collection("organizations").doc(id).get();
@@ -1279,6 +1384,72 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
             error: "Not Found",
             message: "Member not found",
           });
+        }
+
+        // forceRemove requires admin/owner permission - users cannot force-remove themselves
+        const isOrgOwner = org.ownerId === user.uid;
+        const canForceRemove =
+          isOrgOwner || isAdministrator || user.role === "system_admin";
+
+        if (forceRemove === "true" && !canForceRemove) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message:
+              "Only organization owners and administrators can use forceRemove",
+          });
+        }
+
+        // Check if member owns horses in this org's stables (unless forceRemove is set)
+        if (forceRemove !== "true") {
+          const stablesSnapshot = await db
+            .collection("stables")
+            .where("organizationId", "==", id)
+            .get();
+          const orgStableIds = stablesSnapshot.docs.map((doc) => doc.id);
+
+          if (orgStableIds.length > 0) {
+            // Query horses in batches
+            const ownedHorses: Array<{ id: string; name: string }> = [];
+            for (let i = 0; i < orgStableIds.length; i += 30) {
+              const batchStableIds = orgStableIds.slice(i, i + 30);
+              const horsesSnapshot = await db
+                .collection("horses")
+                .where("ownerId", "==", userId)
+                .where("currentStableId", "in", batchStableIds)
+                .get();
+
+              horsesSnapshot.docs.forEach((doc) => {
+                const data = doc.data();
+                ownedHorses.push({ id: doc.id, name: data.name });
+              });
+            }
+
+            if (ownedHorses.length > 0) {
+              return reply.status(400).send({
+                error: "ActionRequired",
+                code: "HORSES_OWNED",
+                message: `Member owns ${ownedHorses.length} horse(s) in this organization. Please handle horse ownership before removal.`,
+                horses: ownedHorses,
+                actions: ["transfer_to_stable", "leave_with_member"],
+              });
+            }
+          }
+        }
+
+        // Log if forceRemove was used (audit trail)
+        if (forceRemove === "true") {
+          request.log.info(
+            {
+              action: "member_force_removed",
+              organizationId: id,
+              removedUserId: userId,
+              removedBy: user.uid,
+              isOrgOwner,
+              isAdministrator,
+              isSystemAdmin: user.role === "system_admin",
+            },
+            "Member force-removed without horse check",
+          );
         }
 
         await db.collection("organizationMembers").doc(memberId).delete();
