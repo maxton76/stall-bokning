@@ -33,6 +33,19 @@ service-account-*.json
 *-service-account.json
 firebase-emulator-data/
 
+# iOS Firebase Configurations (keep template only)
+EquiDuty/EquiDuty/Configuration/Firebase/GoogleService-Info-Dev.plist
+EquiDuty/EquiDuty/Configuration/Firebase/GoogleService-Info-Staging.plist
+EquiDuty/EquiDuty/Configuration/Firebase/GoogleService-Info-Production.plist
+!EquiDuty/EquiDuty/Configuration/Firebase/GoogleService-Info-Template.plist
+
+# iOS OAuth Client Credentials
+client_*.plist
+*.apps.googleusercontent.com.plist
+
+# Test Data
+random_users.csv
+
 # Functions deployment (temporary shared package copy)
 packages/functions/shared/
 packages/functions/package.original.json

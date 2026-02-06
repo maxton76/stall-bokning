@@ -1,0 +1,29 @@
+// Development Environment Configuration
+// This file defines build settings for the Development environment
+
+// App Identity
+APP_DISPLAY_NAME = EquiDuty Dev
+BUNDLE_ID_SUFFIX = .dev
+PRODUCT_NAME = $(APP_DISPLAY_NAME)
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
+
+// Firebase Configuration
+FIREBASE_CONFIG_FILENAME = GoogleService-Info-Dev
+
+// Google OAuth
+GOOGLE_CLIENT_ID = 623133738566-nt09r2stcchfa17p2se76trnjscddog4.apps.googleusercontent.com
+REVERSED_CLIENT_ID = com.googleusercontent.apps.623133738566-nt09r2stcchfa17p2se76trnjscddog4
+
+// API Endpoints
+API_BASE_URL = https:/$()/api-service-773558333623.europe-west1.run.app/api/v1
+
+// Code Signing
+CODE_SIGN_STYLE = Automatic
+DEVELOPMENT_TEAM = 9MXCMYP7FA
+
+// Deployment
+IPHONEOS_DEPLOYMENT_TARGET = 26.0
+
+// Build Settings
+ENABLE_TESTABILITY = YES
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) DEBUG DEV

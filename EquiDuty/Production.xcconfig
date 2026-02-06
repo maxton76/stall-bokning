@@ -1,0 +1,29 @@
+// Production Environment Configuration
+// This file defines build settings for the Production environment
+
+// App Identity
+APP_DISPLAY_NAME = EquiDuty
+BUNDLE_ID_SUFFIX =
+PRODUCT_NAME = $(APP_DISPLAY_NAME)
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
+
+// Firebase Configuration
+FIREBASE_CONFIG_FILENAME = GoogleService-Info-Production
+
+// Google OAuth
+GOOGLE_CLIENT_ID = 618787536909-du9t652ousstc9um4liq0na5n68hcg2l.apps.googleusercontent.com
+REVERSED_CLIENT_ID = com.googleusercontent.apps.618787536909-du9t652ousstc9um4liq0na5n68hcg2l
+
+// API Endpoints
+API_BASE_URL = https:/$()/api.equiduty.com/api/v1
+
+// Code Signing
+CODE_SIGN_STYLE = Automatic
+DEVELOPMENT_TEAM = 9MXCMYP7FA
+
+// Deployment
+IPHONEOS_DEPLOYMENT_TARGET = 26.0
+
+// Build Settings
+ENABLE_TESTABILITY = NO
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) PRODUCTION

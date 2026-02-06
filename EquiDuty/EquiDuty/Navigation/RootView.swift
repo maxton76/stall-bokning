@@ -30,21 +30,17 @@ struct RootView: View {
 struct SplashView: View {
     var body: some View {
         ZStack {
-            Color.accentColor
+            Color.white
                 .ignoresSafeArea()
 
             VStack(spacing: 20) {
-                Image(systemName: "pawprint.fill")
-                    .font(.system(size: 80))
-                    .foregroundStyle(.white)
-
-                Text("EquiDuty")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white)
+                Image("LoginLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: 280)
 
                 ProgressView()
-                    .tint(.white)
+                    .tint(.gray)
                     .scaleEffect(1.2)
             }
         }
