@@ -353,6 +353,17 @@
       "tasksCompleted": "Tasks completed",
       "hoursWorked": "Hours worked",
       "feedingsCompleted": "Feedings completed"
+    },
+    "invoices": {
+      "title": "My Invoices",
+      "subtitle": "View your invoices and payment status",
+      "noInvoices": "You have no invoices",
+      "noInvoicesDescription": "Invoices addressed to you will appear here",
+      "totalDue": "Total Due",
+      "overdue": "Overdue",
+      "daysOverdue": "{{days}} days overdue",
+      "noContact": "No billing account linked to your account",
+      "noContactDescription": "Contact your stable administrator if you expect to see invoices here"
     }
   },
   "schedule": {

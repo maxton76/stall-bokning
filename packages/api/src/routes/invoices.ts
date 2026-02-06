@@ -1476,6 +1476,138 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
   );
 
   /**
+   * GET /api/v1/invoices/my/:organizationId
+   * Get invoices for the authenticated user's linked contact in this organization.
+   * Used by the "My Invoices" page so regular members can see their own invoices
+   * without needing portal access.
+   */
+  fastify.get(
+    "/my/:organizationId",
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+        const { organizationId } = request.params as {
+          organizationId: string;
+        };
+        const { status, limit = "50" } = request.query as {
+          status?: string;
+          limit?: string;
+        };
+
+        // Find contact linked to this user in this organization
+        const contactSnapshot = await db
+          .collection("contacts")
+          .where("linkedUserId", "==", user.uid)
+          .where("organizationId", "==", organizationId)
+          .limit(1)
+          .get();
+
+        if (contactSnapshot.empty) {
+          return {
+            contactId: null,
+            contactName: null,
+            summary: {
+              totalInvoices: 0,
+              totalInvoiced: 0,
+              totalPaid: 0,
+              totalOutstanding: 0,
+              totalOverdue: 0,
+              currency: "SEK",
+            },
+            invoices: [],
+          };
+        }
+
+        const contactDoc = contactSnapshot.docs[0];
+        const contact = contactDoc.data();
+        const contactId = contactDoc.id;
+        const contactName =
+          contact.contactType === "Business"
+            ? contact.businessName
+            : `${contact.firstName} ${contact.lastName}`;
+
+        // Build query
+        let query = db
+          .collection("invoices")
+          .where("contactId", "==", contactId)
+          .orderBy("issueDate", "desc");
+
+        if (status) {
+          query = db
+            .collection("invoices")
+            .where("contactId", "==", contactId)
+            .where("status", "==", status)
+            .orderBy("issueDate", "desc") as any;
+        }
+
+        const snapshot = await query.limit(parseInt(limit)).get();
+
+        // Enrich with overdue + payment info
+        const now = new Date();
+        let currency = "SEK";
+        let totalInvoiced = 0;
+        let totalPaid = 0;
+        let totalOutstanding = 0;
+        let totalOverdue = 0;
+
+        const invoices = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          const dueDate = data.dueDate?.toDate();
+          const isOverdue =
+            dueDate &&
+            dueDate < now &&
+            !["paid", "cancelled", "void"].includes(data.status);
+          const daysOverdue = isOverdue
+            ? Math.floor(
+                (now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24),
+              )
+            : 0;
+
+          // Accumulate summary
+          if (data.currency) currency = data.currency;
+          if (!["cancelled", "void"].includes(data.status)) {
+            totalInvoiced += data.total || 0;
+            totalPaid += data.amountPaid || 0;
+            totalOutstanding += data.amountDue || 0;
+            if (isOverdue) {
+              totalOverdue += data.amountDue || 0;
+            }
+          }
+
+          return serializeTimestamps({
+            id: doc.id,
+            ...data,
+            isOverdue: !!isOverdue,
+            daysOverdue,
+            canPayOnline: !!data.stripeInvoiceUrl,
+          });
+        });
+
+        return {
+          contactId,
+          contactName,
+          summary: {
+            totalInvoices: invoices.length,
+            totalInvoiced,
+            totalPaid,
+            totalOutstanding,
+            totalOverdue,
+            currency,
+          },
+          invoices,
+        };
+      } catch (error) {
+        request.log.error({ error }, "Failed to fetch user's own invoices");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to fetch invoices",
+        });
+      }
+    },
+  );
+
+  /**
    * GET /api/v1/invoices/organization/:organizationId/overdue
    * Get overdue invoices for an organization
    */

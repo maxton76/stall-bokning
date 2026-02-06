@@ -416,6 +416,8 @@ export const queryKeys = {
       [...queryKeys.invoices.lists(), { organizationId, ...filters }] as const,
     overdue: (organizationId: string) =>
       [...queryKeys.invoices.all, "overdue", organizationId] as const,
+    my: (organizationId: string, status?: string) =>
+      [...queryKeys.invoices.all, "my", { organizationId, status }] as const,
     details: () => [...queryKeys.invoices.all, "detail"] as const,
     detail: (id: string) => [...queryKeys.invoices.details(), id] as const,
   },
@@ -1061,6 +1063,10 @@ export const cacheInvalidation = {
     overdue: (organizationId: string) =>
       queryClient.invalidateQueries({
         queryKey: queryKeys.invoices.overdue(organizationId),
+      }),
+    my: () =>
+      queryClient.invalidateQueries({
+        queryKey: [...queryKeys.invoices.all, "my"],
       }),
     detail: (id: string) =>
       queryClient.invalidateQueries({

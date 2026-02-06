@@ -182,6 +182,58 @@ export async function getContactInvoices(
 }
 
 // ============================================================================
+// My Invoices (for authenticated user's linked contact)
+// ============================================================================
+
+export interface MyInvoicesResponse {
+  contactId: string | null;
+  contactName: string | null;
+  summary: {
+    totalInvoices: number;
+    totalInvoiced: number;
+    totalPaid: number;
+    totalOutstanding: number;
+    totalOverdue: number;
+    currency: string;
+  };
+  invoices: Array<{
+    id: string;
+    invoiceNumber: string;
+    issueDate: string;
+    dueDate: string;
+    total: number;
+    amountPaid: number;
+    amountDue: number;
+    currency: string;
+    status: string;
+    isOverdue: boolean;
+    daysOverdue: number;
+    canPayOnline: boolean;
+    stripeInvoiceUrl?: string;
+  }>;
+}
+
+/**
+ * Get invoices for the authenticated user's linked contact
+ * @param organizationId - Organization ID
+ * @param options - Query options
+ * @returns Promise with user's invoices and summary
+ */
+export async function getMyInvoices(
+  organizationId: string,
+  options?: { status?: string; limit?: number },
+): Promise<MyInvoicesResponse> {
+  const params: Record<string, string> = {};
+  if (options?.status) params.status = options.status;
+  if (options?.limit) params.limit = options.limit.toString();
+
+  return apiClient.get<MyInvoicesResponse>(
+    `/invoices/my/${organizationId}`,
+    Object.keys(params).length > 0 ? params : undefined,
+  );
+}
+
+// ============================================================================
 // Overdue Invoices
 // ============================================================================
 

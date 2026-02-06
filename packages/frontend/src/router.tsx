@@ -43,6 +43,7 @@ const AccountPage = lazy(() => import("./pages/AccountPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const SchedulePage = lazy(() => import("./pages/SchedulePage"));
 const MyStatisticsPage = lazy(() => import("./pages/my-page/MyStatisticsPage"));
+const MyInvoicesPage = lazy(() => import("./pages/my-page/MyInvoicesPage"));
 const ScheduleWeekPage = lazy(
   () => import("./pages/schedule/ScheduleWeekPage"),
 );
@@ -403,7 +404,7 @@ export const router = createBrowserRouter([
           },
           {
             path: "/my-page/invoices",
-            element: <Navigate to="/portal/invoices" replace />,
+            element: withSuspense(MyInvoicesPage),
           },
           {
             path: "/my-page/packages",

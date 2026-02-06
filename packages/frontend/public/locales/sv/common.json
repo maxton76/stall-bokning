@@ -353,6 +353,17 @@
       "tasksCompleted": "Slutförda uppgifter",
       "hoursWorked": "Arbetade timmar",
       "feedingsCompleted": "Utfodringar genomförda"
+    },
+    "invoices": {
+      "title": "Mina fakturor",
+      "subtitle": "Visa dina fakturor och betalningsstatus",
+      "noInvoices": "Du har inga fakturor",
+      "noInvoicesDescription": "Fakturor som riktas till dig visas här",
+      "totalDue": "Att betala",
+      "overdue": "Förfallna",
+      "daysOverdue": "{{days}} dagar förfallen",
+      "noContact": "Inget faktureringskonto är kopplat till ditt konto",
+      "noContactDescription": "Kontakta din stalladministratör om du förväntar dig att se fakturor här"
     }
   },
   "schedule": {
