@@ -132,7 +132,7 @@ export async function subscriptionRoutes(fastify: FastifyInstance) {
   // All routes require authentication + org admin access
   const orgAdminPreHandler = [
     authenticate,
-    requirePermission("manage_billing", "params"),
+    requirePermission("manage_billing_settings", "params"),
   ];
 
   /**

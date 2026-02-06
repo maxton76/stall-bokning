@@ -5,12 +5,11 @@ import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
 import type { AuthenticatedRequest } from "../types/index.js";
+import { isSystemAdmin } from "../utils/authorization.js";
 import {
-  canAccessOrganization,
-  canManageOrganization,
-  isOrganizationAdmin,
-  isSystemAdmin,
-} from "../utils/authorization.js";
+  hasPermission,
+  getUserOrgRoles,
+} from "../utils/permissionEngine.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 import { calculateCommission } from "../utils/commissionCalculator.js";
 
@@ -95,13 +94,14 @@ export async function trainerCommissionRoutes(fastify: FastifyInstance) {
         }
         const data = parseResult.data;
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
+          const allowed = await hasPermission(
             user.uid,
             organizationId,
+            "manage_invoices",
           );
-          if (!canManage) {
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
@@ -175,30 +175,32 @@ export async function trainerCommissionRoutes(fastify: FastifyInstance) {
           isActive?: string;
         };
 
-        // Check organization access — commission data restricted to admins + own trainer
+        // Check organization access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const hasAccess = await canAccessOrganization(
+          const canViewAll = await hasPermission(
             user.uid,
             organizationId,
+            "view_financial_reports",
           );
-          if (!hasAccess) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to access this organization",
-            });
-          }
 
-          // Non-admins can only view their own commission configs
-          const isAdmin = await isOrganizationAdmin(user.uid, organizationId);
-          if (!isAdmin) {
+          if (!canViewAll) {
+            // Users without view_financial_reports can only see their own configs
+            const userInfo = await getUserOrgRoles(user.uid, organizationId);
+            if (!userInfo || !userInfo.isActive) {
+              return reply.status(403).send({
+                error: "Forbidden",
+                message:
+                  "You do not have permission to access this organization",
+              });
+            }
             // Force trainerId filter to the authenticated user
             if (trainerId && trainerId !== user.uid) {
               return reply.status(403).send({
                 error: "Forbidden",
-                message: "You can only view your own commission configurations",
+                message:
+                  "You can only view your own commission configurations",
               });
             }
-            // If no trainerId specified, restrict to self
             if (!trainerId) {
               (request.query as Record<string, string>).trainerId = user.uid;
             }
@@ -269,13 +271,14 @@ export async function trainerCommissionRoutes(fastify: FastifyInstance) {
         }
         const data = parseResult.data;
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
+          const allowed = await hasPermission(
             user.uid,
             organizationId,
+            "manage_invoices",
           );
-          if (!canManage) {
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
@@ -381,13 +384,14 @@ export async function trainerCommissionRoutes(fastify: FastifyInstance) {
         }
         const data = parseResult.data;
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
+          const allowed = await hasPermission(
             user.uid,
             organizationId,
+            "manage_invoices",
           );
-          if (!canManage) {
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
@@ -519,23 +523,25 @@ export async function trainerCommissionRoutes(fastify: FastifyInstance) {
           offset?: string;
         };
 
-        // Check organization access — commission data restricted to admins + own trainer
+        // Check organization access (V2 permission engine)
         let effectiveTrainerId = trainerId;
         if (!isSystemAdmin(user.role)) {
-          const hasAccess = await canAccessOrganization(
+          const canViewAll = await hasPermission(
             user.uid,
             organizationId,
+            "view_financial_reports",
           );
-          if (!hasAccess) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to access this organization",
-            });
-          }
 
-          // Non-admins can only view their own commissions
-          const isAdmin = await isOrganizationAdmin(user.uid, organizationId);
-          if (!isAdmin) {
+          if (!canViewAll) {
+            // Users without view_financial_reports can only see their own commissions
+            const userInfo = await getUserOrgRoles(user.uid, organizationId);
+            if (!userInfo || !userInfo.isActive) {
+              return reply.status(403).send({
+                error: "Forbidden",
+                message:
+                  "You do not have permission to access this organization",
+              });
+            }
             if (trainerId && trainerId !== user.uid) {
               return reply.status(403).send({
                 error: "Forbidden",
@@ -619,20 +625,6 @@ export async function trainerCommissionRoutes(fastify: FastifyInstance) {
           commissionId: string;
         };
 
-        // Check organization access — commission data restricted to admins + own trainer
-        if (!isSystemAdmin(user.role)) {
-          const hasAccess = await canAccessOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!hasAccess) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to access this organization",
-            });
-          }
-        }
-
         const docRef = db.collection(COMMISSIONS_COLLECTION).doc(commissionId);
         const doc = await docRef.get();
 
@@ -651,14 +643,31 @@ export async function trainerCommissionRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Non-admins can only view their own commissions
+        // Check access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const isAdmin = await isOrganizationAdmin(user.uid, organizationId);
-          if (!isAdmin && data.trainerId !== user.uid) {
+          const canViewAll = await hasPermission(
+            user.uid,
+            organizationId,
+            "view_financial_reports",
+          );
+
+          if (!canViewAll && data.trainerId !== user.uid) {
+            // User lacks view_financial_reports and is not the trainer
             return reply.status(404).send({
               error: "Not Found",
               message: "Commission not found",
             });
+          }
+
+          // If user cannot view all, verify they are at least an active member
+          if (!canViewAll) {
+            const userInfo = await getUserOrgRoles(user.uid, organizationId);
+            if (!userInfo || !userInfo.isActive) {
+              return reply.status(404).send({
+                error: "Not Found",
+                message: "Commission not found",
+              });
+            }
           }
         }
 
@@ -697,13 +706,14 @@ export async function trainerCommissionRoutes(fastify: FastifyInstance) {
         );
         const body = parseResult.success ? parseResult.data : {};
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
+          const allowed = await hasPermission(
             user.uid,
             organizationId,
+            "manage_invoices",
           );
-          if (!canManage) {
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
@@ -794,13 +804,14 @@ export async function trainerCommissionRoutes(fastify: FastifyInstance) {
         }
         const body = parseResult.data;
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
+          const allowed = await hasPermission(
             user.uid,
             organizationId,
+            "manage_invoices",
           );
-          if (!canManage) {
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
@@ -884,13 +895,14 @@ export async function trainerCommissionRoutes(fastify: FastifyInstance) {
           status?: string;
         };
 
-        // Check organization management access
+        // Check organization access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
+          const allowed = await hasPermission(
             user.uid,
             organizationId,
+            "view_financial_reports",
           );
-          if (!canManage) {
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:

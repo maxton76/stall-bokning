@@ -201,9 +201,17 @@
         "label": "Administrator",
         "description": "Full organization access"
       },
+      "stable_manager": {
+        "label": "Stable Manager",
+        "description": "Middle-management role for daily stable operations"
+      },
       "schedule_planner": {
         "label": "Schedule Planner",
         "description": "Can create and manage routine selection processes"
+      },
+      "bookkeeper": {
+        "label": "Bookkeeper",
+        "description": "Day-to-day financial operations and invoicing"
       },
       "veterinarian": {
         "label": "Veterinarian",
@@ -288,11 +296,23 @@
       "readOnly": "Upgrade to customize permissions",
       "readOnlyDescription": "Your subscription does not include custom permissions. Upgrade to a plan with advanced permissions to edit the matrix."
     },
+    "mobile": {
+      "selectRole": "Select Role",
+      "viewingPermissionsFor": "Viewing permissions for"
+    },
     "actions": {
       "manage_org_settings": "Manage organization settings",
       "manage_members": "Manage members",
       "view_members": "View members",
       "manage_billing": "Manage billing",
+      "view_invoices": "View invoices",
+      "manage_invoices": "Create, edit, and send invoices",
+      "view_payments": "View payment history",
+      "manage_payments": "Record payments and issue refunds",
+      "manage_billing_settings": "Manage invoice settings and payment terms",
+      "view_financial_reports": "View financial reports and analytics",
+      "manage_prices": "Manage chargeable items and price list",
+      "manage_billing_groups": "Manage billing groups",
       "create_stables": "Create stables",
       "manage_stable_settings": "Manage stable settings",
       "view_stables": "View stables",
@@ -317,6 +337,7 @@
     },
     "categories": {
       "organization": "Organization",
+      "billing": "Billing",
       "stables": "Stables",
       "horses": "Horses",
       "scheduling": "Scheduling",

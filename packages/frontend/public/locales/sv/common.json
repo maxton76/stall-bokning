@@ -138,7 +138,9 @@
     "organization": "Organisation",
     "roles": "Roller",
     "expires": "Går ut",
-    "loginRequired": "Du kommer att omdirigeras för att registrera dig eller logga in för att acceptera denna inbjudan"
+    "loginRequired": "Du kommer att omdirigeras för att registrera dig eller logga in för att acceptera denna inbjudan",
+    "purchased": "Köpt",
+    "allStatuses": "Alla statusar"
   },
   "status": {
     "active": "Aktiv",
@@ -364,6 +366,22 @@
       "daysOverdue": "{{days}} dagar förfallen",
       "noContact": "Inget faktureringskonto är kopplat till ditt konto",
       "noContactDescription": "Kontakta din stalladministratör om du förväntar dig att se fakturor här"
+    },
+    "packages": {
+      "title": "Mina klippkort",
+      "subtitle": "Visa dina köpta klippkort och återstående sessioner",
+      "noPackages": "Du har inga klippkort",
+      "noPackagesDescription": "Klippkort du köper visas här",
+      "activePackages": "Aktiva klippkort",
+      "remainingUnits": "Återstående sessioner",
+      "expiringSoon": "Går snart ut",
+      "daysUntilExpiry": "Går ut om {{days}} dagar",
+      "expired": "Utgånget",
+      "depleted": "Förbrukat",
+      "noMember": "Du är inte registrerad som medlem",
+      "noMemberDescription": "Kontakta din stalladministratör om du förväntar dig att se klippkort här",
+      "unitsRemaining": "{{remaining}} av {{total}} kvar",
+      "expiresOn": "Utgår {{date}}"
     }
   },
   "schedule": {

@@ -471,6 +471,8 @@ export const queryKeys = {
     all: ["memberPackages"] as const,
     byOrganization: (organizationId: string) =>
       [...queryKeys.memberPackages.all, organizationId] as const,
+    my: (organizationId: string, status?: string) =>
+      [...queryKeys.memberPackages.all, "my", { organizationId, status }] as const,
   },
 
   // Commission Configs
@@ -1151,6 +1153,10 @@ export const cacheInvalidation = {
     byOrganization: (organizationId: string) =>
       queryClient.invalidateQueries({
         queryKey: queryKeys.memberPackages.byOrganization(organizationId),
+      }),
+    my: () =>
+      queryClient.invalidateQueries({
+        queryKey: [...queryKeys.memberPackages.all, "my"],
       }),
   },
 

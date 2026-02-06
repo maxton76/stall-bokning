@@ -301,7 +301,7 @@
       "billingContactId": "Billing Contact (ID)",
       "relationshipType": "Relationship Type",
       "memberCount": "Member Count",
-      "members": "Members (ID, comma-separated)"
+      "members": "Members"
     },
     "table": {
       "label": "Label",
@@ -326,7 +326,17 @@
     "placeholders": {
       "label": "e.g. Andersson Family",
       "billingContactId": "Member ID for billing contact",
-      "members": "id1, id2, id3"
+      "members": "Select members..."
+    },
+    "hints": {
+      "membersSelected": "{{count}} member(s) selected"
+    },
+    "memberSelection": {
+      "searchPlaceholder": "Search members...",
+      "noMembersFound": "No members found",
+      "selected": "{{count}} selected",
+      "allMembers": "All members ({{count}})",
+      "membersSelected": "{{count}} member(s) selected"
     },
     "messages": {
       "created": "Billing group created",

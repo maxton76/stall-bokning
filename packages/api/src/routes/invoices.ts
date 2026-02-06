@@ -4,11 +4,8 @@ import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
 import type { AuthenticatedRequest } from "../types/index.js";
-import {
-  canAccessOrganization,
-  canManageOrganization,
-  isSystemAdmin,
-} from "../utils/authorization.js";
+import { isSystemAdmin } from "../utils/authorization.js";
+import { hasPermission } from "../utils/permissionEngine.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 import { logInvoiceEvent, getInvoiceEvents } from "../utils/invoiceAudit.js";
 import type { InvoiceStatus, InvoiceDocumentType } from "@equiduty/shared";
@@ -175,13 +172,10 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
             }
           | undefined;
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, organizationId, "manage_invoices");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
@@ -572,13 +566,10 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
           limit?: string;
         };
 
-        // Check organization access
+        // Check organization access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const hasAccess = await canAccessOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!hasAccess) {
+          const allowed = await hasPermission(user.uid, organizationId, "view_invoices");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message: "You do not have permission to access this organization",
@@ -648,13 +639,10 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         const invoice = doc.data()!;
 
-        // Check organization access — return 404 (not 403) to prevent enumeration
+        // Check organization access — return 404 (not 403) to prevent enumeration (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const hasAccess = await canAccessOrganization(
-            user.uid,
-            invoice.organizationId,
-          );
-          if (!hasAccess) {
+          const allowed = await hasPermission(user.uid, invoice.organizationId, "view_invoices");
+          if (!allowed) {
             return reply.status(404).send({
               error: "Not Found",
               message: "Invoice not found",
@@ -691,13 +679,10 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
         // Use organizationId from URL params, ignore body field
         data.organizationId = organizationId;
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, organizationId, "manage_invoices");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
@@ -964,13 +949,10 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            existing.organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, existing.organizationId, "manage_invoices");
+          if (!allowed) {
             return reply.status(404).send({
               error: "Not Found",
               message: "Invoice not found",
@@ -1117,13 +1099,10 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         const existing = doc.data()!;
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            existing.organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, existing.organizationId, "manage_invoices");
+          if (!allowed) {
             return reply.status(404).send({
               error: "Not Found",
               message: "Invoice not found",
@@ -1205,13 +1184,10 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         const existing = doc.data()!;
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            existing.organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, existing.organizationId, "manage_payments");
+          if (!allowed) {
             return reply.status(404).send({
               error: "Not Found",
               message: "Invoice not found",
@@ -1330,13 +1306,10 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         const existing = doc.data()!;
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            existing.organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, existing.organizationId, "manage_invoices");
+          if (!allowed) {
             return reply.status(404).send({
               error: "Not Found",
               message: "Invoice not found",
@@ -1404,13 +1377,10 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         const contact = contactDoc.data()!;
 
-        // Check organization access — return 404 (not 403) to prevent enumeration
+        // Check organization access — return 404 (not 403) to prevent enumeration (V2 permission engine)
         if (!isSystemAdmin(user.role) && contact.organizationId) {
-          const hasAccess = await canAccessOrganization(
-            user.uid,
-            contact.organizationId,
-          );
-          if (!hasAccess) {
+          const allowed = await hasPermission(user.uid, contact.organizationId, "view_invoices");
+          if (!allowed) {
             return reply.status(404).send({
               error: "Not Found",
               message: "Contact not found",
@@ -1621,13 +1591,10 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
         const user = (request as AuthenticatedRequest).user!;
         const { organizationId } = request.params as { organizationId: string };
 
-        // Check organization access
+        // Check organization access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const hasAccess = await canAccessOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!hasAccess) {
+          const allowed = await hasPermission(user.uid, organizationId, "view_invoices");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message: "You do not have permission to access this organization",
@@ -1729,13 +1696,10 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         const original = doc.data()!;
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            original.organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, original.organizationId, "manage_invoices");
+          if (!allowed) {
             return reply.status(404).send({
               error: "Not Found",
               message: "Invoice not found",
@@ -1977,13 +1941,10 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         const invoice = doc.data()!;
 
-        // Check organization access — return 404 (not 403) to prevent enumeration
+        // Check organization access — return 404 (not 403) to prevent enumeration (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const hasAccess = await canAccessOrganization(
-            user.uid,
-            invoice.organizationId,
-          );
-          if (!hasAccess) {
+          const allowed = await hasPermission(user.uid, invoice.organizationId, "view_invoices");
+          if (!allowed) {
             return reply.status(404).send({
               error: "Not Found",
               message: "Invoice not found",
@@ -2032,13 +1993,10 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         const existing = doc.data()!;
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            existing.organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, existing.organizationId, "manage_invoices");
+          if (!allowed) {
             return reply.status(404).send({
               error: "Not Found",
               message: "Invoice not found",

@@ -1,13 +1,11 @@
-import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
-import {
-  canManageOrganization,
-  isSystemAdmin,
-} from "../utils/authorization.js";
+import { isSystemAdmin } from "../utils/authorization.js";
+import { hasPermission } from "../utils/permissionEngine.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import type {
   OrganizationStripeSettings,
@@ -107,36 +105,6 @@ const updateStripeSettingsSchema = z.object({
 });
 
 // ============================================
-// Helper Functions
-// ============================================
-
-async function requireOrgAccess(
-  request: FastifyRequest<{ Params: { organizationId: string } }>,
-  reply: FastifyReply,
-) {
-  const user = (request as AuthenticatedRequest).user;
-  if (!user) {
-    return reply.status(401).send({ error: "Unauthorized" });
-  }
-
-  const { organizationId } = request.params;
-
-  // Check organization membership
-  const memberRef = db
-    .collection("organizationMembers")
-    .where("organizationId", "==", organizationId)
-    .where("userId", "==", user.uid)
-    .limit(1);
-
-  const memberSnap = await memberRef.get();
-  if (memberSnap.empty) {
-    return reply.status(403).send({ error: "Access denied to organization" });
-  }
-
-  return memberSnap.docs[0].data();
-}
-
-// ============================================
 // Routes
 // ============================================
 
@@ -155,10 +123,21 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/payments/settings",
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const membership = await requireOrgAccess(request, reply);
-      if (!membership) return;
+      const user = (request as AuthenticatedRequest).user;
+      if (!user) return reply.status(401).send({ error: "Unauthorized" });
 
       const { organizationId } = request.params;
+
+      // V2 permission check: view_payments
+      if (!isSystemAdmin(user.role)) {
+        const allowed = await hasPermission(user.uid, organizationId, "view_payments");
+        if (!allowed) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to view payment settings",
+          });
+        }
+      }
 
       const settingsRef = db
         .collection("organizationStripeSettings")
@@ -239,15 +218,14 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       const { organizationId } = request.params;
 
+      // V2 permission check: manage_billing_settings
       if (!isSystemAdmin(user.role)) {
-        const canManage = await canManageOrganization(user.uid, organizationId);
-        if (!canManage) {
-          return reply
-            .status(403)
-            .send({
-              error: "Forbidden",
-              message: "Only owners/admins can manage payment settings",
-            });
+        const allowed = await hasPermission(user.uid, organizationId, "manage_billing_settings");
+        if (!allowed) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to manage billing settings",
+          });
         }
       }
 
@@ -323,15 +301,14 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       const { organizationId } = request.params;
 
+      // V2 permission check: manage_billing_settings
       if (!isSystemAdmin(user.role)) {
-        const canManage = await canManageOrganization(user.uid, organizationId);
-        if (!canManage) {
-          return reply
-            .status(403)
-            .send({
-              error: "Forbidden",
-              message: "Only owners/admins can manage payment settings",
-            });
+        const allowed = await hasPermission(user.uid, organizationId, "manage_billing_settings");
+        if (!allowed) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to manage billing settings",
+          });
         }
       }
 
@@ -368,15 +345,14 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       const { organizationId } = request.params;
 
+      // V2 permission check: manage_billing_settings
       if (!isSystemAdmin(user.role)) {
-        const canManage = await canManageOrganization(user.uid, organizationId);
-        if (!canManage) {
-          return reply
-            .status(403)
-            .send({
-              error: "Forbidden",
-              message: "Only owners/admins can disconnect payment settings",
-            });
+        const allowed = await hasPermission(user.uid, organizationId, "manage_billing_settings");
+        if (!allowed) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to manage billing settings",
+          });
         }
       }
 
@@ -410,8 +386,21 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/payments/checkout",
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const membership = await requireOrgAccess(request, reply);
-      if (!membership) return;
+      const user = (request as AuthenticatedRequest).user;
+      if (!user) return reply.status(401).send({ error: "Unauthorized" });
+
+      const { organizationId } = request.params;
+
+      // V2 permission check: manage_payments
+      if (!isSystemAdmin(user.role)) {
+        const allowed = await hasPermission(user.uid, organizationId, "manage_payments");
+        if (!allowed) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to create checkout sessions",
+          });
+        }
+      }
 
       const result = createCheckoutSessionSchema.safeParse(request.body);
       if (!result.success) {
@@ -421,7 +410,6 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const { organizationId } = request.params;
       const data = result.data;
 
       // Check if Stripe is enabled for org
@@ -541,10 +529,21 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/payments/checkout/:sessionId",
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const membership = await requireOrgAccess(request, reply);
-      if (!membership) return;
+      const user = (request as AuthenticatedRequest).user;
+      if (!user) return reply.status(401).send({ error: "Unauthorized" });
 
       const { organizationId, sessionId } = request.params;
+
+      // V2 permission check: view_payments
+      if (!isSystemAdmin(user.role)) {
+        const allowed = await hasPermission(user.uid, organizationId, "view_payments");
+        if (!allowed) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to view payment data",
+          });
+        }
+      }
 
       const sessionRef = db.collection("checkoutSessions").doc(sessionId);
       const sessionSnap = await sessionRef.get();
@@ -580,8 +579,21 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/payments/intents",
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const membership = await requireOrgAccess(request, reply);
-      if (!membership) return;
+      const user = (request as AuthenticatedRequest).user;
+      if (!user) return reply.status(401).send({ error: "Unauthorized" });
+
+      const { organizationId } = request.params;
+
+      // V2 permission check: manage_payments
+      if (!isSystemAdmin(user.role)) {
+        const allowed = await hasPermission(user.uid, organizationId, "manage_payments");
+        if (!allowed) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to create payment intents",
+          });
+        }
+      }
 
       const result = createPaymentIntentSchema.safeParse(request.body);
       if (!result.success) {
@@ -591,7 +603,6 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const { organizationId } = request.params;
       const data = result.data;
 
       // Get contact info
@@ -663,10 +674,22 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/payments/intents",
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const membership = await requireOrgAccess(request, reply);
-      if (!membership) return;
+      const user = (request as AuthenticatedRequest).user;
+      if (!user) return reply.status(401).send({ error: "Unauthorized" });
 
       const { organizationId } = request.params;
+
+      // V2 permission check: view_payments
+      if (!isSystemAdmin(user.role)) {
+        const allowed = await hasPermission(user.uid, organizationId, "view_payments");
+        if (!allowed) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to view payment data",
+          });
+        }
+      }
+
       const {
         contactId,
         invoiceId,
@@ -717,10 +740,21 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/payments/intents/:intentId",
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const membership = await requireOrgAccess(request, reply);
-      if (!membership) return;
+      const user = (request as AuthenticatedRequest).user;
+      if (!user) return reply.status(401).send({ error: "Unauthorized" });
 
       const { organizationId, intentId } = request.params;
+
+      // V2 permission check: view_payments
+      if (!isSystemAdmin(user.role)) {
+        const allowed = await hasPermission(user.uid, organizationId, "view_payments");
+        if (!allowed) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to view payment data",
+          });
+        }
+      }
 
       const intentRef = db.collection("paymentIntents").doc(intentId);
       const intentSnap = await intentRef.get();
@@ -759,15 +793,14 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       const { organizationId } = request.params;
 
+      // V2 permission check: manage_payments
       if (!isSystemAdmin(user.role)) {
-        const canManage = await canManageOrganization(user.uid, organizationId);
-        if (!canManage) {
-          return reply
-            .status(403)
-            .send({
-              error: "Forbidden",
-              message: "Only owners/admins can create refunds",
-            });
+        const allowed = await hasPermission(user.uid, organizationId, "manage_payments");
+        if (!allowed) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to create refunds",
+          });
         }
       }
 
@@ -852,10 +885,21 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/contacts/:contactId/payment-methods",
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const membership = await requireOrgAccess(request, reply);
-      if (!membership) return;
+      const user = (request as AuthenticatedRequest).user;
+      if (!user) return reply.status(401).send({ error: "Unauthorized" });
 
       const { organizationId, contactId } = request.params;
+
+      // V2 permission check: view_payments
+      if (!isSystemAdmin(user.role)) {
+        const allowed = await hasPermission(user.uid, organizationId, "view_payments");
+        if (!allowed) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to view payment methods",
+          });
+        }
+      }
 
       const customerRef = db
         .collection("stripeCustomers")
@@ -886,8 +930,21 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/payments/methods",
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const membership = await requireOrgAccess(request, reply);
-      if (!membership) return;
+      const user = (request as AuthenticatedRequest).user;
+      if (!user) return reply.status(401).send({ error: "Unauthorized" });
+
+      const { organizationId } = request.params;
+
+      // V2 permission check: manage_payments
+      if (!isSystemAdmin(user.role)) {
+        const allowed = await hasPermission(user.uid, organizationId, "manage_payments");
+        if (!allowed) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to manage payment methods",
+          });
+        }
+      }
 
       const result = savePaymentMethodSchema.safeParse(request.body);
       if (!result.success) {
@@ -896,8 +953,6 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
           details: result.error.flatten().fieldErrors,
         });
       }
-
-      const { organizationId } = request.params;
       const { contactId, paymentMethodId, setAsDefault } = result.data;
 
       // In production, attach payment method to Stripe customer
@@ -980,15 +1035,14 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
       const { organizationId, methodId } = request.params;
       const { contactId } = request.query;
 
+      // V2 permission check: manage_payments
       if (!isSystemAdmin(user.role)) {
-        const canManage = await canManageOrganization(user.uid, organizationId);
-        if (!canManage) {
-          return reply
-            .status(403)
-            .send({
-              error: "Forbidden",
-              message: "Only owners/admins can delete payment methods",
-            });
+        const allowed = await hasPermission(user.uid, organizationId, "manage_payments");
+        if (!allowed) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to delete payment methods",
+          });
         }
       }
 
@@ -1037,10 +1091,21 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/contacts/:contactId/prepaid",
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const membership = await requireOrgAccess(request, reply);
-      if (!membership) return;
+      const user = (request as AuthenticatedRequest).user;
+      if (!user) return reply.status(401).send({ error: "Unauthorized" });
 
       const { organizationId, contactId } = request.params;
+
+      // V2 permission check: view_payments
+      if (!isSystemAdmin(user.role)) {
+        const allowed = await hasPermission(user.uid, organizationId, "view_payments");
+        if (!allowed) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to view prepaid accounts",
+          });
+        }
+      }
 
       const accountRef = db
         .collection("prepaidAccounts")
@@ -1083,15 +1148,14 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       const { organizationId, contactId } = request.params;
 
+      // V2 permission check: manage_payments
       if (!isSystemAdmin(user.role)) {
-        const canManage = await canManageOrganization(user.uid, organizationId);
-        if (!canManage) {
-          return reply
-            .status(403)
-            .send({
-              error: "Forbidden",
-              message: "Only owners/admins can manage prepaid deposits",
-            });
+        const allowed = await hasPermission(user.uid, organizationId, "manage_payments");
+        if (!allowed) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to manage prepaid deposits",
+          });
         }
       }
 
@@ -1190,10 +1254,22 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/contacts/:contactId/prepaid/transactions",
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const membership = await requireOrgAccess(request, reply);
-      if (!membership) return;
+      const user = (request as AuthenticatedRequest).user;
+      if (!user) return reply.status(401).send({ error: "Unauthorized" });
 
       const { organizationId, contactId } = request.params;
+
+      // V2 permission check: view_payments
+      if (!isSystemAdmin(user.role)) {
+        const allowed = await hasPermission(user.uid, organizationId, "view_payments");
+        if (!allowed) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to view prepaid transactions",
+          });
+        }
+      }
+
       const { limit = "20", offset = "0" } = request.query;
 
       const query = db
@@ -1242,15 +1318,14 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       const { organizationId } = request.params;
 
+      // V2 permission check: view_financial_reports
       if (!isSystemAdmin(user.role)) {
-        const canManage = await canManageOrganization(user.uid, organizationId);
-        if (!canManage) {
-          return reply
-            .status(403)
-            .send({
-              error: "Forbidden",
-              message: "Only owners/admins can view payment analytics",
-            });
+        const allowed = await hasPermission(user.uid, organizationId, "view_financial_reports");
+        if (!allowed) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to view payment analytics",
+          });
         }
       }
 
@@ -1262,7 +1337,7 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
         ? new Date(startDate)
         : new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-      let query = db
+      const query = db
         .collection("paymentIntents")
         .where("organizationId", "==", organizationId)
         .where("createdAt", ">=", Timestamp.fromDate(start))
@@ -1417,15 +1492,14 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       const { organizationId } = request.params;
 
+      // V2 permission check: view_financial_reports
       if (!isSystemAdmin(user.role)) {
-        const canManage = await canManageOrganization(user.uid, organizationId);
-        if (!canManage) {
-          return reply
-            .status(403)
-            .send({
-              error: "Forbidden",
-              message: "Only owners/admins can view application fee reports",
-            });
+        const allowed = await hasPermission(user.uid, organizationId, "view_financial_reports");
+        if (!allowed) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to view application fee reports",
+          });
         }
       }
 

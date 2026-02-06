@@ -90,6 +90,7 @@ export default function ActivitiesCarePage({
   useEffect(() => {
     async function seedIfNeeded() {
       if (
+        scope === "my" ||
         seedingAttempted ||
         !selectedStableId ||
         !user ||
@@ -130,6 +131,7 @@ export default function ActivitiesCarePage({
     }
     seedIfNeeded();
   }, [
+    scope,
     selectedStableId,
     activityTypes.data,
     activityTypes.loading,

@@ -20,6 +20,15 @@ export type PermissionAction =
   | "manage_members"
   | "view_members"
   | "manage_billing"
+  // Billing
+  | "view_invoices"
+  | "manage_invoices"
+  | "view_payments"
+  | "manage_payments"
+  | "manage_billing_settings"
+  | "view_financial_reports"
+  | "manage_prices"
+  | "manage_billing_groups"
   // Stables
   | "create_stables"
   | "manage_stable_settings"
@@ -64,6 +73,7 @@ export type PermissionMatrix = Record<
  */
 export type PermissionCategory =
   | "organization"
+  | "billing"
   | "stables"
   | "horses"
   | "scheduling"
@@ -109,6 +119,55 @@ export const PERMISSION_ACTIONS: PermissionActionMeta[] = [
     action: "manage_billing",
     category: "organization",
     i18nKey: "permissions.actions.manage_billing",
+  },
+  // Billing
+  {
+    action: "view_invoices",
+    category: "billing",
+    i18nKey: "permissions.actions.view_invoices",
+    requiredModule: "invoicing",
+  },
+  {
+    action: "manage_invoices",
+    category: "billing",
+    i18nKey: "permissions.actions.manage_invoices",
+    requiredModule: "invoicing",
+  },
+  {
+    action: "view_payments",
+    category: "billing",
+    i18nKey: "permissions.actions.view_payments",
+    requiredModule: "invoicing",
+  },
+  {
+    action: "manage_payments",
+    category: "billing",
+    i18nKey: "permissions.actions.manage_payments",
+    requiredModule: "invoicing",
+  },
+  {
+    action: "manage_billing_settings",
+    category: "billing",
+    i18nKey: "permissions.actions.manage_billing_settings",
+    requiredModule: "invoicing",
+  },
+  {
+    action: "view_financial_reports",
+    category: "billing",
+    i18nKey: "permissions.actions.view_financial_reports",
+    requiredModule: "invoicing",
+  },
+  {
+    action: "manage_prices",
+    category: "billing",
+    i18nKey: "permissions.actions.manage_prices",
+    requiredModule: "invoicing",
+  },
+  {
+    action: "manage_billing_groups",
+    category: "billing",
+    i18nKey: "permissions.actions.manage_billing_groups",
+    requiredModule: "invoicing",
   },
   // Stables
   {
@@ -247,6 +306,7 @@ export const PROTECTED_PERMISSIONS: readonly PermissionAction[] = [
  */
 export const PERMISSION_CATEGORIES: Record<PermissionCategory, string> = {
   organization: "permissions.categories.organization",
+  billing: "permissions.categories.billing",
   stables: "permissions.categories.stables",
   horses: "permissions.categories.horses",
   scheduling: "permissions.categories.scheduling",
@@ -286,7 +346,9 @@ export const DEFAULT_PERMISSION_MATRIX: PermissionMatrix = {
   manage_members: grant("administrator"),
   view_members: grant(
     "administrator",
+    "stable_manager",
     "schedule_planner",
+    "bookkeeper",
     "groom",
     "trainer",
     "training_admin",
@@ -302,12 +364,28 @@ export const DEFAULT_PERMISSION_MATRIX: PermissionMatrix = {
   ),
   manage_billing: grant("administrator"),
 
+  // Billing
+  view_invoices: grant("administrator", "stable_manager", "bookkeeper"),
+  manage_invoices: grant("administrator", "stable_manager", "bookkeeper"),
+  view_payments: grant("administrator", "stable_manager", "bookkeeper"),
+  manage_payments: grant("administrator", "bookkeeper"),
+  manage_billing_settings: grant("administrator"),
+  view_financial_reports: grant(
+    "administrator",
+    "stable_manager",
+    "bookkeeper",
+  ),
+  manage_prices: grant("administrator", "stable_manager"),
+  manage_billing_groups: grant("administrator", "bookkeeper"),
+
   // Stables
   create_stables: grant("administrator"),
-  manage_stable_settings: grant("administrator"),
+  manage_stable_settings: grant("administrator", "stable_manager"),
   view_stables: grant(
     "administrator",
+    "stable_manager",
     "schedule_planner",
+    "bookkeeper",
     "groom",
     "trainer",
     "training_admin",
@@ -325,6 +403,7 @@ export const DEFAULT_PERMISSION_MATRIX: PermissionMatrix = {
   // Horses
   view_horses: grant(
     "administrator",
+    "stable_manager",
     "schedule_planner",
     "groom",
     "trainer",
@@ -345,11 +424,12 @@ export const DEFAULT_PERMISSION_MATRIX: PermissionMatrix = {
     "rider",
     "groom",
   ),
-  manage_any_horse: grant("administrator"),
+  manage_any_horse: grant("administrator", "stable_manager"),
 
   // Scheduling
   view_schedules: grant(
     "administrator",
+    "stable_manager",
     "schedule_planner",
     "groom",
     "trainer",
@@ -358,33 +438,64 @@ export const DEFAULT_PERMISSION_MATRIX: PermissionMatrix = {
     "horse_owner",
     "rider",
   ),
-  manage_schedules: grant("administrator", "schedule_planner"),
+  manage_schedules: grant(
+    "administrator",
+    "stable_manager",
+    "schedule_planner",
+  ),
   book_shifts: grant(
     "administrator",
+    "stable_manager",
     "schedule_planner",
     "groom",
     "customer",
     "horse_owner",
     "rider",
   ),
-  cancel_others_bookings: grant("administrator", "schedule_planner"),
-  mark_shifts_missed: grant("administrator", "schedule_planner"),
+  cancel_others_bookings: grant(
+    "administrator",
+    "stable_manager",
+    "schedule_planner",
+  ),
+  mark_shifts_missed: grant(
+    "administrator",
+    "stable_manager",
+    "schedule_planner",
+  ),
 
   // Activities
-  manage_activities: grant("administrator", "schedule_planner", "groom"),
-  manage_routines: grant("administrator", "schedule_planner"),
-  manage_selection_processes: grant("administrator", "schedule_planner"),
+  manage_activities: grant(
+    "administrator",
+    "stable_manager",
+    "schedule_planner",
+    "groom",
+  ),
+  manage_routines: grant(
+    "administrator",
+    "stable_manager",
+    "schedule_planner",
+  ),
+  manage_selection_processes: grant(
+    "administrator",
+    "stable_manager",
+    "schedule_planner",
+  ),
 
   // Lessons
   manage_lessons: grant("administrator", "trainer", "training_admin"),
 
   // Facilities
-  manage_facilities: grant("administrator"),
+  manage_facilities: grant("administrator", "stable_manager"),
 
   // Records
-  manage_records: grant("administrator", "schedule_planner"),
+  manage_records: grant(
+    "administrator",
+    "stable_manager",
+    "schedule_planner",
+  ),
   view_records: grant(
     "administrator",
+    "stable_manager",
     "schedule_planner",
     "groom",
     "veterinarian",
@@ -396,7 +507,11 @@ export const DEFAULT_PERMISSION_MATRIX: PermissionMatrix = {
 
   // Integrations
   manage_integrations: grant("administrator"),
-  send_communications: grant("administrator", "schedule_planner"),
+  send_communications: grant(
+    "administrator",
+    "stable_manager",
+    "schedule_planner",
+  ),
   export_data: grant("administrator"),
 };
 

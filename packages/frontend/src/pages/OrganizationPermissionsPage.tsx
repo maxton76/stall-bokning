@@ -18,6 +18,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -39,10 +46,12 @@ import {
 } from "@equiduty/shared";
 import type { PermissionMatrix } from "@equiduty/shared";
 
-/** All 14 organization roles in display order. */
+/** All 16 organization roles in display order. */
 const ALL_ROLES: OrganizationRole[] = [
   "administrator",
+  "stable_manager",
   "schedule_planner",
+  "bookkeeper",
   "groom",
   "trainer",
   "training_admin",
@@ -60,8 +69,12 @@ const ALL_ROLES: OrganizationRole[] = [
 /** Role display colors for column headers. */
 const ROLE_COLORS: Record<string, string> = {
   administrator: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  stable_manager:
+    "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
   schedule_planner:
     "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  bookkeeper:
+    "bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200",
   groom: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   trainer:
     "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
@@ -85,7 +98,9 @@ const ROLE_COLORS: Record<string, string> = {
 /** i18n keys for role names (nested label key under invite section). */
 const ROLE_I18N: Record<OrganizationRole, string> = {
   administrator: "invite.roles.administrator.label",
+  stable_manager: "invite.roles.stable_manager.label",
   schedule_planner: "invite.roles.schedule_planner.label",
+  bookkeeper: "invite.roles.bookkeeper.label",
   groom: "invite.roles.groom.label",
   trainer: "invite.roles.trainer.label",
   training_admin: "invite.roles.training_admin.label",
@@ -120,6 +135,7 @@ function groupByCategory(
 /** Category display order. */
 const CATEGORY_ORDER: PermissionCategory[] = [
   "organization",
+  "billing",
   "stables",
   "horses",
   "scheduling",
@@ -162,6 +178,9 @@ export default function OrganizationPermissionsPage() {
   // Local editable copy of the matrix
   const [editMatrix, setEditMatrix] = useState<PermissionMatrix | null>(null);
   const [isDirty, setIsDirty] = useState(false);
+
+  // Mobile role selection
+  const [selectedRole, setSelectedRole] = useState<OrganizationRole>("administrator");
 
   // Initialize editMatrix from server data
   const matrix = editMatrix ?? matrixData?.matrix ?? DEFAULT_PERMISSION_MATRIX;
@@ -272,132 +291,151 @@ export default function OrganizationPermissionsPage() {
   }
 
   return (
-    <TooltipProvider>
-      <div className="container mx-auto p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              {t("organizations:permissions.title")}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {t("organizations:permissions.description")}
-            </p>
-          </div>
-          {canEdit && (
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleReset}
-                disabled={resetMutation.isPending}
-              >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                {t("organizations:permissions.buttons.reset")}
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSave}
-                disabled={!isDirty || saveMutation.isPending}
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {saveMutation.isPending
-                  ? t("organizations:permissions.buttons.saving")
-                  : t("organizations:permissions.buttons.save")}
-              </Button>
-            </div>
-          )}
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {t("organizations:permissions.title")}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {t("organizations:permissions.description")}
+          </p>
         </div>
-
-        {/* Read-only upgrade notice */}
-        {hasManageSettings && !isFeatureAvailable("advancedPermissions") && (
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              {t("organizations:permissions.matrix.readOnlyDescription")}
-            </AlertDescription>
-          </Alert>
+        {canEdit && (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReset}
+              disabled={resetMutation.isPending}
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              {t("organizations:permissions.buttons.reset")}
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={!isDirty || saveMutation.isPending}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {saveMutation.isPending
+                ? t("organizations:permissions.buttons.saving")
+                : t("organizations:permissions.buttons.save")}
+            </Button>
+          </div>
         )}
+      </div>
 
-        {/* Permission Matrix */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              {t("organizations:permissions.matrix.title")}
-            </CardTitle>
-            <CardDescription>
-              {t("organizations:permissions.matrix.description")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
+      {/* Read-only upgrade notice */}
+      {hasManageSettings && !isFeatureAvailable("advancedPermissions") && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            {t("organizations:permissions.matrix.readOnlyDescription")}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Permission Matrix */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            {t("organizations:permissions.matrix.title")}
+          </CardTitle>
+          <CardDescription>
+            {t("organizations:permissions.matrix.description")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {/* Desktop/Wide Screen: Full Matrix Table */}
+          <div className="hidden lg:block overflow-visible">
+            <TooltipProvider>
+              <table className="w-full border-collapse table-auto">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left p-3 font-semibold sticky left-0 bg-background z-10 min-w-[200px]">
+                    <th className="text-left p-3 font-semibold sticky left-0 bg-background z-10 w-48 lg:w-1/6">
                       {t("organizations:permissions.matrix.action")}
                     </th>
                     {ALL_ROLES.map((role) => (
-                      <th key={role} className="text-center p-2 min-w-[90px]">
-                        <Badge
-                          variant="secondary"
-                          className={`text-[10px] leading-tight ${ROLE_COLORS[role] ?? ""}`}
-                        >
-                          {t(`organizations:${ROLE_I18N[role]}`)}
-                        </Badge>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {CATEGORY_ORDER.map((category) => {
-                    const actions = grouped[category];
-                    if (!actions?.length) return null;
-                    return (
-                      <CategoryGroup
-                        key={category}
-                        category={category}
-                        actions={actions}
-                        matrix={matrix}
-                        canEdit={canEdit}
-                        isProtected={isProtected}
-                        togglePermission={togglePermission}
-                        t={t}
-                      />
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                      <th key={role} className="text-center p-2 w-20 lg:flex-1">
+                      <Badge
+                        variant="secondary"
+                        className={`text-[10px] leading-tight ${ROLE_COLORS[role] ?? ""}`}
+                      >
+                        {t(`organizations:${ROLE_I18N[role]}`)}
+                      </Badge>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {CATEGORY_ORDER.map((category) => {
+                  const actions = grouped[category];
+                  if (!actions?.length) return null;
+                  return (
+                    <CategoryGroup
+                      key={category}
+                      category={category}
+                      actions={actions}
+                      matrix={matrix}
+                      canEdit={canEdit}
+                      isProtected={isProtected}
+                      togglePermission={togglePermission}
+                      t={t}
+                    />
+                  );
+                })}
+              </tbody>
+            </table>
+            </TooltipProvider>
+          </div>
+
+          {/* Mobile/Tablet: Role Dropdown + Permission List */}
+          <div className="lg:hidden space-y-4 p-6">
+            <MobileRoleSelector
+              selectedRole={selectedRole}
+              onRoleChange={setSelectedRole}
+              t={t}
+            />
+            <MobilePermissionList
+              role={selectedRole}
+              matrix={matrix}
+              canEdit={canEdit}
+              isProtected={isProtected}
+              togglePermission={togglePermission}
+              grouped={grouped}
+              t={t}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Custom Roles info */}
+      {!isFeatureAvailable("advancedPermissions") && (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {t("organizations:permissions.customRoles.title")}
+            </CardTitle>
+            <CardDescription>
+              {t("organizations:permissions.customRoles.description")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              {t("organizations:permissions.customRoles.explanation")}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              <strong>
+                {t("organizations:permissions.customRoles.specializedRoles")}
+              </strong>
+            </p>
           </CardContent>
         </Card>
-
-        {/* Custom Roles info */}
-        {!isFeatureAvailable("advancedPermissions") && (
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                {t("organizations:permissions.customRoles.title")}
-              </CardTitle>
-              <CardDescription>
-                {t("organizations:permissions.customRoles.description")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                {t("organizations:permissions.customRoles.explanation")}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                <strong>
-                  {t("organizations:permissions.customRoles.specializedRoles")}
-                </strong>
-              </p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-    </TooltipProvider>
+      )}
+    </div>
   );
 }
 
@@ -439,7 +477,7 @@ function CategoryGroup({
           key={meta.action}
           className="border-b hover:bg-accent/50 transition-colors"
         >
-          <td className="p-3 text-sm sticky left-0 bg-background">
+          <td className="p-3 text-sm sticky left-0 bg-background w-48 lg:w-auto">
             {t(`organizations:${meta.i18nKey}`)}
           </td>
           {ALL_ROLES.map((role) => {
@@ -498,7 +536,7 @@ function PermissionCell({
   if (canEdit) {
     return (
       <Checkbox
-        checked={granted}
+        checked={granted ?? false}
         onCheckedChange={onToggle}
         className="mx-auto"
       />
@@ -510,5 +548,109 @@ function PermissionCell({
     <Check className="mx-auto h-4 w-4 text-green-600" />
   ) : (
     <X className="mx-auto h-4 w-4 text-muted-foreground/40" />
+  );
+}
+
+// ─── Mobile Components ───────────────────────────────────────────
+
+interface MobileRoleSelectorProps {
+  selectedRole: OrganizationRole;
+  onRoleChange: (role: OrganizationRole) => void;
+  t: (key: string) => string;
+}
+
+function MobileRoleSelector({
+  selectedRole,
+  onRoleChange,
+  t,
+}: MobileRoleSelectorProps) {
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-medium">
+        {t("organizations:permissions.mobile.selectRole")}
+      </label>
+      <Select value={selectedRole} onValueChange={onRoleChange}>
+        <SelectTrigger>
+          <SelectValue>
+            <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${ROLE_COLORS[selectedRole]}`}>
+              {t(`organizations:${ROLE_I18N[selectedRole]}`)}
+            </span>
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {ALL_ROLES.map((role) => (
+            <SelectItem key={role} value={role}>
+              <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${ROLE_COLORS[role]}`}>
+                {t(`organizations:${ROLE_I18N[role]}`)}
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+interface MobilePermissionListProps {
+  role: OrganizationRole;
+  matrix: PermissionMatrix;
+  canEdit: boolean;
+  isProtected: (action: PermissionAction, role: OrganizationRole) => boolean;
+  togglePermission: (action: PermissionAction, role: OrganizationRole) => void;
+  grouped: Record<PermissionCategory, typeof PERMISSION_ACTIONS>;
+  t: (key: string) => string;
+}
+
+function MobilePermissionList({
+  role,
+  matrix,
+  canEdit,
+  isProtected,
+  togglePermission,
+  grouped,
+  t,
+}: MobilePermissionListProps) {
+  return (
+    <div className="space-y-4">
+      {CATEGORY_ORDER.map((category) => {
+        const actions = grouped[category];
+        if (!actions?.length) return null;
+
+        return (
+          <div key={category} className="space-y-2">
+            {/* Category Header */}
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-3 py-2 bg-muted/50 rounded">
+              {t(`organizations:${PERMISSION_CATEGORIES[category]}`)}
+            </h3>
+
+            {/* Permission Items */}
+            <div className="space-y-1">
+              {actions.map((meta) => {
+                const granted = matrix[meta.action]?.[role] === true;
+                const locked = isProtected(meta.action, role);
+
+                return (
+                  <div
+                    key={meta.action}
+                    className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                  >
+                    <span className="text-sm flex-1">
+                      {t(`organizations:${meta.i18nKey}`)}
+                    </span>
+                    <PermissionCell
+                      granted={granted}
+                      locked={locked}
+                      canEdit={canEdit}
+                      onToggle={() => togglePermission(meta.action, role)}
+                      t={t}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }

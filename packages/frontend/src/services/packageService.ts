@@ -155,3 +155,47 @@ export async function cancelMemberPackage(
     `/organizations/${organizationId}/member-packages/${packageId}/cancel`,
   );
 }
+
+// ============================================================================
+// My Packages (authenticated user's purchased packages)
+// ============================================================================
+
+export interface MyPackagesResponse {
+  memberId: string | null;
+  memberName: string | null;
+  packages: Array<{
+    id: string;
+    organizationId: string;
+    memberId: string;
+    packageDefinitionId: string;
+    packageName: string;
+    packageDescription: string | null;
+    purchaseDate: string;
+    expiresAt?: string;
+    remainingUnits: number;
+    totalUnits: number;
+    status: string;
+    isExpired: boolean;
+    daysUntilExpiry: number | null;
+  }>;
+}
+
+/**
+ * Get purchased packages for the authenticated user
+ * @param organizationId - Organization ID
+ * @param options - Query options
+ * @returns Promise with user's member packages
+ */
+export async function getMyPackages(
+  organizationId: string,
+  options?: { status?: string; limit?: number },
+): Promise<MyPackagesResponse> {
+  const params: Record<string, string> = {};
+  if (options?.status) params.status = options.status;
+  if (options?.limit) params.limit = options.limit.toString();
+
+  return apiClient.get<MyPackagesResponse>(
+    `/packages/my/${organizationId}/member-packages`,
+    Object.keys(params).length > 0 ? params : undefined,
+  );
+}

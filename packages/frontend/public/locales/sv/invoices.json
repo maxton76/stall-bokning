@@ -301,7 +301,7 @@
       "billingContactId": "Faktureringskontakt (ID)",
       "relationshipType": "Relationstyp",
       "memberCount": "Antal medlemmar",
-      "members": "Medlemmar (ID, kommaseparerade)"
+      "members": "Medlemmar"
     },
     "table": {
       "label": "Etikett",
@@ -326,7 +326,17 @@
     "placeholders": {
       "label": "t.ex. Familjen Andersson",
       "billingContactId": "Medlem-ID för faktureringskontakt",
-      "members": "id1, id2, id3"
+      "members": "Välj medlemmar..."
+    },
+    "hints": {
+      "membersSelected": "{{count}} medlem(mar) valda"
+    },
+    "memberSelection": {
+      "searchPlaceholder": "Sök medlemmar...",
+      "noMembersFound": "Inga medlemmar hittades",
+      "selected": "{{count}} valda",
+      "allMembers": "Alla medlemmar ({{count}})",
+      "membersSelected": "{{count}} medlem(mar) valda"
     },
     "messages": {
       "created": "Faktureringsgrupp skapad",

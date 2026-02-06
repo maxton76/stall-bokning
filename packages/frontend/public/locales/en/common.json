@@ -138,7 +138,9 @@
     "organization": "Organization",
     "roles": "Roles",
     "expires": "Expires",
-    "loginRequired": "You'll be redirected to sign up or log in to accept this invitation"
+    "loginRequired": "You'll be redirected to sign up or log in to accept this invitation",
+    "purchased": "Purchased",
+    "allStatuses": "All Statuses"
   },
   "status": {
     "active": "Active",
@@ -364,6 +366,22 @@
       "daysOverdue": "{{days}} days overdue",
       "noContact": "No billing account linked to your account",
       "noContactDescription": "Contact your stable administrator if you expect to see invoices here"
+    },
+    "packages": {
+      "title": "My Packages",
+      "subtitle": "View your purchased packages and remaining sessions",
+      "noPackages": "You have no packages",
+      "noPackagesDescription": "Packages you purchase will appear here",
+      "activePackages": "Active Packages",
+      "remainingUnits": "Remaining Sessions",
+      "expiringSoon": "Expiring Soon",
+      "daysUntilExpiry": "Expires in {{days}} days",
+      "expired": "Expired",
+      "depleted": "Depleted",
+      "noMember": "You are not registered as a member",
+      "noMemberDescription": "Contact your stable administrator if you expect to see packages here",
+      "unitsRemaining": "{{remaining}} of {{total}} remaining",
+      "expiresOn": "Expires {{date}}"
     }
   },
   "schedule": {

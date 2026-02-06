@@ -4,11 +4,8 @@ import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
 import type { AuthenticatedRequest } from "../types/index.js";
-import {
-  canAccessOrganization,
-  canManageOrganization,
-  isSystemAdmin,
-} from "../utils/authorization.js";
+import { isSystemAdmin } from "../utils/authorization.js";
+import { hasPermission } from "../utils/permissionEngine.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 
 export async function packagesRoutes(fastify: FastifyInstance) {
@@ -40,13 +37,10 @@ export async function packagesRoutes(fastify: FastifyInstance) {
           limit?: string;
         };
 
-        // Check organization access
+        // Check organization access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const hasAccess = await canAccessOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!hasAccess) {
+          const allowed = await hasPermission(user.uid, organizationId, "view_invoices");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message: "You do not have permission to access this organization",
@@ -103,13 +97,10 @@ export async function packagesRoutes(fastify: FastifyInstance) {
         };
         const data = request.body as any;
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, organizationId, "manage_prices");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
@@ -248,13 +239,10 @@ export async function packagesRoutes(fastify: FastifyInstance) {
         };
         const updates = request.body as any;
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, organizationId, "manage_prices");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
@@ -349,13 +337,10 @@ export async function packagesRoutes(fastify: FastifyInstance) {
           billingGroupId?: string;
         };
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, organizationId, "manage_invoices");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
@@ -484,13 +469,10 @@ export async function packagesRoutes(fastify: FastifyInstance) {
           limit?: string;
         };
 
-        // Check organization access
+        // Check organization access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const hasAccess = await canAccessOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!hasAccess) {
+          const allowed = await hasPermission(user.uid, organizationId, "view_invoices");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message: "You do not have permission to access this organization",
@@ -552,13 +534,10 @@ export async function packagesRoutes(fastify: FastifyInstance) {
           id: string;
         };
 
-        // Check organization access
+        // Check organization access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const hasAccess = await canAccessOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!hasAccess) {
+          const allowed = await hasPermission(user.uid, organizationId, "view_invoices");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message: "You do not have permission to access this organization",
@@ -636,13 +615,10 @@ export async function packagesRoutes(fastify: FastifyInstance) {
           lineItemId?: string;
         };
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, organizationId, "manage_invoices");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
@@ -792,13 +768,10 @@ export async function packagesRoutes(fastify: FastifyInstance) {
           id: string;
         };
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, organizationId, "manage_invoices");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
@@ -910,6 +883,123 @@ export async function packagesRoutes(fastify: FastifyInstance) {
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to cancel member package",
+        });
+      }
+    },
+  );
+
+  /**
+   * GET /my/:organizationId/member-packages
+   * Get purchased packages for the authenticated user (their own member packages).
+   * Used by the "My Packages" page so regular members can see their own klippkort
+   * without needing admin/portal access.
+   */
+  fastify.get(
+    "/my/:organizationId/member-packages",
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+        const { organizationId } = request.params as { organizationId: string };
+        const { status, limit = "50" } = request.query as {
+          status?: string;
+          limit?: string;
+        };
+
+        // Find member record for this user in this organization
+        const memberSnapshot = await db
+          .collection("organizationMembers")
+          .where("userId", "==", user.uid)
+          .where("organizationId", "==", organizationId)
+          .limit(1)
+          .get();
+
+        if (memberSnapshot.empty) {
+          return {
+            memberId: null,
+            memberName: null,
+            packages: [],
+          };
+        }
+
+        const memberDoc = memberSnapshot.docs[0];
+        const member = memberDoc.data();
+        const memberId = memberDoc.id;
+        const memberName = `${member.firstName} ${member.lastName}`;
+
+        // Query member packages
+        let query = db
+          .collection("memberPackages")
+          .where("organizationId", "==", organizationId)
+          .where("memberId", "==", memberId)
+          .orderBy("purchaseDate", "desc");
+
+        if (status) {
+          query = query.where("status", "==", status) as any;
+        }
+
+        const snapshot = await query.limit(parseInt(limit)).get();
+
+        // Enrich with package definition names and expiry info
+        const packageDefIds = new Set<string>();
+        snapshot.docs.forEach((doc) => {
+          const data = doc.data();
+          if (data.packageDefinitionId) {
+            packageDefIds.add(data.packageDefinitionId);
+          }
+        });
+
+        // Batch fetch package definitions for denormalization
+        const packageDefMap = new Map<string, any>();
+        if (packageDefIds.size > 0) {
+          const packageDefIdArray = Array.from(packageDefIds);
+          for (let i = 0; i < packageDefIdArray.length; i += 30) {
+            const batch = packageDefIdArray.slice(i, i + 30);
+            const defSnapshot = await db
+              .collection("packageDefinitions")
+              .where("__name__", "in", batch)
+              .get();
+            for (const defDoc of defSnapshot.docs) {
+              packageDefMap.set(defDoc.id, defDoc.data());
+            }
+          }
+        }
+
+        const now = new Date();
+        const packages = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          const packageDef = packageDefMap.get(data.packageDefinitionId);
+          const expiresAt = data.expiresAt?.toDate();
+          const isExpired = expiresAt && expiresAt < now;
+          const daysUntilExpiry = expiresAt
+            ? Math.floor(
+                (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+              )
+            : null;
+
+          return serializeTimestamps({
+            id: doc.id,
+            ...data,
+            packageName: packageDef?.name || "Unknown Package",
+            packageDescription: packageDef?.description || null,
+            isExpired: !!isExpired,
+            daysUntilExpiry,
+          });
+        });
+
+        return {
+          memberId,
+          memberName,
+          packages,
+        };
+      } catch (error) {
+        request.log.error(
+          { error },
+          "Failed to fetch user's own member packages",
+        );
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to fetch packages",
         });
       }
     },

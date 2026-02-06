@@ -5,11 +5,8 @@ import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
 import type { AuthenticatedRequest } from "../types/index.js";
-import {
-  canAccessOrganization,
-  canManageOrganization,
-  isSystemAdmin,
-} from "../utils/authorization.js";
+import { isSystemAdmin } from "../utils/authorization.js";
+import { hasPermission } from "../utils/permissionEngine.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 import { logInvoiceEvent } from "../utils/invoiceAudit.js";
 import type {
@@ -93,13 +90,10 @@ export async function disputesRoutes(fastify: FastifyInstance) {
         }
         const body: CreateDisputeData = parseResult.data;
 
-        // Check organization access
+        // Check organization access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const hasAccess = await canAccessOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!hasAccess) {
+          const allowed = await hasPermission(user.uid, organizationId, "view_invoices");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message: "You do not have permission to access this organization",
@@ -141,7 +135,7 @@ export async function disputesRoutes(fastify: FastifyInstance) {
         // The requesting user must be the invoice contact OR an org admin
         const isAdmin = isSystemAdmin(user.role)
           ? true
-          : await canManageOrganization(user.uid, organizationId);
+          : await hasPermission(user.uid, organizationId, "manage_invoices");
 
         if (!isAdmin) {
           // Non-admin: verify user is the contact on the invoice.
@@ -261,17 +255,14 @@ export async function disputesRoutes(fastify: FastifyInstance) {
           offset?: string;
         };
 
-        // Admin-only endpoint
+        // View-level access for listing disputes (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, organizationId, "view_invoices");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
-                "You do not have permission to manage disputes for this organization",
+                "You do not have permission to view disputes for this organization",
             });
           }
         }
@@ -355,10 +346,10 @@ export async function disputesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Access: admin OR dispute creator
+        // Access: view_invoices permission OR dispute creator (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const isAdmin = await canManageOrganization(user.uid, organizationId);
-          if (!isAdmin && dispute.createdBy !== user.uid) {
+          const allowed = await hasPermission(user.uid, organizationId, "view_invoices");
+          if (!allowed && dispute.createdBy !== user.uid) {
             return reply.status(403).send({
               error: "Forbidden",
               message: "You do not have permission to view this dispute",
@@ -452,10 +443,10 @@ export async function disputesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Access: admin OR dispute creator
+        // Access: manage_invoices permission OR dispute creator (V2 permission engine)
         const isAdmin = isSystemAdmin(user.role)
           ? true
-          : await canManageOrganization(user.uid, organizationId);
+          : await hasPermission(user.uid, organizationId, "manage_invoices");
 
         if (!isAdmin && dispute.createdBy !== user.uid) {
           return reply.status(403).send({
@@ -521,13 +512,10 @@ export async function disputesRoutes(fastify: FastifyInstance) {
           disputeId: string;
         };
 
-        // Admin-only
+        // Manage permission required (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, organizationId, "manage_invoices");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
@@ -603,13 +591,10 @@ export async function disputesRoutes(fastify: FastifyInstance) {
           disputeId: string;
         };
 
-        // Admin-only
+        // Manage permission required (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, organizationId, "manage_invoices");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
@@ -715,13 +700,10 @@ export async function disputesRoutes(fastify: FastifyInstance) {
           disputeId: string;
         };
 
-        // Admin-only
+        // Manage permission required (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, organizationId, "manage_invoices");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:

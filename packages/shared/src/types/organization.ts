@@ -13,7 +13,9 @@ import type { PermissionMatrix } from "./permissions.js";
  */
 export type OrganizationRole =
   | "administrator" // Full organization access
+  | "stable_manager" // Daily stable operations management
   | "schedule_planner" // Can manage routine selection processes
+  | "bookkeeper" // Day-to-day financial operations and invoicing
   | "veterinarian" // Animal health services
   | "dentist" // Equine dental services
   | "farrier" // Hoof care services

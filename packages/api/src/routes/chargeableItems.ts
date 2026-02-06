@@ -4,11 +4,7 @@ import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
 import type { AuthenticatedRequest } from "../types/index.js";
-import {
-  canAccessOrganization,
-  canManageOrganization,
-  isSystemAdmin,
-} from "../utils/authorization.js";
+import { hasPermission } from "../utils/permissionEngine.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 
 export async function chargeableItemsRoutes(fastify: FastifyInstance) {
@@ -41,18 +37,18 @@ export async function chargeableItemsRoutes(fastify: FastifyInstance) {
           limit?: string;
         };
 
-        // Check organization access
-        if (!isSystemAdmin(user.role)) {
-          const hasAccess = await canAccessOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!hasAccess) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to access this organization",
-            });
-          }
+        // Check organization access (V2 permission)
+        const canView = await hasPermission(
+          user.uid,
+          organizationId,
+          "view_invoices",
+          { systemRole: user.role },
+        );
+        if (!canView) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to access this organization",
+          });
         }
 
         // Build query
@@ -107,18 +103,18 @@ export async function chargeableItemsRoutes(fastify: FastifyInstance) {
           id: string;
         };
 
-        // Check organization access
-        if (!isSystemAdmin(user.role)) {
-          const hasAccess = await canAccessOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!hasAccess) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to access this organization",
-            });
-          }
+        // Check organization access (V2 permission)
+        const canView = await hasPermission(
+          user.uid,
+          organizationId,
+          "view_invoices",
+          { systemRole: user.role },
+        );
+        if (!canView) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to access this organization",
+          });
         }
 
         const doc = await db.collection("chargeableItems").doc(id).get();
@@ -168,19 +164,19 @@ export async function chargeableItemsRoutes(fastify: FastifyInstance) {
         };
         const data = request.body as any;
 
-        // Check organization management access
-        if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!canManage) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message:
-                "You do not have permission to manage chargeable items for this organization",
-            });
-          }
+        // Check organization management access (V2 permission)
+        const canManage = await hasPermission(
+          user.uid,
+          organizationId,
+          "manage_prices",
+          { systemRole: user.role },
+        );
+        if (!canManage) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message:
+              "You do not have permission to manage chargeable items for this organization",
+          });
         }
 
         // Validate required fields
@@ -262,19 +258,19 @@ export async function chargeableItemsRoutes(fastify: FastifyInstance) {
         };
         const updates = request.body as any;
 
-        // Check organization management access
-        if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!canManage) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message:
-                "You do not have permission to manage chargeable items for this organization",
-            });
-          }
+        // Check organization management access (V2 permission)
+        const canManage = await hasPermission(
+          user.uid,
+          organizationId,
+          "manage_prices",
+          { systemRole: user.role },
+        );
+        if (!canManage) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message:
+              "You do not have permission to manage chargeable items for this organization",
+          });
         }
 
         const docRef = db.collection("chargeableItems").doc(id);
@@ -338,19 +334,19 @@ export async function chargeableItemsRoutes(fastify: FastifyInstance) {
           id: string;
         };
 
-        // Check organization management access
-        if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!canManage) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message:
-                "You do not have permission to manage chargeable items for this organization",
-            });
-          }
+        // Check organization management access (V2 permission)
+        const canManage = await hasPermission(
+          user.uid,
+          organizationId,
+          "manage_prices",
+          { systemRole: user.role },
+        );
+        if (!canManage) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message:
+              "You do not have permission to manage chargeable items for this organization",
+          });
         }
 
         const docRef = db.collection("chargeableItems").doc(id);

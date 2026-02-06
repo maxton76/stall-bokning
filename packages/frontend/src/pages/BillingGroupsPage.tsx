@@ -63,11 +63,14 @@ import {
   createBillingGroup,
   updateBillingGroup,
   deleteBillingGroup,
+  addBillingGroupMember,
+  removeBillingGroupMember,
 } from "@/services/billingGroupService";
 import type {
   BillingGroup,
   BillingGroupRelationshipType,
 } from "@equiduty/shared";
+import { MemberMultiSelect } from "@/components/MemberMultiSelect";
 
 // ============================================================================
 // Constants
@@ -87,14 +90,14 @@ const RELATIONSHIP_TYPE_OPTIONS: BillingGroupRelationshipType[] = [
 
 interface BillingGroupFormState {
   billingContactId: string;
-  memberIdsText: string;
+  memberIds: string[];
   relationshipType: BillingGroupRelationshipType;
   label: string;
 }
 
 const EMPTY_FORM: BillingGroupFormState = {
   billingContactId: "",
-  memberIdsText: "",
+  memberIds: [],
   relationshipType: "parent",
   label: "",
 };
@@ -102,7 +105,7 @@ const EMPTY_FORM: BillingGroupFormState = {
 function formStateFromItem(item: BillingGroup): BillingGroupFormState {
   return {
     billingContactId: item.billingContactId,
-    memberIdsText: item.memberIds.join(", "),
+    memberIds: item.memberIds,
     relationshipType: item.relationshipType,
     label: item.label || "",
   };
@@ -192,12 +195,7 @@ export default function BillingGroupsPage() {
       return;
     }
 
-    const memberIds = formState.memberIdsText
-      .split(",")
-      .map((id) => id.trim())
-      .filter(Boolean);
-
-    if (memberIds.length === 0) {
+    if (formState.memberIds.length === 0) {
       toast({
         title: t("invoices:billingGroups.errors.membersRequired"),
         variant: "destructive",
@@ -208,16 +206,44 @@ export default function BillingGroupsPage() {
     setIsSaving(true);
     try {
       if (editingItem) {
+        // Update billing group metadata
         await updateBillingGroup(selectedOrganization, editingItem.id, {
           billingContactId: formState.billingContactId.trim(),
           relationshipType: formState.relationshipType,
           label: formState.label.trim() || undefined,
         });
+
+        // Sync members (add new, remove old)
+        const currentMemberIds = editingItem.memberIds;
+        const newMemberIds = formState.memberIds;
+
+        const toAdd = newMemberIds.filter(
+          (id) => !currentMemberIds.includes(id),
+        );
+        const toRemove = currentMemberIds.filter(
+          (id) => !newMemberIds.includes(id),
+        );
+
+        for (const memberId of toAdd) {
+          await addBillingGroupMember(
+            selectedOrganization,
+            editingItem.id,
+            memberId,
+          );
+        }
+        for (const memberId of toRemove) {
+          await removeBillingGroupMember(
+            selectedOrganization,
+            editingItem.id,
+            memberId,
+          );
+        }
+
         toast({ title: t("invoices:billingGroups.messages.updated") });
       } else {
         await createBillingGroup(selectedOrganization, {
           billingContactId: formState.billingContactId.trim(),
-          memberIds,
+          memberIds: formState.memberIds,
           relationshipType: formState.relationshipType,
           label: formState.label.trim() || undefined,
         });
@@ -482,17 +508,25 @@ export default function BillingGroupsPage() {
               />
             </div>
 
-            {/* Member IDs */}
+            {/* Member Selection */}
             <div className="grid gap-2">
               <Label htmlFor="bg-members">
                 {t("invoices:billingGroups.fields.members")} *
               </Label>
-              <Input
-                id="bg-members"
-                value={formState.memberIdsText}
-                onChange={(e) => updateField("memberIdsText", e.target.value)}
+              <MemberMultiSelect
+                organizationId={selectedOrganization!}
+                selectedMemberIds={formState.memberIds}
+                onChange={(memberIds) => updateField("memberIds", memberIds)}
                 placeholder={t("invoices:billingGroups.placeholders.members")}
+                disabled={isSaving}
               />
+              {formState.memberIds.length > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {t("invoices:billingGroups.hints.membersSelected", {
+                    count: formState.memberIds.length,
+                  })}
+                </p>
+              )}
             </div>
 
             {/* Relationship Type */}

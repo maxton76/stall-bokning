@@ -4,11 +4,8 @@ import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
 import type { AuthenticatedRequest } from "../types/index.js";
-import {
-  canAccessOrganization,
-  canManageOrganization,
-  isSystemAdmin,
-} from "../utils/authorization.js";
+import { isSystemAdmin } from "../utils/authorization.js";
+import { hasPermission } from "../utils/permissionEngine.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 
 export async function billingGroupsRoutes(fastify: FastifyInstance) {
@@ -35,13 +32,10 @@ export async function billingGroupsRoutes(fastify: FastifyInstance) {
           limit?: string;
         };
 
-        // Check organization access
+        // Check organization access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const hasAccess = await canAccessOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!hasAccess) {
+          const allowed = await hasPermission(user.uid, organizationId, "view_invoices");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message: "You do not have permission to access this organization",
@@ -121,13 +115,10 @@ export async function billingGroupsRoutes(fastify: FastifyInstance) {
           id: string;
         };
 
-        // Check organization access
+        // Check organization access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const hasAccess = await canAccessOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!hasAccess) {
+          const allowed = await hasPermission(user.uid, organizationId, "view_invoices");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message: "You do not have permission to access this organization",
@@ -182,13 +173,10 @@ export async function billingGroupsRoutes(fastify: FastifyInstance) {
         };
         const data = request.body as any;
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, organizationId, "manage_billing_groups");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
@@ -308,13 +296,10 @@ export async function billingGroupsRoutes(fastify: FastifyInstance) {
         };
         const updates = request.body as any;
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, organizationId, "manage_billing_groups");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
@@ -430,13 +415,10 @@ export async function billingGroupsRoutes(fastify: FastifyInstance) {
         };
         const { memberId } = request.body as { memberId: string };
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, organizationId, "manage_billing_groups");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
@@ -507,13 +489,10 @@ export async function billingGroupsRoutes(fastify: FastifyInstance) {
           memberId: string;
         };
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, organizationId, "manage_billing_groups");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
@@ -579,13 +558,10 @@ export async function billingGroupsRoutes(fastify: FastifyInstance) {
           id: string;
         };
 
-        // Check organization management access
+        // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageOrganization(
-            user.uid,
-            organizationId,
-          );
-          if (!canManage) {
+          const allowed = await hasPermission(user.uid, organizationId, "manage_billing_groups");
+          if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
               message:
