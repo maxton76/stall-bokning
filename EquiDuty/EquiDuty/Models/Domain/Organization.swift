@@ -13,13 +13,8 @@ enum OrganizationType: String, Codable, CaseIterable {
     case business = "business"
 }
 
-/// Subscription tier
-enum SubscriptionTier: String, Codable, CaseIterable {
-    case free = "free"
-    case basic = "basic"
-    case pro = "pro"
-    case enterprise = "enterprise"
-}
+// NOTE: SubscriptionTier moved to SubscriptionModels.swift
+// Import that file for dynamic subscription tier support
 
 /// Organization stats
 struct OrganizationStats: Codable, Equatable {

@@ -140,4 +140,20 @@ enum APIEndpoints {
     static let invites = "/invites"
     static func invite(_ token: String) -> String { "/invites/\(token)" }
     static func acceptInvite(_ token: String) -> String { "/invites/\(token)/accept" }
+
+    // MARK: - Permissions
+    static func userPermissions(organizationId: String) -> String {
+        "/organizations/\(organizationId)/permissions/my"
+    }
+
+    static func permissionMatrix(organizationId: String) -> String {
+        "/organizations/\(organizationId)/permissions/matrix"
+    }
+
+    // MARK: - Subscriptions
+    static let tierDefinitions = "/tiers"
+
+    static func organizationSubscription(organizationId: String) -> String {
+        "/organizations/\(organizationId)/subscription"
+    }
 }

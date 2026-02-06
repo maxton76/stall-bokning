@@ -11,7 +11,7 @@ import Foundation
 /// API configuration
 enum APIConfig {
     #if DEBUG
-    static let baseURL = "https://dev-api-service-wigho7gnca-ew.a.run.app"
+    static let baseURL = "https://dev-api-service-auky5oec3a-ew.a.run.app"
     #else
     // Production URL - uses Cloud Run service via custom domain
     // Configure via: GCP Cloud Run → Custom Domains → Map api.equiduty.com
@@ -58,6 +58,8 @@ enum APIError: Error, LocalizedError {
     case httpError(statusCode: Int, message: String?)
     case unauthorized
     case forbidden
+    case insufficientPermissions(action: String?)
+    case featureNotAvailable(module: String?)
     case notFound
     case serverError
     case unknown
@@ -75,9 +77,19 @@ enum APIError: Error, LocalizedError {
         case .httpError(let statusCode, let message):
             return message ?? String(localized: "error.api.http \(statusCode)")
         case .unauthorized:
-            return String(localized: "error.api.unauthorized")
+            return String(localized: "error.api.unauthorized You need to sign in to access this resource.")
         case .forbidden:
-            return String(localized: "error.api.forbidden")
+            return String(localized: "error.api.forbidden You don't have access to this resource.")
+        case .insufficientPermissions(let action):
+            if let action = action {
+                return String(localized: "error.permission.\(action) You don't have permission to perform this action.")
+            }
+            return String(localized: "error.permission.generic You don't have permission to perform this action.")
+        case .featureNotAvailable(let module):
+            if let module = module {
+                return String(localized: "error.feature.\(module) This feature is not available in your subscription plan.")
+            }
+            return String(localized: "error.feature.upgrade_required Upgrade your subscription to access this feature.")
         case .notFound:
             return String(localized: "error.api.not_found")
         case .serverError:
@@ -241,6 +253,10 @@ final class APIClient {
             throw APIError.invalidURL
         }
 
+        #if DEBUG
+        print("📡 API Request: \(method.rawValue) \(url.absoluteString)")
+        #endif
+
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -249,6 +265,14 @@ final class APIClient {
         // Add authorization header
         if let token = await tokenProvider?() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            #if DEBUG
+            print("🔑 Token (first 50 chars): \(String(token.prefix(50)))...")
+            print("🔑 Token length: \(token.count)")
+            #endif
+        } else {
+            #if DEBUG
+            print("⚠️ No token available from tokenProvider")
+            #endif
         }
 
         // Add body if present
@@ -269,6 +293,15 @@ final class APIClient {
             throw APIError.unknown
         }
 
+        #if DEBUG
+        print("📥 API Response: \(httpResponse.statusCode)")
+        if httpResponse.statusCode != 200 {
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("📥 Error Response Body: \(responseString)")
+            }
+        }
+        #endif
+
         // Handle error status codes
         switch httpResponse.statusCode {
         case 200...299:
@@ -276,6 +309,30 @@ final class APIClient {
         case 401:
             throw APIError.unauthorized
         case 403:
+            // Parse error response to determine type
+            let errorResponse = try? decoder.decode(APIErrorResponse.self, from: data)
+
+            // Check for permission-related errors
+            if let message = errorResponse?.message?.lowercased() {
+                if message.contains("permission") {
+                    // Invalidate permission cache - user's permissions may have changed
+                    Task { @MainActor in
+                        if let orgId = AuthService.shared.selectedOrganization?.id {
+                            PermissionService.shared.invalidateCache(organizationId: orgId)
+                        }
+                    }
+                    throw APIError.insufficientPermissions(action: errorResponse?.error)
+                } else if message.contains("feature") || message.contains("subscription") {
+                    // Invalidate subscription cache
+                    Task { @MainActor in
+                        if let orgId = AuthService.shared.selectedOrganization?.id {
+                            SubscriptionService.shared.invalidateCache(organizationId: orgId)
+                        }
+                    }
+                    throw APIError.featureNotAvailable(module: errorResponse?.error)
+                }
+            }
+
             throw APIError.forbidden
         case 404:
             throw APIError.notFound

@@ -166,6 +166,27 @@ final class AuthService {
             // Restore selected organization
             restoreSelectedContext()
 
+            // Load subscription tier definitions (cached globally)
+            Task {
+                do {
+                    try await SubscriptionService.shared.fetchTierDefinitions()
+                    #if DEBUG
+                    print("✅ Loaded \(SubscriptionService.shared.tierDefinitions.count) subscription tiers")
+                    #endif
+                } catch {
+                    #if DEBUG
+                    print("⚠️ Failed to load tier definitions: \(error)")
+                    #endif
+                }
+            }
+
+            // Load subscription and permissions for selected organization
+            if let orgId = selectedOrganization?.id {
+                Task {
+                    await loadOrganizationContext(organizationId: orgId)
+                }
+            }
+
             isLoading = false
         } catch {
             #if DEBUG
@@ -196,6 +217,14 @@ final class AuthService {
         selectedStable = nil
         authState = .signedOut
         keychain.clearAll()
+
+        // Clear permission and subscription caches
+        PermissionService.shared.clearCache()
+        SubscriptionService.shared.clearCache()
+
+        #if DEBUG
+        print("✅ Cleared all auth state, permissions, and subscription data")
+        #endif
     }
 
     private func restoreSelectedContext() {
@@ -207,11 +236,62 @@ final class AuthService {
             selectedOrganization = organizations.first
         }
 
-        // Fetch stables for the selected organization
+        // Load organization context (stables, permissions, subscription)
         if let orgId = selectedOrganization?.id {
             Task {
-                await fetchAndRestoreStable(organizationId: orgId)
+                await loadOrganizationContext(organizationId: orgId)
             }
+        }
+    }
+
+    /// Load complete organization context (stables, permissions, subscription)
+    private func loadOrganizationContext(organizationId: String) async {
+        // Load in parallel: stables, permissions, subscription
+        async let stablesTask = fetchAndRestoreStable(organizationId: organizationId)
+        async let permissionsTask = loadPermissions(organizationId: organizationId)
+        async let subscriptionTask = loadSubscription(organizationId: organizationId)
+
+        // Wait for all to complete
+        _ = await (stablesTask, permissionsTask, subscriptionTask)
+    }
+
+    /// Load user permissions for organization
+    private func loadPermissions(organizationId: String) async {
+        do {
+            try await PermissionService.shared.fetchPermissions(organizationId: organizationId)
+            #if DEBUG
+            print("✅ Loaded permissions for organization: \(organizationId)")
+            if let permissions = PermissionService.shared.userPermissions {
+                print("   - Roles: \(permissions.roles.map { $0.rawValue }.joined(separator: ", "))")
+                print("   - Is Owner: \(permissions.isOrgOwner)")
+                print("   - Is System Admin: \(permissions.isSystemAdmin)")
+                print("   - Granted Permissions: \(permissions.grantedPermissions.count)")
+            }
+            #endif
+        } catch {
+            #if DEBUG
+            print("⚠️ Failed to load permissions: \(error)")
+            #endif
+        }
+    }
+
+    /// Load organization subscription
+    private func loadSubscription(organizationId: String) async {
+        do {
+            try await SubscriptionService.shared.fetchSubscription(organizationId: organizationId)
+            #if DEBUG
+            print("✅ Loaded subscription for organization: \(organizationId)")
+            if let subscription = SubscriptionService.shared.currentSubscription {
+                print("   - Tier: \(subscription.tier.value)")
+                print("   - Has Invoicing: \(subscription.addons.invoicing)")
+                print("   - Has Portal: \(subscription.addons.portal)")
+                print("   - Analytics: \(subscription.modules.analytics)")
+            }
+            #endif
+        } catch {
+            #if DEBUG
+            print("⚠️ Failed to load subscription: \(error)")
+            #endif
         }
     }
 
@@ -369,6 +449,31 @@ final class AuthService {
         }
     }
 
+    // MARK: - Organization Selection
+
+    /// Select a different organization and load its context
+    func selectOrganization(_ organization: Organization) {
+        selectedOrganization = organization
+        selectedStable = nil  // Clear stable selection
+
+        // Load organization context (stables, permissions, subscription)
+        Task {
+            await loadOrganizationContext(organizationId: organization.id)
+        }
+
+        #if DEBUG
+        print("✅ Switched to organization: \(organization.name) (id: \(organization.id))")
+        #endif
+    }
+
+    /// Select a stable within the current organization
+    func selectStable(_ stable: Stable) {
+        selectedStable = stable
+        #if DEBUG
+        print("✅ Switched to stable: \(stable.name) (id: \(stable.id))")
+        #endif
+    }
+
     // MARK: - Refresh User Data
 
     /// Refresh user data from API
@@ -390,6 +495,22 @@ final class AuthService {
         }
 
         restoreSelectedContext()
+
+        // Refresh tier definitions
+        Task {
+            try? await SubscriptionService.shared.fetchTierDefinitions()
+        }
+
+        // Refresh permissions and subscription for selected organization
+        if let orgId = selectedOrganization?.id {
+            // Invalidate caches to force refresh
+            PermissionService.shared.invalidateCache(organizationId: orgId)
+            SubscriptionService.shared.invalidateCache(organizationId: orgId)
+
+            Task {
+                await loadOrganizationContext(organizationId: orgId)
+            }
+        }
     }
 }
 

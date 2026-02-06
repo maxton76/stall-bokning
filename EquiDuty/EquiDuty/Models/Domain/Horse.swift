@@ -651,3 +651,110 @@ struct VaccinationRecordsResponse: Codable {
 struct VaccinationRulesResponse: Codable {
     let rules: [VaccinationRule]
 }
+
+// MARK: - RBAC Extension
+
+/// Field-level access control extension for Horse
+extension Horse {
+    /// 5 access levels matching backend horseProjection.ts
+    enum AccessLevel: String, Codable, CaseIterable {
+        case publicLevel = "public"         // Level 1: Basic info
+        case basicCare = "basic_care"       // Level 2: Care instructions
+        case professional                    // Level 3: Medical/ID data
+        case management                      // Level 4: Owner info
+        case owner                           // Level 5: Full access
+
+        var numericLevel: Int {
+            switch self {
+            case .publicLevel: return 1
+            case .basicCare: return 2
+            case .professional: return 3
+            case .management: return 4
+            case .owner: return 5
+            }
+        }
+
+        var displayName: String {
+            switch self {
+            case .publicLevel: return String(localized: "horse.access_level.public")
+            case .basicCare: return String(localized: "horse.access_level.basic_care")
+            case .professional: return String(localized: "horse.access_level.professional")
+            case .management: return String(localized: "horse.access_level.management")
+            case .owner: return String(localized: "horse.access_level.owner")
+            }
+        }
+    }
+
+    /// Parsed access level from API response metadata
+    var accessLevel: AccessLevel? {
+        guard let levelString = _accessLevel else { return nil }
+        return AccessLevel(rawValue: levelString)
+    }
+
+    /// Whether current user owns this horse
+    var isOwner: Bool { _isOwner ?? false }
+}
+
+/// Field-level access requirements for horse data
+enum HorseField {
+    // Level 1: Public (all members)
+    case name, breed, age, color, gender, currentStableName, status
+
+    // Level 2: Basic Care (grooms, riders)
+    case notes, specialInstructions, equipment, usage, hasSpecialInstructions
+
+    // Level 3: Professional (vets, farriers, dentists)
+    case ueln, chipNumber, dateOfBirth, withersHeight
+    case sire, dam, damsire, breeder, studbook
+
+    // Level 4: Management (administrators, managers)
+    case ownerName, ownerEmail, horseGroupName
+    case federationNumber, feiPassNumber, feiExpiryDate
+
+    // Level 5: Owner (full access) - no specific fields, just the ownership flag
+
+    var requiredLevel: Horse.AccessLevel {
+        switch self {
+        case .name, .breed, .age, .color, .gender, .currentStableName, .status:
+            return .publicLevel
+        case .notes, .specialInstructions, .equipment, .usage, .hasSpecialInstructions:
+            return .basicCare
+        case .ueln, .chipNumber, .dateOfBirth, .withersHeight, .sire, .dam, .damsire, .breeder, .studbook:
+            return .professional
+        case .ownerName, .ownerEmail, .horseGroupName, .federationNumber, .feiPassNumber, .feiExpiryDate:
+            return .management
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .name: return String(localized: "horse.field.name")
+        case .breed: return String(localized: "horse.field.breed")
+        case .age: return String(localized: "horse.field.age")
+        case .color: return String(localized: "horse.field.color")
+        case .gender: return String(localized: "horse.field.gender")
+        case .currentStableName: return String(localized: "horse.field.current_stable")
+        case .status: return String(localized: "horse.field.status")
+        case .notes: return String(localized: "horse.field.notes")
+        case .specialInstructions: return String(localized: "horse.field.special_instructions")
+        case .equipment: return String(localized: "horse.field.equipment")
+        case .usage: return String(localized: "horse.field.usage")
+        case .hasSpecialInstructions: return String(localized: "horse.field.has_special_instructions")
+        case .ueln: return String(localized: "horse.field.ueln")
+        case .chipNumber: return String(localized: "horse.field.chip_number")
+        case .dateOfBirth: return String(localized: "horse.field.date_of_birth")
+        case .withersHeight: return String(localized: "horse.field.withers_height")
+        case .sire: return String(localized: "horse.field.sire")
+        case .dam: return String(localized: "horse.field.dam")
+        case .damsire: return String(localized: "horse.field.damsire")
+        case .breeder: return String(localized: "horse.field.breeder")
+        case .studbook: return String(localized: "horse.field.studbook")
+        case .ownerName: return String(localized: "horse.field.owner_name")
+        case .ownerEmail: return String(localized: "horse.field.owner_email")
+        case .horseGroupName: return String(localized: "horse.field.horse_group")
+        case .federationNumber: return String(localized: "horse.field.federation_number")
+        case .feiPassNumber: return String(localized: "horse.field.fei_pass_number")
+        case .feiExpiryDate: return String(localized: "horse.field.fei_expiry_date")
+        }
+    }
+}

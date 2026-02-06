@@ -382,7 +382,8 @@ struct StableSelectionView: View {
             } else {
                 ForEach(stables) { stable in
                     Button {
-                        authService.selectedStable = stable
+                        // NEW: Use selectStable() method
+                        authService.selectStable(stable)
                         dismiss()
                     } label: {
                         HStack {
@@ -453,8 +454,8 @@ struct OrganizationSelectionView: View {
             } else {
                 ForEach(authService.organizations) { org in
                     Button {
-                        authService.selectedOrganization = org
-                        authService.selectedStable = nil
+                        // NEW: Use selectOrganization() to auto-load permissions + subscription
+                        authService.selectOrganization(org)
                         dismiss()
                     } label: {
                         HStack {
