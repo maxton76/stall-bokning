@@ -212,6 +212,9 @@ const ChargeableItemsPage = lazy(() => import("./pages/ChargeableItemsPage"));
 const TrainerCommissionPage = lazy(
   () => import("./pages/TrainerCommissionPage"),
 );
+const OrganizationHorseGroupsPage = lazy(
+  () => import("./pages/OrganizationHorseGroupsPage"),
+);
 const InvoicePayPage = lazy(() => import("./pages/InvoicePayPage"));
 const PaymentSuccessPage = lazy(() => import("./pages/PaymentSuccessPage"));
 const PaymentCancelPage = lazy(() => import("./pages/PaymentCancelPage"));
@@ -635,6 +638,10 @@ export const router = createBrowserRouter([
             path: "/organizations/:organizationId/trainer-commissions",
             element: withSuspense(TrainerCommissionPage),
           },
+          {
+            path: "/organizations/:organizationId/horse-groups",
+            element: withSuspense(OrganizationHorseGroupsPage),
+          },
 
           // Contacts
           { path: "/contacts", element: withSuspense(ContactsPage) },
@@ -712,6 +719,10 @@ export const router = createBrowserRouter([
             element: withSuspense(PortalMessagesPage),
           },
           { path: "/portal/profile", element: withSuspense(PortalProfilePage) },
+          {
+            path: "/portal/packages",
+            element: withSuspense(PackagePurchasePage),
+          },
           {
             path: "/portal/packages/:packageId",
             element: withSuspense(PackagePurchasePage),

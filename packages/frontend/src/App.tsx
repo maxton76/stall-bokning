@@ -1082,6 +1082,14 @@ function App() {
                       }
                     />
                     <Route
+                      path="/portal/packages"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <PackagePurchasePage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
                       path="/portal/packages/:packageId"
                       element={
                         <Suspense fallback={<InlineLoader />}>

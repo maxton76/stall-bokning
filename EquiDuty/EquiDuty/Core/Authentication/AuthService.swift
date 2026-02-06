@@ -69,7 +69,7 @@ final class AuthService {
     /// Store listener handle - kept for reference but cleanup not needed
     /// Note: As a singleton, AuthService lives for the app's lifetime, so deinit is never called.
     /// Firebase Auth automatically handles listener cleanup when the app terminates.
-    private var authStateListener: AuthStateDidChangeListenerHandle?
+    private nonisolated(unsafe) var authStateListener: AuthStateDidChangeListenerHandle?
 
     private init() {
         // Delay setup until Firebase is configured

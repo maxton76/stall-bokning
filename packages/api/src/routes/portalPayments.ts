@@ -139,6 +139,49 @@ export async function portalPaymentsRoutes(fastify: FastifyInstance) {
   fastify.addHook("preHandler", checkModuleAccess("invoicing"));
 
   // ============================================
+  // PACKAGE LIST
+  // ============================================
+
+  /**
+   * GET /portal/packages
+   * List active packages available for purchase by portal users.
+   */
+  fastify.get(
+    "/packages",
+    {
+      preHandler: [authenticate, requirePortalAccess],
+    },
+    async (request, reply) => {
+      try {
+        const portal = (
+          request as FastifyRequest & { portalUser: PortalPaymentUser }
+        ).portalUser;
+
+        const snapshot = await db
+          .collection("packageDefinitions")
+          .where("organizationId", "==", portal.organizationId)
+          .where("status", "==", "active")
+          .get();
+
+        const packages = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        return {
+          packages: (packages as unknown[]).map(serializeTimestamps),
+        };
+      } catch (error) {
+        request.log.error({ error }, "Failed to fetch portal packages");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to fetch packages",
+        });
+      }
+    },
+  );
+
+  // ============================================
   // PACKAGE PURCHASE
   // ============================================
 

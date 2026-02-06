@@ -411,6 +411,12 @@ export function createOrganizationNavigation(
           icon: Coins,
         },
         {
+          id: "org-horseGroups",
+          labelKey: "organizations:menu.horseGroups",
+          href: `/organizations/${organizationId}/horse-groups`,
+          icon: HorseIcon,
+        },
+        {
           id: "org-settings",
           labelKey: "organizations:menu.settings",
           href: `/organizations/${organizationId}/settings`,

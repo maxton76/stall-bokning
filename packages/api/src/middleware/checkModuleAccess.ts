@@ -71,7 +71,22 @@ export function checkModuleAccess(moduleKey: ModuleOrAddonKey) {
     // Extract organizationId only from URL params (never from body to prevent spoofing)
     const params = request.params as Record<string, string>;
 
-    const organizationId = params?.organizationId || params?.orgId || undefined;
+    let organizationId = params?.organizationId || params?.orgId || undefined;
+
+    // Fallback: resolve organizationId from stableId if present
+    if (!organizationId && params?.stableId) {
+      try {
+        const stableDoc = await db
+          .collection("stables")
+          .doc(params.stableId)
+          .get();
+        if (stableDoc.exists) {
+          organizationId = stableDoc.data()?.organizationId;
+        }
+      } catch {
+        // Fall through to the !organizationId check below
+      }
+    }
 
     if (!organizationId) {
       return reply.status(400).send({
