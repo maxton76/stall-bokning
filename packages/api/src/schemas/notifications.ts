@@ -27,6 +27,16 @@ export const notificationTypeSchema = z.enum([
   "daily_summary",
   "weekly_summary",
   "system_alert",
+  "selection_turn_started",
+  "selection_process_completed",
+  "membership_invite",
+  "membership_invite_response",
+  "feature_request_status_change",
+  "feature_request_admin_response",
+  "trial_expiring",
+  "subscription_expiring",
+  "payment_failed",
+  "payment_method_required",
 ]);
 
 export const notificationPrioritySchema = z.enum([
@@ -65,7 +75,17 @@ export const createNotificationSchema = z.object({
   bodyKey: z.string().max(200).optional(),
   bodyParams: z.record(z.string()).optional(),
   entityType: z
-    .enum(["activity", "recurringActivity", "instance", "horse", "stable"])
+    .enum([
+      "activity",
+      "recurringActivity",
+      "instance",
+      "horse",
+      "stable",
+      "organizationMember",
+      "organization",
+      "featureRequest",
+      "support_ticket",
+    ])
     .optional(),
   entityId: z.string().optional(),
   channels: z.array(notificationChannelSchema).optional(),

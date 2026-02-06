@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import { getCareActivities } from "@/services/activityService";
-import { getStableHorses } from "@/services/horseService";
+import { getStableHorses, getMyHorses } from "@/services/horseService";
 import { getActivityTypesByStable } from "@/services/activityTypeService";
 import { getOrganizationHorseGroups } from "@/services/horseGroupService";
 import type { Activity, ActivityTypeConfig } from "@/types/activity";
@@ -14,6 +14,8 @@ interface UseActivityPageStateProps {
   organizationId?: string;
   activityLoader?: (stableIds: string | string[]) => Promise<Activity[]>;
   includeGroups?: boolean;
+  /** When "my", loads only owned horses and filters activities to those horses */
+  scope?: "stable" | "my";
 }
 
 /**
@@ -44,18 +46,55 @@ export function useActivityPageState({
   organizationId,
   activityLoader = getCareActivities,
   includeGroups = true,
+  scope = "stable",
 }: UseActivityPageStateProps) {
   const [selectedStableId, setSelectedStableId] = useState<string>("all");
 
   // Get stable IDs for multi-stable queries
   const stableIds = stables.map((s) => s.id);
 
+  // --- scope="my": Load owned horses first, derive stableIds from them ---
+  const myHorsesQuery = useApiQuery<Horse[]>(
+    queryKeys.horses.list({ scope: "my", context: "activities-care" }),
+    () => getMyHorses(),
+    {
+      enabled: scope === "my" && !!user,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
+
+  // Derive stable IDs from owned horses for activity/type loading
+  const derivedStableIds = useMemo(() => {
+    if (scope !== "my" || !myHorsesQuery.data) return [];
+    const ids = new Set<string>();
+    for (const horse of myHorsesQuery.data) {
+      if (horse.currentStableId) ids.add(horse.currentStableId);
+    }
+    return Array.from(ids);
+  }, [scope, myHorsesQuery.data]);
+
+  const ownedHorseIds = useMemo(() => {
+    if (scope !== "my" || !myHorsesQuery.data) return new Set<string>();
+    return new Set(myHorsesQuery.data.map((h) => h.id));
+  }, [scope, myHorsesQuery.data]);
+
   // Load activities for selected stable(s)
   const activitiesQuery = useApiQuery<Activity[]>(
     queryKeys.activities.care(
-      selectedStableId === "all" ? stableIds : selectedStableId,
+      scope === "my"
+        ? ["my", ...derivedStableIds]
+        : selectedStableId === "all"
+          ? stableIds
+          : selectedStableId,
     ),
     async () => {
+      if (scope === "my") {
+        if (derivedStableIds.length === 0) return [];
+        const allActivities = await activityLoader(derivedStableIds);
+        // Filter to only owned horses
+        return allActivities.filter((a) => ownedHorseIds.has(a.horseId));
+      }
+
       if (!selectedStableId) return [];
 
       // If "all" is selected, get activities from all stables
@@ -67,7 +106,10 @@ export function useActivityPageState({
       return await activityLoader(selectedStableId);
     },
     {
-      enabled: !!selectedStableId && stables.length > 0,
+      enabled:
+        scope === "my"
+          ? derivedStableIds.length > 0
+          : !!selectedStableId && stables.length > 0,
       staleTime: 2 * 60 * 1000,
       refetchOnWindowFocus: true,
     },
@@ -76,12 +118,30 @@ export function useActivityPageState({
   // Load activity types for selected stable(s)
   const activityTypesQuery = useApiQuery<ActivityTypeConfig[]>(
     queryKeys.activityTypes.byStable(
-      selectedStableId === "all"
-        ? stableIds.sort().join(",")
-        : selectedStableId || "",
+      scope === "my"
+        ? ["my", ...derivedStableIds].sort().join(",")
+        : selectedStableId === "all"
+          ? stableIds.sort().join(",")
+          : selectedStableId || "",
       true,
     ),
     async () => {
+      if (scope === "my") {
+        if (derivedStableIds.length === 0) return [];
+        const allTypes: ActivityTypeConfig[] = [];
+        const seenNames = new Set<string>();
+        for (const sid of derivedStableIds) {
+          const types = await getActivityTypesByStable(sid, true);
+          types.forEach((type) => {
+            if (!seenNames.has(type.name)) {
+              seenNames.add(type.name);
+              allTypes.push(type);
+            }
+          });
+        }
+        return allTypes;
+      }
+
       if (!selectedStableId) return [];
 
       // If "all" is selected, get activity types from all stables and merge them
@@ -107,12 +167,16 @@ export function useActivityPageState({
       return await getActivityTypesByStable(selectedStableId, true);
     },
     {
-      enabled: !!selectedStableId && stables.length > 0,
+      enabled:
+        scope === "my"
+          ? derivedStableIds.length > 0
+          : !!selectedStableId && stables.length > 0,
       staleTime: 5 * 60 * 1000,
     },
   );
 
   // Load horses for selected stable(s) - gets ALL horses in stable, not just user's
+  // When scope="my", we use myHorsesQuery directly instead
   const horsesQuery = useApiQuery<Horse[]>(
     queryKeys.horses.list({
       stableId: selectedStableId,
@@ -136,7 +200,8 @@ export function useActivityPageState({
       return await getStableHorses(selectedStableId);
     },
     {
-      enabled: !!selectedStableId && !!user && stables.length > 0,
+      enabled:
+        scope !== "my" && !!selectedStableId && !!user && stables.length > 0,
       staleTime: 5 * 60 * 1000,
     },
   );
@@ -150,6 +215,9 @@ export function useActivityPageState({
       staleTime: 5 * 60 * 1000,
     },
   );
+
+  // Select horse data source based on scope
+  const effectiveHorsesQuery = scope === "my" ? myHorsesQuery : horsesQuery;
 
   // Backward-compatible return structure that matches useAsyncData interface
   return {
@@ -174,10 +242,10 @@ export function useActivityPageState({
       },
     },
     horses: {
-      data: horsesQuery.data ?? [],
-      loading: horsesQuery.isLoading,
-      error: horsesQuery.error,
-      load: horsesQuery.refetch,
+      data: effectiveHorsesQuery.data ?? [],
+      loading: effectiveHorsesQuery.isLoading,
+      error: effectiveHorsesQuery.error,
+      load: effectiveHorsesQuery.refetch,
       reload: async () => {
         await cacheInvalidation.horses.lists();
       },

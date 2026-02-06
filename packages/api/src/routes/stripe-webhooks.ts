@@ -31,6 +31,7 @@ import {
   syncAccountStatus,
   handleAccountDeauthorized,
 } from "../utils/stripeConnect.js";
+import { createInAppNotification } from "../utils/notifications.js";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import type { StripeSubscriptionStatus } from "@equiduty/shared";
 
@@ -646,12 +647,47 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, log: any) {
     "Invoice payment failed, marked past_due",
   );
 
-  // TODO(Phase 8 — Notification System Integration):
-  // Send payment failure notification to org owner/admins.
-  // Use the notification system (packages/functions/src/lib/smtp.ts for email,
-  // plus in-app via Firestore notifications collection).
-  // Include: invoice amount, failure reason, link to update payment method.
-  // See docs/IMPLEMENTATION_PLAN.md for notification system roadmap.
+  // Send payment failure notification to org owner
+  try {
+    const orgDoc = await db
+      .collection("organizations")
+      .doc(organizationId)
+      .get();
+    if (!orgDoc.exists) return;
+
+    const org = orgDoc.data()!;
+    const ownerId = org.ownerId;
+    if (!ownerId) return;
+
+    await createInAppNotification({
+      userId: ownerId,
+      type: "payment_failed",
+      priority: "urgent",
+      title: "Payment failed",
+      titleKey: "notifications.paymentFailed.title",
+      body: `We couldn't process the payment for ${org.name}. Please update your payment method to avoid service interruption.`,
+      bodyKey: "notifications.paymentFailed.body",
+      bodyParams: {
+        organizationName: org.name,
+      },
+      entityType: "organization",
+      entityId: organizationId,
+      channels: ["inApp", "email"],
+      actionUrl: "/settings/billing",
+      organizationId,
+    });
+
+    log.info(
+      { organizationId, ownerId },
+      "Created payment_failed notification for org owner",
+    );
+  } catch (notifyError) {
+    log.error(
+      { err: notifyError, organizationId },
+      "Failed to create payment_failed notification",
+    );
+    // Don't throw - the main webhook processing succeeded
+  }
 }
 
 /**

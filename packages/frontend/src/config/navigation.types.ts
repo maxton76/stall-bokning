@@ -11,7 +11,12 @@ export interface NavigationSubItem {
   icon: LucideIcon;
   roles?: string[];
   badge?: "new" | "beta";
+  /** If set, item is only visible for this organization type (default: "any") */
+  visibleForOrgType?: OrgTypeVisibility;
 }
+
+/** Organization type for navigation visibility */
+export type OrgTypeVisibility = "personal" | "business" | "any";
 
 /**
  * Navigation item configuration
@@ -28,6 +33,8 @@ export interface NavigationItem {
   moduleFlag?: keyof ModuleFlags;
   /** If set, item is only visible when this addon is enabled */
   addonFlag?: keyof SubscriptionAddons;
+  /** If set, item is only visible for this organization type (default: "any") */
+  visibleForOrgType?: OrgTypeVisibility;
 }
 
 /**

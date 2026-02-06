@@ -20,7 +20,13 @@
     "weekly_summary": "Veckosammanfattning",
     "system": "Systemmeddelande",
     "membership_invite": "Organisationsinbjudan",
-    "membership_invite_response": "Inbjudningssvar"
+    "membership_invite_response": "Inbjudningssvar",
+    "feature_request_status_change": "Statusuppdatering för förslag",
+    "feature_request_admin_response": "Svar på förslag",
+    "trial_expiring": "Provperiod går ut",
+    "subscription_expiring": "Prenumeration avslutas",
+    "payment_failed": "Betalning misslyckades",
+    "payment_method_required": "Betalningsmetod krävs"
   },
   "membershipInvite": {
     "title": "Organisationsinbjudan",
@@ -30,6 +36,30 @@
   "membershipInviteResponse": {
     "title": "Inbjudningssvar",
     "body": "{{userEmail}} {{reason}} inbjudan till {{organizationName}}"
+  },
+  "featureRequestStatusChange": {
+    "title": "Statusuppdatering för funktionsförslag",
+    "body": "Ditt förslag \"{{title}}\" har fått ny status: {{status}}"
+  },
+  "featureRequestAdminResponse": {
+    "title": "Svar på funktionsförslag",
+    "body": "En administratör har svarat på ditt förslag \"{{title}}\""
+  },
+  "trialExpiring": {
+    "title": "Din provperiod går snart ut",
+    "body": "Provperioden för {{organizationName}} går ut om {{days}} dagar. Lägg till en betalningsmetod för att fortsätta använda alla funktioner."
+  },
+  "subscriptionExpiring": {
+    "title": "Din prenumeration avslutas snart",
+    "body": "Prenumerationen för {{organizationName}} avslutas om {{days}} dagar. Kontakta oss om du vill fortsätta."
+  },
+  "paymentFailed": {
+    "title": "Betalning misslyckades",
+    "body": "Vi kunde inte genomföra betalningen för {{organizationName}}. Uppdatera din betalningsmetod för att undvika avbrott i tjänsten."
+  },
+  "paymentMethodRequired": {
+    "title": "Betalningsmetod krävs",
+    "body": "Provperioden för {{organizationName}} går snart ut. Lägg till en betalningsmetod för att fortsätta."
   },
   "priority": {
     "urgent": "Brådskande",

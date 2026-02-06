@@ -14,7 +14,13 @@
     "createFirst": "Create Your First Organization",
     "viewAll": "View All Organizations"
   },
+  "switcher": {
+    "businessOrganizations": "Organizations",
+    "personal": "Personal",
+    "active": "Active"
+  },
   "menu": {
+    "administration": "Administration",
     "members": "Members",
     "integrations": "Integrations",
     "manure": "Manure",
@@ -25,7 +31,10 @@
     "scheduleManagement": "Schedule Management",
     "chargeableItems": "Chargeable Items",
     "billingGroups": "Billing Groups",
-    "trainerCommissions": "Trainer Commissions"
+    "trainerCommissions": "Trainer Commissions",
+    "facilities": "Facilities",
+    "stables": "Stables",
+    "manageFacilities": "Manage Facilities"
   },
   "form": {
     "title": {
@@ -110,7 +119,34 @@
     },
     "reinvite": "Re-invite",
     "confirmReinvite": "Re-invite {{email}} to this organization?",
-    "deleteMember": "Delete Member"
+    "deleteMember": "Delete Member",
+    "removeMember": {
+      "title": "Remove Member",
+      "confirmText": "Are you sure you want to remove {{name}} from this organization?",
+      "checkingHorses": "Checking for horses owned by this member...",
+      "horseWarningTitle": "Member owns horses",
+      "horseWarning": "{{name}} owns {{count}} horse(s) that are currently stabled here. Please choose what should happen to these horses.",
+      "affectedHorses": "Affected horses",
+      "andMoreHorses": "...and {{count}} more",
+      "whatShouldHappen": "What should happen to the horses?",
+      "transferToStable": "Transfer to stable",
+      "transferToStableDescription": "The horses become stable-owned. The organization will manage them.",
+      "leaveWithMember": "Leave with member",
+      "leaveWithMemberDescription": "The member keeps their horses. They will be unassigned from the stable.",
+      "confirm": "Remove Member",
+      "confirmWithHorses": "Transfer & Remove",
+      "removing": "Removing...",
+      "failed": "Failed to remove member",
+      "failedDescription": "An error occurred while removing the member. Please try again.",
+      "transferFailed": "Failed to transfer horses",
+      "transferFailedDescription": "Could not transfer horse ownership. Please try again.",
+      "horsesTransferred": "Horses transferred",
+      "horsesTransferredDescription": "{{count}} horse(s) have been {{action}}.",
+      "toStable": "transferred to stable ownership",
+      "withMember": "kept with the member",
+      "success": "Member removed",
+      "successDescription": "The member has been removed from the organization."
+    }
   },
   "invite": {
     "title": "Invite User to Organization",
@@ -541,23 +577,53 @@
   },
   "upgrade": {
     "tabTitle": "Upgrade",
-    "title": "Upgrade to Business Organization",
-    "description": "Unlock powerful features to manage your team and stables more efficiently",
+    "title": "Upgrade to Stable Organization",
+    "description": "Your organization is currently a personal organization.",
     "organizationType": "Organization Type",
+    "organizationTypes": {
+      "personal": "Personal",
+      "business": "Stable Organization"
+    },
     "personalLimitations": "Personal organizations have limited features. Upgrade to invite members and share resources.",
-    "benefitsTitle": "What's included in Business",
+    "benefitsTitle": "As a stable organization you get access to:",
     "benefits": {
       "members": "Invite team members to help manage your stables",
       "stables": "Create multiple stables to organize your horses",
       "contacts": "Share contacts with your entire organization",
       "roles": "Assign roles and permissions to team members",
-      "analytics": "View detailed analytics and reports"
+      "analytics": "View detailed analytics and reports",
+      "activities": "Activities and bookings",
+      "scheduling": "Scheduling and feeding",
+      "lessons": "Lesson management",
+      "memberRoles": "Member management with roles"
     },
-    "upgradeNote": "Upgrading is free and permanent. Your organization will be converted to a business organization.",
-    "upgradeButton": "Upgrade to Business",
+    "upgradeNote": "Upgrading is free and permanent. Your organization will be converted to a stable organization.",
+    "upgradeButton": "Upgrade to stable organization",
+    "upgradeToBusiness": "Upgrade to stable",
     "success": "Upgrade successful!",
-    "successDescription": "Your organization has been upgraded to a business organization. You can now invite members and create multiple stables.",
-    "errorDescription": "Failed to upgrade organization. Please try again."
+    "successDescription": "Your organization has been upgraded to a stable organization. You can now invite members and create multiple stables.",
+    "errorDescription": "Failed to upgrade organization. Please try again.",
+    "changeToPersonal": "Change to personal",
+    "confirmTitle": "Upgrade to stable organization",
+    "confirmDescription": "You are about to upgrade your organization to a stable organization.",
+    "confirmNote": "This change is permanent and cannot be undone.",
+    "confirmButton": "Yes, upgrade"
+  },
+  "downgrade": {
+    "title": "Change to personal organization",
+    "description": "You are about to change your organization to a personal organization.",
+    "warning": "The following features will be hidden:",
+    "features": {
+      "activities": "Activities and bookings",
+      "scheduling": "Scheduling and feeding",
+      "lessons": "Lesson management",
+      "memberRoles": "Member management with roles"
+    },
+    "note": "Your data will not be deleted, but you will not be able to access these features until you upgrade again.",
+    "confirm": "Yes, change to personal",
+    "cancel": "Cancel",
+    "success": "Organization changed",
+    "successDescription": "Your organization has been changed to a personal organization."
   },
   "messages": {
     "createSuccess": "Organization created successfully",
@@ -567,7 +633,7 @@
   "bulkImport": {
     "title": "Bulk Import Members",
     "description": "Import multiple members at once from an Excel or CSV file",
-    "button": "Bulk Import",
+    "button": "Import members",
     "steps": {
       "upload": "Upload",
       "mapping": "Mapping",

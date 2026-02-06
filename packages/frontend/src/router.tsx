@@ -417,6 +417,14 @@ export const router = createBrowserRouter([
 
           // Horses
           { path: "/horses", element: withSuspense(MyHorsesPage) },
+          {
+            path: "/horses/care",
+            element: (
+              <Suspense fallback={<InlineLoader />}>
+                <ActivitiesCarePage scope="my" />
+              </Suspense>
+            ),
+          },
           { path: "/horses/:horseId", element: withSuspense(HorseDetailPage) },
           {
             path: "/horses/settings",
@@ -445,7 +453,11 @@ export const router = createBrowserRouter([
           },
           {
             path: "/activities/care",
-            element: withSuspense(ActivitiesCarePage),
+            element: (
+              <Suspense fallback={<InlineLoader />}>
+                <ActivitiesCarePage />
+              </Suspense>
+            ),
           },
           {
             path: "/activities/analytics",

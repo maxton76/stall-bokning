@@ -29,6 +29,7 @@
     "contacts": "Contacts",
     "account": "Account",
     "locationHistory": "Location History",
+    "myCare": "Care Activities",
     "horseSettings": "Horse Settings",
     "inventory": "Inventory",
     "invoices": "Invoices",
@@ -59,7 +60,9 @@
     "packages": "Packages",
     "myInvoices": "My Invoices",
     "myPackages": "My Packages",
-    "myCommissions": "My Commissions"
+    "myCommissions": "My Commissions",
+    "bookings": "Bookings",
+    "manageFacilities": "Manage Facilities"
   },
   "buttons": {
     "save": "Save",

@@ -190,8 +190,13 @@ export type HorseStatus = "active" | "inactive";
  * - member: Owned by an organization member (linked to OrganizationMember)
  * - contact: Owned by a contact in the system (linked to Contact)
  * - external: Owned by someone from another organization
+ * - organization: Owned by the organization itself (e.g., riding school horses)
  */
-export type HorseOwnershipType = "member" | "contact" | "external";
+export type HorseOwnershipType =
+  | "member"
+  | "contact"
+  | "external"
+  | "organization";
 
 /**
  * Equipment item for horse special instructions

@@ -178,13 +178,74 @@ export async function updateMemberStatus(
  * Remove a member from an organization
  * @param userId - User ID
  * @param organizationId - Organization ID
+ * @param forceRemove - Skip horse ownership check
  * @returns Promise that resolves when delete is complete
  */
 export async function removeOrganizationMember(
   userId: string,
   organizationId: string,
+  forceRemove?: boolean,
 ): Promise<void> {
-  await apiClient.delete(`/organizations/${organizationId}/members/${userId}`);
+  const queryParams = forceRemove ? `?forceRemove=true` : "";
+  await apiClient.delete(
+    `/organizations/${organizationId}/members/${userId}${queryParams}`,
+  );
+}
+
+/**
+ * Check if a member owns horses in the organization's stables
+ * @param userId - User ID
+ * @param organizationId - Organization ID
+ * @returns Promise with horse ownership information
+ */
+export async function getMemberHorses(
+  userId: string,
+  organizationId: string,
+): Promise<{
+  horses: Array<{
+    id: string;
+    name: string;
+    stableId?: string;
+    stableName?: string;
+  }>;
+  hasHorses: boolean;
+  organizationId: string;
+  userId: string;
+}> {
+  return await apiClient.get(
+    `/organizations/${organizationId}/members/${userId}/horses`,
+  );
+}
+
+/**
+ * Batch transfer horse ownership during member removal
+ * @param horseIds - Array of horse IDs to transfer
+ * @param action - Transfer action type
+ * @param organizationId - Organization ID
+ * @param targetUserId - The member being removed
+ * @returns Promise with transfer results
+ */
+export async function batchTransferHorseOwnership(
+  horseIds: string[],
+  action: "transfer_to_stable" | "leave_with_member",
+  organizationId: string,
+  targetUserId?: string,
+): Promise<{
+  success: boolean;
+  processed: number;
+  results: Array<{
+    horseId: string;
+    success: boolean;
+    action: string;
+    error?: string;
+  }>;
+}> {
+  return await apiClient.post("/horses/batch/transfer-ownership", {
+    horseIds,
+    action,
+    organizationId,
+    targetUserId,
+  });
 }
 
 /**

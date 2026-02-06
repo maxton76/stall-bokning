@@ -14,7 +14,13 @@
     "createFirst": "Skapa din första organisation",
     "viewAll": "Visa alla organisationer"
   },
+  "switcher": {
+    "businessOrganizations": "Organisationer",
+    "personal": "Privat",
+    "active": "Aktiv"
+  },
   "menu": {
+    "administration": "Administration",
     "members": "Medlemmar",
     "integrations": "Integrationer",
     "manure": "Gödsel",
@@ -25,7 +31,10 @@
     "scheduleManagement": "Schemahantering",
     "chargeableItems": "Debiteringsbara poster",
     "billingGroups": "Faktureringsgrupper",
-    "trainerCommissions": "Instruktörsarvoden"
+    "trainerCommissions": "Instruktörsarvoden",
+    "facilities": "Anläggningar",
+    "stables": "Stall",
+    "manageFacilities": "Hantera anläggningar"
   },
   "form": {
     "title": {
@@ -110,7 +119,34 @@
     },
     "reinvite": "Bjud in igen",
     "confirmReinvite": "Bjud in {{email}} igen till denna organisation?",
-    "deleteMember": "Ta bort medlem"
+    "deleteMember": "Ta bort medlem",
+    "removeMember": {
+      "title": "Ta bort medlem",
+      "confirmText": "Är du säker på att du vill ta bort {{name}} från denna organisation?",
+      "checkingHorses": "Kontrollerar hästar ägda av denna medlem...",
+      "horseWarningTitle": "Medlemmen äger hästar",
+      "horseWarning": "{{name}} äger {{count}} häst(ar) som för närvarande är uppställda här. Välj vad som ska hända med dessa hästar.",
+      "affectedHorses": "Berörda hästar",
+      "andMoreHorses": "...och {{count}} till",
+      "whatShouldHappen": "Vad ska hända med hästarna?",
+      "transferToStable": "Överför till stallet",
+      "transferToStableDescription": "Hästarna blir stallägda. Organisationen kommer att hantera dem.",
+      "leaveWithMember": "Behåll hos medlemmen",
+      "leaveWithMemberDescription": "Medlemmen behåller sina hästar. De kommer att avregistreras från stallet.",
+      "confirm": "Ta bort medlem",
+      "confirmWithHorses": "Överför & Ta bort",
+      "removing": "Tar bort...",
+      "failed": "Kunde inte ta bort medlem",
+      "failedDescription": "Ett fel uppstod vid borttagning av medlemmen. Försök igen.",
+      "transferFailed": "Kunde inte överföra hästar",
+      "transferFailedDescription": "Kunde inte överföra hästägarskapet. Försök igen.",
+      "horsesTransferred": "Hästar överförda",
+      "horsesTransferredDescription": "{{count}} häst(ar) har {{action}}.",
+      "toStable": "överförts till stallägarskap",
+      "withMember": "behållits av medlemmen",
+      "success": "Medlem borttagen",
+      "successDescription": "Medlemmen har tagits bort från organisationen."
+    }
   },
   "invite": {
     "title": "Bjud in användare till organisation",
@@ -541,23 +577,53 @@
   },
   "upgrade": {
     "tabTitle": "Uppgradera",
-    "title": "Uppgradera till företagsorganisation",
-    "description": "Lås upp kraftfulla funktioner för att hantera ditt team och stall mer effektivt",
+    "title": "Uppgradera till stallorganisation",
+    "description": "Din organisation är för närvarande en personlig organisation.",
     "organizationType": "Organisationstyp",
+    "organizationTypes": {
+      "personal": "Personlig",
+      "business": "Stallorganisation"
+    },
     "personalLimitations": "Personliga organisationer har begränsade funktioner. Uppgradera för att bjuda in medlemmar och dela resurser.",
-    "benefitsTitle": "Vad ingår i företagsorganisation",
+    "benefitsTitle": "Som stallorganisation får du tillgång till:",
     "benefits": {
       "members": "Bjud in teammedlemmar för att hjälpa till med stallhanteringen",
       "stables": "Skapa flera stall för att organisera dina hästar",
       "contacts": "Dela kontakter med hela organisationen",
       "roles": "Tilldela roller och behörigheter till teammedlemmar",
-      "analytics": "Visa detaljerad statistik och rapporter"
+      "analytics": "Visa detaljerad statistik och rapporter",
+      "activities": "Aktiviteter och bokningar",
+      "scheduling": "Schemaläggning och fodring",
+      "lessons": "Lektionshantering",
+      "memberRoles": "Medlemshantering med roller"
     },
-    "upgradeNote": "Uppgradering är kostnadsfri och permanent. Din organisation kommer att konverteras till en företagsorganisation.",
-    "upgradeButton": "Uppgradera till företag",
+    "upgradeNote": "Uppgradering är kostnadsfri och permanent. Din organisation kommer att konverteras till en stallorganisation.",
+    "upgradeButton": "Uppgradera till stallorganisation",
+    "upgradeToBusiness": "Uppgradera till stall",
     "success": "Uppgraderingen lyckades!",
-    "successDescription": "Din organisation har uppgraderats till en företagsorganisation. Du kan nu bjuda in medlemmar och skapa flera stall.",
-    "errorDescription": "Det gick inte att uppgradera organisationen. Försök igen."
+    "successDescription": "Din organisation har uppgraderats till en stallorganisation. Du kan nu bjuda in medlemmar och skapa flera stall.",
+    "errorDescription": "Det gick inte att uppgradera organisationen. Försök igen.",
+    "changeToPersonal": "Ändra till personlig",
+    "confirmTitle": "Uppgradera till stallorganisation",
+    "confirmDescription": "Du är på väg att uppgradera din organisation till en stallorganisation.",
+    "confirmNote": "Denna ändring är permanent och kan inte ångras.",
+    "confirmButton": "Ja, uppgradera"
+  },
+  "downgrade": {
+    "title": "Ändra till personlig organisation",
+    "description": "Du är på väg att ändra din organisation till en personlig organisation.",
+    "warning": "Följande funktioner kommer att döljas:",
+    "features": {
+      "activities": "Aktiviteter och bokningar",
+      "scheduling": "Schemaläggning och fodring",
+      "lessons": "Lektionshantering",
+      "memberRoles": "Medlemshantering med roller"
+    },
+    "note": "Dina data raderas inte, men du kommer inte att kunna komma åt dessa funktioner förrän du uppgraderar igen.",
+    "confirm": "Ja, ändra till personlig",
+    "cancel": "Avbryt",
+    "success": "Organisationen har ändrats",
+    "successDescription": "Din organisation har ändrats till en personlig organisation."
   },
   "messages": {
     "createSuccess": "Organisation har skapats",
@@ -567,7 +633,7 @@
   "bulkImport": {
     "title": "Massimport av medlemmar",
     "description": "Importera flera medlemmar samtidigt från en Excel- eller CSV-fil",
-    "button": "Massimport",
+    "button": "Importera medlemmar",
     "steps": {
       "upload": "Ladda upp",
       "mapping": "Kolumnmappning",

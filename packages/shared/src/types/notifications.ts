@@ -30,7 +30,13 @@ export type NotificationType =
   | "selection_turn_started" // User's turn to select routines has started
   | "selection_process_completed" // All members have completed their selections
   | "membership_invite" // Existing user invited to organization
-  | "membership_invite_response"; // Admin notification: user declined or invite expired
+  | "membership_invite_response" // Admin notification: user declined or invite expired
+  | "feature_request_status_change" // Feature request status updated by admin
+  | "feature_request_admin_response" // Admin responded to feature request
+  | "trial_expiring" // Trial period ending soon
+  | "subscription_expiring" // Subscription ending soon (cancel_at_period_end)
+  | "payment_failed" // Invoice payment failed
+  | "payment_method_required"; // Trial ending and no payment method on file
 
 /**
  * Notification priority levels
@@ -46,6 +52,20 @@ export type NotificationStatus =
   | "failed" // Delivery failed
   | "read" // User has read it (for inApp)
   | "dismissed"; // User dismissed it
+
+/**
+ * Entity types that can be referenced by notifications
+ */
+export type NotificationEntityType =
+  | "activity"
+  | "recurringActivity"
+  | "instance"
+  | "horse"
+  | "stable"
+  | "organizationMember"
+  | "organization"
+  | "featureRequest"
+  | "support_ticket";
 
 /**
  * Notification document
@@ -68,13 +88,7 @@ export interface Notification {
   bodyParams?: Record<string, string>; // Parameters for i18n interpolation
 
   // Reference to source entity
-  entityType?:
-    | "activity"
-    | "recurringActivity"
-    | "instance"
-    | "horse"
-    | "stable"
-    | "organizationMember";
+  entityType?: NotificationEntityType;
   entityId?: string;
 
   // Delivery tracking
@@ -304,13 +318,7 @@ export interface CreateNotificationInput {
   body: string;
   bodyKey?: string;
   bodyParams?: Record<string, string>;
-  entityType?:
-    | "activity"
-    | "recurringActivity"
-    | "instance"
-    | "horse"
-    | "stable"
-    | "organizationMember";
+  entityType?: NotificationEntityType;
   entityId?: string;
   channels?: NotificationChannel[];
   scheduledFor?: Date | string;
@@ -399,5 +407,41 @@ export const NOTIFICATION_TEMPLATES = {
     bodyKey: "notifications.membershipInviteResponse.body",
     priority: "normal" as NotificationPriority,
     defaultChannels: ["inApp"] as NotificationChannel[],
+  },
+  feature_request_status_change: {
+    titleKey: "notifications.featureRequestStatusChange.title",
+    bodyKey: "notifications.featureRequestStatusChange.body",
+    priority: "normal" as NotificationPriority,
+    defaultChannels: ["inApp", "email"] as NotificationChannel[],
+  },
+  feature_request_admin_response: {
+    titleKey: "notifications.featureRequestAdminResponse.title",
+    bodyKey: "notifications.featureRequestAdminResponse.body",
+    priority: "normal" as NotificationPriority,
+    defaultChannels: ["inApp", "email"] as NotificationChannel[],
+  },
+  trial_expiring: {
+    titleKey: "notifications.trialExpiring.title",
+    bodyKey: "notifications.trialExpiring.body",
+    priority: "high" as NotificationPriority,
+    defaultChannels: ["inApp", "email"] as NotificationChannel[],
+  },
+  subscription_expiring: {
+    titleKey: "notifications.subscriptionExpiring.title",
+    bodyKey: "notifications.subscriptionExpiring.body",
+    priority: "high" as NotificationPriority,
+    defaultChannels: ["inApp", "email"] as NotificationChannel[],
+  },
+  payment_failed: {
+    titleKey: "notifications.paymentFailed.title",
+    bodyKey: "notifications.paymentFailed.body",
+    priority: "urgent" as NotificationPriority,
+    defaultChannels: ["inApp", "email"] as NotificationChannel[],
+  },
+  payment_method_required: {
+    titleKey: "notifications.paymentMethodRequired.title",
+    bodyKey: "notifications.paymentMethodRequired.body",
+    priority: "high" as NotificationPriority,
+    defaultChannels: ["inApp", "email"] as NotificationChannel[],
   },
 } as const;

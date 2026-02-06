@@ -6,6 +6,8 @@ import { auth } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Card,
   CardContent,
@@ -15,14 +17,14 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { Loader2 } from "lucide-react";
+import { Loader2, Users, Building2 } from "lucide-react";
 import {
   acceptOrganizationInvite,
   getInviteDetails,
 } from "@/services/inviteService";
 
 export default function SignupPage() {
-  const { t } = useTranslation("auth");
+  const { t } = useTranslation(["auth", "organizations"]);
   const { signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -35,6 +37,11 @@ export default function SignupPage() {
     firstName: "",
     lastName: "",
   });
+
+  // Organization type selection (only for new registrations without invite)
+  const [organizationType, setOrganizationType] = useState<
+    "personal" | "business"
+  >("personal");
 
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -183,6 +190,8 @@ export default function SignupPage() {
             firstName: formData.firstName,
             lastName: formData.lastName,
             systemRole: "stable_user",
+            // Only include organization type if not accepting an invite
+            ...(inviteToken ? {} : { organizationType }),
           }),
         },
       );
@@ -344,7 +353,7 @@ export default function SignupPage() {
             {/* Last Name */}
             <div>
               <label htmlFor="lastName" className="text-sm font-medium">
-                {t("register.lastNameLabel")}
+                {t("auth:register.lastNameLabel")}
               </label>
               <Input
                 id="lastName"
@@ -353,9 +362,69 @@ export default function SignupPage() {
                 value={formData.lastName}
                 onChange={handleChange}
                 required
-                placeholder={t("register.lastNamePlaceholder")}
+                placeholder={t("auth:register.lastNamePlaceholder")}
               />
             </div>
+
+            {/* Organization Type - Only show when NOT accepting an invite */}
+            {!inviteToken && (
+              <div className="space-y-3 pt-2">
+                <Label>{t("auth:register.organizationType.label")}</Label>
+                <p className="text-sm text-muted-foreground">
+                  {t("auth:register.organizationType.description")}
+                </p>
+                <RadioGroup
+                  value={organizationType}
+                  onValueChange={(v) =>
+                    setOrganizationType(v as "personal" | "business")
+                  }
+                  className="grid grid-cols-1 gap-3"
+                >
+                  <div className="flex items-start space-x-3 p-3 border rounded-md hover:bg-muted/50 cursor-pointer">
+                    <RadioGroupItem
+                      value="personal"
+                      id="org-personal"
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <Label
+                        htmlFor="org-personal"
+                        className="font-medium cursor-pointer flex items-center gap-2"
+                      >
+                        <Users className="h-4 w-4" />
+                        {t("auth:register.organizationType.personal.title")}
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        {t(
+                          "auth:register.organizationType.personal.description",
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3 p-3 border rounded-md hover:bg-muted/50 cursor-pointer">
+                    <RadioGroupItem
+                      value="business"
+                      id="org-business"
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <Label
+                        htmlFor="org-business"
+                        className="font-medium cursor-pointer flex items-center gap-2"
+                      >
+                        <Building2 className="h-4 w-4" />
+                        {t("auth:register.organizationType.business.title")}
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        {t(
+                          "auth:register.organizationType.business.description",
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </RadioGroup>
+              </div>
+            )}
 
             {/* Password */}
             <div>

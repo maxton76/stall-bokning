@@ -17,6 +17,7 @@ import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 import { stripHtml } from "../utils/sanitization.js";
 import { refineFeatureRequestText } from "../utils/gemini.js";
+import { createInAppNotification } from "../utils/notifications.js";
 import type {
   FeatureRequest,
   FeatureRequestComment,
@@ -549,6 +550,10 @@ export async function featureRequestsRoutes(fastify: FastifyInstance) {
         return sendNotFound(reply);
       }
 
+      const requestData = requestDoc.data()!;
+      const previousStatus = requestData.status;
+      const authorId = requestData.authorId;
+
       const adminDisplayName = await getUserDisplayName(user.uid);
       const updates: Record<string, any> = {
         status: input.status,
@@ -562,6 +567,68 @@ export async function featureRequestsRoutes(fastify: FastifyInstance) {
       }
 
       await requestRef.update(updates);
+
+      // Create notifications for the feature request author (not for the admin)
+      // Only notify if the author is not the admin making the change
+      if (authorId && authorId !== user.uid) {
+        try {
+          // Notification for status change (only for significant status changes)
+          const notifiableStatuses = [
+            "planned",
+            "in_progress",
+            "completed",
+            "declined",
+          ];
+          if (
+            notifiableStatuses.includes(input.status) &&
+            input.status !== previousStatus
+          ) {
+            await createInAppNotification({
+              userId: authorId,
+              type: "feature_request_status_change",
+              priority: "normal",
+              title: `Status update: ${requestData.title}`,
+              titleKey: "notifications.featureRequestStatusChange.title",
+              body: `Your request "${requestData.title}" has a new status: ${input.status}`,
+              bodyKey: "notifications.featureRequestStatusChange.body",
+              bodyParams: {
+                title: requestData.title,
+                status: input.status,
+              },
+              entityType: "featureRequest",
+              entityId: id,
+              channels: ["inApp", "email"],
+              actionUrl: `/feature-requests/${id}`,
+            });
+          }
+
+          // Notification for admin response
+          if (input.adminResponse !== undefined && input.adminResponse.trim()) {
+            await createInAppNotification({
+              userId: authorId,
+              type: "feature_request_admin_response",
+              priority: "normal",
+              title: `Response: ${requestData.title}`,
+              titleKey: "notifications.featureRequestAdminResponse.title",
+              body: `An administrator has responded to your request "${requestData.title}"`,
+              bodyKey: "notifications.featureRequestAdminResponse.body",
+              bodyParams: {
+                title: requestData.title,
+              },
+              entityType: "featureRequest",
+              entityId: id,
+              channels: ["inApp", "email"],
+              actionUrl: `/feature-requests/${id}`,
+            });
+          }
+        } catch (notifyError) {
+          // Log but don't fail the request if notification creation fails
+          request.log.error(
+            { err: notifyError, featureRequestId: id },
+            "Failed to create feature request notification",
+          );
+        }
+      }
 
       const updated = await requestRef.get();
       return reply.send(serializeRequest(updated));

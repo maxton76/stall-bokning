@@ -75,6 +75,10 @@ export interface Organization {
   name: string;
   description?: string;
 
+  // Display customization
+  displayName?: string; // User-facing name (e.g., "Privat" for personal orgs)
+  hideWhenEmpty?: boolean; // Hide in org switcher when no horses and user has other orgs
+
   // Organization Type (determines feature availability)
   // Defaults to 'personal' for auto-created orgs, 'business' for orgs with multiple stables
   organizationType?: OrganizationType;

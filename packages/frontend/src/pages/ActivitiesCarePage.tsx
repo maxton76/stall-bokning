@@ -33,7 +33,13 @@ import type { FilterConfig } from "@shared/types/filters";
 import { Timestamp } from "firebase/firestore";
 import { toDate } from "@/utils/timestampUtils";
 
-export default function ActivitiesCarePage() {
+interface ActivitiesCarePageProps {
+  scope?: "stable" | "my";
+}
+
+export default function ActivitiesCarePage({
+  scope = "stable",
+}: ActivitiesCarePageProps) {
   const { t } = useTranslation(["activities", "common"]);
   const { user } = useAuth();
 
@@ -69,6 +75,7 @@ export default function ActivitiesCarePage() {
     stables,
     activityLoader: getCareActivities,
     includeGroups: true,
+    scope,
   });
 
   // Track whether we've attempted seeding to prevent infinite loops
@@ -207,7 +214,7 @@ export default function ActivitiesCarePage() {
 
   const handleSave = async (data: any) => {
     try {
-      if (!user || !selectedStableId) {
+      if (!user || (!selectedStableId && scope !== "my")) {
         throw new Error("User or stable not found");
       }
 
@@ -283,8 +290,16 @@ export default function ActivitiesCarePage() {
   return (
     <ActivityPageLayout
       icon={Heart}
-      title={t("activities:care.title")}
-      description={t("activities:care.description")}
+      title={
+        scope === "my"
+          ? t("activities:care.myTitle")
+          : t("activities:care.title")
+      }
+      description={
+        scope === "my"
+          ? t("activities:care.myDescription")
+          : t("activities:care.description")
+      }
       selectedStableId={selectedStableId}
       onStableChange={setSelectedStableId}
       stables={stables}
@@ -295,32 +310,36 @@ export default function ActivitiesCarePage() {
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              {/* Stable Selector */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">
-                  {t("activities:care.stableLabel")}:
-                </label>
-                <Select
-                  value={selectedStableId}
-                  onValueChange={setSelectedStableId}
-                >
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder={t("activities:stable.select")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">
-                      {t("activities:stable.all")}
-                    </SelectItem>
-                    {stables.map((stable) => (
-                      <SelectItem key={stable.id} value={stable.id}>
-                        {stable.name}
+            {scope !== "my" && (
+              <div className="flex items-center justify-between">
+                {/* Stable Selector */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">
+                    {t("activities:care.stableLabel")}:
+                  </label>
+                  <Select
+                    value={selectedStableId}
+                    onValueChange={setSelectedStableId}
+                  >
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue
+                        placeholder={t("activities:stable.select")}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">
+                        {t("activities:stable.all")}
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      {stables.map((stable) => (
+                        <SelectItem key={stable.id} value={stable.id}>
+                          {stable.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Filters Row */}
             <div className="space-y-4">

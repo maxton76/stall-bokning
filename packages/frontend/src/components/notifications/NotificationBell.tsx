@@ -24,6 +24,11 @@ import {
   Loader2,
   UserPlus,
   UserX,
+  Lightbulb,
+  MessageSquare,
+  Timer,
+  CreditCard,
+  AlertTriangle,
 } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import type {
@@ -56,6 +61,17 @@ function getNotificationIcon(type: NotificationType): React.ReactNode {
       return <UserPlus className="h-4 w-4 text-blue-500" />;
     case "membership_invite_response":
       return <UserX className="h-4 w-4 text-orange-500" />;
+    case "feature_request_status_change":
+      return <Lightbulb className="h-4 w-4 text-yellow-500" />;
+    case "feature_request_admin_response":
+      return <MessageSquare className="h-4 w-4 text-blue-500" />;
+    case "trial_expiring":
+    case "subscription_expiring":
+      return <Timer className="h-4 w-4 text-orange-500" />;
+    case "payment_failed":
+      return <AlertTriangle className="h-4 w-4 text-red-500" />;
+    case "payment_method_required":
+      return <CreditCard className="h-4 w-4 text-orange-500" />;
     default:
       return <Bell className="h-4 w-4" />;
   }

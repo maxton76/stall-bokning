@@ -30,6 +30,7 @@
     "contacts": "Kontakter",
     "account": "Konto",
     "locationHistory": "Platshistorik",
+    "myCare": "Vårdaktiviteter",
     "horseSettings": "Hästinställningar",
     "inventory": "Lagerhantering",
     "invoices": "Fakturor",
@@ -59,7 +60,9 @@
     "packages": "Klippkort",
     "myInvoices": "Mina fakturor",
     "myPackages": "Mina klippkort",
-    "myCommissions": "Mina arvoden"
+    "myCommissions": "Mina arvoden",
+    "bookings": "Bokningar",
+    "manageFacilities": "Hantera anläggningar"
   },
   "buttons": {
     "save": "Spara",

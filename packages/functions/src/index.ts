@@ -10,6 +10,7 @@ export { generateActivityInstances } from "./scheduled/generateInstances.js";
 export { scanForReminders } from "./scheduled/reminderScanner.js";
 export { expirePendingMemberships } from "./scheduled/expirePendingMemberships.js";
 export { dailyInvoiceProcessing } from "./scheduled/dailyInvoiceProcessing.js";
+export { scanForBillingNotifications } from "./scheduled/billingNotifications.js";
 
 // Re-export notification functions
 export {

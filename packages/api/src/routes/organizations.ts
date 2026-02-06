@@ -75,6 +75,7 @@ const createOrganizationSchema = z.object({
 
 const updateOrganizationSchema = createOrganizationSchema.partial().extend({
   settings: organizationSettingsSchema.optional(),
+  organizationType: z.enum(["personal", "business"]).optional(),
 });
 
 const inviteContactAddressSchema = z.object({
@@ -440,6 +441,19 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
           });
         }
 
+        // Only owner can change organization type
+        if (
+          validation.data.organizationType !== undefined &&
+          org.ownerId !== user.uid &&
+          user.role !== "system_admin"
+        ) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message:
+              "Only the organization owner can change the organization type",
+          });
+        }
+
         // Handle settings specially to use dot notation for nested updates
         // This prevents overwriting other settings fields when only updating one
         const { settings, ...otherData } = validation.data;
@@ -589,10 +603,12 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
 
   // Upgrade organization from personal to business
   // POST /api/v1/organizations/:id/upgrade
+  // Note: No requireRole - ownership check is done inside the handler
+  // Personal org owners may only have stable_user role
   fastify.post(
     "/:id/upgrade",
     {
-      preHandler: [authenticate, requireRole(["stable_owner", "system_admin"])],
+      preHandler: [authenticate],
     },
     async (request, reply) => {
       try {

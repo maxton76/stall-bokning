@@ -21,6 +21,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/apiClient";
 import { db } from "@/lib/firebase";
+import { partitionEmails } from "@/lib/emailUtils";
 import { MAX_FILE_SIZE } from "@/lib/importParser";
 import { cacheInvalidation } from "@/lib/queryClient";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -198,14 +199,34 @@ export function HorseBulkImportWizard({
     setResolving(true);
     try {
       const uniqueEmails = [
-        ...new Set(state.unpivotedRows.map((r) => r.ownerEmail)),
+        ...new Set(
+          state.unpivotedRows
+            .map((r) => r.ownerEmail)
+            .filter(
+              (e): e is string => typeof e === "string" && e.trim().length > 0,
+            ),
+        ),
       ];
-      const response = await apiClient.post<ResolveMemberEmailsResponse>(
-        `/organizations/${organizationId}/resolve-member-emails`,
-        { emails: uniqueEmails },
-      );
 
-      setPreviewRows(response.resolved, response.unresolved);
+      // Filter out invalid emails before API call to avoid Zod validation errors
+      const { valid: validEmails, invalid: invalidEmails } =
+        partitionEmails(uniqueEmails);
+
+      // Only call API with valid emails (skip if none)
+      let resolved: ResolveMemberEmailsResponse["resolved"] = [];
+      let unresolved: string[] = [];
+
+      if (validEmails.length > 0) {
+        const response = await apiClient.post<ResolveMemberEmailsResponse>(
+          `/organizations/${organizationId}/resolve-member-emails`,
+          { emails: validEmails },
+        );
+        resolved = response.resolved;
+        unresolved = response.unresolved;
+      }
+
+      // Combine API unresolved with invalid emails - validator will mark INVALID_EMAIL
+      setPreviewRows(resolved, [...unresolved, ...invalidEmails]);
       goToStep(2);
     } catch (err: any) {
       toast({

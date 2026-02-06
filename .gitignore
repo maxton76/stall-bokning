@@ -1,5 +1,7 @@
 # Xcode
 *.xcuserstate
+xcuserdata/
+*.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
 
 # Dependencies
 node_modules/

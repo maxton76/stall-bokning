@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/popover";
 import {
   SearchIcon,
-  BellIcon,
   User,
   LogOut,
   ChevronDown,
@@ -46,7 +45,7 @@ import {
 import { cn } from "@/lib/utils";
 import equiDutyIcon from "@/assets/images/equiduty-icon.png";
 import ProfileDropdown from "@/components/shadcn-studio/blocks/dropdown-profile";
-import NotificationDropdown from "@/components/shadcn-studio/blocks/dropdown-notification";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { OrganizationsDropdown } from "@/components/shadcn-studio/blocks/dropdown-organizations";
 import { LanguageSwitcherCompact } from "@/components/LanguageSwitcher";
 import { AssistantButton } from "@/components/assistant";
@@ -397,19 +396,7 @@ export default function AuthenticatedLayout() {
               <SupportButton />
 
               {/* Notifications */}
-              <NotificationDropdown
-                trigger={
-                  <Button variant="ghost" size="icon" className="relative">
-                    <BellIcon className="size-5" />
-                    <Badge
-                      variant="destructive"
-                      className="absolute -right-1 -top-1 size-5 p-0 flex items-center justify-center text-xs"
-                    >
-                      3
-                    </Badge>
-                  </Button>
-                }
-              />
+              <NotificationBell />
 
               {/* Profile */}
               <ProfileDropdown

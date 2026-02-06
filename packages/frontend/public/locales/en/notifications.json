@@ -20,7 +20,13 @@
     "weekly_summary": "Weekly Summary",
     "system": "System Message",
     "membership_invite": "Organization Invite",
-    "membership_invite_response": "Invite Response"
+    "membership_invite_response": "Invite Response",
+    "feature_request_status_change": "Feature Request Status Update",
+    "feature_request_admin_response": "Feature Request Response",
+    "trial_expiring": "Trial Expiring",
+    "subscription_expiring": "Subscription Expiring",
+    "payment_failed": "Payment Failed",
+    "payment_method_required": "Payment Method Required"
   },
   "membershipInvite": {
     "title": "Organization Invite",
@@ -30,6 +36,30 @@
   "membershipInviteResponse": {
     "title": "Invite Response",
     "body": "{{userEmail}} {{reason}} the invitation to {{organizationName}}"
+  },
+  "featureRequestStatusChange": {
+    "title": "Feature Request Status Update",
+    "body": "Your request \"{{title}}\" has a new status: {{status}}"
+  },
+  "featureRequestAdminResponse": {
+    "title": "Feature Request Response",
+    "body": "An administrator has responded to your request \"{{title}}\""
+  },
+  "trialExpiring": {
+    "title": "Your trial is ending soon",
+    "body": "The trial for {{organizationName}} expires in {{days}} days. Add a payment method to continue using all features."
+  },
+  "subscriptionExpiring": {
+    "title": "Your subscription is ending soon",
+    "body": "The subscription for {{organizationName}} ends in {{days}} days. Contact us if you'd like to continue."
+  },
+  "paymentFailed": {
+    "title": "Payment failed",
+    "body": "We couldn't process the payment for {{organizationName}}. Please update your payment method to avoid service interruption."
+  },
+  "paymentMethodRequired": {
+    "title": "Payment method required",
+    "body": "The trial for {{organizationName}} is ending soon. Please add a payment method to continue."
   },
   "priority": {
     "urgent": "Urgent",

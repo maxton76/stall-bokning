@@ -1,17 +1,19 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   Save,
   Sparkles,
   Users,
-  Building,
-  Contact,
-  Shield,
-  BarChart3,
-  Check,
+  Building2,
   Calendar,
+  CreditCard,
+  AlertCircle,
+  ExternalLink,
+  FileText,
+  Loader2,
+  Clock,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,6 +39,32 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
@@ -46,9 +74,29 @@ import {
   upgradeOrganization,
 } from "@/services/organizationService";
 import { useToast } from "@/hooks/use-toast";
-import type { Organization, HolidayCalendarSettings } from "@equiduty/shared";
+import type {
+  Organization,
+  HolidayCalendarSettings,
+  SubscriptionTier,
+  BillingInterval,
+} from "@equiduty/shared";
 import { DEFAULT_HOLIDAY_SETTINGS } from "@equiduty/shared";
 import { HolidaySettingsTab } from "@/components/settings";
+import {
+  useSubscriptionDetails,
+  useCustomerPortal,
+  useCancelSubscription,
+  useResumeSubscription,
+  useBillingHistory,
+  useCreateCheckout,
+} from "@/hooks/useSubscription";
+import { PricingTable } from "@/components/subscription/PricingTable";
+import { formatSEK, formatDateSV } from "@/lib/formatters";
+import {
+  statusBadgeVariant,
+  getTrialDaysRemaining,
+} from "@/lib/subscriptionUI";
+import { useTierDefinitions } from "@/hooks/useTierDefinitions";
 
 const organizationSettingsSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
@@ -60,15 +108,6 @@ const organizationSettingsSchema = z.object({
 });
 
 type OrganizationSettingsFormData = z.infer<typeof organizationSettingsSchema>;
-
-// Feature icons mapping
-const featureIcons: Record<string, React.ElementType> = {
-  users: Users,
-  building: Building,
-  contact: Contact,
-  shield: Shield,
-  chart: BarChart3,
-};
 
 // Common timezone options (IANA identifiers)
 const TIMEZONE_OPTIONS = [
@@ -100,11 +139,17 @@ const TIMEZONE_OPTIONS = [
 export default function OrganizationSettingsPage() {
   const { t } = useTranslation(["organizations", "common", "settings"]);
   const { organizationId } = useParams<{ organizationId: string }>();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
   const [savingHolidays, setSavingHolidays] = useState(false);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const [pricingOpen, setPricingOpen] = useState(false);
+
+  // Get initial tab from URL query params (for redirect from old subscription route)
+  const initialTab = searchParams.get("tab") || "general";
 
   // Organization data
   const organizationQuery = useApiQuery<Organization | null>(
@@ -117,6 +162,17 @@ export default function OrganizationSettingsPage() {
   );
   const organizationData = organizationQuery.data ?? null;
   const organizationLoading = organizationQuery.isLoading;
+
+  // Subscription hooks
+  const { data: subData, isLoading: subLoading } = useSubscriptionDetails(
+    organizationId ?? null,
+  );
+  const { data: billingData } = useBillingHistory(organizationId ?? null);
+  const checkoutMutation = useCreateCheckout(organizationId ?? "");
+  const portalMutation = useCustomerPortal(organizationId ?? "");
+  const cancelMutation = useCancelSubscription(organizationId ?? "");
+  const resumeMutation = useResumeSubscription(organizationId ?? "");
+  const { getTier } = useTierDefinitions();
 
   // Holiday settings state - initialize from organization or defaults
   const [holidaySettings, setHolidaySettings] =
@@ -238,34 +294,26 @@ export default function OrganizationSettingsPage() {
   // Check if organization is personal type
   const isPersonalOrg = organizationData?.organizationType === "personal";
 
-  // Upgrade benefits for personal organizations
-  const upgradeBenefits = [
-    {
-      feature: "members",
-      description: t("organizations:upgrade.benefits.members"),
-      icon: "users",
-    },
-    {
-      feature: "stables",
-      description: t("organizations:upgrade.benefits.stables"),
-      icon: "building",
-    },
-    {
-      feature: "contacts",
-      description: t("organizations:upgrade.benefits.contacts"),
-      icon: "contact",
-    },
-    {
-      feature: "roles",
-      description: t("organizations:upgrade.benefits.roles"),
-      icon: "shield",
-    },
-    {
-      feature: "analytics",
-      description: t("organizations:upgrade.benefits.analytics"),
-      icon: "chart",
-    },
-  ];
+  // Subscription computed values
+  const subscription = subData?.subscription;
+  const tier = subData?.tier ?? "";
+  const tierDef = tier ? getTier(tier) : undefined;
+  const isFreeTier =
+    !subscription?.status && (!tier || tierDef?.isBillable === false);
+  const isTrialing = subscription?.status === "trialing";
+  const isPastDue = subscription?.status === "past_due";
+  const isPaused = subscription?.status === "paused";
+  const isCanceling = subscription?.cancelAtPeriodEnd === true;
+  const hasNoPaymentMethod = !subscription?.paymentMethod;
+  const trialDaysLeft = getTrialDaysRemaining(subscription?.trialEnd);
+
+  const handleSelectPlan = (
+    selectedTier: SubscriptionTier,
+    interval: BillingInterval,
+  ) => {
+    setPricingOpen(false);
+    checkoutMutation.mutate({ tier: selectedTier, billingInterval: interval });
+  };
 
   if (organizationLoading || !organizationData) {
     return (
@@ -298,13 +346,10 @@ export default function OrganizationSettingsPage() {
       </div>
 
       {/* Settings Tabs */}
-      <Tabs defaultValue="general" className="space-y-4">
+      <Tabs defaultValue={initialTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="general">
             {t("settings:tabs.general")}
-          </TabsTrigger>
-          <TabsTrigger value="stables">
-            {t("common:navigation.stables")}
           </TabsTrigger>
           <TabsTrigger value="subscription">
             {t("organizations:menu.subscription")}
@@ -313,12 +358,6 @@ export default function OrganizationSettingsPage() {
             <Calendar className="h-3 w-3" />
             {t("settings:tabs.holidays")}
           </TabsTrigger>
-          {isPersonalOrg && (
-            <TabsTrigger value="upgrade" className="gap-1">
-              <Sparkles className="h-3 w-3" />
-              {t("organizations:upgrade.tabTitle")}
-            </TabsTrigger>
-          )}
         </TabsList>
 
         {/* General Settings */}
@@ -332,6 +371,49 @@ export default function OrganizationSettingsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Organization Type */}
+                <div className="space-y-2">
+                  <Label>{t("organizations:upgrade.organizationType")}</Label>
+                  <div className="flex items-center justify-between p-3 border rounded-md bg-muted/50">
+                    <div className="flex items-center gap-2">
+                      {isPersonalOrg ? (
+                        <>
+                          <Users className="h-4 w-4" />
+                          <span>
+                            {t(
+                              "organizations:upgrade.organizationTypes.personal",
+                            )}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Building2 className="h-4 w-4" />
+                          <span>
+                            {t(
+                              "organizations:upgrade.organizationTypes.business",
+                            )}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    {isPersonalOrg && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowUpgradeDialog(true)}
+                        disabled={upgrading}
+                        className="gap-1"
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        {upgrading
+                          ? t("common:labels.loading")
+                          : t("organizations:upgrade.upgradeToBusiness")}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
                 {/* Organization Name */}
                 <div className="space-y-2">
                   <Label htmlFor="name">
@@ -474,71 +556,373 @@ export default function OrganizationSettingsPage() {
           </form>
         </TabsContent>
 
-        {/* Stables Tab */}
-        <TabsContent value="stables">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("common:navigation.stables")}</CardTitle>
-              <CardDescription>{t("stables:page.description")}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {t("common:navigation.stables")}:{" "}
-                {organizationData.stats.stableCount}
-              </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                Coming soon...
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         {/* Subscription Tab */}
-        <TabsContent value="subscription">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("organizations:subscription.title")}</CardTitle>
-              <CardDescription>
-                {t("organizations:subscription.description")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">
-                    {t("organizations:subscription.currentPlan")}
-                  </span>
-                  <span className="text-sm text-muted-foreground capitalize">
-                    {organizationData.subscriptionTier}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">
-                    {t("organizations:menu.members")}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {organizationData.stats.totalMemberCount}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">
-                    {t("organizations:upgrade.organizationType")}
-                  </span>
-                  <Badge
-                    variant={isPersonalOrg ? "secondary" : "default"}
-                    className="capitalize"
-                  >
-                    {organizationData.organizationType || "personal"}
-                  </Badge>
-                </div>
-              </div>
-              {isPersonalOrg && (
-                <p className="text-xs text-muted-foreground mt-4">
-                  {t("organizations:upgrade.personalLimitations")}
-                </p>
+        <TabsContent value="subscription" className="space-y-6">
+          {subLoading ? (
+            <div className="flex items-center justify-center min-h-[20vh]">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <>
+              {/* Trial Alert */}
+              {isTrialing && (
+                <Alert>
+                  <Clock className="h-4 w-4" />
+                  <AlertTitle>
+                    {t("organizations:subscription.trial.title")}
+                  </AlertTitle>
+                  <AlertDescription>
+                    {hasNoPaymentMethod
+                      ? t(
+                          "organizations:subscription.trial.descriptionNoCard",
+                          {
+                            days: trialDaysLeft,
+                          },
+                        )
+                      : t("organizations:subscription.trial.description", {
+                          days: trialDaysLeft,
+                        })}
+                    {hasNoPaymentMethod && (
+                      <Button
+                        variant="link"
+                        className="p-0 h-auto ml-1"
+                        onClick={() => portalMutation.mutate()}
+                        disabled={portalMutation.isPending}
+                      >
+                        {t("organizations:subscription.trial.addPaymentMethod")}
+                      </Button>
+                    )}
+                  </AlertDescription>
+                </Alert>
               )}
-            </CardContent>
-          </Card>
+
+              {/* Paused Alert (trial ended without payment method) */}
+              {isPaused && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>
+                    {t("organizations:subscription.paused.title")}
+                  </AlertTitle>
+                  <AlertDescription>
+                    {t("organizations:subscription.paused.description")}
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto ml-1"
+                      onClick={() => portalMutation.mutate()}
+                      disabled={portalMutation.isPending}
+                    >
+                      {t("organizations:subscription.paused.addPaymentMethod")}
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Past Due Alert */}
+              {isPastDue && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>
+                    {t("organizations:subscription.pastDue.title")}
+                  </AlertTitle>
+                  <AlertDescription>
+                    {t("organizations:subscription.pastDue.description")}
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto ml-1"
+                      onClick={() => portalMutation.mutate()}
+                      disabled={portalMutation.isPending}
+                    >
+                      {t("organizations:subscription.pastDue.updatePayment")}
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Canceling Alert */}
+              {isCanceling && subscription && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>
+                    {t("organizations:subscription.canceling.title")}
+                  </AlertTitle>
+                  <AlertDescription>
+                    {t("organizations:subscription.canceling.description", {
+                      date: formatDateSV(subscription.currentPeriodEnd),
+                    })}
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto ml-1"
+                      onClick={() => resumeMutation.mutate()}
+                      disabled={resumeMutation.isPending}
+                    >
+                      {t("organizations:subscription.canceling.resume")}
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Current Plan */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>
+                        {t("organizations:subscription.currentPlan")}
+                      </CardTitle>
+                      <CardDescription>
+                        {t("organizations:subscription.currentPlanDescription")}
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {subscription?.status && (
+                        <Badge
+                          variant={statusBadgeVariant(subscription.status)}
+                        >
+                          {t(
+                            `organizations:subscription.status.${subscription.status}`,
+                          )}
+                        </Badge>
+                      )}
+                      <Badge
+                        variant="outline"
+                        className="text-lg px-4 py-2 capitalize"
+                      >
+                        {tierDef?.name ??
+                          t(`organizations:subscription.tiers.${tier}.name`)}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {subscription?.currentPeriodEnd && !isFreeTier && (
+                      <div className="text-sm text-muted-foreground">
+                        {t("organizations:subscription.billingPeriod")}:{" "}
+                        {formatDateSV(subscription.currentPeriodStart)} -{" "}
+                        {formatDateSV(subscription.currentPeriodEnd)}
+                        {subscription.billingInterval && (
+                          <span className="ml-2">
+                            (
+                            {t(
+                              `organizations:subscription.pricing.${subscription.billingInterval === "year" ? "annual" : "monthly"}`,
+                            )}
+                            )
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {isFreeTier ? (
+                        <Dialog
+                          open={pricingOpen}
+                          onOpenChange={setPricingOpen}
+                        >
+                          <DialogTrigger asChild>
+                            <Button>
+                              {t(
+                                "organizations:subscription.buttons.upgradeNow",
+                              )}
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>
+                                {t("organizations:subscription.pricing.title")}
+                              </DialogTitle>
+                            </DialogHeader>
+                            <PricingTable
+                              currentTier={tier}
+                              onSelectPlan={handleSelectPlan}
+                              loading={checkoutMutation.isPending}
+                            />
+                          </DialogContent>
+                        </Dialog>
+                      ) : (
+                        <>
+                          <Button
+                            variant="outline"
+                            onClick={() => portalMutation.mutate()}
+                            disabled={portalMutation.isPending}
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            {t(
+                              "organizations:subscription.buttons.manageBilling",
+                            )}
+                          </Button>
+                          <Dialog
+                            open={pricingOpen}
+                            onOpenChange={setPricingOpen}
+                          >
+                            <DialogTrigger asChild>
+                              <Button variant="outline">
+                                {t(
+                                  "organizations:subscription.buttons.changePlan",
+                                )}
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>
+                                  {t(
+                                    "organizations:subscription.pricing.title",
+                                  )}
+                                </DialogTitle>
+                              </DialogHeader>
+                              <PricingTable
+                                currentTier={tier}
+                                onSelectPlan={handleSelectPlan}
+                                loading={checkoutMutation.isPending}
+                              />
+                            </DialogContent>
+                          </Dialog>
+                          {!isCanceling &&
+                            subscription?.status !== "canceled" && (
+                              <Button
+                                variant="ghost"
+                                className="text-destructive"
+                                onClick={() => cancelMutation.mutate()}
+                                disabled={cancelMutation.isPending}
+                              >
+                                {t(
+                                  "organizations:subscription.buttons.cancelSubscription",
+                                )}
+                              </Button>
+                            )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Payment Method */}
+              {subscription?.paymentMethod && (
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>
+                          {t("organizations:subscription.payment.title")}
+                        </CardTitle>
+                        <CardDescription>
+                          {t("organizations:subscription.payment.description")}
+                        </CardDescription>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => portalMutation.mutate()}
+                        disabled={portalMutation.isPending}
+                      >
+                        {t("organizations:subscription.payment.update")}
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-4 p-4 border rounded-lg">
+                      <div className="flex items-center justify-center w-12 h-12 bg-accent rounded">
+                        <CreditCard className="h-6 w-6" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold capitalize">
+                          {subscription.paymentMethod.brand} ****{" "}
+                          {subscription.paymentMethod.last4}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {t("organizations:subscription.payment.expires", {
+                            month: String(
+                              subscription.paymentMethod.expMonth,
+                            ).padStart(2, "0"),
+                            year: subscription.paymentMethod.expYear,
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Billing History */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    {t("organizations:subscription.history.title")}
+                  </CardTitle>
+                  <CardDescription>
+                    {t("organizations:subscription.history.description")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {billingData?.invoices && billingData.invoices.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>
+                            {t("organizations:subscription.history.date")}
+                          </TableHead>
+                          <TableHead>
+                            {t("organizations:subscription.history.amount")}
+                          </TableHead>
+                          <TableHead>
+                            {t("organizations:subscription.history.status")}
+                          </TableHead>
+                          <TableHead className="text-right">
+                            {t("organizations:subscription.history.invoice")}
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {billingData.invoices.map((invoice) => (
+                          <TableRow key={invoice.id}>
+                            <TableCell>
+                              {formatDateSV(invoice.created)}
+                            </TableCell>
+                            <TableCell>
+                              {formatSEK(invoice.amountPaid)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  invoice.status === "paid"
+                                    ? "default"
+                                    : "outline"
+                                }
+                              >
+                                {t(
+                                  `organizations:subscription.invoiceStatus.${invoice.status}`,
+                                )}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {invoice.invoicePdf && (
+                                <Button variant="ghost" size="sm" asChild>
+                                  <a
+                                    href={invoice.invoicePdf}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                  </a>
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-8">
+                      <CreditCard className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                      <p className="text-sm text-muted-foreground">
+                        {t("organizations:subscription.history.emptyState")}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
         </TabsContent>
 
         {/* Holidays Tab */}
@@ -580,70 +964,54 @@ export default function OrganizationSettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* Upgrade Tab (for personal organizations only) */}
-        {isPersonalOrg && (
-          <TabsContent value="upgrade">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  {t("organizations:upgrade.title")}
-                </CardTitle>
-                <CardDescription>
-                  {t("organizations:upgrade.description")}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Benefits List */}
-                <div className="space-y-4">
-                  <h4 className="font-medium">
-                    {t("organizations:upgrade.benefitsTitle")}
-                  </h4>
-                  <div className="grid gap-3">
-                    {upgradeBenefits.map((benefit) => {
-                      const IconComponent =
-                        featureIcons[benefit.icon] || Shield;
-                      return (
-                        <div
-                          key={benefit.feature}
-                          className="flex items-start gap-3 p-3 rounded-lg bg-muted/50"
-                        >
-                          <div className="flex-shrink-0 p-2 bg-primary/10 rounded-md">
-                            <IconComponent className="h-4 w-4 text-primary" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm">{benefit.description}</p>
-                          </div>
-                          <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Upgrade Button */}
-                <div className="flex flex-col items-center gap-4 pt-4 border-t">
-                  <p className="text-sm text-muted-foreground text-center">
-                    {t("organizations:upgrade.upgradeNote")}
-                  </p>
-                  <Button
-                    onClick={handleUpgrade}
-                    disabled={upgrading}
-                    size="lg"
-                    className="gap-2"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    {upgrading
-                      ? t("common:labels.loading")
-                      : t("organizations:upgrade.upgradeButton")}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
       </Tabs>
+
+      {/* Upgrade Confirmation Dialog */}
+      <AlertDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              {t("organizations:upgrade.confirmTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                <p>{t("organizations:upgrade.confirmDescription")}</p>
+                <div className="space-y-2">
+                  <p className="font-medium text-foreground">
+                    {t("organizations:upgrade.benefitsTitle")}
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    <li>{t("organizations:upgrade.benefits.activities")}</li>
+                    <li>{t("organizations:upgrade.benefits.scheduling")}</li>
+                    <li>{t("organizations:upgrade.benefits.lessons")}</li>
+                    <li>{t("organizations:upgrade.benefits.memberRoles")}</li>
+                  </ul>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {t("organizations:upgrade.confirmNote")}
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={upgrading}>
+              {t("common:buttons.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowUpgradeDialog(false);
+                handleUpgrade();
+              }}
+              disabled={upgrading}
+            >
+              {upgrading
+                ? t("common:labels.loading")
+                : t("organizations:upgrade.confirmButton")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

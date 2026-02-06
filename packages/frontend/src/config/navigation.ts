@@ -9,7 +9,6 @@ import {
   Plug,
   Tractor,
   Shield,
-  CreditCard,
   Warehouse,
   ClipboardList,
   Heart,
@@ -62,7 +61,7 @@ export const mainNavigation: NavigationItem[] = [
   },
   {
     id: "horses",
-    labelKey: "common:navigation.horses",
+    labelKey: "common:navigation.myHorses",
     href: "/horses",
     icon: HorseIcon,
     subItems: [
@@ -79,6 +78,12 @@ export const mainNavigation: NavigationItem[] = [
         icon: History,
       },
       {
+        id: "horses-care",
+        labelKey: "common:navigation.myCare",
+        href: "/horses/care",
+        icon: Heart,
+      },
+      {
         id: "horses-settings",
         labelKey: "common:navigation.horseSettings",
         href: "/horses/settings",
@@ -91,6 +96,7 @@ export const mainNavigation: NavigationItem[] = [
     labelKey: "common:navigation.activities",
     href: "/activities",
     icon: ClipboardList,
+    visibleForOrgType: "business",
     subItems: [
       {
         id: "activities-today",
@@ -119,28 +125,17 @@ export const mainNavigation: NavigationItem[] = [
     ],
   },
   {
-    id: "facilities",
-    labelKey: "common:navigation.facilities",
-    href: "/facilities",
-    icon: Warehouse,
+    id: "bookings",
+    labelKey: "common:navigation.bookings",
+    href: "/facilities/reservations",
+    icon: CalendarIcon,
+    visibleForOrgType: "business",
     subItems: [
       {
-        id: "facilities-stables",
-        labelKey: "common:navigation.stables",
-        href: "/stables",
-        icon: Building2,
-      },
-      {
-        id: "facilities-reservations",
+        id: "bookings-reservations",
         labelKey: "common:navigation.myReservations",
         href: "/facilities/reservations",
         icon: CalendarIcon,
-      },
-      {
-        id: "facilities-manage",
-        labelKey: "common:navigation.settings",
-        href: "/facilities/manage",
-        icon: SettingsIcon,
       },
     ],
   },
@@ -149,6 +144,7 @@ export const mainNavigation: NavigationItem[] = [
     labelKey: "common:navigation.feeding",
     href: "/feeding",
     icon: Wheat,
+    visibleForOrgType: "business",
     subItems: [
       {
         id: "feeding-today",
@@ -182,6 +178,7 @@ export const mainNavigation: NavigationItem[] = [
     labelKey: "common:navigation.schedule",
     href: "/schedule",
     icon: CalendarIcon,
+    visibleForOrgType: "business",
     subItems: [
       {
         id: "schedule-week",
@@ -229,6 +226,7 @@ export const mainNavigation: NavigationItem[] = [
     href: "/lessons",
     icon: GraduationCap,
     moduleFlag: "lessons",
+    visibleForOrgType: "business",
     subItems: [
       {
         id: "lessons-calendar",
@@ -335,8 +333,27 @@ export function createOrganizationNavigation(
 
   return [
     {
+      id: "organizationFacilities",
+      labelKey: "organizations:menu.facilities",
+      icon: Warehouse,
+      subItems: [
+        {
+          id: "org-stables",
+          labelKey: "organizations:menu.stables",
+          href: "/stables",
+          icon: Building2,
+        },
+        {
+          id: "org-manageFacilities",
+          labelKey: "organizations:menu.manageFacilities",
+          href: "/facilities/manage",
+          icon: SettingsIcon,
+        },
+      ],
+    },
+    {
       id: "organizationAdmin",
-      labelKey: "organizations:menu.settings",
+      labelKey: "organizations:menu.administration",
       icon: Building2,
       subItems: [
         {
@@ -374,12 +391,6 @@ export function createOrganizationNavigation(
           labelKey: "organizations:menu.permissions",
           href: `/organizations/${organizationId}/permissions`,
           icon: Shield,
-        },
-        {
-          id: "org-subscription",
-          labelKey: "organizations:menu.subscription",
-          href: `/organizations/${organizationId}/subscription`,
-          icon: CreditCard,
         },
         {
           id: "org-chargeableItems",

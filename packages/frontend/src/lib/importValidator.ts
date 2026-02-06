@@ -1,4 +1,5 @@
 import type { OrganizationMember, OrganizationInvite } from "@equiduty/shared";
+import { isValidEmail } from "./emailUtils";
 
 /**
  * Validation status for a single import row
@@ -35,15 +36,6 @@ export interface ValidationSummary {
   valid: number;
   warnings: number;
   errors: number;
-}
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
-/**
- * Validate a single email address
- */
-function isValidEmail(email: string): boolean {
-  return EMAIL_REGEX.test(email);
 }
 
 /**

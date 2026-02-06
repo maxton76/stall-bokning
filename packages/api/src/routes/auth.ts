@@ -12,6 +12,7 @@ const signupSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   phoneNumber: z.string().optional(),
+  organizationType: z.enum(["personal", "business"]).optional(),
 });
 
 export default async function authRoutes(fastify: FastifyInstance) {
@@ -36,7 +37,8 @@ export default async function authRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const { email, firstName, lastName, phoneNumber } = validation.data;
+        const { email, firstName, lastName, phoneNumber, organizationType } =
+          validation.data;
 
         // Check if user document already exists
         const existingUserDoc = await db
@@ -95,7 +97,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
             name: `${firstName}'s Organization`,
             ownerId: user.uid,
             ownerEmail: email.toLowerCase(),
-            organizationType: "personal" as const,
+            organizationType: organizationType || ("personal" as const),
             subscriptionTier: "free" as const,
             implicitStableId, // Link to the implicit stable
             stats: {

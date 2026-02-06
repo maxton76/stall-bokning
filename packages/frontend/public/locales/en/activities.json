@@ -50,6 +50,8 @@
   "care": {
     "title": "Care Activities",
     "description": "Veterinary, farrier, dentist, and other care-related activities",
+    "myTitle": "My Horses' Care Activities",
+    "myDescription": "Veterinary, farrier, dentist, and other care activities for your horses",
     "loading": "Loading care activities...",
     "stableLabel": "Stable",
     "next": "Next",

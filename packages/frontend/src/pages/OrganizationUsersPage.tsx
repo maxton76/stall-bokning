@@ -44,17 +44,16 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import { useDialog } from "@/hooks/useDialog";
-import { useCRUD } from "@/hooks/useCRUD";
 import { useToast } from "@/hooks/use-toast";
 import { InviteUserDialog } from "@/components/InviteUserDialog";
 import { EditMemberDialog } from "@/components/EditMemberDialog";
+import { RemoveMemberDialog } from "@/components/RemoveMemberDialog";
 import { BulkImportWizard } from "@/components/bulk-import";
 import { HorseBulkImportWizard } from "@/components/horse-bulk-import";
 import { getOrganization } from "@/services/organizationService";
 import { getStablesByOrganization } from "@/services/stableService";
 import {
   getOrganizationMembers,
-  removeOrganizationMember,
   inviteOrganizationMember,
   updateOrganizationMember,
 } from "@/services/organizationMemberService";
@@ -85,8 +84,11 @@ export default function OrganizationUsersPage() {
   const [editingMember, setEditingMember] = useState<OrganizationMember | null>(
     null,
   );
+  const [removingMember, setRemovingMember] =
+    useState<OrganizationMember | null>(null);
   const inviteDialog = useDialog();
   const editDialog = useDialog();
+  const removeDialog = useDialog();
   const bulkImportDialog = useDialog();
   const horseBulkImportDialog = useDialog();
   const [selectedInviteIds, setSelectedInviteIds] = useState<Set<string>>(
@@ -161,17 +163,28 @@ export default function OrganizationUsersPage() {
   );
   const stablesData = stablesQuery.data ?? [];
 
-  // CRUD operations
-  const { remove: handleRemoveMember } = useCRUD({
-    deleteFn: async (userId: string) => {
-      if (!organizationId || !user)
-        throw new Error("Missing organizationId or user");
-      await removeOrganizationMember(userId, organizationId);
-    },
-    onSuccess: async () => {
-      await cacheInvalidation.organizationMembers.list(organizationId!);
-    },
-  });
+  // Handle remove member (open dialog)
+  const handleOpenRemoveDialog = (member: OrganizationMember) => {
+    setRemovingMember(member);
+    removeDialog.openDialog();
+  };
+
+  // Handle remove member confirmation
+  const handleRemoveMemberConfirm = async (userId: string) => {
+    // The actual removal is handled by RemoveMemberDialog
+    // This callback is for any additional cleanup after removal
+    await cacheInvalidation.organizationMembers.list(organizationId!);
+    toast({
+      title: t("organizations:members.removeMember.success"),
+      description: t("organizations:members.removeMember.successDescription"),
+    });
+  };
+
+  // Handle horse transfer complete (refresh horse data if needed)
+  const handleTransferComplete = async () => {
+    // Refresh any horse-related data
+    // This could invalidate horse cache if needed
+  };
 
   // Handle invite user
   const handleInviteUser = async (data: any) => {
@@ -368,8 +381,8 @@ export default function OrganizationUsersPage() {
       }
 
       setSelectedInviteIds(new Set());
-      await cacheInvalidation.organizationInvites.list(organizationId);
-      await cacheInvalidation.organizationMembers.list(organizationId);
+      // Refetch queries directly to ensure UI updates immediately
+      await Promise.all([invitesQuery.refetch(), membersQuery.refetch()]);
     } catch (error) {
       toast({
         title: t("organizations:invites.forceActivateError"),
@@ -828,17 +841,7 @@ export default function OrganizationUsersPage() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => {
-                                  if (
-                                    confirm(
-                                      t("organizations:members.confirmRemove", {
-                                        email: member.userEmail,
-                                      }),
-                                    )
-                                  ) {
-                                    handleRemoveMember(member.userId);
-                                  }
-                                }}
+                                onClick={() => handleOpenRemoveDialog(member)}
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
@@ -855,17 +858,7 @@ export default function OrganizationUsersPage() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => {
-                                  if (
-                                    confirm(
-                                      t("organizations:members.confirmRemove", {
-                                        email: member.userEmail,
-                                      }),
-                                    )
-                                  ) {
-                                    handleRemoveMember(member.userId);
-                                  }
-                                }}
+                                onClick={() => handleOpenRemoveDialog(member)}
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
@@ -906,6 +899,23 @@ export default function OrganizationUsersPage() {
         }}
         member={editingMember}
         onSave={handleUpdateMember}
+      />
+
+      {/* Remove Member Dialog */}
+      <RemoveMemberDialog
+        open={removeDialog.open}
+        onOpenChange={(open) => {
+          if (open) {
+            removeDialog.openDialog();
+          } else {
+            removeDialog.closeDialog();
+            setRemovingMember(null);
+          }
+        }}
+        member={removingMember}
+        organizationId={organizationId || ""}
+        onConfirm={handleRemoveMemberConfirm}
+        onTransferComplete={handleTransferComplete}
       />
 
       {/* Bulk Import Wizard */}

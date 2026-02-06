@@ -160,9 +160,7 @@ const OrganizationManurePage = lazy(
 const OrganizationPermissionsPage = lazy(
   () => import("./pages/OrganizationPermissionsPage"),
 );
-const OrganizationSubscriptionPage = lazy(
-  () => import("./pages/OrganizationSubscriptionPage"),
-);
+// OrganizationSubscriptionPage removed - subscription UI consolidated into OrganizationSettingsPage
 const LeaveManagementPage = lazy(() => import("./pages/LeaveManagementPage"));
 const ScheduleManagementPage = lazy(
   () => import("./pages/ScheduleManagementPage"),
@@ -260,6 +258,17 @@ function RoutineIdRedirect() {
   return (
     <Navigate
       to={`/routines/flow/${routineId}${queryString ? `?${queryString}` : ""}`}
+      replace
+    />
+  );
+}
+
+// Redirect component for /organizations/:id/subscription → /organizations/:id/settings (with subscription tab)
+function SubscriptionRedirect() {
+  const { organizationId } = useParams<{ organizationId: string }>();
+  return (
+    <Navigate
+      to={`/organizations/${organizationId}/settings?tab=subscription`}
       replace
     />
   );
@@ -493,6 +502,14 @@ function App() {
                       element={
                         <Suspense fallback={<InlineLoader />}>
                           <MyHorsesPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/horses/care"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <ActivitiesCarePage scope="my" />
                         </Suspense>
                       }
                     />
@@ -837,13 +854,10 @@ function App() {
                         </Suspense>
                       }
                     />
+                    {/* Redirect old subscription URL to settings page with subscription tab */}
                     <Route
                       path="/organizations/:organizationId/subscription"
-                      element={
-                        <Suspense fallback={<InlineLoader />}>
-                          <OrganizationSubscriptionPage />
-                        </Suspense>
-                      }
+                      element={<SubscriptionRedirect />}
                     />
                     <Route
                       path="/organizations/:organizationId/settings"

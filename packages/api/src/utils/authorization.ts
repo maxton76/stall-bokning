@@ -685,6 +685,52 @@ export async function getHorseAccessContext(
       };
     }
 
+    // Check organization ownership - org admins get full access to org-owned horses
+    if (horse.ownershipType === "organization" && horse.ownerOrganizationId) {
+      const orgMemberDoc = await db
+        .collection("organizationMembers")
+        .doc(`${userId}_${horse.ownerOrganizationId}`)
+        .get();
+
+      if (orgMemberDoc.exists) {
+        const orgMember = orgMemberDoc.data();
+        if (orgMember?.status === "active") {
+          const orgDoc = await db
+            .collection("organizations")
+            .doc(horse.ownerOrganizationId)
+            .get();
+          const isOrgOwner = orgDoc.exists && orgDoc.data()?.ownerId === userId;
+          const roles = orgMember.roles || [];
+          const isAdmin = roles.includes("administrator") || isOrgOwner;
+
+          // Org admins get owner-level access to organization-owned horses
+          if (isAdmin) {
+            return {
+              userId,
+              systemRole,
+              isOwner: false,
+              organizationRoles: roles,
+              stableAccess: orgMember.stableAccess || "all",
+              accessLevel: "owner",
+              accessSource: "ownership",
+            };
+          }
+
+          // Other org members get access based on their role
+          const accessLevel = determineAccessLevel(roles, systemRole, false);
+          return {
+            userId,
+            systemRole,
+            isOwner: false,
+            organizationRoles: roles,
+            stableAccess: orgMember.stableAccess || "all",
+            accessLevel,
+            accessSource: "ownership",
+          };
+        }
+      }
+    }
+
     // Check if user is a member of the owner's organization
     if (horse.ownerOrganizationId) {
       const ownerOrgMemberDoc = await db

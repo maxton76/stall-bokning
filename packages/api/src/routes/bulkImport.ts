@@ -41,16 +41,30 @@ const organizationRoleSchema = z.enum(
 // Zod schema for bulk import request validation
 const bulkImportMemberSchema = z
   .object({
+    // Standard email regex - ASCII only, no internationalized characters
+    // Rejects Swedish characters å, ä, ö etc. to ensure compatibility
     email: z
       .string()
-      .email()
+      .regex(
+        /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/,
+        "Invalid email format",
+      )
       .transform((e) => e.toLowerCase()),
-    firstName: z.string().optional(),
-    lastName: z.string().optional(),
+    firstName: z
+      .string()
+      .optional()
+      .transform((val) => (val === "" ? undefined : val)),
+    lastName: z
+      .string()
+      .optional()
+      .transform((val) => (val === "" ? undefined : val)),
     phoneNumber: z
       .string()
-      .regex(/^\+?[\d\s\-()]{7,15}$/, "Invalid phone number format")
-      .optional(),
+      .optional()
+      .transform((val) => (val === "" ? undefined : val))
+      .refine((val) => val === undefined || /^\+?[\d\s\-()]{7,15}$/.test(val), {
+        message: "Invalid phone number format",
+      }),
     roles: z.array(organizationRoleSchema).min(1),
     primaryRole: organizationRoleSchema,
   })

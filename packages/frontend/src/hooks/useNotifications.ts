@@ -6,11 +6,10 @@ import {
   orderBy,
   limit,
   onSnapshot,
-  Timestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
-import { authFetch } from "@/lib/authFetch";
+import { apiClient } from "@/lib/apiClient";
 import type { Notification, NotificationPreferences } from "@equiduty/shared";
 
 interface UseNotificationsOptions {
@@ -127,9 +126,7 @@ export function useNotifications(
 
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
-      await authFetch(`/api/v1/notifications/${notificationId}/read`, {
-        method: "PATCH",
-      });
+      await apiClient.patch(`/notifications/${notificationId}/read`, {});
       // Real-time listener will update the state
     } catch (err) {
       console.error("Failed to mark notification as read:", err);
@@ -139,9 +136,7 @@ export function useNotifications(
 
   const markAllAsRead = useCallback(async () => {
     try {
-      await authFetch("/api/v1/notifications/read-all", {
-        method: "PATCH",
-      });
+      await apiClient.patch("/notifications/read-all", {});
       // Real-time listener will update the state
     } catch (err) {
       console.error("Failed to mark all notifications as read:", err);
@@ -151,9 +146,7 @@ export function useNotifications(
 
   const deleteNotification = useCallback(async (notificationId: string) => {
     try {
-      await authFetch(`/api/v1/notifications/${notificationId}`, {
-        method: "DELETE",
-      });
+      await apiClient.delete(`/notifications/${notificationId}`);
       // Real-time listener will update the state
     } catch (err) {
       console.error("Failed to delete notification:", err);
@@ -163,9 +156,7 @@ export function useNotifications(
 
   const clearRead = useCallback(async () => {
     try {
-      await authFetch("/api/v1/notifications/clear-read", {
-        method: "DELETE",
-      });
+      await apiClient.delete("/notifications/clear-read");
       // Real-time listener will update the state
     } catch (err) {
       console.error("Failed to clear read notifications:", err);
@@ -212,8 +203,9 @@ export function useNotificationPreferences() {
 
     const loadPreferences = async () => {
       try {
-        const response = await authFetch("/api/v1/notifications/preferences");
-        const data = await response.json();
+        const data = await apiClient.get<{
+          preferences: NotificationPreferences;
+        }>("/notifications/preferences");
         setPreferences(data.preferences);
         setLoading(false);
       } catch (err) {
@@ -232,12 +224,9 @@ export function useNotificationPreferences() {
 
       setSaving(true);
       try {
-        const response = await authFetch("/api/v1/notifications/preferences", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updates),
-        });
-        const data = await response.json();
+        const data = await apiClient.put<{
+          preferences: NotificationPreferences;
+        }>("/notifications/preferences", updates);
         setPreferences(data.preferences);
       } catch (err) {
         console.error("Failed to update notification preferences:", err);
@@ -258,10 +247,10 @@ export function useNotificationPreferences() {
       if (!user?.uid) return;
 
       try {
-        await authFetch("/api/v1/notifications/preferences/fcm-token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token, deviceId, platform }),
+        await apiClient.post("/notifications/preferences/fcm-token", {
+          token,
+          deviceId,
+          platform,
         });
       } catch (err) {
         console.error("Failed to register FCM token:", err);
@@ -276,11 +265,8 @@ export function useNotificationPreferences() {
       if (!user?.uid) return;
 
       try {
-        await authFetch(
-          `/api/v1/notifications/preferences/fcm-token/${deviceId}`,
-          {
-            method: "DELETE",
-          },
+        await apiClient.delete(
+          `/notifications/preferences/fcm-token/${deviceId}`,
         );
       } catch (err) {
         console.error("Failed to remove FCM token:", err);

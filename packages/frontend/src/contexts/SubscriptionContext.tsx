@@ -61,6 +61,8 @@ interface SubscriptionContextType {
     currentCount: number,
   ) => boolean;
   isLoading: boolean;
+  /** The organization type (personal or business) */
+  organizationType: "personal" | "business" | null;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(
@@ -113,6 +115,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         return limit === -1 || currentCount < limit;
       },
       isLoading,
+      organizationType: organization?.organizationType ?? null,
     };
   }, [organization, isLoading, getTier]);
 

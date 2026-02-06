@@ -201,7 +201,7 @@ export default function AccountPage() {
                 <SelectContent>
                   {organizations.map((org) => (
                     <SelectItem key={org.id} value={org.id}>
-                      {org.name}
+                      {org.displayName || org.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

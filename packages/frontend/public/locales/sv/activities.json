@@ -50,6 +50,8 @@
   "care": {
     "title": "Vårdaktiviteter",
     "description": "Veterinär-, hovslagare-, tandläkare- och andra vårdrelaterade aktiviteter",
+    "myTitle": "Mina hästars vårdaktiviteter",
+    "myDescription": "Veterinär-, hovslagare-, tandläkare- och andra vårdaktiviteter för dina hästar",
     "loading": "Laddar vårdaktiviteter...",
     "stableLabel": "Stall",
     "next": "Nästa",

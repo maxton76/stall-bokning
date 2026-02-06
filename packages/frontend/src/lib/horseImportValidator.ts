@@ -1,4 +1,5 @@
 import type { HorseImportRow } from "./horseImportParser";
+import { isValidEmail } from "./emailUtils";
 
 /**
  * Validation status for a horse import row.
@@ -50,8 +51,6 @@ interface ResolvedMember {
   name: string;
 }
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
 /**
  * Validate horse import rows against resolved member data.
  */
@@ -75,7 +74,7 @@ export function validateHorseImportRows(
     const emailLower = row.ownerEmail.toLowerCase();
 
     // Email validation
-    if (!EMAIL_REGEX.test(row.ownerEmail)) {
+    if (!isValidEmail(row.ownerEmail)) {
       errors.push("INVALID_EMAIL");
     } else if (unresolvedSet.has(emailLower) || !resolvedMap.has(emailLower)) {
       errors.push("MEMBER_NOT_FOUND");
