@@ -283,39 +283,66 @@
     "description": "Role-based access control for organization members",
     "matrix": {
       "title": "Permission Matrix",
-      "description": "Detailed breakdown of what each role can do",
-      "action": "Action"
+      "description": "Manage what each role can do in your organization",
+      "action": "Action",
+      "readOnly": "Upgrade to customize permissions",
+      "readOnlyDescription": "Your subscription does not include custom permissions. Upgrade to a plan with advanced permissions to edit the matrix."
     },
     "actions": {
-      "manageSettings": "Manage organization settings",
-      "manageMembers": "Manage members",
-      "viewAllStables": "View all stables",
-      "createStables": "Create stables",
-      "editStableSettings": "Edit stable settings",
-      "manageHorses": "Manage horses",
-      "viewSchedules": "View schedules",
-      "createSchedules": "Create schedules",
-      "bookShifts": "Book shifts",
-      "manageManureRecords": "Manage manure records",
-      "viewIntegrations": "View integrations",
-      "configureIntegrations": "Configure integrations",
-      "viewSubscription": "View subscription",
-      "manageBilling": "Manage billing"
+      "manage_org_settings": "Manage organization settings",
+      "manage_members": "Manage members",
+      "view_members": "View members",
+      "manage_billing": "Manage billing",
+      "create_stables": "Create stables",
+      "manage_stable_settings": "Manage stable settings",
+      "view_stables": "View stables",
+      "view_horses": "View horses",
+      "manage_own_horses": "Manage own horses",
+      "manage_any_horse": "Manage any horse",
+      "view_schedules": "View schedules",
+      "manage_schedules": "Manage schedules",
+      "book_shifts": "Book shifts",
+      "cancel_others_bookings": "Cancel others' bookings",
+      "mark_shifts_missed": "Mark shifts as missed",
+      "manage_activities": "Manage activities",
+      "manage_routines": "Manage routines",
+      "manage_selection_processes": "Manage routine selection",
+      "manage_lessons": "Manage lessons",
+      "manage_facilities": "Manage facilities",
+      "manage_records": "Manage records",
+      "view_records": "View records",
+      "manage_integrations": "Manage integrations",
+      "send_communications": "Send communications",
+      "export_data": "Export data"
     },
-    "roles": {
-      "administrator": "Administrator",
-      "manager": "Manager",
-      "member": "Member"
+    "categories": {
+      "organization": "Organization",
+      "stables": "Stables",
+      "horses": "Horses",
+      "scheduling": "Scheduling",
+      "activities": "Activities",
+      "lessons": "Lessons",
+      "facilities": "Facilities",
+      "records": "Records",
+      "integrations": "Integrations"
     },
-    "roleDescriptions": {
-      "administrator": "Full access to all organization features and settings",
-      "manager": "Can manage stables, horses, and schedules",
-      "member": "Basic access to view and participate in stable activities"
+    "buttons": {
+      "save": "Save permissions",
+      "reset": "Reset to defaults",
+      "saving": "Saving...",
+      "resetConfirm": "Are you sure you want to reset permissions to their default values?"
+    },
+    "messages": {
+      "saveSuccess": "Permissions saved successfully",
+      "saveError": "Failed to save permissions",
+      "resetSuccess": "Permissions reset to defaults",
+      "resetError": "Failed to reset permissions",
+      "protectedPermission": "This permission cannot be removed from the administrator role"
     },
     "customRoles": {
       "title": "Custom Roles & Advanced Permissions",
       "description": "Available in Professional and Enterprise plans",
-      "explanation": "Create custom roles with granular permissions tailored to your organization's needs. Control access to specific stables, features, and data on a per-role basis.",
+      "explanation": "Customize permissions per role to match your organization's needs.",
       "specializedRoles": "Specialized roles available: Veterinarian, Dentist, Farrier, Groom, Horse Owner, Rider, and more."
     }
   },

@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
-import { authenticate, requireOrganizationAdmin } from "../middleware/auth.js";
+import { authenticate, requirePermission } from "../middleware/auth.js";
 import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
 // ---------------------------------------------------------------------------
 // Helpers
@@ -62,7 +62,7 @@ export async function exportsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/exports/invoices",
     {
       preHandler: [
-        requireOrganizationAdmin("params"),
+        requirePermission("export_data", "params"),
         checkModuleAccess("invoicing"),
       ],
     },
@@ -164,7 +164,7 @@ export async function exportsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/exports/line-items",
     {
       preHandler: [
-        requireOrganizationAdmin("params"),
+        requirePermission("export_data", "params"),
         checkModuleAccess("invoicing"),
       ],
     },
@@ -273,7 +273,7 @@ export async function exportsRoutes(fastify: FastifyInstance) {
     "/organizations/:organizationId/exports/payments",
     {
       preHandler: [
-        requireOrganizationAdmin("params"),
+        requirePermission("export_data", "params"),
         checkModuleAccess("invoicing"),
       ],
     },

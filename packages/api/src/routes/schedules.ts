@@ -1,9 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../utils/firebase.js";
-import { authenticate, requireStableAccess } from "../middleware/auth.js";
+import { authenticate, requireStablePermission } from "../middleware/auth.js";
 import type { AuthenticatedRequest, Schedule } from "../types/index.js";
-import { canManageSchedules, canAccessStable } from "../utils/authorization.js";
+
+import {
+  hasPermission as engineHasPermission,
+  resolveOrgIdFromStable,
+} from "../utils/permissionEngine.js";
 import {
   autoAssignShifts,
   calculateAssignmentSummary,
@@ -134,7 +138,7 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
   fastify.get(
     "/stable/:stableId",
     {
-      preHandler: [authenticate, requireStableAccess()],
+      preHandler: [authenticate, requireStablePermission("view_schedules")],
     },
     async (request, reply) => {
       try {
@@ -186,9 +190,14 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
         const user = (request as AuthenticatedRequest).user!;
         const { stableId } = validation.data;
 
-        // Verify user can manage schedules for this stable
-        const canManage = await canManageSchedules(user.uid, stableId);
-        if (!canManage && user.role !== "system_admin") {
+        // Verify user can manage schedules for this stable (V2 permission engine)
+        const orgId = await resolveOrgIdFromStable(stableId);
+        if (
+          !orgId ||
+          !(await engineHasPermission(user.uid, orgId, "manage_schedules", {
+            systemRole: user.role,
+          }))
+        ) {
           // Return 404 to prevent resource enumeration
           return reply.status(404).send({ error: "Resource not found" });
         }
@@ -256,17 +265,25 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
 
         const schedule = doc.data() as Schedule;
 
-        // FIXED: Check ownership or stable management permissions
-        const canManage = await canManageSchedules(user.uid, schedule.stableId);
+        // V2 permission engine: Check ownership or manage_schedules permission
+        const updateOrgId = await resolveOrgIdFromStable(schedule.stableId);
+        const canManageUpdate = updateOrgId
+          ? await engineHasPermission(
+              user.uid,
+              updateOrgId,
+              "manage_schedules",
+              { systemRole: user.role },
+            )
+          : false;
 
         if (
           schedule.createdBy !== user.uid &&
-          !canManage &&
+          !canManageUpdate &&
           user.role !== "system_admin"
         ) {
           return reply.status(403).send({
             error: "Forbidden",
-            message: "You do not have permission to update this schedule",
+            message: "Missing permission: manage_schedules",
           });
         }
 
@@ -336,9 +353,14 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
 
         const schedule = doc.data() as Schedule;
 
-        // Check access permissions - any stable member can view schedules
-        const hasAccess = await canAccessStable(user.uid, schedule.stableId);
-        if (!hasAccess && user.role !== "system_admin") {
+        // V2 permission engine: Check view_schedules permission
+        const viewOrgId = await resolveOrgIdFromStable(schedule.stableId);
+        if (
+          !viewOrgId ||
+          !(await engineHasPermission(user.uid, viewOrgId, "view_schedules", {
+            systemRole: user.role,
+          }))
+        ) {
           // Return 404 to prevent resource enumeration
           return reply.status(404).send({
             error: "Not Found",
@@ -446,12 +468,21 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
         }
 
         const schedule = doc.data() as Schedule;
-        const canManage = await canManageSchedules(user.uid, schedule.stableId);
 
-        if (!canManage && user.role !== "system_admin") {
+        // V2 permission engine: Check manage_schedules permission
+        const publishOrgId = await resolveOrgIdFromStable(schedule.stableId);
+        if (
+          !publishOrgId ||
+          !(await engineHasPermission(
+            user.uid,
+            publishOrgId,
+            "manage_schedules",
+            { systemRole: user.role },
+          ))
+        ) {
           return reply.status(403).send({
             error: "Forbidden",
-            message: "You do not have permission to publish this schedule",
+            message: "Missing permission: manage_schedules",
           });
         }
 
@@ -512,13 +543,21 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
         }
 
         const schedule = scheduleDoc.data() as Schedule;
-        const canManage = await canManageSchedules(user.uid, schedule.stableId);
 
-        if (!canManage && user.role !== "system_admin") {
+        // V2 permission engine: Check manage_schedules permission
+        const assignOrgId = await resolveOrgIdFromStable(schedule.stableId);
+        if (
+          !assignOrgId ||
+          !(await engineHasPermission(
+            user.uid,
+            assignOrgId,
+            "manage_schedules",
+            { systemRole: user.role },
+          ))
+        ) {
           return reply.status(403).send({
             error: "Forbidden",
-            message:
-              "You do not have permission to auto-assign shifts for this schedule",
+            message: "Missing permission: manage_schedules",
           });
         }
 
@@ -648,12 +687,21 @@ export async function schedulesRoutes(fastify: FastifyInstance) {
         }
 
         const schedule = doc.data() as Schedule;
-        const canManage = await canManageSchedules(user.uid, schedule.stableId);
 
-        if (!canManage && user.role !== "system_admin") {
+        // V2 permission engine: Check manage_schedules permission
+        const deleteOrgId = await resolveOrgIdFromStable(schedule.stableId);
+        if (
+          !deleteOrgId ||
+          !(await engineHasPermission(
+            user.uid,
+            deleteOrgId,
+            "manage_schedules",
+            { systemRole: user.role },
+          ))
+        ) {
           return reply.status(403).send({
             error: "Forbidden",
-            message: "You do not have permission to delete this schedule",
+            message: "Missing permission: manage_schedules",
           });
         }
 

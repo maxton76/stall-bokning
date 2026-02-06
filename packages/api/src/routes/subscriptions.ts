@@ -11,7 +11,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { stripe } from "../utils/stripe.js";
 import { db } from "../utils/firebase.js";
-import { authenticate, requireOrganizationAdmin } from "../middleware/auth.js";
+import { authenticate, requirePermission } from "../middleware/auth.js";
 import { getPriceIdForTier } from "../utils/stripeTierMapping.js";
 import { getOrganizationOrThrow } from "../utils/organizationHelpers.js";
 import {
@@ -130,7 +130,10 @@ async function getOrCreateStripeCustomer(
 
 export async function subscriptionRoutes(fastify: FastifyInstance) {
   // All routes require authentication + org admin access
-  const orgAdminPreHandler = [authenticate, requireOrganizationAdmin("params")];
+  const orgAdminPreHandler = [
+    authenticate,
+    requirePermission("manage_billing", "params"),
+  ];
 
   /**
    * GET /organizations/:organizationId/subscription

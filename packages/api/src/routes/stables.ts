@@ -1,11 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../utils/firebase.js";
-import {
-  authenticate,
-  requireStableAccess,
-  requireStableOwnership,
-} from "../middleware/auth.js";
+import { authenticate, requireStablePermission } from "../middleware/auth.js";
 import { checkSubscriptionLimit } from "../middleware/checkSubscriptionLimit.js";
 import type { AuthenticatedRequest, Stable } from "../types/index.js";
 
@@ -192,7 +188,7 @@ export async function stablesRoutes(fastify: FastifyInstance) {
   fastify.get(
     "/:id",
     {
-      preHandler: [authenticate, requireStableAccess()],
+      preHandler: [authenticate, requireStablePermission("view_stables")],
     },
     async (request, reply) => {
       try {
@@ -302,7 +298,10 @@ export async function stablesRoutes(fastify: FastifyInstance) {
   fastify.patch(
     "/:id",
     {
-      preHandler: [authenticate, requireStableOwnership()],
+      preHandler: [
+        authenticate,
+        requireStablePermission("manage_org_settings"),
+      ],
     },
     async (request, reply) => {
       try {
@@ -346,7 +345,10 @@ export async function stablesRoutes(fastify: FastifyInstance) {
   fastify.delete(
     "/:id",
     {
-      preHandler: [authenticate, requireStableOwnership()],
+      preHandler: [
+        authenticate,
+        requireStablePermission("manage_org_settings"),
+      ],
     },
     async (request, reply) => {
       try {
@@ -371,7 +373,7 @@ export async function stablesRoutes(fastify: FastifyInstance) {
   fastify.get(
     "/:id/members",
     {
-      preHandler: [authenticate, requireStableAccess()],
+      preHandler: [authenticate, requireStablePermission("view_stables")],
     },
     async (request, reply) => {
       try {
@@ -472,7 +474,7 @@ export async function stablesRoutes(fastify: FastifyInstance) {
   fastify.delete(
     "/:stableId/members/:memberId",
     {
-      preHandler: [authenticate, requireStableAccess()],
+      preHandler: [authenticate, requireStablePermission("manage_members")],
     },
     async (request, reply) => {
       try {
@@ -550,7 +552,10 @@ export async function stablesRoutes(fastify: FastifyInstance) {
   fastify.put(
     "/:id/boxes",
     {
-      preHandler: [authenticate, requireStableOwnership()],
+      preHandler: [
+        authenticate,
+        requireStablePermission("manage_org_settings"),
+      ],
     },
     async (request, reply) => {
       try {
@@ -627,7 +632,10 @@ export async function stablesRoutes(fastify: FastifyInstance) {
   fastify.put(
     "/:id/paddocks",
     {
-      preHandler: [authenticate, requireStableOwnership()],
+      preHandler: [
+        authenticate,
+        requireStablePermission("manage_org_settings"),
+      ],
     },
     async (request, reply) => {
       try {
@@ -707,7 +715,7 @@ export async function stablesRoutes(fastify: FastifyInstance) {
   fastify.get(
     "/:id/invites",
     {
-      preHandler: [authenticate, requireStableAccess()],
+      preHandler: [authenticate, requireStablePermission("view_stables")],
     },
     async (request, reply) => {
       try {

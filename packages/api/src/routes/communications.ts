@@ -16,11 +16,7 @@ import {
   DocumentData,
 } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
-import {
-  authenticate,
-  requireOrganizationAccess,
-  requireOrganizationAdmin,
-} from "../middleware/auth.js";
+import { authenticate, requirePermission } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import type {
   CommunicationRecord,
@@ -92,7 +88,7 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/communications",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requirePermission("view_members", "params")],
     },
     async (request, reply) => {
       const { organizationId } = request.params;
@@ -235,7 +231,7 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/communications/:communicationId",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requirePermission("view_members", "params")],
     },
     async (request, reply) => {
       const { organizationId, communicationId } = request.params;
@@ -266,7 +262,10 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/communications",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [
+        authenticate,
+        requirePermission("send_communications", "params"),
+      ],
     },
     async (request, reply) => {
       const { organizationId } = request.params;
@@ -355,7 +354,10 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/communications/:communicationId",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [
+        authenticate,
+        requirePermission("send_communications", "params"),
+      ],
     },
     async (request, reply) => {
       const { organizationId, communicationId } = request.params;
@@ -426,7 +428,10 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/communications/:communicationId",
     {
-      preHandler: [authenticate, requireOrganizationAdmin("params")],
+      preHandler: [
+        authenticate,
+        requirePermission("manage_org_settings", "params"),
+      ],
     },
     async (request, reply) => {
       const { organizationId, communicationId } = request.params;
@@ -463,7 +468,7 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/contacts/:contactId/communications",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requirePermission("view_members", "params")],
     },
     async (request, reply) => {
       const { organizationId, contactId } = request.params;
@@ -515,7 +520,7 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/contacts/:contactId/communication-stats",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requirePermission("view_members", "params")],
     },
     async (request, reply) => {
       const { organizationId, contactId } = request.params;
@@ -579,7 +584,7 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/communication-templates",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requirePermission("view_members", "params")],
     },
     async (request, reply) => {
       const { organizationId } = request.params;
@@ -630,7 +635,10 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/communication-templates",
     {
-      preHandler: [authenticate, requireOrganizationAdmin("params")],
+      preHandler: [
+        authenticate,
+        requirePermission("manage_org_settings", "params"),
+      ],
     },
     async (request, reply) => {
       const { organizationId } = request.params;
@@ -686,7 +694,10 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/communication-templates/:templateId",
     {
-      preHandler: [authenticate, requireOrganizationAdmin("params")],
+      preHandler: [
+        authenticate,
+        requirePermission("manage_org_settings", "params"),
+      ],
     },
     async (request, reply) => {
       const { organizationId, templateId } = request.params;
@@ -751,7 +762,10 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/communication-templates/:templateId",
     {
-      preHandler: [authenticate, requireOrganizationAdmin("params")],
+      preHandler: [
+        authenticate,
+        requirePermission("manage_org_settings", "params"),
+      ],
     },
     async (request, reply) => {
       const { organizationId, templateId } = request.params;
@@ -784,7 +798,10 @@ export async function communicationsRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/communication-templates/:templateId/use",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [
+        authenticate,
+        requirePermission("send_communications", "params"),
+      ],
     },
     async (request, reply) => {
       const { organizationId, templateId } = request.params;

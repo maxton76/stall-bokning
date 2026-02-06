@@ -12,8 +12,11 @@ interface UsePermissionsOptions {
 }
 
 /**
- * Hook to check permissions for stable and horse operations
- * Returns functions to check if a user has permission for specific actions
+ * Hook to check permissions for stable and horse operations.
+ *
+ * @deprecated Use `useOrgPermissions` from `@/hooks/useOrgPermissions`
+ * for the V2 organization-level permission system.
+ * This hook is kept for backward compatibility during migration.
  */
 export function usePermissions({ role, isOwner }: UsePermissionsOptions) {
   const effectiveRole = useMemo<"owner" | "manager" | "member" | null>(() => {

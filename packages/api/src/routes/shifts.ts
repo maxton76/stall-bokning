@@ -1,13 +1,16 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../utils/firebase.js";
-import { authenticate, requireStableManagement } from "../middleware/auth.js";
+import { authenticate, requireStablePermission } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import {
-  canManageSchedules,
   canAccessStable,
   getUserAccessibleStableIds,
 } from "../utils/authorization.js";
+import {
+  hasPermission as engineHasPermission,
+  resolveOrgIdFromStable,
+} from "../utils/permissionEngine.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 
 const batchCreateShiftsSchema = z.object({
@@ -362,9 +365,9 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
   );
 
   // Batch create shifts
-  // Note: We don't use requireStableManagement() here because stableId is in
-  // the request body, not URL params. Authorization is done in the handler
-  // by checking canManageSchedules() on the schedule's stableId.
+  // Note: We don't use requireStablePermission() middleware here because stableId
+  // is in the request body, not URL params. Authorization is done in the handler
+  // via resolveOrgIdFromStable() + engineHasPermission('manage_schedules').
   fastify.post(
     "/batch",
     {
@@ -398,16 +401,17 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
         }
 
         const schedule = scheduleDoc.data();
-        const canManage = await canManageSchedules(
-          user.uid,
-          schedule?.stableId,
-        );
-
-        if (!canManage && user.role !== "system_admin") {
+        const stableId = schedule?.stableId;
+        const orgId = await resolveOrgIdFromStable(stableId);
+        if (
+          !orgId ||
+          !(await engineHasPermission(user.uid, orgId, "manage_schedules", {
+            systemRole: user.role,
+          }))
+        ) {
           return reply.status(403).send({
             error: "Forbidden",
-            message:
-              "You do not have permission to create shifts for this schedule",
+            message: "Missing permission: manage_schedules",
           });
         }
 
@@ -493,10 +497,18 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
         }
 
         // Members can self-assign, managers can assign anyone
-        const canManage = await canManageSchedules(user.uid, shift?.stableId);
+        const assignOrgId = await resolveOrgIdFromStable(shift?.stableId);
+        const canManageAssign = assignOrgId
+          ? await engineHasPermission(
+              user.uid,
+              assignOrgId,
+              "manage_schedules",
+              { systemRole: user.role },
+            )
+          : false;
         const isSelfAssigning = userId === user.uid;
 
-        if (!isSelfAssigning && !canManage && user.role !== "system_admin") {
+        if (!isSelfAssigning && !canManageAssign) {
           return reply.status(403).send({
             error: "Forbidden",
             message:
@@ -574,10 +586,18 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
         }
 
         // Check permissions: members can unassign themselves, managers can unassign anyone
-        const canManage = await canManageSchedules(user.uid, shift?.stableId);
+        const unassignOrgId = await resolveOrgIdFromStable(shift?.stableId);
+        const canManageUnassign = unassignOrgId
+          ? await engineHasPermission(
+              user.uid,
+              unassignOrgId,
+              "manage_schedules",
+              { systemRole: user.role },
+            )
+          : false;
         const isSelfUnassigning = shift?.assignedTo === user.uid;
 
-        if (!isSelfUnassigning && !canManage && user.role !== "system_admin") {
+        if (!isSelfUnassigning && !canManageUnassign) {
           return reply.status(403).send({
             error: "Forbidden",
             message:
@@ -663,10 +683,18 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
         }
 
         // Check permissions: assigned user can complete their own shift, managers can complete any
-        const canManage = await canManageSchedules(user.uid, shift?.stableId);
+        const completeOrgId = await resolveOrgIdFromStable(shift?.stableId);
+        const canManageComplete = completeOrgId
+          ? await engineHasPermission(
+              user.uid,
+              completeOrgId,
+              "manage_schedules",
+              { systemRole: user.role },
+            )
+          : false;
         const isAssignedUser = shift?.assignedTo === user.uid;
 
-        if (!isAssignedUser && !canManage && user.role !== "system_admin") {
+        if (!isAssignedUser && !canManageComplete) {
           return reply.status(403).send({
             error: "Forbidden",
             message:
@@ -750,17 +778,20 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
         }
 
         // Check permissions: assigned user can cancel their own shift, managers can cancel any
-        const canManage = await canManageSchedules(user.uid, shift?.stableId);
+        const cancelOrgId = await resolveOrgIdFromStable(shift?.stableId);
+        const canManageCancel = cancelOrgId
+          ? await engineHasPermission(
+              user.uid,
+              cancelOrgId,
+              "manage_schedules",
+              { systemRole: user.role },
+            )
+          : false;
         const isAssignedUser = shift?.assignedTo === user.uid;
         const isUnassigned = shift?.status === "unassigned";
 
         // Managers can cancel any shift, assigned users can cancel their own
-        if (
-          !isUnassigned &&
-          !isAssignedUser &&
-          !canManage &&
-          user.role !== "system_admin"
-        ) {
+        if (!isUnassigned && !isAssignedUser && !canManageCancel) {
           return reply.status(403).send({
             error: "Forbidden",
             message:
@@ -794,7 +825,7 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
   fastify.patch(
     "/:id/missed",
     {
-      preHandler: [authenticate, requireStableManagement()],
+      preHandler: [authenticate, requireStablePermission("manage_schedules")],
     },
     async (request, reply) => {
       try {
@@ -830,12 +861,20 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Only managers can mark shifts as missed (already enforced by requireStableManagement)
-        const canManage = await canManageSchedules(user.uid, shift?.stableId);
-        if (!canManage && user.role !== "system_admin") {
+        // Only managers can mark shifts as missed (already enforced by requireStablePermission middleware)
+        const missedOrgId = await resolveOrgIdFromStable(shift?.stableId);
+        if (
+          !missedOrgId ||
+          !(await engineHasPermission(
+            user.uid,
+            missedOrgId,
+            "manage_schedules",
+            { systemRole: user.role },
+          ))
+        ) {
           return reply.status(403).send({
             error: "Forbidden",
-            message: "Only managers can mark shifts as missed",
+            message: "Missing permission: manage_schedules",
           });
         }
 
@@ -865,7 +904,7 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
   fastify.delete(
     "/:id",
     {
-      preHandler: [authenticate, requireStableManagement()],
+      preHandler: [authenticate, requireStablePermission("manage_schedules")],
     },
     async (request, reply) => {
       try {
@@ -882,12 +921,19 @@ export async function shiftsRoutes(fastify: FastifyInstance) {
         }
 
         const shift = shiftDoc.data();
-        const canManage = await canManageSchedules(user.uid, shift?.stableId);
-
-        if (!canManage && user.role !== "system_admin") {
+        const deleteOrgId = await resolveOrgIdFromStable(shift?.stableId);
+        if (
+          !deleteOrgId ||
+          !(await engineHasPermission(
+            user.uid,
+            deleteOrgId,
+            "manage_schedules",
+            { systemRole: user.role },
+          ))
+        ) {
           return reply.status(403).send({
             error: "Forbidden",
-            message: "You do not have permission to delete this shift",
+            message: "Missing permission: manage_schedules",
           });
         }
 

@@ -5,6 +5,7 @@ import type {
   MemberStats,
 } from "./domain.js";
 import type { HolidayCalendarSettings } from "../data/holidays/schema.js";
+import type { PermissionMatrix } from "./permissions.js";
 
 /**
  * Organization roles for multi-role permission system
@@ -115,6 +116,10 @@ export interface Organization {
 
   // Organization Settings (optional for backward compatibility)
   settings?: OrganizationSettings;
+
+  // Permission matrix (V2 permission system)
+  // When absent, DEFAULT_PERMISSION_MATRIX is used.
+  permissionMatrix?: PermissionMatrix;
 
   // Metadata
   createdAt: Timestamp;

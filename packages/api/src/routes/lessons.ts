@@ -4,8 +4,7 @@ import { Timestamp } from "firebase-admin/firestore";
 import { db } from "../utils/firebase.js";
 import {
   authenticate,
-  requireOrganizationAccess,
-  requireLessonManagement,
+  requirePermission,
   type AuthenticatedRequest,
 } from "../middleware/auth.js";
 import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
@@ -255,7 +254,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lesson-types",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requirePermission("view_stables", "params")],
     },
     async (request, _reply) => {
       const { organizationId } = request.params;
@@ -288,7 +287,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lesson-types",
     {
-      preHandler: [authenticate, requireLessonManagement("params")],
+      preHandler: [authenticate, requirePermission("manage_lessons", "params")],
     },
     async (request, reply) => {
       const { organizationId } = request.params;
@@ -350,7 +349,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lesson-types/:lessonTypeId",
     {
-      preHandler: [authenticate, requireLessonManagement("params")],
+      preHandler: [authenticate, requirePermission("manage_lessons", "params")],
     },
     async (request, reply) => {
       const { organizationId, lessonTypeId } = request.params;
@@ -383,7 +382,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lesson-types/:lessonTypeId",
     {
-      preHandler: [authenticate, requireLessonManagement("params")],
+      preHandler: [authenticate, requirePermission("manage_lessons", "params")],
     },
     async (request, _reply) => {
       const { organizationId, lessonTypeId } = request.params;
@@ -414,7 +413,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/instructors",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requirePermission("view_stables", "params")],
     },
     async (request, _reply) => {
       const { organizationId } = request.params;
@@ -447,7 +446,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/instructors",
     {
-      preHandler: [authenticate, requireLessonManagement("params")],
+      preHandler: [authenticate, requirePermission("manage_lessons", "params")],
     },
     async (request, reply) => {
       const { organizationId } = request.params;
@@ -483,7 +482,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/instructors/:instructorId",
     {
-      preHandler: [authenticate, requireLessonManagement("params")],
+      preHandler: [authenticate, requirePermission("manage_lessons", "params")],
     },
     async (request, reply) => {
       const { organizationId, instructorId } = request.params;
@@ -517,7 +516,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/instructors/:instructorId/availability",
     {
-      preHandler: [authenticate, requireLessonManagement("params")],
+      preHandler: [authenticate, requirePermission("manage_lessons", "params")],
     },
     async (request, reply) => {
       const { organizationId, instructorId } = request.params;
@@ -559,7 +558,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/instructors/:instructorId/availability",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requirePermission("view_stables", "params")],
     },
     async (request, _reply) => {
       const { organizationId, instructorId } = request.params;
@@ -600,7 +599,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requirePermission("view_stables", "params")],
     },
     async (request, _reply) => {
       const { organizationId } = request.params;
@@ -661,7 +660,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/:lessonId",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requirePermission("view_stables", "params")],
     },
     async (request, reply) => {
       const { organizationId, lessonId } = request.params;
@@ -700,7 +699,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons",
     {
-      preHandler: [authenticate, requireLessonManagement("params")],
+      preHandler: [authenticate, requirePermission("manage_lessons", "params")],
     },
     async (request, reply) => {
       const { organizationId } = request.params;
@@ -781,7 +780,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/:lessonId",
     {
-      preHandler: [authenticate, requireLessonManagement("params")],
+      preHandler: [authenticate, requirePermission("manage_lessons", "params")],
     },
     async (request, reply) => {
       const { organizationId, lessonId } = request.params;
@@ -839,7 +838,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/:lessonId/cancel",
     {
-      preHandler: [authenticate, requireLessonManagement("params")],
+      preHandler: [authenticate, requirePermission("manage_lessons", "params")],
     },
     async (request, reply) => {
       const { organizationId, lessonId } = request.params;
@@ -894,7 +893,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/:lessonId/bookings",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requirePermission("view_stables", "params")],
     },
     async (request, _reply) => {
       const { organizationId, lessonId } = request.params;
@@ -924,7 +923,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/:lessonId/bookings",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requirePermission("view_stables", "params")],
     },
     async (request, reply) => {
       const { organizationId, lessonId } = request.params;
@@ -1046,7 +1045,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/:lessonId/bookings/:bookingId",
     {
-      preHandler: [authenticate, requireLessonManagement("params")],
+      preHandler: [authenticate, requirePermission("manage_lessons", "params")],
     },
     async (request, reply) => {
       const { organizationId, lessonId, bookingId } = request.params;
@@ -1117,7 +1116,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/:lessonId/bookings/:bookingId/cancel",
     {
-      preHandler: [authenticate, requireLessonManagement("params")],
+      preHandler: [authenticate, requirePermission("manage_lessons", "params")],
     },
     async (request, reply) => {
       const { organizationId, lessonId, bookingId } = request.params;
@@ -1193,7 +1192,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lesson-schedule-templates",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requirePermission("view_stables", "params")],
     },
     async (request, _reply) => {
       const { organizationId } = request.params;
@@ -1223,7 +1222,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lesson-schedule-templates",
     {
-      preHandler: [authenticate, requireLessonManagement("params")],
+      preHandler: [authenticate, requirePermission("manage_lessons", "params")],
     },
     async (request, reply) => {
       const { organizationId } = request.params;
@@ -1265,7 +1264,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   }>(
     "/organizations/:organizationId/lessons/generate-from-templates",
     {
-      preHandler: [authenticate, requireLessonManagement("params")],
+      preHandler: [authenticate, requirePermission("manage_lessons", "params")],
     },
     async (request, _reply) => {
       const { organizationId } = request.params;
@@ -1389,7 +1388,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   fastify.get(
     "/organizations/:organizationId/my/lesson-bookings",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requirePermission("view_stables", "params")],
     },
     async (request) => {
       const auth = request as AuthenticatedRequest;
@@ -1419,7 +1418,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   fastify.post(
     "/organizations/:organizationId/lessons/:lessonId/book",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requirePermission("view_stables", "params")],
     },
     async (request, reply) => {
       const auth = request as AuthenticatedRequest;
@@ -1590,7 +1589,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   fastify.get(
     "/organizations/:organizationId/lesson-settings",
     {
-      preHandler: [authenticate, requireOrganizationAccess("params")],
+      preHandler: [authenticate, requirePermission("view_stables", "params")],
     },
     async (request) => {
       const { organizationId } = request.params as { organizationId: string };
@@ -1630,7 +1629,7 @@ export async function lessonRoutes(fastify: FastifyInstance) {
   fastify.put(
     "/organizations/:organizationId/lesson-settings",
     {
-      preHandler: [authenticate, requireLessonManagement("params")],
+      preHandler: [authenticate, requirePermission("manage_lessons", "params")],
     },
     async (request, _reply) => {
       const auth = request as AuthenticatedRequest;

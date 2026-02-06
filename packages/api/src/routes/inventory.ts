@@ -4,11 +4,11 @@ import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
 import type { AuthenticatedRequest } from "../types/index.js";
+import { canAccessStable, isSystemAdmin } from "../utils/authorization.js";
 import {
-  canAccessStable,
-  canManageStable,
-  isSystemAdmin,
-} from "../utils/authorization.js";
+  hasPermission as engineHasPermission,
+  resolveOrgIdFromStable,
+} from "../utils/permissionEngine.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 import type {
   InventoryStatus,
@@ -158,14 +158,21 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Check stable management access
+        // Check stable management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageStable(user.uid, data.stableId);
-          if (!canManage) {
+          const orgId = await resolveOrgIdFromStable(data.stableId);
+          if (
+            !orgId ||
+            !(await engineHasPermission(
+              user.uid,
+              orgId,
+              "manage_stable_settings",
+              { systemRole: user.role },
+            ))
+          ) {
             return reply.status(403).send({
               error: "Forbidden",
-              message:
-                "You do not have permission to manage inventory for this stable",
+              message: "Missing permission: manage_stable_settings",
             });
           }
         }
@@ -334,14 +341,21 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
 
         const existing = doc.data()!;
 
-        // Check stable management access
+        // Check stable management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageStable(user.uid, existing.stableId);
-          if (!canManage) {
+          const orgId = await resolveOrgIdFromStable(existing.stableId);
+          if (
+            !orgId ||
+            !(await engineHasPermission(
+              user.uid,
+              orgId,
+              "manage_stable_settings",
+              { systemRole: user.role },
+            ))
+          ) {
             return reply.status(403).send({
               error: "Forbidden",
-              message:
-                "You do not have permission to update this inventory item",
+              message: "Missing permission: manage_stable_settings",
             });
           }
         }
@@ -439,13 +453,21 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
 
         const existing = doc.data()!;
 
-        // Check stable management access
+        // Check stable management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageStable(user.uid, existing.stableId);
-          if (!canManage) {
+          const orgId = await resolveOrgIdFromStable(existing.stableId);
+          if (
+            !orgId ||
+            !(await engineHasPermission(
+              user.uid,
+              orgId,
+              "manage_stable_settings",
+              { systemRole: user.role },
+            ))
+          ) {
             return reply.status(403).send({
               error: "Forbidden",
-              message: "You do not have permission to restock this inventory",
+              message: "Missing permission: manage_stable_settings",
             });
           }
         }
@@ -732,13 +754,21 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
 
         const existing = doc.data()!;
 
-        // Check stable management access
+        // Check stable management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageStable(user.uid, existing.stableId);
-          if (!canManage) {
+          const orgId = await resolveOrgIdFromStable(existing.stableId);
+          if (
+            !orgId ||
+            !(await engineHasPermission(
+              user.uid,
+              orgId,
+              "manage_stable_settings",
+              { systemRole: user.role },
+            ))
+          ) {
             return reply.status(403).send({
               error: "Forbidden",
-              message: "You do not have permission to adjust this inventory",
+              message: "Missing permission: manage_stable_settings",
             });
           }
         }
@@ -1108,14 +1138,21 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
 
         const existing = doc.data()!;
 
-        // Check stable management access
+        // Check stable management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const canManage = await canManageStable(user.uid, existing.stableId);
-          if (!canManage) {
+          const orgId = await resolveOrgIdFromStable(existing.stableId);
+          if (
+            !orgId ||
+            !(await engineHasPermission(
+              user.uid,
+              orgId,
+              "manage_stable_settings",
+              { systemRole: user.role },
+            ))
+          ) {
             return reply.status(403).send({
               error: "Forbidden",
-              message:
-                "You do not have permission to delete this inventory item",
+              message: "Missing permission: manage_stable_settings",
             });
           }
         }

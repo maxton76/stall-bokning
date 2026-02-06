@@ -14,10 +14,11 @@ import { authenticate } from "../middleware/auth.js";
 import { isModuleEnabled } from "../middleware/checkModuleAccess.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
+import { hasStableAccess } from "../utils/authorization.js";
 import {
-  hasStableAccess,
-  canManageSelectionProcesses,
-} from "../utils/authorization.js";
+  hasPermission as engineHasPermission,
+  resolveOrgIdFromStable,
+} from "../utils/permissionEngine.js";
 import { z } from "zod";
 import {
   createSelectionProcessSchema,
@@ -272,11 +273,16 @@ export async function selectionProcessesRoutes(fastify: FastifyInstance) {
         const processWithId = { ...data, id: doc.id };
         const userTurnInfo = getUserTurnInfo(processWithId, user.uid);
 
-        // Check if user can manage this selection process
-        const canManage = await canManageSelectionProcesses(
-          user.uid,
-          data.stableId,
-        );
+        // Check if user can manage this selection process (V2 permission engine)
+        const orgId = await resolveOrgIdFromStable(data.stableId);
+        const canManage = orgId
+          ? await engineHasPermission(
+              user.uid,
+              orgId,
+              "manage_selection_processes",
+              { systemRole: user.role },
+            )
+          : false;
 
         const response: SelectionProcessWithContext = {
           ...processWithId,
@@ -327,16 +333,20 @@ export async function selectionProcessesRoutes(fastify: FastifyInstance) {
 
         const input = parsed.data as CreateSelectionProcessInput;
 
-        // Check admin access to stable (owner, administrator, or schedule_planner)
-        const canManage = await canManageSelectionProcesses(
-          user.uid,
-          input.stableId,
-        );
-        if (!canManage) {
+        // Check admin access to stable (V2 permission engine)
+        const orgId = await resolveOrgIdFromStable(input.stableId);
+        if (
+          !orgId ||
+          !(await engineHasPermission(
+            user.uid,
+            orgId,
+            "manage_selection_processes",
+            { systemRole: user.role },
+          ))
+        ) {
           return reply.status(403).send({
             error: "Forbidden",
-            message:
-              "You do not have permission to create selection processes for this stable",
+            message: "Missing permission: manage_selection_processes",
           });
         }
 
@@ -468,15 +478,20 @@ export async function selectionProcessesRoutes(fastify: FastifyInstance) {
 
         const data = doc.data() as SelectionProcess;
 
-        // Check admin access (owner, administrator, or schedule_planner)
-        const canManage = await canManageSelectionProcesses(
-          user.uid,
-          data.stableId,
-        );
-        if (!canManage) {
-          return reply.status(404).send({
-            error: "Not Found",
-            message: "Selection process not found",
+        // Check admin access (V2 permission engine)
+        const orgId = await resolveOrgIdFromStable(data.stableId);
+        if (
+          !orgId ||
+          !(await engineHasPermission(
+            user.uid,
+            orgId,
+            "manage_selection_processes",
+            { systemRole: user.role },
+          ))
+        ) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "Missing permission: manage_selection_processes",
           });
         }
 
@@ -599,15 +614,20 @@ export async function selectionProcessesRoutes(fastify: FastifyInstance) {
 
         const data = doc.data() as SelectionProcess;
 
-        // Check admin access (owner, administrator, or schedule_planner)
-        const canManage = await canManageSelectionProcesses(
-          user.uid,
-          data.stableId,
-        );
-        if (!canManage) {
-          return reply.status(404).send({
-            error: "Not Found",
-            message: "Selection process not found",
+        // Check admin access (V2 permission engine)
+        const orgId = await resolveOrgIdFromStable(data.stableId);
+        if (
+          !orgId ||
+          !(await engineHasPermission(
+            user.uid,
+            orgId,
+            "manage_selection_processes",
+            { systemRole: user.role },
+          ))
+        ) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "Missing permission: manage_selection_processes",
           });
         }
 
@@ -694,15 +714,20 @@ export async function selectionProcessesRoutes(fastify: FastifyInstance) {
 
         const data = doc.data() as SelectionProcess;
 
-        // Check admin access (owner, administrator, or schedule_planner)
-        const canManage = await canManageSelectionProcesses(
-          user.uid,
-          data.stableId,
-        );
-        if (!canManage) {
-          return reply.status(404).send({
-            error: "Not Found",
-            message: "Selection process not found",
+        // Check admin access (V2 permission engine)
+        const orgId = await resolveOrgIdFromStable(data.stableId);
+        if (
+          !orgId ||
+          !(await engineHasPermission(
+            user.uid,
+            orgId,
+            "manage_selection_processes",
+            { systemRole: user.role },
+          ))
+        ) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "Missing permission: manage_selection_processes",
           });
         }
 
@@ -1017,15 +1042,20 @@ export async function selectionProcessesRoutes(fastify: FastifyInstance) {
 
         const data = doc.data() as SelectionProcess;
 
-        // Check admin access (owner, administrator, or schedule_planner)
-        const canManage = await canManageSelectionProcesses(
-          user.uid,
-          data.stableId,
-        );
-        if (!canManage) {
-          return reply.status(404).send({
-            error: "Not Found",
-            message: "Selection process not found",
+        // Check admin access (V2 permission engine)
+        const orgId = await resolveOrgIdFromStable(data.stableId);
+        if (
+          !orgId ||
+          !(await engineHasPermission(
+            user.uid,
+            orgId,
+            "manage_selection_processes",
+            { systemRole: user.role },
+          ))
+        ) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "Missing permission: manage_selection_processes",
           });
         }
 
@@ -1137,16 +1167,20 @@ export async function selectionProcessesRoutes(fastify: FastifyInstance) {
 
         const data = doc.data() as SelectionProcess;
 
-        // Check admin access (owner, administrator, or schedule_planner)
-        const canManage = await canManageSelectionProcesses(
-          user.uid,
-          data.stableId,
-        );
-        if (!canManage) {
+        // Check admin access (V2 permission engine)
+        const orgId = await resolveOrgIdFromStable(data.stableId);
+        if (
+          !orgId ||
+          !(await engineHasPermission(
+            user.uid,
+            orgId,
+            "manage_selection_processes",
+            { systemRole: user.role },
+          ))
+        ) {
           return reply.status(403).send({
             error: "Forbidden",
-            message:
-              "You do not have permission to update this selection process",
+            message: "Missing permission: manage_selection_processes",
           });
         }
 

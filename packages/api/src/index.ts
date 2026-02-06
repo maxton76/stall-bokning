@@ -69,6 +69,7 @@ import { trainerCommissionRoutes } from "./routes/trainerCommission.js";
 import { disputesRoutes } from "./routes/disputes.js";
 import { exportsRoutes } from "./routes/exports.js";
 import { invoicePaymentsRoutes } from "./routes/invoicePayments.js";
+import permissionRoutes from "./routes/permissions.js";
 
 const PORT = Number(process.env.PORT) || 8080;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -255,6 +256,7 @@ await fastify.register(exportsRoutes, {
 await fastify.register(invoicePaymentsRoutes, {
   prefix: "/api/v1/organizations",
 });
+await fastify.register(permissionRoutes);
 
 // 404 handler
 fastify.setNotFoundHandler((request, reply) => {

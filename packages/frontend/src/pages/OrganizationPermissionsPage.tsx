@@ -1,5 +1,7 @@
+import { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Shield, Check, X } from "lucide-react";
+import { Shield, Check, X, Lock, Info, RotateCcw, Save } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -8,237 +10,505 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useOrgPermissions } from "@/hooks/useOrgPermissions";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { useApiMutation } from "@/hooks/useApiMutation";
+import { apiClient } from "@/lib/apiClient";
+import { useToast } from "@/hooks/use-toast";
+import type {
+  PermissionAction,
+  PermissionCategory,
+  OrganizationRole,
+} from "@equiduty/shared";
+import {
+  PERMISSION_ACTIONS,
+  PERMISSION_CATEGORIES,
+  PROTECTED_PERMISSIONS,
+  DEFAULT_PERMISSION_MATRIX,
+} from "@equiduty/shared";
+import type { PermissionMatrix } from "@equiduty/shared";
+
+/** All 14 organization roles in display order. */
+const ALL_ROLES: OrganizationRole[] = [
+  "administrator",
+  "schedule_planner",
+  "groom",
+  "trainer",
+  "training_admin",
+  "horse_owner",
+  "rider",
+  "customer",
+  "veterinarian",
+  "farrier",
+  "dentist",
+  "saddle_maker",
+  "inseminator",
+  "support_contact",
+];
+
+/** Role display colors for column headers. */
+const ROLE_COLORS: Record<string, string> = {
+  administrator: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  schedule_planner:
+    "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  groom: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  trainer:
+    "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  training_admin:
+    "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  horse_owner:
+    "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+  rider: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+  customer: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+  veterinarian: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200",
+  farrier: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200",
+  dentist: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200",
+  saddle_maker:
+    "bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-200",
+  inseminator:
+    "bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-200",
+  support_contact:
+    "bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-200",
+};
+
+/** i18n keys for role names (nested label key under invite section). */
+const ROLE_I18N: Record<OrganizationRole, string> = {
+  administrator: "invite.roles.administrator.label",
+  schedule_planner: "invite.roles.schedule_planner.label",
+  groom: "invite.roles.groom.label",
+  trainer: "invite.roles.trainer.label",
+  training_admin: "invite.roles.training_admin.label",
+  horse_owner: "invite.roles.horse_owner.label",
+  rider: "invite.roles.rider.label",
+  customer: "invite.roles.customer.label",
+  veterinarian: "invite.roles.veterinarian.label",
+  farrier: "invite.roles.farrier.label",
+  dentist: "invite.roles.dentist.label",
+  saddle_maker: "invite.roles.saddle_maker.label",
+  inseminator: "invite.roles.inseminator.label",
+  support_contact: "invite.roles.support_contact.label",
+};
+
+interface MatrixResponse {
+  matrix: PermissionMatrix;
+  isCustom: boolean;
+}
+
+/** Group permission actions by category for rendering. */
+function groupByCategory(
+  actions: typeof PERMISSION_ACTIONS,
+): Record<PermissionCategory, typeof PERMISSION_ACTIONS> {
+  const groups = {} as Record<PermissionCategory, typeof PERMISSION_ACTIONS>;
+  for (const meta of actions) {
+    if (!groups[meta.category]) groups[meta.category] = [];
+    groups[meta.category].push(meta);
+  }
+  return groups;
+}
+
+/** Category display order. */
+const CATEGORY_ORDER: PermissionCategory[] = [
+  "organization",
+  "stables",
+  "horses",
+  "scheduling",
+  "activities",
+  "lessons",
+  "facilities",
+  "records",
+  "integrations",
+];
 
 export default function OrganizationPermissionsPage() {
   const { t } = useTranslation(["organizations", "common"]);
+  const { currentOrganizationId } = useOrganization();
+  const { isFeatureAvailable } = useSubscription();
+  const { hasPermission, isLoading: permLoading } = useOrgPermissions(
+    currentOrganizationId,
+  );
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Permission matrix: role -> permissions
-  const permissions = [
-    {
-      actionKey: "permissions.actions.manageSettings",
-      admin: true,
-      manager: false,
-      member: false,
-    },
-    {
-      actionKey: "permissions.actions.manageMembers",
-      admin: true,
-      manager: true,
-      member: false,
-    },
-    {
-      actionKey: "permissions.actions.viewAllStables",
-      admin: true,
-      manager: true,
-      member: true,
-    },
-    {
-      actionKey: "permissions.actions.createStables",
-      admin: true,
-      manager: true,
-      member: false,
-    },
-    {
-      actionKey: "permissions.actions.editStableSettings",
-      admin: true,
-      manager: true,
-      member: false,
-    },
-    {
-      actionKey: "permissions.actions.manageHorses",
-      admin: true,
-      manager: true,
-      member: true,
-    },
-    {
-      actionKey: "permissions.actions.viewSchedules",
-      admin: true,
-      manager: true,
-      member: true,
-    },
-    {
-      actionKey: "permissions.actions.createSchedules",
-      admin: true,
-      manager: true,
-      member: false,
-    },
-    {
-      actionKey: "permissions.actions.bookShifts",
-      admin: true,
-      manager: true,
-      member: true,
-    },
-    {
-      actionKey: "permissions.actions.manageManureRecords",
-      admin: true,
-      manager: true,
-      member: false,
-    },
-    {
-      actionKey: "permissions.actions.viewIntegrations",
-      admin: true,
-      manager: true,
-      member: false,
-    },
-    {
-      actionKey: "permissions.actions.configureIntegrations",
-      admin: true,
-      manager: false,
-      member: false,
-    },
-    {
-      actionKey: "permissions.actions.viewSubscription",
-      admin: true,
-      manager: false,
-      member: false,
-    },
-    {
-      actionKey: "permissions.actions.manageBilling",
-      admin: true,
-      manager: false,
-      member: false,
-    },
-  ];
+  const canEdit =
+    hasPermission("manage_org_settings") &&
+    isFeatureAvailable("advancedPermissions");
+  const hasManageSettings = hasPermission("manage_org_settings");
 
-  const roleDefinitions = [
+  // Fetch the current effective matrix
+  const { data: matrixData, isLoading: matrixLoading } =
+    useApiQuery<MatrixResponse>(
+      ["permission-matrix", currentOrganizationId],
+      () =>
+        apiClient.get<MatrixResponse>(
+          `/organizations/${currentOrganizationId}/permissions`,
+        ),
+      {
+        enabled: !!currentOrganizationId,
+        staleTime: 5 * 60 * 1000,
+      },
+    );
+
+  // Local editable copy of the matrix
+  const [editMatrix, setEditMatrix] = useState<PermissionMatrix | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Initialize editMatrix from server data
+  const matrix = editMatrix ?? matrixData?.matrix ?? DEFAULT_PERMISSION_MATRIX;
+
+  // Save mutation
+  const saveMutation = useApiMutation(
+    (updatedMatrix: PermissionMatrix) =>
+      apiClient.put(`/organizations/${currentOrganizationId}/permissions`, {
+        matrix: updatedMatrix,
+      }),
     {
-      roleKey: "permissions.roles.administrator",
-      key: "admin" as const,
-      descriptionKey: "permissions.roleDescriptions.administrator",
-      color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+      successMessage: t("organizations:permissions.messages.saveSuccess"),
+      errorMessage: t("organizations:permissions.messages.saveError"),
+      onSuccess: () => {
+        setIsDirty(false);
+        setEditMatrix(null);
+        queryClient.invalidateQueries({
+          queryKey: ["permission-matrix", currentOrganizationId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["org-permissions", currentOrganizationId],
+        });
+      },
     },
+  );
+
+  // Reset mutation
+  const resetMutation = useApiMutation(
+    () =>
+      apiClient.post(
+        `/organizations/${currentOrganizationId}/permissions/reset`,
+      ),
     {
-      roleKey: "permissions.roles.manager",
-      key: "manager" as const,
-      descriptionKey: "permissions.roleDescriptions.manager",
-      color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+      successMessage: t("organizations:permissions.messages.resetSuccess"),
+      errorMessage: t("organizations:permissions.messages.resetError"),
+      onSuccess: () => {
+        setIsDirty(false);
+        setEditMatrix(null);
+        queryClient.invalidateQueries({
+          queryKey: ["permission-matrix", currentOrganizationId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["org-permissions", currentOrganizationId],
+        });
+      },
     },
-    {
-      roleKey: "permissions.roles.member",
-      key: "member" as const,
-      descriptionKey: "permissions.roleDescriptions.member",
-      color:
-        "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  );
+
+  const grouped = useMemo(() => groupByCategory(PERMISSION_ACTIONS), []);
+
+  const isProtected = useCallback(
+    (action: PermissionAction, role: OrganizationRole) =>
+      role === "administrator" &&
+      (PROTECTED_PERMISSIONS as readonly string[]).includes(action),
+    [],
+  );
+
+  const togglePermission = useCallback(
+    (action: PermissionAction, role: OrganizationRole) => {
+      if (!canEdit) return;
+      if (isProtected(action, role)) {
+        toast({
+          title: t("organizations:permissions.messages.protectedPermission"),
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setEditMatrix((prev) => {
+        const current = prev ?? matrixData?.matrix ?? DEFAULT_PERMISSION_MATRIX;
+        const roleEntry = { ...current[action] };
+        if (roleEntry[role]) {
+          delete roleEntry[role];
+        } else {
+          roleEntry[role] = true;
+        }
+        return { ...current, [action]: roleEntry };
+      });
+      setIsDirty(true);
     },
-  ];
+    [canEdit, isProtected, matrixData, toast, t],
+  );
+
+  const handleSave = () => {
+    if (editMatrix) {
+      saveMutation.mutate(editMatrix);
+    }
+  };
+
+  const handleReset = () => {
+    if (window.confirm(t("organizations:permissions.buttons.resetConfirm"))) {
+      resetMutation.mutate(undefined as never);
+    }
+  };
+
+  const isLoading = permLoading || matrixLoading;
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-muted rounded w-48" />
+          <div className="h-4 bg-muted rounded w-96" />
+          <div className="h-64 bg-muted rounded" />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          {t("organizations:permissions.title")}
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          {t("organizations:permissions.description")}
-        </p>
-      </div>
+    <TooltipProvider>
+      <div className="container mx-auto p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {t("organizations:permissions.title")}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {t("organizations:permissions.description")}
+            </p>
+          </div>
+          {canEdit && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReset}
+                disabled={resetMutation.isPending}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                {t("organizations:permissions.buttons.reset")}
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={!isDirty || saveMutation.isPending}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {saveMutation.isPending
+                  ? t("organizations:permissions.buttons.saving")
+                  : t("organizations:permissions.buttons.save")}
+              </Button>
+            </div>
+          )}
+        </div>
 
-      {/* Role Definitions */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {roleDefinitions.map((def) => (
-          <Card key={def.key}>
+        {/* Read-only upgrade notice */}
+        {hasManageSettings && !isFeatureAvailable("advancedPermissions") && (
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              {t("organizations:permissions.matrix.readOnlyDescription")}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Permission Matrix */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              {t("organizations:permissions.matrix.title")}
+            </CardTitle>
+            <CardDescription>
+              {t("organizations:permissions.matrix.description")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-3 font-semibold sticky left-0 bg-background z-10 min-w-[200px]">
+                      {t("organizations:permissions.matrix.action")}
+                    </th>
+                    {ALL_ROLES.map((role) => (
+                      <th key={role} className="text-center p-2 min-w-[90px]">
+                        <Badge
+                          variant="secondary"
+                          className={`text-[10px] leading-tight ${ROLE_COLORS[role] ?? ""}`}
+                        >
+                          {t(`organizations:${ROLE_I18N[role]}`)}
+                        </Badge>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {CATEGORY_ORDER.map((category) => {
+                    const actions = grouped[category];
+                    if (!actions?.length) return null;
+                    return (
+                      <CategoryGroup
+                        key={category}
+                        category={category}
+                        actions={actions}
+                        matrix={matrix}
+                        canEdit={canEdit}
+                        isProtected={isProtected}
+                        togglePermission={togglePermission}
+                        t={t}
+                      />
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Custom Roles info */}
+        {!isFeatureAvailable("advancedPermissions") && (
+          <Card>
             <CardHeader>
-              <div className="flex items-center gap-2 mb-2">
-                <Shield className="h-5 w-5" />
-                <CardTitle className="text-lg">
-                  {t(`organizations:${def.roleKey}`)}
-                </CardTitle>
-              </div>
+              <CardTitle>
+                {t("organizations:permissions.customRoles.title")}
+              </CardTitle>
+              <CardDescription>
+                {t("organizations:permissions.customRoles.description")}
+              </CardDescription>
             </CardHeader>
             <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                {t("organizations:permissions.customRoles.explanation")}
+              </p>
               <p className="text-sm text-muted-foreground">
-                {t(`organizations:${def.descriptionKey}`)}
+                <strong>
+                  {t("organizations:permissions.customRoles.specializedRoles")}
+                </strong>
               </p>
             </CardContent>
           </Card>
-        ))}
+        )}
       </div>
+    </TooltipProvider>
+  );
+}
 
-      {/* Permissions Matrix */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("organizations:permissions.matrix.title")}</CardTitle>
-          <CardDescription>
-            {t("organizations:permissions.matrix.description")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-4 font-semibold">
-                    {t("organizations:permissions.matrix.action")}
-                  </th>
-                  {roleDefinitions.map((def) => (
-                    <th key={def.key} className="text-center p-4">
-                      <Badge className={def.color}>
-                        {t(`organizations:${def.roleKey}`)}
-                      </Badge>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {permissions.map((perm, index) => (
-                  <tr
-                    key={index}
-                    className="border-b hover:bg-accent transition-colors"
-                  >
-                    <td className="p-4">
-                      {t(`organizations:${perm.actionKey}`)}
-                    </td>
-                    <td className="text-center p-4">
-                      {perm.admin ? (
-                        <Check className="mx-auto h-5 w-5 text-green-600" />
-                      ) : (
-                        <X className="mx-auto h-5 w-5 text-red-600" />
-                      )}
-                    </td>
-                    <td className="text-center p-4">
-                      {perm.manager ? (
-                        <Check className="mx-auto h-5 w-5 text-green-600" />
-                      ) : (
-                        <X className="mx-auto h-5 w-5 text-red-600" />
-                      )}
-                    </td>
-                    <td className="text-center p-4">
-                      {perm.member ? (
-                        <Check className="mx-auto h-5 w-5 text-green-600" />
-                      ) : (
-                        <X className="mx-auto h-5 w-5 text-red-600" />
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+// ─── Sub-components ──────────────────────────────────────────────
 
-      {/* Additional Roles Note */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {t("organizations:permissions.customRoles.title")}
-          </CardTitle>
-          <CardDescription>
-            {t("organizations:permissions.customRoles.description")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            {t("organizations:permissions.customRoles.explanation")}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            <strong>
-              {t("organizations:permissions.customRoles.specializedRoles")}
-            </strong>
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+interface CategoryGroupProps {
+  category: PermissionCategory;
+  actions: typeof PERMISSION_ACTIONS;
+  matrix: PermissionMatrix;
+  canEdit: boolean;
+  isProtected: (action: PermissionAction, role: OrganizationRole) => boolean;
+  togglePermission: (action: PermissionAction, role: OrganizationRole) => void;
+  t: (key: string) => string;
+}
+
+function CategoryGroup({
+  category,
+  actions,
+  matrix,
+  canEdit,
+  isProtected,
+  togglePermission,
+  t,
+}: CategoryGroupProps) {
+  return (
+    <>
+      {/* Category header row */}
+      <tr className="bg-muted/50">
+        <td
+          colSpan={ALL_ROLES.length + 1}
+          className="p-2 pl-3 font-semibold text-sm text-muted-foreground uppercase tracking-wider sticky left-0"
+        >
+          {t(`organizations:${PERMISSION_CATEGORIES[category]}`)}
+        </td>
+      </tr>
+      {/* Action rows */}
+      {actions.map((meta) => (
+        <tr
+          key={meta.action}
+          className="border-b hover:bg-accent/50 transition-colors"
+        >
+          <td className="p-3 text-sm sticky left-0 bg-background">
+            {t(`organizations:${meta.i18nKey}`)}
+          </td>
+          {ALL_ROLES.map((role) => {
+            const granted = matrix[meta.action]?.[role] === true;
+            const locked = isProtected(meta.action, role);
+            return (
+              <td key={role} className="text-center p-2">
+                <PermissionCell
+                  granted={granted}
+                  locked={locked}
+                  canEdit={canEdit}
+                  onToggle={() => togglePermission(meta.action, role)}
+                  t={t}
+                />
+              </td>
+            );
+          })}
+        </tr>
+      ))}
+    </>
+  );
+}
+
+interface PermissionCellProps {
+  granted: boolean;
+  locked: boolean;
+  canEdit: boolean;
+  onToggle: () => void;
+  t: (key: string) => string;
+}
+
+function PermissionCell({
+  granted,
+  locked,
+  canEdit,
+  onToggle,
+  t,
+}: PermissionCellProps) {
+  // Protected permission — always shown as locked check
+  if (locked) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex items-center justify-center">
+            <Lock className="h-4 w-4 text-muted-foreground" />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          {t("organizations:permissions.messages.protectedPermission")}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  // Editable mode — use checkboxes
+  if (canEdit) {
+    return (
+      <Checkbox
+        checked={granted}
+        onCheckedChange={onToggle}
+        className="mx-auto"
+      />
+    );
+  }
+
+  // Read-only — show check/X icons
+  return granted ? (
+    <Check className="mx-auto h-4 w-4 text-green-600" />
+  ) : (
+    <X className="mx-auto h-4 w-4 text-muted-foreground/40" />
   );
 }

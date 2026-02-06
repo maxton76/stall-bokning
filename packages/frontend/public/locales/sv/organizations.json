@@ -283,39 +283,66 @@
     "description": "Rollbaserad åtkomstkontroll för organisationsmedlemmar",
     "matrix": {
       "title": "Behörighetsmatris",
-      "description": "Detaljerad översikt av vad varje roll kan göra",
-      "action": "Åtgärd"
+      "description": "Hantera vad varje roll kan göra i din organisation",
+      "action": "Åtgärd",
+      "readOnly": "Uppgradera för att anpassa behörigheter",
+      "readOnlyDescription": "Din prenumeration inkluderar inte anpassade behörigheter. Uppgradera till en plan med avancerade behörigheter för att redigera matrisen."
     },
     "actions": {
-      "manageSettings": "Hantera organisationsinställningar",
-      "manageMembers": "Hantera medlemmar",
-      "viewAllStables": "Visa alla stall",
-      "createStables": "Skapa stall",
-      "editStableSettings": "Redigera stallinställningar",
-      "manageHorses": "Hantera hästar",
-      "viewSchedules": "Visa scheman",
-      "createSchedules": "Skapa scheman",
-      "bookShifts": "Boka pass",
-      "manageManureRecords": "Hantera gödselregister",
-      "viewIntegrations": "Visa integrationer",
-      "configureIntegrations": "Konfigurera integrationer",
-      "viewSubscription": "Visa prenumeration",
-      "manageBilling": "Hantera fakturering"
+      "manage_org_settings": "Hantera organisationsinställningar",
+      "manage_members": "Hantera medlemmar",
+      "view_members": "Visa medlemmar",
+      "manage_billing": "Hantera fakturering",
+      "create_stables": "Skapa stall",
+      "manage_stable_settings": "Hantera stallinställningar",
+      "view_stables": "Visa stall",
+      "view_horses": "Visa hästar",
+      "manage_own_horses": "Hantera egna hästar",
+      "manage_any_horse": "Hantera alla hästar",
+      "view_schedules": "Visa scheman",
+      "manage_schedules": "Hantera scheman",
+      "book_shifts": "Boka pass",
+      "cancel_others_bookings": "Avboka andras bokningar",
+      "mark_shifts_missed": "Markera pass som missade",
+      "manage_activities": "Hantera aktiviteter",
+      "manage_routines": "Hantera rutiner",
+      "manage_selection_processes": "Hantera rutinval",
+      "manage_lessons": "Hantera lektioner",
+      "manage_facilities": "Hantera anläggningar",
+      "manage_records": "Hantera register",
+      "view_records": "Visa register",
+      "manage_integrations": "Hantera integrationer",
+      "send_communications": "Skicka kommunikation",
+      "export_data": "Exportera data"
     },
-    "roles": {
-      "administrator": "Administratör",
-      "manager": "Chef",
-      "member": "Medlem"
+    "categories": {
+      "organization": "Organisation",
+      "stables": "Stall",
+      "horses": "Hästar",
+      "scheduling": "Schemaläggning",
+      "activities": "Aktiviteter",
+      "lessons": "Lektioner",
+      "facilities": "Anläggningar",
+      "records": "Register",
+      "integrations": "Integrationer"
     },
-    "roleDescriptions": {
-      "administrator": "Full åtkomst till alla organisationsfunktioner och inställningar",
-      "manager": "Kan hantera stall, hästar och scheman",
-      "member": "Grundläggande åtkomst för att visa och delta i stallaktiviteter"
+    "buttons": {
+      "save": "Spara behörigheter",
+      "reset": "Återställ till standard",
+      "saving": "Sparar...",
+      "resetConfirm": "Är du säker på att du vill återställa behörigheterna till standardvärden?"
+    },
+    "messages": {
+      "saveSuccess": "Behörigheter har sparats",
+      "saveError": "Kunde inte spara behörigheter",
+      "resetSuccess": "Behörigheter har återställts till standard",
+      "resetError": "Kunde inte återställa behörigheter",
+      "protectedPermission": "Denna behörighet kan inte tas bort från administratörsrollen"
     },
     "customRoles": {
       "title": "Anpassade roller och avancerade behörigheter",
       "description": "Tillgängligt i Professional och Enterprise-planer",
-      "explanation": "Skapa anpassade roller med detaljerade behörigheter anpassade för din organisations behov. Kontrollera åtkomst till specifika stall, funktioner och data på rollbasis.",
+      "explanation": "Anpassa behörigheter per roll för att passa din organisations behov.",
       "specializedRoles": "Specialiserade roller tillgängliga: Veterinär, Tandläkare, Hovslagare, Skötare, Hästägare, Ryttare och fler."
     }
   },

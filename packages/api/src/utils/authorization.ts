@@ -238,22 +238,6 @@ export async function canManageStable(
 }
 
 /**
- * Check if user can manage schedules for a stable
- * Requires: owner or administrator role
- *
- * @param userId - The user's ID
- * @param stableId - The stable's ID
- * @returns Promise<boolean> - True if user can manage schedules
- */
-export async function canManageSchedules(
-  userId: string,
-  stableId: string,
-): Promise<boolean> {
-  // Same permissions as canManageStable
-  return canManageStable(userId, stableId);
-}
-
-/**
  * Check if user can manage members (invite, remove, change roles)
  * Requires: owner or administrator role
  *
@@ -445,66 +429,6 @@ export async function canManageOrganization(
   organizationId: string,
 ): Promise<boolean> {
   return isOrganizationAdmin(userId, organizationId);
-}
-
-// ============================================
-// RECURRING ACTIVITY AUTHORIZATION
-// ============================================
-
-/**
- * Check if user can manage recurring activities for a stable
- * Requires: system_admin, owner, or manager role in organization
- *
- * @param stableId - The stable's ID
- * @param userId - The user's ID
- * @param userRole - The user's system role from JWT token
- * @returns Promise<boolean> - True if user can manage recurring activities
- */
-export async function canManageRecurring(
-  stableId: string,
-  userId: string,
-  userRole: string,
-): Promise<boolean> {
-  try {
-    // System admin can manage everything
-    if (userRole === "system_admin") return true;
-
-    // Check if user is stable owner
-    const stableDoc = await db.collection("stables").doc(stableId).get();
-    if (!stableDoc.exists) return false;
-
-    const stable = stableDoc.data();
-    if (stable?.ownerId === userId) return true;
-
-    // Check for manager role in organization membership
-    const organizationId = stable?.organizationId;
-    if (!organizationId) return false;
-
-    const memberId = `${userId}_${organizationId}`;
-    const memberDoc = await db
-      .collection("organizationMembers")
-      .doc(memberId)
-      .get();
-
-    if (!memberDoc.exists) return false;
-
-    const member = memberDoc.data();
-    if (member?.status !== "active") return false;
-
-    // Check if user has manager or admin role
-    const roles = member.roles || [];
-    return (
-      roles.includes("manager") ||
-      roles.includes("admin") ||
-      roles.includes("administrator")
-    );
-  } catch (error) {
-    console.error(
-      "Error checking recurring activity management access:",
-      error,
-    );
-    return false;
-  }
 }
 
 /**

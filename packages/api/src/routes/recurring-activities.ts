@@ -4,7 +4,11 @@ import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
-import { hasStableAccess, canManageRecurring } from "../utils/authorization.js";
+import { hasStableAccess } from "../utils/authorization.js";
+import {
+  hasPermission as engineHasPermission,
+  resolveOrgIdFromStable,
+} from "../utils/permissionEngine.js";
 import {
   getUserNames,
   getHorseName,
@@ -155,17 +159,17 @@ export async function recurringActivitiesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Check permission
-        const canManage = await canManageRecurring(
-          input.stableId,
-          user.uid,
-          user.role,
-        );
-        if (!canManage) {
+        // Check permission (V2 permission engine)
+        const orgId = await resolveOrgIdFromStable(input.stableId);
+        if (
+          !orgId ||
+          !(await engineHasPermission(user.uid, orgId, "manage_activities", {
+            systemRole: user.role,
+          }))
+        ) {
           return reply.status(403).send({
             error: "Forbidden",
-            message:
-              "You do not have permission to create recurring activities",
+            message: "Missing permission: manage_activities",
           });
         }
 
@@ -272,15 +276,16 @@ export async function recurringActivitiesRoutes(fastify: FastifyInstance) {
         }
 
         const existing = doc.data()!;
-        const canManage = await canManageRecurring(
-          existing.stableId,
-          user.uid,
-          user.role,
-        );
-        if (!canManage) {
+        const orgId = await resolveOrgIdFromStable(existing.stableId);
+        if (
+          !orgId ||
+          !(await engineHasPermission(user.uid, orgId, "manage_activities", {
+            systemRole: user.role,
+          }))
+        ) {
           return reply.status(403).send({
             error: "Forbidden",
-            message: "You do not have permission to update this activity",
+            message: "Missing permission: manage_activities",
           });
         }
 
@@ -382,15 +387,16 @@ export async function recurringActivitiesRoutes(fastify: FastifyInstance) {
         }
 
         const existing = doc.data()!;
-        const canManage = await canManageRecurring(
-          existing.stableId,
-          user.uid,
-          user.role,
-        );
-        if (!canManage) {
+        const orgId = await resolveOrgIdFromStable(existing.stableId);
+        if (
+          !orgId ||
+          !(await engineHasPermission(user.uid, orgId, "manage_activities", {
+            systemRole: user.role,
+          }))
+        ) {
           return reply.status(403).send({
             error: "Forbidden",
-            message: "You do not have permission to delete this activity",
+            message: "Missing permission: manage_activities",
           });
         }
 
@@ -446,15 +452,16 @@ export async function recurringActivitiesRoutes(fastify: FastifyInstance) {
         }
 
         const existing = doc.data()!;
-        const canManage = await canManageRecurring(
-          existing.stableId,
-          user.uid,
-          user.role,
-        );
-        if (!canManage) {
+        const orgId = await resolveOrgIdFromStable(existing.stableId);
+        if (
+          !orgId ||
+          !(await engineHasPermission(user.uid, orgId, "manage_activities", {
+            systemRole: user.role,
+          }))
+        ) {
           return reply.status(403).send({
             error: "Forbidden",
-            message: "You do not have permission to pause this activity",
+            message: "Missing permission: manage_activities",
           });
         }
 
@@ -502,15 +509,16 @@ export async function recurringActivitiesRoutes(fastify: FastifyInstance) {
         }
 
         const existing = doc.data()!;
-        const canManage = await canManageRecurring(
-          existing.stableId,
-          user.uid,
-          user.role,
-        );
-        if (!canManage) {
+        const orgId = await resolveOrgIdFromStable(existing.stableId);
+        if (
+          !orgId ||
+          !(await engineHasPermission(user.uid, orgId, "manage_activities", {
+            systemRole: user.role,
+          }))
+        ) {
           return reply.status(403).send({
             error: "Forbidden",
-            message: "You do not have permission to resume this activity",
+            message: "Missing permission: manage_activities",
           });
         }
 
@@ -877,15 +885,16 @@ export async function recurringActivitiesRoutes(fastify: FastifyInstance) {
         }
 
         const instance = doc.data()!;
-        const canManage = await canManageRecurring(
-          instance.stableId,
-          user.uid,
-          user.role,
-        );
-        if (!canManage) {
+        const orgId = await resolveOrgIdFromStable(instance.stableId);
+        if (
+          !orgId ||
+          !(await engineHasPermission(user.uid, orgId, "manage_activities", {
+            systemRole: user.role,
+          }))
+        ) {
           return reply.status(403).send({
             error: "Forbidden",
-            message: "You do not have permission to skip this activity",
+            message: "Missing permission: manage_activities",
           });
         }
 
@@ -950,15 +959,16 @@ export async function recurringActivitiesRoutes(fastify: FastifyInstance) {
         }
 
         const instance = doc.data()!;
-        const canManage = await canManageRecurring(
-          instance.stableId,
-          user.uid,
-          user.role,
-        );
-        if (!canManage) {
+        const orgId = await resolveOrgIdFromStable(instance.stableId);
+        if (
+          !orgId ||
+          !(await engineHasPermission(user.uid, orgId, "manage_activities", {
+            systemRole: user.role,
+          }))
+        ) {
           return reply.status(403).send({
             error: "Forbidden",
-            message: "You do not have permission to assign this activity",
+            message: "Missing permission: manage_activities",
           });
         }
 
