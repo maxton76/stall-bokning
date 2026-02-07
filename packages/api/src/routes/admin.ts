@@ -1118,4 +1118,133 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
       }
     },
   );
+
+  /**
+   * GET /api/v1/admin/organizations/:orgId/beta-features
+   * Get beta features enabled for a specific organization
+   */
+  fastify.get<{
+    Params: { orgId: string };
+  }>(
+    "/organizations/:orgId/beta-features",
+    { preHandler: adminPreHandler },
+    async (request, reply) => {
+      try {
+        const { orgId } = request.params;
+
+        if (!isValidId(orgId)) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invalid organization ID",
+          });
+        }
+
+        const orgDoc = await db.collection("organizations").doc(orgId).get();
+
+        if (!orgDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: `Organization ${orgId} not found`,
+          });
+        }
+
+        const org = orgDoc.data();
+        const betaFeatures = (org?.betaFeatures as string[]) || [];
+
+        return reply.send({
+          success: true,
+          data: {
+            organizationId: orgId,
+            betaFeatures,
+          },
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to get organization beta features");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to get organization beta features",
+        });
+      }
+    },
+  );
+
+  /**
+   * PUT /api/v1/admin/organizations/:orgId/beta-features
+   * Set beta features for a specific organization
+   */
+  fastify.put<{
+    Params: { orgId: string };
+    Body: { betaFeatures: string[] };
+  }>(
+    "/organizations/:orgId/beta-features",
+    { preHandler: adminPreHandler },
+    async (request, reply) => {
+      try {
+        const { orgId } = request.params;
+        const { betaFeatures } = request.body as { betaFeatures: string[] };
+
+        if (!isValidId(orgId)) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invalid organization ID",
+          });
+        }
+
+        if (!Array.isArray(betaFeatures)) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "betaFeatures must be an array",
+          });
+        }
+
+        // Validate that all feature keys exist in global toggles
+        const { getGlobalFeatureToggles } = await import(
+          "../services/featureToggleService.js"
+        );
+        const toggles = await getGlobalFeatureToggles();
+
+        for (const featureKey of betaFeatures) {
+          if (!toggles[featureKey]) {
+            return reply.status(400).send({
+              error: "Bad Request",
+              message: `Invalid feature key: ${featureKey}`,
+            });
+          }
+        }
+
+        const orgDoc = await db.collection("organizations").doc(orgId).get();
+
+        if (!orgDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: `Organization ${orgId} not found`,
+          });
+        }
+
+        // Update organization beta features
+        await db.collection("organizations").doc(orgId).update({
+          betaFeatures,
+          updatedAt: new Date(),
+        });
+
+        return reply.send({
+          success: true,
+          message: `Beta features updated for organization ${orgId}`,
+          data: {
+            organizationId: orgId,
+            betaFeatures,
+          },
+        });
+      } catch (error) {
+        request.log.error(
+          { error },
+          "Failed to update organization beta features",
+        );
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to update organization beta features",
+        });
+      }
+    },
+  );
 };

@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Bell, Moon, Globe, Shield, Loader2, Settings2 } from "lucide-react";
+import { Bell, Moon, Globe, Shield, Settings2 } from "lucide-react";
 import { ToggleSetting } from "@/components/settings/fields/ToggleSetting";
 import { SettingSection } from "@/components/settings/sections/SettingSection";
 import {
@@ -19,71 +18,34 @@ import {
   type SupportedLanguage,
 } from "@/i18n";
 import { useAuth } from "@/contexts/AuthContext";
-import { authFetchJSON } from "@/utils/authFetch";
 import { useToast } from "@/hooks/use-toast";
 import { useUserStables } from "@/hooks/useUserStables";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { useLanguageSync } from "@/hooks/useLanguageSync";
 
-interface UserSettings {
-  emailNotifications?: boolean;
-  pushNotifications?: boolean;
-  darkMode?: boolean;
-  timezone?: string;
-}
-
 export default function SettingsPage() {
   const { t, i18n } = useTranslation(["settings", "common"]);
   const { user } = useAuth();
   const { toast } = useToast();
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
-  // User preferences (default stable, language sync)
+  // User preferences — single source of truth for all settings
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
   const {
     preferences,
     isLoading: preferencesLoading,
     setDefaultStable,
+    setTimezone,
+    setNotifications,
     isUpdating: preferencesUpdating,
   } = useUserPreferences();
   const { changeLanguageAndSync } = useLanguageSync();
 
-  // Load user settings on mount
-  useEffect(() => {
-    async function loadSettings() {
-      if (!user) return;
-      try {
-        const response = await authFetchJSON<{
-          id: string;
-          settings?: UserSettings;
-        }>(`${import.meta.env.VITE_API_URL}/api/v1/auth/me`, { method: "GET" });
-
-        if (response?.settings) {
-          setEmailNotifications(response.settings.emailNotifications ?? true);
-          setPushNotifications(response.settings.pushNotifications ?? false);
-          setDarkMode(response.settings.darkMode ?? false);
-        }
-      } catch (error) {
-        console.error("Failed to load settings:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadSettings();
-  }, [user]);
-
   const handleLanguageChange = async (lang: string) => {
-    // Use the sync function to persist language to Firestore
     await changeLanguageAndSync(lang as "sv" | "en");
   };
 
   const handleDefaultStableChange = async (stableId: string) => {
     try {
-      // "none" means clear the default
       await setDefaultStable(stableId === "none" ? null : stableId);
       toast({
         title: t("common:messages.success"),
@@ -99,40 +61,37 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSaveSettings = async () => {
-    setSaving(true);
+  const handleTimezoneChange = async (tz: string) => {
     try {
-      await authFetchJSON(
-        `${import.meta.env.VITE_API_URL}/api/v1/auth/me/settings`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({
-            emailNotifications,
-            pushNotifications,
-            darkMode,
-          }),
-        },
-      );
+      await setTimezone(tz);
       toast({
         title: t("common:messages.success"),
         description: t("settings:messages.saved"),
       });
     } catch (error) {
-      console.error("Failed to save settings:", error);
+      console.error("Failed to update timezone:", error);
       toast({
         title: t("common:messages.error"),
         description: t("common:messages.saveFailed"),
         variant: "destructive",
       });
-    } finally {
-      setSaving(false);
     }
   };
 
-  const handleResetToDefaults = () => {
-    setEmailNotifications(true);
-    setPushNotifications(false);
-    setDarkMode(false);
+  const handleNotificationToggle = async (
+    key: "email" | "push" | "routines" | "feeding" | "activities",
+    value: boolean,
+  ) => {
+    try {
+      await setNotifications({ [key]: value });
+    } catch (error) {
+      console.error("Failed to update notification:", error);
+      toast({
+        title: t("common:messages.error"),
+        description: t("common:messages.saveFailed"),
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -198,16 +157,45 @@ export default function SettingsPage() {
           id="email-notifications"
           label={t("settings:sections.notifications.emailNotifications")}
           description={t("settings:sections.notifications.emailDescription")}
-          checked={emailNotifications}
-          onCheckedChange={setEmailNotifications}
+          checked={preferences?.notifications?.email ?? true}
+          onCheckedChange={(v) => handleNotificationToggle("email", v)}
+          disabled={preferencesLoading || preferencesUpdating}
         />
 
         <ToggleSetting
           id="push-notifications"
           label={t("settings:sections.notifications.pushNotifications")}
           description={t("settings:sections.notifications.pushDescription")}
-          checked={pushNotifications}
-          onCheckedChange={setPushNotifications}
+          checked={preferences?.notifications?.push ?? false}
+          onCheckedChange={(v) => handleNotificationToggle("push", v)}
+          disabled={preferencesLoading || preferencesUpdating}
+        />
+
+        <ToggleSetting
+          id="routine-notifications"
+          label={t("settings:sections.notifications.routineNotifications")}
+          description={t("settings:sections.notifications.routineDescription")}
+          checked={preferences?.notifications?.routines ?? true}
+          onCheckedChange={(v) => handleNotificationToggle("routines", v)}
+          disabled={preferencesLoading || preferencesUpdating}
+        />
+
+        <ToggleSetting
+          id="feeding-notifications"
+          label={t("settings:sections.notifications.feedingNotifications")}
+          description={t("settings:sections.notifications.feedingDescription")}
+          checked={preferences?.notifications?.feeding ?? true}
+          onCheckedChange={(v) => handleNotificationToggle("feeding", v)}
+          disabled={preferencesLoading || preferencesUpdating}
+        />
+
+        <ToggleSetting
+          id="activity-notifications"
+          label={t("settings:sections.notifications.activityNotifications")}
+          description={t("settings:sections.notifications.activityDescription")}
+          checked={preferences?.notifications?.activities ?? true}
+          onCheckedChange={(v) => handleNotificationToggle("activities", v)}
+          disabled={preferencesLoading || preferencesUpdating}
         />
       </SettingSection>
 
@@ -221,8 +209,8 @@ export default function SettingsPage() {
           id="dark-mode"
           label={t("settings:sections.appearance.darkMode")}
           description={t("settings:sections.appearance.darkModeDescription")}
-          checked={darkMode}
-          onCheckedChange={setDarkMode}
+          checked={false}
+          onCheckedChange={() => {}}
           disabled
         />
         <p className="text-xs text-muted-foreground">
@@ -263,17 +251,36 @@ export default function SettingsPage() {
           <Label htmlFor="timezone">
             {t("settings:sections.language.timezone")}
           </Label>
-          <Select defaultValue="europe-stockholm" disabled>
+          <Select
+            value={preferences?.timezone || "Europe/Stockholm"}
+            onValueChange={handleTimezoneChange}
+            disabled={preferencesLoading || preferencesUpdating}
+          >
             <SelectTrigger id="timezone">
               <SelectValue
                 placeholder={t("settings:sections.language.selectTimezone")}
               />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="europe-stockholm">
+              <SelectItem value="Europe/Stockholm">
                 {t("settings:timezones.europe_stockholm")}
               </SelectItem>
-              <SelectItem value="utc">{t("settings:timezones.utc")}</SelectItem>
+              <SelectItem value="Europe/Helsinki">
+                {t("settings:timezones.europe_helsinki")}
+              </SelectItem>
+              <SelectItem value="Europe/Oslo">
+                {t("settings:timezones.europe_oslo")}
+              </SelectItem>
+              <SelectItem value="Europe/Copenhagen">
+                {t("settings:timezones.europe_copenhagen")}
+              </SelectItem>
+              <SelectItem value="Europe/London">
+                {t("settings:timezones.europe_london")}
+              </SelectItem>
+              <SelectItem value="Europe/Berlin">
+                {t("settings:timezones.europe_berlin")}
+              </SelectItem>
+              <SelectItem value="UTC">{t("settings:timezones.utc")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -304,20 +311,7 @@ export default function SettingsPage() {
         </div>
       </SettingSection>
 
-      {/* Save Button */}
-      <div className="flex justify-end gap-4">
-        <Button
-          variant="outline"
-          onClick={handleResetToDefaults}
-          disabled={saving}
-        >
-          {t("common:buttons.resetToDefaults")}
-        </Button>
-        <Button onClick={handleSaveSettings} disabled={saving || loading}>
-          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {t("common:buttons.saveChanges")}
-        </Button>
-      </div>
+      {/* All settings save immediately on change */}
     </div>
   );
 }

@@ -26,6 +26,7 @@ import {
 import type {
   UserPreferences,
   UpdateUserPreferencesInput,
+  UserNotificationPreferences,
 } from "@equiduty/shared";
 
 // Query key for user preferences
@@ -104,6 +105,24 @@ export function useUserPreferences() {
     return updatePreferences({ language });
   };
 
+  /**
+   * Set timezone preference
+   * @param timezone - IANA timezone identifier
+   */
+  const setTimezone = async (timezone: string): Promise<UserPreferences> => {
+    return updatePreferences({ timezone });
+  };
+
+  /**
+   * Set notification preferences (partial update)
+   * @param notifications - Partial notification preferences
+   */
+  const setNotifications = async (
+    notifications: Partial<UserNotificationPreferences>,
+  ): Promise<UserPreferences> => {
+    return updatePreferences({ notifications });
+  };
+
   return {
     preferences,
     isLoading,
@@ -113,6 +132,8 @@ export function useUserPreferences() {
     setDefaultStable,
     setDefaultOrganization,
     setLanguage,
+    setTimezone,
+    setNotifications,
     refetch,
   };
 }

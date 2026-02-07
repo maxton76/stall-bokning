@@ -304,6 +304,13 @@ export async function cancelRoutineInstance(
 }
 
 /**
+ * Delete a routine instance (hard delete)
+ */
+export async function deleteRoutineInstance(instanceId: string): Promise<void> {
+  await apiClient.delete(`/routines/instances/${instanceId}`);
+}
+
+/**
  * Restart a cancelled routine instance
  */
 export async function restartRoutineInstance(

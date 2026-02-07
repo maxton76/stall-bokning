@@ -36,6 +36,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { useStablePlanningMembers } from "@/hooks/useOrganizationMembers";
 import {
+  getDuplicateNames,
+  formatMemberDisplayName,
+} from "@/utils/memberDisplayName";
+import {
   useCreateSelectionProcess,
   useComputeTurnOrder,
 } from "@/hooks/useSelectionProcess";
@@ -151,11 +155,15 @@ export function CreateSelectionProcessModal({
 
   // Memoized member list for checkboxes
   const memberList = useMemo(() => {
-    return (members || []).map((member) => ({
-      id: member.userId,
-      name: `${member.firstName} ${member.lastName}`.trim() || member.userEmail,
-      email: member.userEmail,
-    }));
+    const list = members || [];
+    const dupes = getDuplicateNames(list);
+    return list
+      .map((member) => ({
+        id: member.userId,
+        name: formatMemberDisplayName(member, dupes),
+        email: member.userEmail,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, "sv"));
   }, [members]);
 
   // Handle member selection toggle

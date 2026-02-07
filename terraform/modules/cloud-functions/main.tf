@@ -131,7 +131,7 @@ resource "google_cloudfunctions2_function" "functions" {
         content {
           attribute = event_filters.value.attribute
           value     = event_filters.value.value
-          operator  = event_filters.value.operator
+          operator  = event_filters.value.operator != "" ? event_filters.value.operator : null
         }
       }
     }

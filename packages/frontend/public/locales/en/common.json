@@ -316,7 +316,9 @@
     "emptyState": {
       "noTasks": "No tasks today",
       "allDone": "All done for today!"
-    }
+    },
+    "loading": "Loading...",
+    "taskCount": "{{count}} tasks"
   },
   "tasks": {
     "title": "Tasks",
@@ -401,7 +403,39 @@
     "available": "Available",
     "assigned": "Assigned",
     "noRoutines": "No routines",
-    "unavailable": "Not selectable"
+    "unavailable": "Not selectable",
+    "addRoutine": "Add",
+    "selectStable": "Select stable",
+    "noStables": "No stables",
+    "noStablesDescription": "You need to be a member of a stable to see the schedule.",
+    "loadError": "Could not load the schedule",
+    "routinesLabel": "routines",
+    "stats": {
+      "total": "Total",
+      "completed": "Completed",
+      "assigned": "Assigned",
+      "unassigned": "Unassigned",
+      "cancelled": "Cancelled"
+    },
+    "status": {
+      "unassigned": "Unassigned",
+      "planned": "Planned",
+      "inProgress": "In Progress",
+      "cancelled": "Cancelled",
+      "overdue": "Overdue",
+      "completed": "Completed",
+      "started": "Started",
+      "scheduled": "Scheduled",
+      "missed": "Missed"
+    },
+    "legend": {
+      "unassigned": "Unassigned",
+      "planned": "Planned",
+      "inProgress": "In Progress",
+      "cancelled": "Cancelled",
+      "overdue": "Overdue",
+      "completed": "Completed"
+    }
   },
   "pwa": {
     "installTitle": "Install EquiDuty",

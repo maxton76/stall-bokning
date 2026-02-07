@@ -7,16 +7,38 @@ import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 import type { UserPreferences } from "@equiduty/shared";
 
+// Zod schema for notification preferences (partial update)
+const notificationPreferencesSchema = z.object({
+  email: z.boolean().optional(),
+  push: z.boolean().optional(),
+  routines: z.boolean().optional(),
+  feeding: z.boolean().optional(),
+  activities: z.boolean().optional(),
+});
+
 // Zod schema for preferences update
 const preferencesUpdateSchema = z.object({
   defaultStableId: z.string().nullable().optional(),
   defaultOrganizationId: z.string().nullable().optional(),
   language: z.enum(["sv", "en"]).optional(),
+  timezone: z.string().min(1).max(50).optional(),
+  notifications: notificationPreferencesSchema.optional(),
 });
+
+// Default notification preferences
+const DEFAULT_NOTIFICATIONS = {
+  email: true,
+  push: false,
+  routines: true,
+  feeding: true,
+  activities: true,
+};
 
 // Default preferences when none exist
 const DEFAULT_PREFERENCES: Omit<UserPreferences, "updatedAt"> = {
   language: "sv",
+  timezone: "Europe/Stockholm",
+  notifications: DEFAULT_NOTIFICATIONS,
 };
 
 export async function settingsRoutes(fastify: FastifyInstance) {
@@ -179,6 +201,10 @@ export async function settingsRoutes(fastify: FastifyInstance) {
           updates.language = input.language;
         }
 
+        if (input.timezone !== undefined) {
+          updates.timezone = input.timezone;
+        }
+
         if (input.defaultStableId !== undefined) {
           // null means clear, undefined means don't change
           updates.defaultStableId =
@@ -191,6 +217,18 @@ export async function settingsRoutes(fastify: FastifyInstance) {
             input.defaultOrganizationId === null
               ? null
               : input.defaultOrganizationId;
+        }
+
+        // Merge notifications (partial update — don't replace the whole object)
+        if (input.notifications !== undefined) {
+          const existingNotifications =
+            (existingData as Record<string, unknown>)?.notifications ??
+            DEFAULT_NOTIFICATIONS;
+          updates.notifications = {
+            ...DEFAULT_NOTIFICATIONS,
+            ...(existingNotifications as Record<string, unknown>),
+            ...input.notifications,
+          };
         }
 
         // Merge with existing data

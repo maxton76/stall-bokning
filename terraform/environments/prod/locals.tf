@@ -279,12 +279,12 @@ locals {
     # =========================================================================
 
     "on-schedule-published" = {
-      description                  = "Notify assigned users when schedule is published"
+      description                  = "Handle schedule publication events"
       runtime                      = "nodejs22"
       entry_point                  = "onSchedulePublished"
-      memory                       = "512Mi"
+      memory                       = "256Mi"
       cpu                          = "1"
-      timeout_seconds              = 300
+      timeout_seconds              = 120
       max_instances                = var.functions_max_instances
       min_instances                = 0
       max_concurrency              = 1
@@ -299,8 +299,16 @@ locals {
         region       = ""
         retry_policy = "RETRY_POLICY_DO_NOT_RETRY"
         filters = [
-          { attribute = "database", value = "(default)", operator = "" },
-          { attribute = "document", value = "schedules/{scheduleId}", operator = "match-path-pattern" }
+          {
+            attribute = "database"
+            value     = "(default)"
+            operator  = ""
+          },
+          {
+            attribute = "document"
+            value     = "schedules/{scheduleId}"
+            operator  = "match-path-pattern"
+          }
         ]
       }
       schedule              = null
@@ -313,7 +321,7 @@ locals {
       entry_point                  = "onRoutineScheduleCreated"
       memory                       = "512Mi"
       cpu                          = "1"
-      timeout_seconds              = 540
+      timeout_seconds              = 300
       max_instances                = var.functions_max_instances
       min_instances                = 0
       max_concurrency              = 1
@@ -328,8 +336,16 @@ locals {
         region       = ""
         retry_policy = "RETRY_POLICY_RETRY"
         filters = [
-          { attribute = "database", value = "(default)", operator = "" },
-          { attribute = "document", value = "routineSchedules/{scheduleId}", operator = "match-path-pattern" }
+          {
+            attribute = "database"
+            value     = "(default)"
+            operator  = ""
+          },
+          {
+            attribute = "document"
+            value     = "routineSchedules/{scheduleId}"
+            operator  = "match-path-pattern"
+          }
         ]
       }
       schedule              = null
@@ -337,12 +353,12 @@ locals {
     }
 
     "on-routine-schedule-deleted" = {
-      description                  = "Remove non-completed instances when schedule is deleted"
+      description                  = "Clean up routine instances when schedule is deleted"
       runtime                      = "nodejs22"
       entry_point                  = "onRoutineScheduleDeleted"
-      memory                       = "512Mi"
+      memory                       = "256Mi"
       cpu                          = "1"
-      timeout_seconds              = 300
+      timeout_seconds              = 120
       max_instances                = var.functions_max_instances
       min_instances                = 0
       max_concurrency              = 1
@@ -357,8 +373,16 @@ locals {
         region       = ""
         retry_policy = "RETRY_POLICY_RETRY"
         filters = [
-          { attribute = "database", value = "(default)", operator = "" },
-          { attribute = "document", value = "routineSchedules/{scheduleId}", operator = "match-path-pattern" }
+          {
+            attribute = "database"
+            value     = "(default)"
+            operator  = ""
+          },
+          {
+            attribute = "document"
+            value     = "routineSchedules/{scheduleId}"
+            operator  = "match-path-pattern"
+          }
         ]
       }
       schedule              = null
@@ -366,12 +390,12 @@ locals {
     }
 
     "process-bulk-import" = {
-      description                  = "Process bulk member imports"
+      description                  = "Process bulk import jobs"
       runtime                      = "nodejs22"
       entry_point                  = "processBulkImport"
-      memory                       = "512Mi"
+      memory                       = "1Gi"
       cpu                          = "1"
-      timeout_seconds              = 300
+      timeout_seconds              = 540
       max_instances                = var.functions_max_instances
       min_instances                = 0
       max_concurrency              = 1
@@ -380,14 +404,69 @@ locals {
       source_archive_object        = var.functions_source_object
       environment_variables        = {}
       build_environment_variables  = {}
-      secret_environment_variables = {}
+      secret_environment_variables = {
+        SENDGRID_API_KEY = {
+          secret  = "${var.environment}-sendgrid-api-key"
+          version = "latest"
+        }
+      }
       event_trigger = {
         event_type   = "google.cloud.firestore.document.v1.created"
         region       = ""
         retry_policy = "RETRY_POLICY_RETRY"
         filters = [
-          { attribute = "database", value = "(default)", operator = "" },
-          { attribute = "document", value = "bulkImportJobs/{jobId}", operator = "match-path-pattern" }
+          {
+            attribute = "database"
+            value     = "(default)"
+            operator  = ""
+          },
+          {
+            attribute = "document"
+            value     = "bulkImportJobs/{jobId}"
+            operator  = "match-path-pattern"
+          }
+        ]
+      }
+      schedule              = null
+      allow_unauthenticated = false
+    }
+
+    "on-invoice-status-change" = {
+      description                  = "Handle invoice status change events (send emails)"
+      runtime                      = "nodejs22"
+      entry_point                  = "onInvoiceStatusChange"
+      memory                       = "256Mi"
+      cpu                          = "1"
+      timeout_seconds              = 120
+      max_instances                = var.functions_max_instances
+      min_instances                = 0
+      max_concurrency              = 1
+      ingress_settings             = "ALLOW_INTERNAL_ONLY"
+      source_archive_bucket        = var.functions_source_bucket
+      source_archive_object        = var.functions_source_object
+      environment_variables        = {}
+      build_environment_variables  = {}
+      secret_environment_variables = {
+        SENDGRID_API_KEY = {
+          secret  = "${var.environment}-sendgrid-api-key"
+          version = "latest"
+        }
+      }
+      event_trigger = {
+        event_type   = "google.cloud.firestore.document.v1.updated"
+        region       = ""
+        retry_policy = "RETRY_POLICY_DO_NOT_RETRY"
+        filters = [
+          {
+            attribute = "database"
+            value     = "(default)"
+            operator  = ""
+          },
+          {
+            attribute = "document"
+            value     = "invoices/{invoiceId}"
+            operator  = "match-path-pattern"
+          }
         ]
       }
       schedule              = null

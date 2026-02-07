@@ -39,6 +39,10 @@ import { CalendarDays, Loader2, Users, Lightbulb } from "lucide-react";
 import { useAssignmentSuggestions } from "@/hooks/useFairnessDistribution";
 import { useOrganizationMembers } from "@/hooks/useOrganizationMembers";
 import {
+  getDuplicateNames,
+  formatMemberDisplayName,
+} from "@/utils/memberDisplayName";
+import {
   generateSchedulePreview,
   formatPreviewDate,
   type PreviewInstance,
@@ -118,6 +122,9 @@ export function RoutineAssignmentPreviewModal({
     }
   }, [open]);
 
+  // Detect duplicate display names for disambiguation
+  const duplicateNames = useMemo(() => getDuplicateNames(members), [members]);
+
   // Handle assignment change for a specific date
   const handleAssignmentChange = (dateKey: string, value: string) => {
     setAssignments((prev) => ({
@@ -134,21 +141,9 @@ export function RoutineAssignmentPreviewModal({
   // Get member display name by userId
   const getMemberName = (userId: string | null): string => {
     if (!userId) return t("routines:schedules.preview.unassigned");
-    const member = members.find(
-      (m: {
-        id: string;
-        userId: string;
-        firstName: string;
-        lastName: string;
-        userEmail: string;
-      }) => m.userId === userId,
-    );
-    if (member) {
-      return (
-        `${member.firstName} ${member.lastName}`.trim() || member.userEmail
-      );
-    }
-    // Try suggestion data
+    const member = members.find((m) => m.userId === userId);
+    if (member) return formatMemberDisplayName(member, duplicateNames);
+    // Try suggestion data as fallback
     const suggestion = suggestionsData?.suggestions.find(
       (s) => s.userId === userId,
     );
@@ -156,25 +151,12 @@ export function RoutineAssignmentPreviewModal({
   };
 
   // Get dropdown item name - prefers member data over suggestion data
-  // This fixes the "Unknown" issue when suggestion.displayName is missing
   const getDropdownItemName = (
     userId: string,
     suggestionDisplayName?: string,
   ): string => {
-    const member = members.find(
-      (m: {
-        id: string;
-        userId: string;
-        firstName: string;
-        lastName: string;
-        userEmail: string;
-      }) => m.userId === userId,
-    );
-    if (member) {
-      const fullName = `${member.firstName} ${member.lastName}`.trim();
-      if (fullName) return fullName;
-      if (member.userEmail) return member.userEmail;
-    }
+    const member = members.find((m) => m.userId === userId);
+    if (member) return formatMemberDisplayName(member, duplicateNames);
     if (suggestionDisplayName && suggestionDisplayName !== "Unknown") {
       return suggestionDisplayName;
     }
@@ -319,6 +301,18 @@ export function RoutineAssignmentPreviewModal({
                                   (s) => s.userId === m.userId,
                                 ),
                             )
+                            .sort(
+                              (
+                                a: { firstName: string; lastName: string },
+                                b: { firstName: string; lastName: string },
+                              ) => {
+                                const nameA =
+                                  `${a.firstName} ${a.lastName}`.trim();
+                                const nameB =
+                                  `${b.firstName} ${b.lastName}`.trim();
+                                return nameA.localeCompare(nameB, "sv");
+                              },
+                            )
                             .map(
                               (member: {
                                 id: string;
@@ -331,8 +325,7 @@ export function RoutineAssignmentPreviewModal({
                                   key={member.userId}
                                   value={member.userId}
                                 >
-                                  {`${member.firstName} ${member.lastName}`.trim() ||
-                                    member.userEmail}
+                                  {getDropdownItemName(member.userId)}
                                 </SelectItem>
                               ),
                             )}

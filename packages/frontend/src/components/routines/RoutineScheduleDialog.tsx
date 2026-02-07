@@ -1,4 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
+import {
+  getDuplicateNames,
+  formatMemberDisplayName,
+} from "@/utils/memberDisplayName";
 import { useTranslation } from "react-i18next";
 import {
   Dialog,
@@ -99,6 +103,9 @@ export function RoutineScheduleDialog({
   );
   const { data: members = [], isLoading: membersLoading } =
     useOrganizationMembers(organizationId);
+
+  // Detect duplicate display names for disambiguation
+  const duplicateNames = useMemo(() => getDuplicateNames(members), [members]);
 
   // Reset form when opening or schedule changes
   useEffect(() => {
@@ -494,20 +501,18 @@ export function RoutineScheduleDialog({
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {members.map(
-                    (member: {
-                      id: string;
-                      userId: string;
-                      firstName: string;
-                      lastName: string;
-                      userEmail: string;
-                    }) => (
-                      <SelectItem key={member.id} value={member.userId}>
-                        {`${member.firstName} ${member.lastName}`.trim() ||
-                          member.userEmail}
+                  {[...members]
+                    .sort((a, b) =>
+                      formatMemberDisplayName(a, duplicateNames).localeCompare(
+                        formatMemberDisplayName(b, duplicateNames),
+                        "sv",
+                      ),
+                    )
+                    .map((member) => (
+                      <SelectItem key={member.userId} value={member.userId}>
+                        {formatMemberDisplayName(member, duplicateNames)}
                       </SelectItem>
-                    ),
-                  )}
+                    ))}
                 </SelectContent>
               </Select>
             </div>

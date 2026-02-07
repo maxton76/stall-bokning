@@ -68,3 +68,25 @@ export async function setLanguagePreference(
 ): Promise<UserPreferences> {
   return updateUserPreferences({ language });
 }
+
+/**
+ * Set timezone preference
+ * @param timezone - IANA timezone identifier (e.g. 'Europe/Stockholm')
+ */
+export async function setTimezonePreference(
+  timezone: string,
+): Promise<UserPreferences> {
+  return updateUserPreferences({ timezone });
+}
+
+/**
+ * Set notification preferences (partial update)
+ * @param notifications - Partial notification preferences to update
+ */
+export async function setNotificationPreferences(
+  notifications: Partial<
+    import("@equiduty/shared").UserNotificationPreferences
+  >,
+): Promise<UserPreferences> {
+  return updateUserPreferences({ notifications });
+}

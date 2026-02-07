@@ -3,12 +3,26 @@
  *
  * Cross-device synchronized user settings including:
  * - Default selections (stable, organization)
- * - UI preferences (language)
+ * - UI preferences (language, timezone)
+ * - Notification preferences
  *
  * @path users/{userId}/settings/preferences
  */
 
 export type SupportedLanguage = "sv" | "en";
+
+export interface UserNotificationPreferences {
+  /** Email notifications enabled (default: true) */
+  email: boolean;
+  /** Push notifications enabled (default: false) */
+  push: boolean;
+  /** Routine-related notifications (default: true) */
+  routines: boolean;
+  /** Feeding-related notifications (default: true) */
+  feeding: boolean;
+  /** Activity-related notifications (default: true) */
+  activities: boolean;
+}
 
 export interface UserPreferences {
   /**
@@ -31,6 +45,16 @@ export interface UserPreferences {
   language: SupportedLanguage;
 
   /**
+   * IANA timezone identifier (default: 'Europe/Stockholm')
+   */
+  timezone: string;
+
+  /**
+   * Notification preferences synced across devices
+   */
+  notifications: UserNotificationPreferences;
+
+  /**
    * Last update timestamp
    */
   updatedAt: Date | string;
@@ -44,6 +68,8 @@ export interface UpdateUserPreferencesInput {
   defaultStableId?: string | null;
   defaultOrganizationId?: string | null;
   language?: SupportedLanguage;
+  timezone?: string;
+  notifications?: Partial<UserNotificationPreferences>;
 }
 
 /**

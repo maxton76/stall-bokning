@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useActiveOrganizationMembers } from "@/hooks/useOrganizationMembers";
+import {
+  getDuplicateNames,
+  formatMemberDisplayName,
+} from "@/utils/memberDisplayName";
 import type { OrganizationMember } from "@equiduty/shared";
 
 interface MemberMultiSelectProps {
@@ -59,11 +63,12 @@ export function MemberMultiSelect({
   const { data: members = [], isLoading: loading } =
     useActiveOrganizationMembers(organizationId);
 
-  // Format member display name with role
+  // Detect duplicate display names for disambiguation
+  const duplicateNames = useMemo(() => getDuplicateNames(members), [members]);
+
+  // Format member display name, disambiguating duplicates with email
   const formatMemberName = (member: OrganizationMember): string => {
-    const name =
-      `${member.firstName} ${member.lastName}`.trim() || member.userEmail;
-    return name;
+    return formatMemberDisplayName(member, duplicateNames);
   };
 
   // Get primary role label for display

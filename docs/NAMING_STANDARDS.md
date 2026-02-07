@@ -60,6 +60,31 @@ common_labels = {
 }
 ```
 
+## Deployment Rules
+
+**All Cloud Functions are deployed via Terraform** using `task deploy:functions`. This ensures every function gets the correct `{env}-{terraform-key}` deployed name.
+
+### What NOT to do
+
+**Never use `firebase deploy --only functions`** for production deployments. Firebase CLI uses the JS export name directly (e.g., `processBulkImport`) without the environment prefix, violating the naming standard. A safety gate in `scripts/prepare-functions-deploy.sh` blocks this by default.
+
+### How deployment works
+
+| Function type | Deployment method | Example deployed name |
+|---------------|-------------------|----------------------|
+| Scheduled functions | `task deploy:functions` (Terraform) | `dev-monthly-time-accrual` |
+| Firestore trigger functions | `task deploy:functions` (Terraform) | `dev-on-schedule-published` |
+| HTTP functions | `task deploy:functions` (Terraform) | `dev-process-notification-queue` |
+
+### Bypassing the safety gate
+
+If you have a legitimate reason to deploy via Firebase CLI (e.g., local emulator testing), set:
+
+```bash
+export FIREBASE_ALLOW_FUNCTIONS_DEPLOY=confirmed
+firebase deploy --only functions:functionName
+```
+
 ## Adding a New Cloud Function
 
 1. Create source file in `packages/functions/src/{category}/` using camelCase
@@ -69,3 +94,4 @@ common_labels = {
 5. Copy definition to staging/prod locals
 6. Add secrets with `{env}-` prefix if needed
 7. Run `terraform plan` in each environment
+8. Deploy with `task deploy:functions`

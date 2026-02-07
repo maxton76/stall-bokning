@@ -25,6 +25,10 @@ import {
   ROUTINE_STATUS_ICONS,
 } from "@/constants/routineStyles";
 import { cn } from "@/lib/utils";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { queryKeys } from "@/lib/queryClient";
+import { getStableHorses } from "@/services/horseService";
+import type { Horse } from "@/types/roles";
 import type { RoutineInstance, RoutineInstanceStatus } from "@shared/types";
 
 interface ScheduledRoutinesCardProps {
@@ -68,10 +72,13 @@ function parseScheduledDate(scheduledDate: unknown): Date {
 }
 
 /**
- * Extract horse info from routine instance progress
+ * Extract horse info from routine instance progress.
+ * Resolves horse names from the provided map (sourced from horse documents)
+ * rather than relying on denormalized horseName in progress data.
  */
 function extractHorsesFromProgress(
   instance: RoutineInstance,
+  horseNameMap: Record<string, string>,
 ): { id: string; name: string; completed: boolean }[] {
   const horses: { id: string; name: string; completed: boolean }[] = [];
   const seenHorseIds = new Set<string>();
@@ -85,7 +92,7 @@ function extractHorsesFromProgress(
             seenHorseIds.add(horseProgress.horseId);
             horses.push({
               id: horseProgress.horseId,
-              name: horseProgress.horseName || horseProgress.horseId,
+              name: horseNameMap[horseProgress.horseId] || horseProgress.horseId,
               completed: horseProgress.completed || horseProgress.skipped,
             });
           }
@@ -343,13 +350,49 @@ export function ScheduledRoutinesCard({
 }: ScheduledRoutinesCardProps) {
   const { t } = useTranslation(["routines"]);
 
+  // Collect unique stable IDs from routine instances to fetch horses
+  const stableIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const instance of routineInstances) {
+      if (instance.stableId) ids.add(instance.stableId);
+    }
+    return Array.from(ids);
+  }, [routineInstances]);
+
+  // Fetch horses for all relevant stables to resolve names
+  const { data: allHorses = [] } = useApiQuery<Horse[]>(
+    queryKeys.horses.list({ stableIds, context: "routineProgress" }),
+    async () => {
+      if (stableIds.length === 0) return [];
+      const results = await Promise.all(
+        stableIds.map((id) => getStableHorses(id)),
+      );
+      return results.flat();
+    },
+    {
+      enabled: stableIds.length > 0,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
+
+  // Build horseId → horseName lookup map
+  const horseNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const horse of allHorses) {
+      if (horse.id && horse.name) {
+        map[horse.id] = horse.name;
+      }
+    }
+    return map;
+  }, [allHorses]);
+
   // Process routines with horse data
   const processedRoutines: RoutineWithHorses[] = useMemo(() => {
     return routineInstances.map((instance) => ({
       ...instance,
-      horses: extractHorsesFromProgress(instance),
+      horses: extractHorsesFromProgress(instance, horseNameMap),
     }));
-  }, [routineInstances]);
+  }, [routineInstances, horseNameMap]);
 
   // Sort routines: overdue first, then by scheduled time
   const sortedRoutines = useMemo(() => {

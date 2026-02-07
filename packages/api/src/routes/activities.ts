@@ -5,6 +5,10 @@ import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 import { hasStableAccess } from "../utils/authorization.js";
+import {
+  hasPermission as engineHasPermission,
+  resolveOrgIdFromStable,
+} from "../utils/permissionEngine.js";
 
 /**
  * Result of horse access check including visibility constraints
@@ -107,26 +111,49 @@ async function hasHorseAccess(
 }
 
 /**
- * Check if user has access to an activity (for update/delete operations)
+ * Check if user has access to an activity and return the activity data.
+ * Returns null if the activity doesn't exist, or { activity, hasAccess } otherwise.
  */
-async function hasActivityAccess(
+async function getActivityWithAccessCheck(
   activityId: string,
   userId: string,
   userRole: string,
-): Promise<boolean> {
-  if (userRole === "system_admin") return true;
-
+): Promise<{
+  activity: FirebaseFirestore.DocumentData;
+  hasAccess: boolean;
+} | null> {
   const activityDoc = await db.collection("activities").doc(activityId).get();
-  if (!activityDoc.exists) return false;
+  if (!activityDoc.exists) return null;
 
   const activity = activityDoc.data()!;
 
-  // Check if activity belongs to a stable the user has access to
-  if (activity.stableId) {
-    return await hasStableAccess(activity.stableId, userId, userRole);
+  if (userRole === "system_admin") {
+    return { activity, hasAccess: true };
   }
 
-  return false;
+  // Check if activity belongs to a stable the user has access to
+  if (activity.stableId) {
+    const access = await hasStableAccess(activity.stableId, userId, userRole);
+    return { activity, hasAccess: access };
+  }
+
+  return { activity, hasAccess: false };
+}
+
+/**
+ * Check manage_activities permission for a given stableId.
+ * Returns true if user has the permission, false otherwise.
+ */
+async function hasManageActivitiesPermission(
+  stableId: string,
+  userId: string,
+  userRole: string,
+): Promise<boolean> {
+  const orgId = await resolveOrgIdFromStable(stableId);
+  if (!orgId) return false;
+  return engineHasPermission(userId, orgId, "manage_activities", {
+    systemRole: userRole,
+  });
 }
 
 export async function activitiesRoutes(fastify: FastifyInstance) {
@@ -601,6 +628,20 @@ export async function activitiesRoutes(fastify: FastifyInstance) {
           return reply.status(404).send({ error: "Resource not found" });
         }
 
+        // Check manage_activities permission
+        if (
+          !(await hasManageActivitiesPermission(
+            data.stableId,
+            user.uid,
+            user.role,
+          ))
+        ) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "Missing permission: manage_activities",
+          });
+        }
+
         // If horseId is provided, verify user has access to the horse
         if (data.horseId) {
           const horseAccessCheck = await hasHorseAccess(
@@ -713,15 +754,36 @@ export async function activitiesRoutes(fastify: FastifyInstance) {
         const updates = request.body as any;
 
         // Check access
-        const hasAccess = await hasActivityAccess(
+        const result = await getActivityWithAccessCheck(
           activityId,
           user.uid,
           user.role,
         );
-        if (!hasAccess) {
+        if (!result) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Activity not found",
+          });
+        }
+        if (!result.hasAccess) {
           return reply.status(403).send({
             error: "Forbidden",
             message: "You do not have permission to update this activity",
+          });
+        }
+
+        // Check manage_activities permission
+        if (
+          result.activity.stableId &&
+          !(await hasManageActivitiesPermission(
+            result.activity.stableId,
+            user.uid,
+            user.role,
+          ))
+        ) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "Missing permission: manage_activities",
           });
         }
 
@@ -779,15 +841,36 @@ export async function activitiesRoutes(fastify: FastifyInstance) {
         const user = (request as AuthenticatedRequest).user!;
 
         // Check access
-        const hasAccess = await hasActivityAccess(
+        const result = await getActivityWithAccessCheck(
           activityId,
           user.uid,
           user.role,
         );
-        if (!hasAccess) {
+        if (!result) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Activity not found",
+          });
+        }
+        if (!result.hasAccess) {
           return reply.status(403).send({
             error: "Forbidden",
             message: "You do not have permission to delete this activity",
+          });
+        }
+
+        // Check manage_activities permission
+        if (
+          result.activity.stableId &&
+          !(await hasManageActivitiesPermission(
+            result.activity.stableId,
+            user.uid,
+            user.role,
+          ))
+        ) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "Missing permission: manage_activities",
           });
         }
 
@@ -818,13 +901,19 @@ export async function activitiesRoutes(fastify: FastifyInstance) {
         const { activityId } = request.params as { activityId: string };
         const user = (request as AuthenticatedRequest).user!;
 
-        // Check access
-        const hasAccess = await hasActivityAccess(
+        // Check access (no manage_activities permission needed for completing)
+        const result = await getActivityWithAccessCheck(
           activityId,
           user.uid,
           user.role,
         );
-        if (!hasAccess) {
+        if (!result) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Activity not found",
+          });
+        }
+        if (!result.hasAccess) {
           return reply.status(403).send({
             error: "Forbidden",
             message: "You do not have permission to complete this activity",

@@ -160,6 +160,8 @@ export interface RoutineInstance {
   // Status
   status: RoutineInstanceStatus;
   startedAt?: FirestoreTimestamp;
+  startedBy?: string;
+  startedByName?: string; // Denormalized name of user who started
   completedAt?: FirestoreTimestamp;
   completedBy?: string;
   completedByName?: string; // Denormalized name of user who completed
@@ -194,7 +196,7 @@ export interface RoutineInstance {
 /**
  * Assignment type for routine instances
  */
-export type RoutineAssignmentType = "auto" | "manual" | "selfBooked";
+export type RoutineAssignmentType = "auto" | "manual" | "selfBooked" | "self" | "unassigned";
 
 /**
  * Status of a routine instance

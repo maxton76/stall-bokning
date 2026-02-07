@@ -5,6 +5,22 @@
 
 set -e
 
+# Safety gate: prevent accidental Firebase CLI function deployments.
+# All Cloud Functions MUST be deployed via Terraform (task deploy:functions).
+# Firebase CLI creates functions without the {env}- prefix, causing naming violations.
+if [ "${FIREBASE_ALLOW_FUNCTIONS_DEPLOY}" != "confirmed" ]; then
+    echo "ERROR: Direct Firebase CLI function deployment is blocked."
+    echo ""
+    echo "All Cloud Functions must be deployed via Terraform to ensure correct naming:"
+    echo "  task deploy:functions"
+    echo ""
+    echo "If you have a specific reason to use Firebase CLI, set:"
+    echo "  export FIREBASE_ALLOW_FUNCTIONS_DEPLOY=confirmed"
+    echo ""
+    echo "See docs/NAMING_STANDARDS.md for details."
+    exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 SHARED_DIR="$ROOT_DIR/packages/shared"

@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useOrgPermissions } from "@/hooks/useOrgPermissions";
 import { useDialog } from "@/hooks/useDialog";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { useCRUD } from "@/hooks/useCRUD";
@@ -89,6 +90,8 @@ export default function ActivitiesActionListPage() {
   const { t } = useTranslation(["activities", "common"]);
   const { user } = useAuth();
   const { currentOrganization } = useOrganization();
+  const { hasPermission } = useOrgPermissions(currentOrganization);
+  const canManageActivities = hasPermission("manage_activities");
 
   const PERIOD_TYPES: Array<{ value: PeriodType; label: string }> = [
     { value: "day", label: t("activities:actionList.period.day") },
@@ -503,13 +506,15 @@ export default function ActivitiesActionListPage() {
             {t("activities:actionList.description")}
           </p>
         </div>
-        <Button
-          onClick={handleAddEntry}
-          disabled={!selectedStableId || selectedStableId === "all"}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          {t("activities:actionList.addEntry")}
-        </Button>
+        {canManageActivities && (
+          <Button
+            onClick={handleAddEntry}
+            disabled={!selectedStableId || selectedStableId === "all"}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            {t("activities:actionList.addEntry")}
+          </Button>
+        )}
       </div>
 
       {/* Combined Card */}
@@ -631,6 +636,7 @@ export default function ActivitiesActionListPage() {
                         onDelete={() => handleDeleteEntry(entry)}
                         onComplete={() => handleCompleteEntry(entry)}
                         isCompleting={completingIds.has(entry.id)}
+                        canManage={canManageActivities}
                         activityTypes={activityTypesData}
                         horses={horsesData}
                         t={t}
@@ -659,6 +665,7 @@ export default function ActivitiesActionListPage() {
                         onDelete={() => handleDeleteEntry(entry)}
                         onComplete={() => handleCompleteEntry(entry)}
                         isCompleting={completingIds.has(entry.id)}
+                        canManage={canManageActivities}
                         activityTypes={activityTypesData}
                         horses={horsesData}
                         t={t}
@@ -687,6 +694,7 @@ export default function ActivitiesActionListPage() {
                         onDelete={() => handleDeleteEntry(entry)}
                         onComplete={() => handleCompleteEntry(entry)}
                         isCompleting={completingIds.has(entry.id)}
+                        canManage={canManageActivities}
                         activityTypes={activityTypesData}
                         horses={horsesData}
                         t={t}
@@ -707,6 +715,7 @@ export default function ActivitiesActionListPage() {
                   onDelete={() => handleDeleteEntry(entry)}
                   onComplete={() => handleCompleteEntry(entry)}
                   isCompleting={completingIds.has(entry.id)}
+                  canManage={canManageActivities}
                   activityTypes={activityTypesData}
                   horses={horsesData}
                   t={t}
@@ -728,6 +737,7 @@ export default function ActivitiesActionListPage() {
                         onDelete={() => handleDeleteEntry(entry)}
                         onComplete={() => handleCompleteEntry(entry)}
                         isCompleting={completingIds.has(entry.id)}
+                        canManage={canManageActivities}
                         activityTypes={activityTypesData}
                         horses={horsesData}
                         t={t}
@@ -763,6 +773,7 @@ interface ActivityCardProps {
   onDelete: () => void;
   onComplete: () => void;
   isCompleting: boolean;
+  canManage: boolean;
   activityTypes: Array<any>; // Activity type configs
   horses: Array<{ id: string; name: string }>; // Horse lookup data
   t: (key: string) => string; // Translation function
@@ -839,6 +850,7 @@ function ActivityCard({
   activityTypes,
   horses,
   isCompleting,
+  canManage,
   t,
 }: ActivityCardProps) {
   const badge = getBadge(entry, activityTypes);
@@ -846,8 +858,11 @@ function ActivityCard({
 
   return (
     <div
-      className="group flex items-center gap-3 px-3 py-2 border rounded-md hover:bg-accent/30 transition-colors cursor-pointer"
-      onClick={onEdit}
+      className={cn(
+        "group flex items-center gap-3 px-3 py-2 border rounded-md hover:bg-accent/30 transition-colors",
+        canManage && "cursor-pointer",
+      )}
+      onClick={canManage ? onEdit : undefined}
     >
       {/* Checkbox - Left */}
       <div onClick={(e) => e.stopPropagation()}>
@@ -909,28 +924,30 @@ function ActivityCard({
       >
         <AssigneeAvatar name={assigneeName} size="sm" />
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
-            >
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onEdit}>
-              <Pencil className="mr-2 h-4 w-4" />
-              {t("common:buttons.edit")}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onDelete} className="text-destructive">
-              <Trash2 className="mr-2 h-4 w-4" />
-              {t("common:buttons.delete")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {canManage && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 opacity-60 group-hover:opacity-100 transition-opacity focus:opacity-100"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onEdit}>
+                <Pencil className="mr-2 h-4 w-4" />
+                {t("common:buttons.edit")}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onDelete} className="text-destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                {t("common:buttons.delete")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
     </div>
   );

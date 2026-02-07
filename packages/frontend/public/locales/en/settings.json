@@ -55,6 +55,12 @@
       "emailDescription": "Master switch for all email notifications",
       "pushNotifications": "Push Notifications",
       "pushDescription": "Receive push notifications in browser",
+      "routineNotifications": "Routine Notifications",
+      "routineDescription": "Notifications about routine assignments and reminders",
+      "feedingNotifications": "Feeding Notifications",
+      "feedingDescription": "Notifications about feeding schedules and changes",
+      "activityNotifications": "Activity Notifications",
+      "activityDescription": "Notifications about activities and events",
       "sendNotificationsFor": "Send notifications for:",
       "shiftReminders": {
         "label": "Upcoming Shift Reminders",
@@ -179,7 +185,12 @@
     "sv": "Svenska"
   },
   "timezones": {
-    "europe_stockholm": "Europe/Stockholm",
+    "europe_stockholm": "Europe/Stockholm (CET/CEST)",
+    "europe_helsinki": "Europe/Helsinki (EET/EEST)",
+    "europe_oslo": "Europe/Oslo (CET/CEST)",
+    "europe_copenhagen": "Europe/Copenhagen (CET/CEST)",
+    "europe_london": "Europe/London (GMT/BST)",
+    "europe_berlin": "Europe/Berlin (CET/CEST)",
     "utc": "UTC"
   },
   "messages": {

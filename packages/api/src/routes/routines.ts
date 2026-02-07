@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { Timestamp } from "firebase-admin/firestore";
 import { v4 as uuidv4 } from "uuid";
-import { db } from "../utils/firebase.js";
+import { db, auth } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import { checkSubscriptionLimit } from "../middleware/checkSubscriptionLimit.js";
 import type { AuthenticatedRequest } from "../types/index.js";
@@ -10,6 +10,7 @@ import {
   hasStableAccess,
   hasOrganizationAccess,
 } from "../utils/authorization.js";
+import { hasPermission } from "../utils/permissionEngine.js";
 import {
   createRoutineTemplateSchema,
   updateRoutineTemplateSchema,
@@ -1204,9 +1205,9 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           updatedAt: now,
         };
 
-        const docRef = await db
-          .collection("routineInstances")
-          .add(instanceData);
+        const instanceId = uuidv4();
+        const docRef = db.collection("routineInstances").doc(instanceId);
+        await docRef.set(instanceData);
 
         return reply.status(201).send(
           serializeTimestamps({
@@ -1276,9 +1277,23 @@ export async function routinesRoutes(fastify: FastifyInstance) {
         }
 
         const now = Timestamp.now();
+
+        // Auto-assign to starting user if not already assigned
+        const assignmentUpdate = !data.assignedTo
+          ? {
+              assignedTo: user.uid,
+              assignedToName: user.displayName || user.email,
+              assignmentType: "self" as const,
+              assignedAt: now,
+              assignedBy: user.uid,
+            }
+          : {};
+
         const updateData = {
           status: "started" as RoutineInstanceStatus,
           startedAt: now,
+          startedBy: user.uid,
+          startedByName: user.displayName || user.email,
           dailyNotesAcknowledged: parsed.data.dailyNotesAcknowledged,
           dailyNotesAcknowledgedAt: parsed.data.dailyNotesAcknowledged
             ? now
@@ -1289,6 +1304,7 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           currentStepOrder: 1,
           updatedAt: now,
           updatedBy: user.uid,
+          ...assignmentUpdate,
         };
 
         await db.collection("routineInstances").doc(id).update(updateData);
@@ -1403,7 +1419,7 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           for (const horseUpdate of input.horseUpdates) {
             const existing = currentStep.horseProgress[horseUpdate.horseId] || {
               horseId: horseUpdate.horseId,
-              horseName: "", // Should be populated from horse data
+              horseName: "",
               completed: false,
               skipped: false,
             };
@@ -1628,6 +1644,15 @@ export async function routinesRoutes(fastify: FastifyInstance) {
         }
 
         const data = doc.data() as RoutineInstance;
+
+        // Check status first to avoid unnecessary permission DB calls
+        if (data.status === "completed" || data.status === "cancelled") {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: `Cannot cancel routine with status: ${data.status}`,
+          });
+        }
+
         const hasAccess = await hasStableAccess(
           data.stableId,
           user.uid,
@@ -1640,11 +1665,20 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        if (data.status === "completed" || data.status === "cancelled") {
-          return reply.status(400).send({
-            error: "Bad Request",
-            message: `Cannot cancel routine with status: ${data.status}`,
-          });
+        // If user is NOT the assignee, require manage_schedules permission (V2)
+        if (data.assignedTo !== user.uid) {
+          const canManage = await hasPermission(
+            user.uid,
+            data.organizationId,
+            "manage_schedules",
+          );
+          if (!canManage) {
+            return reply.status(403).send({
+              error: "Forbidden",
+              message:
+                "You do not have permission to cancel other users' routines",
+            });
+          }
         }
 
         const now = Timestamp.now();
@@ -1671,6 +1705,99 @@ export async function routinesRoutes(fastify: FastifyInstance) {
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to cancel routine",
+        });
+      }
+    },
+  );
+
+  /**
+   * DELETE /api/v1/routines/instances/:id
+   * Hard delete a routine instance (requires manage_schedules permission)
+   */
+  fastify.delete(
+    "/instances/:id",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const user = (request as AuthenticatedRequest).user!;
+
+        const doc = await db.collection("routineInstances").doc(id).get();
+        if (!doc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Routine instance not found",
+          });
+        }
+
+        const data = doc.data() as RoutineInstance;
+        const hasAccess = await hasStableAccess(
+          data.stableId,
+          user.uid,
+          user.role,
+        );
+        if (!hasAccess) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to access this routine",
+          });
+        }
+
+        // Require manage_schedules permission (V2)
+        const canManage = await hasPermission(
+          user.uid,
+          data.organizationId,
+          "manage_schedules",
+        );
+        if (!canManage) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message:
+              "You do not have permission to delete routine instances",
+          });
+        }
+
+        // Only allow deletion of scheduled instances (cancelled may have activity history)
+        if (data.status !== "scheduled") {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: `Cannot delete routine with status: ${data.status}. Only scheduled routines can be deleted.`,
+          });
+        }
+
+        // Use transaction to prevent TOCTOU race condition
+        await db.runTransaction(async (txn) => {
+          const freshDoc = await txn.get(
+            db.collection("routineInstances").doc(id),
+          );
+          if (!freshDoc.exists) {
+            throw { statusCode: 404, message: "Routine instance not found" };
+          }
+          const freshData = freshDoc.data() as RoutineInstance;
+          if (freshData.status !== "scheduled") {
+            throw {
+              statusCode: 400,
+              message: `Cannot delete routine with status: ${freshData.status}. Only scheduled routines can be deleted.`,
+            };
+          }
+          txn.delete(freshDoc.ref);
+        });
+
+        return { success: true };
+      } catch (error: any) {
+        // Handle transaction-thrown errors with statusCode
+        if (error?.statusCode) {
+          return reply.status(error.statusCode).send({
+            error: error.statusCode === 404 ? "Not Found" : "Bad Request",
+            message: error.message,
+          });
+        }
+        request.log.error({ error }, "Failed to delete routine instance");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to delete routine instance",
         });
       }
     },
@@ -1793,6 +1920,29 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           return reply.status(403).send({
             error: "Forbidden",
             message: "You do not have permission to assign this routine",
+          });
+        }
+
+        // Validate assignedTo is a real Firebase Auth UID
+        try {
+          await auth.getUser(assignedTo);
+        } catch {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "assignedTo must be a valid user ID",
+          });
+        }
+
+        // Validate assignedTo is an active member of the organization
+        const assigneeMemberDoc = await db
+          .collection("organizationMembers")
+          .doc(`${assignedTo}_${data.organizationId}`)
+          .get();
+
+        if (!assigneeMemberDoc.exists || assigneeMemberDoc.data()?.status !== "active") {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Assigned user must be an active member of the organization",
           });
         }
 
@@ -2004,9 +2154,10 @@ export async function routinesRoutes(fastify: FastifyInstance) {
             updatedAt: now,
           };
 
-          const docRef = db.collection("routineInstances").doc();
+          const instanceId = uuidv4();
+          const docRef = db.collection("routineInstances").doc(instanceId);
           batch.set(docRef, instanceData);
-          createdIds.push(docRef.id);
+          createdIds.push(instanceId);
         }
 
         await batch.commit();

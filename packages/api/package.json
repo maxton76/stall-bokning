@@ -11,7 +11,8 @@
     "lint": "eslint src --ext .ts",
     "type-check": "tsc --noEmit",
     "seed:vaccination-rules": "tsx src/scripts/seedVaccinationRules.ts",
-    "migrate:vaccination-rules": "tsx src/scripts/migrateVaccinationRules.ts"
+    "migrate:vaccination-rules": "tsx src/scripts/migrateVaccinationRules.ts",
+    "init:feature-toggles": "tsx scripts/initializeFeatureToggles.ts"
   },
   "keywords": [
     "fastify",

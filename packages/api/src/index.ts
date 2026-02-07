@@ -70,6 +70,7 @@ import { disputesRoutes } from "./routes/disputes.js";
 import { exportsRoutes } from "./routes/exports.js";
 import { invoicePaymentsRoutes } from "./routes/invoicePayments.js";
 import permissionRoutes from "./routes/permissions.js";
+import featureToggleRoutes from "./routes/featureToggles.js";
 
 const PORT = Number(process.env.PORT) || 8080;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -257,6 +258,7 @@ await fastify.register(invoicePaymentsRoutes, {
   prefix: "/api/v1/organizations",
 });
 await fastify.register(permissionRoutes);
+await fastify.register(featureToggleRoutes, { prefix: "/api/v1" });
 
 // 404 handler
 fastify.setNotFoundHandler((request, reply) => {

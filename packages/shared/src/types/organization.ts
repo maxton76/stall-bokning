@@ -123,6 +123,11 @@ export interface Organization {
   // When absent, DEFAULT_PERMISSION_MATRIX is used.
   permissionMatrix?: PermissionMatrix;
 
+  // Feature toggle beta access
+  // Array of feature keys that this organization has beta access to
+  // Allows enabling globally-disabled features for specific organizations
+  betaFeatures?: string[];
+
   // Metadata
   createdAt: Timestamp;
   updatedAt: Timestamp;

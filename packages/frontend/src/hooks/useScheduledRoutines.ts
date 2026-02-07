@@ -2,6 +2,10 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { apiClient } from "@/lib/apiClient";
 import type { RoutineInstance } from "@shared/types";
 import {
+  cancelRoutineInstance,
+  deleteRoutineInstance,
+} from "@/services/routineService";
+import {
   format,
   startOfDay,
   endOfDay,
@@ -95,6 +99,7 @@ export interface WeekSchedule {
   completedRoutines: number;
   assignedRoutines: number;
   unassignedRoutines: number;
+  cancelledRoutines: number;
 }
 
 // ==================== Helper Functions ====================
@@ -213,6 +218,7 @@ function buildWeekSchedule(
   let completedRoutines = 0;
   let assignedRoutines = 0;
   let unassignedRoutines = 0;
+  let cancelledRoutines = 0;
 
   for (let i = 0; i < 7; i++) {
     const date = addDays(weekStart, i);
@@ -230,6 +236,7 @@ function buildWeekSchedule(
     completedRoutines += slots.filter((s) => s.status === "completed").length;
     assignedRoutines += slots.filter((s) => s.assigneeId).length;
     unassignedRoutines += slots.filter((s) => !s.assigneeId).length;
+    cancelledRoutines += slots.filter((s) => s.status === "cancelled").length;
   }
 
   return {
@@ -240,6 +247,7 @@ function buildWeekSchedule(
     completedRoutines,
     assignedRoutines,
     unassignedRoutines,
+    cancelledRoutines,
   };
 }
 
@@ -338,6 +346,44 @@ export function useAssignRoutine() {
     },
     onSuccess: () => {
       // Invalidate all scheduled routines queries
+      queryClient.invalidateQueries({ queryKey: scheduledRoutinesKeys.all });
+    },
+  });
+}
+
+/**
+ * Hook to cancel a scheduled routine instance
+ */
+export function useCancelScheduledRoutine() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      instanceId,
+      reason,
+    }: {
+      instanceId: string;
+      reason?: string;
+    }): Promise<RoutineInstance> => {
+      return cancelRoutineInstance(instanceId, reason);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: scheduledRoutinesKeys.all });
+    },
+  });
+}
+
+/**
+ * Hook to hard delete a routine instance
+ */
+export function useDeleteScheduledRoutine() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (instanceId: string): Promise<void> => {
+      return deleteRoutineInstance(instanceId);
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: scheduledRoutinesKeys.all });
     },
   });

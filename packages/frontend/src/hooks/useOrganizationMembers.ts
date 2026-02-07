@@ -5,6 +5,10 @@ import {
   getActiveOrganizationMembers,
 } from "@/services/organizationMemberService";
 import type { OrganizationMember } from "@equiduty/shared";
+import {
+  getDuplicateNames,
+  formatMemberDisplayName,
+} from "@/utils/memberDisplayName";
 
 /**
  * Helper function to check if a member has access to a specific stable
@@ -107,10 +111,14 @@ export function useStablePlanningMembers(
  */
 export function formatMembersForSelection(
   members: OrganizationMember[],
-): Array<{ id: string; name: string; roles: string[] }> {
-  return members.map((member) => ({
-    id: member.userId,
-    name: `${member.firstName} ${member.lastName}`.trim() || member.userEmail,
-    roles: member.roles || [],
-  }));
+): Array<{ id: string; name: string; email: string; roles: string[] }> {
+  const dupes = getDuplicateNames(members);
+  return members
+    .map((member) => ({
+      id: member.userId,
+      name: formatMemberDisplayName(member, dupes),
+      email: member.userEmail,
+      roles: member.roles || [],
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, "sv"));
 }

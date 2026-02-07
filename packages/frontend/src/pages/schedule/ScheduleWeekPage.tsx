@@ -100,6 +100,14 @@ export default function ScheduleWeekPage() {
     if (slot.status === "missed") {
       return "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800";
     }
+    // Cancelled - Muted gray
+    if (slot.status === "cancelled") {
+      return "bg-gray-50 text-gray-400 border-gray-200 dark:bg-gray-900/20 dark:text-gray-500 dark:border-gray-700";
+    }
+    // In progress / Started - Amber
+    if (slot.status === "in_progress" || slot.status === "started") {
+      return "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800";
+    }
     // Unassigned - Gray
     if (!slot.assigneeId) {
       return "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700";
@@ -128,17 +136,17 @@ export default function ScheduleWeekPage() {
   const getStatusText = (status: ScheduleSlot["status"]) => {
     switch (status) {
       case "completed":
-        return "Klar";
+        return t("common:schedule.status.completed");
       case "in_progress":
-        return "Pågår";
+        return t("common:schedule.status.inProgress");
       case "started":
-        return "Startad";
+        return t("common:schedule.status.started");
       case "scheduled":
-        return "Schemalagd";
+        return t("common:schedule.status.scheduled");
       case "cancelled":
-        return "Avbruten";
+        return t("common:schedule.status.cancelled");
       case "missed":
-        return "Missad";
+        return t("common:schedule.status.missed");
       default:
         return status;
     }
@@ -225,9 +233,9 @@ export default function ScheduleWeekPage() {
       <div className="container mx-auto p-6">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <h3 className="text-lg font-semibold mb-2">Inga stall</h3>
+            <h3 className="text-lg font-semibold mb-2">{t("common:schedule.noStables")}</h3>
             <p className="text-muted-foreground">
-              Du behöver vara medlem i ett stall för att se schemat.
+              {t("common:schedule.noStablesDescription")}
             </p>
           </CardContent>
         </Card>
@@ -242,7 +250,7 @@ export default function ScheduleWeekPage() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Kunde inte ladda schemat: {error?.message || "Okänt fel"}
+            {t("common:schedule.loadError")}: {error?.message || t("common:errors.generic")}
           </AlertDescription>
         </Alert>
       </div>
@@ -278,7 +286,7 @@ export default function ScheduleWeekPage() {
           {stables.length > 1 && (
             <Select value={activeStableId} onValueChange={setSelectedStableId}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Välj stall" />
+                <SelectValue placeholder={t("common:schedule.selectStable")} />
               </SelectTrigger>
               <SelectContent>
                 {stables.map((stable) => (
@@ -315,29 +323,37 @@ export default function ScheduleWeekPage() {
       {weekSchedule && weekSchedule.totalRoutines > 0 && (
         <div className="flex gap-4 text-sm text-muted-foreground no-print">
           <span>
-            Totalt:{" "}
+            {t("common:schedule.stats.total")}:{" "}
             <strong className="text-foreground">
               {weekSchedule.totalRoutines}
             </strong>{" "}
-            rutiner
+            {t("common:schedule.routinesLabel")}
           </span>
           <span>
-            Klara:{" "}
+            {t("common:schedule.stats.completed")}:{" "}
             <strong className="text-green-600">
               {weekSchedule.completedRoutines}
             </strong>
           </span>
           <span>
-            Tilldelade:{" "}
+            {t("common:schedule.stats.assigned")}:{" "}
             <strong className="text-blue-600">
               {weekSchedule.assignedRoutines}
             </strong>
           </span>
           {weekSchedule.unassignedRoutines > 0 && (
             <span>
-              Otilldelade:{" "}
+              {t("common:schedule.stats.unassigned")}:{" "}
               <strong className="text-amber-600">
                 {weekSchedule.unassignedRoutines}
+              </strong>
+            </span>
+          )}
+          {weekSchedule.cancelledRoutines > 0 && (
+            <span>
+              {t("common:schedule.stats.cancelled")}:{" "}
+              <strong className="text-gray-400">
+                {weekSchedule.cancelledRoutines}
               </strong>
             </span>
           )}
@@ -397,7 +413,7 @@ export default function ScheduleWeekPage() {
               <CardContent className="p-2 space-y-1.5">
                 {day.slots.length === 0 ? (
                   <div className="text-xs text-muted-foreground text-center py-4">
-                    Inga rutiner
+                    {t("common:schedule.noRoutines")}
                   </div>
                 ) : (
                   day.slots.map((slot) => (
@@ -406,7 +422,7 @@ export default function ScheduleWeekPage() {
                       onClick={() => handleSlotClick(slot, day.date)}
                       className={`p-2 rounded-md border text-xs cursor-pointer transition-colors hover:opacity-80 ${getSlotStatusColor(slot)}`}
                     >
-                      <div className="font-medium truncate">{slot.title}</div>
+                      <div className={`font-medium truncate ${slot.status === "cancelled" ? "line-through" : ""}`}>{slot.title}</div>
                       <div className="text-[10px] opacity-75">{slot.time}</div>
                       {slot.assignee ? (
                         <div className="text-[10px] font-bold mt-1">
@@ -414,7 +430,7 @@ export default function ScheduleWeekPage() {
                         </div>
                       ) : (
                         <div className="text-[10px] text-muted-foreground mt-1">
-                          Ej tilldelad
+                          {t("common:schedule.status.unassigned")}
                         </div>
                       )}
                     </div>
@@ -428,7 +444,7 @@ export default function ScheduleWeekPage() {
                   onClick={() => handleBookSlot(day)}
                 >
                   <Plus className="h-3 w-3 mr-0.5" />
-                  Lägg till
+                  {t("common:schedule.addRoutine")}
                 </Button>
               </CardContent>
             </Card>
@@ -440,19 +456,27 @@ export default function ScheduleWeekPage() {
       <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground no-print">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded bg-gray-100 border border-gray-200" />
-          <span>Ej tilldelad</span>
+          <span>{t("common:schedule.legend.unassigned")}</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded bg-blue-100 border border-blue-200" />
-          <span>Planerad</span>
+          <span>{t("common:schedule.legend.planned")}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded bg-amber-100 border border-amber-200" />
+          <span>{t("common:schedule.legend.inProgress")}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded bg-gray-50 border border-gray-200" />
+          <span>{t("common:schedule.legend.cancelled")}</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded bg-red-100 border border-red-200" />
-          <span>Försenad</span>
+          <span>{t("common:schedule.legend.overdue")}</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded bg-green-100 border border-green-200" />
-          <span>Klar</span>
+          <span>{t("common:schedule.legend.completed")}</span>
         </div>
       </div>
 
@@ -476,6 +500,7 @@ export default function ScheduleWeekPage() {
           stableId={activeStableId}
           scheduledDate={selectedSlotDate}
           onStartRoutine={handleStartRoutine}
+          onDeleted={() => setSelectedSlot(null)}
         />
       )}
     </div>

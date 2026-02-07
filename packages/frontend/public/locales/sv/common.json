@@ -316,7 +316,9 @@
     "emptyState": {
       "noTasks": "Inga uppgifter idag",
       "allDone": "Allt klart för idag!"
-    }
+    },
+    "loading": "Laddar...",
+    "taskCount": "{{count}} uppgifter"
   },
   "tasks": {
     "title": "Uppgifter",
@@ -401,7 +403,39 @@
     "available": "Tillgängliga",
     "assigned": "Tilldelade",
     "noRoutines": "Inga rutiner",
-    "unavailable": "Ej valbar"
+    "unavailable": "Ej valbar",
+    "addRoutine": "Lägg till",
+    "selectStable": "Välj stall",
+    "noStables": "Inga stall",
+    "noStablesDescription": "Du behöver vara medlem i ett stall för att se schemat.",
+    "loadError": "Kunde inte ladda schemat",
+    "routinesLabel": "rutiner",
+    "stats": {
+      "total": "Totalt",
+      "completed": "Klara",
+      "assigned": "Tilldelade",
+      "unassigned": "Otilldelade",
+      "cancelled": "Avbrutna"
+    },
+    "status": {
+      "unassigned": "Ej tilldelad",
+      "planned": "Planerad",
+      "inProgress": "Pågår",
+      "cancelled": "Avbruten",
+      "overdue": "Försenad",
+      "completed": "Klar",
+      "started": "Startad",
+      "scheduled": "Schemalagd",
+      "missed": "Missad"
+    },
+    "legend": {
+      "unassigned": "Ej tilldelad",
+      "planned": "Planerad",
+      "inProgress": "Pågår",
+      "cancelled": "Avbruten",
+      "overdue": "Försenad",
+      "completed": "Klar"
+    }
   },
   "pwa": {
     "installTitle": "Installera EquiDuty",

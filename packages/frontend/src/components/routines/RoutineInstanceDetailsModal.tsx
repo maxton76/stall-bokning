@@ -38,8 +38,11 @@ import {
 } from "@/hooks/useOrganizationMembers";
 import {
   useAssignRoutine,
+  useCancelScheduledRoutine,
+  useDeleteScheduledRoutine,
   type ScheduleSlot,
 } from "@/hooks/useScheduledRoutines";
+import { useOrgPermissions } from "@/hooks/useOrgPermissions";
 import {
   logRoutineReassignment,
   safeAuditLog,
@@ -54,6 +57,8 @@ import {
   AlertCircle,
   PlayCircle,
   UserCog,
+  XCircle,
+  Trash2,
 } from "lucide-react";
 
 interface RoutineInstanceDetailsModalProps {
@@ -63,6 +68,7 @@ interface RoutineInstanceDetailsModalProps {
   stableId: string;
   scheduledDate: Date;
   onStartRoutine: (instanceId: string) => void;
+  onDeleted?: () => void;
 }
 
 export function RoutineInstanceDetailsModal({
@@ -72,23 +78,31 @@ export function RoutineInstanceDetailsModal({
   stableId,
   scheduledDate,
   onStartRoutine,
+  onDeleted,
 }: RoutineInstanceDetailsModalProps) {
   const { t } = useTranslation(["routines", "common"]);
   const { toast } = useToast();
   const { user } = useAuth();
   const { currentOrganizationId } = useOrganizationContext();
+  const { hasPermission } = useOrgPermissions(currentOrganizationId);
 
   const [showReassignForm, setShowReassignForm] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Fetch planning members for reassignment dropdown
   const { data: members = [], isLoading: membersLoading } =
     useStablePlanningMembers(currentOrganizationId, stableId);
   const formattedMembers = formatMembersForSelection(members);
 
-  // Assignment mutation
+  // Mutations
   const assignMutation = useAssignRoutine();
+  const cancelMutation = useCancelScheduledRoutine();
+  const deleteMutation = useDeleteScheduledRoutine();
+
+  const canManageSchedules = hasPermission("manage_schedules");
 
   // Reset form state when modal opens/closes
   const handleOpenChange = (newOpen: boolean) => {
@@ -96,6 +110,8 @@ export function RoutineInstanceDetailsModal({
       setShowReassignForm(false);
       setSelectedMemberId("");
       setConfirmDialogOpen(false);
+      setCancelDialogOpen(false);
+      setDeleteDialogOpen(false);
     }
     onOpenChange(newOpen);
   };
@@ -191,10 +207,74 @@ export function RoutineInstanceDetailsModal({
     }
   };
 
+  const handleCancelRoutine = async () => {
+    if (!slot) return;
+
+    try {
+      await cancelMutation.mutateAsync({ instanceId: slot.id });
+
+      toast({
+        title: t("routines:instance.cancelSuccess"),
+        description: t("routines:instance.cancelSuccessMessage", {
+          name: slot.title,
+        }),
+      });
+
+      setCancelDialogOpen(false);
+      handleOpenChange(false);
+    } catch (error) {
+      console.error("Error cancelling routine:", error);
+      toast({
+        title: t("routines:instance.cancelError"),
+        description: t("routines:instance.cancelErrorMessage"),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteRoutine = async () => {
+    if (!slot) return;
+
+    try {
+      await deleteMutation.mutateAsync(slot.id);
+
+      toast({
+        title: t("routines:instance.deleteSuccess"),
+        description: t("routines:instance.deleteSuccessMessage", {
+          name: slot.title,
+        }),
+      });
+
+      setDeleteDialogOpen(false);
+      handleOpenChange(false);
+      onDeleted?.();
+    } catch (error) {
+      console.error("Error deleting routine:", error);
+      toast({
+        title: t("routines:instance.deleteError"),
+        description: t("routines:instance.deleteErrorMessage"),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const isAssignee = user?.uid === slot?.assigneeId;
+  const canCancelInstance =
+    (canManageSchedules || isAssignee) &&
+    ["scheduled", "started", "in_progress"].includes(slot?.status ?? "");
+
+  const canDeleteInstance =
+    canManageSchedules && slot?.status === "scheduled";
+
+  const isMutating =
+    cancelMutation.isPending ||
+    deleteMutation.isPending ||
+    assignMutation.isPending;
+
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {slot.title}
@@ -323,12 +403,35 @@ export function RoutineInstanceDetailsModal({
             )}
           </div>
 
-          <DialogFooter className="flex-col gap-2 sm:flex-row">
+          <DialogFooter className="flex-col gap-2">
+            {canDeleteInstance && !showReassignForm && (
+              <Button
+                variant="destructive"
+                onClick={() => setDeleteDialogOpen(true)}
+                className="w-full"
+                disabled={isMutating}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {t("routines:instance.deleteRoutine")}
+              </Button>
+            )}
+            {canCancelInstance && !showReassignForm && (
+              <Button
+                variant="outline"
+                onClick={() => setCancelDialogOpen(true)}
+                className="w-full text-destructive border-destructive hover:bg-destructive/10"
+                disabled={isMutating}
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                {t("routines:instance.cancelRoutine")}
+              </Button>
+            )}
             {canReassign && !showReassignForm && (
               <Button
                 variant="outline"
                 onClick={handleReassignClick}
-                className="w-full sm:w-auto"
+                className="w-full"
+                disabled={isMutating}
               >
                 <UserCog className="h-4 w-4 mr-2" />
                 {t("routines:instance.reassign")}
@@ -336,8 +439,8 @@ export function RoutineInstanceDetailsModal({
             )}
             <Button
               onClick={handleStartRoutine}
-              className="w-full sm:w-auto"
-              disabled={showReassignForm}
+              className="w-full"
+              disabled={showReassignForm || isMutating}
             >
               <PlayCircle className="h-4 w-4 mr-2" />
               {slot.status === "in_progress" || slot.status === "started"
@@ -348,7 +451,7 @@ export function RoutineInstanceDetailsModal({
         </DialogContent>
       </Dialog>
 
-      {/* Confirmation Dialog */}
+      {/* Reassign Confirmation Dialog */}
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -376,6 +479,72 @@ export function RoutineInstanceDetailsModal({
               {assignMutation.isPending
                 ? t("routines:instance.reassigning")
                 : t("routines:instance.confirmReassign")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("routines:instance.confirmCancelTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("routines:instance.confirmCancelMessage", {
+                routineName: slot.title,
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelMutation.isPending}>
+              {t("common:buttons.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleCancelRoutine();
+              }}
+              disabled={cancelMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancelMutation.isPending
+                ? t("routines:instance.cancelling")
+                : t("routines:instance.cancelRoutine")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("routines:instance.confirmDeleteTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("routines:instance.confirmDeleteMessage", {
+                routineName: slot.title,
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>
+              {t("common:buttons.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteRoutine();
+              }}
+              disabled={deleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending
+                ? t("routines:instance.deleting")
+                : t("routines:instance.deleteRoutine")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -55,6 +55,12 @@
       "emailDescription": "Huvudbrytare för alla e-postnotifieringar",
       "pushNotifications": "Push-notifieringar",
       "pushDescription": "Ta emot push-notifieringar i webbläsaren",
+      "routineNotifications": "Rutinnotifieringar",
+      "routineDescription": "Notifieringar om rutinuppdrag och påminnelser",
+      "feedingNotifications": "Utfodringsnotifieringar",
+      "feedingDescription": "Notifieringar om utfodringsscheman och ändringar",
+      "activityNotifications": "Aktivitetsnotifieringar",
+      "activityDescription": "Notifieringar om aktiviteter och händelser",
       "sendNotificationsFor": "Skicka notifieringar för:",
       "shiftReminders": {
         "label": "Kommande skiftpåminnelser",
@@ -179,7 +185,12 @@
     "sv": "Svenska"
   },
   "timezones": {
-    "europe_stockholm": "Europa/Stockholm",
+    "europe_stockholm": "Europa/Stockholm (CET/CEST)",
+    "europe_helsinki": "Europa/Helsingfors (EET/EEST)",
+    "europe_oslo": "Europa/Oslo (CET/CEST)",
+    "europe_copenhagen": "Europa/Köpenhamn (CET/CEST)",
+    "europe_london": "Europa/London (GMT/BST)",
+    "europe_berlin": "Europa/Berlin (CET/CEST)",
     "utc": "UTC"
   },
   "messages": {

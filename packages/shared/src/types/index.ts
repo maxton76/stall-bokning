@@ -83,3 +83,6 @@ export * from "./trainerCommission.js";
 
 // Facility Scheduling
 export * from "./facilitySchedule.js";
+
+// Feature Toggles
+export * from "./featureToggle.js";

@@ -9,6 +9,7 @@ import {
   hasStableAccess,
   hasOrganizationAccess,
 } from "../utils/authorization.js";
+import { generateRoutineInstances } from "../utils/routineInstanceGenerator.js";
 import {
   createRoutineScheduleSchema,
   updateRoutineScheduleSchema,
@@ -318,10 +319,50 @@ export async function routineSchedulesRoutes(fastify: FastifyInstance) {
           .collection("routineSchedules")
           .add(scheduleData);
 
+        // Generate routine instances directly (not relying on Cloud Function trigger)
+        let instancesGenerated = 0;
+        if (input.endDate) {
+          try {
+            instancesGenerated = await generateRoutineInstances(
+              docRef.id,
+              {
+                organizationId: input.organizationId,
+                stableId: input.stableId,
+                templateId: input.templateId,
+                stableName,
+                startDate: input.startDate,
+                endDate: input.endDate,
+                repeatPattern: input.repeatPattern,
+                repeatDays: input.repeatDays,
+                scheduledStartTime: input.scheduledStartTime,
+                assignmentMode: input.assignmentMode,
+                defaultAssignedTo: input.defaultAssignedTo,
+                defaultAssignedToName,
+                customAssignments: input.customAssignments,
+              },
+              {
+                id: templateDoc.id,
+                name: template.name,
+                estimatedDuration: template.estimatedDuration,
+                pointsValue: template.pointsValue,
+                steps: template.steps,
+              },
+            );
+          } catch (genError) {
+            request.log.error(
+              { error: genError, scheduleId: docRef.id },
+              "Failed to generate routine instances",
+            );
+            // Schedule was created successfully - don't fail the request
+            // Instances can be regenerated later
+          }
+        }
+
         return reply.status(201).send(
           serializeTimestamps({
             id: docRef.id,
             ...scheduleData,
+            instancesGenerated,
           }),
         );
       } catch (error) {
