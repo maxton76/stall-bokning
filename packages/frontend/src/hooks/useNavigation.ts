@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useOrganizationContext } from "@/contexts/OrganizationContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useFeatureToggle } from "./useFeatureToggle";
 import {
   mainNavigation,
   createOrganizationNavigation,
@@ -63,17 +64,17 @@ export function useNavigation(): UseNavigationReturn {
   const location = useLocation();
   const { t } = useTranslation(["common", "organizations"]);
   const { currentOrganizationId } = useOrganizationContext();
-  const { isFeatureAvailable, addons, organizationType } = useSubscription();
+  const { isFeatureEnabled } = useFeatureToggle();
+  const { addons, organizationType } = useSubscription();
 
   // Filter navigation items by module flag, addon flag, and organization type
   const filteredNavigation = useMemo(() => {
     return mainNavigation
       .filter((item) => {
-        // Filter by module flag
-        if (item.moduleFlag && !isFeatureAvailable(item.moduleFlag))
-          return false;
-        // Filter by addon flag
-        if (item.addonFlag && !addons[item.addonFlag]) return false;
+        // Filter by module flag using new feature toggle system
+        if (item.moduleFlag && !isFeatureEnabled(item.moduleFlag)) return false;
+        // Filter by addon flag using new feature toggle system
+        if (item.addonFlag && !isFeatureEnabled(item.addonFlag)) return false;
         // Filter by organization type (default: "any")
         if (item.visibleForOrgType && item.visibleForOrgType !== "any") {
           // If org type is not yet loaded, show all items (loading state)
@@ -83,11 +84,18 @@ export function useNavigation(): UseNavigationReturn {
         return true;
       })
       .map((item) => {
-        // Also filter sub-items by organization type
+        // Also filter sub-items by module flag and organization type
         if (!item.subItems) return item;
         return {
           ...item,
           subItems: item.subItems.filter((subItem) => {
+            // Filter by module flag
+            if (subItem.moduleFlag && !isFeatureEnabled(subItem.moduleFlag))
+              return false;
+            // Filter by addon flag
+            if (subItem.addonFlag && !isFeatureEnabled(subItem.addonFlag))
+              return false;
+            // Filter by organization type
             if (
               subItem.visibleForOrgType &&
               subItem.visibleForOrgType !== "any"
@@ -100,16 +108,36 @@ export function useNavigation(): UseNavigationReturn {
           }),
         };
       });
-  }, [isFeatureAvailable, addons, organizationType]);
+  }, [isFeatureEnabled, organizationType]);
 
-  // Create organization navigation items (filtered by addon/role)
+  // Create organization navigation items (filtered by addon/module/role)
   const orgNavItems = useMemo(() => {
     const items = createOrganizationNavigation(currentOrganizationId);
-    return items.filter((item) => {
-      if (item.addonFlag && !addons[item.addonFlag]) return false;
-      return true;
-    });
-  }, [currentOrganizationId, addons]);
+    return items
+      .filter((item) => {
+        // Filter by module flag
+        if (item.moduleFlag && !isFeatureEnabled(item.moduleFlag)) return false;
+        // Filter by addon flag
+        if (item.addonFlag && !isFeatureEnabled(item.addonFlag)) return false;
+        return true;
+      })
+      .map((item) => {
+        // Also filter sub-items
+        if (!item.subItems) return item;
+        return {
+          ...item,
+          subItems: item.subItems.filter((subItem) => {
+            // Filter by module flag
+            if (subItem.moduleFlag && !isFeatureEnabled(subItem.moduleFlag))
+              return false;
+            // Filter by addon flag
+            if (subItem.addonFlag && !isFeatureEnabled(subItem.addonFlag))
+              return false;
+            return true;
+          }),
+        };
+      });
+  }, [currentOrganizationId, isFeatureEnabled]);
 
   // Initialize expanded state based on current path
   const [expandedItem, setExpandedItem] = useState<string | null>(() => {

@@ -20,3 +20,16 @@ export interface FirestoreTimestamp {
  * to both use the same type definitions
  */
 export type TimestampLike = FirestoreTimestamp;
+
+/**
+ * Standardized API error response format
+ * Provides consistent error structure across all API endpoints
+ */
+export interface ApiErrorResponse {
+  success: false;
+  error: {
+    code: string; // Machine-readable error code (e.g., "FEATURE_NOT_FOUND")
+    message: string; // Human-readable error message
+    details?: Record<string, any>; // Optional additional error details
+  };
+}

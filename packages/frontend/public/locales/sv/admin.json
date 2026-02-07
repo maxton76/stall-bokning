@@ -1,4 +1,58 @@
 {
+  "featureToggles": {
+    "title": "Funktionsomkopplare",
+    "description": "Hantera global funktionstillgänglighet och betatestning",
+    "totalFeatures": "Totalt Funktioner",
+    "enabled": "Aktiverad",
+    "disabled": "Inaktiverad",
+    "searchPlaceholder": "Sök funktioner...",
+    "searchLabel": "Sök funktioner",
+    "allFeatures": "Alla Funktioner",
+    "primaryFeatures": "Huvudfunktioner",
+    "secondaryFeatures": "Sekundära Funktioner",
+    "noResults": "Inga funktioner hittades",
+    "noToggles": "Inga Funktionsomkopplare Hittades",
+    "noTogglesDescription": "Funktionsomkopplare har inte initierats än. Kör initialiseringsskriptet:",
+    "loadError": "Kunde inte ladda funktionsomkopplare",
+    "statusEnabled": "Aktiverad",
+    "statusDisabled": "Inaktiverad",
+    "toggleAriaLabel": "Växla {{feature}} funktion",
+    "manageBetaAccessAriaLabel": "Hantera betatillgång för {{feature}}",
+    "rolloutPhase": {
+      "general": "Allmän Release",
+      "beta": "Betatestning",
+      "internal": "Endast Internt"
+    },
+    "dependsOn": "Beror på:",
+    "manageBetaAccess": "Hantera Betatillgång",
+    "lastUpdated": "Senast uppdaterad:",
+    "confirmDisable": "Inaktivera {{feature}}? Detta kommer påverka alla användare omedelbart.",
+    "confirmDisableWithDeps": "Inaktivera {{feature}}? Varning: Detta kan påverka beroende funktioner.",
+    "messages": {
+      "toggleSuccess": "Funktionsomkopplare uppdaterad framgångsrikt",
+      "toggleError": "Kunde inte uppdatera funktionsomkopplare. Försök igen."
+    }
+  },
+  "betaAccess": {
+    "title": "Betatillgångshantering",
+    "description": "Hantera vilka organisationer som har betatillgång till {{feature}}",
+    "currentBetaOrgs": "Organisationer med Betatillgång",
+    "noBetaOrgs": "Inga organisationer har betatillgång än",
+    "addOrganization": "Lägg till Organisation",
+    "searchPlaceholder": "Sök organisationer...",
+    "searchLabel": "Sök organisationer",
+    "noResults": "Inga organisationer hittades",
+    "alreadyAdded": "Har redan tillgång",
+    "alreadyAddedDescription": "Organisationen har redan betatillgång",
+    "updateError": "Kunde inte uppdatera betatillgång",
+    "remove": "Ta bort",
+    "add": "Lägg till",
+    "removeOrgAriaLabel": "Ta bort {{org}} från betatillgång",
+    "addOrgAriaLabel": "Lägg till {{org}} till betatillgång",
+    "searchResultsAnnounce": "Hittade {{count}} organisationer",
+    "noResultsAnnounce": "Inga organisationer hittades",
+    "confirmRemove": "Ta bort {{org}} från betatillgång? Detta kommer omedelbart inaktivera {{feature}} för denna organisation."
+  },
   "tiers": {
     "title": "Nivåhantering",
     "description": "Definiera vad varje prenumerationsnivå inkluderar, konfigurera Stripe-fakturering och hantera synlighet.",

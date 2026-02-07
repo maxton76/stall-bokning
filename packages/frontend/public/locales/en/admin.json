@@ -1,4 +1,58 @@
 {
+  "featureToggles": {
+    "title": "Feature Toggles",
+    "description": "Manage global feature availability and beta access",
+    "totalFeatures": "Total Features",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "searchPlaceholder": "Search features...",
+    "searchLabel": "Search features",
+    "allFeatures": "All Features",
+    "primaryFeatures": "Primary Features",
+    "secondaryFeatures": "Secondary Features",
+    "noResults": "No features found",
+    "noToggles": "No Feature Toggles Found",
+    "noTogglesDescription": "Feature toggles haven't been initialized yet. Run the initialization script:",
+    "loadError": "Failed to load feature toggles",
+    "statusEnabled": "Enabled",
+    "statusDisabled": "Disabled",
+    "toggleAriaLabel": "Toggle {{feature}} feature",
+    "manageBetaAccessAriaLabel": "Manage beta access for {{feature}}",
+    "rolloutPhase": {
+      "general": "General Release",
+      "beta": "Beta Testing",
+      "internal": "Internal Only"
+    },
+    "dependsOn": "Depends on:",
+    "manageBetaAccess": "Manage Beta Access",
+    "lastUpdated": "Last updated:",
+    "confirmDisable": "Disable {{feature}}? This will affect all users immediately.",
+    "confirmDisableWithDeps": "Disable {{feature}}? Warning: This may affect dependent features.",
+    "messages": {
+      "toggleSuccess": "Feature toggle updated successfully",
+      "toggleError": "Failed to update feature toggle. Please try again."
+    }
+  },
+  "betaAccess": {
+    "title": "Beta Access Management",
+    "description": "Manage which organizations have beta access to {{feature}}",
+    "currentBetaOrgs": "Organizations with Beta Access",
+    "noBetaOrgs": "No organizations have beta access yet",
+    "addOrganization": "Add Organization",
+    "searchPlaceholder": "Search organizations...",
+    "searchLabel": "Search organizations",
+    "noResults": "No organizations found",
+    "alreadyAdded": "Already has access",
+    "alreadyAddedDescription": "Organization already has beta access",
+    "updateError": "Failed to update beta access",
+    "remove": "Remove",
+    "add": "Add",
+    "removeOrgAriaLabel": "Remove {{org}} from beta access",
+    "addOrgAriaLabel": "Add {{org}} to beta access",
+    "searchResultsAnnounce": "Found {{count}} organizations",
+    "noResultsAnnounce": "No organizations found",
+    "confirmRemove": "Remove {{org}} from beta access? This will immediately disable {{feature}} for this organization."
+  },
   "tiers": {
     "title": "Tier Management",
     "description": "Define what each subscription tier includes, configure Stripe billing, and manage tier visibility.",

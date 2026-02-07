@@ -7,6 +7,7 @@ import {
   Activity,
   HeadsetIcon,
   Lightbulb,
+  ToggleLeft,
 } from "lucide-react";
 
 export interface AdminNavigationItem {
@@ -34,6 +35,12 @@ export const adminNavigation: AdminNavigationItem[] = [
     label: "Tier Management",
     href: "/admin/tiers",
     icon: Layers,
+  },
+  {
+    id: "admin-feature-toggles",
+    label: "Feature Toggles",
+    href: "/admin/feature-toggles",
+    icon: ToggleLeft,
   },
   {
     id: "admin-users",

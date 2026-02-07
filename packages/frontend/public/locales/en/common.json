@@ -256,7 +256,10 @@
     "saving": "Saving...",
     "loading": "Loading...",
     "save": "Save",
-    "retry": "Retry"
+    "retry": "Retry",
+    "refresh": "Refresh",
+    "refreshAriaLabel": "Refresh feature toggles",
+    "close": "Close"
   },
   "search": {
     "placeholder": "Search or type a command...",

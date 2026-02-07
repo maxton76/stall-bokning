@@ -43,10 +43,12 @@ const adminPreHandler = [authenticate, requireSystemAdmin];
 const VALID_SYSTEM_ROLES = ["system_admin", "stable_owner", "member"];
 
 /**
- * Validate that an :id param is safe (no path separators)
+ * Validate that an :id param is safe and matches Firestore ID format
+ * Firestore IDs: alphanumeric + hyphens + underscores (1-128 chars)
+ * ✅ FIX: Strict regex validation prevents path traversal, URL encoding bypasses, null bytes
  */
 function isValidId(id: string): boolean {
-  return !!id && !id.includes("/") && !id.includes("\\") && !id.includes("..");
+  return /^[a-zA-Z0-9_-]{1,128}$/.test(id);
 }
 
 // ============================================
@@ -1200,34 +1202,90 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
           });
         }
 
-        // Validate that all feature keys exist in global toggles
-        const { getGlobalFeatureToggles } =
-          await import("../services/featureToggleService.js");
-        const toggles = await getGlobalFeatureToggles();
-
-        for (const featureKey of betaFeatures) {
-          if (!toggles[featureKey]) {
-            return reply.status(400).send({
-              error: "Bad Request",
-              message: `Invalid feature key: ${featureKey}`,
-            });
-          }
-        }
-
-        const orgDoc = await db.collection("organizations").doc(orgId).get();
-
-        if (!orgDoc.exists) {
-          return reply.status(404).send({
-            error: "Not Found",
-            message: `Organization ${orgId} not found`,
+        // Validate array contains only non-empty strings
+        if (
+          betaFeatures.some(
+            (f) => typeof f !== "string" || f.trim().length === 0,
+          )
+        ) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "All betaFeatures must be non-empty strings",
           });
         }
 
-        // Update organization beta features
-        await db.collection("organizations").doc(orgId).update({
-          betaFeatures,
-          updatedAt: new Date(),
+        // Remove duplicates and trim
+        const uniqueFeatures = [...new Set(betaFeatures.map((f) => f.trim()))];
+
+        // Limit array size to prevent abuse
+        if (uniqueFeatures.length > 100) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Maximum 100 beta features per organization",
+          });
+        }
+
+        // Capture current features for audit trail
+        let currentFeatures: string[] = [];
+        let revokedFeatures: string[] = [];
+
+        // Use transaction to prevent race conditions
+        await db.runTransaction(async (transaction) => {
+          const orgRef = db.collection("organizations").doc(orgId);
+          const orgDoc = await transaction.get(orgRef);
+
+          if (!orgDoc.exists) {
+            throw new Error(`Organization ${orgId} not found`);
+          }
+
+          // Capture current beta features
+          currentFeatures = (orgDoc.data()?.betaFeatures as string[]) || [];
+          revokedFeatures = currentFeatures.filter(
+            (f) => !uniqueFeatures.includes(f),
+          );
+
+          // Validate feature keys inside transaction to prevent TOCTOU
+          const { getGlobalFeatureToggles } =
+            await import("../services/featureToggleService.js");
+          const toggles = await getGlobalFeatureToggles();
+
+          for (const featureKey of uniqueFeatures) {
+            if (!toggles[featureKey]) {
+              throw new Error(`Invalid feature key: ${featureKey}`);
+            }
+          }
+
+          // Update organization beta features
+          transaction.update(orgRef, {
+            betaFeatures: uniqueFeatures,
+            updatedAt: new Date(),
+          });
         });
+
+        // Mandatory audit log for revoked beta access
+        if (revokedFeatures.length > 0) {
+          try {
+            await db.collection("auditLogs").add({
+              type: "beta_access_revoked",
+              organizationId: orgId,
+              features: revokedFeatures,
+              timestamp: new Date(),
+              performedBy: (request as any).user?.uid || "system",
+            });
+          } catch (auditError) {
+            request.log.error(
+              { auditError, orgId, features: revokedFeatures },
+              "CRITICAL: Mandatory audit log failed",
+            );
+            // Fail the operation - audit logging is mandatory for compliance
+            throw new Error("Operation failed: Audit logging is mandatory");
+          }
+        }
+
+        // Invalidate cache immediately after successful update
+        const { invalidateOrgBetaCache } =
+          await import("../services/featureToggleService.js");
+        invalidateOrgBetaCache(orgId);
 
         return reply.send({
           success: true,

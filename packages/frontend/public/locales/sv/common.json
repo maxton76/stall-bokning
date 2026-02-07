@@ -211,7 +211,10 @@
     "saving": "Sparar...",
     "loading": "Laddar...",
     "save": "Spara",
-    "retry": "Försök igen"
+    "retry": "Försök igen",
+    "refresh": "Uppdatera",
+    "refreshAriaLabel": "Uppdatera funktionsomkopplare",
+    "close": "Stäng"
   },
   "search": {
     "placeholder": "Sök eller skriv ett kommando...",

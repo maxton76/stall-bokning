@@ -5,7 +5,9 @@
  * Run this once per environment to set up the feature toggle system.
  *
  * Usage:
- *   npm run init:feature-toggles
+ *   npm run init:feature-toggles              # defaults to dev
+ *   npm run init:feature-toggles -- --env staging
+ *   npm run init:feature-toggles -- --env prod
  */
 
 import { initializeApp, cert } from "firebase-admin/app";
@@ -17,11 +19,31 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Initialize Firebase Admin
+// Parse --env argument
+const validEnvs = ["dev", "staging", "prod"] as const;
+type Env = (typeof validEnvs)[number];
+
+function getEnv(): Env {
+  const envIndex = process.argv.indexOf("--env");
+  if (envIndex === -1 || !process.argv[envIndex + 1]) {
+    return "dev";
+  }
+  const env = process.argv[envIndex + 1] as Env;
+  if (!validEnvs.includes(env)) {
+    console.error(`❌ Invalid environment: ${env}`);
+    console.error(`   Valid environments: ${validEnvs.join(", ")}`);
+    process.exit(1);
+  }
+  return env;
+}
+
+const env = getEnv();
 const serviceAccountPath = path.resolve(
   __dirname,
-  "../service-account-dev.json",
+  `../service-account-${env}.json`,
 );
+
+console.log(`🌍 Environment: ${env}`);
 
 initializeApp({
   credential: cert(serviceAccountPath),
@@ -36,12 +58,12 @@ const db = getFirestore();
  */
 const featureToggles: FeatureToggleMap = {
   // Primary Features (Main Menu Items)
-  lessons: {
-    key: "lessons",
+  rideLessons: {
+    key: "rideLessons",
     enabled: true,
-    name: "Lessons",
+    name: "Ride Lessons",
     description:
-      "Lesson management system with scheduling and instructor tracking",
+      "Lesson management with scheduling, instructor tracking, bookings, and trainer commissions",
     category: "primary",
     rolloutPhase: "general",
   },
@@ -56,15 +78,6 @@ const featureToggles: FeatureToggleMap = {
   },
 
   // Secondary Features (Administration Menu Items)
-  trainerCommission: {
-    key: "trainerCommission",
-    enabled: false,
-    name: "Trainer Commission",
-    description: "Instructor fee tracking and commission calculations",
-    category: "secondary",
-    dependsOn: "lessons",
-    rolloutPhase: "internal",
-  },
   leaveManagement: {
     key: "leaveManagement",
     enabled: true,

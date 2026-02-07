@@ -225,7 +225,7 @@ export const mainNavigation: NavigationItem[] = [
     labelKey: "common:navigation.lessons",
     href: "/lessons",
     icon: GraduationCap,
-    moduleFlag: "lessons",
+    moduleFlag: "rideLessons",
     visibleForOrgType: "business",
     subItems: [
       {
@@ -397,18 +397,21 @@ export function createOrganizationNavigation(
           labelKey: "organizations:menu.chargeableItems",
           href: `/organizations/${organizationId}/chargeable-items`,
           icon: FileText,
+          moduleFlag: "chargeableItems",
         },
         {
           id: "org-billingGroups",
           labelKey: "organizations:menu.billingGroups",
           href: `/organizations/${organizationId}/billing-groups`,
           icon: Receipt,
+          moduleFlag: "billingGroups",
         },
         {
           id: "org-trainerCommissions",
           labelKey: "organizations:menu.trainerCommissions",
           href: `/organizations/${organizationId}/trainer-commissions`,
           icon: Coins,
+          moduleFlag: "rideLessons",
         },
         {
           id: "org-horseGroups",
