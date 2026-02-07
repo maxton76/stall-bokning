@@ -146,15 +146,15 @@ final class TodayViewModel {
         }
     }
 
-    /// Check if content is empty for current view mode
+    /// Check if content is empty for current view mode (checks filtered data)
     var isEmpty: Bool {
         switch viewMode {
         case .all:
-            return routines.isEmpty && activities.isEmpty
+            return filteredRoutines.isEmpty && filteredActivities.isEmpty
         case .activities:
-            return activities.isEmpty
+            return filteredActivities.isEmpty
         case .routines:
-            return routines.isEmpty
+            return filteredRoutines.isEmpty
         }
     }
 
@@ -289,6 +289,9 @@ final class TodayViewModel {
     }
 
     func refreshData() async {
+        isLoading = true
+        defer { isLoading = false }
+
         do {
             if let stableId = authService.selectedStable?.id {
                 let range = dateRange

@@ -26,6 +26,7 @@ import {
   listSelectionProcessesQuerySchema,
   selectionProcessParamsSchema,
   cancelSelectionProcessSchema,
+  computeTurnOrderSchema,
 } from "@equiduty/shared";
 import type {
   SelectionProcess,
@@ -35,6 +36,7 @@ import type {
   UpdateSelectionProcessInput,
   ListSelectionProcessesQuery,
   CompleteTurnResult,
+  ComputeTurnOrderInput,
 } from "@equiduty/shared";
 import {
   getActiveSelectionProcessForStable,
@@ -46,6 +48,10 @@ import {
   notifyProcessCompleted,
   getSelectionsForProcess,
 } from "../services/selectionProcessService.js";
+import {
+  computeTurnOrder,
+  saveSelectionProcessHistory,
+} from "../services/selectionAlgorithmService.js";
 
 /**
  * Resolve organization ID from a stableId.
@@ -305,6 +311,83 @@ export async function selectionProcessesRoutes(fastify: FastifyInstance) {
   );
 
   // ============================================================================
+  // COMPUTE TURN ORDER (preview before creating)
+  // ============================================================================
+
+  /**
+   * POST /api/v1/selection-processes/compute-order
+   * Compute the turn order based on an algorithm (admin only)
+   * Used to preview order before creating a process
+   */
+  fastify.post(
+    "/compute-order",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+        const body = request.body as Record<string, unknown>;
+
+        // stableId comes from body
+        const stableId = body.stableId as string;
+        if (!stableId) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "stableId is required",
+          });
+        }
+
+        // Validate input
+        const parsed = computeTurnOrderSchema.safeParse(body);
+        if (!parsed.success) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invalid input",
+            details: parsed.error.issues,
+          });
+        }
+
+        const input = parsed.data as ComputeTurnOrderInput;
+
+        // Check admin access (V2 permission engine)
+        const orgId = await resolveOrgIdFromStable(stableId);
+        if (
+          !orgId ||
+          !(await engineHasPermission(
+            user.uid,
+            orgId,
+            "manage_selection_processes",
+            { systemRole: user.role },
+          ))
+        ) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "Missing permission: manage_selection_processes",
+          });
+        }
+
+        const result = await computeTurnOrder({
+          stableId,
+          organizationId: orgId,
+          algorithm: input.algorithm,
+          memberIds: input.memberIds,
+          selectionStartDate: input.selectionStartDate,
+          selectionEndDate: input.selectionEndDate,
+        });
+
+        return result;
+      } catch (error) {
+        request.log.error({ error }, "Failed to compute turn order");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to compute turn order",
+        });
+      }
+    },
+  );
+
+  // ============================================================================
   // CREATE SELECTION PROCESS
   // ============================================================================
 
@@ -332,6 +415,7 @@ export async function selectionProcessesRoutes(fastify: FastifyInstance) {
         }
 
         const input = parsed.data as CreateSelectionProcessInput;
+        const algorithm = input.algorithm ?? "manual";
 
         // Check admin access to stable (V2 permission engine)
         const orgId = await resolveOrgIdFromStable(input.stableId);
@@ -350,8 +434,29 @@ export async function selectionProcessesRoutes(fastify: FastifyInstance) {
           });
         }
 
+        // Determine member order: algorithmic or manual
+        let memberOrder = input.memberOrder;
+        let quotaPerMember: number | undefined;
+        let totalAvailablePoints: number | undefined;
+
+        if (algorithm !== "manual" && !memberOrder) {
+          // memberOrder not provided — need memberIds from some source
+          return reply.status(400).send({
+            error: "Bad Request",
+            message:
+              "memberOrder is required. Use compute-order endpoint to preview the order first.",
+          });
+        }
+
+        if (!memberOrder || memberOrder.length === 0) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "memberOrder is required",
+          });
+        }
+
         // Validate all members are actual stable members
-        const memberUserIds = input.memberOrder.map((m) => m.userId);
+        const memberUserIds = memberOrder.map((m) => m.userId);
         const memberValidation = await validateStableMembers(
           input.stableId,
           memberUserIds,
@@ -378,8 +483,35 @@ export async function selectionProcessesRoutes(fastify: FastifyInstance) {
           });
         }
 
+        // If algorithm is quota_based, compute quota metadata
+        if (algorithm === "quota_based") {
+          const startTs = Timestamp.fromDate(
+            new Date(input.selectionStartDate),
+          );
+          const endTs = Timestamp.fromDate(new Date(input.selectionEndDate));
+
+          const instancesSnapshot = await db
+            .collection("stables")
+            .doc(input.stableId)
+            .collection("routineInstances")
+            .where("scheduledDate", ">=", startTs)
+            .where("scheduledDate", "<=", endTs)
+            .where("status", "in", ["scheduled", "started"])
+            .get();
+
+          totalAvailablePoints = 0;
+          for (const doc of instancesSnapshot.docs) {
+            totalAvailablePoints += doc.data().pointsValue ?? 0;
+          }
+          quotaPerMember =
+            memberOrder.length > 0
+              ? Math.round((totalAvailablePoints / memberOrder.length) * 10) /
+                10
+              : 0;
+        }
+
         // Create turns from member order
-        const turns = createTurnsFromMemberOrder(input.memberOrder);
+        const turns = createTurnsFromMemberOrder(memberOrder);
 
         const now = Timestamp.now();
         const processData: Omit<SelectionProcess, "id"> = {
@@ -393,6 +525,9 @@ export async function selectionProcessesRoutes(fastify: FastifyInstance) {
           selectionEndDate: Timestamp.fromDate(
             new Date(input.selectionEndDate),
           ),
+          algorithm,
+          quotaPerMember,
+          totalAvailablePoints,
           turns,
           currentTurnIndex: -1, // Not started
           currentTurnUserId: null,
@@ -923,6 +1058,23 @@ export async function selectionProcessesRoutes(fastify: FastifyInstance) {
             updatedAt: now,
             updatedBy: user.uid,
           });
+
+          // Save history for rotation algorithms (non-blocking)
+          try {
+            const completedProcess = {
+              ...data,
+              id: doc.id,
+              turns: updatedTurns,
+              status: "completed" as const,
+              completedAt: now,
+            };
+            await saveSelectionProcessHistory(completedProcess);
+          } catch (historyError) {
+            request.log.error(
+              { error: historyError },
+              "Failed to save selection process history (non-blocking)",
+            );
+          }
 
           // Notify all members that process is complete
           try {

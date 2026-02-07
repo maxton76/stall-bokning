@@ -5,6 +5,7 @@ import type {
 } from "@shared/types/vaccination";
 import type { EquipmentItem, HorseOwnershipType } from "@shared/types/domain";
 import type { RoutineCategory } from "@shared/types/routine";
+import type { SelectionAlgorithm } from "@equiduty/shared";
 
 /**
  * System-level roles (platform-wide)
@@ -38,6 +39,7 @@ export interface SchedulingConfig {
   autoAssignment: boolean;
   allowSwaps: boolean;
   requireApproval: boolean;
+  defaultSelectionAlgorithm?: SelectionAlgorithm;
 }
 
 /**

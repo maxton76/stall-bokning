@@ -10,13 +10,16 @@ import Foundation
 
 /// API configuration
 enum APIConfig {
-    #if DEBUG
-    static let baseURL = "https://dev-api-service-auky5oec3a-ew.a.run.app"
-    #else
-    // Production URL - uses Cloud Run service via custom domain
-    // Configure via: GCP Cloud Run → Custom Domains → Map api.equiduty.com
-    static let baseURL = "https://prod-api-service-wigho7gnca-ew.a.run.app"
-    #endif
+    static let baseURL: String = {
+        if let plistURL = Bundle.main.infoDictionary?["API_BASE_URL"] as? String, !plistURL.isEmpty {
+            return plistURL
+        }
+        #if DEBUG
+        return "https://dev-api-service-auky5oec3a-ew.a.run.app"
+        #else
+        return "https://prod-api-service-wigho7gnca-ew.a.run.app"
+        #endif
+    }()
 
     static let apiVersion = "v1"
 
@@ -266,8 +269,7 @@ final class APIClient {
         if let token = await tokenProvider?() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             #if DEBUG
-            print("🔑 Token (first 50 chars): \(String(token.prefix(50)))...")
-            print("🔑 Token length: \(token.count)")
+            print("🔑 Token present: true, length: \(token.count)")
             #endif
         } else {
             #if DEBUG
@@ -296,9 +298,8 @@ final class APIClient {
         #if DEBUG
         print("📥 API Response: \(httpResponse.statusCode)")
         if httpResponse.statusCode != 200 {
-            if let responseString = String(data: data, encoding: .utf8) {
-                print("📥 Error Response Body: \(responseString)")
-            }
+            let errorResponse = try? JSONDecoder().decode(APIErrorResponse.self, from: data)
+            print("📥 Error: \(errorResponse?.message ?? errorResponse?.error ?? "Unknown") (status: \(httpResponse.statusCode))")
         }
         #endif
 

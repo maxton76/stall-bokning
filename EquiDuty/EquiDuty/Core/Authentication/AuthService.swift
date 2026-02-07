@@ -50,7 +50,7 @@ final class AuthService {
     var selectedOrganization: Organization? {
         didSet {
             if let org = selectedOrganization {
-                UserDefaults.standard.set(org.id, forKey: "selectedOrganizationId")
+                try? keychain.saveSelectedOrganizationId(org.id)
             }
         }
     }
@@ -58,7 +58,7 @@ final class AuthService {
     var selectedStable: Stable? {
         didSet {
             if let stable = selectedStable {
-                UserDefaults.standard.set(stable.id, forKey: "selectedStableId")
+                try? keychain.saveSelectedStableId(stable.id)
             }
         }
     }
@@ -127,8 +127,34 @@ final class AuthService {
             #if DEBUG
             print("Failed to get ID token: \(error)")
             #endif
-            return keychain.getToken()
+            // Only return cached token if it hasn't expired
+            if let cachedToken = keychain.getToken(),
+               !isJWTExpired(cachedToken) {
+                return cachedToken
+            }
+            return nil
         }
+    }
+
+    /// Check if a JWT token has expired by decoding its payload
+    private func isJWTExpired(_ token: String) -> Bool {
+        let parts = token.split(separator: ".")
+        guard parts.count == 3 else { return true }
+
+        var base64 = String(parts[1])
+        // Pad base64 string
+        let remainder = base64.count % 4
+        if remainder > 0 {
+            base64 += String(repeating: "=", count: 4 - remainder)
+        }
+
+        guard let data = Data(base64Encoded: base64),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let exp = json["exp"] as? TimeInterval else {
+            return true
+        }
+
+        return Date().timeIntervalSince1970 >= exp
     }
 
     // MARK: - Auth State Handling
@@ -229,7 +255,7 @@ final class AuthService {
 
     private func restoreSelectedContext() {
         // Restore selected organization
-        if let savedOrgId = UserDefaults.standard.string(forKey: "selectedOrganizationId"),
+        if let savedOrgId = keychain.getSelectedOrganizationId(),
            let org = organizations.first(where: { $0.id == savedOrgId }) {
             selectedOrganization = org
         } else {
@@ -312,7 +338,7 @@ final class AuthService {
             #endif
 
             // Restore saved stable or select first
-            if let savedStableId = UserDefaults.standard.string(forKey: "selectedStableId"),
+            if let savedStableId = keychain.getSelectedStableId(),
                let stable = response.stables.first(where: { $0.id == savedStableId }) {
                 selectedStable = stable
                 #if DEBUG

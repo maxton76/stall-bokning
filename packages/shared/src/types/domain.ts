@@ -4,6 +4,7 @@ import type {
   HorseVaccinationAssignment,
 } from "./vaccination.js";
 import type { MembershipStatus } from "./organization.js";
+import type { SelectionAlgorithm } from "./selectionProcess.js";
 
 /**
  * System-level roles (platform-wide)
@@ -48,6 +49,7 @@ export interface SchedulingConfig {
   autoAssignment: boolean; // Default: true
   allowSwaps: boolean; // Default: true
   requireApproval: boolean; // Default: false
+  defaultSelectionAlgorithm?: SelectionAlgorithm; // Default algorithm for selection processes
 }
 
 /**

@@ -92,7 +92,11 @@ export async function disputesRoutes(fastify: FastifyInstance) {
 
         // Check organization access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, organizationId, "view_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            organizationId,
+            "view_invoices",
+          );
           if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
@@ -257,7 +261,11 @@ export async function disputesRoutes(fastify: FastifyInstance) {
 
         // View-level access for listing disputes (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, organizationId, "view_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            organizationId,
+            "view_invoices",
+          );
           if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
@@ -348,7 +356,11 @@ export async function disputesRoutes(fastify: FastifyInstance) {
 
         // Access: view_invoices permission OR dispute creator (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, organizationId, "view_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            organizationId,
+            "view_invoices",
+          );
           if (!allowed && dispute.createdBy !== user.uid) {
             return reply.status(403).send({
               error: "Forbidden",
@@ -514,7 +526,11 @@ export async function disputesRoutes(fastify: FastifyInstance) {
 
         // Manage permission required (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, organizationId, "manage_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            organizationId,
+            "manage_invoices",
+          );
           if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
@@ -593,7 +609,11 @@ export async function disputesRoutes(fastify: FastifyInstance) {
 
         // Manage permission required (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, organizationId, "manage_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            organizationId,
+            "manage_invoices",
+          );
           if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
@@ -702,7 +722,11 @@ export async function disputesRoutes(fastify: FastifyInstance) {
 
         // Manage permission required (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, organizationId, "manage_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            organizationId,
+            "manage_invoices",
+          );
           if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",

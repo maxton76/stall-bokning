@@ -18,6 +18,8 @@ final class KeychainManager {
         static let firebaseToken = "firebase_id_token"
         static let refreshToken = "firebase_refresh_token"
         static let userId = "firebase_user_id"
+        static let selectedOrganizationId = "selected_organization_id"
+        static let selectedStableId = "selected_stable_id"
     }
 
     private init() {}
@@ -54,11 +56,35 @@ final class KeychainManager {
         return get(forKey: Keys.userId)
     }
 
+    // MARK: - Selected Context
+
+    /// Save selected organization ID
+    func saveSelectedOrganizationId(_ id: String) throws {
+        try save(id, forKey: Keys.selectedOrganizationId)
+    }
+
+    /// Get selected organization ID
+    func getSelectedOrganizationId() -> String? {
+        return get(forKey: Keys.selectedOrganizationId)
+    }
+
+    /// Save selected stable ID
+    func saveSelectedStableId(_ id: String) throws {
+        try save(id, forKey: Keys.selectedStableId)
+    }
+
+    /// Get selected stable ID
+    func getSelectedStableId() -> String? {
+        return get(forKey: Keys.selectedStableId)
+    }
+
     /// Clear all stored credentials
     func clearAll() {
         delete(forKey: Keys.firebaseToken)
         delete(forKey: Keys.refreshToken)
         delete(forKey: Keys.userId)
+        delete(forKey: Keys.selectedOrganizationId)
+        delete(forKey: Keys.selectedStableId)
     }
 
     // MARK: - Private Methods
@@ -76,7 +102,7 @@ final class KeychainManager {
             kSecAttrService as String: service,
             kSecAttrAccount as String: key,
             kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly
         ]
 
         let status = SecItemAdd(query as CFDictionary, nil)

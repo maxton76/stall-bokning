@@ -36,6 +36,16 @@
       "requireApproval": {
         "label": "Kräv ägarens godkännande",
         "description": "Skiftbyten måste godkännas av stallägaren"
+      },
+      "defaultSelectionAlgorithm": {
+        "label": "Standardmetod för rutinval",
+        "description": "Förvalda turordningsmetoden vid skapande av nya rutinval",
+        "options": {
+          "manual": "Manuell ordning",
+          "quota_based": "Kvotbaserat turordningsval",
+          "points_balance": "Poängbalans",
+          "fair_rotation": "Rättvis rotation"
+        }
       }
     },
     "notifications": {

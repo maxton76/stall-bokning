@@ -7,6 +7,8 @@ import type {
   UpdateSelectionProcessInput,
   ListSelectionProcessesQuery,
   CompleteTurnResult,
+  ComputedTurnOrder,
+  ComputeTurnOrderInput,
 } from "@equiduty/shared";
 
 // ==================== Selection Process CRUD ====================
@@ -132,5 +134,21 @@ export async function updateSelectionProcessDates(
   return apiClient.patch<SelectionProcess>(
     `/selection-processes/${processId}/dates`,
     dates,
+  );
+}
+
+// ==================== Algorithm Compute ====================
+
+/**
+ * Compute turn order for a selection process based on an algorithm
+ * Used to preview order before creating a process
+ */
+export async function computeSelectionTurnOrder(
+  stableId: string,
+  input: ComputeTurnOrderInput,
+): Promise<ComputedTurnOrder> {
+  return apiClient.post<ComputedTurnOrder>(
+    "/selection-processes/compute-order",
+    { ...input, stableId },
   );
 }

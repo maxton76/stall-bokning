@@ -5,6 +5,8 @@
  */
 
 export { AdminControlsCard } from "./AdminControlsCard";
+export { AlgorithmInfoSheet } from "./AlgorithmInfoSheet";
+export { AlgorithmSelector } from "./AlgorithmSelector";
 export { DateEditSection } from "./DateEditSection";
 export { TurnOrderEditor } from "./TurnOrderEditor";
 export { SelectionQueueStatus } from "./SelectionQueueStatus";

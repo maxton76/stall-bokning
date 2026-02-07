@@ -48,6 +48,7 @@
     "completedTurns": "Completed Turns",
     "totalTurns": "Total Turns",
     "turnDuration": "Turn Duration",
+    "algorithm": "Turn Order Method",
     "participantCount": "Number of Participants",
     "days": "days",
     "yourSelection": "Your selection"
@@ -273,5 +274,113 @@
     "deleteProcess": "Delete",
     "deleteDescription": "Permanently delete this selection process.",
     "startProcess": "Start selection"
+  },
+  "algorithm": {
+    "chooseTitle": "Choose turn order method",
+    "chooseDescription": "How should the turn order for routine selection be determined?",
+    "manual": {
+      "name": "Manual order",
+      "description": "Order members by drag and drop",
+      "detail": "You decide the order yourself"
+    },
+    "quotaBased": {
+      "name": "Quota-Based Draft Pick",
+      "description": "Members pick until their point quota is met",
+      "detail1": "Total points are split equally between all members",
+      "detail2": "Turn order is reversed: the last picker from the previous occasion picks first next time",
+      "detail3": "Fair for everyone regardless of which dates are available",
+      "quotaInfo": "Quota: {{quota}} points per person ({{total}} points total)",
+      "quotaInfoShort": "{{quota}} points/person"
+    },
+    "pointsBalance": {
+      "name": "Points Balance",
+      "description": "The member with the lowest historical points picks first",
+      "detail1": "Self-balancing — whoever has done the least gets to pick first",
+      "detail2": "Based on point history from the last {{days}} days",
+      "detail3": "New members (0 points) always pick first",
+      "historyInfo": "Based on the last {{days}} days of history"
+    },
+    "fairRotation": {
+      "name": "Fair Rotation",
+      "description": "Starting position rotates between each occasion",
+      "detail1": "Fully predictable — everyone knows exactly when they pick first",
+      "detail2": "Next time person 2 goes first, then person 3, and so on",
+      "detail3": "Simplest to understand and most transparent",
+      "rotatedFrom": "Rotated from: {{processName}}"
+    },
+    "default": "Default",
+    "recommended": "Recommended",
+    "noHistory": "No previous occasion — order based on names",
+    "computingOrder": "Computing turn order...",
+    "orderComputed": "Turn order computed",
+    "infoManual": "Manually ordered by administrator",
+    "help": {
+      "title": "How turn order methods work",
+      "description": "Learn how each method determines who picks first",
+      "learnMore": "Learn more about the methods",
+      "manual": {
+        "howItWorks": "The administrator decides the turn order manually by dragging and dropping members into the desired order. No automatic calculation is performed.",
+        "whenToUse": "When the administrator wants full control over the order, or for special occasions where automation isn't appropriate.",
+        "whatMembersSee": "Members see their position in the queue and can follow who picks next."
+      },
+      "quotaBased": {
+        "howItWorks": "The system sums all available points and divides equally. You pick shifts until your quota is met. The order is reversed between each occasion — the last picker from last time picks first next time.",
+        "howItWorksSteps": "1. The system counts all available points for the period\n2. Points are divided equally — each member gets a quota\n3. Members pick shifts in turn order until their quota is met\n4. The order is reversed each time: whoever picked last previously picks first next time\n5. First time: alphabetical order by name",
+        "whenToUse": "Best when the stable wants everyone to do roughly equal work. Ideal for regular monthly or quarterly occasions where fairness in both workload and pick order matters.",
+        "whatMembersSee": "Members see their position in the queue, their point quota, and who has picked before them.",
+        "memberPosition": "You are in position {{position}} of {{total}}. Your quota is {{quota}} points."
+      },
+      "pointsBalance": {
+        "howItWorks": "Turn order is determined by how many points you've earned in the last {{days}} days. The member with the lowest points picks first. The system self-balances over time.",
+        "howItWorksSteps": "1. The system checks how many points each member has earned in the last 90 days\n2. Members are sorted by points — lowest first\n3. Whoever has done the least gets to pick first and gets the best choice of dates\n4. New members with zero history always pick first\n5. Self-balancing: whoever picks first accumulates more points and moves down next time",
+        "whenToUse": "Best when the stable wants to compensate members who've been doing more than their share, or when participation has varied. The system self-balances over time.",
+        "whatMembersSee": "Members see their total points, how they compare to others, and their position in the queue.",
+        "memberPosition": "You have {{points}} points (position {{position}} of {{total}})."
+      },
+      "fairRotation": {
+        "howItWorks": "The starting position rotates by one step each time. Everyone gets to be first exactly once every {{total}} occasions.",
+        "howItWorksSteps": "1. The system checks the turn order from the last occasion\n2. The starting position shifts by one: if Anna was first last time, Bengt goes first this time\n3. Everyone gets to be first exactly once every N occasions (N = number of members)\n4. First time (no history): alphabetical order",
+        "whenToUse": "Best when the stable wants maximum transparency and predictability. Simplest to understand — no calculations or point tracking needed.",
+        "whatMembersSee": "Members see their position and exactly when they'll be first next.",
+        "memberPosition": "Position {{position}} of {{total}}. You will be first in {{turnsUntilFirst}} occasions."
+      },
+      "comparison": {
+        "title": "Comparison — which method fits best?",
+        "workload": "Workload distribution",
+        "pickFairness": "Pick order fairness",
+        "transparency": "Transparency",
+        "newMembers": "New members",
+        "complexity": "Complexity",
+        "bestFor": "Best for",
+        "quotaBased": {
+          "workload": "Best — everyone gets equal point quota",
+          "pickFairness": "Best — order is reversed each time",
+          "transparency": "High — quotas are visible",
+          "newMembers": "Placed alphabetically",
+          "complexity": "Medium",
+          "bestFor": "Regular occasions, equal workload"
+        },
+        "pointsBalance": {
+          "workload": "Good — self-balancing over time",
+          "pickFairness": "Good — based on work done",
+          "transparency": "Medium — requires understanding points",
+          "newMembers": "Picks first (0 points)",
+          "complexity": "Medium",
+          "bestFor": "Varied participation, catch-up fairness"
+        },
+        "fairRotation": {
+          "workload": "Neutral — doesn't track workload",
+          "pickFairness": "Best — predictable rotation",
+          "transparency": "Highest — simple and predictable",
+          "newMembers": "Added at end of queue",
+          "complexity": "Low",
+          "bestFor": "Simple stables, predictable rotation"
+        }
+      }
+    }
+  },
+  "settings": {
+    "defaultAlgorithm": "Default method for routine selection",
+    "defaultAlgorithmDescription": "This method is suggested as default when creating new routine selections"
   }
 }

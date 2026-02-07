@@ -7,6 +7,8 @@ import type {
   UpdateSelectionProcessInput,
   ListSelectionProcessesQuery,
   CompleteTurnResult,
+  ComputedTurnOrder,
+  ComputeTurnOrderInput,
 } from "@equiduty/shared";
 import {
   listSelectionProcesses,
@@ -18,6 +20,7 @@ import {
   completeTurn,
   cancelSelectionProcess,
   updateSelectionProcessDates,
+  computeSelectionTurnOrder,
 } from "@/services/selectionProcessService";
 import { useApiQuery } from "./useApiQuery";
 import { useApiMutation } from "./useApiMutation";
@@ -111,6 +114,30 @@ export function useSelectionProcess(processId: string | undefined) {
 
     // Full query object for QueryBoundary
     query,
+  };
+}
+
+// ==================== Compute Turn Order Hook ====================
+
+/**
+ * Hook for computing turn order based on an algorithm
+ *
+ * @example
+ * ```tsx
+ * const { computeOrder, isComputing } = useComputeTurnOrder(stableId);
+ * const result = await computeOrder({ algorithm: 'fair_rotation', memberIds, selectionStartDate, selectionEndDate });
+ * ```
+ */
+export function useComputeTurnOrder(stableId: string) {
+  const mutation = useApiMutation((input: ComputeTurnOrderInput) =>
+    computeSelectionTurnOrder(stableId, input),
+  );
+
+  return {
+    computeOrder: mutation.mutateAsync,
+    isComputing: mutation.isPending,
+    computedResult: mutation.data as ComputedTurnOrder | undefined,
+    mutation,
   };
 }
 

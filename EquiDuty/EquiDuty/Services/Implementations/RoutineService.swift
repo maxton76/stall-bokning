@@ -18,6 +18,7 @@ final class RoutineService: RoutineServiceProtocol {
     private init() {
         dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
     }
 
     // MARK: - Query Operations
@@ -175,6 +176,6 @@ struct HorseProgressUpdate: Encodable {
     let feedingConfirmed: Bool?
     let medicationGiven: Bool?
     let medicationSkipped: Bool?
-    let blanketAction: String?
+    let blanketAction: BlanketAction?
     let photoUrls: [String]?
 }

@@ -10,6 +10,8 @@ import {
   CheckCircle2,
   Clock,
   Play,
+  Info,
+  HelpCircle,
 } from "lucide-react";
 import {
   Card,
@@ -42,6 +44,7 @@ import { assignRoutineInstance } from "@/services/routineService";
 import {
   SelectionWeekView,
   AdminControlsCard,
+  AlgorithmInfoSheet,
 } from "@/components/selectionProcess";
 import type { SelectionProcessTurn } from "@equiduty/shared";
 import { toDate } from "@equiduty/shared";
@@ -66,6 +69,7 @@ export default function SelectionProcessPage() {
 
   const [confirmCompleteOpen, setConfirmCompleteOpen] = useState(false);
   const [selectedRoutineIds, setSelectedRoutineIds] = useState<string[]>([]);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Fetch process with all actions
   const {
@@ -331,6 +335,44 @@ export default function SelectionProcessPage() {
                 {format(endDate, "d MMMM yyyy", { locale: sv })}
               </span>
             </div>
+            {/* Algorithm info */}
+            {process.algorithm && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">
+                  {t("selectionProcess:labels.algorithm")}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setHelpOpen(true)}
+                  className="inline-flex items-center gap-1 font-medium hover:text-primary transition-colors"
+                >
+                  {t(
+                    `selectionProcess:algorithm.${
+                      process.algorithm === "quota_based"
+                        ? "quotaBased"
+                        : process.algorithm === "points_balance"
+                          ? "pointsBalance"
+                          : process.algorithm === "fair_rotation"
+                            ? "fairRotation"
+                            : "manual"
+                    }.name`,
+                  )}
+                  <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              </div>
+            )}
+            {process.algorithm === "quota_based" &&
+              process.quotaPerMember !== undefined && (
+                <Alert className="py-2">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription className="text-sm">
+                    {t("selectionProcess:algorithm.quotaBased.quotaInfo", {
+                      quota: process.quotaPerMember,
+                      total: process.totalAvailablePoints,
+                    })}
+                  </AlertDescription>
+                </Alert>
+              )}
             <div className="flex justify-between">
               <span className="text-muted-foreground">
                 {t("selectionProcess:labels.participantCount")}
@@ -504,6 +546,12 @@ export default function SelectionProcessPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlgorithmInfoSheet
+        open={helpOpen}
+        onOpenChange={setHelpOpen}
+        defaultAlgorithm={process.algorithm}
+      />
     </div>
   );
 }

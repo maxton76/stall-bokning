@@ -245,7 +245,9 @@ export default async function permissionRoutes(fastify: FastifyInstance) {
 /** Valid organization roles for matrix sanitization. */
 const VALID_ROLES: ReadonlySet<string> = new Set<OrganizationRole>([
   "administrator",
+  "stable_manager",
   "schedule_planner",
+  "bookkeeper",
   "groom",
   "trainer",
   "training_admin",

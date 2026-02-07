@@ -5,15 +5,24 @@ import { getStorage } from "firebase-admin/storage";
 
 // Initialize Firebase Admin if not already initialized
 if (getApps().length === 0) {
+  // Determine Firebase project ID from environment or default
+  const projectId =
+    process.env.FIREBASE_PROJECT_ID ||
+    process.env.GCLOUD_PROJECT ||
+    process.env.GCP_PROJECT ||
+    "equiduty-dev";
+
   if (process.env.NODE_ENV === "production") {
-    // Production: Use Application Default Credentials
-    initializeApp();
+    // Production: Use Application Default Credentials with explicit project ID
+    initializeApp({
+      projectId,
+    });
   } else {
     // Development: Use service account or emulator
     if (process.env.FIRESTORE_EMULATOR_HOST) {
       // Using Firebase Emulator
       initializeApp({
-        projectId: "equiduty-dev",
+        projectId,
       });
     } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
       // Using service account file
@@ -22,10 +31,14 @@ if (getApps().length === 0) {
       );
       initializeApp({
         credential: cert(serviceAccount.default),
+        projectId,
       });
     } else {
-      // Fallback to default initialization
-      initializeApp();
+      // Fallback: Use Application Default Credentials with explicit project ID
+      // This handles Cloud Run deployment with NODE_ENV=development
+      initializeApp({
+        projectId,
+      });
     }
   }
 }

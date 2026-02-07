@@ -174,7 +174,11 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, organizationId, "manage_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            organizationId,
+            "manage_invoices",
+          );
           if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
@@ -568,7 +572,11 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         // Check organization access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, organizationId, "view_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            organizationId,
+            "view_invoices",
+          );
           if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
@@ -641,7 +649,11 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         // Check organization access — return 404 (not 403) to prevent enumeration (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, invoice.organizationId, "view_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            invoice.organizationId,
+            "view_invoices",
+          );
           if (!allowed) {
             return reply.status(404).send({
               error: "Not Found",
@@ -681,7 +693,11 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, organizationId, "manage_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            organizationId,
+            "manage_invoices",
+          );
           if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
@@ -951,7 +967,11 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, existing.organizationId, "manage_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            existing.organizationId,
+            "manage_invoices",
+          );
           if (!allowed) {
             return reply.status(404).send({
               error: "Not Found",
@@ -1101,7 +1121,11 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, existing.organizationId, "manage_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            existing.organizationId,
+            "manage_invoices",
+          );
           if (!allowed) {
             return reply.status(404).send({
               error: "Not Found",
@@ -1186,7 +1210,11 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, existing.organizationId, "manage_payments");
+          const allowed = await hasPermission(
+            user.uid,
+            existing.organizationId,
+            "manage_payments",
+          );
           if (!allowed) {
             return reply.status(404).send({
               error: "Not Found",
@@ -1308,7 +1336,11 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, existing.organizationId, "manage_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            existing.organizationId,
+            "manage_invoices",
+          );
           if (!allowed) {
             return reply.status(404).send({
               error: "Not Found",
@@ -1379,7 +1411,11 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         // Check organization access — return 404 (not 403) to prevent enumeration (V2 permission engine)
         if (!isSystemAdmin(user.role) && contact.organizationId) {
-          const allowed = await hasPermission(user.uid, contact.organizationId, "view_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            contact.organizationId,
+            "view_invoices",
+          );
           if (!allowed) {
             return reply.status(404).send({
               error: "Not Found",
@@ -1593,7 +1629,11 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         // Check organization access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, organizationId, "view_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            organizationId,
+            "view_invoices",
+          );
           if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
@@ -1698,7 +1738,11 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, original.organizationId, "manage_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            original.organizationId,
+            "manage_invoices",
+          );
           if (!allowed) {
             return reply.status(404).send({
               error: "Not Found",
@@ -1943,7 +1987,11 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         // Check organization access — return 404 (not 403) to prevent enumeration (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, invoice.organizationId, "view_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            invoice.organizationId,
+            "view_invoices",
+          );
           if (!allowed) {
             return reply.status(404).send({
               error: "Not Found",
@@ -1995,7 +2043,11 @@ export async function invoicesRoutes(fastify: FastifyInstance) {
 
         // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, existing.organizationId, "manage_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            existing.organizationId,
+            "manage_invoices",
+          );
           if (!allowed) {
             return reply.status(404).send({
               error: "Not Found",

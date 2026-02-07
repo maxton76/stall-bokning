@@ -73,8 +73,7 @@ const ROLE_COLORS: Record<string, string> = {
     "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
   schedule_planner:
     "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  bookkeeper:
-    "bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200",
+  bookkeeper: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200",
   groom: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   trainer:
     "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
@@ -180,7 +179,8 @@ export default function OrganizationPermissionsPage() {
   const [isDirty, setIsDirty] = useState(false);
 
   // Mobile role selection
-  const [selectedRole, setSelectedRole] = useState<OrganizationRole>("administrator");
+  const [selectedRole, setSelectedRole] =
+    useState<OrganizationRole>("administrator");
 
   // Initialize editMatrix from server data
   const matrix = editMatrix ?? matrixData?.matrix ?? DEFAULT_PERMISSION_MATRIX;
@@ -360,35 +360,35 @@ export default function OrganizationPermissionsPage() {
                     </th>
                     {ALL_ROLES.map((role) => (
                       <th key={role} className="text-center p-2 w-20 lg:flex-1">
-                      <Badge
-                        variant="secondary"
-                        className={`text-[10px] leading-tight ${ROLE_COLORS[role] ?? ""}`}
-                      >
-                        {t(`organizations:${ROLE_I18N[role]}`)}
-                      </Badge>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {CATEGORY_ORDER.map((category) => {
-                  const actions = grouped[category];
-                  if (!actions?.length) return null;
-                  return (
-                    <CategoryGroup
-                      key={category}
-                      category={category}
-                      actions={actions}
-                      matrix={matrix}
-                      canEdit={canEdit}
-                      isProtected={isProtected}
-                      togglePermission={togglePermission}
-                      t={t}
-                    />
-                  );
-                })}
-              </tbody>
-            </table>
+                        <Badge
+                          variant="secondary"
+                          className={`text-[10px] leading-tight ${ROLE_COLORS[role] ?? ""}`}
+                        >
+                          {t(`organizations:${ROLE_I18N[role]}`)}
+                        </Badge>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {CATEGORY_ORDER.map((category) => {
+                    const actions = grouped[category];
+                    if (!actions?.length) return null;
+                    return (
+                      <CategoryGroup
+                        key={category}
+                        category={category}
+                        actions={actions}
+                        matrix={matrix}
+                        canEdit={canEdit}
+                        isProtected={isProtected}
+                        togglePermission={togglePermission}
+                        t={t}
+                      />
+                    );
+                  })}
+                </tbody>
+              </table>
             </TooltipProvider>
           </div>
 
@@ -572,7 +572,9 @@ function MobileRoleSelector({
       <Select value={selectedRole} onValueChange={onRoleChange}>
         <SelectTrigger>
           <SelectValue>
-            <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${ROLE_COLORS[selectedRole]}`}>
+            <span
+              className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${ROLE_COLORS[selectedRole]}`}
+            >
               {t(`organizations:${ROLE_I18N[selectedRole]}`)}
             </span>
           </SelectValue>
@@ -580,7 +582,9 @@ function MobileRoleSelector({
         <SelectContent>
           {ALL_ROLES.map((role) => (
             <SelectItem key={role} value={role}>
-              <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${ROLE_COLORS[role]}`}>
+              <span
+                className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${ROLE_COLORS[role]}`}
+              >
                 {t(`organizations:${ROLE_I18N[role]}`)}
               </span>
             </SelectItem>

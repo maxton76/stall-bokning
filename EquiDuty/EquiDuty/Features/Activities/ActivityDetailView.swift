@@ -101,7 +101,10 @@ struct ActivityDetailView: View {
         } message: {
             Text(String(localized: "activity.action.cancel.confirmation"))
         }
-        .alert(String(localized: "error.title"), isPresented: .constant(errorMessage != nil)) {
+        .alert(String(localized: "error.title"), isPresented: .init(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
             Button(String(localized: "common.ok")) {
                 errorMessage = nil
             }

@@ -2,12 +2,22 @@ import { useTranslation } from "react-i18next";
 import { NumberField } from "../fields/NumberField";
 import { ToggleSetting } from "../fields/ToggleSetting";
 import { SettingSection } from "../sections/SettingSection";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { SelectionAlgorithm } from "@equiduty/shared";
 
 export interface SchedulingSettings {
   scheduleHorizonDays: number;
   autoAssignment: boolean;
   allowSwaps: boolean;
   requireApproval: boolean;
+  defaultSelectionAlgorithm?: SelectionAlgorithm;
 }
 
 interface SchedulingSettingsTabProps {
@@ -15,6 +25,13 @@ interface SchedulingSettingsTabProps {
   onChange: (settings: SchedulingSettings) => void;
   disabled?: boolean;
 }
+
+const ALGORITHM_OPTIONS: SelectionAlgorithm[] = [
+  "manual",
+  "quota_based",
+  "points_balance",
+  "fair_rotation",
+];
 
 export function SchedulingSettingsTab({
   settings,
@@ -82,6 +99,41 @@ export function SchedulingSettingsTab({
         }
         disabled={disabled || !settings.allowSwaps}
       />
+
+      {/* Default Selection Algorithm */}
+      <div className="space-y-2">
+        <Label htmlFor="defaultSelectionAlgorithm">
+          {t("settings:sections.scheduling.defaultSelectionAlgorithm.label")}
+        </Label>
+        <Select
+          value={settings.defaultSelectionAlgorithm ?? "manual"}
+          onValueChange={(value) =>
+            handleFieldChange(
+              "defaultSelectionAlgorithm",
+              value as SelectionAlgorithm,
+            )
+          }
+          disabled={disabled}
+        >
+          <SelectTrigger id="defaultSelectionAlgorithm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {ALGORITHM_OPTIONS.map((algo) => (
+              <SelectItem key={algo} value={algo}>
+                {t(
+                  `settings:sections.scheduling.defaultSelectionAlgorithm.options.${algo}`,
+                )}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-sm text-muted-foreground">
+          {t(
+            "settings:sections.scheduling.defaultSelectionAlgorithm.description",
+          )}
+        </p>
+      </div>
     </SettingSection>
   );
 }

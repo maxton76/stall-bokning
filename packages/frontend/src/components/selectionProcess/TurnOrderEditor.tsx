@@ -104,7 +104,7 @@ interface TurnOrderEditorProps {
   /** List of members to order */
   members: CreateSelectionProcessMember[];
   /** Callback when order changes */
-  onOrderChange: (newOrder: CreateSelectionProcessMember[]) => void;
+  onOrderChange?: (newOrder: CreateSelectionProcessMember[]) => void;
   /** Optional class name */
   className?: string;
   /** Whether the editor is disabled */
@@ -154,7 +154,7 @@ export function TurnOrderEditor({
       const newIndex = members.findIndex((m) => m.userId === over.id);
 
       const newOrder = arrayMove(members, oldIndex, newIndex);
-      onOrderChange(newOrder);
+      onOrderChange?.(newOrder);
     }
   };
 

@@ -18,6 +18,7 @@ final class HorseActivityHistoryService {
     private init() {
         dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
     }
 
     // MARK: - Query Operations

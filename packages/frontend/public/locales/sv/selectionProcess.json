@@ -48,6 +48,7 @@
     "completedTurns": "Slutförda turer",
     "totalTurns": "Totala turer",
     "turnDuration": "Turs varaktighet",
+    "algorithm": "Turordningsmetod",
     "participantCount": "Antal deltagare",
     "days": "dagar",
     "yourSelection": "Ditt val"
@@ -273,5 +274,113 @@
     "deleteProcess": "Ta bort",
     "deleteDescription": "Tar bort detta rutinval permanent.",
     "startProcess": "Starta rutinval"
+  },
+  "algorithm": {
+    "chooseTitle": "Välj turordningsmetod",
+    "chooseDescription": "Hur ska turordningen för rutinval bestämmas?",
+    "manual": {
+      "name": "Manuell ordning",
+      "description": "Ordna medlemmarna genom att dra och släppa",
+      "detail": "Du bestämmer ordningen helt själv"
+    },
+    "quotaBased": {
+      "name": "Kvotbaserat turordningsval",
+      "description": "Medlemmar väljer tills sin poängkvot är uppfylld",
+      "detail1": "Totala poäng delas lika mellan alla medlemmar",
+      "detail2": "Turordningen roteras: den som valde sist förra gången väljer först nästa gång",
+      "detail3": "Rättvist för alla oavsett vilka dagar som finns",
+      "quotaInfo": "Kvot: {{quota}} poäng per person (totalt {{total}} poäng)",
+      "quotaInfoShort": "{{quota}} poäng/person"
+    },
+    "pointsBalance": {
+      "name": "Poängbalans",
+      "description": "Den med lägst historiska poäng väljer först",
+      "detail1": "Självbalanserande — den som gjort minst får välja först",
+      "detail2": "Baserat på poänghistorik de senaste {{days}} dagarna",
+      "detail3": "Nya medlemmar (0 poäng) väljer alltid först",
+      "historyInfo": "Baserat på senaste {{days}} dagars historik"
+    },
+    "fairRotation": {
+      "name": "Rättvis rotation",
+      "description": "Startpositionen roteras mellan varje tillfälle",
+      "detail1": "Helt förutsägbar — alla vet exakt när de väljer först",
+      "detail2": "Nästa gång börjar person 2, sedan person 3, osv.",
+      "detail3": "Enklast att förstå och mest transparent",
+      "rotatedFrom": "Roterad från: {{processName}}"
+    },
+    "default": "Standard",
+    "recommended": "Rekommenderad",
+    "noHistory": "Inget tidigare tillfälle — ordning baseras på namn",
+    "computingOrder": "Beräknar turordning...",
+    "orderComputed": "Turordning beräknad",
+    "infoManual": "Manuellt ordnad av administratör",
+    "help": {
+      "title": "Så fungerar turordningsmetoderna",
+      "description": "Lär dig hur de olika metoderna bestämmer vem som väljer först",
+      "learnMore": "Läs mer om metoderna",
+      "manual": {
+        "howItWorks": "Administratören bestämmer turordningen helt själv genom att dra och släppa medlemmar i önskad ordning. Ingen automatisk beräkning sker.",
+        "whenToUse": "När administratören vill ha full kontroll över ordningen, eller vid speciella tillfällen där automatik inte passar.",
+        "whatMembersSee": "Medlemmarna ser sin plats i kön och kan följa vem som väljer härnäst."
+      },
+      "quotaBased": {
+        "howItWorks": "Systemet räknar ihop alla tillgängliga poäng och delar lika. Du väljer pass tills din kvot är uppfylld. Turordningen vänds mellan varje tillfälle — den som valde sist förra gången väljer först nästa gång.",
+        "howItWorksSteps": "1. Systemet räknar ihop alla tillgängliga poäng för perioden\n2. Poängen delas lika — varje medlem får en kvot\n3. Medlemmar väljer pass i turordning tills kvoten är uppfylld\n4. Turordningen vänds varje gång: den som valde sist förra gången väljer först nästa gång\n5. Första gången: alfabetisk ordning efter namn",
+        "whenToUse": "Bäst när stallet vill att alla gör ungefär lika mycket arbete. Passar för regelbundna månads- eller kvartalstillfällen där rättvisa i både arbetsbelastning och valordning är viktigt.",
+        "whatMembersSee": "Medlemmar ser sin plats i kön, sin poängkvot och vem som valt före dem.",
+        "memberPosition": "Du är på plats {{position}} av {{total}}. Din kvot är {{quota}} poäng."
+      },
+      "pointsBalance": {
+        "howItWorks": "Turordningen bestäms av hur många poäng du samlat de senaste {{days}} dagarna. Den med lägst poäng väljer först. Systemet balanserar sig självt över tid.",
+        "howItWorksSteps": "1. Systemet tittar på hur många poäng varje medlem tjänat de senaste 90 dagarna\n2. Medlemmar sorteras efter poäng — lägst poäng först\n3. Den som gjort minst får välja först och får bäst val av datum\n4. Nya medlemmar med noll historik väljer alltid först\n5. Systemet balanserar sig självt: den som väljer först samlar fler poäng och hamnar längre ner nästa gång",
+        "whenToUse": "Bäst när stallet vill kompensera medlemmar som gjort mer än sin del, eller när deltagande varierat. Systemet balanserar sig självt över tid.",
+        "whatMembersSee": "Medlemmar ser sina totala poäng, hur de jämförs med andra och sin plats i kön.",
+        "memberPosition": "Du har {{points}} poäng (plats {{position}} av {{total}})."
+      },
+      "fairRotation": {
+        "howItWorks": "Startpositionen roteras ett steg varje gång. Alla får vara först exakt en gång var {{total}}:e tillfälle.",
+        "howItWorksSteps": "1. Systemet tittar på turordningen från förra tillfället\n2. Startpositionen flyttas ett steg: var Anna först förra gången, börjar Bengt denna gång\n3. Alla får vara först exakt en gång per N tillfällen (N = antal medlemmar)\n4. Första gången (ingen historik): alfabetisk ordning",
+        "whenToUse": "Bäst när stallet vill ha maximal transparens och förutsägbarhet. Enklast att förstå — inga beräkningar eller poäng att hålla koll på.",
+        "whatMembersSee": "Medlemmar ser sin plats och exakt när de kommer vara först nästa gång.",
+        "memberPosition": "Plats {{position}} av {{total}}. Du kommer vara först om {{turnsUntilFirst}} tillfällen."
+      },
+      "comparison": {
+        "title": "Jämförelse — vilken metod passar bäst?",
+        "workload": "Arbetsfördelning",
+        "pickFairness": "Rättvisa i valordning",
+        "transparency": "Transparens",
+        "newMembers": "Nya medlemmar",
+        "complexity": "Komplexitet",
+        "bestFor": "Passar bäst för",
+        "quotaBased": {
+          "workload": "Bäst — alla får lika poängkvot",
+          "pickFairness": "Bäst — ordningen vänds varje gång",
+          "transparency": "Hög — kvoter är synliga",
+          "newMembers": "Placeras alfabetiskt",
+          "complexity": "Medel",
+          "bestFor": "Regelbundna tillfällen, jämn arbetsfördelning"
+        },
+        "pointsBalance": {
+          "workload": "Bra — balanserar sig självt över tid",
+          "pickFairness": "Bra — baserat på utfört arbete",
+          "transparency": "Medel — kräver förståelse för poäng",
+          "newMembers": "Väljer först (0 poäng)",
+          "complexity": "Medel",
+          "bestFor": "Varierat deltagande, kompensation för extra arbete"
+        },
+        "fairRotation": {
+          "workload": "Neutral — spårar inte arbetsbelastning",
+          "pickFairness": "Bäst — förutsägbar rotation",
+          "transparency": "Högst — enkel och förutsägbar",
+          "newMembers": "Läggs till sist i kön",
+          "complexity": "Låg",
+          "bestFor": "Enkla stall, förutsägbar rotation"
+        }
+      }
+    }
+  },
+  "settings": {
+    "defaultAlgorithm": "Standardmetod för rutinval",
+    "defaultAlgorithmDescription": "Denna metod föreslås som standard när nya rutinval skapas"
   }
 }

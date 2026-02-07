@@ -211,7 +211,7 @@ struct SignUpView: View {
         !firstName.isEmpty &&
         !lastName.isEmpty &&
         !email.isEmpty &&
-        email.contains("@") &&
+        email.wholeMatch(of: /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/) != nil &&
         password.count >= 8 &&
         password == confirmPassword
     }

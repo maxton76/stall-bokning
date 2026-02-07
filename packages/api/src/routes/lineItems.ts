@@ -46,7 +46,11 @@ export async function lineItemsRoutes(fastify: FastifyInstance) {
 
         // Check organization access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, organizationId, "view_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            organizationId,
+            "view_invoices",
+          );
           if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
@@ -127,7 +131,11 @@ export async function lineItemsRoutes(fastify: FastifyInstance) {
 
         // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, organizationId, "manage_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            organizationId,
+            "manage_invoices",
+          );
           if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
@@ -244,7 +252,11 @@ export async function lineItemsRoutes(fastify: FastifyInstance) {
 
         // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, organizationId, "manage_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            organizationId,
+            "manage_invoices",
+          );
           if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
@@ -360,7 +372,11 @@ export async function lineItemsRoutes(fastify: FastifyInstance) {
 
         // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, organizationId, "manage_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            organizationId,
+            "manage_invoices",
+          );
           if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",

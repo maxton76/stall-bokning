@@ -341,9 +341,8 @@ struct LanguageSettingsView: View {
         // Update the selected language
         selectedLanguage = languageCode
 
-        // Force app to exit - user will need to relaunch
-        // This is the standard iOS pattern for language changes
-        exit(0)
+        // Note: Language change takes effect on next app launch.
+        // The restart alert already informed the user.
     }
 
     private func openSystemSettings() {

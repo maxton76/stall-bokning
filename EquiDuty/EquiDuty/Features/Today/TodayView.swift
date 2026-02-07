@@ -89,9 +89,6 @@ struct TodayView: View {
             .onChange(of: authService.selectedStable?.id) { _, _ in
                 viewModel.loadData()
             }
-            .onChange(of: authService.selectedOrganization?.id) { _, _ in
-                viewModel.loadData()
-            }
             .sheet(isPresented: $viewModel.showFilterSheet) {
                 TodayFilterSheet(filters: $viewModel.filters) {
                     // Filters applied - data updates via computed properties

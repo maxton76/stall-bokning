@@ -383,6 +383,9 @@ struct TodayActivityCard: View {
             cornerRadius: EquiDutyDesign.CornerRadius.card,
             padding: EquiDutyDesign.Spacing.standard
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(activity.activityTypeName), \(activity.status.displayName), \(activity.horseNames.joined(separator: ", "))")
+        .accessibilityHint(String(localized: "accessibility.activity.tap_hint"))
     }
 }
 

@@ -36,6 +36,16 @@
       "requireApproval": {
         "label": "Require Owner Approval",
         "description": "Shift swaps must be approved by stable owner"
+      },
+      "defaultSelectionAlgorithm": {
+        "label": "Default selection process algorithm",
+        "description": "Pre-selected turn order method when creating new selection processes",
+        "options": {
+          "manual": "Manual order",
+          "quota_based": "Quota-based draft pick",
+          "points_balance": "Points balance",
+          "fair_rotation": "Fair rotation"
+        }
       }
     },
     "notifications": {

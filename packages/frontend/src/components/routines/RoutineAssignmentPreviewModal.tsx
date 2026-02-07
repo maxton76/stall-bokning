@@ -87,7 +87,7 @@ export function RoutineAssignmentPreviewModal({
 
   // Generate preview instances
   const previewInstances = useMemo(() => {
-    if (!scheduleData) return [];
+    if (!scheduleData || suggestionsLoading) return [];
 
     return generateSchedulePreview(
       scheduleData.startDate,
@@ -97,7 +97,7 @@ export function RoutineAssignmentPreviewModal({
       scheduleData.scheduledStartTime,
       suggestionsData?.suggestions,
     );
-  }, [scheduleData, suggestionsData?.suggestions]);
+  }, [scheduleData, suggestionsData?.suggestions, suggestionsLoading]);
 
   // Initialize assignments from suggestions when they load
   useEffect(() => {

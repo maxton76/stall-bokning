@@ -130,7 +130,11 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       // V2 permission check: view_payments
       if (!isSystemAdmin(user.role)) {
-        const allowed = await hasPermission(user.uid, organizationId, "view_payments");
+        const allowed = await hasPermission(
+          user.uid,
+          organizationId,
+          "view_payments",
+        );
         if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
@@ -220,7 +224,11 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       // V2 permission check: manage_billing_settings
       if (!isSystemAdmin(user.role)) {
-        const allowed = await hasPermission(user.uid, organizationId, "manage_billing_settings");
+        const allowed = await hasPermission(
+          user.uid,
+          organizationId,
+          "manage_billing_settings",
+        );
         if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
@@ -303,7 +311,11 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       // V2 permission check: manage_billing_settings
       if (!isSystemAdmin(user.role)) {
-        const allowed = await hasPermission(user.uid, organizationId, "manage_billing_settings");
+        const allowed = await hasPermission(
+          user.uid,
+          organizationId,
+          "manage_billing_settings",
+        );
         if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
@@ -347,7 +359,11 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       // V2 permission check: manage_billing_settings
       if (!isSystemAdmin(user.role)) {
-        const allowed = await hasPermission(user.uid, organizationId, "manage_billing_settings");
+        const allowed = await hasPermission(
+          user.uid,
+          organizationId,
+          "manage_billing_settings",
+        );
         if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
@@ -393,7 +409,11 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       // V2 permission check: manage_payments
       if (!isSystemAdmin(user.role)) {
-        const allowed = await hasPermission(user.uid, organizationId, "manage_payments");
+        const allowed = await hasPermission(
+          user.uid,
+          organizationId,
+          "manage_payments",
+        );
         if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
@@ -536,7 +556,11 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       // V2 permission check: view_payments
       if (!isSystemAdmin(user.role)) {
-        const allowed = await hasPermission(user.uid, organizationId, "view_payments");
+        const allowed = await hasPermission(
+          user.uid,
+          organizationId,
+          "view_payments",
+        );
         if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
@@ -586,7 +610,11 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       // V2 permission check: manage_payments
       if (!isSystemAdmin(user.role)) {
-        const allowed = await hasPermission(user.uid, organizationId, "manage_payments");
+        const allowed = await hasPermission(
+          user.uid,
+          organizationId,
+          "manage_payments",
+        );
         if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
@@ -681,7 +709,11 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       // V2 permission check: view_payments
       if (!isSystemAdmin(user.role)) {
-        const allowed = await hasPermission(user.uid, organizationId, "view_payments");
+        const allowed = await hasPermission(
+          user.uid,
+          organizationId,
+          "view_payments",
+        );
         if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
@@ -747,7 +779,11 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       // V2 permission check: view_payments
       if (!isSystemAdmin(user.role)) {
-        const allowed = await hasPermission(user.uid, organizationId, "view_payments");
+        const allowed = await hasPermission(
+          user.uid,
+          organizationId,
+          "view_payments",
+        );
         if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
@@ -795,7 +831,11 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       // V2 permission check: manage_payments
       if (!isSystemAdmin(user.role)) {
-        const allowed = await hasPermission(user.uid, organizationId, "manage_payments");
+        const allowed = await hasPermission(
+          user.uid,
+          organizationId,
+          "manage_payments",
+        );
         if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
@@ -892,7 +932,11 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       // V2 permission check: view_payments
       if (!isSystemAdmin(user.role)) {
-        const allowed = await hasPermission(user.uid, organizationId, "view_payments");
+        const allowed = await hasPermission(
+          user.uid,
+          organizationId,
+          "view_payments",
+        );
         if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
@@ -937,7 +981,11 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       // V2 permission check: manage_payments
       if (!isSystemAdmin(user.role)) {
-        const allowed = await hasPermission(user.uid, organizationId, "manage_payments");
+        const allowed = await hasPermission(
+          user.uid,
+          organizationId,
+          "manage_payments",
+        );
         if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
@@ -1037,7 +1085,11 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       // V2 permission check: manage_payments
       if (!isSystemAdmin(user.role)) {
-        const allowed = await hasPermission(user.uid, organizationId, "manage_payments");
+        const allowed = await hasPermission(
+          user.uid,
+          organizationId,
+          "manage_payments",
+        );
         if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
@@ -1098,7 +1150,11 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       // V2 permission check: view_payments
       if (!isSystemAdmin(user.role)) {
-        const allowed = await hasPermission(user.uid, organizationId, "view_payments");
+        const allowed = await hasPermission(
+          user.uid,
+          organizationId,
+          "view_payments",
+        );
         if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
@@ -1150,7 +1206,11 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       // V2 permission check: manage_payments
       if (!isSystemAdmin(user.role)) {
-        const allowed = await hasPermission(user.uid, organizationId, "manage_payments");
+        const allowed = await hasPermission(
+          user.uid,
+          organizationId,
+          "manage_payments",
+        );
         if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
@@ -1261,7 +1321,11 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       // V2 permission check: view_payments
       if (!isSystemAdmin(user.role)) {
-        const allowed = await hasPermission(user.uid, organizationId, "view_payments");
+        const allowed = await hasPermission(
+          user.uid,
+          organizationId,
+          "view_payments",
+        );
         if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
@@ -1320,7 +1384,11 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       // V2 permission check: view_financial_reports
       if (!isSystemAdmin(user.role)) {
-        const allowed = await hasPermission(user.uid, organizationId, "view_financial_reports");
+        const allowed = await hasPermission(
+          user.uid,
+          organizationId,
+          "view_financial_reports",
+        );
         if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
@@ -1494,11 +1562,16 @@ export async function paymentsRoutes(fastify: FastifyInstance) {
 
       // V2 permission check: view_financial_reports
       if (!isSystemAdmin(user.role)) {
-        const allowed = await hasPermission(user.uid, organizationId, "view_financial_reports");
+        const allowed = await hasPermission(
+          user.uid,
+          organizationId,
+          "view_financial_reports",
+        );
         if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
-            message: "You do not have permission to view application fee reports",
+            message:
+              "You do not have permission to view application fee reports",
           });
         }
       }

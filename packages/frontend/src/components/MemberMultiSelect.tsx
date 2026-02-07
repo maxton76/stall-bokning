@@ -194,7 +194,9 @@ export function MemberMultiSelect({
                         <span>{displayName}</span>
                         {primaryRole && (
                           <Badge variant="outline" className="text-xs">
-                            {t(`organizations:members.roles.${primaryRole}.label`)}
+                            {t(
+                              `organizations:members.roles.${primaryRole}.label`,
+                            )}
                           </Badge>
                         )}
                       </div>

@@ -228,6 +228,11 @@ struct TodayRoutineCard: View {
             )
         }
         .buttonStyle(.scale)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(routine.templateName), \(routine.status.displayName), \(routine.scheduledStartTime)")
+        .accessibilityHint(isActive
+            ? String(localized: "accessibility.routine.in_progress_hint")
+            : String(localized: "accessibility.routine.tap_to_start_hint"))
     }
 }
 

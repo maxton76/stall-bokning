@@ -470,11 +470,7 @@ export const DEFAULT_PERMISSION_MATRIX: PermissionMatrix = {
     "schedule_planner",
     "groom",
   ),
-  manage_routines: grant(
-    "administrator",
-    "stable_manager",
-    "schedule_planner",
-  ),
+  manage_routines: grant("administrator", "stable_manager", "schedule_planner"),
   manage_selection_processes: grant(
     "administrator",
     "stable_manager",
@@ -488,11 +484,7 @@ export const DEFAULT_PERMISSION_MATRIX: PermissionMatrix = {
   manage_facilities: grant("administrator", "stable_manager"),
 
   // Records
-  manage_records: grant(
-    "administrator",
-    "stable_manager",
-    "schedule_planner",
-  ),
+  manage_records: grant("administrator", "stable_manager", "schedule_planner"),
   view_records: grant(
     "administrator",
     "stable_manager",

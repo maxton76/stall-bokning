@@ -318,6 +318,12 @@ struct Horse: Codable, Identifiable, Equatable {
         } else if let teamObject = try? container.decodeIfPresent(HorseTeamObject.self, forKey: .team) {
             team = teamObject.toArray()
         } else {
+            #if DEBUG
+            // Log if team field exists but failed to decode in either format
+            if container.contains(.team) {
+                print("⚠️ Horse '\(name)': team field present but failed to decode as array or object")
+            }
+            #endif
             team = nil
         }
     }
@@ -497,7 +503,7 @@ enum TeamMemberRole: String, Codable, CaseIterable {
 
 /// Team member for a horse
 struct HorseTeamMember: Codable, Identifiable, Equatable {
-    var id: String { name + role.rawValue }  // Computed ID for list iteration
+    var id: String { "\(name)_\(role.rawValue)_\(email ?? "")" }  // Computed ID for list iteration
     var name: String
     var role: TeamMemberRole
     var isPrimary: Bool?

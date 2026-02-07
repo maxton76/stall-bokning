@@ -223,6 +223,13 @@ enum StepStatus: String, Codable {
     case skipped = "skipped"
 }
 
+/// Blanket action options for routine steps
+enum BlanketAction: String, Codable, Hashable {
+    case on = "on"
+    case off = "off"
+    case unchanged = "unchanged"
+}
+
 /// Per-horse progress within a step
 struct HorseStepProgress: Codable, Equatable, Hashable {
     var horseId: String
@@ -237,7 +244,7 @@ struct HorseStepProgress: Codable, Equatable, Hashable {
     var feedingConfirmed: Bool?
     var medicationGiven: Bool?
     var medicationSkipped: Bool?
-    var blanketAction: String?  // "on", "off", "unchanged"
+    var blanketAction: BlanketAction?
 
     // Timestamps
     var completedAt: Date?

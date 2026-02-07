@@ -90,7 +90,11 @@ export async function invoiceSettingsRoutes(fastify: FastifyInstance) {
 
         // Check organization access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, organizationId, "view_invoices");
+          const allowed = await hasPermission(
+            user.uid,
+            organizationId,
+            "view_invoices",
+          );
           if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",
@@ -142,7 +146,11 @@ export async function invoiceSettingsRoutes(fastify: FastifyInstance) {
 
         // Check organization management access (V2 permission engine)
         if (!isSystemAdmin(user.role)) {
-          const allowed = await hasPermission(user.uid, organizationId, "manage_billing_settings");
+          const allowed = await hasPermission(
+            user.uid,
+            organizationId,
+            "manage_billing_settings",
+          );
           if (!allowed) {
             return reply.status(403).send({
               error: "Forbidden",

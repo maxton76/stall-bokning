@@ -18,6 +18,8 @@ struct HorseListView: View {
     @State private var errorMessage: String?
     @State private var showAddHorse = false
     @State private var showFilterSheet = false
+    @State private var debouncedSearchText = ""
+    @State private var searchDebounceTask: Task<Void, Never>?
 
     @Environment(\.dismiss) private var dismiss
 
@@ -132,6 +134,14 @@ struct HorseListView: View {
             .onChange(of: authService.selectedStable?.id) { _, _ in
                 loadHorses()
             }
+            .onChange(of: searchText) { _, newValue in
+                searchDebounceTask?.cancel()
+                searchDebounceTask = Task {
+                    try? await Task.sleep(nanoseconds: 300_000_000)
+                    guard !Task.isCancelled else { return }
+                    debouncedSearchText = newValue
+                }
+            }
         }
     }
 
@@ -174,12 +184,12 @@ struct HorseListView: View {
             result = result.filter { $0.horseGroupId == groupId }
         }
 
-        // Apply search
-        if !searchText.isEmpty {
+        // Apply search (debounced)
+        if !debouncedSearchText.isEmpty {
             result = result.filter { horse in
-                horse.name.localizedCaseInsensitiveContains(searchText) ||
-                (horse.breed?.localizedCaseInsensitiveContains(searchText) ?? false) ||
-                (horse.ownerName?.localizedCaseInsensitiveContains(searchText) ?? false)
+                horse.name.localizedCaseInsensitiveContains(debouncedSearchText) ||
+                (horse.breed?.localizedCaseInsensitiveContains(debouncedSearchText) ?? false) ||
+                (horse.ownerName?.localizedCaseInsensitiveContains(debouncedSearchText) ?? false)
             }
         }
 

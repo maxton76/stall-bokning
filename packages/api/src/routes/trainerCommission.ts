@@ -6,10 +6,7 @@ import { authenticate } from "../middleware/auth.js";
 import { checkModuleAccess } from "../middleware/checkModuleAccess.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { isSystemAdmin } from "../utils/authorization.js";
-import {
-  hasPermission,
-  getUserOrgRoles,
-} from "../utils/permissionEngine.js";
+import { hasPermission, getUserOrgRoles } from "../utils/permissionEngine.js";
 import { serializeTimestamps } from "../utils/serialization.js";
 import { calculateCommission } from "../utils/commissionCalculator.js";
 
@@ -197,8 +194,7 @@ export async function trainerCommissionRoutes(fastify: FastifyInstance) {
             if (trainerId && trainerId !== user.uid) {
               return reply.status(403).send({
                 error: "Forbidden",
-                message:
-                  "You can only view your own commission configurations",
+                message: "You can only view your own commission configurations",
               });
             }
             if (!trainerId) {

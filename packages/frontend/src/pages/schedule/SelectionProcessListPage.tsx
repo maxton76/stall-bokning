@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Plus, AlertCircle, Calendar, Users, ChevronRight } from "lucide-react";
+import {
+  Plus,
+  AlertCircle,
+  Calendar,
+  Users,
+  ChevronRight,
+  HelpCircle,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +26,7 @@ import { useUserStables } from "@/hooks/useUserStables";
 import { useSelectionProcesses } from "@/hooks/useSelectionProcess";
 import { useCanManageSelectionProcesses } from "@/hooks/useCanManageSelectionProcesses";
 import { CreateSelectionProcessModal } from "@/components/schedule/CreateSelectionProcessModal";
+import { AlgorithmInfoSheet } from "@/components/selectionProcess";
 import type { SelectionProcessStatus } from "@equiduty/shared";
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
@@ -39,6 +47,7 @@ export default function SelectionProcessListPage() {
     SelectionProcessStatus | "all"
   >("all");
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
@@ -149,6 +158,14 @@ export default function SelectionProcessListPage() {
           <p className="text-muted-foreground">
             {t("selectionProcess:descriptions.list")}
           </p>
+          <button
+            type="button"
+            onClick={() => setHelpOpen(true)}
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mt-1"
+          >
+            <HelpCircle className="h-4 w-4" />
+            {t("selectionProcess:algorithm.help.learnMore")}
+          </button>
         </div>
         <div className="flex items-center gap-2">
           {/* Stable selector */}
@@ -306,6 +323,8 @@ export default function SelectionProcessListPage() {
           }}
         />
       )}
+
+      <AlgorithmInfoSheet open={helpOpen} onOpenChange={setHelpOpen} />
     </div>
   );
 }

@@ -179,8 +179,10 @@ struct LoginView: View {
 
     // MARK: - Computed Properties
 
+    private static let emailRegex = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/
+
     private var isFormValid: Bool {
-        !email.isEmpty && email.contains("@") && password.count >= 6
+        !email.isEmpty && email.wholeMatch(of: Self.emailRegex) != nil && password.count >= 6
     }
 
     // MARK: - Actions

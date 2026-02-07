@@ -107,7 +107,9 @@ struct FeedingTime: Codable, Identifiable, Equatable {
         let parts = time.split(separator: ":")
         guard parts.count == 2,
               let hour = Int(parts[0]),
-              let minute = Int(parts[1]) else {
+              let minute = Int(parts[1]),
+              (0...23).contains(hour),
+              (0...59).contains(minute) else {
             return nil
         }
         return DateComponents(hour: hour, minute: minute)
@@ -159,7 +161,7 @@ struct HorseFeeding: Codable, Identifiable, Equatable {
         // If endDate exists, it must be after the target date
         if let end = endDate {
             let feedingEnd = calendar.startOfDay(for: end)
-            return dateStart < feedingEnd
+            return dateStart <= feedingEnd
         }
 
         return true // No end date means ongoing

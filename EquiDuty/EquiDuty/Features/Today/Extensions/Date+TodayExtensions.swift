@@ -15,17 +15,17 @@ extension Date {
         switch periodType {
         case .day:
             let start = calendar.startOfDay(for: self)
-            let end = calendar.date(byAdding: DateComponents(day: 1, second: -1), to: start)!
+            let end = calendar.date(byAdding: DateComponents(day: 1, second: -1), to: start) ?? start
             return (start, end)
 
         case .week:
-            let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: self))!
-            let endOfWeek = calendar.date(byAdding: DateComponents(day: 6), to: startOfWeek)!
+            let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: self)) ?? self
+            let endOfWeek = calendar.date(byAdding: DateComponents(day: 6), to: startOfWeek) ?? startOfWeek
             return (startOfWeek, endOfWeek)
 
         case .month:
-            let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: self))!
-            let endOfMonth = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth)!
+            let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: self)) ?? self
+            let endOfMonth = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth) ?? startOfMonth
             return (startOfMonth, endOfMonth)
         }
     }
@@ -36,11 +36,11 @@ extension Date {
     func nextPeriod(for periodType: TodayPeriodType, calendar: Calendar = .current) -> Date {
         switch periodType {
         case .day:
-            return calendar.date(byAdding: .day, value: 1, to: self)!
+            return calendar.date(byAdding: .day, value: 1, to: self) ?? self
         case .week:
-            return calendar.date(byAdding: .weekOfYear, value: 1, to: self)!
+            return calendar.date(byAdding: .weekOfYear, value: 1, to: self) ?? self
         case .month:
-            return calendar.date(byAdding: .month, value: 1, to: self)!
+            return calendar.date(byAdding: .month, value: 1, to: self) ?? self
         }
     }
 
@@ -48,11 +48,11 @@ extension Date {
     func previousPeriod(for periodType: TodayPeriodType, calendar: Calendar = .current) -> Date {
         switch periodType {
         case .day:
-            return calendar.date(byAdding: .day, value: -1, to: self)!
+            return calendar.date(byAdding: .day, value: -1, to: self) ?? self
         case .week:
-            return calendar.date(byAdding: .weekOfYear, value: -1, to: self)!
+            return calendar.date(byAdding: .weekOfYear, value: -1, to: self) ?? self
         case .month:
-            return calendar.date(byAdding: .month, value: -1, to: self)!
+            return calendar.date(byAdding: .month, value: -1, to: self) ?? self
         }
     }
 

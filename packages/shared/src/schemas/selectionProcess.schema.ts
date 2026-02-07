@@ -22,6 +22,13 @@ export const selectionTurnStatusSchema = z.enum([
   "completed",
 ]);
 
+export const selectionAlgorithmSchema = z.enum([
+  "manual",
+  "quota_based",
+  "points_balance",
+  "fair_rotation",
+]);
+
 // ============================================================
 // Common Validation Helpers
 // ============================================================
@@ -68,10 +75,12 @@ export const createSelectionProcessSchema = z
     description: z.string().max(500, "Description too long").optional(),
     selectionStartDate: isoDateStringSchema,
     selectionEndDate: isoDateStringSchema,
+    algorithm: selectionAlgorithmSchema.optional(),
     memberOrder: z
       .array(createSelectionProcessMemberSchema)
       .min(1, "At least one member is required")
-      .max(100, "Maximum 100 members allowed"),
+      .max(100, "Maximum 100 members allowed")
+      .optional(),
   })
   .refine(
     (data) => {
@@ -82,6 +91,20 @@ export const createSelectionProcessSchema = z
     {
       message: "Selection end date must be after start date",
       path: ["selectionEndDate"],
+    },
+  )
+  .refine(
+    (data) => {
+      // memberOrder is required for manual algorithm (or when no algorithm specified)
+      const algo = data.algorithm ?? "manual";
+      if (algo === "manual") {
+        return data.memberOrder && data.memberOrder.length >= 1;
+      }
+      return true;
+    },
+    {
+      message: "Member order is required when using manual algorithm",
+      path: ["memberOrder"],
     },
   );
 
@@ -160,6 +183,20 @@ export const completeTurnSchema = z.object({});
  */
 export const cancelSelectionProcessSchema = z.object({
   reason: z.string().max(500).optional(),
+});
+
+// ============================================================
+// Compute Turn Order Schema
+// ============================================================
+
+export const computeTurnOrderSchema = z.object({
+  algorithm: selectionAlgorithmSchema,
+  memberIds: z
+    .array(z.string().min(1))
+    .min(1, "At least one member is required")
+    .max(100, "Maximum 100 members allowed"),
+  selectionStartDate: isoDateStringSchema,
+  selectionEndDate: isoDateStringSchema,
 });
 
 // ============================================================

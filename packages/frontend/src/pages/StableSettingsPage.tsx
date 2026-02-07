@@ -113,6 +113,8 @@ export default function StableSettingsPage() {
           allowSwaps: stableQuery.data.schedulingConfig.allowSwaps ?? true,
           requireApproval:
             stableQuery.data.schedulingConfig.requireApproval ?? false,
+          defaultSelectionAlgorithm:
+            stableQuery.data.schedulingConfig.defaultSelectionAlgorithm,
         });
       }
 

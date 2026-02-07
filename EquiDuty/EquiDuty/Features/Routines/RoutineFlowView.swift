@@ -118,7 +118,7 @@ struct RoutineFlowView: View {
             do {
                 guard let stableId = authService.selectedStable?.id,
                       let orgId = authService.selectedOrganization?.id else {
-                    errorMessage = "No stable selected"
+                    errorMessage = String(localized: "error.no_stable_selected")
                     isLoading = false
                     return
                 }
@@ -127,7 +127,7 @@ struct RoutineFlowView: View {
                 guard let fetchedInstance = try await routineService.getRoutineInstance(
                     instanceId: instanceId
                 ) else {
-                    errorMessage = "Routine not found"
+                    errorMessage = String(localized: "error.routine_not_found")
                     isLoading = false
                     return
                 }
@@ -317,7 +317,7 @@ struct RoutineProgressHeader: View {
 
     private var progress: Double {
         guard template.steps.count > 0 else { return 0 }
-        return Double(currentStepIndex) / Double(template.steps.count)
+        return Double(currentStepIndex + 1) / Double(template.steps.count)
     }
 
     private func stepColor(for index: Int) -> Color {
@@ -754,7 +754,7 @@ struct StepHorseListView: View {
     private func handleBlanketAction(
         horseId: String,
         horseName: String,
-        action: String
+        action: BlanketAction
     ) async {
         do {
             try await routineService.updateRoutineProgress(
@@ -811,7 +811,7 @@ struct StepHorseRow: View {
     var onMarkDone: ((String?) -> Void)?  // (notes) -> mark as done
     var onSkip: ((String) -> Void)?        // (reason) -> skip
     var onMedicationConfirm: ((Bool, String?) -> Void)?
-    var onBlanketAction: ((String) -> Void)?
+    var onBlanketAction: ((BlanketAction) -> Void)?
 
     @State private var isExpanded = false
     @State private var showSkipReasonSheet = false
@@ -939,6 +939,8 @@ struct StepHorseRow: View {
             y: EquiDutyDesign.Shadow.standard.y
         )
         .padding(.horizontal)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(horse.name), \(isDone ? (isCompleted ? String(localized: "routine.status.completed") : String(localized: "routine.status.skipped")) : String(localized: "routine.status.pending"))")
         .sheet(isPresented: $showSkipReasonSheet) {
             HorseSkipReasonSheet(
                 horseName: horse.name,
@@ -1546,7 +1548,7 @@ struct MedicationSkipReasonSheet: View {
 struct HorseBlanketSection: View {
     let blanketInfo: HorseBlanketContext
     var categoryNotes: [HorseDailyNote] = []
-    let onAction: (String) -> Void
+    let onAction: (BlanketAction) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.sm) {
@@ -1614,7 +1616,7 @@ struct HorseBlanketSection: View {
             // Action buttons
             HStack(spacing: EquiDutyDesign.Spacing.sm) {
                 Button {
-                    onAction("on")
+                    onAction(.on)
                 } label: {
                     Text(String(localized: "routine.horse.blanket.on"))
                         .font(.caption)
@@ -1625,7 +1627,7 @@ struct HorseBlanketSection: View {
                 .buttonStyle(.bordered)
 
                 Button {
-                    onAction("off")
+                    onAction(.off)
                 } label: {
                     Text(String(localized: "routine.horse.blanket.off"))
                         .font(.caption)
@@ -1636,7 +1638,7 @@ struct HorseBlanketSection: View {
                 .buttonStyle(.bordered)
 
                 Button {
-                    onAction("unchanged")
+                    onAction(.unchanged)
                 } label: {
                     Text(String(localized: "routine.horse.blanket.unchanged"))
                         .font(.caption)

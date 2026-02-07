@@ -472,7 +472,11 @@ export const queryKeys = {
     byOrganization: (organizationId: string) =>
       [...queryKeys.memberPackages.all, organizationId] as const,
     my: (organizationId: string, status?: string) =>
-      [...queryKeys.memberPackages.all, "my", { organizationId, status }] as const,
+      [
+        ...queryKeys.memberPackages.all,
+        "my",
+        { organizationId, status },
+      ] as const,
   },
 
   // Commission Configs
