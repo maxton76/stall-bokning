@@ -233,7 +233,9 @@ export default function ScheduleWeekPage() {
       <div className="container mx-auto p-6">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <h3 className="text-lg font-semibold mb-2">{t("common:schedule.noStables")}</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {t("common:schedule.noStables")}
+            </h3>
             <p className="text-muted-foreground">
               {t("common:schedule.noStablesDescription")}
             </p>
@@ -250,7 +252,8 @@ export default function ScheduleWeekPage() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {t("common:schedule.loadError")}: {error?.message || t("common:errors.generic")}
+            {t("common:schedule.loadError")}:{" "}
+            {error?.message || t("common:errors.generic")}
           </AlertDescription>
         </Alert>
       </div>
@@ -422,7 +425,11 @@ export default function ScheduleWeekPage() {
                       onClick={() => handleSlotClick(slot, day.date)}
                       className={`p-2 rounded-md border text-xs cursor-pointer transition-colors hover:opacity-80 ${getSlotStatusColor(slot)}`}
                     >
-                      <div className={`font-medium truncate ${slot.status === "cancelled" ? "line-through" : ""}`}>{slot.title}</div>
+                      <div
+                        className={`font-medium truncate ${slot.status === "cancelled" ? "line-through" : ""}`}
+                      >
+                        {slot.title}
+                      </div>
                       <div className="text-[10px] opacity-75">{slot.time}</div>
                       {slot.assignee ? (
                         <div className="text-[10px] font-bold mt-1">

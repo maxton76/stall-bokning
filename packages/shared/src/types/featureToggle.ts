@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from "firebase/firestore";
 
 /**
  * Feature toggle for controlling feature availability across all organizations.
@@ -18,13 +18,13 @@ export interface FeatureToggle {
   description: string;
 
   /** Feature category for organization in admin UI */
-  category: 'primary' | 'secondary';
+  category: "primary" | "secondary";
 
   /** Optional dependency on another feature (e.g., trainerCommission depends on lessons) */
   dependsOn?: string;
 
   /** Current rollout phase for tracking feature maturity */
-  rolloutPhase?: 'internal' | 'beta' | 'general';
+  rolloutPhase?: "internal" | "beta" | "general";
 
   /** Last update timestamp */
   updatedAt?: Timestamp;
@@ -46,7 +46,7 @@ export interface FeatureToggleMap {
  */
 export interface UpdateFeatureToggleRequest {
   enabled: boolean;
-  rolloutPhase?: 'internal' | 'beta' | 'general';
+  rolloutPhase?: "internal" | "beta" | "general";
 }
 
 /**
@@ -63,7 +63,7 @@ export interface CheckFeaturesResponse {
   features: {
     [key: string]: {
       enabled: boolean;
-      reason: 'global-enabled' | 'beta-access' | 'disabled' | 'no-toggle';
+      reason: "global-enabled" | "beta-access" | "disabled" | "no-toggle";
     };
   };
 }

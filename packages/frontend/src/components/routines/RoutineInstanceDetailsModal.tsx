@@ -263,8 +263,7 @@ export function RoutineInstanceDetailsModal({
     (canManageSchedules || isAssignee) &&
     ["scheduled", "started", "in_progress"].includes(slot?.status ?? "");
 
-  const canDeleteInstance =
-    canManageSchedules && slot?.status === "scheduled";
+  const canDeleteInstance = canManageSchedules && slot?.status === "scheduled";
 
   const isMutating =
     cancelMutation.isPending ||

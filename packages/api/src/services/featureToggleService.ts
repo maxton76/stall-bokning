@@ -40,7 +40,7 @@ export async function getGlobalFeatureToggles(): Promise<FeatureToggleMap> {
 
   if (!doc.exists) {
     console.warn(
-      "Feature toggles document not found, returning empty map. Run initialization script."
+      "Feature toggles document not found, returning empty map. Run initialization script.",
     );
     return {};
   }
@@ -60,7 +60,7 @@ export async function getGlobalFeatureToggles(): Promise<FeatureToggleMap> {
  * Check if a feature is globally enabled
  */
 export async function isFeatureGloballyEnabled(
-  featureKey: string
+  featureKey: string,
 ): Promise<boolean> {
   const toggles = await getGlobalFeatureToggles();
   const toggle = toggles[featureKey];
@@ -79,7 +79,7 @@ export async function isFeatureGloballyEnabled(
 export async function updateFeatureToggle(
   featureKey: string,
   update: UpdateFeatureToggleRequest,
-  userId: string
+  userId: string,
 ): Promise<void> {
   const db = getFirestore();
   const docRef = db.doc(FEATURE_TOGGLES_DOC);
@@ -88,7 +88,7 @@ export async function updateFeatureToggle(
   const doc = await docRef.get();
   if (!doc.exists) {
     throw new Error(
-      "Feature toggles document not found. Run initialization script."
+      "Feature toggles document not found. Run initialization script.",
     );
   }
 
@@ -126,7 +126,7 @@ export async function updateFeatureToggle(
  */
 export async function isFeatureEnabledForOrg(
   featureKey: string,
-  organizationId: string
+  organizationId: string,
 ): Promise<{
   enabled: boolean;
   reason: "global-enabled" | "beta-access" | "disabled" | "no-toggle";

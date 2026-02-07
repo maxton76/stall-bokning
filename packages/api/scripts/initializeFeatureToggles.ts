@@ -20,7 +20,7 @@ const __dirname = path.dirname(__filename);
 // Initialize Firebase Admin
 const serviceAccountPath = path.resolve(
   __dirname,
-  "../service-account-dev.json"
+  "../service-account-dev.json",
 );
 
 initializeApp({
@@ -40,7 +40,8 @@ const featureToggles: FeatureToggleMap = {
     key: "lessons",
     enabled: true,
     name: "Lessons",
-    description: "Lesson management system with scheduling and instructor tracking",
+    description:
+      "Lesson management system with scheduling and instructor tracking",
     category: "primary",
     rolloutPhase: "general",
   },
@@ -116,11 +117,9 @@ async function initializeFeatureToggles() {
     const doc = await docRef.get();
     if (doc.exists) {
       console.warn(
-        "⚠️  Feature toggles document already exists. Skipping initialization."
+        "⚠️  Feature toggles document already exists. Skipping initialization.",
       );
-      console.log(
-        "   Use updateFeatureToggle API to modify existing toggles."
-      );
+      console.log("   Use updateFeatureToggle API to modify existing toggles.");
       process.exit(0);
     }
 
@@ -128,7 +127,9 @@ async function initializeFeatureToggles() {
     await docRef.set(featureToggles);
 
     console.log("✅ Feature toggles initialized successfully!");
-    console.log(`   Created ${Object.keys(featureToggles).length} feature toggles`);
+    console.log(
+      `   Created ${Object.keys(featureToggles).length} feature toggles`,
+    );
     console.log("\n📊 Feature Toggle Summary:");
 
     // Show enabled/disabled counts
@@ -149,7 +150,7 @@ async function initializeFeatureToggles() {
     });
 
     console.log(
-      "\n💡 Next steps:\n   1. Deploy API with feature toggle routes\n   2. Use admin UI to manage toggles\n   3. Enable features for beta organizations as needed"
+      "\n💡 Next steps:\n   1. Deploy API with feature toggle routes\n   2. Use admin UI to manage toggles\n   3. Enable features for beta organizations as needed",
     );
 
     process.exit(0);

@@ -1159,7 +1159,10 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
           },
         });
       } catch (error) {
-        request.log.error({ error }, "Failed to get organization beta features");
+        request.log.error(
+          { error },
+          "Failed to get organization beta features",
+        );
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to get organization beta features",
@@ -1198,9 +1201,8 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
         }
 
         // Validate that all feature keys exist in global toggles
-        const { getGlobalFeatureToggles } = await import(
-          "../services/featureToggleService.js"
-        );
+        const { getGlobalFeatureToggles } =
+          await import("../services/featureToggleService.js");
         const toggles = await getGlobalFeatureToggles();
 
         for (const featureKey of betaFeatures) {

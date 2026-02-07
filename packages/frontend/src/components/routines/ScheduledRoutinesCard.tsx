@@ -92,7 +92,8 @@ function extractHorsesFromProgress(
             seenHorseIds.add(horseProgress.horseId);
             horses.push({
               id: horseProgress.horseId,
-              name: horseNameMap[horseProgress.horseId] || horseProgress.horseId,
+              name:
+                horseNameMap[horseProgress.horseId] || horseProgress.horseId,
               completed: horseProgress.completed || horseProgress.skipped,
             });
           }

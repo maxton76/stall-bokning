@@ -1754,8 +1754,7 @@ export async function routinesRoutes(fastify: FastifyInstance) {
         if (!canManage) {
           return reply.status(403).send({
             error: "Forbidden",
-            message:
-              "You do not have permission to delete routine instances",
+            message: "You do not have permission to delete routine instances",
           });
         }
 
@@ -1939,10 +1938,14 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           .doc(`${assignedTo}_${data.organizationId}`)
           .get();
 
-        if (!assigneeMemberDoc.exists || assigneeMemberDoc.data()?.status !== "active") {
+        if (
+          !assigneeMemberDoc.exists ||
+          assigneeMemberDoc.data()?.status !== "active"
+        ) {
           return reply.status(400).send({
             error: "Bad Request",
-            message: "Assigned user must be an active member of the organization",
+            message:
+              "Assigned user must be an active member of the organization",
           });
         }
 

@@ -28,7 +28,7 @@ const adminPreHandler = [authenticate, requireSystemAdmin];
  * - POST /api/v1/feature-toggles/check - Check if features are enabled for current org
  */
 export default async function featureToggleRoutes(
-  fastify: FastifyInstance
+  fastify: FastifyInstance,
 ): Promise<void> {
   /**
    * GET /api/v1/admin/feature-toggles
@@ -54,7 +54,7 @@ export default async function featureToggleRoutes(
           error: "Failed to fetch feature toggles",
         });
       }
-    }
+    },
   );
 
   /**
@@ -96,8 +96,7 @@ export default async function featureToggleRoutes(
         ) {
           return reply.code(400).send({
             success: false,
-            error:
-              "rolloutPhase must be one of: internal, beta, general",
+            error: "rolloutPhase must be one of: internal, beta, general",
           });
         }
 
@@ -122,7 +121,7 @@ export default async function featureToggleRoutes(
           error: "Failed to update feature toggle",
         });
       }
-    }
+    },
   );
 
   /**
@@ -150,7 +149,7 @@ export default async function featureToggleRoutes(
           error: "Failed to invalidate cache",
         });
       }
-    }
+    },
   );
 
   /**
@@ -200,7 +199,7 @@ export default async function featureToggleRoutes(
         for (const featureKey of features) {
           const result = await isFeatureEnabledForOrg(
             featureKey,
-            organizationId
+            organizationId,
           );
           results[featureKey] = result;
         }
@@ -218,6 +217,6 @@ export default async function featureToggleRoutes(
           error: "Failed to check features",
         });
       }
-    }
+    },
   );
 }
