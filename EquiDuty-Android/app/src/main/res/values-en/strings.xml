@@ -1,0 +1,149 @@
+<resources>
+    <string name="app_name">EquiDuty</string>
+
+    <!-- Navigation -->
+    <string name="nav_today">Today</string>
+    <string name="nav_horses">Horses</string>
+    <string name="nav_feeding">Feeding</string>
+    <string name="nav_routines">Routines</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Auth -->
+    <string name="auth_login">Sign In</string>
+    <string name="auth_signup">Create Account</string>
+    <string name="auth_signout">Sign Out</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_first_name">First Name</string>
+    <string name="auth_last_name">Last Name</string>
+    <string name="auth_forgot_password">Forgot password?</string>
+    <string name="auth_no_account">Don\'t have an account?</string>
+    <string name="auth_has_account">Already have an account?</string>
+    <string name="auth_google_signin">Sign in with Google</string>
+    <string name="auth_creating_account">Creating account…</string>
+    <string name="auth_signing_in">Signing in…</string>
+
+    <!-- Common -->
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="back">Back</string>
+    <string name="loading">Loading…</string>
+    <string name="error_generic">Something went wrong</string>
+    <string name="retry">Retry</string>
+    <string name="search">Search</string>
+    <string name="filter">Filter</string>
+    <string name="active">Active</string>
+    <string name="inactive">Inactive</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+
+    <!-- Horses -->
+    <string name="horses_title">Horses</string>
+    <string name="horses_empty_title">No horses</string>
+    <string name="horses_empty_message">No horses found</string>
+    <string name="horses_search_placeholder">Search horses…</string>
+    <string name="horses_show_active_only">Show active</string>
+    <string name="horse_add">Add horse</string>
+    <string name="horse_detail_info">Info</string>
+    <string name="horse_detail_health">Health</string>
+    <string name="horse_detail_team">Team</string>
+    <string name="horse_detail_history">History</string>
+    <string name="horse_basic_info">Basic Information</string>
+    <string name="horse_care_info">Care</string>
+    <string name="horse_name">Name</string>
+    <string name="horse_breed">Breed</string>
+    <string name="horse_color">Color</string>
+    <string name="horse_birth_year">Birth Year</string>
+    <string name="horse_gender">Gender</string>
+    <string name="horse_owner">Owner</string>
+
+    <!-- Feeding -->
+    <string name="feeding_title">Feeding</string>
+    <string name="feeding_today">Today\'s Feeding</string>
+    <string name="feeding_types">Feed Types</string>
+    <string name="feeding_empty_title">No feeding</string>
+    <string name="feeding_empty_message">No feeding schedules have been created for this stable</string>
+    <string name="feeding_types_empty_title">No feed types</string>
+    <string name="feeding_types_empty_message">No feed types have been created yet</string>
+    <string name="feeding_category_roughage">Roughage</string>
+    <string name="feeding_category_concentrate">Concentrate</string>
+    <string name="feeding_category_supplement">Supplement</string>
+    <string name="feeding_category_medicine">Medicine</string>
+    <string name="feeding_default_quantity">Default: %1$s</string>
+
+    <!-- Routines -->
+    <string name="routines_title">Routines</string>
+    <string name="routines_empty_title">No routines</string>
+    <string name="routines_empty_message">No routine templates have been created for this stable</string>
+    <string name="routine_start">Start</string>
+    <string name="routine_step_of">Step %1$d of %2$d</string>
+    <string name="routine_complete_step">Complete Step</string>
+    <string name="routine_skip_step">Skip</string>
+    <string name="routine_completing">Completing routine…</string>
+    <string name="routine_completed">Routine completed!</string>
+    <string name="routine_back_to_list">Back to routines</string>
+    <string name="routine_photo_required">Photo required</string>
+    <string name="routine_daily_notes_title">Daily Notes</string>
+    <string name="routine_daily_notes_acknowledge">I have read the notes</string>
+    <string name="routine_warnings">Warnings</string>
+    <string name="routine_horse_notes">Horse Notes</string>
+    <string name="routine_general_notes">General Notes</string>
+
+    <!-- Activities -->
+    <string name="activities_title">Activities</string>
+    <string name="activities_empty_title">No activities</string>
+    <string name="activities_empty_message">No activities scheduled for this period</string>
+    <string name="activity_add">Create activity</string>
+    <string name="activity_title_label">Title</string>
+    <string name="activity_description">Description</string>
+    <string name="activity_date">Date</string>
+    <string name="activity_start_time">Start time</string>
+    <string name="activity_end_time">End time</string>
+    <string name="activity_category">Category</string>
+    <string name="activity_notes">Notes</string>
+
+    <!-- Today -->
+    <string name="today_title">Today</string>
+    <string name="today_show_mine">Show mine</string>
+    <string name="today_period_day">Day</string>
+    <string name="today_period_week">Week</string>
+    <string name="today_period_month">Month</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_account">Account</string>
+    <string name="settings_organization">Organization</string>
+    <string name="settings_stable">Stable</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_select_organization">Select organization</string>
+    <string name="settings_select_stable">Select stable</string>
+    <string name="settings_notifications_email">Email</string>
+    <string name="settings_notifications_push">Push</string>
+    <string name="settings_notifications_sms">SMS</string>
+    <string name="settings_notifications_telegram">Telegram</string>
+    <string name="settings_language_swedish">Svenska</string>
+    <string name="settings_language_english">English</string>
+
+    <!-- Permissions & Subscription -->
+    <string name="permission_denied">Access denied</string>
+    <string name="feature_upgrade_required">This feature requires an upgrade</string>
+    <string name="feature_upgrade_message">Contact your administrator to upgrade the subscription.</string>
+    <string name="limit_reached">Limit reached</string>
+    <string name="limit_reached_message">You have reached the maximum limit for your current subscription. Upgrade to add more.</string>
+
+    <!-- Errors -->
+    <string name="error_load_horses">Could not load horses</string>
+    <string name="error_load_routines">Could not load routines</string>
+    <string name="error_load_feeding">Could not load feeding data</string>
+    <string name="error_load_activities">Could not load activities</string>
+    <string name="error_save_failed">Could not save</string>
+    <string name="error_delete_failed">Could not delete</string>
+    <string name="error_start_routine">Could not start routine</string>
+    <string name="error_complete_step">Could not complete step</string>
+    <string name="error_skip_step">Could not skip step</string>
+    <string name="error_complete_routine">Could not complete routine</string>
+    <string name="error_network">Network error. Check your connection.</string>
+</resources>

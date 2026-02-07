@@ -1,0 +1,149 @@
+<resources>
+    <string name="app_name">EquiDuty</string>
+
+    <!-- Navigation -->
+    <string name="nav_today">Idag</string>
+    <string name="nav_horses">Hästar</string>
+    <string name="nav_feeding">Utfodring</string>
+    <string name="nav_routines">Rutiner</string>
+    <string name="nav_settings">Inställningar</string>
+
+    <!-- Auth -->
+    <string name="auth_login">Logga in</string>
+    <string name="auth_signup">Skapa konto</string>
+    <string name="auth_signout">Logga ut</string>
+    <string name="auth_email">E-postadress</string>
+    <string name="auth_password">Lösenord</string>
+    <string name="auth_first_name">Förnamn</string>
+    <string name="auth_last_name">Efternamn</string>
+    <string name="auth_forgot_password">Glömt lösenord?</string>
+    <string name="auth_no_account">Har du inget konto?</string>
+    <string name="auth_has_account">Har du redan ett konto?</string>
+    <string name="auth_google_signin">Logga in med Google</string>
+    <string name="auth_creating_account">Skapar konto…</string>
+    <string name="auth_signing_in">Loggar in…</string>
+
+    <!-- Common -->
+    <string name="save">Spara</string>
+    <string name="cancel">Avbryt</string>
+    <string name="delete">Ta bort</string>
+    <string name="edit">Redigera</string>
+    <string name="back">Tillbaka</string>
+    <string name="loading">Laddar…</string>
+    <string name="error_generic">Något gick fel</string>
+    <string name="retry">Försök igen</string>
+    <string name="search">Sök</string>
+    <string name="filter">Filter</string>
+    <string name="active">Aktiv</string>
+    <string name="inactive">Inaktiv</string>
+    <string name="yes">Ja</string>
+    <string name="no">Nej</string>
+
+    <!-- Horses -->
+    <string name="horses_title">Hästar</string>
+    <string name="horses_empty_title">Inga hästar</string>
+    <string name="horses_empty_message">Inga hästar hittades</string>
+    <string name="horses_search_placeholder">Sök hästar…</string>
+    <string name="horses_show_active_only">Visa aktiva</string>
+    <string name="horse_add">Lägg till häst</string>
+    <string name="horse_detail_info">Info</string>
+    <string name="horse_detail_health">Hälsa</string>
+    <string name="horse_detail_team">Team</string>
+    <string name="horse_detail_history">Historik</string>
+    <string name="horse_basic_info">Grundinformation</string>
+    <string name="horse_care_info">Skötsel</string>
+    <string name="horse_name">Namn</string>
+    <string name="horse_breed">Ras</string>
+    <string name="horse_color">Färg</string>
+    <string name="horse_birth_year">Födelseår</string>
+    <string name="horse_gender">Kön</string>
+    <string name="horse_owner">Ägare</string>
+
+    <!-- Feeding -->
+    <string name="feeding_title">Utfodring</string>
+    <string name="feeding_today">Dagens utfodring</string>
+    <string name="feeding_types">Fodertyper</string>
+    <string name="feeding_empty_title">Ingen utfodring</string>
+    <string name="feeding_empty_message">Inga utfodringsscheman har skapats för detta stall</string>
+    <string name="feeding_types_empty_title">Inga fodertyper</string>
+    <string name="feeding_types_empty_message">Inga fodertyper har skapats ännu</string>
+    <string name="feeding_category_roughage">Grovfoder</string>
+    <string name="feeding_category_concentrate">Kraftfoder</string>
+    <string name="feeding_category_supplement">Tillskott</string>
+    <string name="feeding_category_medicine">Medicin</string>
+    <string name="feeding_default_quantity">Standard: %1$s</string>
+
+    <!-- Routines -->
+    <string name="routines_title">Rutiner</string>
+    <string name="routines_empty_title">Inga rutiner</string>
+    <string name="routines_empty_message">Inga rutinmallar har skapats för detta stall</string>
+    <string name="routine_start">Starta</string>
+    <string name="routine_step_of">Steg %1$d av %2$d</string>
+    <string name="routine_complete_step">Slutför steg</string>
+    <string name="routine_skip_step">Hoppa över</string>
+    <string name="routine_completing">Slutför rutin…</string>
+    <string name="routine_completed">Rutin slutförd!</string>
+    <string name="routine_back_to_list">Tillbaka till rutiner</string>
+    <string name="routine_photo_required">Foto krävs</string>
+    <string name="routine_daily_notes_title">Dagens anteckningar</string>
+    <string name="routine_daily_notes_acknowledge">Jag har läst anteckningarna</string>
+    <string name="routine_warnings">Varningar</string>
+    <string name="routine_horse_notes">Hästanteckningar</string>
+    <string name="routine_general_notes">Allmänna anteckningar</string>
+
+    <!-- Activities -->
+    <string name="activities_title">Aktiviteter</string>
+    <string name="activities_empty_title">Inga aktiviteter</string>
+    <string name="activities_empty_message">Inga aktiviteter schemalagda för denna period</string>
+    <string name="activity_add">Skapa aktivitet</string>
+    <string name="activity_title_label">Titel</string>
+    <string name="activity_description">Beskrivning</string>
+    <string name="activity_date">Datum</string>
+    <string name="activity_start_time">Starttid</string>
+    <string name="activity_end_time">Sluttid</string>
+    <string name="activity_category">Kategori</string>
+    <string name="activity_notes">Anteckningar</string>
+
+    <!-- Today -->
+    <string name="today_title">Idag</string>
+    <string name="today_show_mine">Visa mina</string>
+    <string name="today_period_day">Dag</string>
+    <string name="today_period_week">Vecka</string>
+    <string name="today_period_month">Månad</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Inställningar</string>
+    <string name="settings_account">Konto</string>
+    <string name="settings_organization">Organisation</string>
+    <string name="settings_stable">Stall</string>
+    <string name="settings_notifications">Notifikationer</string>
+    <string name="settings_language">Språk</string>
+    <string name="settings_select_organization">Välj organisation</string>
+    <string name="settings_select_stable">Välj stall</string>
+    <string name="settings_notifications_email">E-post</string>
+    <string name="settings_notifications_push">Push</string>
+    <string name="settings_notifications_sms">SMS</string>
+    <string name="settings_notifications_telegram">Telegram</string>
+    <string name="settings_language_swedish">Svenska</string>
+    <string name="settings_language_english">English</string>
+
+    <!-- Permissions & Subscription -->
+    <string name="permission_denied">Åtkomst nekad</string>
+    <string name="feature_upgrade_required">Funktionen kräver en uppgradering</string>
+    <string name="feature_upgrade_message">Kontakta din administratör för att uppgradera prenumerationen.</string>
+    <string name="limit_reached">Gränsen har nåtts</string>
+    <string name="limit_reached_message">Du har nått maxgränsen för din nuvarande prenumeration. Uppgradera för att lägga till fler.</string>
+
+    <!-- Errors -->
+    <string name="error_load_horses">Kunde inte ladda hästar</string>
+    <string name="error_load_routines">Kunde inte ladda rutiner</string>
+    <string name="error_load_feeding">Kunde inte ladda utfodringsdata</string>
+    <string name="error_load_activities">Kunde inte ladda aktiviteter</string>
+    <string name="error_save_failed">Kunde inte spara</string>
+    <string name="error_delete_failed">Kunde inte ta bort</string>
+    <string name="error_start_routine">Kunde inte starta rutin</string>
+    <string name="error_complete_step">Kunde inte slutföra steg</string>
+    <string name="error_skip_step">Kunde inte hoppa över steg</string>
+    <string name="error_complete_routine">Kunde inte slutföra rutin</string>
+    <string name="error_network">Nätverksfel. Kontrollera din anslutning.</string>
+</resources>
