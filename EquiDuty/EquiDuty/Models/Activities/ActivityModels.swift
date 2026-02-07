@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 /// Activity instance status
 enum ActivityInstanceStatus: String, Codable, CaseIterable {
@@ -25,13 +26,13 @@ enum ActivityInstanceStatus: String, Codable, CaseIterable {
         }
     }
 
-    var color: String {
+    var color: Color {
         switch self {
-        case .pending: return "blue"
-        case .inProgress: return "orange"
-        case .completed: return "green"
-        case .cancelled: return "gray"
-        case .overdue: return "red"
+        case .pending: return .blue
+        case .inProgress: return .orange
+        case .completed: return .green
+        case .cancelled: return .gray
+        case .overdue: return .red
         }
     }
 
@@ -262,12 +263,12 @@ enum TaskPriority: String, Codable, CaseIterable {
         }
     }
 
-    var color: String {
+    var color: Color {
         switch self {
-        case .low: return "gray"
-        case .medium: return "blue"
-        case .high: return "orange"
-        case .urgent: return "red"
+        case .low: return .gray
+        case .medium: return .blue
+        case .high: return .orange
+        case .urgent: return .red
         }
     }
 }

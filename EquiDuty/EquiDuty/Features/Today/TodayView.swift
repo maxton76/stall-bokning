@@ -89,6 +89,12 @@ struct TodayView: View {
             .onChange(of: authService.selectedStable?.id) { _, _ in
                 viewModel.loadData()
             }
+            .onChange(of: router.todayPath.count) { oldCount, newCount in
+                // Reload data when navigating back (path gets shorter)
+                if newCount < oldCount {
+                    viewModel.forceLoadData()
+                }
+            }
             .sheet(isPresented: $viewModel.showFilterSheet) {
                 TodayFilterSheet(filters: $viewModel.filters) {
                     // Filters applied - data updates via computed properties
@@ -405,7 +411,7 @@ struct RoutineCard: View {
 
                 ModernStatusBadge(
                     status: routine.status.displayName,
-                    color: Color(routine.status.color),
+                    color: routine.status.color,
                     icon: statusIcon,
                     isAnimating: isActive
                 )
@@ -481,7 +487,7 @@ struct ActivityCard: View {
 
                 ModernStatusBadge(
                     status: activity.status.displayName,
-                    color: Color(activity.status.color),
+                    color: activity.status.color,
                     icon: statusIcon,
                     isAnimating: isInProgress
                 )

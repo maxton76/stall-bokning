@@ -49,6 +49,9 @@ protocol ActivityServiceProtocol {
 
     /// Cancel an activity
     func cancelActivity(activityId: String) async throws
+
+    /// Delete an activity
+    func deleteActivity(activityId: String) async throws
 }
 
 // MARK: - Request Types

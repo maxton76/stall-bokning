@@ -41,6 +41,11 @@ final class AuthService {
 
     private(set) var authState: AuthState = .unknown
     private(set) var currentUser: User?
+
+    /// Firebase Auth UID — the canonical user identifier used across Firestore
+    var firebaseUid: String? {
+        Auth.auth().currentUser?.uid
+    }
     private(set) var organizations: [Organization] = []
     private(set) var isLoading = false
     private(set) var error: Error?
@@ -206,6 +211,15 @@ final class AuthService {
                 }
             }
 
+            // Load user preferences (language, timezone, notifications, defaults)
+            Task {
+                await UserSettingsService.shared.fetchPreferences()
+                // Apply synced language if different from current device language
+                if let prefs = UserSettingsService.shared.preferences {
+                    applyLanguageFromPreferences(prefs.language)
+                }
+            }
+
             // Load subscription and permissions for selected organization
             if let orgId = selectedOrganization?.id {
                 Task {
@@ -244,12 +258,13 @@ final class AuthService {
         authState = .signedOut
         keychain.clearAll()
 
-        // Clear permission and subscription caches
+        // Clear permission, subscription, and settings caches
         PermissionService.shared.clearCache()
         SubscriptionService.shared.clearCache()
+        UserSettingsService.shared.clearCache()
 
         #if DEBUG
-        print("✅ Cleared all auth state, permissions, and subscription data")
+        print("✅ Cleared all auth state, permissions, subscription, and settings data")
         #endif
     }
 
@@ -273,9 +288,9 @@ final class AuthService {
     /// Load complete organization context (stables, permissions, subscription)
     private func loadOrganizationContext(organizationId: String) async {
         // Load in parallel: stables, permissions, subscription
-        async let stablesTask = fetchAndRestoreStable(organizationId: organizationId)
-        async let permissionsTask = loadPermissions(organizationId: organizationId)
-        async let subscriptionTask = loadSubscription(organizationId: organizationId)
+        async let stablesTask: Void = fetchAndRestoreStable(organizationId: organizationId)
+        async let permissionsTask: Void = loadPermissions(organizationId: organizationId)
+        async let subscriptionTask: Void = loadSubscription(organizationId: organizationId)
 
         // Wait for all to complete
         _ = await (stablesTask, permissionsTask, subscriptionTask)
@@ -317,6 +332,19 @@ final class AuthService {
         } catch {
             #if DEBUG
             print("⚠️ Failed to load subscription: \(error)")
+            #endif
+        }
+    }
+
+    /// Apply language from synced preferences to iOS locale if different
+    private func applyLanguageFromPreferences(_ language: String) {
+        let storedLanguages = UserDefaults.standard.stringArray(forKey: "AppleLanguages")
+        let currentLang = storedLanguages?.first
+        if currentLang != language {
+            UserDefaults.standard.set([language], forKey: "AppleLanguages")
+            UserDefaults.standard.synchronize()
+            #if DEBUG
+            print("✅ Applied synced language preference: \(language) (was: \(currentLang ?? "nil"))")
             #endif
         }
     }

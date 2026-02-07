@@ -190,4 +190,9 @@ extension PermissionService {
     var canManageOwnHorses: Bool {
         hasPermission(.manageOwnHorses)
     }
+
+    /// Check if user can manage activities
+    var canManageActivities: Bool {
+        hasPermission(.manageActivities)
+    }
 }

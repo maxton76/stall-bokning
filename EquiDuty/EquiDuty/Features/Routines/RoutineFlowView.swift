@@ -1223,7 +1223,7 @@ struct HorseAlertBadge: View {
     var body: some View {
         Image(systemName: "exclamationmark.triangle.fill")
             .font(.caption)
-            .foregroundStyle(Color(highestPriority.color))
+            .foregroundStyle(highestPriority.color)
     }
 }
 
@@ -1242,7 +1242,7 @@ struct HorseNotesBadge: View {
                     .font(.caption2)
             }
         }
-        .foregroundStyle(Color(priority.color))
+        .foregroundStyle(priority.color)
     }
 }
 
@@ -1258,13 +1258,13 @@ struct HorseGeneralNotesSection: View {
                 HStack(alignment: .top, spacing: EquiDutyDesign.Spacing.sm) {
                     Image(systemName: note.noteCategory.icon)
                         .font(.caption)
-                        .foregroundStyle(Color(note.priority.color))
+                        .foregroundStyle(note.priority.color)
 
                     VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.xs / 2) {
                         Text(note.noteCategory.displayName)
                             .font(.caption2)
                             .fontWeight(.semibold)
-                            .foregroundStyle(Color(note.priority.color))
+                            .foregroundStyle(note.priority.color)
 
                         Text(note.note)
                             .font(.caption)
@@ -1273,10 +1273,10 @@ struct HorseGeneralNotesSection: View {
                 }
                 .padding(EquiDutyDesign.Spacing.sm)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(note.priority.color).opacity(0.1))
+                .background(note.priority.color.opacity(0.1))
                 .overlay(
                     RoundedRectangle(cornerRadius: EquiDutyDesign.CornerRadius.small, style: .continuous)
-                        .stroke(Color(note.priority.color).opacity(0.3), lineWidth: 1)
+                        .stroke(note.priority.color.opacity(0.3), lineWidth: 1)
                 )
                 .continuousCorners(EquiDutyDesign.CornerRadius.small)
             }
@@ -1319,7 +1319,7 @@ struct HorseCategoryNotesSection: View {
                 HStack(alignment: .top, spacing: EquiDutyDesign.Spacing.sm) {
                     Image(systemName: note.priority.icon)
                         .font(.caption2)
-                        .foregroundStyle(Color(note.priority.color))
+                        .foregroundStyle(note.priority.color)
 
                     Text(note.note)
                         .font(.caption)
@@ -1389,7 +1389,7 @@ struct HorseFeedingInfoSection: View {
                     HStack(alignment: .top, spacing: EquiDutyDesign.Spacing.sm) {
                         Image(systemName: note.priority.icon)
                             .font(.caption2)
-                            .foregroundStyle(Color(note.priority.color))
+                            .foregroundStyle(note.priority.color)
 
                         Text(note.note)
                             .font(.caption)
@@ -1464,7 +1464,7 @@ struct HorseMedicationSection: View {
                     HStack(alignment: .top, spacing: EquiDutyDesign.Spacing.sm) {
                         Image(systemName: note.priority.icon)
                             .font(.caption2)
-                            .foregroundStyle(Color(note.priority.color))
+                            .foregroundStyle(note.priority.color)
 
                         Text(note.note)
                             .font(.caption)
@@ -1604,7 +1604,7 @@ struct HorseBlanketSection: View {
                     HStack(alignment: .top, spacing: EquiDutyDesign.Spacing.sm) {
                         Image(systemName: note.priority.icon)
                             .font(.caption2)
-                            .foregroundStyle(Color(note.priority.color))
+                            .foregroundStyle(note.priority.color)
 
                         Text(note.note)
                             .font(.caption)
@@ -1803,7 +1803,7 @@ struct AlertCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: EquiDutyDesign.Spacing.md) {
             Image(systemName: alert.priority.icon)
-                .foregroundStyle(Color(alert.priority.color))
+                .foregroundStyle(alert.priority.color)
 
             VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.xs) {
                 Text(alert.title)
@@ -1822,7 +1822,7 @@ struct AlertCard: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(alert.priority.color).opacity(0.1))
+        .background(alert.priority.color.opacity(0.1))
         .continuousCorners(EquiDutyDesign.CornerRadius.card)
         .shadow(
             color: EquiDutyDesign.Shadow.subtle.color,
@@ -1840,7 +1840,7 @@ struct HorseNoteCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: EquiDutyDesign.Spacing.md) {
             Image(systemName: note.priority.icon)
-                .foregroundStyle(Color(note.priority.color))
+                .foregroundStyle(note.priority.color)
 
             VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.xs) {
                 Text(note.horseName)

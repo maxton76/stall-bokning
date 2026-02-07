@@ -209,29 +209,57 @@ struct AccountView: View {
 // MARK: - Notification Settings View
 
 struct NotificationSettingsView: View {
-    @AppStorage("notifications_enabled") private var notificationsEnabled = true
-    @AppStorage("notifications_routines") private var routineNotifications = true
-    @AppStorage("notifications_feeding") private var feedingNotifications = true
-    @AppStorage("notifications_activities") private var activityNotifications = true
+    @State private var settingsService = UserSettingsService.shared
+    @State private var isSaving = false
+
+    private var notifications: NotificationPreferences {
+        settingsService.preferences?.notifications ?? .defaults
+    }
 
     var body: some View {
         List {
             Section {
-                Toggle(String(localized: "notifications.enabled"), isOn: $notificationsEnabled)
+                Toggle(String(localized: "notifications.email"), isOn: binding(for: \.email))
+                    .disabled(isSaving)
+                Toggle(String(localized: "notifications.push"), isOn: binding(for: \.push))
+                    .disabled(isSaving)
             }
 
             Section(String(localized: "notifications.categories")) {
-                Toggle(String(localized: "notifications.routines"), isOn: $routineNotifications)
-                    .disabled(!notificationsEnabled)
+                Toggle(String(localized: "notifications.routines"), isOn: binding(for: \.routines))
+                    .disabled(isSaving)
 
-                Toggle(String(localized: "notifications.feeding"), isOn: $feedingNotifications)
-                    .disabled(!notificationsEnabled)
+                Toggle(String(localized: "notifications.feeding"), isOn: binding(for: \.feeding))
+                    .disabled(isSaving)
 
-                Toggle(String(localized: "notifications.activities"), isOn: $activityNotifications)
-                    .disabled(!notificationsEnabled)
+                Toggle(String(localized: "notifications.activities"), isOn: binding(for: \.activities))
+                    .disabled(isSaving)
             }
         }
         .navigationTitle(String(localized: "notifications.title"))
+    }
+
+    /// Create a binding that syncs the toggle to the API
+    private func binding(for keyPath: WritableKeyPath<NotificationPreferences, Bool>) -> Binding<Bool> {
+        Binding(
+            get: { notifications[keyPath: keyPath] },
+            set: { newValue in
+                isSaving = true
+                Task {
+                    defer { isSaving = false }
+                    var partial = UpdatePreferencesInput.PartialNotificationPreferences()
+                    switch keyPath {
+                    case \.email: partial.email = newValue
+                    case \.push: partial.push = newValue
+                    case \.routines: partial.routines = newValue
+                    case \.feeding: partial.feeding = newValue
+                    case \.activities: partial.activities = newValue
+                    default: break
+                    }
+                    try? await settingsService.setNotifications(partial)
+                }
+            }
+        )
     }
 }
 
@@ -257,15 +285,20 @@ struct LanguageSettingsView: View {
         Language(code: "en", name: "English", nativeName: "English")
     ]
 
+    @State private var settingsService = UserSettingsService.shared
     @State private var selectedLanguage: String
     @State private var showRestartAlert = false
     @State private var pendingLanguage: String?
 
     init() {
-        // Get the current app language from UserDefaults or system
-        let storedLanguages = UserDefaults.standard.stringArray(forKey: "AppleLanguages")
-        let currentLang = storedLanguages?.first ?? Locale.current.language.languageCode?.identifier ?? "sv"
-        _selectedLanguage = State(initialValue: currentLang)
+        // Prefer synced preference, fall back to UserDefaults/system
+        if let synced = UserSettingsService.shared.preferences?.language {
+            _selectedLanguage = State(initialValue: synced)
+        } else {
+            let storedLanguages = UserDefaults.standard.stringArray(forKey: "AppleLanguages")
+            let currentLang = storedLanguages?.first ?? Locale.current.language.languageCode?.identifier ?? "sv"
+            _selectedLanguage = State(initialValue: currentLang)
+        }
     }
 
     var body: some View {
@@ -334,12 +367,17 @@ struct LanguageSettingsView: View {
     }
 
     private func changeLanguage(to languageCode: String) {
-        // Set the preferred language in UserDefaults
+        // Set iOS locale via UserDefaults
         UserDefaults.standard.set([languageCode], forKey: "AppleLanguages")
         UserDefaults.standard.synchronize()
 
-        // Update the selected language
+        // Update local state
         selectedLanguage = languageCode
+
+        // Sync to Firestore via API (cross-device persistence)
+        Task {
+            try? await settingsService.setLanguage(languageCode)
+        }
 
         // Note: Language change takes effect on next app launch.
         // The restart alert already informed the user.
@@ -381,8 +419,9 @@ struct StableSelectionView: View {
             } else {
                 ForEach(stables) { stable in
                     Button {
-                        // NEW: Use selectStable() method
                         authService.selectStable(stable)
+                        // Sync default stable to Firestore for cross-device persistence
+                        Task { try? await UserSettingsService.shared.setDefaultStable(stable.id) }
                         dismiss()
                     } label: {
                         HStack {
@@ -453,8 +492,9 @@ struct OrganizationSelectionView: View {
             } else {
                 ForEach(authService.organizations) { org in
                     Button {
-                        // NEW: Use selectOrganization() to auto-load permissions + subscription
                         authService.selectOrganization(org)
+                        // Sync default organization to Firestore for cross-device persistence
+                        Task { try? await UserSettingsService.shared.setDefaultOrganization(org.id) }
                         dismiss()
                     } label: {
                         HStack {

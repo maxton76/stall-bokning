@@ -15,11 +15,17 @@ struct ActivityDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var activityService = ActivityService.shared
+    @State private var permissionService = PermissionService.shared
     @State private var isLoading = false
     @State private var showCompleteConfirmation = false
     @State private var showCancelConfirmation = false
+    @State private var showDeleteConfirmation = false
     @State private var errorMessage: String?
     @State private var completionNotes = ""
+
+    private var canManageActivities: Bool {
+        permissionService.canManageActivities
+    }
 
     /// Actions available based on activity status
     private var canComplete: Bool {
@@ -76,7 +82,7 @@ struct ActivityDetailView: View {
                 metadataSection
 
                 // Action Buttons
-                if canComplete || canCancel {
+                if canComplete || (canManageActivities && canCancel) {
                     actionButtonsSection
                 }
             }
@@ -100,6 +106,18 @@ struct ActivityDetailView: View {
             }
         } message: {
             Text(String(localized: "activity.action.cancel.confirmation"))
+        }
+        .confirmationDialog(
+            String(localized: "activity.action.delete"),
+            isPresented: $showDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "common.delete"), role: .destructive) {
+                Task { await deleteActivity() }
+            }
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "activity.action.delete.confirmation"))
         }
         .alert(String(localized: "error.title"), isPresented: .init(
             get: { errorMessage != nil },
@@ -147,7 +165,7 @@ struct ActivityDetailView: View {
 
             ModernStatusBadge(
                 status: activity.status.displayName,
-                color: Color(activity.status.color),
+                color: activity.status.color,
                 icon: activity.status.icon
             )
         }
@@ -395,26 +413,40 @@ struct ActivityDetailView: View {
                 .controlSize(.large)
             }
 
-            HStack(spacing: EquiDutyDesign.Spacing.md) {
-                // Edit button (placeholder - navigates to form when implemented)
-                NavigationLink {
-                    ActivityFormView(activityId: activity.id)
-                } label: {
-                    Label(String(localized: "activity.action.edit"), systemImage: "pencil")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.large)
-
-                if canCancel {
-                    Button(role: .destructive) {
-                        showCancelConfirmation = true
+            if canManageActivities {
+                HStack(spacing: EquiDutyDesign.Spacing.md) {
+                    // Edit button
+                    NavigationLink {
+                        ActivityFormView(activityId: activity.id)
                     } label: {
-                        Label(String(localized: "activity.action.cancel"), systemImage: "xmark.circle")
+                        Label(String(localized: "activity.action.edit"), systemImage: "pencil")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
-                    .buttonStyle(.scale)
+                    .controlSize(.large)
+
+                    if canCancel {
+                        Button(role: .destructive) {
+                            showCancelConfirmation = true
+                        } label: {
+                            Label(String(localized: "activity.action.cancel"), systemImage: "xmark.circle")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .buttonStyle(.scale)
+                        .controlSize(.large)
+                    }
+                }
+
+                // Delete button
+                if activity.status != .completed {
+                    Button(role: .destructive) {
+                        showDeleteConfirmation = true
+                    } label: {
+                        Label(String(localized: "common.delete"), systemImage: "trash")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
                     .controlSize(.large)
                 }
             }
@@ -442,6 +474,17 @@ struct ActivityDetailView: View {
         isLoading = true
         do {
             try await activityService.cancelActivity(activityId: activity.id)
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
+    }
+
+    private func deleteActivity() async {
+        isLoading = true
+        do {
+            try await activityService.deleteActivity(activityId: activity.id)
             dismiss()
         } catch {
             errorMessage = error.localizedDescription

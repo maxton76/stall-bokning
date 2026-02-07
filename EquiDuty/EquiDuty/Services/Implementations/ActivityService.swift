@@ -152,6 +152,10 @@ final class ActivityService: ActivityServiceProtocol {
             updates: updates
         )
     }
+
+    func deleteActivity(activityId: String) async throws {
+        try await apiClient.delete(APIEndpoints.activity(activityId))
+    }
 }
 
 // MARK: - Request Types

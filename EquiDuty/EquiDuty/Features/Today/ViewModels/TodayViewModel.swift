@@ -51,9 +51,9 @@ final class TodayViewModel {
         authService.selectedStable
     }
 
-    /// Current user ID
+    /// Current user ID — uses Firebase Auth UID directly to match Firestore data
     var currentUserId: String? {
-        authService.currentUser?.uid
+        authService.firebaseUid
     }
 
     /// Current user name
@@ -67,9 +67,16 @@ final class TodayViewModel {
     var filteredRoutines: [RoutineInstance] {
         var result = routines
 
-        // Apply "For Me" filter
+        // Apply "For Me" filter — show only routines that are mine
         if filters.forMe, let userId = currentUserId {
-            result = result.filter { $0.assignedTo == userId }
+            #if DEBUG
+            for r in result {
+                print("🔍 ForMe: uid='\(userId)' assignedTo='\(r.assignedTo ?? "nil")' startedBy='\(r.startedBy ?? "nil")' status=\(r.status.rawValue) name=\(r.templateName)")
+            }
+            #endif
+            result = result.filter {
+                $0.assignedTo == userId || $0.startedBy == userId
+            }
         }
 
         // Apply "Show Finished" filter
@@ -226,6 +233,12 @@ final class TodayViewModel {
 
     // MARK: - Data Loading
 
+    /// Force reload data even if already loading (used after returning from routine flow)
+    func forceLoadData() {
+        isLoading = false
+        loadData()
+    }
+
     func loadData() {
         guard !isLoading else { return }
 
@@ -254,6 +267,10 @@ final class TodayViewModel {
                     )
                     #if DEBUG
                     print("✅ Fetched \(routines.count) routines for today")
+                    for r in routines {
+                        print("  📋 Routine: \(r.templateName), assignedTo: \(r.assignedTo ?? "nil"), assignedToName: \(r.assignedToName ?? "nil"), assignmentType: \(r.assignmentType.rawValue)")
+                    }
+                    print("  👤 Current userId: \(authService.currentUser?.uid ?? "nil")")
                     #endif
 
                     // Activities are fetched for the selected date range

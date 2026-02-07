@@ -295,7 +295,7 @@ struct TodayActivityCard: View {
 
                 ModernStatusBadge(
                     status: activity.status.displayName,
-                    color: Color(activity.status.color),
+                    color: activity.status.color,
                     icon: statusIcon,
                     isAnimating: isInProgress
                 )

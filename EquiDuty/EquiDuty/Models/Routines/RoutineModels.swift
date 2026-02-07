@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 // MARK: - Routine Categories
 
@@ -182,6 +183,15 @@ enum RoutineAssignmentType: String, Codable {
     case auto = "auto"
     case manual = "manual"
     case selfBooked = "selfBooked"
+    case selfAssigned = "self"
+    case unassigned = "unassigned"
+    case unknown
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        self = RoutineAssignmentType(rawValue: rawValue) ?? .unknown
+    }
 }
 
 /// Status of a routine instance
@@ -204,13 +214,13 @@ enum RoutineInstanceStatus: String, Codable, CaseIterable {
         }
     }
 
-    var color: String {
+    var color: Color {
         switch self {
-        case .scheduled: return "blue"
-        case .started, .inProgress: return "orange"
-        case .completed: return "green"
-        case .missed: return "red"
-        case .cancelled: return "gray"
+        case .scheduled: return .blue
+        case .started, .inProgress: return .orange
+        case .completed: return .green
+        case .missed: return .red
+        case .cancelled: return .gray
         }
     }
 }
@@ -328,6 +338,8 @@ struct RoutineInstance: Codable, Identifiable, Equatable, Hashable {
     // Status
     var status: RoutineInstanceStatus
     var startedAt: Date?
+    var startedBy: String?
+    var startedByName: String?
     var completedAt: Date?
     var completedBy: String?
     var completedByName: String?
@@ -437,11 +449,11 @@ enum NotePriority: String, Codable, CaseIterable {
         }
     }
 
-    var color: String {
+    var color: Color {
         switch self {
-        case .info: return "blue"
-        case .warning: return "orange"
-        case .critical: return "red"
+        case .info: return .blue
+        case .warning: return .orange
+        case .critical: return .red
         }
     }
 

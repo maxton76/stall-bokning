@@ -163,7 +163,7 @@ struct TodayRoutineCard: View {
 
                     ModernStatusBadge(
                         status: routine.status.displayName,
-                        color: Color(routine.status.color),
+                        color: routine.status.color,
                         icon: statusIcon,
                         isAnimating: isActive
                     )

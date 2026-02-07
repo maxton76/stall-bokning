@@ -150,6 +150,9 @@ enum APIEndpoints {
         "/organizations/\(organizationId)/permissions/matrix"
     }
 
+    // MARK: - Settings
+    static let settingsPreferences = "/settings/preferences"
+
     // MARK: - Subscriptions
     static let tierDefinitions = "/tiers"
 

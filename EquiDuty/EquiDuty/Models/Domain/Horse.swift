@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 /// Horse color options
 enum HorseColor: String, Codable, CaseIterable {
@@ -486,17 +487,17 @@ enum TeamMemberRole: String, Codable, CaseIterable {
         }
     }
 
-    var color: String {
+    var color: Color {
         switch self {
-        case .rider: return "blue"
-        case .groom: return "green"
-        case .farrier: return "orange"
-        case .veterinarian: return "red"
-        case .trainer: return "purple"
-        case .dentist: return "cyan"
-        case .physiotherapist: return "pink"
-        case .saddler: return "yellow"
-        case .other: return "gray"
+        case .rider: return .blue
+        case .groom: return .green
+        case .farrier: return .orange
+        case .veterinarian: return .red
+        case .trainer: return .purple
+        case .dentist: return .cyan
+        case .physiotherapist: return .pink
+        case .saddler: return .yellow
+        case .other: return .gray
         }
     }
 }
@@ -580,12 +581,12 @@ enum OwnershipRole: String, Codable, CaseIterable {
         }
     }
 
-    var color: String {
+    var color: Color {
         switch self {
-        case .primary: return "blue"
-        case .coOwner: return "purple"
-        case .syndicate: return "orange"
-        case .leaseholder: return "green"
+        case .primary: return .blue
+        case .coOwner: return .purple
+        case .syndicate: return .orange
+        case .leaseholder: return .green
         }
     }
 }

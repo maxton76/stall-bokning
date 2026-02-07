@@ -184,7 +184,7 @@ struct RoutineInstanceCard: View {
 
                     ModernStatusBadge(
                         status: instance.status.displayName,
-                        color: Color(instance.status.color),
+                        color: instance.status.color,
                         icon: typeIcon,
                         isAnimating: instance.status == .inProgress || instance.status == .started
                     )
@@ -244,7 +244,7 @@ struct RoutineInstanceCard: View {
     }
 
     private var typeColor: Color {
-        Color(instance.status.color)
+        instance.status.color
     }
 
     private var progressColor: Color {
