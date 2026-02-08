@@ -399,7 +399,9 @@
     },
     "month": {
       "title": "Month View",
-      "subtitle": "Schedule overview for the month"
+      "subtitle": "Schedule overview for the month",
+      "showAssignees": "Show assignments",
+      "hideAssignees": "Hide assignments"
     },
     "distribution": {
       "title": "Distribution",

@@ -399,7 +399,9 @@
     },
     "month": {
       "title": "Månadsvy",
-      "subtitle": "Schemaöversikt för månaden"
+      "subtitle": "Schemaöversikt för månaden",
+      "showAssignees": "Visa tilldelningar",
+      "hideAssignees": "Dölj tilldelningar"
     },
     "distribution": {
       "title": "Fördelning",

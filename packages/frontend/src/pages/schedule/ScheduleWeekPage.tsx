@@ -32,6 +32,7 @@ import {
 } from "@/hooks/useScheduledRoutines";
 import { format, addWeeks, subWeeks, startOfWeek, addDays } from "date-fns";
 import { sv } from "date-fns/locale";
+import { formatAssigneeName } from "@/utils/formatName";
 
 /**
  * Schedule Week Page - Weekly calendar view
@@ -159,15 +160,6 @@ export default function ScheduleWeekPage() {
       date.getMonth() === today.getMonth() &&
       date.getFullYear() === today.getFullYear()
     );
-  };
-
-  const formatAssigneeName = (fullName: string): string => {
-    const parts = fullName.trim().split(/\s+/);
-    if (parts.length === 0) return fullName;
-    if (parts.length === 1) return parts[0] ?? fullName;
-    const firstName = parts[0] ?? "";
-    const lastInitial = parts[parts.length - 1]?.[0]?.toUpperCase() || "";
-    return `${firstName} ${lastInitial}.`;
   };
 
   const handleSlotClick = (slot: ScheduleSlot, date: Date) => {

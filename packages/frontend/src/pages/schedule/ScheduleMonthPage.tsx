@@ -1,7 +1,13 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, ChevronRight, Loader2, Printer } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Printer,
+  Users,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,6 +35,7 @@ import {
 } from "date-fns";
 import { sv } from "date-fns/locale";
 import type { RoutineInstance } from "@shared/types";
+import { formatAssigneeName } from "@/utils/formatName";
 
 /**
  * Schedule Month Page - Monthly calendar view
@@ -45,6 +52,25 @@ export default function ScheduleMonthPage() {
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedStableId, setSelectedStableId] = useState<string>("");
+  const [showAssignees, setShowAssignees] = useState(() => {
+    try {
+      return localStorage.getItem("schedule-month-show-assignees") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleAssignees = () => {
+    setShowAssignees((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("schedule-month-show-assignees", String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
 
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
@@ -206,6 +232,17 @@ export default function ScheduleMonthPage() {
             </Select>
           )}
           <Button
+            variant={showAssignees ? "default" : "outline"}
+            size="sm"
+            onClick={toggleAssignees}
+            className="no-print"
+          >
+            <Users className="h-4 w-4 mr-2" />
+            {showAssignees
+              ? t("common:schedule.month.hideAssignees")
+              : t("common:schedule.month.showAssignees")}
+          </Button>
+          <Button
             variant="outline"
             size="sm"
             onClick={() => window.print()}
@@ -299,21 +336,40 @@ export default function ScheduleMonthPage() {
                     </div>
                     {isCurrentMonth && routines.length > 0 && (
                       <div className="space-y-0.5 overflow-hidden">
-                        {routines.slice(0, 3).map((routine) => (
-                          <div
-                            key={routine.id}
-                            className={`text-[10px] truncate ${
-                              routine.status === "completed"
-                                ? "text-muted-foreground line-through"
-                                : "text-foreground"
-                            }`}
-                          >
-                            {routine.templateName || "Rutin"}
-                          </div>
-                        ))}
-                        {routines.length > 3 && (
+                        {routines
+                          .slice(0, showAssignees ? 3 : 4)
+                          .map((routine) => (
+                            <div key={routine.id}>
+                              <div
+                                className={`text-[10px] truncate ${
+                                  routine.status === "completed"
+                                    ? "text-muted-foreground line-through"
+                                    : "text-foreground"
+                                }`}
+                              >
+                                {routine.templateName || "Rutin"}
+                              </div>
+                              {showAssignees && (
+                                <div className="text-[9px] text-muted-foreground pl-1 truncate">
+                                  {routine.assignedToName ? (
+                                    <>
+                                      →{" "}
+                                      {formatAssigneeName(
+                                        routine.assignedToName,
+                                      )}
+                                    </>
+                                  ) : (
+                                    <span className="italic">
+                                      → {t("common:schedule.status.unassigned")}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        {routines.length > (showAssignees ? 3 : 4) && (
                           <div className="text-[10px] text-muted-foreground">
-                            +{routines.length - 3} till
+                            +{routines.length - (showAssignees ? 3 : 4)} till
                           </div>
                         )}
                       </div>
