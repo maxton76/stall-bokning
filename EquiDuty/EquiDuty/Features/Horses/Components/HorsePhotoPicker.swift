@@ -8,6 +8,7 @@
 
 import SwiftUI
 import PhotosUI
+import Kingfisher
 
 // MARK: - Crop Item
 
@@ -179,6 +180,7 @@ struct PhotoSourceSheet: View {
 struct PhotoSlotView: View {
     let image: UIImage?          // Locally selected image (takes priority)
     let remoteURL: String?       // Existing photo URL from server
+    let blurhash: String?        // Blurhash for placeholder
     let placeholder: String      // SF Symbol name for empty state
     let aspectRatio: CGFloat     // Width/height ratio (e.g., 16/9 for cover, 1 for avatar)
     let label: String            // Accessibility label
@@ -191,30 +193,31 @@ struct PhotoSlotView: View {
 
                 // Content
                 if let image = image {
-                    // Local image (newly selected)
+                    // Local image (newly selected) - keep unchanged for editing flow
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
                         .frame(width: geometry.size.width, height: geometry.size.height)
                         .clipped()
-                } else if let remoteURL = remoteURL {
-                    // Remote image from server
-                    AsyncImage(url: URL(string: remoteURL)) { phase in
-                        switch phase {
-                        case .empty:
-                            ProgressView()
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: geometry.size.width, height: geometry.size.height)
-                                .clipped()
-                        case .failure:
-                            placeholderView
-                        @unknown default:
+                } else if let urlString = remoteURL, let url = URL(string: urlString) {
+                    // Remote image from server - use cached version
+                    KFImage(url)
+                        .placeholder {
+                            if let blurhash = blurhash {
+                                BlurhashView(blurhash: blurhash, size: CGSize(width: 32, height: 32))
+                            } else {
+                                ProgressView()
+                            }
+                        }
+                        .onFailure { _ in
                             placeholderView
                         }
-                    }
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                        .transition(.opacity)
+                        // Kingfisher 8.x: .fade() removed, use .transition(.opacity) instead
                 } else {
                     // Empty state placeholder
                     placeholderView
@@ -268,6 +271,7 @@ struct PhotoSlotView: View {
     PhotoSlotView(
         image: nil,
         remoteURL: nil,
+        blurhash: nil,
         placeholder: "photo.fill",
         aspectRatio: 16/9,
         label: "Cover Photo"
@@ -280,6 +284,7 @@ struct PhotoSlotView: View {
     PhotoSlotView(
         image: UIImage(systemName: "photo"),
         remoteURL: nil,
+        blurhash: nil,
         placeholder: "photo.fill",
         aspectRatio: 1,
         label: "Avatar Photo"

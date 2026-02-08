@@ -152,23 +152,8 @@ struct HorseDetailHeader: View {
 
     private var coverPhotoHeader: some View {
         ZStack(alignment: .bottomLeading) {
-            // Cover photo
-            if let url = horse.bestCoverLargeURL {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    case .failure:
-                        fallbackCoverBackground
-                    default:
-                        Rectangle()
-                            .fill(.quaternary)
-                            .overlay(ProgressView())
-                    }
-                }
-            }
+            // Cover photo with caching
+            HorseCachedCover(horse: horse, height: 220)
 
             // Gradient overlay for text readability
             LinearGradient(
@@ -228,7 +213,7 @@ struct HorseDetailHeader: View {
 
     private var defaultHeader: some View {
         VStack(spacing: EquiDutyDesign.Spacing.md) {
-            HorseAvatarView(horse: horse, size: 100)
+            HorseCachedAvatar(horse: horse, size: 100)
 
             Text(horse.name)
                 .font(.title)

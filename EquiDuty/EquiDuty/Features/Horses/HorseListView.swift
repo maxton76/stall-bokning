@@ -242,6 +242,10 @@ struct HorseListView: View {
                     print("✅ Fetched \(horses.count) horses")
                     #endif
                 }
+
+                // Prefetch avatar images for visible horses
+                prefetchAvatarImages()
+
                 isLoading = false
             } catch {
                 #if DEBUG
@@ -251,6 +255,11 @@ struct HorseListView: View {
                 isLoading = false
             }
         }
+    }
+
+    private func prefetchAvatarImages() {
+        let urls = horses.compactMap { $0.bestAvatarThumbURL }
+        ImageCacheService.shared.prefetchImages(urls: urls)
     }
 
     private func refreshHorses() async {
@@ -406,57 +415,15 @@ struct HorseRowGroupBadge: View {
     }
 }
 
-// MARK: - Horse Avatar
+// MARK: - Horse Avatar (Legacy - use HorseCachedAvatar instead)
 
 struct HorseAvatarView: View {
     let horse: Horse
     let size: CGFloat
 
     var body: some View {
-        Group {
-            if let url = horse.bestAvatarThumbURL {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    case .failure:
-                        initialsView
-                    default:
-                        ProgressView()
-                    }
-                }
-                .id(url) // Stabilize identity to prevent flickering during list scroll
-            } else {
-                initialsView
-            }
-        }
-        .frame(width: size, height: size)
-        .clipShape(Circle())
-    }
-
-    private var initialsView: some View {
-        ZStack {
-            Circle()
-                .fill(colorForHorse.opacity(0.2))
-
-            Text(horse.initials)
-                .font(.system(size: size * 0.4, weight: .semibold))
-                .foregroundStyle(colorForHorse)
-        }
-    }
-
-    private var colorForHorse: Color {
-        // Generate consistent color based on horse color
-        switch horse.color {
-        case .black: return .gray
-        case .brown, .bayBrown, .darkBrown: return .brown
-        case .chestnut: return .orange
-        case .grey: return .gray
-        case .palomino, .cream: return .yellow
-        default: return .accentColor
-        }
+        // Use cached version
+        HorseCachedAvatar(horse: horse, size: size)
     }
 }
 

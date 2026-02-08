@@ -13,12 +13,9 @@ final class HorseActivityHistoryService {
     static let shared = HorseActivityHistoryService()
 
     private let apiClient = APIClient.shared
-    private let dateFormatter: DateFormatter
 
     private init() {
-        dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        // No longer need custom date formatter - using Date+ISO8601 extensions
     }
 
     // MARK: - Query Operations
@@ -44,12 +41,13 @@ final class HorseActivityHistoryService {
             "limit": String(limit)
         ]
 
-        // Add date filters
+        // Add date filters using ISO 8601 datetime format
+        // API requires format: "2026-02-01T00:00:00Z" (not "2026-02-01")
         if let startDate = startDate {
-            params["startDate"] = dateFormatter.string(from: startDate)
+            params["startDate"] = startDate.startOfDayISO8601()
         }
         if let endDate = endDate {
-            params["endDate"] = dateFormatter.string(from: endDate)
+            params["endDate"] = endDate.endOfDayISO8601()
         }
 
         // Add cursor for pagination

@@ -52,6 +52,7 @@ struct HorseFormView: View {
                     PhotoSlotView(
                         image: coverImage,
                         remoteURL: existingHorse?.coverPhotoLargeURL ?? existingHorse?.coverPhotoURL,
+                        blurhash: existingHorse?.coverPhotoBlurhash,
                         placeholder: "photo.fill",
                         aspectRatio: 16/9,
                         label: String(localized: "horse.photo.cover")
@@ -65,6 +66,7 @@ struct HorseFormView: View {
                         PhotoSlotView(
                             image: avatarImage,
                             remoteURL: existingHorse?.avatarPhotoMediumURL ?? existingHorse?.avatarPhotoURL,
+                            blurhash: existingHorse?.avatarPhotoBlurhash,
                             placeholder: "person.crop.circle.fill",
                             aspectRatio: 1,
                             label: String(localized: "horse.photo.avatar")
@@ -317,10 +319,10 @@ struct HorseFormView: View {
                 let uploadService = ImageUploadService.shared
 
                 if let coverImage = coverImage {
-                    try await uploadService.uploadHorsePhoto(horseId: targetId, image: coverImage, purpose: .cover)
+                    _ = try await uploadService.uploadHorsePhoto(horseId: targetId, image: coverImage, purpose: .cover)
                 }
                 if let avatarImage = avatarImage {
-                    try await uploadService.uploadHorsePhoto(horseId: targetId, image: avatarImage, purpose: .avatar)
+                    _ = try await uploadService.uploadHorsePhoto(horseId: targetId, image: avatarImage, purpose: .avatar)
                 }
                 if coverPhotoRemoved {
                     try await uploadService.removeHorsePhoto(horseId: targetId, purpose: .cover)

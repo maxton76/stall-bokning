@@ -134,7 +134,8 @@ extension PushNotificationService: MessagingDelegate {
         print("FCM token received: \(token.prefix(20))...")
         #endif
 
-        Task { @MainActor in
+        Task { @MainActor [weak self] in
+            guard let self else { return }
             self.fcmToken = token
             UserDefaults.standard.set(token, forKey: self.userDefaultsTokenKey)
             await self.registerToken()
@@ -166,6 +167,7 @@ extension PushNotificationService: UNUserNotificationCenterDelegate {
         if let actionUrl = userInfo["actionUrl"] as? String,
            let url = URL(string: actionUrl) {
             Task { @MainActor in
+                // No self capture needed here - using NavigationRouter.shared directly
                 NavigationRouter.shared.handleDeepLink(url)
             }
         }

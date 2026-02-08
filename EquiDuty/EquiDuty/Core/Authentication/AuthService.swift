@@ -74,7 +74,7 @@ final class AuthService {
     /// Store listener handle - kept for reference but cleanup not needed
     /// Note: As a singleton, AuthService lives for the app's lifetime, so deinit is never called.
     /// Firebase Auth automatically handles listener cleanup when the app terminates.
-    private nonisolated(unsafe) var authStateListener: AuthStateDidChangeListenerHandle?
+    private var authStateListener: AuthStateDidChangeListenerHandle?
 
     private init() {
         // Delay setup until Firebase is configured
@@ -499,6 +499,9 @@ final class AuthService {
         do {
             try Auth.auth().signOut()
             handleSignedOut()
+
+            // Clear image cache for security and privacy
+            ImageCacheService.shared.clearCache()
         } catch {
             throw AuthError.signOutFailed(error)
         }
@@ -510,6 +513,9 @@ final class AuthService {
     func selectOrganization(_ organization: Organization) {
         selectedOrganization = organization
         selectedStable = nil  // Clear stable selection
+
+        // Clear memory cache when switching organizations (keep disk cache for faster reload)
+        ImageCacheService.shared.clearMemoryCache()
 
         // Load organization context (stables, permissions, subscription)
         Task {

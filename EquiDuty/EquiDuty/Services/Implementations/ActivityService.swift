@@ -13,12 +13,9 @@ final class ActivityService: ActivityServiceProtocol {
     static let shared = ActivityService()
 
     private let apiClient = APIClient.shared
-    private let dateFormatter: DateFormatter
 
     private init() {
-        dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        // No longer need custom date formatter - using Date+ISO8601 extensions
     }
 
     // MARK: - Query Operations
@@ -31,12 +28,13 @@ final class ActivityService: ActivityServiceProtocol {
     ) async throws -> [ActivityInstance] {
         var params: [String: String] = [:]
 
+        // Use ISO 8601 datetime format for API compatibility
         if let startDate = startDate {
-            params["startDate"] = dateFormatter.string(from: startDate)
+            params["startDate"] = startDate.startOfDayISO8601()
         }
 
         if let endDate = endDate {
-            params["endDate"] = dateFormatter.string(from: endDate)
+            params["endDate"] = endDate.endOfDayISO8601()
         }
 
         if let types = types, !types.isEmpty {
