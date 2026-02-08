@@ -1035,6 +1035,25 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "horseId", "order": "ASCENDING" },
+        { "fieldPath": "routineInstanceCompleted", "order": "ASCENDING" },
+        { "fieldPath": "executedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "horseActivityHistory",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "horseId", "order": "ASCENDING" },
+        { "fieldPath": "category", "order": "ASCENDING" },
+        { "fieldPath": "executedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "horseActivityHistory",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "horseId", "order": "ASCENDING" },
+        { "fieldPath": "routineInstanceCompleted", "order": "ASCENDING" },
         { "fieldPath": "category", "order": "ASCENDING" },
         { "fieldPath": "executedAt", "order": "DESCENDING" }
       ]

@@ -885,6 +885,26 @@
       "submitFailed": "Could not start the import"
     }
   },
+  "photoUpload": {
+    "changeAvatar": "Change photo",
+    "removeAvatar": "Remove photo",
+    "addCover": "Add cover photo",
+    "changeCover": "Change",
+    "removeCover": "Remove cover",
+    "cropTitle": "Crop Photo",
+    "cropDescription": "Pan and zoom to position your photo within the circle",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "preparing": "Preparing...",
+    "uploading": "Uploading...",
+    "saving": "Saving...",
+    "uploadSuccess": "Photo uploaded successfully",
+    "uploadError": "Failed to upload photo",
+    "removeSuccess": "Photo removed",
+    "removeError": "Failed to remove photo",
+    "fileTooLarge": "File is too large (max 10 MB)",
+    "invalidFileType": "Please select an image file"
+  },
   "routineHistory": {
     "title": "Routine History",
     "description": "All completed routine activities for this horse",
@@ -896,7 +916,8 @@
     },
     "status": {
       "completed": "Completed",
-      "skipped": "Skipped"
+      "skipped": "Skipped",
+      "unknown": "Unknown"
     },
     "noActivities": "No routine activities found",
     "loadMore": "Load more",

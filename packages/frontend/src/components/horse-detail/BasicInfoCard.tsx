@@ -1,10 +1,20 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Share, Trash2, Edit, Copy, Check, Bell } from "lucide-react";
+import {
+  Share,
+  Trash2,
+  Edit,
+  Copy,
+  Check,
+  Bell,
+  Camera,
+  Loader2,
+  X,
+} from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { HORSE_USAGE_OPTIONS } from "@/constants/horseConstants";
@@ -18,6 +28,10 @@ interface BasicInfoCardProps {
   onEdit?: () => void; // Edit handler
   onShare?: () => void; // Future feature
   onRemove?: () => void; // Future feature
+  onAvatarUpload?: (file: File) => void;
+  onAvatarRemove?: () => void;
+  isUploadingAvatar?: boolean;
+  avatarPreviewUrl?: string | null;
 }
 
 export function BasicInfoCard({
@@ -25,9 +39,37 @@ export function BasicInfoCard({
   onEdit,
   onShare,
   onRemove,
+  onAvatarUpload,
+  onAvatarRemove,
+  isUploadingAvatar,
+  avatarPreviewUrl,
 }: BasicInfoCardProps) {
   const { t } = useTranslation(["horses", "common"]);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarClick = () => {
+    if (onAvatarUpload && !isUploadingAvatar) {
+      avatarInputRef.current?.click();
+    }
+  };
+
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && onAvatarUpload) {
+      onAvatarUpload(file);
+    }
+    // Reset so the same file can be re-selected
+    if (avatarInputRef.current) {
+      avatarInputRef.current.value = "";
+    }
+  };
+
+  const avatarSrc =
+    avatarPreviewUrl ||
+    (horse as any).avatarPhotoMediumURL ||
+    (horse as any).avatarPhotoURL;
+  const hasAvatar = !!avatarSrc;
 
   // Copy to clipboard handler
   const handleCopy = async (value: string, fieldName: string) => {
@@ -108,11 +150,60 @@ export function BasicInfoCard({
         <div className="flex items-start justify-between">
           {/* Left: Avatar + Name + Badges */}
           <div className="flex gap-4">
-            <Avatar className="h-16 w-16">
-              <AvatarFallback>
-                {horse.name.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative group">
+              <Avatar
+                className={cn("h-16 w-16", onAvatarUpload && "cursor-pointer")}
+                onClick={handleAvatarClick}
+              >
+                {avatarSrc && (
+                  <AvatarImage
+                    src={avatarSrc}
+                    alt={horse.name}
+                    className="object-cover"
+                  />
+                )}
+                <AvatarFallback>
+                  {horse.name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              {/* Upload overlay on hover */}
+              {onAvatarUpload && (
+                <div
+                  className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  onClick={handleAvatarClick}
+                >
+                  {isUploadingAvatar ? (
+                    <Loader2 className="h-5 w-5 text-white animate-spin" />
+                  ) : (
+                    <Camera className="h-5 w-5 text-white" />
+                  )}
+                </div>
+              )}
+              {/* Remove button */}
+              {onAvatarRemove && hasAvatar && !avatarPreviewUrl && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAvatarRemove();
+                  }}
+                  className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                  title={t("horses:photoUpload.removeAvatar")}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+              {/* Hidden file input */}
+              {onAvatarUpload && (
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarFileChange}
+                  className="hidden"
+                />
+              )}
+            </div>
             <div>
               <CardTitle>{horse.name}</CardTitle>
               {/* Pedigree subtitle: "Sire × Dam" */}

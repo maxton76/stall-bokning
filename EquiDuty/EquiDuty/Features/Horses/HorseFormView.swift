@@ -218,7 +218,8 @@ struct HorseFormView: View {
                     onRemove: {
                         avatarImage = nil
                         avatarPhotoRemoved = true
-                    }
+                    },
+                    requiresCrop: true
                 )
             }
             .onAppear {

@@ -885,6 +885,26 @@
       "submitFailed": "Kunde inte starta importen"
     }
   },
+  "photoUpload": {
+    "changeAvatar": "Byt foto",
+    "removeAvatar": "Ta bort foto",
+    "addCover": "Lägg till omslagsfoto",
+    "changeCover": "Byt",
+    "removeCover": "Ta bort omslag",
+    "cropTitle": "Beskär foto",
+    "cropDescription": "Dra och zooma för att placera fotot inom cirkeln",
+    "confirm": "Bekräfta",
+    "cancel": "Avbryt",
+    "preparing": "Förbereder...",
+    "uploading": "Laddar upp...",
+    "saving": "Sparar...",
+    "uploadSuccess": "Foto uppladdat",
+    "uploadError": "Kunde inte ladda upp foto",
+    "removeSuccess": "Foto borttaget",
+    "removeError": "Kunde inte ta bort foto",
+    "fileTooLarge": "Filen är för stor (max 10 MB)",
+    "invalidFileType": "Välj en bildfil"
+  },
   "routineHistory": {
     "title": "Rutinhistorik",
     "description": "Alla utförda rutinaktiviteter för denna häst",
@@ -896,7 +916,8 @@
     },
     "status": {
       "completed": "Utförd",
-      "skipped": "Överhoppad"
+      "skipped": "Överhoppad",
+      "unknown": "Okänd"
     },
     "noActivities": "Inga rutinaktiviteter hittades",
     "loadMore": "Ladda fler",

@@ -106,16 +106,13 @@ export default function RoutineAnalyticsPage() {
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <BarChart3 className="h-8 w-8 text-primary" />
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              {t("routines:analytics.title")}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {t("routines:analytics.description")}
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {t("routines:analytics.title")}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {t("routines:analytics.description")}
+          </p>
         </div>
 
         <Button variant="outline" onClick={() => navigate("/activities")}>

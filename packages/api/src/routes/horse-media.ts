@@ -351,16 +351,28 @@ export async function horseMediaRoutes(fastify: FastifyInstance) {
           ? `${userDoc.data()?.firstName || ""} ${userDoc.data()?.lastName || ""}`.trim()
           : "";
 
+        // Use allowlist approach - only accept known, expected fields
         const mediaData = {
-          ...data,
+          horseId: data.horseId,
+          type: data.type,
+          category: data.category,
+          title: data.title,
+          fileUrl: data.fileUrl,
+          storagePath: data.storagePath,
+          fileName: data.fileName,
+          fileSize: data.fileSize,
+          mimeType: data.mimeType,
+          description: data.description || "",
+          tags: data.tags || [],
+          purpose: data.purpose || null,
           horseName,
           uploadedBy: user.uid,
           uploadedByName: uploaderName,
           uploadedAt: Timestamp.now(),
           updatedAt: Timestamp.now(),
           lastModifiedBy: user.uid,
-          isFavorite: data.isFavorite || false,
-          isPublic: data.isPublic || false,
+          isFavorite: false, // Always default to false on creation
+          isPublic: false, // Always default to false on creation
           expiryDate: data.expiryDate
             ? data.expiryDate instanceof Date
               ? Timestamp.fromDate(data.expiryDate)
@@ -436,38 +448,32 @@ export async function horseMediaRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const updateData = {
-          ...data,
-          expiryDate:
-            data.expiryDate === null
-              ? null
-              : data.expiryDate
-                ? data.expiryDate instanceof Date
-                  ? Timestamp.fromDate(data.expiryDate)
-                  : typeof data.expiryDate === "string"
-                    ? Timestamp.fromDate(new Date(data.expiryDate))
-                    : data.expiryDate
-                : undefined,
+        // Use allowlist approach - only accept fields that should be user-modifiable
+        const updateData: any = {
           updatedAt: Timestamp.now(),
           lastModifiedBy: user.uid,
         };
 
-        // Remove protected fields
-        delete updateData.horseId;
-        delete updateData.uploadedBy;
-        delete updateData.uploadedByName;
-        delete updateData.uploadedAt;
-        delete updateData.storagePath;
-        delete updateData.fileUrl;
-        delete updateData.fileName;
-        delete updateData.fileSize;
-        delete updateData.mimeType;
+        // Only allow updating specific fields
+        if (data.title !== undefined) updateData.title = data.title;
+        if (data.description !== undefined)
+          updateData.description = data.description;
+        if (data.category !== undefined) updateData.category = data.category;
+        if (data.tags !== undefined) updateData.tags = data.tags;
+        if (data.isFavorite !== undefined)
+          updateData.isFavorite = data.isFavorite;
 
-        Object.keys(updateData).forEach((key) => {
-          if (updateData[key] === undefined) {
-            delete updateData[key];
-          }
-        });
+        // Handle expiryDate with proper null handling
+        if (data.expiryDate !== undefined) {
+          updateData.expiryDate =
+            data.expiryDate === null
+              ? null
+              : data.expiryDate instanceof Date
+                ? Timestamp.fromDate(data.expiryDate)
+                : typeof data.expiryDate === "string"
+                  ? Timestamp.fromDate(new Date(data.expiryDate))
+                  : data.expiryDate;
+        }
 
         await mediaRef.update(updateData);
 

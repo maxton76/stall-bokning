@@ -9,11 +9,21 @@
 import SwiftUI
 import PhotosUI
 
+// MARK: - Crop Item
+
+/// Identifiable wrapper for UIImage, used with .fullScreenCover(item:)
+/// to guarantee the image is non-nil when the crop view presents.
+struct CropItem: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
+
 // MARK: - Camera Picker
 
 /// UIImagePickerController wrapper for camera capture
 struct CameraPickerView: UIViewControllerRepresentable {
     @Binding var image: UIImage?
+    var onImageCaptured: ((UIImage) -> Void)?
     @Environment(\.dismiss) private var dismiss
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
@@ -41,7 +51,11 @@ struct CameraPickerView: UIViewControllerRepresentable {
 
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
             if let image = info[.originalImage] as? UIImage {
-                parent.image = image
+                if let callback = parent.onImageCaptured {
+                    callback(image)
+                } else {
+                    parent.image = image
+                }
             }
             parent.dismiss()
         }
@@ -60,12 +74,14 @@ struct PhotoSourceSheet: View {
     let hasExistingPhoto: Bool
     @Binding var selectedImage: UIImage?
     let onRemove: () -> Void
+    var requiresCrop: Bool = false
 
     @Environment(\.dismiss) private var dismiss
 
     @State private var showCamera = false
     @State private var photosPickerItem: PhotosPickerItem?
     @State private var showLoadError = false
+    @State private var cropItem: CropItem?
 
     var body: some View {
         NavigationStack {
@@ -90,10 +106,13 @@ struct PhotoSourceSheet: View {
                     Task {
                         if let data = try? await newItem?.loadTransferable(type: Data.self),
                            let image = UIImage(data: data) {
-                            selectedImage = image
-                            dismiss()
+                            if requiresCrop {
+                                cropItem = CropItem(image: image)
+                            } else {
+                                selectedImage = image
+                                dismiss()
+                            }
                         } else if newItem != nil {
-                            // Photo load failed — show error instead of silently dismissing
                             showLoadError = true
                         }
                     }
@@ -119,13 +138,31 @@ struct PhotoSourceSheet: View {
                 }
             }
             .sheet(isPresented: $showCamera) {
-                CameraPickerView(image: $selectedImage)
-                    .ignoresSafeArea()
-                    .onDisappear {
-                        if selectedImage != nil {
-                            dismiss()
-                        }
+                CameraPickerView(
+                    image: requiresCrop ? .constant(nil) : $selectedImage,
+                    onImageCaptured: requiresCrop ? { capturedImage in
+                        cropItem = CropItem(image: capturedImage)
+                    } : nil
+                )
+                .ignoresSafeArea()
+                .onDisappear {
+                    if !requiresCrop && selectedImage != nil {
+                        dismiss()
                     }
+                }
+            }
+            .fullScreenCover(item: $cropItem) { item in
+                ImageCropView(
+                    sourceImage: item.image,
+                    onConfirm: { croppedImage in
+                        selectedImage = croppedImage
+                        cropItem = nil
+                        dismiss()
+                    },
+                    onCancel: {
+                        cropItem = nil
+                    }
+                )
             }
             .alert(String(localized: "horse.photo.load_error_title"), isPresented: $showLoadError) {
                 Button(String(localized: "common.ok"), role: .cancel) {}

@@ -68,6 +68,8 @@
     "confirmCancelMessage": "Är du säker på att du vill ställa in \"{{routineName}}\"? Rutinen kan återaktiveras senare.",
     "confirmDeleteTitle": "Ta bort rutin",
     "confirmDeleteMessage": "Är du säker på att du vill permanent ta bort \"{{routineName}}\"? Detta kan inte ångras.",
+    "confirmRemoveCancelledTitle": "Ta bort inställd rutin",
+    "confirmRemoveCancelledMessage": "Är du säker på att du vill permanent ta bort den inställda rutinen \"{{routineName}}\"? Detta kan inte ångras.",
     "cancelSuccess": "Rutin inställd",
     "cancelSuccessMessage": "Rutinen \"{{name}}\" har ställts in.",
     "deleteSuccess": "Rutin borttagen",

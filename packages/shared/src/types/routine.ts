@@ -885,6 +885,7 @@ export interface HorseActivityHistoryEntry {
 
   // Execution
   executionStatus: "completed" | "skipped";
+  routineInstanceCompleted: boolean;
   executedAt: FirestoreTimestamp;
   executedBy: string;
   executedByName?: string;

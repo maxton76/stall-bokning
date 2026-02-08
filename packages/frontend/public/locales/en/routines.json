@@ -68,6 +68,8 @@
     "confirmCancelMessage": "Are you sure you want to cancel \"{{routineName}}\"? The routine can be reactivated later.",
     "confirmDeleteTitle": "Delete Routine",
     "confirmDeleteMessage": "Are you sure you want to permanently delete \"{{routineName}}\"? This cannot be undone.",
+    "confirmRemoveCancelledTitle": "Remove Cancelled Routine",
+    "confirmRemoveCancelledMessage": "Are you sure you want to permanently remove the cancelled routine \"{{routineName}}\"? This cannot be undone.",
     "cancelSuccess": "Routine cancelled",
     "cancelSuccessMessage": "Routine \"{{name}}\" has been cancelled.",
     "deleteSuccess": "Routine deleted",

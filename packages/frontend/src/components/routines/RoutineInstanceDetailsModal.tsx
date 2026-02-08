@@ -263,7 +263,9 @@ export function RoutineInstanceDetailsModal({
     (canManageSchedules || isAssignee) &&
     ["scheduled", "started", "in_progress"].includes(slot?.status ?? "");
 
-  const canDeleteInstance = canManageSchedules && slot?.status === "scheduled";
+  const canDeleteInstance =
+    canManageSchedules &&
+    (slot?.status === "scheduled" || slot?.status === "cancelled");
 
   const isMutating =
     cancelMutation.isPending ||
@@ -524,9 +526,13 @@ export function RoutineInstanceDetailsModal({
               {t("routines:instance.confirmDeleteTitle")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {t("routines:instance.confirmDeleteMessage", {
-                routineName: slot.title,
-              })}
+              {slot?.status === "cancelled"
+                ? t("routines:instance.confirmRemoveCancelledMessage", {
+                    routineName: slot.title,
+                  })
+                : t("routines:instance.confirmDeleteMessage", {
+                    routineName: slot.title,
+                  })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

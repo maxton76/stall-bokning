@@ -150,13 +150,8 @@ export function createHorseTableColumns({
           }
         }
 
-        return age !== undefined || birthYear !== undefined ? (
-          <div className="flex flex-col">
-            {age !== undefined && <span className="font-medium">{age}</span>}
-            {birthYear && (
-              <span className="text-sm text-muted-foreground">{birthYear}</span>
-            )}
-          </div>
+        return age !== undefined ? (
+          <span>{age}</span>
         ) : (
           <span className="text-muted-foreground">—</span>
         );

@@ -43,6 +43,7 @@ import {
   createActivityHistoryEntries,
   findExistingEntry,
   updateEntry,
+  markRoutineEntriesCompleted,
 } from "../services/horseActivityHistoryService.js";
 import {
   getActiveSelectionProcessForStable,
@@ -1598,6 +1599,9 @@ export async function routinesRoutes(fastify: FastifyInstance) {
 
         await db.collection("routineInstances").doc(id).update(updateData);
 
+        // Mark all history entries for this routine as completed
+        await markRoutineEntriesCompleted(id);
+
         // TODO: Award points to user through fairness algorithm
         // TODO: Send notification about completed routine
 
@@ -1758,11 +1762,11 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Only allow deletion of scheduled instances (cancelled may have activity history)
-        if (data.status !== "scheduled") {
+        // Only allow deletion of scheduled and cancelled instances (completed/in-progress have activity history)
+        if (data.status !== "scheduled" && data.status !== "cancelled") {
           return reply.status(400).send({
             error: "Bad Request",
-            message: `Cannot delete routine with status: ${data.status}. Only scheduled routines can be deleted.`,
+            message: `Cannot delete routine with status: ${data.status}. Only scheduled and cancelled routines can be deleted.`,
           });
         }
 
@@ -1775,10 +1779,13 @@ export async function routinesRoutes(fastify: FastifyInstance) {
             throw { statusCode: 404, message: "Routine instance not found" };
           }
           const freshData = freshDoc.data() as RoutineInstance;
-          if (freshData.status !== "scheduled") {
+          if (
+            freshData.status !== "scheduled" &&
+            freshData.status !== "cancelled"
+          ) {
             throw {
               statusCode: 400,
-              message: `Cannot delete routine with status: ${freshData.status}. Only scheduled routines can be deleted.`,
+              message: `Cannot delete routine with status: ${freshData.status}. Only scheduled and cancelled routines can be deleted.`,
             };
           }
           txn.delete(freshDoc.ref);

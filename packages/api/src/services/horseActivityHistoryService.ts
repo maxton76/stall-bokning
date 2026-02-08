@@ -60,6 +60,7 @@ export async function createActivityHistoryEntries(
         category: entry.category,
         stepOrder: entry.stepOrder,
         executionStatus: entry.executionStatus,
+        routineInstanceCompleted: false,
         executedAt: now,
         executedBy: entry.executedBy,
         executedByName: entry.executedByName,
@@ -101,6 +102,9 @@ export async function getByHorseId(
   const fetchLimit = limit + 1;
 
   let query = db.collection(COLLECTION_NAME).where("horseId", "==", horseId);
+
+  // Only show entries from fully completed routines
+  query = query.where("routineInstanceCompleted", "==", true) as any;
 
   // Apply category filter if provided
   if (filters?.category) {
@@ -366,6 +370,49 @@ export async function findExistingEntry(
     id: doc.id,
     ...doc.data(),
   } as HorseActivityHistoryEntry;
+}
+
+/**
+ * Mark all history entries for a routine instance as completed
+ * Called when the parent routine reaches "completed" status
+ *
+ * @param routineInstanceId - Routine instance ID
+ * @returns Number of updated entries
+ */
+export async function markRoutineEntriesCompleted(
+  routineInstanceId: string,
+): Promise<number> {
+  const query = db
+    .collection(COLLECTION_NAME)
+    .where("routineInstanceId", "==", routineInstanceId);
+
+  const snapshot = await query.get();
+
+  if (snapshot.empty) {
+    return 0;
+  }
+
+  const now = Timestamp.now();
+
+  // Chunk updates for batch processing
+  const chunks: FirebaseFirestore.QueryDocumentSnapshot[][] = [];
+  for (let i = 0; i < snapshot.docs.length; i += BATCH_CHUNK_SIZE) {
+    chunks.push(snapshot.docs.slice(i, i + BATCH_CHUNK_SIZE));
+  }
+
+  for (const chunk of chunks) {
+    const batch = db.batch();
+    chunk.forEach((doc) =>
+      batch.update(doc.ref, {
+        routineInstanceCompleted: true,
+        updatedAt: now,
+        version: FieldValue.increment(1),
+      }),
+    );
+    await batch.commit();
+  }
+
+  return snapshot.docs.length;
 }
 
 /**

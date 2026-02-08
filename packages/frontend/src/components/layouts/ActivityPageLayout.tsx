@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 
 interface ActivityPageLayoutProps {
-  icon: LucideIcon;
+  icon?: LucideIcon;
   title: string;
   description: string;
   selectedStableId: string;
@@ -68,7 +68,7 @@ export function ActivityPageLayout({
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Icon className="h-8 w-8" />
+        {Icon && <Icon className="h-8 w-8" />}
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
           <p className="text-muted-foreground mt-1">{description}</p>

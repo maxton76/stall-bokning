@@ -305,7 +305,7 @@ export function RoutineHistoryCard({ horse }: RoutineHistoryCardProps) {
                             <XCircle className="h-3 w-3 mr-1" />
                           )}
                           {t(
-                            `horses:routineHistory.status.${activity.executionStatus}`,
+                            `horses:routineHistory.status.${activity.executionStatus || "unknown"}`,
                           )}
                         </Badge>
                       </div>
