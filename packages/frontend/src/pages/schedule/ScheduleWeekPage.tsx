@@ -50,6 +50,7 @@ import {
 export default function ScheduleWeekPage() {
   const { t } = useTranslation(["common"]);
   const { user } = useAuth();
+  const { currentOrganizationId } = useOrganization();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -76,6 +77,21 @@ export default function ScheduleWeekPage() {
 
   // Auto-select first stable if none selected
   const activeStableId = selectedStableId || stables[0]?.id;
+
+  // Fetch organization members for proper name formatting with duplicate detection
+  const { data: members = [] } = useOrganizationMembers(currentOrganizationId);
+
+  // Detect duplicate display names for disambiguation
+  const duplicateNames = useMemo(() => getDuplicateNames(members), [members]);
+
+  // Create member lookup map for efficient assignee name formatting
+  const memberMap = useMemo(() => {
+    const map = new Map<string, (typeof members)[0]>();
+    members.forEach((member) => {
+      map.set(member.userId, member);
+    });
+    return map;
+  }, [members]);
 
   // Fetch real routine data
   const {
