@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Dialog,
@@ -96,6 +96,25 @@ export function RoutineInstanceDetailsModal({
   const { data: members = [], isLoading: membersLoading } =
     useStablePlanningMembers(currentOrganizationId, stableId);
   const formattedMembers = formatMembersForSelection(members);
+
+  // Debug: Log members and formatted members to investigate duplicate name handling
+  useEffect(() => {
+    if (open && members.length > 0) {
+      console.log("[RoutineInstanceDetailsModal] Members:", {
+        count: members.length,
+        members: members.map((m) => ({
+          userId: m.userId,
+          name: `${m.firstName} ${m.lastName}`,
+          email: m.userEmail,
+          showInPlanning: m.showInPlanning,
+          stableAccess: m.stableAccess,
+          assignedStableIds: m.assignedStableIds,
+        })),
+        formattedCount: formattedMembers.length,
+        formattedMembers,
+      });
+    }
+  }, [open, members, formattedMembers]);
 
   // Mutations
   const assignMutation = useAssignRoutine();
