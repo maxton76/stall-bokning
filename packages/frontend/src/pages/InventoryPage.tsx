@@ -276,7 +276,7 @@ export default function InventoryPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-6 space-y-6">
       <PageHeader
         title={t("inventory:title")}
         description={t("inventory:description")}

@@ -68,7 +68,7 @@ export default function AccountPage() {
 
   const getJoinDate = () => {
     const locale = i18n.language === "sv" ? "sv-SE" : "en-US";
-    const date = user?.createdAt ? user.createdAt.toDate() : new Date();
+    const date = user?.createdAt ? new Date(user.createdAt) : new Date();
     return date.toLocaleDateString(locale, {
       year: "numeric",
       month: "long",

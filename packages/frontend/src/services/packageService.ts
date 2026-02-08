@@ -195,7 +195,7 @@ export async function getMyPackages(
   if (options?.limit) params.limit = options.limit.toString();
 
   return apiClient.get<MyPackagesResponse>(
-    `/packages/my/${organizationId}/member-packages`,
+    `/organizations/my/${organizationId}/member-packages`,
     Object.keys(params).length > 0 ? params : undefined,
   );
 }

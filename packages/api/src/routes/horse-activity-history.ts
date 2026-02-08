@@ -13,6 +13,7 @@ import type {
   RoutineCategory,
   HorseActivityHistoryEntry,
 } from "@equiduty/shared";
+import { PERMISSIONS } from "../utils/openapiPermissions.js";
 
 /**
  * Horse Activity History Routes
@@ -32,7 +33,123 @@ export async function horseActivityHistoryRoutes(fastify: FastifyInstance) {
    */
   fastify.get(
     "/horse/:horseId",
-    { preHandler: [authenticate] },
+    {
+      preHandler: [authenticate],
+      schema: {
+        description:
+          "Get activity history for a specific horse (horse timeline view)",
+        tags: ["Activities"],
+        params: {
+          type: "object",
+          required: ["horseId"],
+          properties: {
+            horseId: { type: "string", description: "Horse ID" },
+          },
+        },
+        querystring: {
+          type: "object",
+          properties: {
+            category: {
+              type: "string",
+              description: "Filter by routine category",
+            },
+            startDate: {
+              type: "string",
+              format: "date-time",
+              description: "Filter from this date (ISO 8601)",
+            },
+            endDate: {
+              type: "string",
+              format: "date-time",
+              description: "Filter to this date (ISO 8601)",
+            },
+            limit: {
+              type: "string",
+              description: "Maximum number of entries to return (default: 50)",
+            },
+            cursor: {
+              type: "string",
+              description: "Pagination cursor (last document ID)",
+            },
+          },
+        },
+        response: {
+          200: {
+            description: "Activity history for the horse",
+            type: "object",
+            properties: {
+              activities: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string" },
+                    horseId: { type: "string" },
+                    routineInstanceId: { type: "string" },
+                    stepId: { type: "string" },
+                    category: { type: "string" },
+                    name: { type: "string" },
+                    completedAt: {
+                      type: "string",
+                      format: "date-time",
+                      description: "ISO 8601 timestamp",
+                    },
+                    completedBy: { type: "string" },
+                    completedByName: { type: "string" },
+                  },
+                },
+              },
+              nextCursor: {
+                type: "string",
+                description: "Cursor for next page",
+              },
+              hasMore: {
+                type: "boolean",
+                description: "Whether more results are available",
+              },
+              horseName: {
+                type: "string",
+                description: "Name of the horse",
+              },
+            },
+          },
+          401: {
+            description: "Missing or invalid JWT token",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+          403: {
+            description:
+              "Insufficient permissions to access this horse's activity history",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+          404: {
+            description: "Horse not found",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+          500: {
+            description: "Internal server error",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+        },
+        ...PERMISSIONS.AUTHENTICATED,
+      },
+    },
     async (request, reply) => {
       try {
         const user = (request as AuthenticatedRequest).user!;

@@ -347,6 +347,13 @@
       "records": "Register",
       "integrations": "Integrationer"
     },
+    "roleGroups": {
+      "all": "Alla roller",
+      "staff": "Personal & Administration",
+      "professionals": "Specialister",
+      "owners": "Ägare & Kunder",
+      "training": "Utbildning"
+    },
     "buttons": {
       "save": "Spara behörigheter",
       "reset": "Återställ till standard",

@@ -23,6 +23,7 @@ export const db = getFirestore();
  * Re-export commonly used Firebase Admin types and functions
  * for convenience in consuming modules
  */
+export { getStorage } from "firebase-admin/storage";
 export { Timestamp, FieldValue } from "firebase-admin/firestore";
 export type {
   Firestore,

@@ -255,10 +255,14 @@
                           ]
                         },
                         "createdAt": {
-                          "type": "object"
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "ISO 8601 timestamp"
                         },
                         "updatedAt": {
-                          "type": "object"
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "ISO 8601 timestamp"
                         }
                       }
                     }
@@ -326,6 +330,25 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Internal server error",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -375,10 +398,14 @@
                       ]
                     },
                     "createdAt": {
-                      "type": "object"
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "ISO 8601 timestamp"
                     },
                     "updatedAt": {
-                      "type": "object"
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "ISO 8601 timestamp"
                     }
                   }
                 }
@@ -410,6 +437,25 @@
               "application/json": {
                 "schema": {
                   "description": "Resource not found",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Internal server error",
                   "type": "object",
                   "properties": {
                     "error": {
@@ -501,7 +547,9 @@
                       }
                     },
                     "updatedAt": {
-                      "type": "object"
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "ISO 8601 timestamp"
                     }
                   }
                 }
@@ -555,6 +603,25 @@
               "application/json": {
                 "schema": {
                   "description": "Resource not found",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Internal server error",
                   "type": "object",
                   "properties": {
                     "error": {
@@ -3039,19 +3106,214 @@
     },
     "/health-records/horse/{horseId}": {
       "get": {
+        "tags": [
+          "Health Records"
+        ],
+        "description": "Get all health records for a specific horse",
         "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "veterinary",
+                "farrier",
+                "dental",
+                "medication",
+                "injury",
+                "deworming",
+                "other"
+              ]
+            },
+            "in": "query",
+            "name": "recordType",
+            "required": false,
+            "description": "Filter by record type"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "description": "Maximum number of records to return (default: 50)"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "description": "Number of records to skip (default: 0)"
+          },
           {
             "schema": {
               "type": "string"
             },
             "in": "path",
             "name": "horseId",
-            "required": true
+            "required": true,
+            "description": "Horse ID"
           }
         ],
+        "x-permissions": {
+          "authenticated": true,
+          "systemRole": null,
+          "organizationPermission": null,
+          "stablePermission": null
+        },
         "responses": {
           "200": {
-            "description": "Default Response"
+            "description": "List of health records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "List of health records",
+                  "type": "object",
+                  "properties": {
+                    "records": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "horseId": {
+                            "type": "string"
+                          },
+                          "horseName": {
+                            "type": "string"
+                          },
+                          "recordType": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "date": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "ISO 8601 timestamp"
+                          },
+                          "scheduledTime": {
+                            "type": "string"
+                          },
+                          "duration": {
+                            "type": "integer"
+                          },
+                          "provider": {
+                            "type": "string"
+                          },
+                          "clinic": {
+                            "type": "string"
+                          },
+                          "requiresFollowUp": {
+                            "type": "boolean"
+                          },
+                          "followUpDate": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "ISO 8601 timestamp"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "ISO 8601 timestamp"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "ISO 8601 timestamp"
+                          }
+                        }
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "Total count of records"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Missing or invalid JWT token",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions to access this horse's records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Insufficient permissions to access this horse's records",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Horse not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Horse not found",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Internal server error",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -3075,6 +3337,100 @@
         }
       },
       "patch": {
+        "tags": [
+          "Health Records"
+        ],
+        "description": "Update an existing health record",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "horseId"
+                ],
+                "properties": {
+                  "horseId": {
+                    "type": "string",
+                    "description": "ID of the horse (required for access check)"
+                  },
+                  "recordType": {
+                    "type": "string",
+                    "enum": [
+                      "veterinary",
+                      "farrier",
+                      "dental",
+                      "medication",
+                      "injury",
+                      "deworming",
+                      "other"
+                    ]
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "scheduledTime": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$",
+                    "description": "Time of day in HH:MM format"
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 480,
+                    "description": "Duration in minutes"
+                  },
+                  "provider": {
+                    "type": "string"
+                  },
+                  "providerContactId": {
+                    "type": "string"
+                  },
+                  "clinic": {
+                    "type": "string"
+                  },
+                  "diagnosis": {
+                    "type": "string"
+                  },
+                  "treatment": {
+                    "type": "string"
+                  },
+                  "symptoms": {
+                    "type": "string"
+                  },
+                  "findings": {
+                    "type": "string"
+                  },
+                  "cost": {
+                    "type": "number"
+                  },
+                  "currency": {
+                    "type": "string"
+                  },
+                  "requiresFollowUp": {
+                    "type": "boolean"
+                  },
+                  "followUpDate": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "followUpNotes": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
         "parameters": [
           {
             "schema": {
@@ -3082,12 +3438,181 @@
             },
             "in": "path",
             "name": "id",
-            "required": true
+            "required": true,
+            "description": "Health record ID"
           }
         ],
+        "x-permissions": {
+          "authenticated": true,
+          "systemRole": null,
+          "organizationPermission": null,
+          "stablePermission": null
+        },
         "responses": {
           "200": {
-            "description": "Default Response"
+            "description": "Health record updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Health record updated successfully",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "horseId": {
+                      "type": "string"
+                    },
+                    "horseName": {
+                      "type": "string"
+                    },
+                    "recordType": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "ISO 8601 timestamp"
+                    },
+                    "scheduledTime": {
+                      "type": "string"
+                    },
+                    "duration": {
+                      "type": "integer"
+                    },
+                    "provider": {
+                      "type": "string"
+                    },
+                    "clinic": {
+                      "type": "string"
+                    },
+                    "diagnosis": {
+                      "type": "string"
+                    },
+                    "treatment": {
+                      "type": "string"
+                    },
+                    "cost": {
+                      "type": "number"
+                    },
+                    "requiresFollowUp": {
+                      "type": "boolean"
+                    },
+                    "followUpDate": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "ISO 8601 timestamp"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "ISO 8601 timestamp"
+                    },
+                    "lastModifiedBy": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Invalid request parameters or body",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Missing or invalid JWT token",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions to update this health record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Insufficient permissions to update this health record",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Health record not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Health record not found",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Internal server error",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       },
@@ -3111,9 +3636,288 @@
     },
     "/health-records/": {
       "post": {
+        "tags": [
+          "Health Records"
+        ],
+        "description": "Create a new health record for a horse",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "horseId",
+                  "recordType",
+                  "title",
+                  "date"
+                ],
+                "properties": {
+                  "horseId": {
+                    "type": "string",
+                    "description": "ID of the horse this record belongs to"
+                  },
+                  "recordType": {
+                    "type": "string",
+                    "enum": [
+                      "veterinary",
+                      "farrier",
+                      "dental",
+                      "medication",
+                      "injury",
+                      "deworming",
+                      "other"
+                    ],
+                    "description": "Type of health record"
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Short summary (e.g., 'Annual checkup', 'Colic treatment')"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Event date (ISO 8601)"
+                  },
+                  "scheduledTime": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$",
+                    "description": "Optional time of day in HH:MM format (e.g., '14:30')"
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 480,
+                    "description": "Optional duration in minutes (1-480)"
+                  },
+                  "provider": {
+                    "type": "string",
+                    "description": "Provider name (vet, farrier, etc.)"
+                  },
+                  "providerContactId": {
+                    "type": "string",
+                    "description": "Reference to contact document"
+                  },
+                  "clinic": {
+                    "type": "string",
+                    "description": "Clinic or facility name"
+                  },
+                  "diagnosis": {
+                    "type": "string",
+                    "description": "Diagnosis details"
+                  },
+                  "treatment": {
+                    "type": "string",
+                    "description": "Treatment provided"
+                  },
+                  "symptoms": {
+                    "type": "string",
+                    "description": "Observed symptoms"
+                  },
+                  "findings": {
+                    "type": "string",
+                    "description": "Examination findings"
+                  },
+                  "cost": {
+                    "type": "number",
+                    "description": "Cost in SEK"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "description": "Currency code (default: SEK)"
+                  },
+                  "requiresFollowUp": {
+                    "type": "boolean",
+                    "description": "Whether follow-up is needed"
+                  },
+                  "followUpDate": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Follow-up date (ISO 8601)"
+                  },
+                  "followUpNotes": {
+                    "type": "string",
+                    "description": "Notes for follow-up appointment"
+                  },
+                  "notes": {
+                    "type": "string",
+                    "description": "Additional notes"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": {
+          "authenticated": true,
+          "systemRole": null,
+          "organizationPermission": null,
+          "stablePermission": null
+        },
         "responses": {
-          "200": {
-            "description": "Default Response"
+          "201": {
+            "description": "Health record created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Health record created successfully",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "horseId": {
+                      "type": "string"
+                    },
+                    "horseName": {
+                      "type": "string"
+                    },
+                    "recordType": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "ISO 8601 timestamp"
+                    },
+                    "scheduledTime": {
+                      "type": "string"
+                    },
+                    "duration": {
+                      "type": "integer"
+                    },
+                    "provider": {
+                      "type": "string"
+                    },
+                    "clinic": {
+                      "type": "string"
+                    },
+                    "diagnosis": {
+                      "type": "string"
+                    },
+                    "treatment": {
+                      "type": "string"
+                    },
+                    "cost": {
+                      "type": "number"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "requiresFollowUp": {
+                      "type": "boolean"
+                    },
+                    "followUpDate": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "ISO 8601 timestamp"
+                    },
+                    "followUpNotes": {
+                      "type": "string"
+                    },
+                    "notes": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "ISO 8601 timestamp"
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "ISO 8601 timestamp"
+                    },
+                    "lastModifiedBy": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Invalid request parameters or body",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Missing or invalid JWT token",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions to create health record for this horse",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Insufficient permissions to create health record for this horse",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Internal server error",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -5497,19 +6301,176 @@
     },
     "/organizations/{organizationId}/packages": {
       "get": {
+        "tags": [
+          "Packages"
+        ],
+        "description": "List package definitions for an organization",
         "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "isActive",
+            "required": false,
+            "description": "Filter by active status (default: \"true\")"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "description": "Maximum number of items to return (default: 100)"
+          },
           {
             "schema": {
               "type": "string"
             },
             "in": "path",
             "name": "organizationId",
-            "required": true
+            "required": true,
+            "description": "Organization ID"
           }
         ],
+        "x-permissions": {
+          "authenticated": true,
+          "systemRole": null,
+          "organizationPermission": null,
+          "stablePermission": null
+        },
         "responses": {
           "200": {
-            "description": "Default Response"
+            "description": "List of package definitions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "List of package definitions",
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "organizationId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "chargeableItemId": {
+                            "type": "string"
+                          },
+                          "totalUnits": {
+                            "type": "integer"
+                          },
+                          "price": {
+                            "type": "integer",
+                            "description": "Price in öre (1 SEK = 100 öre)"
+                          },
+                          "expiryPolicy": {
+                            "type": "string"
+                          },
+                          "cancellationPolicy": {
+                            "type": "string",
+                            "enum": [
+                              "no_refund",
+                              "pro_rata_unit",
+                              "pro_rata_package",
+                              "full_refund"
+                            ]
+                          },
+                          "validityDays": {
+                            "type": "integer"
+                          },
+                          "transferableWithinGroup": {
+                            "type": "boolean"
+                          },
+                          "isActive": {
+                            "type": "boolean"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "ISO 8601 timestamp"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "ISO 8601 timestamp"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Missing or invalid JWT token",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions to access this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Insufficient permissions to access this organization",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Internal server error",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       },
@@ -5587,19 +6548,199 @@
     },
     "/organizations/{organizationId}/member-packages": {
       "get": {
+        "tags": [
+          "Packages"
+        ],
+        "description": "List purchased member packages for an organization with optional filters",
         "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "memberId",
+            "required": false,
+            "description": "Filter by member ID"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "expired",
+                "depleted",
+                "cancelled"
+              ]
+            },
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "description": "Filter by package status"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "description": "Maximum number of items to return (default: 100)"
+          },
           {
             "schema": {
               "type": "string"
             },
             "in": "path",
             "name": "organizationId",
-            "required": true
+            "required": true,
+            "description": "Organization ID"
           }
         ],
+        "x-permissions": {
+          "authenticated": true,
+          "systemRole": null,
+          "organizationPermission": null,
+          "stablePermission": null
+        },
         "responses": {
           "200": {
-            "description": "Default Response"
+            "description": "List of member packages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "List of member packages",
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "organizationId": {
+                            "type": "string"
+                          },
+                          "packageDefinitionId": {
+                            "type": "string"
+                          },
+                          "memberId": {
+                            "type": "string"
+                          },
+                          "packageName": {
+                            "type": "string"
+                          },
+                          "chargeableItemId": {
+                            "type": "string"
+                          },
+                          "purchaseDate": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "ISO 8601 timestamp"
+                          },
+                          "expiresAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "ISO 8601 timestamp"
+                          },
+                          "remainingUnits": {
+                            "type": "integer"
+                          },
+                          "totalUnits": {
+                            "type": "integer"
+                          },
+                          "price": {
+                            "type": "integer",
+                            "description": "Price in öre (1 SEK = 100 öre)"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "active",
+                              "expired",
+                              "depleted",
+                              "cancelled"
+                            ]
+                          },
+                          "cancellationPolicy": {
+                            "type": "string",
+                            "enum": [
+                              "no_refund",
+                              "pro_rata_unit",
+                              "pro_rata_package",
+                              "full_refund"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "ISO 8601 timestamp"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Missing or invalid JWT token",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions to access this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Insufficient permissions to access this organization",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Internal server error",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -5687,19 +6828,174 @@
     },
     "/organizations/my/{organizationId}/member-packages": {
       "get": {
+        "tags": [
+          "Packages"
+        ],
+        "description": "Get purchased packages for the authenticated user (their own member packages)",
         "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "expired",
+                "depleted",
+                "cancelled"
+              ]
+            },
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "description": "Filter by package status"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "description": "Maximum number of items to return (default: 50)"
+          },
           {
             "schema": {
               "type": "string"
             },
             "in": "path",
             "name": "organizationId",
-            "required": true
+            "required": true,
+            "description": "Organization ID"
           }
         ],
+        "x-permissions": {
+          "authenticated": true,
+          "systemRole": null,
+          "organizationPermission": null,
+          "stablePermission": null
+        },
         "responses": {
           "200": {
-            "description": "Default Response"
+            "description": "User's member packages with enriched information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "User's member packages with enriched information",
+                  "type": "object",
+                  "properties": {
+                    "memberId": {
+                      "type": "string",
+                      "description": "Member ID (null if user is not a member)"
+                    },
+                    "memberName": {
+                      "type": "string",
+                      "description": "Member's full name (null if user is not a member)"
+                    },
+                    "packages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "organizationId": {
+                            "type": "string"
+                          },
+                          "memberId": {
+                            "type": "string"
+                          },
+                          "packageDefinitionId": {
+                            "type": "string"
+                          },
+                          "packageName": {
+                            "type": "string",
+                            "description": "Package name (or \"Unknown Package\" if definition not found)"
+                          },
+                          "packageDescription": {
+                            "type": "string"
+                          },
+                          "purchaseDate": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "ISO 8601 timestamp"
+                          },
+                          "expiresAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "ISO 8601 timestamp"
+                          },
+                          "remainingUnits": {
+                            "type": "integer"
+                          },
+                          "totalUnits": {
+                            "type": "integer"
+                          },
+                          "price": {
+                            "type": "integer",
+                            "description": "Price in öre (1 SEK = 100 öre)"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "active",
+                              "expired",
+                              "depleted",
+                              "cancelled"
+                            ]
+                          },
+                          "isExpired": {
+                            "type": "boolean",
+                            "description": "Computed expiry status based on expiresAt"
+                          },
+                          "daysUntilExpiry": {
+                            "type": "integer",
+                            "description": "Days until package expires (null if no expiry date)"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Missing or invalid JWT token",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Internal server error",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -7871,26 +9167,219 @@
         }
       }
     },
-    "/horse/{horseId}": {
+    "/horse-activity-history/horse/{horseId}": {
       "get": {
+        "tags": [
+          "Activities"
+        ],
+        "description": "Get activity history for a specific horse (horse timeline view)",
         "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "description": "Filter by routine category"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "description": "Filter from this date (ISO 8601)"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "description": "Filter to this date (ISO 8601)"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "description": "Maximum number of entries to return (default: 50)"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "description": "Pagination cursor (last document ID)"
+          },
           {
             "schema": {
               "type": "string"
             },
             "in": "path",
             "name": "horseId",
-            "required": true
+            "required": true,
+            "description": "Horse ID"
           }
         ],
+        "x-permissions": {
+          "authenticated": true,
+          "systemRole": null,
+          "organizationPermission": null,
+          "stablePermission": null
+        },
         "responses": {
           "200": {
-            "description": "Default Response"
+            "description": "Activity history for the horse",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Activity history for the horse",
+                  "type": "object",
+                  "properties": {
+                    "activities": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "horseId": {
+                            "type": "string"
+                          },
+                          "routineInstanceId": {
+                            "type": "string"
+                          },
+                          "stepId": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "completedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "ISO 8601 timestamp"
+                          },
+                          "completedBy": {
+                            "type": "string"
+                          },
+                          "completedByName": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "description": "Cursor for next page"
+                    },
+                    "hasMore": {
+                      "type": "boolean",
+                      "description": "Whether more results are available"
+                    },
+                    "horseName": {
+                      "type": "string",
+                      "description": "Name of the horse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Missing or invalid JWT token",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions to access this horse's activity history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Insufficient permissions to access this horse's activity history",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Horse not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Horse not found",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Internal server error",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
-    "/routine/{routineInstanceId}": {
+    "/horse-activity-history/routine/{routineInstanceId}": {
       "get": {
         "parameters": [
           {
@@ -7909,7 +9398,7 @@
         }
       }
     },
-    "/stable/{stableId}": {
+    "/horse-activity-history/stable/{stableId}": {
       "get": {
         "parameters": [
           {
@@ -7985,7 +9474,7 @@
         }
       }
     },
-    "/preferences": {
+    "/settings/preferences": {
       "get": {
         "responses": {
           "200": {
@@ -9290,7 +10779,7 @@
         }
       }
     },
-    "/onboarding/onboarding": {
+    "/settings/onboarding": {
       "get": {
         "responses": {
           "200": {

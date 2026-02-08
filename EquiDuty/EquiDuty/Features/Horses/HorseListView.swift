@@ -414,7 +414,7 @@ struct HorseAvatarView: View {
 
     var body: some View {
         Group {
-            if let avatarURL = horse.avatarPhotoURL, let url = URL(string: avatarURL) {
+            if let url = horse.bestAvatarThumbURL {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
@@ -427,7 +427,7 @@ struct HorseAvatarView: View {
                         ProgressView()
                     }
                 }
-                .id(avatarURL) // Stabilize identity to prevent flickering during list scroll
+                .id(url) // Stabilize identity to prevent flickering during list scroll
             } else {
                 initialsView
             }

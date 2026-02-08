@@ -43,6 +43,10 @@ export interface HealthRecord {
   title: string; // Short summary (e.g., "Annual checkup", "Colic treatment")
   date: Timestamp;
 
+  // Time-of-day tracking (optional)
+  scheduledTime?: string; // "HH:MM" format (e.g., "14:30")
+  duration?: number; // Duration in minutes (e.g., 60 for 1 hour)
+
   // Provider information
   provider?: string; // Vet name, farrier name, etc.
   providerContactId?: string; // Reference to contact document
@@ -121,6 +125,8 @@ export interface CreateHealthRecordInput {
   recordType: HealthRecordType;
   title: string;
   date: Timestamp | Date;
+  scheduledTime?: string; // "HH:MM" format (e.g., "14:30")
+  duration?: number; // Duration in minutes
   provider?: string;
   providerContactId?: string;
   clinic?: string;
@@ -144,6 +150,8 @@ export interface UpdateHealthRecordInput {
   recordType?: HealthRecordType;
   title?: string;
   date?: Timestamp | Date;
+  scheduledTime?: string; // "HH:MM" format (e.g., "14:30")
+  duration?: number; // Duration in minutes
   provider?: string;
   providerContactId?: string;
   clinic?: string;

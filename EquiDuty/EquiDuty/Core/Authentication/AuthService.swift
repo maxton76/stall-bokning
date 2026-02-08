@@ -316,10 +316,11 @@ final class AuthService {
         }
     }
 
-    /// Load organization subscription
+    /// Load organization subscription from org's tier + cached tier definitions (no API call)
     private func loadSubscription(organizationId: String) async {
         do {
-            try await SubscriptionService.shared.fetchSubscription(organizationId: organizationId)
+            let tierValue = selectedOrganization?.subscriptionTier?.value
+            try await SubscriptionService.shared.loadSubscription(tier: tierValue)
             #if DEBUG
             print("✅ Loaded subscription for organization: \(organizationId)")
             if let subscription = SubscriptionService.shared.currentSubscription {

@@ -1,5 +1,4 @@
 import { LucideIcon } from "lucide-react";
-import type { ModuleFlags, SubscriptionAddons } from "@equiduty/shared";
 
 /**
  * Navigation sub-item configuration
@@ -11,6 +10,10 @@ export interface NavigationSubItem {
   icon: LucideIcon;
   roles?: string[];
   badge?: "new" | "beta";
+  /** If set, item is only visible when this feature toggle key is enabled (e.g., "rideLessons", "leaveManagement") */
+  moduleFlag?: string;
+  /** If set, item is only visible when this feature toggle key is enabled (e.g., "invoicing") */
+  addonFlag?: string;
   /** If set, item is only visible for this organization type (default: "any") */
   visibleForOrgType?: OrgTypeVisibility;
 }
@@ -29,10 +32,10 @@ export interface NavigationItem {
   subItems?: NavigationSubItem[];
   roles?: string[];
   badge?: "new" | "beta";
-  /** If set, item is only visible when this module is enabled */
-  moduleFlag?: keyof ModuleFlags;
-  /** If set, item is only visible when this addon is enabled */
-  addonFlag?: keyof SubscriptionAddons;
+  /** If set, item is only visible when this feature toggle key is enabled */
+  moduleFlag?: string;
+  /** If set, item is only visible when this feature toggle key is enabled */
+  addonFlag?: string;
   /** If set, item is only visible for this organization type (default: "any") */
   visibleForOrgType?: OrgTypeVisibility;
 }
@@ -45,8 +48,10 @@ export interface OrganizationNavigation {
   labelKey: string;
   icon: LucideIcon;
   subItems: NavigationSubItem[];
-  /** If set, item is only visible when this addon is enabled */
-  addonFlag?: keyof SubscriptionAddons;
+  /** If set, item is only visible when this feature toggle key is enabled */
+  moduleFlag?: string;
+  /** If set, item is only visible when this feature toggle key is enabled */
+  addonFlag?: string;
   /** If set, item is only visible for these roles */
   roles?: string[];
 }

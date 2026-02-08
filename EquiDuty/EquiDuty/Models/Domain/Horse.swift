@@ -227,6 +227,20 @@ struct Horse: Codable, Identifiable, Equatable {
     var coverPhotoURL: String?
     var avatarPhotoURL: String?
 
+    // Image variant signed URLs (optimized sizes from API)
+    var coverPhotoThumbURL: String?
+    var coverPhotoSmallURL: String?
+    var coverPhotoMediumURL: String?
+    var coverPhotoLargeURL: String?
+    var avatarPhotoThumbURL: String?
+    var avatarPhotoSmallURL: String?
+    var avatarPhotoMediumURL: String?
+    var avatarPhotoLargeURL: String?
+
+    // Blurhash strings for instant placeholders
+    var coverPhotoBlurhash: String?
+    var avatarPhotoBlurhash: String?
+
     // Team members (stored as array on horse document)
     var team: [HorseTeamMember]?
 
@@ -253,6 +267,9 @@ struct Horse: Codable, Identifiable, Equatable {
         case sire, dam, damsire, breeder, studbook
         case dateOfBirth, withersHeight
         case coverPhotoURL, avatarPhotoURL
+        case coverPhotoThumbURL, coverPhotoSmallURL, coverPhotoMediumURL, coverPhotoLargeURL
+        case avatarPhotoThumbURL, avatarPhotoSmallURL, avatarPhotoMediumURL, avatarPhotoLargeURL
+        case coverPhotoBlurhash, avatarPhotoBlurhash
         case externalLocation, externalMoveType, externalDepartureDate
         case team
         case createdAt, updatedAt
@@ -310,6 +327,18 @@ struct Horse: Codable, Identifiable, Equatable {
 
         coverPhotoURL = try container.decodeIfPresent(String.self, forKey: .coverPhotoURL)
         avatarPhotoURL = try container.decodeIfPresent(String.self, forKey: .avatarPhotoURL)
+
+        coverPhotoThumbURL = try container.decodeIfPresent(String.self, forKey: .coverPhotoThumbURL)
+        coverPhotoSmallURL = try container.decodeIfPresent(String.self, forKey: .coverPhotoSmallURL)
+        coverPhotoMediumURL = try container.decodeIfPresent(String.self, forKey: .coverPhotoMediumURL)
+        coverPhotoLargeURL = try container.decodeIfPresent(String.self, forKey: .coverPhotoLargeURL)
+        avatarPhotoThumbURL = try container.decodeIfPresent(String.self, forKey: .avatarPhotoThumbURL)
+        avatarPhotoSmallURL = try container.decodeIfPresent(String.self, forKey: .avatarPhotoSmallURL)
+        avatarPhotoMediumURL = try container.decodeIfPresent(String.self, forKey: .avatarPhotoMediumURL)
+        avatarPhotoLargeURL = try container.decodeIfPresent(String.self, forKey: .avatarPhotoLargeURL)
+
+        coverPhotoBlurhash = try container.decodeIfPresent(String.self, forKey: .coverPhotoBlurhash)
+        avatarPhotoBlurhash = try container.decodeIfPresent(String.self, forKey: .avatarPhotoBlurhash)
 
         externalLocation = try container.decodeIfPresent(String.self, forKey: .externalLocation)
         externalMoveType = try container.decodeIfPresent(String.self, forKey: .externalMoveType)
@@ -376,6 +405,16 @@ struct Horse: Codable, Identifiable, Equatable {
         withersHeight: Int? = nil,
         coverPhotoURL: String? = nil,
         avatarPhotoURL: String? = nil,
+        coverPhotoThumbURL: String? = nil,
+        coverPhotoSmallURL: String? = nil,
+        coverPhotoMediumURL: String? = nil,
+        coverPhotoLargeURL: String? = nil,
+        avatarPhotoThumbURL: String? = nil,
+        avatarPhotoSmallURL: String? = nil,
+        avatarPhotoMediumURL: String? = nil,
+        avatarPhotoLargeURL: String? = nil,
+        coverPhotoBlurhash: String? = nil,
+        avatarPhotoBlurhash: String? = nil,
         externalLocation: String? = nil,
         externalMoveType: String? = nil,
         externalDepartureDate: Date? = nil,
@@ -422,6 +461,16 @@ struct Horse: Codable, Identifiable, Equatable {
         self.withersHeight = withersHeight
         self.coverPhotoURL = coverPhotoURL
         self.avatarPhotoURL = avatarPhotoURL
+        self.coverPhotoThumbURL = coverPhotoThumbURL
+        self.coverPhotoSmallURL = coverPhotoSmallURL
+        self.coverPhotoMediumURL = coverPhotoMediumURL
+        self.coverPhotoLargeURL = coverPhotoLargeURL
+        self.avatarPhotoThumbURL = avatarPhotoThumbURL
+        self.avatarPhotoSmallURL = avatarPhotoSmallURL
+        self.avatarPhotoMediumURL = avatarPhotoMediumURL
+        self.avatarPhotoLargeURL = avatarPhotoLargeURL
+        self.coverPhotoBlurhash = coverPhotoBlurhash
+        self.avatarPhotoBlurhash = avatarPhotoBlurhash
         self.externalLocation = externalLocation
         self.externalMoveType = externalMoveType
         self.externalDepartureDate = externalDepartureDate
@@ -712,6 +761,30 @@ extension Horse {
 
     /// Whether current user owns this horse
     var isOwner: Bool { _isOwner ?? false }
+
+    /// Best avatar URL for list views (thumb → original fallback)
+    var bestAvatarThumbURL: URL? {
+        if let urlStr = avatarPhotoThumbURL ?? avatarPhotoURL {
+            return URL(string: urlStr)
+        }
+        return nil
+    }
+
+    /// Best cover URL for detail views (large → original fallback)
+    var bestCoverLargeURL: URL? {
+        if let urlStr = coverPhotoLargeURL ?? coverPhotoURL {
+            return URL(string: urlStr)
+        }
+        return nil
+    }
+
+    /// Best avatar URL for detail views (medium → original fallback)
+    var bestAvatarMediumURL: URL? {
+        if let urlStr = avatarPhotoMediumURL ?? avatarPhotoURL {
+            return URL(string: urlStr)
+        }
+        return nil
+    }
 }
 
 /// Field-level access requirements for horse data

@@ -213,6 +213,16 @@ export interface EquipmentItem {
 /**
  * Related link for horse (external URLs)
  */
+/**
+ * Image size variant storage paths
+ */
+export interface ImageVariants {
+  thumb?: string; // 110px - avatars, list items
+  small?: string; // 200px - cards, schedule views
+  medium?: string; // 400px - detail preview
+  large?: string; // 1080px - hero/cover, full view
+}
+
 export interface HorseLink {
   id: string; // UUID for React keys
   title: string; // Display title (e.g., "Competition Results", "Breeder Website")
@@ -349,9 +359,27 @@ export interface Horse {
   coverPhotoPath?: string;
   avatarPhotoPath?: string;
 
+  // Image variant storage paths (server-only, not exposed in API)
+  coverPhotoVariants?: ImageVariants;
+  avatarPhotoVariants?: ImageVariants;
+
+  // Blurhash strings for instant placeholders
+  coverPhotoBlurhash?: string;
+  avatarPhotoBlurhash?: string;
+
   // Profile Photo URLs (computed signed URLs - read-only, added by API)
   coverPhotoURL?: string;
   avatarPhotoURL?: string;
+
+  // Variant signed URLs (read-only, added by API)
+  coverPhotoThumbURL?: string;
+  coverPhotoSmallURL?: string;
+  coverPhotoMediumURL?: string;
+  coverPhotoLargeURL?: string;
+  avatarPhotoThumbURL?: string;
+  avatarPhotoSmallURL?: string;
+  avatarPhotoMediumURL?: string;
+  avatarPhotoLargeURL?: string;
 
   // Related URLs/Links
   relatedLinks?: HorseLink[];

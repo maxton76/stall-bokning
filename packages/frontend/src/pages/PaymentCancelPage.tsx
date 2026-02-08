@@ -16,7 +16,7 @@ export default function PaymentCancelPage() {
   const orgId = organizationId || currentOrganization;
 
   return (
-    <div className="container mx-auto py-12 max-w-lg">
+    <div className="container mx-auto p-6 max-w-lg">
       <Card>
         <CardHeader className="text-center">
           <XCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />

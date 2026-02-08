@@ -160,10 +160,6 @@ enum APIEndpoints {
     // MARK: - Subscriptions
     static let tierDefinitions = "/tiers"
 
-    static func organizationSubscription(organizationId: String) -> String {
-        "/organizations/\(organizationId)/subscription"
-    }
-
     // MARK: - Notifications
     static let notifications = "/notifications"
     static func notification(_ id: String) -> String { "/notifications/\(id)" }

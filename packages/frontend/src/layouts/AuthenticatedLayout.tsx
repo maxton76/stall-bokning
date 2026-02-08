@@ -10,25 +10,11 @@ import {
   PopoverAnchor,
   PopoverContent,
 } from "@/components/ui/popover";
-import {
-  SearchIcon,
-  User,
-  LogOut,
-  ChevronDown,
-  Settings as SettingsIcon,
-} from "lucide-react";
+import { SearchIcon, ChevronDown } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -128,7 +114,7 @@ export default function AuthenticatedLayout() {
             {/* Main Navigation */}
             <SidebarGroup>
               <SidebarGroupContent>
-                <SidebarMenu>
+                <SidebarMenu className="gap-1.5">
                   {navigation.map((item) => {
                     // Items with subItems - simple expand/collapse
                     if (item.subItems && item.subItems.length > 0) {
@@ -229,7 +215,7 @@ export default function AuthenticatedLayout() {
                   {t("common:navigation.organizations")}
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
-                  <SidebarMenu>
+                  <SidebarMenu className="gap-1.5">
                     {organizationNavigation.map((orgItem) => (
                       <SidebarMenuItem key={orgItem.id}>
                         {/* Parent button - toggles expand */}
@@ -286,56 +272,6 @@ export default function AuthenticatedLayout() {
             {/* Organizations Dropdown - Bottom Section */}
             <div className="mt-auto border-t pt-4 px-4">
               <OrganizationsDropdown />
-            </div>
-
-            {/* User Profile - Clickable Dropdown */}
-            <div className="border-t p-4">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start p-0 h-auto hover:bg-accent"
-                  >
-                    <div className="flex items-center gap-3 w-full">
-                      <Avatar className="size-10">
-                        <AvatarImage src="" alt={user?.fullName || "User"} />
-                        <AvatarFallback>{user?.initials || "U"}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 overflow-hidden text-left">
-                        <p className="text-sm font-medium truncate">
-                          {user?.fullName}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {user?.email}
-                        </p>
-                      </div>
-                    </div>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56">
-                  <DropdownMenuLabel>
-                    {t("common:userMenu.myAccount")}
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/account">
-                      <User className="mr-2 h-4 w-4" />
-                      <span>{t("common:userMenu.profile")}</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/settings">
-                      <SettingsIcon className="mr-2 h-4 w-4" />
-                      <span>{t("common:userMenu.settings")}</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>{t("common:userMenu.logout")}</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </SidebarContent>
         </Sidebar>

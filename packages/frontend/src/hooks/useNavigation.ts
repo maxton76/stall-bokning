@@ -65,7 +65,7 @@ export function useNavigation(): UseNavigationReturn {
   const { t } = useTranslation(["common", "organizations"]);
   const { currentOrganizationId } = useOrganizationContext();
   const { isFeatureEnabled } = useFeatureToggle();
-  const { addons, organizationType } = useSubscription();
+  const { organizationType } = useSubscription();
 
   // Filter navigation items by module flag, addon flag, and organization type
   const filteredNavigation = useMemo(() => {

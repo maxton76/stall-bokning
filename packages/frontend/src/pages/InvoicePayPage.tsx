@@ -84,7 +84,7 @@ export default function InvoicePayPage() {
   const isPaid = paymentStatus.invoiceStatus === "paid";
 
   return (
-    <div className="container mx-auto py-6 max-w-lg space-y-6">
+    <div className="container mx-auto p-6 max-w-lg space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

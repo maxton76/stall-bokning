@@ -57,6 +57,12 @@ const formSchema = z.object({
   ]),
   title: z.string().min(1, "Title is required"),
   date: z.date({ message: "Date is required" }),
+  scheduledTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM)")
+    .optional()
+    .or(z.literal("")),
+  duration: z.number().min(1).max(480).optional(),
   provider: z.string().optional(),
   clinic: z.string().optional(),
   diagnosis: z.string().optional(),
@@ -95,6 +101,8 @@ export function HealthRecordForm({
       recordType: record?.recordType || "veterinary",
       title: record?.title || "",
       date: record?.date ? toDate(record.date) || new Date() : new Date(),
+      scheduledTime: record?.scheduledTime || "",
+      duration: record?.duration || undefined,
       provider: record?.provider || "",
       clinic: record?.clinic || "",
       diagnosis: record?.diagnosis || "",
@@ -121,6 +129,8 @@ export function HealthRecordForm({
         ...values,
         horseId,
         date: values.date.toISOString(),
+        scheduledTime: values.scheduledTime || undefined,
+        duration: values.duration || undefined,
         followUpDate: values.followUpDate
           ? values.followUpDate.toISOString()
           : null,
@@ -222,6 +232,86 @@ export function HealthRecordForm({
               </FormItem>
             )}
           />
+        </div>
+
+        {/* Time and Duration Row (Optional) */}
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="scheduledTime"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  {t("horses:health.scheduledTime", "Time (optional)")}
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    type="time"
+                    placeholder={t(
+                      "horses:health.scheduledTimePlaceholder",
+                      "HH:MM",
+                    )}
+                    {...field}
+                    value={field.value || ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {form.watch("scheduledTime") && (
+            <FormField
+              control={form.control}
+              name="duration"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    {t("horses:health.duration", "Duration")}
+                  </FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange(parseInt(value))}
+                    value={field.value?.toString()}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={t(
+                            "horses:health.selectDuration",
+                            "Select duration",
+                          )}
+                        />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="15">
+                        15 {t("common:time.minutes", "minutes")}
+                      </SelectItem>
+                      <SelectItem value="30">
+                        30 {t("common:time.minutes", "minutes")}
+                      </SelectItem>
+                      <SelectItem value="45">
+                        45 {t("common:time.minutes", "minutes")}
+                      </SelectItem>
+                      <SelectItem value="60">
+                        1 {t("common:time.hour", "hour")}
+                      </SelectItem>
+                      <SelectItem value="90">
+                        1.5 {t("common:time.hours", "hours")}
+                      </SelectItem>
+                      <SelectItem value="120">
+                        2 {t("common:time.hours", "hours")}
+                      </SelectItem>
+                      <SelectItem value="180">
+                        3 {t("common:time.hours", "hours")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
         </div>
 
         {/* Title */}

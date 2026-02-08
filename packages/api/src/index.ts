@@ -60,6 +60,7 @@ import { selectionProcessesRoutes } from "./routes/selectionProcesses.js";
 import { supportRoutes } from "./routes/support.js";
 import { tierRoutes } from "./routes/tiers.js";
 import { adminRoutes } from "./routes/admin.js";
+import { imageProcessingRoutes } from "./routes/image-processing.js";
 import { subscriptionRoutes } from "./routes/subscriptions.js";
 import { stripeWebhookRoutes } from "./routes/stripe-webhooks.js";
 import { featureRequestsRoutes } from "./routes/feature-requests.js";
@@ -250,7 +251,7 @@ export async function build() {
   });
   await fastify.register(dailyNotesRoutes, { prefix: "/api/v1/daily-notes" });
   await fastify.register(horseActivityHistoryRoutes, {
-    prefix: "/api/v1",
+    prefix: "/api/v1/horse-activity-history",
   });
   await fastify.register(fairnessRoutes, { prefix: "/api/v1/fairness" });
   await fastify.register(settingsRoutes, { prefix: "/api/v1/settings" });
@@ -260,6 +261,9 @@ export async function build() {
   await fastify.register(supportRoutes, { prefix: "/api/v1/support" });
   await fastify.register(tierRoutes, { prefix: "/api/v1/tiers" });
   await fastify.register(adminRoutes, { prefix: "/api/v1/admin" });
+  await fastify.register(imageProcessingRoutes, {
+    prefix: "/api/v1/admin/reprocess-images",
+  });
   await fastify.register(subscriptionRoutes, {
     prefix: "/api/v1/subscriptions",
   });
@@ -269,7 +273,7 @@ export async function build() {
   await fastify.register(featureRequestsRoutes, {
     prefix: "/api/v1/feature-requests",
   });
-  await fastify.register(onboardingRoutes, { prefix: "/api/v1/onboarding" });
+  await fastify.register(onboardingRoutes, { prefix: "/api/v1/settings" });
   await fastify.register(bulkImportRoutes, {
     prefix: "/api/v1/organizations",
   });

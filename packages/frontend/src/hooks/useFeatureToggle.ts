@@ -1,87 +1,90 @@
 import { useCallback, useMemo } from "react";
-import { useOrganization } from "../contexts/OrganizationContext";
-import { useSubscription } from "../contexts/SubscriptionContext";
+import { useOrganizationContext } from "../contexts/OrganizationContext";
+import { useApiQuery } from "./useApiQuery";
+import { authFetchJSON } from "@/utils/authFetch";
+import { apiV1 } from "@/lib/apiClient";
 
 /**
- * Hook to check if a feature is enabled considering:
- * 1. Global feature toggle (checked server-side via org.betaFeatures)
- * 2. Organization beta access (org.betaFeatures array)
- * 3. Subscription tier module/addon (existing subscription system)
+ * All feature toggle keys that exist in the system (Firestore featureToggles/global).
+ * These map 1:1 with the keys in the admin feature toggles UI.
+ */
+const FEATURE_KEYS = [
+  "rideLessons",
+  "invoicing",
+  "leaveManagement",
+  "integrations",
+  "manure",
+  "chargeableItems",
+  "billingGroups",
+] as const;
+
+interface FeatureCheckResponse {
+  success: boolean;
+  data: {
+    features: Record<string, { enabled: boolean; reason: string }>;
+  };
+}
+
+/**
+ * Hook to check if a feature is enabled using the global feature toggle system.
  *
- * Resolution order (server-side):
- * - If globally disabled AND org has beta access → org.betaFeatures includes it → ENABLED
- * - If globally disabled AND no beta access → NOT in org.betaFeatures → Check tier
- * - If globally enabled → Check subscription tier
- *
- * Frontend simplification:
- * - Check if feature is in org.betaFeatures (means globally disabled but beta enabled)
- * - Otherwise check subscription tier (handles both globally enabled and fallback cases)
+ * Calls POST /api/v1/feature-toggles/check which handles:
+ * - Global toggle enabled → return true
+ * - Global toggle disabled + org has beta access → return true
+ * - Global toggle disabled + no beta → return false
+ * - No toggle exists → return true (backward compat)
  *
  * @example
  * ```tsx
  * const { isFeatureEnabled } = useFeatureToggle();
  *
- * if (isFeatureEnabled('lessons')) {
+ * if (isFeatureEnabled('rideLessons')) {
  *   // Show lessons menu item
  * }
  * ```
  */
 export function useFeatureToggle() {
-  const { currentOrganization } = useOrganization();
-  const { isFeatureAvailable: isInTier } = useSubscription();
+  const { currentOrganizationId } = useOrganizationContext();
 
-  // Get beta features from current organization
-  const betaFeatures = useMemo(
-    () => currentOrganization?.betaFeatures || [],
-    [currentOrganization],
+  const { data } = useApiQuery<FeatureCheckResponse>(
+    ["feature-toggles", "check", currentOrganizationId],
+    () =>
+      authFetchJSON<FeatureCheckResponse>(apiV1("/feature-toggles/check"), {
+        method: "POST",
+        body: JSON.stringify({ features: [...FEATURE_KEYS] }),
+        headers: { "x-organization-id": currentOrganizationId! },
+      }),
+    {
+      enabled: !!currentOrganizationId,
+      staleTime: 60 * 1000, // 1 minute cache
+    },
   );
 
+  const featureStates = useMemo(() => {
+    if (!data?.data?.features) return {};
+    const map: Record<string, boolean> = {};
+    for (const [key, val] of Object.entries(data.data.features)) {
+      map[key] = val.enabled;
+    }
+    return map;
+  }, [data]);
+
   /**
-   * Check if a feature is enabled for the current organization
-   * Combines beta access and subscription tier checks
+   * Check if a feature is enabled for the current organization.
+   * Returns true while loading (show items during initial load).
+   * Returns true for unknown keys (backward compat).
    */
   const isFeatureEnabled = useCallback(
     (featureKey: string): boolean => {
-      // First check if org has beta access (overrides global disable + tier restrictions)
-      if (betaFeatures.includes(featureKey)) {
-        return true;
-      }
-
-      // Otherwise check subscription tier (handles globally enabled features)
-      return isInTier(featureKey);
+      // If we haven't loaded yet, default to true (show items while loading)
+      if (Object.keys(featureStates).length === 0) return true;
+      // If key not in results, default to true (backward compat)
+      return featureStates[featureKey] ?? true;
     },
-    [betaFeatures, isInTier],
-  );
-
-  /**
-   * Get the reason why a feature is enabled or disabled
-   * Useful for debugging and admin UI
-   */
-  const getFeatureStatus = useCallback(
-    (
-      featureKey: string,
-    ): {
-      enabled: boolean;
-      reason: "beta-access" | "tier-enabled" | "tier-disabled";
-    } => {
-      // Check beta access first
-      if (betaFeatures.includes(featureKey)) {
-        return { enabled: true, reason: "beta-access" };
-      }
-
-      // Check tier
-      const tierEnabled = isInTier(featureKey);
-      return {
-        enabled: tierEnabled,
-        reason: tierEnabled ? "tier-enabled" : "tier-disabled",
-      };
-    },
-    [betaFeatures, isInTier],
+    [featureStates],
   );
 
   return {
     isFeatureEnabled,
-    getFeatureStatus,
-    betaFeatures,
   };
 }

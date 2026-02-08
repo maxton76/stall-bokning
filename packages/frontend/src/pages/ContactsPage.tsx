@@ -279,7 +279,7 @@ export default function ContactsPage() {
     (filters.accessLevel !== "all" ? 1 : 0);
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-6 space-y-6">
       <PageHeader
         title={t("contacts:title")}
         description={t("contacts:description")}

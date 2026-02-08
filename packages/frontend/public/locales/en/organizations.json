@@ -347,6 +347,13 @@
       "records": "Records",
       "integrations": "Integrations"
     },
+    "roleGroups": {
+      "all": "All roles",
+      "staff": "Staff & Administration",
+      "professionals": "Specialists",
+      "owners": "Owners & Customers",
+      "training": "Training"
+    },
     "buttons": {
       "save": "Save permissions",
       "reset": "Reset to defaults",

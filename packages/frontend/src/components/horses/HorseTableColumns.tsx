@@ -1,6 +1,6 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -44,8 +44,18 @@ export function createHorseTableColumns({
         const { bg, text } = getHorseColorClasses(horse.color);
         const initial = getHorseInitial(horse.name);
 
+        const avatarUrl =
+          (horse as any).avatarPhotoThumbURL || (horse as any).avatarPhotoURL;
+
         return (
           <Avatar className="h-10 w-10">
+            {avatarUrl && (
+              <AvatarImage
+                src={avatarUrl}
+                alt={horse.name}
+                className="object-cover"
+              />
+            )}
             <AvatarFallback className={`${bg} ${text} text-lg font-semibold`}>
               {initial}
             </AvatarFallback>

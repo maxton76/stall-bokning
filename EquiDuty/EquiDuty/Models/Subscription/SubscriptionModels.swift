@@ -211,21 +211,3 @@ struct TierDefinitionsResponse: Codable {
     let tiers: [TierDefinition]
 }
 
-/// API response structure (actual backend format)
-struct OrganizationSubscriptionResponse: Codable {
-    let tier: String
-    let subscription: StripeSubscriptionInfo?
-
-    // Decode to proper structure
-    func toOrganizationSubscription(tierDefinitions: [String: TierDefinition]) -> OrganizationSubscription? {
-        guard let tierDef = tierDefinitions[tier] else { return nil }
-
-        return OrganizationSubscription(
-            tier: SubscriptionTier(value: tier),
-            limits: tierDef.limits,
-            modules: tierDef.modules,
-            addons: tierDef.addons,
-            stripeSubscription: subscription
-        )
-    }
-}

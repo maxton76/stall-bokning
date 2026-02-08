@@ -7,6 +7,7 @@ import type { AuthenticatedRequest } from "../types/index.js";
 import { isSystemAdmin } from "../utils/authorization.js";
 import { hasPermission } from "../utils/permissionEngine.js";
 import { serializeTimestamps } from "../utils/serialization.js";
+import { PERMISSIONS } from "../utils/openapiPermissions.js";
 
 export async function packagesRoutes(fastify: FastifyInstance) {
   // Addon gate: invoicing addon required
@@ -25,6 +26,107 @@ export async function packagesRoutes(fastify: FastifyInstance) {
     "/:organizationId/packages",
     {
       preHandler: [authenticate],
+      schema: {
+        description: "List package definitions for an organization",
+        tags: ["Packages"],
+        params: {
+          type: "object",
+          required: ["organizationId"],
+          properties: {
+            organizationId: {
+              type: "string",
+              description: "Organization ID",
+            },
+          },
+        },
+        querystring: {
+          type: "object",
+          properties: {
+            isActive: {
+              type: "string",
+              description: 'Filter by active status (default: "true")',
+            },
+            limit: {
+              type: "string",
+              description: "Maximum number of items to return (default: 100)",
+            },
+          },
+        },
+        response: {
+          200: {
+            description: "List of package definitions",
+            type: "object",
+            properties: {
+              items: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string" },
+                    organizationId: { type: "string" },
+                    name: { type: "string" },
+                    description: { type: "string" },
+                    chargeableItemId: { type: "string" },
+                    totalUnits: { type: "integer" },
+                    price: {
+                      type: "integer",
+                      description: "Price in öre (1 SEK = 100 öre)",
+                    },
+                    expiryPolicy: { type: "string" },
+                    cancellationPolicy: {
+                      type: "string",
+                      enum: [
+                        "no_refund",
+                        "pro_rata_unit",
+                        "pro_rata_package",
+                        "full_refund",
+                      ],
+                    },
+                    validityDays: { type: "integer" },
+                    transferableWithinGroup: { type: "boolean" },
+                    isActive: { type: "boolean" },
+                    createdAt: {
+                      type: "string",
+                      format: "date-time",
+                      description: "ISO 8601 timestamp",
+                    },
+                    updatedAt: {
+                      type: "string",
+                      format: "date-time",
+                      description: "ISO 8601 timestamp",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            description: "Missing or invalid JWT token",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+          403: {
+            description: "Insufficient permissions to access this organization",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+          500: {
+            description: "Internal server error",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+        },
+        ...PERMISSIONS.AUTHENTICATED,
+      },
     },
     async (request, reply) => {
       try {
@@ -468,6 +570,120 @@ export async function packagesRoutes(fastify: FastifyInstance) {
     "/:organizationId/member-packages",
     {
       preHandler: [authenticate],
+      schema: {
+        description:
+          "List purchased member packages for an organization with optional filters",
+        tags: ["Packages"],
+        params: {
+          type: "object",
+          required: ["organizationId"],
+          properties: {
+            organizationId: {
+              type: "string",
+              description: "Organization ID",
+            },
+          },
+        },
+        querystring: {
+          type: "object",
+          properties: {
+            memberId: {
+              type: "string",
+              description: "Filter by member ID",
+            },
+            status: {
+              type: "string",
+              enum: ["active", "expired", "depleted", "cancelled"],
+              description: "Filter by package status",
+            },
+            limit: {
+              type: "string",
+              description: "Maximum number of items to return (default: 100)",
+            },
+          },
+        },
+        response: {
+          200: {
+            description: "List of member packages",
+            type: "object",
+            properties: {
+              items: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string" },
+                    organizationId: { type: "string" },
+                    packageDefinitionId: { type: "string" },
+                    memberId: { type: "string" },
+                    packageName: { type: "string" },
+                    chargeableItemId: { type: "string" },
+                    purchaseDate: {
+                      type: "string",
+                      format: "date-time",
+                      description: "ISO 8601 timestamp",
+                    },
+                    expiresAt: {
+                      type: "string",
+                      format: "date-time",
+                      description: "ISO 8601 timestamp",
+                    },
+                    remainingUnits: { type: "integer" },
+                    totalUnits: { type: "integer" },
+                    price: {
+                      type: "integer",
+                      description: "Price in öre (1 SEK = 100 öre)",
+                    },
+                    status: {
+                      type: "string",
+                      enum: ["active", "expired", "depleted", "cancelled"],
+                    },
+                    cancellationPolicy: {
+                      type: "string",
+                      enum: [
+                        "no_refund",
+                        "pro_rata_unit",
+                        "pro_rata_package",
+                        "full_refund",
+                      ],
+                    },
+                    createdAt: {
+                      type: "string",
+                      format: "date-time",
+                      description: "ISO 8601 timestamp",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            description: "Missing or invalid JWT token",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+          403: {
+            description: "Insufficient permissions to access this organization",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+          500: {
+            description: "Internal server error",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+        },
+        ...PERMISSIONS.AUTHENTICATED,
+      },
     },
     async (request, reply) => {
       try {
@@ -928,7 +1144,119 @@ export async function packagesRoutes(fastify: FastifyInstance) {
    */
   fastify.get(
     "/my/:organizationId/member-packages",
-    { preHandler: [authenticate] },
+    {
+      preHandler: [authenticate],
+      schema: {
+        description:
+          "Get purchased packages for the authenticated user (their own member packages)",
+        tags: ["Packages"],
+        params: {
+          type: "object",
+          required: ["organizationId"],
+          properties: {
+            organizationId: {
+              type: "string",
+              description: "Organization ID",
+            },
+          },
+        },
+        querystring: {
+          type: "object",
+          properties: {
+            status: {
+              type: "string",
+              enum: ["active", "expired", "depleted", "cancelled"],
+              description: "Filter by package status",
+            },
+            limit: {
+              type: "string",
+              description: "Maximum number of items to return (default: 50)",
+            },
+          },
+        },
+        response: {
+          200: {
+            description: "User's member packages with enriched information",
+            type: "object",
+            properties: {
+              memberId: {
+                type: "string",
+                description: "Member ID (null if user is not a member)",
+              },
+              memberName: {
+                type: "string",
+                description:
+                  "Member's full name (null if user is not a member)",
+              },
+              packages: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string" },
+                    organizationId: { type: "string" },
+                    memberId: { type: "string" },
+                    packageDefinitionId: { type: "string" },
+                    packageName: {
+                      type: "string",
+                      description:
+                        'Package name (or "Unknown Package" if definition not found)',
+                    },
+                    packageDescription: { type: "string" },
+                    purchaseDate: {
+                      type: "string",
+                      format: "date-time",
+                      description: "ISO 8601 timestamp",
+                    },
+                    expiresAt: {
+                      type: "string",
+                      format: "date-time",
+                      description: "ISO 8601 timestamp",
+                    },
+                    remainingUnits: { type: "integer" },
+                    totalUnits: { type: "integer" },
+                    price: {
+                      type: "integer",
+                      description: "Price in öre (1 SEK = 100 öre)",
+                    },
+                    status: {
+                      type: "string",
+                      enum: ["active", "expired", "depleted", "cancelled"],
+                    },
+                    isExpired: {
+                      type: "boolean",
+                      description: "Computed expiry status based on expiresAt",
+                    },
+                    daysUntilExpiry: {
+                      type: "integer",
+                      description:
+                        "Days until package expires (null if no expiry date)",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            description: "Missing or invalid JWT token",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+          500: {
+            description: "Internal server error",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+        },
+        ...PERMISSIONS.AUTHENTICATED,
+      },
+    },
     async (request, reply) => {
       try {
         const user = (request as AuthenticatedRequest).user!;

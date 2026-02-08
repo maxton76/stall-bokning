@@ -16,7 +16,7 @@ export default function PaymentSuccessPage() {
   const orgId = organizationId || currentOrganization;
 
   return (
-    <div className="container mx-auto py-12 max-w-lg">
+    <div className="container mx-auto p-6 max-w-lg">
       <Card>
         <CardHeader className="text-center">
           <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />

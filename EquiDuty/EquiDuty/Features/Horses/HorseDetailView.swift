@@ -137,7 +137,7 @@ struct HorseDetailHeader: View {
     let horse: Horse
 
     private var hasCoverPhoto: Bool {
-        horse.coverPhotoURL != nil
+        horse.bestCoverLargeURL != nil
     }
 
     var body: some View {
@@ -153,7 +153,7 @@ struct HorseDetailHeader: View {
     private var coverPhotoHeader: some View {
         ZStack(alignment: .bottomLeading) {
             // Cover photo
-            if let coverURL = horse.coverPhotoURL, let url = URL(string: coverURL) {
+            if let url = horse.bestCoverLargeURL {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):

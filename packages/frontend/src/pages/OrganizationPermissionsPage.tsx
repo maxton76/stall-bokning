@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Shield, Check, X, Lock, Info, RotateCcw, Save } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Card,
@@ -28,6 +29,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useFeatureToggle } from "@/hooks/useFeatureToggle";
 import { useOrgPermissions } from "@/hooks/useOrgPermissions";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { useApiMutation } from "@/hooks/useApiMutation";
@@ -65,6 +67,32 @@ const ALL_ROLES: OrganizationRole[] = [
   "inseminator",
   "support_contact",
 ];
+
+/** Role groups for desktop table filtering. */
+const ROLE_GROUPS: Record<string, readonly OrganizationRole[]> = {
+  all: ALL_ROLES,
+  staff: [
+    "administrator",
+    "stable_manager",
+    "schedule_planner",
+    "bookkeeper",
+    "support_contact",
+    "groom",
+  ],
+  professionals: [
+    "veterinarian",
+    "farrier",
+    "dentist",
+    "saddle_maker",
+    "inseminator",
+  ],
+  owners: ["horse_owner", "rider", "customer"],
+  training: ["trainer", "training_admin"],
+};
+
+const ROLE_GROUP_KEYS = Object.keys(
+  ROLE_GROUPS,
+) as (keyof typeof ROLE_GROUPS)[];
 
 /** Role display colors for column headers. */
 const ROLE_COLORS: Record<string, string> = {
@@ -131,6 +159,13 @@ function groupByCategory(
   return groups;
 }
 
+/** Maps permission categories to feature toggle keys. Categories not listed are always visible. */
+const CATEGORY_FEATURE_MAP: Partial<Record<PermissionCategory, string>> = {
+  billing: "invoicing",
+  lessons: "rideLessons",
+  integrations: "integrations",
+};
+
 /** Category display order. */
 const CATEGORY_ORDER: PermissionCategory[] = [
   "organization",
@@ -149,6 +184,7 @@ export default function OrganizationPermissionsPage() {
   const { t } = useTranslation(["organizations", "common"]);
   const { currentOrganizationId } = useOrganization();
   const { isFeatureAvailable } = useSubscription();
+  const { isFeatureEnabled } = useFeatureToggle();
   const { hasPermission, isLoading: permLoading } = useOrgPermissions(
     currentOrganizationId,
   );
@@ -177,6 +213,10 @@ export default function OrganizationPermissionsPage() {
   // Local editable copy of the matrix
   const [editMatrix, setEditMatrix] = useState<PermissionMatrix | null>(null);
   const [isDirty, setIsDirty] = useState(false);
+
+  // Desktop role group selection
+  const [roleGroup, setRoleGroup] = useState<string>("all");
+  const visibleRoles = ROLE_GROUPS[roleGroup] as OrganizationRole[];
 
   // Mobile role selection
   const [selectedRole, setSelectedRole] =
@@ -230,6 +270,16 @@ export default function OrganizationPermissionsPage() {
   );
 
   const grouped = useMemo(() => groupByCategory(PERMISSION_ACTIONS), []);
+
+  /** Categories filtered by feature toggles. */
+  const visibleCategories = useMemo(
+    () =>
+      CATEGORY_ORDER.filter((category) => {
+        const featureKey = CATEGORY_FEATURE_MAP[category];
+        return !featureKey || isFeatureEnabled(featureKey);
+      }),
+    [isFeatureEnabled],
+  );
 
   const isProtected = useCallback(
     (action: PermissionAction, role: OrganizationRole) =>
@@ -351,6 +401,19 @@ export default function OrganizationPermissionsPage() {
         <CardContent className="p-0">
           {/* Desktop/Wide Screen: Full Matrix Table */}
           <div className="hidden lg:block overflow-visible">
+            <Tabs
+              value={roleGroup}
+              onValueChange={setRoleGroup}
+              className="px-4 pt-4"
+            >
+              <TabsList>
+                {ROLE_GROUP_KEYS.map((key) => (
+                  <TabsTrigger key={key} value={key}>
+                    {t(`organizations:permissions.roleGroups.${key}`)}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
             <TooltipProvider>
               <table className="w-full border-collapse table-auto">
                 <thead>
@@ -358,7 +421,7 @@ export default function OrganizationPermissionsPage() {
                     <th className="text-left p-3 font-semibold sticky left-0 bg-background z-10 w-48 lg:w-1/6">
                       {t("organizations:permissions.matrix.action")}
                     </th>
-                    {ALL_ROLES.map((role) => (
+                    {visibleRoles.map((role) => (
                       <th key={role} className="text-center p-2 w-20 lg:flex-1">
                         <Badge
                           variant="secondary"
@@ -371,7 +434,7 @@ export default function OrganizationPermissionsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {CATEGORY_ORDER.map((category) => {
+                  {visibleCategories.map((category) => {
                     const actions = grouped[category];
                     if (!actions?.length) return null;
                     return (
@@ -379,6 +442,7 @@ export default function OrganizationPermissionsPage() {
                         key={category}
                         category={category}
                         actions={actions}
+                        roles={visibleRoles}
                         matrix={matrix}
                         canEdit={canEdit}
                         isProtected={isProtected}
@@ -406,6 +470,7 @@ export default function OrganizationPermissionsPage() {
               isProtected={isProtected}
               togglePermission={togglePermission}
               grouped={grouped}
+              categories={visibleCategories}
               t={t}
             />
           </div>
@@ -444,6 +509,7 @@ export default function OrganizationPermissionsPage() {
 interface CategoryGroupProps {
   category: PermissionCategory;
   actions: typeof PERMISSION_ACTIONS;
+  roles: OrganizationRole[];
   matrix: PermissionMatrix;
   canEdit: boolean;
   isProtected: (action: PermissionAction, role: OrganizationRole) => boolean;
@@ -454,6 +520,7 @@ interface CategoryGroupProps {
 function CategoryGroup({
   category,
   actions,
+  roles,
   matrix,
   canEdit,
   isProtected,
@@ -465,7 +532,7 @@ function CategoryGroup({
       {/* Category header row */}
       <tr className="bg-muted/50">
         <td
-          colSpan={ALL_ROLES.length + 1}
+          colSpan={roles.length + 1}
           className="p-2 pl-3 font-semibold text-sm text-muted-foreground uppercase tracking-wider sticky left-0"
         >
           {t(`organizations:${PERMISSION_CATEGORIES[category]}`)}
@@ -480,7 +547,7 @@ function CategoryGroup({
           <td className="p-3 text-sm sticky left-0 bg-background w-48 lg:w-auto">
             {t(`organizations:${meta.i18nKey}`)}
           </td>
-          {ALL_ROLES.map((role) => {
+          {roles.map((role) => {
             const granted = matrix[meta.action]?.[role] === true;
             const locked = isProtected(meta.action, role);
             return (
@@ -602,6 +669,7 @@ interface MobilePermissionListProps {
   isProtected: (action: PermissionAction, role: OrganizationRole) => boolean;
   togglePermission: (action: PermissionAction, role: OrganizationRole) => void;
   grouped: Record<PermissionCategory, typeof PERMISSION_ACTIONS>;
+  categories: PermissionCategory[];
   t: (key: string) => string;
 }
 
@@ -612,11 +680,12 @@ function MobilePermissionList({
   isProtected,
   togglePermission,
   grouped,
+  categories,
   t,
 }: MobilePermissionListProps) {
   return (
     <div className="space-y-4">
-      {CATEGORY_ORDER.map((category) => {
+      {categories.map((category) => {
         const actions = grouped[category];
         if (!actions?.length) return null;
 

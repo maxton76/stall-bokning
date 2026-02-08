@@ -312,10 +312,19 @@ export function HealthRecordsCard({ horse }: HealthRecordsCardProps) {
                     return (
                       <TableRow key={record.id}>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            {recordDate && format(recordDate, "MMM d, yyyy")}
-                            {hasUpcomingFollowUp && (
-                              <Calendar className="h-4 w-4 text-amber-500" />
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2">
+                              {recordDate && format(recordDate, "MMM d, yyyy")}
+                              {hasUpcomingFollowUp && (
+                                <Calendar className="h-4 w-4 text-amber-500" />
+                              )}
+                            </div>
+                            {record.scheduledTime && (
+                              <div className="text-sm text-muted-foreground">
+                                {record.scheduledTime}
+                                {record.duration &&
+                                  ` (${record.duration} ${t("common:time.minutes", "minutes")})`}
+                              </div>
                             )}
                           </div>
                         </TableCell>

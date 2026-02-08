@@ -24,7 +24,6 @@ final class SubscriptionService {
     // MARK: - Cache (5-minute TTL)
 
     private var tierCache: [String: TierDefinition] = [:]
-    private var subscriptionCache: [String: OrganizationSubscription] = [:]
     private var cacheTimestamps: [String: Date] = [:]
     private let cacheLifetime: TimeInterval = 300  // 5 minutes
 
@@ -56,42 +55,41 @@ final class SubscriptionService {
         }
     }
 
-    /// Fetch organization subscription (cached)
-    func fetchSubscription(organizationId: String) async throws {
-        // Check cache first
-        if let cached = subscriptionCache[organizationId],
-           isCacheValid(key: organizationId) {
-            currentSubscription = cached
-            return
+    /// Load subscription from organization's tier value + cached tier definitions.
+    /// Mirrors the frontend pattern: derive subscription from org.subscriptionTier + /tiers.
+    func loadSubscription(tier tierValue: String?) async throws {
+        // Ensure tier definitions are loaded
+        if tierCache.isEmpty {
+            try await fetchTierDefinitions()
         }
 
-        isLoading = true
-        defer { isLoading = false }
+        let effectiveTier = tierValue ?? "free"
 
-        do {
-            let response: OrganizationSubscriptionResponse = try await apiClient.get(
-                "/organizations/\(organizationId)/subscription"
-            )
-
-            // Ensure tier definitions are loaded first
-            if tierCache.isEmpty {
-                try await fetchTierDefinitions()
+        guard let tierDef = tierCache[effectiveTier] else {
+            // Fallback to free tier if the tier value is unknown
+            if let freeDef = tierCache["free"] {
+                currentSubscription = OrganizationSubscription(
+                    tier: .free,
+                    limits: freeDef.limits,
+                    modules: freeDef.modules,
+                    addons: freeDef.addons,
+                    stripeSubscription: nil
+                )
+                error = nil
+                return
             }
-
-            // Combine tier info with subscription info
-            guard let subscription = response.toOrganizationSubscription(tierDefinitions: tierCache) else {
-                throw NSError(domain: "SubscriptionService", code: -1,
-                            userInfo: [NSLocalizedDescriptionKey: "Tier '\(response.tier)' not found in tier definitions"])
-            }
-
-            currentSubscription = subscription
-            subscriptionCache[organizationId] = subscription
-            cacheTimestamps[organizationId] = Date()
-            error = nil
-        } catch {
-            self.error = error
-            throw error
+            throw NSError(domain: "SubscriptionService", code: -1,
+                        userInfo: [NSLocalizedDescriptionKey: "Tier '\(effectiveTier)' not found in tier definitions"])
         }
+
+        currentSubscription = OrganizationSubscription(
+            tier: SubscriptionTier(value: effectiveTier),
+            limits: tierDef.limits,
+            modules: tierDef.modules,
+            addons: tierDef.addons,
+            stripeSubscription: nil
+        )
+        error = nil
     }
 
     /// Check if feature module is available (like frontend's isFeatureAvailable)
@@ -136,20 +134,13 @@ final class SubscriptionService {
 
     // MARK: - Cache Management
 
-    /// Invalidate cache for specific organization
+    /// Invalidate subscription so it gets re-derived on next load
     func invalidateCache(organizationId: String) {
-        subscriptionCache.removeValue(forKey: organizationId)
-        cacheTimestamps.removeValue(forKey: organizationId)
-
-        // Clear current subscription if it matches
-        if currentSubscription != nil {
-            currentSubscription = nil
-        }
+        currentSubscription = nil
     }
 
     /// Clear all caches
     func clearCache() {
-        subscriptionCache.removeAll()
         tierCache.removeAll()
         cacheTimestamps.removeAll()
         currentSubscription = nil

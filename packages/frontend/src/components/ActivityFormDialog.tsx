@@ -168,7 +168,7 @@ export function ActivityFormDialog({
         /^\d{2}:\d{2}$/.test(data.scheduledTime)
       ) {
         const [h, m] = data.scheduledTime.split(":").map(Number);
-        if (!isNaN(h) && !isNaN(m)) {
+        if (h !== undefined && m !== undefined && !isNaN(h) && !isNaN(m)) {
           const dateObj = new Date(data.date);
           dateObj.setHours(h, m, 0, 0);
           data = { ...data, date: dateObj };
