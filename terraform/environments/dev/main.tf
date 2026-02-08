@@ -138,9 +138,10 @@ module "cloud_run" {
   # Environment variables
   cors_origins = var.cors_origins
   environment_variables = {
-    FIREBASE_PROJECT_ID  = var.project_id
-    ZENDESK_EMAIL        = "support@equiduty.zendesk.com"
-    ZENDESK_SUBDOMAIN    = "equiduty"
+    FIREBASE_PROJECT_ID   = var.project_id
+    ZENDESK_EMAIL         = "support@equiduty.zendesk.com"
+    ZENDESK_SUBDOMAIN     = "equiduty"
+    DERIVED_IMAGES_BUCKET = "${var.project_id}-derived"
   }
 
   # Access control

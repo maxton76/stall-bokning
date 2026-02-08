@@ -53,6 +53,11 @@ output "hosting_default_url" {
   value       = google_firebase_hosting_site.default.default_url
 }
 
+output "derived_images_bucket_name" {
+  description = "Derived images bucket name (optimized variants)"
+  value       = google_storage_bucket.derived_images.name
+}
+
 output "authorized_domains" {
   description = "Authorized domains for authentication"
   value       = google_identity_platform_config.default.authorized_domains

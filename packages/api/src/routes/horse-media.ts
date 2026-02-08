@@ -4,6 +4,11 @@ import { db, storage } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
+import {
+  VALID_ENTITY_ID,
+  ALLOWED_IMAGE_TYPES,
+  VALID_PHOTO_PURPOSES,
+} from "@equiduty/shared";
 
 /**
  * Check if user has access to a horse
@@ -210,6 +215,39 @@ export async function horseMediaRoutes(fastify: FastifyInstance) {
           });
         }
 
+        // Validate horseId format
+        if (!VALID_ENTITY_ID.test(data.horseId)) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invalid horseId format",
+          });
+        }
+
+        // Validate MIME type for image uploads
+        if (
+          data.type === "photo" &&
+          !ALLOWED_IMAGE_TYPES.includes(data.mimeType)
+        ) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: `Unsupported image type: ${data.mimeType}. Allowed: ${ALLOWED_IMAGE_TYPES.join(", ")}`,
+          });
+        }
+
+        // Validate purpose if provided
+        const purpose = data.purpose as string | undefined;
+        if (
+          purpose &&
+          !VALID_PHOTO_PURPOSES.includes(
+            purpose as (typeof VALID_PHOTO_PURPOSES)[number],
+          )
+        ) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: `Invalid purpose: ${purpose}. Allowed: ${VALID_PHOTO_PURPOSES.join(", ")}`,
+          });
+        }
+
         if (!(await hasHorseAccess(data.horseId, user.uid, user.role || ""))) {
           return reply.status(403).send({
             error: "Forbidden",
@@ -217,12 +255,16 @@ export async function horseMediaRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Generate unique file path - use dedicated subfolder for profile photos
+        // Sanitize filename: strip path separators, normalize unicode, limit length
         const timestamp = Date.now();
-        const safeFileName = data.fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
-        const purpose = data.purpose as string | undefined; // 'cover' | 'avatar' | 'general'
+        const safeFileName = data.fileName
+          .normalize("NFC")
+          .replace(/[^a-zA-Z0-9.-]/g, "_")
+          .replace(/\.{2,}/g, ".")
+          .slice(0, 100);
         const subFolder =
           purpose === "cover" || purpose === "avatar" ? "profile" : "media";
+        // 'cover' | 'avatar' | 'general' — validated above
         const storagePath = `horses/${data.horseId}/${subFolder}/${timestamp}_${safeFileName}`;
 
         // Generate signed URL for upload

@@ -51,7 +51,7 @@ struct HorseFormView: View {
                     // Cover photo slot (wide rectangle, 16:9 aspect)
                     PhotoSlotView(
                         image: coverImage,
-                        remoteURL: existingHorse?.coverPhotoURL,
+                        remoteURL: existingHorse?.coverPhotoLargeURL ?? existingHorse?.coverPhotoURL,
                         placeholder: "photo.fill",
                         aspectRatio: 16/9,
                         label: String(localized: "horse.photo.cover")
@@ -64,7 +64,7 @@ struct HorseFormView: View {
                         Spacer()
                         PhotoSlotView(
                             image: avatarImage,
-                            remoteURL: existingHorse?.avatarPhotoURL,
+                            remoteURL: existingHorse?.avatarPhotoMediumURL ?? existingHorse?.avatarPhotoURL,
                             placeholder: "person.crop.circle.fill",
                             aspectRatio: 1,
                             label: String(localized: "horse.photo.avatar")
@@ -143,7 +143,7 @@ struct HorseFormView: View {
                     HStack {
                         TextField(String(localized: "horse.height"), text: $withersHeight)
                             .keyboardType(.numberPad)
-                        Text("cm")
+                        Text(String(localized: "common.unit.cm"))
                             .foregroundStyle(.secondary)
                     }
                 }

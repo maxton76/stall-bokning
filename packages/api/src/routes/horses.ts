@@ -22,22 +22,46 @@ import type { Horse, HorseVaccinationAssignment } from "@equiduty/shared";
  * Mutates the horse object in-place for performance.
  * Validates that photo paths belong to the correct horse directory when horseId is provided.
  */
+/**
+ * Generate a signed URL for a storage path, returning undefined on failure.
+ */
+async function signUrl(
+  bucket: ReturnType<typeof storage.bucket>,
+  path: string,
+  expiry: number,
+): Promise<string | undefined> {
+  try {
+    const [url] = await bucket
+      .file(path)
+      .getSignedUrl({ version: "v4", action: "read", expires: expiry });
+    return url;
+  } catch {
+    return undefined;
+  }
+}
+
 async function attachPhotoURLs(horse: any, horseId?: string): Promise<void> {
-  const bucket = storage.bucket();
+  const mainBucket = storage.bucket();
+  const derivedBucketName = process.env.DERIVED_IMAGES_BUCKET;
+  const derivedBucket = derivedBucketName
+    ? storage.bucket(derivedBucketName)
+    : null;
   const expiry = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
   const expectedPrefix = horseId ? `horses/${horseId}/` : null;
 
   try {
+    // Original URLs (backward compatible) — always from main bucket
     if (horse.coverPhotoPath) {
       if (expectedPrefix && !horse.coverPhotoPath.startsWith(expectedPrefix)) {
         console.warn(
           `Invalid coverPhotoPath for horse ${horseId}: ${horse.coverPhotoPath}`,
         );
       } else {
-        const [url] = await bucket
-          .file(horse.coverPhotoPath)
-          .getSignedUrl({ version: "v4", action: "read", expires: expiry });
-        horse.coverPhotoURL = url;
+        horse.coverPhotoURL = await signUrl(
+          mainBucket,
+          horse.coverPhotoPath,
+          expiry,
+        );
       }
     }
     if (horse.avatarPhotoPath) {
@@ -46,12 +70,56 @@ async function attachPhotoURLs(horse: any, horseId?: string): Promise<void> {
           `Invalid avatarPhotoPath for horse ${horseId}: ${horse.avatarPhotoPath}`,
         );
       } else {
-        const [url] = await bucket
-          .file(horse.avatarPhotoPath)
-          .getSignedUrl({ version: "v4", action: "read", expires: expiry });
-        horse.avatarPhotoURL = url;
+        horse.avatarPhotoURL = await signUrl(
+          mainBucket,
+          horse.avatarPhotoPath,
+          expiry,
+        );
       }
     }
+
+    // Variant URLs — try derived bucket first, fall back to main bucket (legacy)
+    const variantNames = ["thumb", "small", "medium", "large"] as const;
+    const signPromises: Promise<void>[] = [];
+
+    for (const type of ["cover", "avatar"] as const) {
+      const variants = horse[`${type}PhotoVariants`] as
+        | Record<string, string>
+        | undefined;
+      if (variants) {
+        for (const name of variantNames) {
+          if (variants[name]) {
+            const urlKey = `${type}Photo${name.charAt(0).toUpperCase() + name.slice(1)}URL`;
+            // Try derived bucket first, fall back to main bucket for legacy variants
+            const variantBucket = derivedBucket || mainBucket;
+            signPromises.push(
+              signUrl(variantBucket, variants[name], expiry)
+                .then((url) => {
+                  // If derived bucket fails, try main bucket (legacy migration)
+                  if (!url && derivedBucket) {
+                    return signUrl(mainBucket, variants[name], expiry);
+                  }
+                  return url;
+                })
+                .then((url) => {
+                  if (url) horse[urlKey] = url;
+                }),
+            );
+          }
+        }
+      } else if (horse[`${type}PhotoURL`]) {
+        // Graceful fallback: if no variants exist, use original for all sizes
+        for (const name of variantNames) {
+          const urlKey = `${type}Photo${name.charAt(0).toUpperCase() + name.slice(1)}URL`;
+          horse[urlKey] = horse[`${type}PhotoURL`];
+        }
+      }
+    }
+
+    await Promise.all(signPromises);
+
+    // Copy blurhash strings through (already plain strings, no signing needed)
+    // They pass through from Firestore data naturally
   } catch (err) {
     console.warn(`Failed to generate photo URLs for horse ${horseId}: ${err}`);
   }
@@ -59,6 +127,8 @@ async function attachPhotoURLs(horse: any, horseId?: string): Promise<void> {
   // Strip storage paths from API response (server-only)
   delete horse.coverPhotoPath;
   delete horse.avatarPhotoPath;
+  delete horse.coverPhotoVariants;
+  delete horse.avatarPhotoVariants;
 }
 
 /**
@@ -220,6 +290,26 @@ async function getStableHorsesWithProjection(
         (projectedHorse as any).avatarPhotoPath = (
           horse as any
         ).avatarPhotoPath;
+      }
+      if ((horse as any).coverPhotoVariants) {
+        (projectedHorse as any).coverPhotoVariants = (
+          horse as any
+        ).coverPhotoVariants;
+      }
+      if ((horse as any).avatarPhotoVariants) {
+        (projectedHorse as any).avatarPhotoVariants = (
+          horse as any
+        ).avatarPhotoVariants;
+      }
+      if ((horse as any).coverPhotoBlurhash) {
+        (projectedHorse as any).coverPhotoBlurhash = (
+          horse as any
+        ).coverPhotoBlurhash;
+      }
+      if ((horse as any).avatarPhotoBlurhash) {
+        (projectedHorse as any).avatarPhotoBlurhash = (
+          horse as any
+        ).avatarPhotoBlurhash;
       }
       await attachPhotoURLs(projectedHorse, horse.id);
 
@@ -881,6 +971,26 @@ export async function horsesRoutes(fastify: FastifyInstance) {
         }
         if (fullHorse.avatarPhotoPath) {
           (projectedHorse as any).avatarPhotoPath = fullHorse.avatarPhotoPath;
+        }
+        if ((fullHorse as any).coverPhotoVariants) {
+          (projectedHorse as any).coverPhotoVariants = (
+            fullHorse as any
+          ).coverPhotoVariants;
+        }
+        if ((fullHorse as any).avatarPhotoVariants) {
+          (projectedHorse as any).avatarPhotoVariants = (
+            fullHorse as any
+          ).avatarPhotoVariants;
+        }
+        if ((fullHorse as any).coverPhotoBlurhash) {
+          (projectedHorse as any).coverPhotoBlurhash = (
+            fullHorse as any
+          ).coverPhotoBlurhash;
+        }
+        if ((fullHorse as any).avatarPhotoBlurhash) {
+          (projectedHorse as any).avatarPhotoBlurhash = (
+            fullHorse as any
+          ).avatarPhotoBlurhash;
         }
         await attachPhotoURLs(projectedHorse, id);
 

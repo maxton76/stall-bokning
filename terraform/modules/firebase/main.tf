@@ -213,6 +213,24 @@ resource "google_storage_bucket" "firebase_storage" {
 }
 
 # =============================================================================
+# Derived Images Bucket (optimized variants written by image processing)
+# =============================================================================
+
+resource "google_storage_bucket" "derived_images" {
+  name     = "${var.project_id}-derived"
+  location = var.storage_location
+  project  = var.project_id
+
+  uniform_bucket_level_access = true
+
+  labels = {
+    environment = var.environment
+    purpose     = "derived-images"
+    managed_by  = "terraform"
+  }
+}
+
+# =============================================================================
 # Firebase Hosting (configuration only - deployment via CLI)
 # =============================================================================
 
