@@ -113,6 +113,23 @@ export default function ScheduleWeekPage() {
     setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
   };
 
+  /**
+   * Format assignee name with duplicate detection
+   * Uses assigneeId to lookup full member data and apply email disambiguation
+   */
+  const formatSlotAssigneeName = (slot: ScheduleSlot): string => {
+    if (!slot.assigneeId) return "";
+
+    // Lookup member by ID for accurate data
+    const member = memberMap.get(slot.assigneeId);
+    if (member) {
+      return formatMemberDisplayName(member, duplicateNames);
+    }
+
+    // Fallback to stored name if member not found (shouldn't happen normally)
+    return slot.assignee || "";
+  };
+
   const getSlotStatusColor = (slot: ScheduleSlot) => {
     // Done/Completed - Green
     if (slot.status === "completed") {
@@ -444,9 +461,9 @@ export default function ScheduleWeekPage() {
                         {slot.title}
                       </div>
                       <div className="text-[10px] opacity-75">{slot.time}</div>
-                      {slot.assignee ? (
+                      {slot.assigneeId ? (
                         <div className="text-[10px] font-bold mt-1">
-                          {formatAssigneeName(slot.assignee)}
+                          {formatSlotAssigneeName(slot)}
                         </div>
                       ) : (
                         <div className="text-[10px] text-muted-foreground mt-1">
