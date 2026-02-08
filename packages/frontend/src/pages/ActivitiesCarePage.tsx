@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Heart, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -295,7 +295,6 @@ export default function ActivitiesCarePage({
 
   return (
     <ActivityPageLayout
-      icon={Heart}
       title={
         scope === "my"
           ? t("activities:care.myTitle")
