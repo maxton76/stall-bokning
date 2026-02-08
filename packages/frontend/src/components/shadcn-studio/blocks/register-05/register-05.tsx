@@ -17,9 +17,9 @@ import { auth } from "@/lib/firebase";
 
 import Logo from "@/components/shadcn-studio/logo";
 import AuthLines from "@/assets/svg/auth-lines";
-import LoginForm from "@/components/shadcn-studio/blocks/login-page-05/login-form";
+import RegisterForm from "@/components/shadcn-studio/blocks/register-05/register-form";
 
-const Login = () => {
+const Register = () => {
   const { t } = useTranslation("auth");
   const { signInWithGoogle } = useAuth();
   const navigate = useNavigate();
@@ -56,9 +56,11 @@ const Login = () => {
     } catch (error) {
       console.error("Google sign in error:", error);
       toast({
-        title: t("errors.loginFailed"),
+        title: t("errors.registrationFailed"),
         description:
-          error instanceof Error ? error.message : t("errors.loginFailed"),
+          error instanceof Error
+            ? error.message
+            : t("errors.registrationFailed"),
         variant: "destructive",
       });
     } finally {
@@ -80,51 +82,48 @@ const Login = () => {
 
           <div>
             <CardTitle className="mb-1.5 text-2xl">
-              {t("login.welcome")}
+              {t("register.title")}
             </CardTitle>
             <CardDescription className="text-base">
-              {t("login.welcomeSubtitle")}
+              {t("register.subtitle")}
             </CardDescription>
           </div>
         </CardHeader>
 
         <CardContent>
-          {/* Social Login Button */}
+          {/* Social Sign Up Button */}
           <div className="mb-6">
             <Button
               variant="outline"
               className="w-full"
               onClick={handleGoogleSignIn}
               disabled={googleLoading}
-              aria-label={t("login.continueWithGoogle")}
+              aria-label={t("register.continueWithGoogle")}
             >
               <img
                 src="https://cdn.shadcnstudio.com/ss-assets/brand-logo/google-icon.png"
-                alt={t("login.continueWithGoogle")}
+                alt={t("register.continueWithGoogle")}
                 className="size-5 mr-2"
               />
-              {t("login.continueWithGoogle")}
+              {t("register.continueWithGoogle")}
             </Button>
           </div>
 
           {/* Divider */}
           <div className="mb-6 flex items-center gap-4">
             <Separator className="flex-1" />
-            <p>{t("login.or")}</p>
+            <p>{t("register.or")}</p>
             <Separator className="flex-1" />
           </div>
 
-          {/* Login Form */}
-          <LoginForm />
+          {/* Registration Form */}
+          <RegisterForm />
 
-          {/* Sign Up Link */}
+          {/* Sign In Link */}
           <p className="text-muted-foreground mt-4 text-center">
-            {t("login.noAccount")}{" "}
-            <a
-              href="/register"
-              className="text-card-foreground hover:underline"
-            >
-              {t("login.signUp")}
+            {t("register.alreadyHaveAccount")}{" "}
+            <a href="/login" className="text-card-foreground hover:underline">
+              {t("register.signIn")}
             </a>
           </p>
         </CardContent>
@@ -133,4 +132,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Register;
