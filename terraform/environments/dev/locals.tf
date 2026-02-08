@@ -133,15 +133,24 @@ locals {
           version = "latest"
         }
       }
-      event_trigger = null
-      schedule = {
-        cron               = "*/1 * * * *" # Every minute
-        timezone           = "Europe/Stockholm"
-        pause_in_non_prod  = true
-        retry_count        = 1
-        max_retry_duration = 60
-        payload            = {}
+      event_trigger = {
+        event_type   = "google.cloud.firestore.document.v1.created"
+        region       = ""
+        retry_policy = "RETRY_POLICY_RETRY"
+        filters = [
+          {
+            attribute = "database"
+            value     = "(default)"
+            operator  = ""
+          },
+          {
+            attribute = "document"
+            value     = "notificationQueue/{queueItemId}"
+            operator  = "match-path-pattern"
+          }
+        ]
       }
+      schedule              = null
       allow_unauthenticated = false
     }
 

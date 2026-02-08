@@ -196,6 +196,9 @@ const AdminSupportPage = lazy(() => import("./pages/admin/AdminSupportPage"));
 const FeatureTogglesPage = lazy(
   () => import("./pages/admin/FeatureTogglesPage"),
 );
+const AdminNotificationTestPage = lazy(
+  () => import("./pages/admin/AdminNotificationTestPage"),
+);
 
 // Portal pages (Client Self-Service)
 const PortalLayout = lazy(() => import("./layouts/PortalLayout"));
@@ -1189,6 +1192,14 @@ function App() {
                       element={
                         <Suspense fallback={<InlineLoader />}>
                           <FeatureTogglesPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="/admin/notifications-test"
+                      element={
+                        <Suspense fallback={<InlineLoader />}>
+                          <AdminNotificationTestPage />
                         </Suspense>
                       }
                     />

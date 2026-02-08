@@ -140,6 +140,7 @@ module "cloud_run" {
   cors_origins = var.cors_origins
   environment_variables = {
     FIREBASE_PROJECT_ID = var.project_id
+    GCP_PROJECT_ID      = var.project_id
     ZENDESK_EMAIL       = "support@equiduty.zendesk.com"
     ZENDESK_SUBDOMAIN   = "equiduty"
   }

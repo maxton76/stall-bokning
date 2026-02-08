@@ -8,6 +8,7 @@ import {
   HeadsetIcon,
   Lightbulb,
   ToggleLeft,
+  Bell,
 } from "lucide-react";
 
 export interface AdminNavigationItem {
@@ -71,5 +72,11 @@ export const adminNavigation: AdminNavigationItem[] = [
     label: "Feature Requests",
     href: "/admin/feature-requests",
     icon: Lightbulb,
+  },
+  {
+    id: "admin-notifications-test",
+    label: "Notification Test",
+    href: "/admin/notifications-test",
+    icon: Bell,
   },
 ];

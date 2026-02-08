@@ -119,7 +119,7 @@ export default defineConfig({
           "cmdk-vendor": ["cmdk"],
 
           // Heavy utilities - xlsx for export, loaded on demand
-          "export-vendor": ["xlsx"],
+          "export-vendor": ["xlsx-js-style"],
         },
       },
     },

@@ -68,7 +68,19 @@ export default function AccountPage() {
 
   const getJoinDate = () => {
     const locale = i18n.language === "sv" ? "sv-SE" : "en-US";
-    const date = user?.createdAt ? new Date(user.createdAt) : new Date();
+    // Handle both Timestamp objects and ISO string dates from API
+    let date: Date;
+    if (user?.createdAt) {
+      // If it's a Timestamp object (has toDate method)
+      if (typeof user.createdAt === "object" && "toDate" in user.createdAt) {
+        date = (user.createdAt as any).toDate();
+      } else {
+        // Otherwise treat as ISO string or Date
+        date = new Date(user.createdAt as any);
+      }
+    } else {
+      date = new Date();
+    }
     return date.toLocaleDateString(locale, {
       year: "numeric",
       month: "long",

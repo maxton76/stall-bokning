@@ -147,3 +147,38 @@ export async function updateStripeProduct(
     data,
   );
 }
+
+// ============================================
+// NOTIFICATION TESTING
+// ============================================
+
+export interface NotificationUser {
+  id: string;
+  email: string;
+  displayName: string;
+  tokens: Array<{ deviceName: string; platform: string }>;
+}
+
+export async function getNotificationUsers(): Promise<{
+  users: NotificationUser[];
+}> {
+  return apiClient.get<{ users: NotificationUser[] }>(
+    "/admin/notifications/users-with-tokens",
+  );
+}
+
+export async function sendTestNotification(data: {
+  userId: string;
+  title: string;
+  body: string;
+  channels: string[];
+  priority?: string;
+  actionUrl?: string;
+  imageUrl?: string;
+}): Promise<{ success: boolean; notificationId: string; queued: number }> {
+  return apiClient.post<{
+    success: boolean;
+    notificationId: string;
+    queued: number;
+  }>("/admin/notifications/test-send", data);
+}

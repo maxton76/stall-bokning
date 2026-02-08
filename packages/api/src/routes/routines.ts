@@ -484,6 +484,7 @@ export async function routinesRoutes(fastify: FastifyInstance) {
         const activeOnly = query.activeOnly === "true";
         const stableId = query.stableId;
 
+        // Build base query for organization
         let dbQuery = db
           .collection("routineTemplates")
           .where("organizationId", "==", organizationId);
@@ -491,18 +492,22 @@ export async function routinesRoutes(fastify: FastifyInstance) {
         if (activeOnly) {
           dbQuery = dbQuery.where("isActive", "==", true) as any;
         }
-        if (stableId) {
-          dbQuery = dbQuery.where("stableId", "==", stableId) as any;
-        }
 
+        // Don't add stableId filter at query level - fetch all templates
+        // We'll filter in-memory to include both specific stable and "all stables"
         const snapshot = await dbQuery.orderBy("name", "asc").get();
 
-        const templates = snapshot.docs.map((doc) =>
-          serializeTimestamps({
-            id: doc.id,
-            ...doc.data(),
-          }),
-        );
+        // Filter in-memory to include templates for specific stable AND "all stables"
+        const templates = snapshot.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }) as RoutineTemplate)
+          .filter((template) => {
+            // If no stableId filter requested, return all
+            if (!stableId) return true;
+
+            // Include if template is for "all stables" (stableId is null/undefined) OR matches specific stable
+            return !template.stableId || template.stableId === stableId;
+          })
+          .map((template) => serializeTimestamps(template));
 
         return { templates };
       } catch (error) {
@@ -768,6 +773,12 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           updatedAt: Timestamp.now(),
           updatedBy: user.uid,
         };
+
+        // Explicitly handle stableId: undefined → null for Firestore persistence
+        // JavaScript spread operator omits undefined values, causing the field to not update
+        if (input.stableId === undefined) {
+          updateData.stableId = null;
+        }
 
         // If steps are provided, generate IDs for new steps
         if (input.steps) {
