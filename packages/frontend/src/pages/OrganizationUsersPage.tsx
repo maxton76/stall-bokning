@@ -11,6 +11,9 @@ import {
   Mail,
   Upload,
   UserPlus,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -95,6 +98,12 @@ export default function OrganizationUsersPage() {
     new Set(),
   );
   const [forceActivating, setForceActivating] = useState(false);
+
+  // Sorting state
+  type SortColumn = "name" | "email" | "phone" | "status";
+  type SortDirection = "asc" | "desc";
+  const [sortColumn, setSortColumn] = useState<SortColumn>("name");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   // Security: Validate URL organizationId matches user's current organization context
   // This prevents URL manipulation attacks where users try to access other organizations
@@ -418,20 +427,81 @@ export default function OrganizationUsersPage() {
     }
   };
 
-  // Filter members based on search query
-  const filteredMembers = useMemo(
-    () =>
-      membersData.filter((member: OrganizationMember) => {
-        const query = searchQuery.toLowerCase();
-        return (
-          member.firstName?.toLowerCase().includes(query) ||
-          member.lastName?.toLowerCase().includes(query) ||
-          member.userEmail.toLowerCase().includes(query) ||
-          member.roles.some((role) => role.toLowerCase().includes(query))
-        );
-      }),
-    [membersData, searchQuery],
-  );
+  // Handle column sort
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      // Toggle direction if clicking same column
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // New column - default to ascending
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  // Get sort icon for column header
+  const getSortIcon = (column: SortColumn) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="ml-2 h-4 w-4" />;
+    }
+    return sortDirection === "asc" ? (
+      <ArrowUp className="ml-2 h-4 w-4" />
+    ) : (
+      <ArrowDown className="ml-2 h-4 w-4" />
+    );
+  };
+
+  // Filter and sort members
+  const filteredMembers = useMemo(() => {
+    // First, filter based on search query
+    const filtered = membersData.filter((member: OrganizationMember) => {
+      const query = searchQuery.toLowerCase();
+      return (
+        member.firstName?.toLowerCase().includes(query) ||
+        member.lastName?.toLowerCase().includes(query) ||
+        member.userEmail.toLowerCase().includes(query) ||
+        member.roles.some((role) => role.toLowerCase().includes(query))
+      );
+    });
+
+    // Then, sort the filtered results
+    const sorted = [...filtered].sort((a, b) => {
+      let aValue: string;
+      let bValue: string;
+
+      switch (sortColumn) {
+        case "name":
+          aValue =
+            `${a.firstName || ""} ${a.lastName || ""}`.trim() || a.userEmail;
+          bValue =
+            `${b.firstName || ""} ${b.lastName || ""}`.trim() || b.userEmail;
+          break;
+        case "email":
+          aValue = a.userEmail;
+          bValue = b.userEmail;
+          break;
+        case "phone":
+          aValue = a.phoneNumber || "";
+          bValue = b.phoneNumber || "";
+          break;
+        case "status":
+          aValue = a.status;
+          bValue = b.status;
+          break;
+        default:
+          return 0;
+      }
+
+      // Swedish locale comparison for proper alphabetical sorting
+      const comparison = aValue.localeCompare(bValue, "sv", {
+        sensitivity: "base",
+      });
+
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+
+    return sorted;
+  }, [membersData, searchQuery, sortColumn, sortDirection]);
 
   if (organizationLoading || !organizationData) {
     return (
@@ -731,15 +801,43 @@ export default function OrganizationUsersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t("common:labels.name")}</TableHead>
                     <TableHead>
-                      {t("organizations:form.labels.email")}
+                      <button
+                        className="flex items-center hover:text-foreground transition-colors font-medium"
+                        onClick={() => handleSort("name")}
+                      >
+                        {t("common:labels.name")}
+                        {getSortIcon("name")}
+                      </button>
                     </TableHead>
                     <TableHead>
-                      {t("organizations:form.labels.phone")}
+                      <button
+                        className="flex items-center hover:text-foreground transition-colors font-medium"
+                        onClick={() => handleSort("email")}
+                      >
+                        {t("organizations:form.labels.email")}
+                        {getSortIcon("email")}
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        className="flex items-center hover:text-foreground transition-colors font-medium"
+                        onClick={() => handleSort("phone")}
+                      >
+                        {t("organizations:form.labels.phone")}
+                        {getSortIcon("phone")}
+                      </button>
                     </TableHead>
                     <TableHead>{t("organizations:members.roles")}</TableHead>
-                    <TableHead>{t("common:labels.status")}</TableHead>
+                    <TableHead>
+                      <button
+                        className="flex items-center hover:text-foreground transition-colors font-medium"
+                        onClick={() => handleSort("status")}
+                      >
+                        {t("common:labels.status")}
+                        {getSortIcon("status")}
+                      </button>
+                    </TableHead>
                     <TableHead>{t("common:navigation.stables")}</TableHead>
                     <TableHead className="text-right">
                       {t("common:buttons.actions")}
