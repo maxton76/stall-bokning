@@ -21,9 +21,8 @@ fun StableSelectionScreen(
     navController: NavController,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
-    val selectedOrg by viewModel.selectedOrganization.collectAsState()
+    val stables by viewModel.stables.collectAsState()
     val selectedStable by viewModel.selectedStable.collectAsState()
-    val stables = selectedOrg?.stables ?: emptyList()
 
     Scaffold(
         topBar = {

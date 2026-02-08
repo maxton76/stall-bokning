@@ -29,12 +29,54 @@ struct HorseFormView: View {
     @State private var isLoading = false
     @State private var isSaving = false
     @State private var errorMessage: String?
+    @State private var showDatePicker = false
+
+    // Photo state
+    @State private var existingHorse: Horse?
+    @State private var coverImage: UIImage?
+    @State private var avatarImage: UIImage?
+    @State private var showCoverPhotoPicker = false
+    @State private var showAvatarPhotoPicker = false
+    @State private var coverPhotoRemoved = false
+    @State private var avatarPhotoRemoved = false
+    @State private var isUploadingPhotos = false
 
     private var isEditing: Bool { horseId != nil }
 
     var body: some View {
         NavigationStack {
             Form {
+                // Photos Section
+                Section(String(localized: "horse.form.photos")) {
+                    // Cover photo slot (wide rectangle, 16:9 aspect)
+                    PhotoSlotView(
+                        image: coverImage,
+                        remoteURL: existingHorse?.coverPhotoURL,
+                        placeholder: "photo.fill",
+                        aspectRatio: 16/9,
+                        label: String(localized: "horse.photo.cover")
+                    )
+                    .frame(height: 200)
+                    .onTapGesture { showCoverPhotoPicker = true }
+
+                    // Avatar photo slot (square, shown as circle)
+                    HStack {
+                        Spacer()
+                        PhotoSlotView(
+                            image: avatarImage,
+                            remoteURL: existingHorse?.avatarPhotoURL,
+                            placeholder: "person.crop.circle.fill",
+                            aspectRatio: 1,
+                            label: String(localized: "horse.photo.avatar")
+                        )
+                        .frame(width: 120, height: 120)
+                        .clipShape(Circle())
+                        .onTapGesture { showAvatarPhotoPicker = true }
+                        Spacer()
+                    }
+                    .padding(.vertical, EquiDutyDesign.Spacing.sm)
+                }
+
                 // Basic info
                 Section(String(localized: "horse.form.basic")) {
                     TextField(String(localized: "horse.name"), text: $name)
@@ -57,14 +99,46 @@ struct HorseFormView: View {
 
                 // Physical details
                 Section(String(localized: "horse.form.physical")) {
-                    DatePicker(
-                        String(localized: "horse.date_of_birth"),
-                        selection: Binding(
-                            get: { dateOfBirth ?? Date() },
-                            set: { dateOfBirth = $0 }
-                        ),
-                        displayedComponents: .date
-                    )
+                    VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.sm) {
+                        HStack {
+                            Text(String(localized: "horse.date_of_birth"))
+                            Spacer()
+                            if let dob = dateOfBirth {
+                                Text(dob.formatted(date: .long, time: .omitted))
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Text(String(localized: "common.not_specified"))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation {
+                                showDatePicker.toggle()
+                                if showDatePicker && dateOfBirth == nil {
+                                    dateOfBirth = Date()
+                                }
+                            }
+                        }
+
+                        if showDatePicker {
+                            DatePicker(
+                                String(localized: "horse.date_of_birth"),
+                                selection: Binding(
+                                    get: { dateOfBirth ?? Date() },
+                                    set: { dateOfBirth = $0 }
+                                ),
+                                displayedComponents: .date
+                            )
+                            .datePickerStyle(.graphical)
+
+                            Button(String(localized: "horse.date_of_birth.clear"), role: .destructive) {
+                                dateOfBirth = nil
+                                withAnimation { showDatePicker = false }
+                            }
+                            .font(.caption)
+                        }
+                    }
 
                     HStack {
                         TextField(String(localized: "horse.height"), text: $withersHeight)
@@ -109,13 +183,13 @@ struct HorseFormView: View {
                     Button {
                         Task { await save() }
                     } label: {
-                        if isSaving {
+                        if isSaving || isUploadingPhotos {
                             ProgressView()
                         } else {
                             Text(String(localized: "common.save"))
                         }
                     }
-                    .disabled(isSaving || name.isEmpty)
+                    .disabled(isSaving || isUploadingPhotos || name.isEmpty)
                 }
             }
             .alert(String(localized: "common.error"), isPresented: .constant(errorMessage != nil)) {
@@ -124,6 +198,28 @@ struct HorseFormView: View {
                 }
             } message: {
                 Text(errorMessage ?? "")
+            }
+            .sheet(isPresented: $showCoverPhotoPicker) {
+                PhotoSourceSheet(
+                    title: String(localized: "horse.photo.cover"),
+                    hasExistingPhoto: coverImage != nil || existingHorse?.coverPhotoURL != nil,
+                    selectedImage: $coverImage,
+                    onRemove: {
+                        coverImage = nil
+                        coverPhotoRemoved = true
+                    }
+                )
+            }
+            .sheet(isPresented: $showAvatarPhotoPicker) {
+                PhotoSourceSheet(
+                    title: String(localized: "horse.photo.avatar"),
+                    hasExistingPhoto: avatarImage != nil || existingHorse?.avatarPhotoURL != nil,
+                    selectedImage: $avatarImage,
+                    onRemove: {
+                        avatarImage = nil
+                        avatarPhotoRemoved = true
+                    }
+                )
             }
             .onAppear {
                 if isEditing {
@@ -143,6 +239,7 @@ struct HorseFormView: View {
         Task {
             do {
                 if let horse = try await horseService.getHorse(id: horseId) {
+                    existingHorse = horse
                     name = horse.name
                     breed = horse.breed ?? ""
                     color = horse.color
@@ -167,6 +264,8 @@ struct HorseFormView: View {
         errorMessage = nil
 
         do {
+            let targetId: String
+
             if let horseId = horseId {
                 // Update existing horse
                 let updates = UpdateHorseRequest(
@@ -187,6 +286,7 @@ struct HorseFormView: View {
                     chipNumber: chipNumber.isEmpty ? nil : chipNumber
                 )
                 try await horseService.updateHorse(id: horseId, updates: updates)
+                targetId = horseId
             } else {
                 // Create new horse
                 let newHorse = CreateHorseRequest(
@@ -207,7 +307,28 @@ struct HorseFormView: View {
                     chipNumber: chipNumber.isEmpty ? nil : chipNumber,
                     isExternal: false
                 )
-                _ = try await horseService.createHorse(newHorse)
+                targetId = try await horseService.createHorse(newHorse)
+            }
+
+            // Upload photos if changed
+            if coverImage != nil || avatarImage != nil || coverPhotoRemoved || avatarPhotoRemoved {
+                isUploadingPhotos = true
+                let uploadService = ImageUploadService.shared
+
+                if let coverImage = coverImage {
+                    try await uploadService.uploadHorsePhoto(horseId: targetId, image: coverImage, purpose: .cover)
+                }
+                if let avatarImage = avatarImage {
+                    try await uploadService.uploadHorsePhoto(horseId: targetId, image: avatarImage, purpose: .avatar)
+                }
+                if coverPhotoRemoved {
+                    try await uploadService.removeHorsePhoto(horseId: targetId, purpose: .cover)
+                }
+                if avatarPhotoRemoved {
+                    try await uploadService.removeHorsePhoto(horseId: targetId, purpose: .avatar)
+                }
+
+                isUploadingPhotos = false
             }
 
             isSaving = false
@@ -215,6 +336,7 @@ struct HorseFormView: View {
         } catch {
             errorMessage = error.localizedDescription
             isSaving = false
+            isUploadingPhotos = false
         }
     }
 }

@@ -1,5 +1,9 @@
 package com.equiduty.domain.model
 
+/**
+ * User preferences synced across devices
+ * Matches backend UserPreferences type from packages/shared/src/types/userSettings.ts
+ */
 data class UserPreferences(
     val defaultStableId: String?,
     val defaultOrganizationId: String?,
@@ -20,6 +24,10 @@ data class UserPreferences(
     }
 }
 
+/**
+ * Notification preferences synced across devices
+ * Matches backend UserNotificationPreferences type
+ */
 data class NotificationPreferences(
     val email: Boolean,
     val push: Boolean,
@@ -29,8 +37,11 @@ data class NotificationPreferences(
 ) {
     companion object {
         val DEFAULTS = NotificationPreferences(
-            email = true, push = false, routines = true,
-            feeding = true, activities = true
+            email = true,
+            push = false,
+            routines = true,
+            feeding = true,
+            activities = true
         )
     }
 }

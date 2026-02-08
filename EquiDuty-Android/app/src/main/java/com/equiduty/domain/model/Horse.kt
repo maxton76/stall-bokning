@@ -180,11 +180,11 @@ data class HorseOwnership(
 data class VaccinationRecord(
     val id: String,
     val horseId: String,
-    val date: String,
-    val vaccineName: String,
-    val vetName: String?,
+    val vaccinationDate: String,        // Changed from 'date'
+    val vaccinationRuleName: String,    // Changed from 'vaccineName'
+    val veterinarianName: String?,      // Changed from 'vetName'
     val notes: String?,
-    val ruleId: String?,
+    val vaccinationRuleId: String?,     // Changed from 'ruleId'
     val ruleName: String?,
     val createdAt: String,
     val updatedAt: String

@@ -76,6 +76,7 @@ const bulkImportMemberSchema = z
 const bulkImportRequestSchema = z
   .object({
     members: z.array(bulkImportMemberSchema).min(1).max(100),
+    sendInviteEmails: z.boolean().optional().default(false),
   })
   .refine(
     (data) => {
@@ -115,7 +116,7 @@ export async function bulkImportRoutes(fastify: FastifyInstance) {
         }
 
         const user = (request as AuthenticatedRequest).user!;
-        const { members } = validation.data;
+        const { members, sendInviteEmails } = validation.data;
 
         // Get organization
         const orgDoc = await db
@@ -220,6 +221,7 @@ export async function bulkImportRoutes(fastify: FastifyInstance) {
             createdBy: user.uid,
             status: "pending",
             members,
+            sendInviteEmails,
             progress: {
               total: members.length,
               processed: 0,

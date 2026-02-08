@@ -239,7 +239,32 @@ lsof -ti:5003 | xargs kill -9
 stripe listen --forward-to localhost:5003/api/v1/webhooks/stripe
 ```
 
-## Important Development Notes
+## API Documentation
+**Location**: `packages/api/openapi.json` (auto-generated, do not commit to git)
+
+**Adding OpenAPI Annotations**:
+# See pattern in packages/api/src/routes/auth.ts (3 routes fully annotated)
+# Complete guide: packages/api/docs/OPENAPI_ANNOTATION_GUIDE.md
+# Summary: OPENAPI_IMPLEMENTATION_SUMMARY.md
+
+**IMPORTANT - API Stability**:
+- The API serves **iOS app**, **Android app**, and **web frontend**
+- **Avoid breaking changes** - requires coordinated updates across all platforms
+- Use semantic versioning for API paths (`/api/v1/`, `/api/v2/`)
+- Mark deprecated endpoints in OpenAPI spec before removal
+- Test changes against all client applications before deployment
+
+**IMPORTANT - Annotation Strategy**:
+- ✅ **Incremental approach** - Annotate routes when creating/modifying them
+- ✅ **Pattern established** - See `packages/api/src/routes/auth.ts` for reference
+- ❌ **Don't use `$ref`** - Causes Fastify validation errors (use inline schemas)
+- ⚠️ **Timestamps** - Use `{ type: 'string', format: 'date-time', description: 'ISO 8601 timestamp' }` to match `serializeTimestamps()` output
+- 🔥 **CRITICAL** - ALWAYS wrap Firestore responses in `serializeTimestamps()` to convert Timestamp objects to ISO strings
+
+**Comprehensive API Documentation**:
+- **Quick Guide**: `packages/api/docs/OPENAPI_ANNOTATION_GUIDE.md` - How to annotate routes
+- **Full Docs**: `packages/api/docs/OPENAPI.md` - Complete implementation details
+- **Summary**: `OPENAPI_IMPLEMENTATION_SUMMARY.md` - What was delivered and why
 
 ### Firebase Configuration
 
@@ -301,30 +326,10 @@ The system implements **field-level RBAC** for horse data with 5 access levels:
 - Multi-role users get highest applicable access level
 - Health records filtered by professional specialty (veterinarians see only veterinary records)
 
-**API Endpoints**:
-```typescript
-// Get owned horses (full data)
-GET /api/v1/horses?scope=my
-
-// Get stable horses (role-filtered)
-GET /api/v1/horses?scope=stable&stableId=STABLE_ID
-
-// Get all accessible horses
-GET /api/v1/horses?scope=all
-```
-
-**Frontend Service Functions**:
-```typescript
-getMyHorses()              // Only owned horses with full data
-getStableHorses(stableId)  // Stable horses with role-based filtering
-getAllAccessibleHorses()   // Owned + stable horses
-```
-
 **⚠️ Important for Development**:
 - Use `getMyHorses()` instead of deprecated `getUserHorses()`
 - Check `horse._accessLevel` and `horse._isOwner` metadata in responses
 - Test with different user roles to verify field projection
-- 6 pages still need migration from deprecated `getUserHorses()` function
 
 **Comprehensive Documentation**: See `docs/RBAC.md` for:
 - Complete field visibility matrix by role

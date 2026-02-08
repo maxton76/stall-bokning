@@ -18,7 +18,6 @@ import {
 import { serializeTimestamps } from "../utils/serialization.js";
 import { canInviteMembers, DEFAULT_HOLIDAY_SETTINGS } from "@equiduty/shared";
 import { getTierDefaults } from "../utils/tierDefaults.js";
-
 // Zod schemas for validation
 const supportedCountryCodeSchema = z.enum(["SE"]);
 
@@ -1643,17 +1642,23 @@ export async function organizationsRoutes(fastify: FastifyInstance) {
         const { id } = request.params as { id: string };
         const user = (request as AuthenticatedRequest).user!;
 
-        // Check organization membership
+        // Check organization membership OR ownership
         const memberDoc = await db
           .collection("organizationMembers")
           .doc(`${user.uid}_${id}`)
           .get();
 
-        if (!memberDoc.exists && user.role !== "system_admin") {
-          return reply.status(403).send({
-            error: "Forbidden",
-            message: "You do not have permission to access this organization",
-          });
+        const isMember =
+          memberDoc.exists && memberDoc.data()?.status === "active";
+
+        if (!isMember && user.role !== "system_admin") {
+          const orgDoc = await db.collection("organizations").doc(id).get();
+          if (!orgDoc.exists || orgDoc.data()?.ownerId !== user.uid) {
+            return reply.status(403).send({
+              error: "Forbidden",
+              message: "You do not have permission to access this organization",
+            });
+          }
         }
 
         // Get stables for this organization

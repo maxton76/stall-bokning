@@ -210,6 +210,14 @@
       "medium": "Medium",
       "high": "Hög"
     },
+    "durationOptions": {
+      "15min": "15 min",
+      "30min": "30 min",
+      "45min": "45 min",
+      "1h": "1 timme",
+      "1h30": "1,5 timmar",
+      "2h": "2 timmar"
+    },
     "validation": {
       "dateRequired": "Datum krävs",
       "horseRequired": "Häst krävs",

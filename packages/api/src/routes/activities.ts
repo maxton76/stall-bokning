@@ -156,6 +156,30 @@ async function hasManageActivitiesPermission(
   });
 }
 
+/**
+ * Validate scheduledTime format (HH:MM, 00:00-23:59).
+ * Returns the validated string or null.
+ */
+function validateScheduledTime(value: unknown): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value !== "string") return null;
+  const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+  if (!timeRegex.test(value)) return null;
+  return value;
+}
+
+/**
+ * Validate duration as a positive integer in minutes (1-1440).
+ * Returns the validated number or null.
+ */
+function validateDuration(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 1 || num > 1440 || !Number.isInteger(num))
+    return null;
+  return num;
+}
+
 export async function activitiesRoutes(fastify: FastifyInstance) {
   /**
    * GET /api/v1/activities/horse/:horseId
@@ -683,6 +707,8 @@ export async function activitiesRoutes(fastify: FastifyInstance) {
           docData.note = data.note || "";
           docData.assignedTo = data.assignedTo || null;
           docData.assignedToName = data.assignedToName || null;
+          docData.scheduledTime = validateScheduledTime(data.scheduledTime);
+          docData.duration = validateDuration(data.duration);
 
           // Denormalize hasSpecialInstructions from horse
           try {
@@ -810,6 +836,12 @@ export async function activitiesRoutes(fastify: FastifyInstance) {
           updateData.activityTypeConfigId = updates.activityTypeConfigId;
         if (updates.activityTypeColor !== undefined)
           updateData.activityTypeColor = updates.activityTypeColor;
+        if (updates.scheduledTime !== undefined)
+          updateData.scheduledTime = validateScheduledTime(
+            updates.scheduledTime,
+          );
+        if (updates.duration !== undefined)
+          updateData.duration = validateDuration(updates.duration);
 
         await db.collection("activities").doc(activityId).update(updateData);
 

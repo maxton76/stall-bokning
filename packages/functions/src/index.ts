@@ -25,6 +25,7 @@ export { onRoutineScheduleCreated } from "./triggers/onRoutineScheduleCreated.js
 export { onRoutineScheduleDeleted } from "./triggers/onRoutineScheduleDeleted.js";
 export { processBulkImport } from "./triggers/processBulkImport.js";
 export { onInvoiceStatusChange } from "./triggers/onInvoiceStatusChange.js";
+export { onActivityUpdated } from "./triggers/onActivityUpdated.js";
 
 // ============================================================================
 // TYPE DEFINITIONS

@@ -217,10 +217,13 @@ export async function horseMediaRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Generate unique file path
+        // Generate unique file path - use dedicated subfolder for profile photos
         const timestamp = Date.now();
         const safeFileName = data.fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
-        const storagePath = `horses/${data.horseId}/media/${timestamp}_${safeFileName}`;
+        const purpose = data.purpose as string | undefined; // 'cover' | 'avatar' | 'general'
+        const subFolder =
+          purpose === "cover" || purpose === "avatar" ? "profile" : "media";
+        const storagePath = `horses/${data.horseId}/${subFolder}/${timestamp}_${safeFileName}`;
 
         // Generate signed URL for upload
         const bucket = storage.bucket();

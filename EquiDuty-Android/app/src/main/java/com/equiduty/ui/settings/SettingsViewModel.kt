@@ -22,6 +22,7 @@ class SettingsViewModel @Inject constructor(
     val currentUser = authRepository.currentUser
     val organizations = authRepository.organizations
     val selectedOrganization = authRepository.selectedOrganization
+    val stables = authRepository.stables
     val selectedStable = authRepository.selectedStable
     val preferences = settingsRepository.preferences
 

@@ -36,6 +36,7 @@ export interface BulkImportState {
   previewRows: PreviewRow[];
   globalRoles: OrganizationRole[];
   globalPrimaryRole: OrganizationRole;
+  sendInviteEmails: boolean;
   perRowRoleOverrides: Map<
     number,
     { roles: OrganizationRole[]; primaryRole: OrganizationRole }
@@ -58,6 +59,7 @@ const initialState: BulkImportState = {
   previewRows: [],
   globalRoles: [DEFAULT_ROLE],
   globalPrimaryRole: DEFAULT_ROLE,
+  sendInviteEmails: false,
   perRowRoleOverrides: new Map(),
   jobId: null,
   submitting: false,
@@ -187,6 +189,10 @@ export function useBulkImport(
     });
   }, []);
 
+  const setSendInviteEmails = useCallback((sendInviteEmails: boolean) => {
+    setState((prev) => ({ ...prev, sendInviteEmails }));
+  }, []);
+
   const toggleRowExclusion = useCallback((rowIndex: number) => {
     setState((prev) => ({
       ...prev,
@@ -281,6 +287,7 @@ export function useBulkImport(
     setGlobalRoles,
     setRowRoleOverride,
     clearRowRoleOverride,
+    setSendInviteEmails,
     toggleRowExclusion,
     validationSummary,
     canSubmit,

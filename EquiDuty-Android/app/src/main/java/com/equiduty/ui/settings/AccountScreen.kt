@@ -55,7 +55,7 @@ fun AccountScreen(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     InfoRow("Namn", org.name)
-                    InfoRow("Typ", org.type.name)
+                    InfoRow("Typ", org.organizationType.name)
                 }
             }
         }

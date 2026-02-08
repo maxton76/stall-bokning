@@ -5,6 +5,8 @@ import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { migrateInvitesOnSignup } from "../services/inviteService.js";
+import { PERMISSIONS } from "../utils/openapiPermissions.js";
+import { serializeTimestamps } from "../utils/serialization.js";
 
 // Zod schema for user signup
 const signupSchema = z.object({
@@ -23,6 +25,88 @@ export default async function authRoutes(fastify: FastifyInstance) {
     "/signup",
     {
       preHandler: [authenticate],
+      schema: {
+        description:
+          "Complete user registration by creating Firestore profile, personal organization with implicit stable, and migrating pending invites. Firebase Auth user must be created on frontend first.",
+        tags: ["Authentication"],
+        body: {
+          type: "object",
+          required: ["email", "firstName", "lastName"],
+          properties: {
+            email: { type: "string", format: "email" },
+            firstName: { type: "string", minLength: 1 },
+            lastName: { type: "string", minLength: 1 },
+            phoneNumber: { type: "string" },
+            organizationType: {
+              type: "string",
+              enum: ["personal", "business"],
+            },
+          },
+        },
+        response: {
+          201: {
+            description: "User successfully registered",
+            type: "object",
+            properties: {
+              user: {
+                type: "object",
+                properties: {
+                  id: { type: "string" },
+                  email: { type: "string" },
+                  firstName: { type: "string" },
+                  lastName: { type: "string" },
+                  phoneNumber: { type: "string" },
+                  systemRole: { type: "string", enum: ["stable_user"] },
+                  createdAt: {
+                    type: "string",
+                    format: "date-time",
+                    description: "ISO 8601 timestamp",
+                  },
+                  updatedAt: {
+                    type: "string",
+                    format: "date-time",
+                    description: "ISO 8601 timestamp",
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: "Invalid request parameters or body",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+              details: { type: "object" },
+            },
+          },
+          401: {
+            description: "Missing or invalid JWT token",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+          409: {
+            description: "User already registered",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+          500: {
+            description: "Internal server error",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+        },
+        ...PERMISSIONS.AUTHENTICATED,
+      },
     },
     async (request, reply) => {
       try {
@@ -209,10 +293,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
         }
 
         return reply.status(201).send({
-          user: {
+          user: serializeTimestamps({
             id: user.uid,
             ...userData,
-          },
+          }),
         });
       } catch (error) {
         request.log.error({ error }, "Failed to complete signup");
@@ -229,6 +313,62 @@ export default async function authRoutes(fastify: FastifyInstance) {
     "/me",
     {
       preHandler: [authenticate],
+      schema: {
+        description: "Get authenticated user profile from Firestore",
+        tags: ["Authentication"],
+        response: {
+          200: {
+            description: "User profile retrieved successfully",
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              email: { type: "string" },
+              firstName: { type: "string" },
+              lastName: { type: "string" },
+              phoneNumber: { type: "string" },
+              systemRole: {
+                type: "string",
+                enum: ["system_admin", "stable_owner", "stable_user"],
+              },
+              createdAt: {
+                type: "string",
+                format: "date-time",
+                description: "ISO 8601 timestamp",
+              },
+              updatedAt: {
+                type: "string",
+                format: "date-time",
+                description: "ISO 8601 timestamp",
+              },
+            },
+          },
+          401: {
+            description: "Missing or invalid JWT token",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+          404: {
+            description: "Resource not found",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+          500: {
+            description: "Internal server error",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+        },
+        ...PERMISSIONS.AUTHENTICATED,
+      },
     },
     async (request, reply) => {
       try {
@@ -243,10 +383,12 @@ export default async function authRoutes(fastify: FastifyInstance) {
           });
         }
 
-        return reply.send({
-          id: userDoc.id,
-          ...userDoc.data(),
-        });
+        return reply.send(
+          serializeTimestamps({
+            id: userDoc.id,
+            ...userDoc.data(),
+          }),
+        );
       } catch (error) {
         request.log.error({ error }, "Failed to get user profile");
         return reply.status(500).send({
@@ -270,6 +412,79 @@ export default async function authRoutes(fastify: FastifyInstance) {
     "/me/settings",
     {
       preHandler: [authenticate],
+      schema: {
+        description: "Update user preferences and notification settings",
+        tags: ["Authentication"],
+        body: {
+          type: "object",
+          properties: {
+            emailNotifications: { type: "boolean" },
+            pushNotifications: { type: "boolean" },
+            darkMode: { type: "boolean" },
+            timezone: { type: "string" },
+          },
+        },
+        response: {
+          200: {
+            description: "Settings updated successfully",
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              email: { type: "string" },
+              firstName: { type: "string" },
+              lastName: { type: "string" },
+              settings: {
+                type: "object",
+                properties: {
+                  emailNotifications: { type: "boolean" },
+                  pushNotifications: { type: "boolean" },
+                  darkMode: { type: "boolean" },
+                  timezone: { type: "string" },
+                },
+              },
+              updatedAt: {
+                type: "string",
+                format: "date-time",
+                description: "ISO 8601 timestamp",
+              },
+            },
+          },
+          400: {
+            description: "Invalid request parameters or body",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+              details: { type: "object" },
+            },
+          },
+          401: {
+            description: "Missing or invalid JWT token",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+          404: {
+            description: "Resource not found",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+          500: {
+            description: "Internal server error",
+            type: "object",
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+        },
+        ...PERMISSIONS.AUTHENTICATED,
+      },
     },
     async (request, reply) => {
       try {
@@ -318,10 +533,12 @@ export default async function authRoutes(fastify: FastifyInstance) {
         // Return updated user
         const updatedDoc = await db.collection("users").doc(user.uid).get();
 
-        return reply.send({
-          id: updatedDoc.id,
-          ...updatedDoc.data(),
-        });
+        return reply.send(
+          serializeTimestamps({
+            id: updatedDoc.id,
+            ...updatedDoc.data(),
+          }),
+        );
       } catch (error) {
         request.log.error({ error }, "Failed to update user settings");
         return reply.status(500).send({

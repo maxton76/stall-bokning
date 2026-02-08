@@ -132,6 +132,7 @@ export function BulkImportWizard({
     setGlobalRoles,
     setRowRoleOverride,
     clearRowRoleOverride,
+    setSendInviteEmails,
     toggleRowExclusion,
     validationSummary,
     canSubmit,
@@ -191,7 +192,7 @@ export function BulkImportWizard({
       const members = getSubmissionPayload();
       const response = await apiClient.post<BulkImportResponse>(
         `/organizations/${organizationId}/bulk-import`,
-        { members },
+        { members, sendInviteEmails: state.sendInviteEmails },
       );
       setJobId(response.jobId);
       toast({
@@ -213,6 +214,7 @@ export function BulkImportWizard({
   }, [
     getSubmissionPayload,
     organizationId,
+    state.sendInviteEmails,
     setSubmitting,
     setJobId,
     setSubmitError,
@@ -277,6 +279,7 @@ export function BulkImportWizard({
             globalPrimaryRole={state.globalPrimaryRole}
             perRowRoleOverrides={state.perRowRoleOverrides}
             validationSummary={validationSummary}
+            sendInviteEmails={state.sendInviteEmails}
             canSubmit={canSubmit}
             submitting={state.submitting}
             submitError={state.submitError}
@@ -284,6 +287,7 @@ export function BulkImportWizard({
             onSetRowRoleOverride={setRowRoleOverride}
             onClearRowRoleOverride={clearRowRoleOverride}
             onToggleRowExclusion={toggleRowExclusion}
+            onSendInviteEmailsChange={setSendInviteEmails}
             onSubmit={handleSubmit}
             onBack={prevStep}
           />

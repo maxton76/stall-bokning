@@ -413,15 +413,38 @@ struct HorseAvatarView: View {
     let size: CGFloat
 
     var body: some View {
+        Group {
+            if let avatarURL = horse.avatarPhotoURL, let url = URL(string: avatarURL) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        initialsView
+                    default:
+                        ProgressView()
+                    }
+                }
+                .id(avatarURL) // Stabilize identity to prevent flickering during list scroll
+            } else {
+                initialsView
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(Circle())
+    }
+
+    private var initialsView: some View {
         ZStack {
             Circle()
                 .fill(colorForHorse.opacity(0.2))
 
-            Image(systemName: "pawprint.fill")
-                .font(.system(size: size * 0.4))
+            Text(horse.initials)
+                .font(.system(size: size * 0.4, weight: .semibold))
                 .foregroundStyle(colorForHorse)
         }
-        .frame(width: size, height: size)
     }
 
     private var colorForHorse: Color {

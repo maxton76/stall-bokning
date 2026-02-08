@@ -345,6 +345,14 @@ export interface Horse {
   // Stored as embedded document
   hasPedigreeData?: boolean; // Computed flag for quick filtering
 
+  // Profile Photos (storage paths - server-only, not exposed in API)
+  coverPhotoPath?: string;
+  avatarPhotoPath?: string;
+
+  // Profile Photo URLs (computed signed URLs - read-only, added by API)
+  coverPhotoURL?: string;
+  avatarPhotoURL?: string;
+
   // Related URLs/Links
   relatedLinks?: HorseLink[];
 

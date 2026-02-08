@@ -16,6 +16,14 @@ STAGE_DIR="$ROOT_DIR/.build/api-${ENV}"
 
 echo "Preparing API for deployment (${ENV})..."
 
+# Validate OpenAPI spec before deployment
+echo "Validating OpenAPI spec..."
+if ! bash "$SCRIPT_DIR/validate-openapi.sh"; then
+  echo "OpenAPI validation failed. Aborting deployment."
+  exit 1
+fi
+echo ""
+
 # Build shared package with mkdir-based lock (macOS-compatible)
 mkdir -p "$ROOT_DIR/.build"
 LOCK_DIR="$ROOT_DIR/.build/shared-build.lock"

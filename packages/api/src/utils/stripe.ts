@@ -19,6 +19,17 @@ if (!process.env.STRIPE_WEBHOOK_SECRET) {
   );
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  typescript: true,
-});
+// Only initialize Stripe if we have a valid API key
+// This prevents errors during OpenAPI spec generation when env vars aren't set
+const stripeInstance = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+      typescript: true,
+    })
+  : null;
+
+/**
+ * Stripe instance for platform billing.
+ * Non-null assertion: in deployed environments STRIPE_SECRET_KEY is always set.
+ * During OpenAPI export without env vars, routes using stripe won't be called.
+ */
+export const stripe = stripeInstance as Stripe;

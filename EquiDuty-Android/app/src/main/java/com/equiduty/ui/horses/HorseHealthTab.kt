@@ -41,31 +41,17 @@ private fun VaccinationCard(record: VaccinationRecord) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = record.vaccinationType,
+                text = record.vaccinationRuleName,
                 style = MaterialTheme.typography.titleSmall
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Datum: ${record.date}",
+                text = "Datum: ${record.vaccinationDate}",
                 style = MaterialTheme.typography.bodyMedium
             )
-            record.nextDueDate?.let {
-                Text(
-                    text = "Nästa: $it",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-            record.veterinarian?.let {
+            record.veterinarianName?.let {
                 Text(
                     text = "Veterinär: $it",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            record.clinic?.let {
-                Text(
-                    text = "Klinik: $it",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

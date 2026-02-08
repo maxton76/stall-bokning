@@ -731,7 +731,9 @@
       "ofTotal": "of {{total}} total",
       "customRoles": "Custom",
       "resetToGlobal": "Reset to default roles",
-      "startImport": "Start Import"
+      "startImport": "Start Import",
+      "sendInviteEmails": "Send invitation emails",
+      "sendInviteEmailsDescription": "Send an email to each imported member with an invitation link."
     },
     "validation": {
       "missingEmail": "Email address is missing",

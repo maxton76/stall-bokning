@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    kotlin("android")
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt.android)
@@ -12,7 +13,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.equiduty"
+        applicationId = "maxton.EquiDuty"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
@@ -21,9 +22,41 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    flavorDimensions += "environment"
+
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            buildConfigField("String", "BASE_URL", "\"https://dev-api-service-auky5oec3a-ew.a.run.app\"")
+            buildConfigField("String", "ENVIRONMENT", "\"dev\"")
+            buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"623133738566-sj8s5dbkhhflu7dlu605mguoj02mpa3r.apps.googleusercontent.com\"")
+            resValue("string", "app_name", "EquiDuty Dev")
+        }
+
+        create("staging") {
+            dimension = "environment"
+            applicationIdSuffix = ".staging"
+            versionNameSuffix = "-staging"
+            buildConfigField("String", "BASE_URL", "\"https://staging-api-service-auky5oec3a-ew.a.run.app\"")
+            buildConfigField("String", "ENVIRONMENT", "\"staging\"")
+            buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"623133738566-sj8s5dbkhhflu7dlu605mguoj02mpa3r.apps.googleusercontent.com\"")
+            resValue("string", "app_name", "EquiDuty Staging")
+        }
+
+        create("prod") {
+            dimension = "environment"
+            buildConfigField("String", "BASE_URL", "\"https://prod-api-service-wigho7gnca-ew.a.run.app\"")
+            buildConfigField("String", "ENVIRONMENT", "\"prod\"")
+            buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"623133738566-sj8s5dbkhhflu7dlu605mguoj02mpa3r.apps.googleusercontent.com\"")
+            resValue("string", "app_name", "EquiDuty")
+        }
+    }
+
     buildTypes {
         debug {
-            buildConfigField("String", "BASE_URL", "\"https://dev-api-service-auky5oec3a-ew.a.run.app\"")
+            isDebuggable = true
         }
         release {
             isMinifyEnabled = true
@@ -31,7 +64,6 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "BASE_URL", "\"https://prod-api-service-wigho7gnca-ew.a.run.app\"")
         }
     }
 
@@ -39,6 +71,10 @@ android {
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
     }
 
     buildFeatures {
@@ -86,6 +122,7 @@ dependencies {
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth.ktx)
+    implementation(libs.firebase.messaging.ktx)
 
     // Google Sign-In (Credential Manager)
     implementation(libs.credentials)

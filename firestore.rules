@@ -1423,8 +1423,12 @@ service cloud.firestore {
                 canAccessStable(horse.data.currentStableId));
       }
 
-      // LIST: All authenticated users can list (filtering happens via query)
-      allow list: if isAuthenticated();
+      // LIST: System admins can list all; other users must filter by horseId
+      // Queries must include .where('horseId', '==', id) for non-admin users
+      allow list: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canAccessHorse(resource.data.horseId)
+      );
 
       // GET: Horse owner or stable members can view
       allow get: if isAuthenticated() && (

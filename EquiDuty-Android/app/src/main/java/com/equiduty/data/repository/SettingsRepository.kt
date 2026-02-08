@@ -24,13 +24,18 @@ class SettingsRepository @Inject constructor(
             val response = api.getUserPreferences()
             val dto = response.preferences
             _preferences.value = UserPreferences(
+                defaultStableId = dto.defaultStableId,
+                defaultOrganizationId = dto.defaultOrganizationId,
                 language = dto.language,
-                notificationPreferences = NotificationPreferences(
+                timezone = dto.timezone,
+                notifications = NotificationPreferences(
                     email = dto.notifications.email,
                     push = dto.notifications.push,
-                    sms = false,
-                    telegram = false
-                )
+                    routines = dto.notifications.routines,
+                    feeding = dto.notifications.feeding,
+                    activities = dto.notifications.activities
+                ),
+                updatedAt = dto.updatedAt
             )
         } catch (e: Exception) {
             Timber.e(e, "Failed to fetch preferences")
@@ -53,11 +58,14 @@ class SettingsRepository @Inject constructor(
                 UpdatePreferencesDto(
                     notifications = PartialNotificationPreferencesDto(
                         email = notifications.email,
-                        push = notifications.push
+                        push = notifications.push,
+                        routines = notifications.routines,
+                        feeding = notifications.feeding,
+                        activities = notifications.activities
                     )
                 )
             )
-            _preferences.value = _preferences.value.copy(notificationPreferences = notifications)
+            _preferences.value = _preferences.value.copy(notifications = notifications)
         } catch (e: Exception) {
             Timber.e(e, "Failed to update notifications")
             throw e

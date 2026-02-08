@@ -12,6 +12,7 @@
 		DB149E5B2F36797D004F54D3 /* Production.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = DB149E5A2F36797D004F54D3 /* Production.xcconfig */; };
 		DB1A9B862F24CF9100B87596 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = DB1A9B852F24CF9100B87596 /* FirebaseAuth */; };
 		DB1A9B882F24CF9100B87596 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = DB1A9B872F24CF9100B87596 /* FirebaseCore */; };
+		DB1A9B8A2F24CF9100B87596 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = DB1A9B892F24CF9100B87596 /* FirebaseMessaging */; };
 		DB94F7512F24DA290044785C /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = DB94F7522F24DA290044785C /* GoogleSignIn */; };
 /* End PBXBuildFile section */
 
@@ -79,6 +80,7 @@
 			files = (
 				DB1A9B882F24CF9100B87596 /* FirebaseCore in Frameworks */,
 				DB1A9B862F24CF9100B87596 /* FirebaseAuth in Frameworks */,
+				DB1A9B8A2F24CF9100B87596 /* FirebaseMessaging in Frameworks */,
 				DB94F7512F24DA290044785C /* GoogleSignIn in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -146,6 +148,7 @@
 			packageProductDependencies = (
 				DB1A9B852F24CF9100B87596 /* FirebaseAuth */,
 				DB1A9B872F24CF9100B87596 /* FirebaseCore */,
+				DB1A9B892F24CF9100B87596 /* FirebaseMessaging */,
 				DB94F7522F24DA290044785C /* GoogleSignIn */,
 			);
 			productName = EquiDuty;
@@ -407,6 +410,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = EquiDuty/EquiDuty.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9MXCMYP7FA;
@@ -541,6 +545,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = EquiDuty/EquiDuty.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9MXCMYP7FA;
@@ -675,6 +680,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = EquiDuty/EquiDuty.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9MXCMYP7FA;
@@ -816,6 +822,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = EquiDuty/EquiDuty.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9MXCMYP7FA;
@@ -957,6 +964,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = EquiDuty/EquiDuty.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9MXCMYP7FA;
@@ -1091,6 +1099,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = EquiDuty/EquiDuty.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9MXCMYP7FA;
@@ -1248,6 +1257,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DB1A9B842F24CF9100B87596 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseCore;
+		};
+		DB1A9B892F24CF9100B87596 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB1A9B842F24CF9100B87596 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
 		};
 		DB94F7522F24DA290044785C /* GoogleSignIn */ = {
 			isa = XCSwiftPackageProductDependency;

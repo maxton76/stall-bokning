@@ -8,7 +8,9 @@
 import SwiftUI
 import SwiftData
 import FirebaseCore
+import FirebaseMessaging
 import GoogleSignIn
+import UserNotifications
 
 // MARK: - App Delegate for Firebase
 
@@ -18,7 +20,32 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         FirebaseApp.configure()
+
+        // Set up push notification delegates
+        UNUserNotificationCenter.current().delegate = PushNotificationService.shared
+        Messaging.messaging().delegate = PushNotificationService.shared
+
+        // Register for remote notifications
+        application.registerForRemoteNotifications()
+
         return true
+    }
+
+    /// Forward APNs device token to Firebase Messaging
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        Messaging.messaging().apnsToken = deviceToken
+    }
+
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        #if DEBUG
+        print("Failed to register for remote notifications: \(error.localizedDescription)")
+        #endif
     }
 }
 

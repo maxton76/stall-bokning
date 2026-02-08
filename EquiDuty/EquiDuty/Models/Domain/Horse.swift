@@ -223,6 +223,10 @@ struct Horse: Codable, Identifiable, Equatable {
     var externalMoveType: String?
     var externalDepartureDate: Date?
 
+    // Profile Photos (signed URLs from API)
+    var coverPhotoURL: String?
+    var avatarPhotoURL: String?
+
     // Team members (stored as array on horse document)
     var team: [HorseTeamMember]?
 
@@ -248,6 +252,7 @@ struct Horse: Codable, Identifiable, Equatable {
         case ueln, chipNumber, federationNumber, feiPassNumber, feiExpiryDate
         case sire, dam, damsire, breeder, studbook
         case dateOfBirth, withersHeight
+        case coverPhotoURL, avatarPhotoURL
         case externalLocation, externalMoveType, externalDepartureDate
         case team
         case createdAt, updatedAt
@@ -302,6 +307,9 @@ struct Horse: Codable, Identifiable, Equatable {
 
         dateOfBirth = try container.decodeIfPresent(Date.self, forKey: .dateOfBirth)
         withersHeight = try container.decodeIfPresent(Int.self, forKey: .withersHeight)
+
+        coverPhotoURL = try container.decodeIfPresent(String.self, forKey: .coverPhotoURL)
+        avatarPhotoURL = try container.decodeIfPresent(String.self, forKey: .avatarPhotoURL)
 
         externalLocation = try container.decodeIfPresent(String.self, forKey: .externalLocation)
         externalMoveType = try container.decodeIfPresent(String.self, forKey: .externalMoveType)
@@ -366,6 +374,8 @@ struct Horse: Codable, Identifiable, Equatable {
         studbook: String? = nil,
         dateOfBirth: Date? = nil,
         withersHeight: Int? = nil,
+        coverPhotoURL: String? = nil,
+        avatarPhotoURL: String? = nil,
         externalLocation: String? = nil,
         externalMoveType: String? = nil,
         externalDepartureDate: Date? = nil,
@@ -410,6 +420,8 @@ struct Horse: Codable, Identifiable, Equatable {
         self.studbook = studbook
         self.dateOfBirth = dateOfBirth
         self.withersHeight = withersHeight
+        self.coverPhotoURL = coverPhotoURL
+        self.avatarPhotoURL = avatarPhotoURL
         self.externalLocation = externalLocation
         self.externalMoveType = externalMoveType
         self.externalDepartureDate = externalDepartureDate

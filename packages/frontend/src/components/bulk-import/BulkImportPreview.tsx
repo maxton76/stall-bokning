@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { RoleBadge } from "@/utils/badgeHelpers";
 import {
@@ -54,6 +55,7 @@ interface BulkImportPreviewProps {
     { roles: OrganizationRole[]; primaryRole: OrganizationRole }
   >;
   validationSummary: ValidationSummary;
+  sendInviteEmails: boolean;
   canSubmit: boolean;
   submitting: boolean;
   submitError: string | null;
@@ -68,6 +70,7 @@ interface BulkImportPreviewProps {
   ) => void;
   onClearRowRoleOverride: (rowIndex: number) => void;
   onToggleRowExclusion: (rowIndex: number) => void;
+  onSendInviteEmailsChange: (value: boolean) => void;
   onSubmit: () => void;
   onBack: () => void;
 }
@@ -163,6 +166,7 @@ export function BulkImportPreview({
   globalPrimaryRole,
   perRowRoleOverrides,
   validationSummary,
+  sendInviteEmails,
   canSubmit,
   submitting,
   submitError,
@@ -170,6 +174,7 @@ export function BulkImportPreview({
   onSetRowRoleOverride,
   onClearRowRoleOverride,
   onToggleRowExclusion,
+  onSendInviteEmailsChange,
   onSubmit,
   onBack,
 }: BulkImportPreviewProps) {
@@ -220,6 +225,23 @@ export function BulkImportPreview({
             </PopoverContent>
           </Popover>
         </div>
+      </div>
+
+      {/* Send invite emails toggle */}
+      <div className="flex items-center justify-between rounded-md border p-4">
+        <div className="space-y-0.5">
+          <Label htmlFor="send-invite-emails" className="text-sm font-medium">
+            {t("organizations:bulkImport.preview.sendInviteEmails")}
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            {t("organizations:bulkImport.preview.sendInviteEmailsDescription")}
+          </p>
+        </div>
+        <Switch
+          id="send-invite-emails"
+          checked={sendInviteEmails}
+          onCheckedChange={onSendInviteEmailsChange}
+        />
       </div>
 
       {/* Summary bar */}

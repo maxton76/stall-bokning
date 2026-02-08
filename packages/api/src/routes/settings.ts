@@ -76,7 +76,12 @@ export async function settingsRoutes(fastify: FastifyInstance) {
           };
         }
 
-        return { preferences: serializeTimestamps(doc.data()) };
+        return {
+          preferences: serializeTimestamps({
+            ...DEFAULT_PREFERENCES,
+            ...doc.data(),
+          }),
+        };
       } catch (error) {
         request.log.error({ error }, "Failed to fetch user preferences");
         return reply.status(500).send({

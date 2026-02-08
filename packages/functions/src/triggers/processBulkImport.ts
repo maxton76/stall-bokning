@@ -40,6 +40,7 @@ interface BulkImportJobData {
   organizationId: string;
   createdBy: string;
   status: string;
+  sendInviteEmails?: boolean;
   members: BulkImportMember[];
   progress: {
     total: number;
@@ -146,6 +147,7 @@ async function processSingleMember(
   orgData: FirebaseFirestore.DocumentData,
   inviterData: FirebaseFirestore.DocumentData | undefined,
   executionId: string,
+  sendInviteEmails: boolean,
 ): Promise<BulkImportResult> {
   const email = member.email.toLowerCase();
 
@@ -274,14 +276,16 @@ async function processSingleMember(
         );
       }
 
-      // Send email with accept/decline links
-      await sendMemberInviteEmail(
-        email,
-        organizationName,
-        inviterName,
-        memberId,
-        executionId,
-      );
+      // Send email with accept/decline links (if enabled)
+      if (sendInviteEmails) {
+        await sendMemberInviteEmail(
+          email,
+          organizationName,
+          inviterName,
+          memberId,
+          executionId,
+        );
+      }
 
       return {
         email,
@@ -356,13 +360,15 @@ async function processSingleMember(
       );
 
       // Send invite email (fire-and-forget — don't fail the member on email error)
-      await sendInviteEmailToNewUser(
-        email,
-        organizationName,
-        inviterName,
-        token,
-        executionId,
-      );
+      if (sendInviteEmails) {
+        await sendInviteEmailToNewUser(
+          email,
+          organizationName,
+          inviterName,
+          token,
+          executionId,
+        );
+      }
 
       return {
         email,
@@ -521,6 +527,7 @@ async function processJob(
       orgData,
       inviterData,
       executionId,
+      jobData.sendInviteEmails ?? false,
     );
 
     results.push(result);

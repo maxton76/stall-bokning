@@ -256,6 +256,8 @@ export default function ActivitiesCarePage({
           activityTypeConfigId: data.activityTypeConfigId,
           activityTypeColor: data.activityTypeColor,
           note: data.note,
+          scheduledTime: data.scheduledTime,
+          duration: data.duration,
           assignedTo: data.assignedTo,
           assignedToName: data.assignedToName,
         } as any);
@@ -273,6 +275,8 @@ export default function ActivitiesCarePage({
             activityTypeConfigId: data.activityTypeConfigId,
             activityTypeColor: data.activityTypeColor,
             note: data.note,
+            scheduledTime: data.scheduledTime,
+            duration: data.duration,
             assignedTo: data.assignedTo,
             assignedToName: data.assignedToName,
             status: "pending" as const,

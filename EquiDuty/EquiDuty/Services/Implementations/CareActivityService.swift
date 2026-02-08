@@ -13,11 +13,12 @@ final class CareActivityService {
     static let shared = CareActivityService()
 
     private let activityService = ActivityService.shared
-    private let dateFormatter: DateFormatter
+    private let isoFormatter: ISO8601DateFormatter
 
     private init() {
-        dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
+        isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime]
+        isoFormatter.timeZone = TimeZone(identifier: "UTC")
     }
 
     // MARK: - Query Operations
@@ -95,6 +96,8 @@ final class CareActivityService {
         stableName: String?,
         type: CareActivityType,
         date: Date,
+        scheduledTime: String? = nil,
+        duration: Int? = nil,
         note: String?
     ) async throws -> String {
         let request = CreateActivityRequest(
@@ -103,12 +106,14 @@ final class CareActivityService {
             stableName: stableName,
             horseId: horseId,
             horseName: horseName,
-            date: dateFormatter.string(from: date),
+            date: isoFormatter.string(from: date),
             activityType: type.rawValue,
             activityTypeConfigId: nil,
             note: note,
             assignedTo: nil,
-            assignedToName: nil
+            assignedToName: nil,
+            scheduledTime: scheduledTime,
+            duration: duration
         )
 
         return try await activityService.createActivity(request)
@@ -128,12 +133,22 @@ final class CareActivityService {
     func updateCareActivity(
         activityId: String,
         date: Date? = nil,
+        scheduledTime: String? = nil,
+        duration: Int? = nil,
         note: String? = nil
     ) async throws {
         var updates = UpdateActivityRequest()
 
         if let date = date {
-            updates.date = dateFormatter.string(from: date)
+            updates.date = isoFormatter.string(from: date)
+        }
+
+        if let scheduledTime = scheduledTime {
+            updates.scheduledTime = scheduledTime
+        }
+
+        if let duration = duration {
+            updates.duration = duration
         }
 
         if let note = note {

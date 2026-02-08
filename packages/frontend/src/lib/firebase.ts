@@ -1,6 +1,11 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import {
+  getMessaging,
+  isSupported as isMessagingSupported,
+} from "firebase/messaging";
+import type { Messaging } from "firebase/messaging";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -49,6 +54,28 @@ if (isLocalDevelopment) {
 } else {
   console.log("🔥 Connected to Production Firebase");
   console.log(`   Project: ${firebaseConfig.projectId}`);
+}
+
+// Firebase Cloud Messaging - lazily initialized (not supported in all browsers)
+let _messaging: Messaging | null = null;
+let _messagingChecked = false;
+
+/**
+ * Get Firebase Messaging instance. Returns null if messaging is not supported
+ * (e.g., Safari private browsing, unsupported browsers, missing service worker).
+ */
+export async function getFirebaseMessaging(): Promise<Messaging | null> {
+  if (_messagingChecked) return _messaging;
+  try {
+    const supported = await isMessagingSupported();
+    if (supported) {
+      _messaging = getMessaging(app);
+    }
+  } catch {
+    // Messaging not supported in this environment
+  }
+  _messagingChecked = true;
+  return _messaging;
 }
 
 export default app;

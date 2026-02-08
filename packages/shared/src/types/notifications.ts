@@ -36,7 +36,9 @@ export type NotificationType =
   | "trial_expiring" // Trial period ending soon
   | "subscription_expiring" // Subscription ending soon (cancel_at_period_end)
   | "payment_failed" // Invoice payment failed
-  | "payment_method_required"; // Trial ending and no payment method on file
+  | "payment_method_required" // Trial ending and no payment method on file
+  | "activity_note_added" // Note added to activity by non-owner
+  | "activity_media_added"; // Media/photo added to activity by non-owner
 
 /**
  * Notification priority levels
@@ -443,5 +445,17 @@ export const NOTIFICATION_TEMPLATES = {
     bodyKey: "notifications.paymentMethodRequired.body",
     priority: "high" as NotificationPriority,
     defaultChannels: ["inApp", "email"] as NotificationChannel[],
+  },
+  activity_note_added: {
+    titleKey: "notifications.activityNoteAdded.title",
+    bodyKey: "notifications.activityNoteAdded.body",
+    priority: "normal" as NotificationPriority,
+    defaultChannels: ["inApp", "push"] as NotificationChannel[],
+  },
+  activity_media_added: {
+    titleKey: "notifications.activityMediaAdded.title",
+    bodyKey: "notifications.activityMediaAdded.body",
+    priority: "normal" as NotificationPriority,
+    defaultChannels: ["inApp", "push"] as NotificationChannel[],
   },
 } as const;

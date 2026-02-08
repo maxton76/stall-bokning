@@ -472,5 +472,42 @@ locals {
       schedule              = null
       allow_unauthenticated = false
     }
+
+    "on-activity-updated" = {
+      description                  = "Notify horse owners when activity notes/media are added"
+      runtime                      = "nodejs22"
+      entry_point                  = "onActivityUpdated"
+      memory                       = "256Mi"
+      cpu                          = "1"
+      timeout_seconds              = 120
+      max_instances                = var.functions_max_instances
+      min_instances                = 0
+      max_concurrency              = 1
+      ingress_settings             = "ALLOW_INTERNAL_ONLY"
+      source_archive_bucket        = var.functions_source_bucket
+      source_archive_object        = var.functions_source_object
+      environment_variables        = {}
+      build_environment_variables  = {}
+      secret_environment_variables = {}
+      event_trigger = {
+        event_type   = "google.cloud.firestore.document.v1.updated"
+        region       = ""
+        retry_policy = "RETRY_POLICY_DO_NOT_RETRY"
+        filters = [
+          {
+            attribute = "database"
+            value     = "(default)"
+            operator  = ""
+          },
+          {
+            attribute = "document"
+            value     = "activities/{activityId}"
+            operator  = "match-path-pattern"
+          }
+        ]
+      }
+      schedule              = null
+      allow_unauthenticated = false
+    }
   }
 }

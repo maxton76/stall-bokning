@@ -12,10 +12,15 @@ if (getApps().length === 0) {
     process.env.GCP_PROJECT ||
     "equiduty-dev";
 
+  // Determine Firebase Storage bucket (can be overridden via env var)
+  const storageBucket =
+    process.env.FIREBASE_STORAGE_BUCKET || `${projectId}.firebasestorage.app`;
+
   if (process.env.NODE_ENV === "production") {
     // Production: Use Application Default Credentials with explicit project ID
     initializeApp({
       projectId,
+      storageBucket,
     });
   } else {
     // Development: Use service account or emulator
@@ -23,6 +28,7 @@ if (getApps().length === 0) {
       // Using Firebase Emulator
       initializeApp({
         projectId,
+        storageBucket,
       });
     } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
       // Using service account file
@@ -32,12 +38,14 @@ if (getApps().length === 0) {
       initializeApp({
         credential: cert(serviceAccount.default),
         projectId,
+        storageBucket,
       });
     } else {
       // Fallback: Use Application Default Credentials with explicit project ID
       // This handles Cloud Run deployment with NODE_ENV=development
       initializeApp({
         projectId,
+        storageBucket,
       });
     }
   }

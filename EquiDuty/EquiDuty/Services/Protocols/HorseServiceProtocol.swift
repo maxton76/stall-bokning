@@ -100,4 +100,6 @@ struct UpdateHorseRequest: Encodable {
     var withersHeight: Int?
     var ueln: String?
     var chipNumber: String?
+    var coverPhotoPath: String?
+    var avatarPhotoPath: String?
 }

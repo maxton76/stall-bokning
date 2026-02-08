@@ -1,5 +1,6 @@
 package com.equiduty.ui.activities
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -12,6 +13,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,8 +27,82 @@ fun ActivityFormScreen(
     val error by viewModel.error.collectAsState()
     val isSaved by viewModel.isSaved.collectAsState()
 
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    var showDurationMenu by remember { mutableStateOf(false) }
+
+    val durationOptions = listOf(
+        15 to "15 min",
+        30 to "30 min",
+        45 to "45 min",
+        60 to "1 timme",
+        90 to "1,5 timmar",
+        120 to "2 timmar"
+    )
+
     LaunchedEffect(isSaved) {
         if (isSaved) navController.popBackStack()
+    }
+
+    // Date picker dialog
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = try {
+                LocalDate.parse(viewModel.date.value, DateTimeFormatter.ISO_LOCAL_DATE)
+                    .atStartOfDay(java.time.ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli()
+            } catch (_: Exception) {
+                System.currentTimeMillis()
+            }
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val date = java.time.Instant.ofEpochMilli(millis)
+                            .atZone(java.time.ZoneId.systemDefault())
+                            .toLocalDate()
+                        viewModel.date.value = date.format(DateTimeFormatter.ISO_LOCAL_DATE)
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Avbryt") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    // Time picker dialog
+    if (showTimePicker) {
+        val initialTime = try {
+            LocalTime.parse(viewModel.scheduledTime.value, DateTimeFormatter.ofPattern("HH:mm"))
+        } catch (_: Exception) {
+            LocalTime.now().plusHours(1).withMinute(0)
+        }
+        val timePickerState = rememberTimePickerState(
+            initialHour = initialTime.hour,
+            initialMinute = initialTime.minute,
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("Välj tid") },
+            text = { TimePicker(state = timePickerState) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.scheduledTime.value = String.format(java.util.Locale.US, "%02d:%02d", timePickerState.hour, timePickerState.minute)
+                    showTimePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("Avbryt") }
+            }
+        )
     }
 
     Scaffold(
@@ -67,33 +145,76 @@ fun ActivityFormScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            OutlinedTextField(
-                value = viewModel.date.value,
-                onValueChange = { viewModel.date.value = it },
-                label = { Text("Datum (ÅÅÅÅ-MM-DD) *") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
+            // Date field - tappable, opens DatePickerDialog
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = viewModel.date.value,
+                    onValueChange = {},
+                    label = { Text("Datum *") },
+                    singleLine = true,
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = false
+                )
+                Box(modifier = Modifier
+                    .matchParentSize()
+                    .clickable { showDatePicker = true }
+                )
+            }
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(
-                    value = viewModel.scheduledTime.value,
-                    onValueChange = { viewModel.scheduledTime.value = it },
-                    label = { Text("Tid (HH:MM)") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f)
-                )
-                OutlinedTextField(
-                    value = viewModel.duration.value,
-                    onValueChange = { viewModel.duration.value = it },
-                    label = { Text("Längd (min)") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f)
-                )
+                // Time field - tappable, opens TimePickerDialog
+                Box(modifier = Modifier.weight(1f)) {
+                    OutlinedTextField(
+                        value = viewModel.scheduledTime.value,
+                        onValueChange = {},
+                        label = { Text("Tid") },
+                        singleLine = true,
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = false
+                    )
+                    Box(modifier = Modifier
+                        .matchParentSize()
+                        .clickable { showTimePicker = true }
+                    )
+                }
+
+                // Duration field - dropdown
+                Box(modifier = Modifier.weight(1f)) {
+                    OutlinedTextField(
+                        value = durationOptions.firstOrNull { it.first.toString() == viewModel.duration.value }?.second
+                            ?: viewModel.duration.value.let { if (it.isNotBlank()) "$it min" else "" },
+                        onValueChange = {},
+                        label = { Text("Längd") },
+                        singleLine = true,
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = false
+                    )
+                    Box(modifier = Modifier
+                        .matchParentSize()
+                        .clickable { showDurationMenu = true }
+                    )
+                    DropdownMenu(
+                        expanded = showDurationMenu,
+                        onDismissRequest = { showDurationMenu = false }
+                    ) {
+                        durationOptions.forEach { (minutes, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    viewModel.duration.value = minutes.toString()
+                                    showDurationMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
             Spacer(modifier = Modifier.height(8.dp))
 

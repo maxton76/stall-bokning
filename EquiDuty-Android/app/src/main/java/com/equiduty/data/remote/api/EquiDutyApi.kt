@@ -1,7 +1,15 @@
 package com.equiduty.data.remote.api
 
 import com.equiduty.data.remote.dto.*
-import retrofit2.http.*
+import retrofit2.http.Body
+import retrofit2.http.DELETE
+import retrofit2.http.GET
+import retrofit2.http.HTTP
+import retrofit2.http.PATCH
+import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface EquiDutyApi {
 
@@ -35,7 +43,7 @@ interface EquiDutyApi {
     @GET("api/v1/settings/preferences")
     suspend fun getUserPreferences(): UserPreferencesResponseDto
 
-    @PUT("api/v1/settings/preferences")
+    @PATCH("api/v1/settings/preferences")
     suspend fun updateUserPreferences(@Body body: UpdatePreferencesDto): UserPreferencesResponseDto
 
     // ── Horses ───────────────────────────────────────────────────
@@ -177,4 +185,29 @@ interface EquiDutyApi {
     // ── Horse Activity History ───────────────────────────────────
     @GET("api/v1/horse-activity-history/horse/{horseId}")
     suspend fun getHorseActivityHistory(@Path("horseId") horseId: String): HorseActivityHistoryResponseDto
+
+    // ── Notifications ──────────────────────────────────────────────
+    @GET("api/v1/notifications")
+    suspend fun getNotifications(
+        @Query("limit") limit: Int = 50,
+        @Query("unreadOnly") unreadOnly: Boolean = false
+    ): NotificationsResponseDto
+
+    @PATCH("api/v1/notifications/{id}/read")
+    suspend fun markNotificationRead(@Path("id") id: String)
+
+    @PATCH("api/v1/notifications/read-all")
+    suspend fun markAllNotificationsRead()
+
+    @DELETE("api/v1/notifications/{id}")
+    suspend fun deleteNotification(@Path("id") id: String)
+
+    @HTTP(method = "DELETE", path = "api/v1/notifications/clear-read")
+    suspend fun clearReadNotifications()
+
+    @POST("api/v1/notifications/preferences/fcm-token")
+    suspend fun registerFcmToken(@Body body: RegisterFcmTokenDto)
+
+    @DELETE("api/v1/notifications/preferences/fcm-token/{deviceId}")
+    suspend fun removeFcmToken(@Path("deviceId") deviceId: String)
 }

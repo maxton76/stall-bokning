@@ -116,8 +116,9 @@ service firebase.storage {
       allow delete: if canManageStable(stableId);
     }
 
-    // Horse images (scoped to horse owner)
-    match /horses/{horseId}/images/{imageId} {
+    // Horse files: images, profile photos, and media
+    // Covers paths: /horses/{horseId}/images/*, /horses/{horseId}/profile/*, /horses/{horseId}/media/*
+    match /horses/{horseId}/{subfolder}/{fileId} {
       // READ: Horse owner or stable members if assigned
       allow read: if isAuthenticated() && (
         isSystemAdmin() ||

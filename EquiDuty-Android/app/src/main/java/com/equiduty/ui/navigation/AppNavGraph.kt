@@ -19,6 +19,7 @@ import com.equiduty.ui.horses.HorseFormScreen
 import com.equiduty.ui.horses.HorseListScreen
 import com.equiduty.ui.routines.RoutineFlowScreen
 import com.equiduty.ui.routines.RoutineListScreen
+import com.equiduty.ui.notifications.NotificationScreen
 import com.equiduty.ui.settings.*
 import com.equiduty.ui.today.TodayScreen
 
@@ -136,6 +137,14 @@ fun AppNavGraph(
 
             composable(Route.OrganizationSelection.route) {
                 OrganizationSelectionScreen(navController = navController)
+            }
+
+            // Notifications
+            composable(
+                route = Route.Notifications.route,
+                deepLinks = listOf(navDeepLink { uriPattern = "equiduty://notifications" })
+            ) {
+                NotificationScreen(navController = navController)
             }
         }
     }

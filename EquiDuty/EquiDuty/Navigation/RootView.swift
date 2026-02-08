@@ -20,6 +20,9 @@ struct RootView: View {
                 AuthenticationView()
             case .signedIn:
                 MainTabView()
+                    .onAppear {
+                        PushNotificationService.shared.requestPermission()
+                    }
             }
         }
         .animation(.easeInOut(duration: 0.3), value: authService.authState)

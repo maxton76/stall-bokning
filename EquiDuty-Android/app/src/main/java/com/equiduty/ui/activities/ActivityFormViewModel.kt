@@ -14,6 +14,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 @HiltViewModel
@@ -27,9 +32,11 @@ class ActivityFormViewModel @Inject constructor(
     val isEditing = activityId != null
 
     val activityType = mutableStateOf("")
-    val date = mutableStateOf("")
-    val scheduledTime = mutableStateOf("")
-    val duration = mutableStateOf("")
+    val date = mutableStateOf(LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE))
+    val scheduledTime = mutableStateOf(
+        LocalTime.now().plusHours(1).withMinute(0).format(DateTimeFormatter.ofPattern("HH:mm"))
+    )
+    val duration = mutableStateOf("60")
     val notes = mutableStateOf("")
 
     private val _isLoading = MutableStateFlow(false)
@@ -65,17 +72,41 @@ class ActivityFormViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Combine date (YYYY-MM-DD) and time (HH:mm) into ISO 8601 UTC string.
+     * Converts from the device's local timezone to UTC.
+     * Falls back to date-only if time is blank or unparseable.
+     */
+    private fun combineDateTimeIso(dateStr: String, timeStr: String): String {
+        return try {
+            val localDate = LocalDate.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE)
+            if (timeStr.isNotBlank()) {
+                val localTime = LocalTime.parse(timeStr, DateTimeFormatter.ofPattern("HH:mm"))
+                LocalDateTime.of(localDate, localTime)
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toInstant()
+                    .atOffset(ZoneOffset.UTC)
+                    .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+            } else {
+                "${dateStr}T00:00:00Z"
+            }
+        } catch (_: Exception) {
+            dateStr
+        }
+    }
+
     fun save() {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             try {
+                val isoDate = combineDateTimeIso(date.value, scheduledTime.value)
                 if (isEditing) {
                     activityRepository.updateActivity(
                         activityId!!,
                         UpdateActivityDto(
                             activityType = activityType.value.ifBlank { null },
-                            date = date.value.ifBlank { null },
+                            date = isoDate,
                             scheduledTime = scheduledTime.value.ifBlank { null },
                             duration = duration.value.toIntOrNull(),
                             notes = notes.value.ifBlank { null }
@@ -87,7 +118,7 @@ class ActivityFormViewModel @Inject constructor(
                         CreateActivityDto(
                             stableId = stableId,
                             activityType = activityType.value.ifBlank { "other" },
-                            date = date.value,
+                            date = isoDate,
                             scheduledTime = scheduledTime.value.ifBlank { null },
                             duration = duration.value.toIntOrNull(),
                             notes = notes.value.ifBlank { null }

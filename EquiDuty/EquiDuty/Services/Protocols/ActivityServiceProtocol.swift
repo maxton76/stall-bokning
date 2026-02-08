@@ -68,6 +68,8 @@ struct CreateActivityRequest: Encodable {
     let note: String?
     let assignedTo: String?
     let assignedToName: String?
+    let scheduledTime: String?  // "HH:MM"
+    let duration: Int?  // minutes
 }
 
 struct UpdateActivityRequest: Encodable {
@@ -81,4 +83,6 @@ struct UpdateActivityRequest: Encodable {
     var assignedToName: String?
     var activityTypeConfigId: String?
     var activityTypeColor: String?
+    var scheduledTime: String?  // "HH:MM"
+    var duration: Int?  // minutes
 }

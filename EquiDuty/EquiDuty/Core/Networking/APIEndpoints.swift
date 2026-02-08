@@ -62,6 +62,10 @@ enum APIEndpoints {
         "/horses/\(horseId)/team/\(index)"
     }
 
+    // MARK: - Horse Media
+    static let horseMediaUploadUrl = "/horse-media/upload-url"
+    static let horseMedia = "/horse-media"
+
     // MARK: - Horse Activity History
     static func horseActivities(_ horseId: String) -> String { "/activities/horse/\(horseId)" }
     static func horseActivityHistory(_ horseId: String) -> String { "/horse-activity-history/horse/\(horseId)" }
@@ -158,5 +162,17 @@ enum APIEndpoints {
 
     static func organizationSubscription(organizationId: String) -> String {
         "/organizations/\(organizationId)/subscription"
+    }
+
+    // MARK: - Notifications
+    static let notifications = "/notifications"
+    static func notification(_ id: String) -> String { "/notifications/\(id)" }
+    static func notificationRead(_ id: String) -> String { "/notifications/\(id)/read" }
+    static let notificationsReadAll = "/notifications/read-all"
+    static let notificationsClearRead = "/notifications/clear-read"
+    static let notificationsPreferences = "/notifications/preferences"
+    static let notificationsFcmToken = "/notifications/preferences/fcm-token"
+    static func notificationsFcmTokenDevice(_ deviceId: String) -> String {
+        "/notifications/preferences/fcm-token/\(deviceId)"
     }
 }

@@ -1,1 +1,5 @@
 /build
+
+# Firebase configuration files (environment-specific)
+google-services.json
+src/*/google-services.json

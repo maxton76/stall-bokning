@@ -40,6 +40,8 @@ const activitySchema = z.object({
   activityTypeConfigId: z.string().optional(), // NEW: Reference to config
   activityTypeColor: z.string().optional(), // NEW: Denormalized color
   note: z.string().optional(),
+  scheduledTime: z.string().optional(), // "HH:MM"
+  duration: z.number().optional(), // minutes
   assignedTo: z.string().optional(),
 });
 
@@ -128,6 +130,13 @@ export function ActivityFormDialog({
     "activity" | "task" | "message" | "routine"
   >("activity");
 
+  // Compute next full hour for default time
+  const getNextFullHour = () => {
+    const now = new Date();
+    const hour = (now.getHours() + 1) % 24;
+    return `${String(hour).padStart(2, "0")}:00`;
+  };
+
   // Memoize defaultValues to prevent infinite loop
   const defaultValues = useMemo<FormData>(
     () =>
@@ -139,6 +148,8 @@ export function ActivityFormDialog({
         activityTypeConfigId: "",
         activityTypeColor: "",
         note: "",
+        scheduledTime: getNextFullHour(),
+        duration: 60,
         assignedTo: "",
       }) as any,
     [],
@@ -148,6 +159,22 @@ export function ActivityFormDialog({
     schema: formSchema,
     defaultValues,
     onSubmit: async (data) => {
+      // Combine date + scheduledTime for activities
+      if (
+        data.type === "activity" &&
+        "scheduledTime" in data &&
+        data.scheduledTime &&
+        data.scheduledTime.trim() &&
+        /^\d{2}:\d{2}$/.test(data.scheduledTime)
+      ) {
+        const [h, m] = data.scheduledTime.split(":").map(Number);
+        if (!isNaN(h) && !isNaN(m)) {
+          const dateObj = new Date(data.date);
+          dateObj.setHours(h, m, 0, 0);
+          data = { ...data, date: dateObj };
+        }
+      }
+
       if (data.type === "routine") {
         // Handle routine creation separately
         if (onCreateRoutine) {
@@ -206,6 +233,8 @@ export function ActivityFormDialog({
           activityTypeConfigId: entry.activityTypeConfigId,
           activityTypeColor: entry.activityTypeColor,
           note: entry.note || "",
+          scheduledTime: entry.scheduledTime || "",
+          duration: entry.duration || 60,
           assignedTo: entry.assignedTo || "",
         } as any);
       } else if (entry.type === "task") {
@@ -244,6 +273,8 @@ export function ActivityFormDialog({
         activityTypeConfigId: selectedActivityType?.id || "",
         activityTypeColor: selectedActivityType?.color || "",
         note: "",
+        scheduledTime: getNextFullHour(),
+        duration: 60,
         assignedTo: currentUserId || "", // Default to logged-in user
       } as any);
     }
@@ -487,6 +518,54 @@ export function ActivityFormDialog({
                   {form.formState.errors.activityType.message}
                 </p>
               )}
+          </div>
+
+          {/* Time & Duration */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="scheduledTime">
+                {t("activities:form.labels.time")}
+              </Label>
+              <input
+                type="time"
+                id="scheduledTime"
+                value={form.watch("scheduledTime") || ""}
+                onChange={(e) => form.setValue("scheduledTime", e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="duration">
+                {t("activities:form.labels.duration")}
+              </Label>
+              <select
+                id="duration"
+                value={form.watch("duration") || 60}
+                onChange={(e) =>
+                  form.setValue("duration", Number(e.target.value))
+                }
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value={15}>
+                  {t("activities:form.durationOptions.15min")}
+                </option>
+                <option value={30}>
+                  {t("activities:form.durationOptions.30min")}
+                </option>
+                <option value={45}>
+                  {t("activities:form.durationOptions.45min")}
+                </option>
+                <option value={60}>
+                  {t("activities:form.durationOptions.1h")}
+                </option>
+                <option value={90}>
+                  {t("activities:form.durationOptions.1h30")}
+                </option>
+                <option value={120}>
+                  {t("activities:form.durationOptions.2h")}
+                </option>
+              </select>
+            </div>
           </div>
         </>
       )}

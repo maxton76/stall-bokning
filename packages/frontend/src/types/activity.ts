@@ -88,6 +88,8 @@ export interface Activity extends BaseEntry {
   activityTypeConfigId?: string; // NEW: Reference to ActivityTypeConfig
   activityTypeColor?: string; // Denormalized for performance
   note?: string;
+  scheduledTime?: string; // "HH:MM" display hint
+  duration?: number; // minutes
   assignedTo?: string; // User ID who is responsible
   assignedToName?: string; // Denormalized
   horseHasSpecialInstructions?: boolean; // Denormalized flag for special instructions indicator

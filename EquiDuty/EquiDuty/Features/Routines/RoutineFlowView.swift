@@ -49,8 +49,10 @@ struct RoutineFlowView: View {
                             step: step,
                             instance: instance,
                             dailyNotes: dailyNotes,
+                            isLastStep: currentStepIndex == template.steps.count - 1,
                             onComplete: { completeCurrentStep() },
-                            onSkip: { skipCurrentStep() }
+                            onSkip: { skipCurrentStep() },
+                            onFinishRoutine: { showCompletionDialog = true }
                         )
                     }
 
@@ -336,8 +338,20 @@ struct RoutineStepView: View {
     let step: RoutineStep
     let instance: RoutineInstance
     let dailyNotes: DailyNotes?
+    let isLastStep: Bool
     let onComplete: () -> Void
     let onSkip: () -> Void
+    let onFinishRoutine: () -> Void
+
+    @State private var unmarkedHorseCount: Int = 0
+    @State private var showIncompleteHorsesAlert = false
+    @State private var markAllDoneTrigger = false
+    @State private var pendingAction: PendingStepAction?
+
+    private enum PendingStepAction {
+        case completeStep
+        case finishRoutine
+    }
 
     var body: some View {
         ScrollView {
@@ -362,18 +376,34 @@ struct RoutineStepView: View {
 
                 // Horse list (if applicable)
                 if step.horseContext != .none {
-                    StepHorseListView(step: step, instance: instance, dailyNotes: dailyNotes)
+                    StepHorseListView(
+                        step: step,
+                        instance: instance,
+                        dailyNotes: dailyNotes,
+                        unmarkedHorseCount: $unmarkedHorseCount,
+                        markAllDoneTrigger: $markAllDoneTrigger
+                    )
                 }
 
                 // Action buttons
                 VStack(spacing: EquiDutyDesign.Spacing.md) {
-                    Button(action: onComplete) {
-                        Text(String(localized: "routine.step.complete"))
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
+                    if isLastStep {
+                        Button(action: { handleStepAction(.finishRoutine) }) {
+                            Text(String(localized: "routine.finish.all_done"))
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 50)
+                        }
+                        .buttonStyle(.borderedProminent)
+                    } else {
+                        Button(action: { handleStepAction(.completeStep) }) {
+                            Text(String(localized: "routine.step.complete"))
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 50)
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
-                    .buttonStyle(.borderedProminent)
 
                     if step.requiresConfirmation == false {
                         Button(action: onSkip) {
@@ -387,6 +417,44 @@ struct RoutineStepView: View {
                 .padding()
             }
         }
+        .alert(
+            String(localized: "routine.step.incomplete_horses.title"),
+            isPresented: $showIncompleteHorsesAlert
+        ) {
+            Button(String(localized: "routine.step.incomplete_horses.confirm")) {
+                markAllDoneTrigger = true
+            }
+            Button(String(localized: "common.cancel"), role: .cancel) {
+                pendingAction = nil
+            }
+        } message: {
+            Text(String(localized: "routine.step.incomplete_horses.message \(unmarkedHorseCount)"))
+        }
+        .onChange(of: markAllDoneTrigger) { _, newValue in
+            // When markAllDoneTrigger flips back to false, marking is complete
+            if !newValue, let action = pendingAction {
+                pendingAction = nil
+                executeAction(action)
+            }
+        }
+    }
+
+    // MARK: - Step Action Handling
+
+    private func handleStepAction(_ action: PendingStepAction) {
+        if step.horseContext != .none && unmarkedHorseCount > 0 {
+            pendingAction = action
+            showIncompleteHorsesAlert = true
+        } else {
+            executeAction(action)
+        }
+    }
+
+    private func executeAction(_ action: PendingStepAction) {
+        switch action {
+        case .completeStep: onComplete()
+        case .finishRoutine: onFinishRoutine()
+        }
     }
 }
 
@@ -396,6 +464,8 @@ struct StepHorseListView: View {
     let step: RoutineStep
     let instance: RoutineInstance
     let dailyNotes: DailyNotes?
+    @Binding var unmarkedHorseCount: Int
+    @Binding var markAllDoneTrigger: Bool
 
     @State private var routineService = RoutineService.shared
 
@@ -492,6 +562,7 @@ struct StepHorseListView: View {
         }
         .task {
             await loadData()
+            updateUnmarkedCount()
         }
         .onChange(of: step.id) { _, _ in
             // Reload data when navigating to a different step
@@ -501,6 +572,15 @@ struct StepHorseListView: View {
                 feedingInfoMap = [:]
                 horseProgressMap = [:]
                 await loadData()
+                updateUnmarkedCount()
+            }
+        }
+        .onChange(of: markAllDoneTrigger) { _, newValue in
+            if newValue {
+                Task {
+                    await markAllRemainingHorsesAsDone()
+                    markAllDoneTrigger = false
+                }
             }
         }
     }
@@ -525,8 +605,8 @@ struct StepHorseListView: View {
                 await loadFeedingData(stableId: stableId)
             }
 
-            // Load horse progress from instance progress
-            loadHorseProgress()
+            // Load horse progress from API (fresh data)
+            await loadHorseProgress()
 
             isLoading = false
         } catch {
@@ -538,14 +618,44 @@ struct StepHorseListView: View {
         }
     }
 
-    private func loadHorseProgress() {
-        // Get step progress from instance
-        if let stepProgress = instance.progress.stepProgress[step.id],
-           let horseProgress = stepProgress.horseProgress {
-            horseProgressMap = horseProgress
-        } else {
-            horseProgressMap = [:]
+    private func loadHorseProgress() async {
+        // Fetch fresh instance data from API to avoid stale progress
+        do {
+            if let freshInstance = try await routineService.getRoutineInstance(instanceId: instance.id) {
+                if let stepProgress = freshInstance.progress.stepProgress[step.id],
+                   let horseProgress = stepProgress.horseProgress {
+                    horseProgressMap = horseProgress
+                } else {
+                    horseProgressMap = [:]
+                }
+            }
+        } catch {
+            // Fall back to stale instance data
+            if let stepProgress = instance.progress.stepProgress[step.id],
+               let horseProgress = stepProgress.horseProgress {
+                horseProgressMap = horseProgress
+            } else {
+                horseProgressMap = [:]
+            }
         }
+    }
+
+    private func updateUnmarkedCount() {
+        unmarkedHorseCount = horses.filter { horse in
+            let p = horseProgressMap[horse.id]
+            return !(p?.completed ?? false) && !(p?.skipped ?? false)
+        }.count
+    }
+
+    private func markAllRemainingHorsesAsDone() async {
+        let unmarked = horses.filter { horse in
+            let p = horseProgressMap[horse.id]
+            return !(p?.completed ?? false) && !(p?.skipped ?? false)
+        }
+        for horse in unmarked {
+            await handleMarkDone(horseId: horse.id, horseName: horse.name, notes: nil)
+        }
+        updateUnmarkedCount()
     }
 
     private func loadFeedingData(stableId: String) async {
@@ -654,6 +764,7 @@ struct StepHorseListView: View {
             progress.notes = notes
             progress.completedAt = Date()
             horseProgressMap[horseId] = progress
+            updateUnmarkedCount()
         } catch {
             #if DEBUG
             print("Failed to mark horse as done: \(error)")
@@ -708,6 +819,7 @@ struct StepHorseListView: View {
             progress.skipped = true
             progress.skipReason = reason
             horseProgressMap[horseId] = progress
+            updateUnmarkedCount()
         } catch {
             #if DEBUG
             print("Failed to skip horse: \(error)")
@@ -1702,7 +1814,7 @@ struct RoutineNavigationFooter: View {
             Spacer()
 
             if currentStepIndex == totalSteps - 1 {
-                Button(String(localized: "routine.finish"), action: onComplete)
+                Button(String(localized: "routine.finish.all_done"), action: onComplete)
                     .buttonStyle(.borderedProminent)
             } else {
                 Button(action: onForward) {

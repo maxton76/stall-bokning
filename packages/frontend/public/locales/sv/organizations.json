@@ -731,7 +731,9 @@
       "ofTotal": "av {{total}} totalt",
       "customRoles": "Anpassad",
       "resetToGlobal": "Återställ till standardroller",
-      "startImport": "Starta import"
+      "startImport": "Starta import",
+      "sendInviteEmails": "Skicka inbjudningsmail",
+      "sendInviteEmailsDescription": "Skicka ett e-postmeddelande till varje importerad medlem med en inbjudningslänk."
     },
     "validation": {
       "missingEmail": "E-postadress saknas",

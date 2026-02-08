@@ -76,7 +76,7 @@ private fun OrganizationItem(
 ) {
     ListItem(
         headlineContent = { Text(organization.name) },
-        supportingContent = { Text(organization.type.name) },
+        supportingContent = { Text(organization.organizationType.name) },
         leadingContent = { Icon(Icons.Default.Business, contentDescription = null) },
         trailingContent = {
             if (isSelected) {

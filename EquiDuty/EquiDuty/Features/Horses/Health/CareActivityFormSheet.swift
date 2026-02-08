@@ -19,9 +19,19 @@ struct CareActivityFormSheet: View {
 
     @State private var selectedType: CareActivityType = .dentist
     @State private var selectedDate: Date = Date()
+    @State private var selectedTime: Date = {
+        let cal = Calendar.current
+        let nextHour = cal.date(byAdding: .hour, value: 1, to: Date()) ?? Date()
+        var comps = cal.dateComponents([.year, .month, .day, .hour], from: nextHour)
+        comps.minute = 0
+        return cal.date(from: comps) ?? Date()
+    }()
+    @State private var durationMinutes: Int = 60
     @State private var notes: String = ""
     @State private var isSaving = false
     @State private var errorMessage: String?
+
+    private let durationOptions = [15, 30, 45, 60, 90, 120]
 
     init(
         horse: Horse,
@@ -54,6 +64,25 @@ struct CareActivityFormSheet: View {
                         selection: $selectedDate,
                         displayedComponents: .date
                     )
+                }
+
+                // Time
+                Section {
+                    DatePicker(
+                        String(localized: "care.form.time"),
+                        selection: $selectedTime,
+                        displayedComponents: .hourAndMinute
+                    )
+                }
+
+                // Duration
+                Section {
+                    Picker(String(localized: "care.form.duration"), selection: $durationMinutes) {
+                        ForEach(durationOptions, id: \.self) { minutes in
+                            Text(String(localized: "care.form.duration.minutes.\(minutes)"))
+                                .tag(minutes)
+                        }
+                    }
                 }
 
                 // Notes
@@ -109,13 +138,32 @@ struct CareActivityFormSheet: View {
                     throw CareActivityError.noStableSelected
                 }
 
+                // Combine date + time into a single Date
+                let calendar = Calendar.current
+                let dateComponents = calendar.dateComponents([.year, .month, .day], from: selectedDate)
+                let timeComponents = calendar.dateComponents([.hour, .minute], from: selectedTime)
+                var combined = DateComponents()
+                combined.year = dateComponents.year
+                combined.month = dateComponents.month
+                combined.day = dateComponents.day
+                combined.hour = timeComponents.hour
+                combined.minute = timeComponents.minute
+                let combinedDate = calendar.date(from: combined) ?? selectedDate
+
+                // Format scheduledTime as "HH:MM"
+                let timeFormatter = DateFormatter()
+                timeFormatter.dateFormat = "HH:mm"
+                let scheduledTimeString = timeFormatter.string(from: selectedTime)
+
                 _ = try await careService.createCareActivity(
                     horseId: horse.id,
                     horseName: horse.name,
                     stableId: stable.id,
                     stableName: stable.name,
                     type: selectedType,
-                    date: selectedDate,
+                    date: combinedDate,
+                    scheduledTime: scheduledTimeString,
+                    duration: durationMinutes,
                     note: notes.isEmpty ? nil : notes
                 )
 

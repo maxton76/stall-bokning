@@ -95,7 +95,9 @@ struct HorseDetailView: View {
                 }
             }
         }
-        .sheet(isPresented: $showEditSheet) {
+        .sheet(isPresented: $showEditSheet, onDismiss: {
+            reloadHorse()
+        }) {
             if let horse {
                 HorseFormView(horseId: horse.id)
             }
@@ -107,8 +109,11 @@ struct HorseDetailView: View {
 
     private func loadHorse() {
         guard !isLoading || horse == nil else { return }
+        reloadHorse()
+    }
 
-        isLoading = true
+    private func reloadHorse() {
+        isLoading = horse == nil // Only show loading spinner on first load
         errorMessage = nil
 
         Task {
@@ -131,7 +136,97 @@ struct HorseDetailView: View {
 struct HorseDetailHeader: View {
     let horse: Horse
 
+    private var hasCoverPhoto: Bool {
+        horse.coverPhotoURL != nil
+    }
+
     var body: some View {
+        if hasCoverPhoto {
+            coverPhotoHeader
+        } else {
+            defaultHeader
+        }
+    }
+
+    // MARK: - Cover Photo Header
+
+    private var coverPhotoHeader: some View {
+        ZStack(alignment: .bottomLeading) {
+            // Cover photo
+            if let coverURL = horse.coverPhotoURL, let url = URL(string: coverURL) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        fallbackCoverBackground
+                    default:
+                        Rectangle()
+                            .fill(.quaternary)
+                            .overlay(ProgressView())
+                    }
+                }
+            }
+
+            // Gradient overlay for text readability
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.7)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            // Text overlay
+            VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.xs) {
+                Text(horse.name)
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.white)
+
+                HStack(spacing: EquiDutyDesign.Spacing.sm) {
+                    if let breed = horse.breed {
+                        Text(breed)
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.9))
+                    }
+
+                    if let gender = horse.gender {
+                        Text("•")
+                            .foregroundStyle(.white.opacity(0.7))
+                        Text(gender.displayName)
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.9))
+                    }
+                }
+
+                HStack(spacing: EquiDutyDesign.Spacing.md) {
+                    ModernStatusBadge(
+                        status: horse.status.displayName,
+                        color: horse.status == .active ? .green : .gray,
+                        icon: horse.status == .active ? "checkmark.circle.fill" : "circle"
+                    )
+
+                    if let vaccStatus = horse.vaccinationStatus {
+                        VaccinationBadge(status: vaccStatus)
+                    }
+                }
+            }
+            .padding(EquiDutyDesign.Spacing.standard)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 220)
+        .clipped()
+    }
+
+    private var fallbackCoverBackground: some View {
+        Rectangle()
+            .fill(.quaternary)
+    }
+
+    // MARK: - Default Header (no cover photo)
+
+    private var defaultHeader: some View {
         VStack(spacing: EquiDutyDesign.Spacing.md) {
             HorseAvatarView(horse: horse, size: 100)
 

@@ -130,7 +130,7 @@ private fun DailyNotesView(
             notes.alerts.forEach { alert ->
                 Card(
                     colors = CardDefaults.cardColors(
-                        containerColor = if (alert.priority == NotePriority.HIGH)
+                        containerColor = if (alert.priority == NotePriority.CRITICAL)
                             MaterialTheme.colorScheme.errorContainer
                         else MaterialTheme.colorScheme.surfaceVariant
                     ),
@@ -154,7 +154,7 @@ private fun DailyNotesView(
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(note.horseName, style = MaterialTheme.typography.titleSmall)
-                        Text(note.notes, style = MaterialTheme.typography.bodyMedium)
+                        Text(note.note, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
@@ -211,11 +211,11 @@ private fun StepExecutionView(
             Text(it, style = MaterialTheme.typography.bodyLarge)
         }
 
-        if (step.requiresPhoto) {
+        if (step.allowPhotoEvidence) {
             Spacer(modifier = Modifier.height(8.dp))
             AssistChip(
                 onClick = {},
-                label = { Text("Foto krävs") },
+                label = { Text("Foto tillåtet") },
                 leadingIcon = { Icon(Icons.Default.PhotoCamera, null, modifier = Modifier.size(18.dp)) }
             )
         }
@@ -227,7 +227,7 @@ private fun StepExecutionView(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (step.isOptional) {
+            if (step.allowPartialCompletion) {
                 OutlinedButton(
                     onClick = onSkip,
                     modifier = Modifier.weight(1f).height(50.dp)

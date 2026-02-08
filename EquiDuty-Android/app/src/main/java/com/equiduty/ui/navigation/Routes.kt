@@ -43,6 +43,9 @@ sealed class Route(val route: String) {
     data object LanguageSettings : Route("settings/language")
     data object StableSelection : Route("settings/stable")
     data object OrganizationSelection : Route("settings/organization")
+
+    // Notification route
+    data object Notifications : Route("notifications")
 }
 
 enum class BottomNavTab(

@@ -16,8 +16,6 @@
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
-	<key>CFBundleVersion</key>
-	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -29,6 +27,10 @@
 			</array>
 		</dict>
 	</array>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>EquiDuty needs camera access to take photos of your horses.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -40,12 +42,12 @@
 	<dict>
 		<key>UIColorName</key>
 		<string>LaunchBackgroundColor</string>
+		<key>UIImageContentMode</key>
+		<string>scaleAspectFit</string>
 		<key>UIImageName</key>
 		<string>LoginLogo</string>
 		<key>UIImageRespectsSafeAreaInsets</key>
 		<false/>
-		<key>UIImageContentMode</key>
-		<string>scaleAspectFit</string>
 	</dict>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>

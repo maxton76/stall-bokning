@@ -35,13 +35,13 @@ import {
 import { FieldValue } from "firebase-admin/firestore";
 
 export default async function permissionRoutes(fastify: FastifyInstance) {
-  const prefix = "/api/v1/organizations/:organizationId/permissions";
+  // Routes are registered at /api/v1/organizations/:organizationId/permissions
 
   // ============================================
-  // GET /permissions - Get effective matrix
+  // GET / - Get effective matrix
   // ============================================
   fastify.get(
-    prefix,
+    "/:organizationId/permissions",
     {
       preHandler: [
         authenticate,
@@ -79,10 +79,10 @@ export default async function permissionRoutes(fastify: FastifyInstance) {
   );
 
   // ============================================
-  // PUT /permissions - Update matrix
+  // PUT / - Update matrix
   // ============================================
   fastify.put(
-    prefix,
+    "/:organizationId/permissions",
     {
       preHandler: [
         authenticate,
@@ -155,10 +155,10 @@ export default async function permissionRoutes(fastify: FastifyInstance) {
   );
 
   // ============================================
-  // POST /permissions/reset - Reset to defaults
+  // POST /reset - Reset to defaults
   // ============================================
   fastify.post(
-    `${prefix}/reset`,
+    "/:organizationId/permissions/reset",
     {
       preHandler: [
         authenticate,
@@ -196,10 +196,10 @@ export default async function permissionRoutes(fastify: FastifyInstance) {
   );
 
   // ============================================
-  // GET /permissions/my - Current user's resolved permissions
+  // GET /my - Current user's resolved permissions
   // ============================================
   fastify.get(
-    `${prefix}/my`,
+    "/:organizationId/permissions/my",
     {
       preHandler: [authenticate, requireOrganizationAccess("params")],
     },

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { Timestamp } from "firebase-admin/firestore";
-import { db } from "../utils/firebase.js";
+import { db, storage } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import { checkSubscriptionLimit } from "../middleware/checkSubscriptionLimit.js";
 import type { AuthenticatedRequest } from "../types/index.js";
@@ -16,6 +16,50 @@ import {
   calculateAssignmentStatus,
 } from "../utils/vaccinationStatusCalculator.js";
 import type { Horse, HorseVaccinationAssignment } from "@equiduty/shared";
+
+/**
+ * Generate signed read URLs for horse profile photos and strip storage paths.
+ * Mutates the horse object in-place for performance.
+ * Validates that photo paths belong to the correct horse directory when horseId is provided.
+ */
+async function attachPhotoURLs(horse: any, horseId?: string): Promise<void> {
+  const bucket = storage.bucket();
+  const expiry = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+  const expectedPrefix = horseId ? `horses/${horseId}/` : null;
+
+  try {
+    if (horse.coverPhotoPath) {
+      if (expectedPrefix && !horse.coverPhotoPath.startsWith(expectedPrefix)) {
+        console.warn(
+          `Invalid coverPhotoPath for horse ${horseId}: ${horse.coverPhotoPath}`,
+        );
+      } else {
+        const [url] = await bucket
+          .file(horse.coverPhotoPath)
+          .getSignedUrl({ version: "v4", action: "read", expires: expiry });
+        horse.coverPhotoURL = url;
+      }
+    }
+    if (horse.avatarPhotoPath) {
+      if (expectedPrefix && !horse.avatarPhotoPath.startsWith(expectedPrefix)) {
+        console.warn(
+          `Invalid avatarPhotoPath for horse ${horseId}: ${horse.avatarPhotoPath}`,
+        );
+      } else {
+        const [url] = await bucket
+          .file(horse.avatarPhotoPath)
+          .getSignedUrl({ version: "v4", action: "read", expires: expiry });
+        horse.avatarPhotoURL = url;
+      }
+    }
+  } catch (err) {
+    console.warn(`Failed to generate photo URLs for horse ${horseId}: ${err}`);
+  }
+
+  // Strip storage paths from API response (server-only)
+  delete horse.coverPhotoPath;
+  delete horse.avatarPhotoPath;
+}
 
 /**
  * Check if user has organization membership with stable access
@@ -120,12 +164,15 @@ async function getOwnedHorses(
   }
 
   const snapshot = await query.get();
-  return snapshot.docs.map((doc) => ({
+  const horses = snapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
     _accessLevel: "owner",
     _isOwner: true,
   }));
+
+  await Promise.all(horses.map((h) => attachPhotoURLs(h, h.id)));
+  return horses;
 }
 
 /**
@@ -164,6 +211,17 @@ async function getStableHorsesWithProjection(
         context.accessLevel,
         context,
       );
+
+      // Attach signed photo URLs based on original horse data (paths not in projection)
+      if ((horse as any).coverPhotoPath) {
+        (projectedHorse as any).coverPhotoPath = (horse as any).coverPhotoPath;
+      }
+      if ((horse as any).avatarPhotoPath) {
+        (projectedHorse as any).avatarPhotoPath = (
+          horse as any
+        ).avatarPhotoPath;
+      }
+      await attachPhotoURLs(projectedHorse, horse.id);
 
       return serializeTimestamps(projectedHorse);
     }),
@@ -235,6 +293,18 @@ async function getAllAccessibleHorses(
             context.accessLevel,
             context,
           );
+          // Attach signed photo URLs based on original horse data
+          if ((horse as any).coverPhotoPath) {
+            (projectedHorse as any).coverPhotoPath = (
+              horse as any
+            ).coverPhotoPath;
+          }
+          if ((horse as any).avatarPhotoPath) {
+            (projectedHorse as any).avatarPhotoPath = (
+              horse as any
+            ).avatarPhotoPath;
+          }
+          await attachPhotoURLs(projectedHorse, horse.id);
           stableHorses.push(serializeTimestamps(projectedHorse));
         }
       }
@@ -484,10 +554,78 @@ export async function horsesRoutes(fastify: FastifyInstance) {
           });
         }
 
+        // Allowlist: only these fields can be set via generic PATCH
+        const ALLOWED_HORSE_FIELDS = new Set([
+          "name",
+          "color",
+          "gender",
+          "breed",
+          "age",
+          "status",
+          "currentStableId",
+          "currentStableName",
+          "notes",
+          "specialInstructions",
+          "equipment",
+          "horseGroupId",
+          "horseGroupName",
+          "dateOfBirth",
+          "withersHeight",
+          "ueln",
+          "chipNumber",
+          "usage",
+          "sire",
+          "dam",
+          "damsire",
+          "breeder",
+          "studbook",
+          "federationNumber",
+          "feiPassNumber",
+          "feiExpiryDate",
+          "isExternal",
+          "relatedLinks",
+          "coverPhotoPath",
+          "avatarPhotoPath",
+        ]);
+
+        // Sanitize: only keep allowed fields
+        const sanitized: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(updates)) {
+          if (ALLOWED_HORSE_FIELDS.has(key)) {
+            sanitized[key] = value;
+          }
+        }
+
+        // Validate photo paths point to this horse's storage directory
+        if (sanitized.coverPhotoPath !== undefined) {
+          if (sanitized.coverPhotoPath !== null) {
+            if (
+              typeof sanitized.coverPhotoPath !== "string" ||
+              !sanitized.coverPhotoPath.startsWith(`horses/${id}/`)
+            ) {
+              return reply
+                .status(400)
+                .send({ error: "Invalid coverPhotoPath" });
+            }
+          }
+        }
+        if (sanitized.avatarPhotoPath !== undefined) {
+          if (sanitized.avatarPhotoPath !== null) {
+            if (
+              typeof sanitized.avatarPhotoPath !== "string" ||
+              !sanitized.avatarPhotoPath.startsWith(`horses/${id}/`)
+            ) {
+              return reply
+                .status(400)
+                .send({ error: "Invalid avatarPhotoPath" });
+            }
+          }
+        }
+
         // Compute hasSpecialInstructions if relevant fields are updated
-        const mergedData = { ...horse, ...updates };
+        const mergedData = { ...horse, ...sanitized };
         const updateData = {
-          ...updates,
+          ...sanitized,
           hasSpecialInstructions: !!(
             (mergedData.specialInstructions &&
               mergedData.specialInstructions.trim().length > 0) ||
@@ -497,18 +635,13 @@ export async function horsesRoutes(fastify: FastifyInstance) {
           lastModifiedBy: user.uid,
         };
 
-        // Don't allow changing ownerId
-        delete updateData.ownerId;
-        delete updateData.createdAt;
-        delete updateData.createdBy;
-
         await db.collection("horses").doc(id).update(updateData);
 
+        // Return response with signed URLs (not raw storage paths)
         const updatedDoc = await db.collection("horses").doc(id).get();
-        return serializeTimestamps({
-          id: updatedDoc.id,
-          ...updatedDoc.data(),
-        });
+        const result = { id: updatedDoc.id, ...updatedDoc.data() };
+        await attachPhotoURLs(result, id);
+        return serializeTimestamps(result);
       } catch (error) {
         request.log.error({ error }, "Failed to update horse");
         return reply.status(500).send({
@@ -617,14 +750,16 @@ export async function horsesRoutes(fastify: FastifyInstance) {
           }
 
           const snapshot = await query.get();
-          const horses = snapshot.docs.map((doc) =>
-            serializeTimestamps({
-              id: doc.id,
-              ...doc.data(),
-              _accessLevel: "owner",
-              _isOwner: false,
-            }),
-          );
+          const horsesRaw = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+            _accessLevel: "owner",
+            _isOwner: false,
+          }));
+
+          await Promise.all(horsesRaw.map((h) => attachPhotoURLs(h, h.id)));
+
+          const horses = horsesRaw.map((h) => serializeTimestamps(h));
 
           return {
             horses,
@@ -733,11 +868,21 @@ export async function horsesRoutes(fastify: FastifyInstance) {
         }
 
         // Apply field projection based on access level
+        const fullHorse = { ...horse, id: doc.id };
         const projectedHorse = projectHorseFields(
-          { ...horse, id: doc.id } as Horse,
+          fullHorse as Horse,
           context.accessLevel,
           context,
         );
+
+        // Attach signed photo URLs from original data
+        if (fullHorse.coverPhotoPath) {
+          (projectedHorse as any).coverPhotoPath = fullHorse.coverPhotoPath;
+        }
+        if (fullHorse.avatarPhotoPath) {
+          (projectedHorse as any).avatarPhotoPath = fullHorse.avatarPhotoPath;
+        }
+        await attachPhotoURLs(projectedHorse, id);
 
         return serializeTimestamps(projectedHorse);
       } catch (error) {

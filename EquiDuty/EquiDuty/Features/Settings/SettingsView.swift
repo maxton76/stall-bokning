@@ -218,22 +218,41 @@ struct NotificationSettingsView: View {
 
     var body: some View {
         List {
-            Section {
+            // Channels section
+            Section(String(localized: "notifications.channels")) {
                 Toggle(String(localized: "notifications.email"), isOn: binding(for: \.email))
                     .disabled(isSaving)
                 Toggle(String(localized: "notifications.push"), isOn: binding(for: \.push))
                     .disabled(isSaving)
             }
 
+            // Categories section
             Section(String(localized: "notifications.categories")) {
                 Toggle(String(localized: "notifications.routines"), isOn: binding(for: \.routines))
                     .disabled(isSaving)
-
                 Toggle(String(localized: "notifications.feeding"), isOn: binding(for: \.feeding))
                     .disabled(isSaving)
-
                 Toggle(String(localized: "notifications.activities"), isOn: binding(for: \.activities))
                     .disabled(isSaving)
+            }
+
+            // Quiet hours section (preview)
+            Section {
+                HStack {
+                    Label(String(localized: "notifications.quietHours"), systemImage: "moon.fill")
+                    Spacer()
+                    Text("22:00 – 07:00")
+                        .foregroundStyle(.secondary)
+                }
+
+                Text(String(localized: "notifications.quietHours.description"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text(String(localized: "notifications.quietHours.title"))
+            } footer: {
+                Text(String(localized: "notifications.quietHours.comingSoon"))
+                    .font(.caption)
             }
         }
         .navigationTitle(String(localized: "notifications.title"))
