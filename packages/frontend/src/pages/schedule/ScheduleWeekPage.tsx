@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -25,6 +25,8 @@ import {
 } from "@/components/routines";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserStables } from "@/hooks/useUserStables";
+import { useOrganizationMembers } from "@/hooks/useOrganizationMembers";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   useWeekScheduledRoutines,
   type ScheduleSlot,
@@ -32,7 +34,10 @@ import {
 } from "@/hooks/useScheduledRoutines";
 import { format, addWeeks, subWeeks, startOfWeek, addDays } from "date-fns";
 import { sv } from "date-fns/locale";
-import { formatAssigneeName } from "@/utils/formatName";
+import {
+  getDuplicateNames,
+  formatMemberDisplayName,
+} from "@/utils/memberDisplayName";
 
 /**
  * Schedule Week Page - Weekly calendar view

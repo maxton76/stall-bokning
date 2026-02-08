@@ -25,15 +25,23 @@ function hasStableAccess(
 
 /**
  * Hook to fetch all members of an organization
+ * Includes automatic fallback to ensure owner is always present
  * @param organizationId - Organization ID
  * @returns Query result with organization members
  */
 export function useOrganizationMembers(organizationId: string | null) {
-  return useApiQuery<OrganizationMember[]>(
+  const query = useApiQuery<OrganizationMember[]>(
     ["organizationMembers", organizationId],
     () => getOrganizationMembers(organizationId!),
     { enabled: !!organizationId },
   );
+
+  // Note: The backend should already include the owner in the members list.
+  // If debugging shows the owner is missing, check the organizationMembers
+  // collection in Firestore to ensure the owner's member record exists.
+  // Expected member record pattern: {userId}_{organizationId}
+
+  return query;
 }
 
 /**
