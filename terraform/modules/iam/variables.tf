@@ -28,6 +28,7 @@ variable "cloud_run_api_roles" {
     "roles/firebaseauth.admin",           # Firebase Auth user management
     "roles/secretmanager.secretAccessor", # Access secrets
     "roles/storage.objectViewer",         # Read from storage
+    "roles/storage.objectCreator",        # Write to storage (create/upload objects)
     "roles/iam.serviceAccountTokenCreator", # Generate signed URLs (signBlob)
     "roles/logging.logWriter",            # Write logs
     "roles/cloudtrace.agent",             # Send traces
