@@ -532,7 +532,7 @@ export function RoutineScheduleDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {t("common:cancel")}
+            {t("common:buttons.cancel")}
           </Button>
           <Button
             onClick={handleSubmit}

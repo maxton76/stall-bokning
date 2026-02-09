@@ -9,6 +9,8 @@
 import crypto from "crypto";
 import { Timestamp, FieldValue } from "firebase-admin/firestore";
 import { db } from "./firebase.js";
+import type { MemberForAssignment } from "../services/autoAssignmentService.js";
+import { autoAssignRoutineInstances } from "../services/routineAutoAssignmentService.js";
 
 // ============================================================================
 // TYPES
@@ -96,6 +98,69 @@ function formatDateKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+/**
+ * Fetch eligible members for auto-assignment
+ * Returns members who are:
+ * - Active in the organization
+ * - Have access to the stable
+ * - Are shown in planning
+ */
+async function getEligibleMembers(
+  organizationId: string,
+  stableId: string,
+): Promise<MemberForAssignment[]> {
+  try {
+    // Query organization members
+    const membersSnapshot = await db
+      .collection("organizationMembers")
+      .where("organizationId", "==", organizationId)
+      .where("stableIds", "array-contains", stableId)
+      .where("showInPlanning", "==", true)
+      .where("status", "==", "active")
+      .get();
+
+    if (membersSnapshot.empty) {
+      return [];
+    }
+
+    // Fetch corresponding user data
+    const members: MemberForAssignment[] = [];
+
+    for (const memberDoc of membersSnapshot.docs) {
+      const memberData = memberDoc.data();
+      const userId = memberData.userId;
+
+      try {
+        const userDoc = await db.collection("users").doc(userId).get();
+        if (!userDoc.exists) continue;
+
+        const userData = userDoc.data();
+        if (!userData) continue;
+
+        members.push({
+          userId,
+          displayName:
+            userData.displayName ||
+            `${userData.firstName || ""} ${userData.lastName || ""}`.trim() ||
+            "Unknown",
+          email: userData.email || "",
+          historicalPoints: userData.historicalPoints || 0,
+          availability: userData.availability,
+          limits: userData.limits,
+        });
+      } catch {
+        // Skip members with missing user data
+        continue;
+      }
+    }
+
+    return members;
+  } catch (error) {
+    console.error("Failed to fetch eligible members:", error);
+    return [];
+  }
+}
+
 // ============================================================================
 // MAIN GENERATOR
 // ============================================================================
@@ -152,6 +217,45 @@ export async function generateRoutineInstances(
     await Promise.all(userFetches);
   }
 
+  // Compute auto-assignments once before loop (if needed)
+  let autoAssignments: Record<string, string> | null = null;
+
+  if (schedule.assignmentMode === "auto" && !schedule.customAssignments) {
+    const members = await getEligibleMembers(
+      schedule.organizationId,
+      schedule.stableId,
+    );
+
+    if (members.length > 0) {
+      autoAssignments = autoAssignRoutineInstances(
+        scheduledDates,
+        members,
+        schedule.scheduledStartTime,
+        template.pointsValue,
+        {}, // config
+      );
+
+      // Pre-fetch user names for auto-assigned users
+      const autoUserIds = new Set(Object.values(autoAssignments));
+      for (const userId of autoUserIds) {
+        if (!userNameCache[userId]) {
+          try {
+            const userDoc = await db.collection("users").doc(userId).get();
+            if (userDoc.exists) {
+              const userData = userDoc.data();
+              userNameCache[userId] =
+                userData?.displayName ||
+                `${userData?.firstName || ""} ${userData?.lastName || ""}`.trim() ||
+                "Unknown";
+            }
+          } catch {
+            // Skip failed user name lookups
+          }
+        }
+      }
+    }
+  }
+
   // Create instances in batches
   const BATCH_SIZE = 500;
   let totalCreated = 0;
@@ -175,8 +279,16 @@ export async function generateRoutineInstances(
       let assignmentType: string;
 
       if (hasCustomAssignment) {
+        // Path A: Use custom assignment from frontend preview
         assignedTo = customAssignedUserId;
         assignedToName = userNameCache[customAssignedUserId] || "Unknown";
+        assignmentType = "auto";
+      } else if (schedule.assignmentMode === "auto") {
+        // Path B: Backend fallback - use computed auto-assignments
+        if (autoAssignments && autoAssignments[dateKey]) {
+          assignedTo = autoAssignments[dateKey];
+          assignedToName = userNameCache[assignedTo] || "Unknown";
+        }
         assignmentType = "auto";
       } else if (schedule.assignmentMode === "manual") {
         assignedTo = schedule.defaultAssignedTo || null;
@@ -185,6 +297,7 @@ export async function generateRoutineInstances(
       } else if (schedule.assignmentMode === "unassigned") {
         assignmentType = "unassigned";
       } else {
+        // Fallback for other modes (e.g., selfBooked)
         assignmentType = schedule.assignmentMode;
       }
 

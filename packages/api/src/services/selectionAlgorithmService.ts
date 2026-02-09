@@ -92,7 +92,7 @@ async function computeQuotaBasedOrder(params: {
     .collection("routineInstances")
     .where("scheduledDate", ">=", startDate)
     .where("scheduledDate", "<=", endDate)
-    .where("status", "in", ["scheduled", "started"])
+    .where("assignmentType", "==", "unassigned")
     .get();
 
   let totalAvailablePoints = 0;

@@ -247,6 +247,42 @@ export async function routineSchedulesRoutes(fastify: FastifyInstance) {
           });
         }
 
+        // Validate customAssignments - ensure all user IDs are members with stable access
+        if (input.customAssignments) {
+          const userIds = Object.values(input.customAssignments).filter(
+            (id): id is string => id !== null,
+          );
+
+          for (const userId of userIds) {
+            // Check if user is an active member of the organization
+            const memberDoc = await db
+              .collection("organizationMembers")
+              .doc(`${userId}_${input.organizationId}`)
+              .get();
+
+            if (!memberDoc.exists || memberDoc.data()?.status !== "active") {
+              return reply.status(400).send({
+                error: "Bad Request",
+                message: `User ${userId} is not an active member of this organization`,
+              });
+            }
+
+            // Verify the member has access to this specific stable
+            const memberData = memberDoc.data();
+            const hasStableAccess =
+              memberData?.stableAccess === "all" ||
+              (memberData?.stableAccess === "specific" &&
+                memberData?.assignedStableIds?.includes(input.stableId));
+
+            if (!hasStableAccess) {
+              return reply.status(400).send({
+                error: "Bad Request",
+                message: `User ${userId} does not have access to this stable`,
+              });
+            }
+          }
+        }
+
         // Get the template to denormalize data
         const templateDoc = await db
           .collection("routineTemplates")

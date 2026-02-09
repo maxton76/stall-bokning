@@ -216,6 +216,14 @@ export function CreateSelectionProcessModal({
           selectionStartDate: startDate.toISOString().split("T")[0]!,
           selectionEndDate: endDate.toISOString().split("T")[0]!,
         });
+
+        // Defensive: Verify all selected members are in result
+        if (result.turns.length !== selectedMemberIds.size) {
+          console.warn(
+            `Computed order missing members. Selected: ${selectedMemberIds.size}, Returned: ${result.turns.length}`,
+          );
+        }
+
         setOrderedMembers(result.turns);
         setComputedOrder(result);
         setStep(4);

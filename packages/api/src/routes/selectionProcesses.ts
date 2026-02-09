@@ -376,6 +376,18 @@ export async function selectionProcessesRoutes(fastify: FastifyInstance) {
           selectionEndDate: input.selectionEndDate,
         });
 
+        // Defensive validation
+        if (result.turns.length !== input.memberIds.length) {
+          request.log.warn(
+            {
+              algorithm: input.algorithm,
+              inputMemberCount: input.memberIds.length,
+              outputTurnCount: result.turns.length,
+            },
+            "Turn order computation resulted in different member count",
+          );
+        }
+
         return result;
       } catch (error) {
         request.log.error({ error }, "Failed to compute turn order");
@@ -496,7 +508,7 @@ export async function selectionProcessesRoutes(fastify: FastifyInstance) {
             .collection("routineInstances")
             .where("scheduledDate", ">=", startTs)
             .where("scheduledDate", "<=", endTs)
-            .where("status", "in", ["scheduled", "started"])
+            .where("assignmentType", "==", "unassigned")
             .get();
 
           totalAvailablePoints = 0;
