@@ -131,21 +131,27 @@ interface EquiDutyApi {
     @GET("api/v1/routines/instances/stable/{stableId}")
     suspend fun getRoutineInstances(
         @Path("stableId") stableId: String,
-        @Query("date") date: String? = null
+        @Query("startDate") startDate: String? = null,
+        @Query("endDate") endDate: String? = null
     ): RoutineInstancesResponseDto
 
-    @POST("api/v1/routines/instances/{id}/start")
-    suspend fun startRoutineInstance(@Path("id") id: String): RoutineInstanceDto
+    @GET("api/v1/routines/instances/{id}")
+    suspend fun getRoutineInstance(@Path("id") id: String): RoutineInstanceDto
 
-    @POST("api/v1/routines/instances/{id}/steps/{stepId}/complete")
-    suspend fun completeRoutineStep(
+    @POST("api/v1/routines/instances/{id}/start")
+    suspend fun startRoutineInstance(
+        @Path("id") id: String,
+        @Body body: StartRoutineRequestDto
+    ): RoutineInstanceResponseDto
+
+    @PUT("api/v1/routines/instances/{id}/progress")
+    suspend fun updateRoutineProgress(
         @Path("id") instanceId: String,
-        @Path("stepId") stepId: String,
-        @Body body: CompleteStepDto
-    ): RoutineInstanceDto
+        @Body body: UpdateStepProgressDto
+    ): RoutineInstanceResponseDto
 
     @POST("api/v1/routines/instances/{id}/complete")
-    suspend fun completeRoutineInstance(@Path("id") id: String): RoutineInstanceDto
+    suspend fun completeRoutineInstance(@Path("id") id: String): RoutineInstanceResponseDto
 
     // ── Daily Notes ──────────────────────────────────────────────
     @GET("api/v1/stables/{stableId}/daily-notes/{date}")

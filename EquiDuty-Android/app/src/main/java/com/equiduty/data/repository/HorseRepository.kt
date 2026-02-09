@@ -39,6 +39,27 @@ class HorseRepository @Inject constructor(
         return response.horse.toDomain()
     }
 
+    suspend fun getHorsesByIds(horseIds: List<String>): List<Horse> {
+        if (horseIds.isEmpty()) return emptyList()
+        // For now, fetch individually. TODO: Add bulk API endpoint
+        return horseIds.mapNotNull { horseId ->
+            try {
+                getHorse(horseId)
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to fetch horse $horseId")
+                null
+            }
+        }
+    }
+
+    suspend fun getHorsesByGroups(groupIds: List<String>): List<Horse> {
+        if (groupIds.isEmpty()) return emptyList()
+        // Filter current horses by group IDs
+        return _horses.value.filter { horse ->
+            horse.horseGroupId != null && horse.horseGroupId in groupIds
+        }
+    }
+
     suspend fun createHorse(dto: CreateHorseDto): Horse {
         val response = api.createHorse(dto)
         val horse = response.horse.toDomain()

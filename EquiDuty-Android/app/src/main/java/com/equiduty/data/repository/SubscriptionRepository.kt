@@ -36,7 +36,8 @@ class SubscriptionRepository @Inject constructor(
 
         try {
             val response = api.getTierDefinitions()
-            _tierDefinitions.value = response.tiers.map { it.toDomain() }
+            // Response is now a list directly (not wrapped in object)
+            _tierDefinitions.value = response.map { it.toDomain() }
             tiersCacheTimestamp = now
         } catch (e: Exception) {
             Timber.e(e, "Failed to fetch tier definitions")

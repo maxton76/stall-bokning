@@ -1,10 +1,16 @@
 package com.equiduty.ui.navigation
 
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.equiduty.R
+
+sealed class NavIcon {
+    data class Vector(val imageVector: ImageVector) : NavIcon()
+    data class Drawable(@DrawableRes val resId: Int) : NavIcon()
+}
 
 sealed class Route(val route: String) {
     // Top-level tab routes
@@ -51,11 +57,11 @@ sealed class Route(val route: String) {
 enum class BottomNavTab(
     val route: String,
     @StringRes val labelRes: Int,
-    val icon: ImageVector
+    val icon: NavIcon
 ) {
-    TODAY(Route.Today.route, R.string.nav_today, Icons.Default.CalendarToday),
-    HORSES(Route.Horses.route, R.string.nav_horses, Icons.Default.Pets),
-    FEEDING(Route.Feeding.route, R.string.nav_feeding, Icons.Default.Restaurant),
-    ROUTINES(Route.Routines.route, R.string.nav_routines, Icons.Default.Checklist),
-    SETTINGS(Route.Settings.route, R.string.nav_settings, Icons.Default.Settings)
+    TODAY(Route.Today.route, R.string.nav_today, NavIcon.Vector(Icons.Default.CalendarToday)),
+    HORSES(Route.Horses.route, R.string.nav_horses, NavIcon.Drawable(R.drawable.ic_horse)),
+    FEEDING(Route.Feeding.route, R.string.nav_feeding, NavIcon.Vector(Icons.Default.Restaurant)),
+    ROUTINES(Route.Routines.route, R.string.nav_routines, NavIcon.Vector(Icons.Default.Checklist)),
+    SETTINGS(Route.Settings.route, R.string.nav_settings, NavIcon.Vector(Icons.Default.Settings))
 }

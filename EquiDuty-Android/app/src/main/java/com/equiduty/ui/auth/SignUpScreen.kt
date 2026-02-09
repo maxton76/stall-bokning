@@ -19,8 +19,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equiduty.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,10 +48,10 @@ fun SignUpScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Skapa konto") },
+                title = { Text(stringResource(R.string.auth_signup)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Tillbaka")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
                     }
                 }
             )
@@ -85,7 +87,7 @@ fun SignUpScreen(
             OutlinedTextField(
                 value = firstName,
                 onValueChange = { firstName = it; onClearError() },
-                label = { Text("Förnamn") },
+                label = { Text(stringResource(R.string.auth_first_name)) },
                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 keyboardActions = KeyboardActions(
@@ -100,7 +102,7 @@ fun SignUpScreen(
             OutlinedTextField(
                 value = lastName,
                 onValueChange = { lastName = it; onClearError() },
-                label = { Text("Efternamn") },
+                label = { Text(stringResource(R.string.auth_last_name)) },
                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 keyboardActions = KeyboardActions(
@@ -115,7 +117,7 @@ fun SignUpScreen(
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it; onClearError() },
-                label = { Text("E-post") },
+                label = { Text(stringResource(R.string.auth_email)) },
                 leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
@@ -133,7 +135,7 @@ fun SignUpScreen(
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it; onClearError() },
-                label = { Text("Lösenord") },
+                label = { Text(stringResource(R.string.auth_password)) },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -154,7 +156,7 @@ fun SignUpScreen(
                 singleLine = true,
                 supportingText = {
                     if (password.isNotEmpty() && password.length < 6) {
-                        Text("Minst 6 tecken", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.password_min_length), color = MaterialTheme.colorScheme.error)
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -165,7 +167,7 @@ fun SignUpScreen(
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it; onClearError() },
-                label = { Text("Bekräfta lösenord") },
+                label = { Text(stringResource(R.string.auth_confirm_password)) },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
@@ -182,7 +184,7 @@ fun SignUpScreen(
                 isError = !passwordsMatch,
                 supportingText = {
                     if (!passwordsMatch) {
-                        Text("Lösenorden matchar inte", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.password_mismatch), color = MaterialTheme.colorScheme.error)
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -204,7 +206,7 @@ fun SignUpScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Text("Skapa konto", fontSize = 16.sp)
+                    Text(stringResource(R.string.auth_signup), fontSize = 16.sp)
                 }
             }
 
@@ -212,12 +214,12 @@ fun SignUpScreen(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Har du redan ett konto?",
+                    text = stringResource(R.string.auth_has_account),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 TextButton(onClick = onNavigateBack) {
-                    Text("Logga in")
+                    Text(stringResource(R.string.auth_login))
                 }
             }
 

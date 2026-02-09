@@ -14,6 +14,7 @@
     <string name="auth_signout">Logga ut</string>
     <string name="auth_email">E-postadress</string>
     <string name="auth_password">Lösenord</string>
+    <string name="auth_confirm_password">Bekräfta lösenord</string>
     <string name="auth_first_name">Förnamn</string>
     <string name="auth_last_name">Efternamn</string>
     <string name="auth_forgot_password">Glömt lösenord?</string>
@@ -22,6 +23,10 @@
     <string name="auth_google_signin">Logga in med Google</string>
     <string name="auth_creating_account">Skapar konto…</string>
     <string name="auth_signing_in">Loggar in…</string>
+    <string name="password_show">Visa lösenord</string>
+    <string name="password_hide">Dölj lösenord</string>
+    <string name="password_min_length">Minst 6 tecken</string>
+    <string name="password_mismatch">Lösenorden matchar inte</string>
 
     <!-- Common -->
     <string name="save">Spara</string>
@@ -34,10 +39,17 @@
     <string name="retry">Försök igen</string>
     <string name="search">Sök</string>
     <string name="filter">Filter</string>
+    <string name="filter_action">Filtrera</string>
+    <string name="clear">Rensa</string>
     <string name="active">Aktiv</string>
     <string name="inactive">Inaktiv</string>
     <string name="yes">Ja</string>
     <string name="no">Nej</string>
+    <string name="or_divider">eller</string>
+    <string name="assigned_to">Tilldelad: %s</string>
+    <string name="photo_allowed">Foto tillåtet</string>
+    <string name="nav_previous">Föregående</string>
+    <string name="nav_next">Nästa</string>
 
     <!-- Horses -->
     <string name="horses_title">Hästar</string>
@@ -46,6 +58,8 @@
     <string name="horses_search_placeholder">Sök hästar…</string>
     <string name="horses_show_active_only">Visa aktiva</string>
     <string name="horse_add">Lägg till häst</string>
+    <string name="horse_create_title">Lägg till häst</string>
+    <string name="horse_edit_title">Redigera häst</string>
     <string name="horse_detail_info">Info</string>
     <string name="horse_detail_health">Hälsa</string>
     <string name="horse_detail_team">Team</string>
@@ -96,6 +110,7 @@
     <string name="activities_empty_title">Inga aktiviteter</string>
     <string name="activities_empty_message">Inga aktiviteter schemalagda för denna period</string>
     <string name="activity_add">Skapa aktivitet</string>
+    <string name="activity_new">Ny aktivitet</string>
     <string name="activity_title_label">Titel</string>
     <string name="activity_description">Beskrivning</string>
     <string name="activity_date">Datum</string>
@@ -104,9 +119,27 @@
     <string name="activity_category">Kategori</string>
     <string name="activity_notes">Anteckningar</string>
 
+    <!-- Activity Status -->
+    <string name="status_pending">Väntande</string>
+    <string name="status_in_progress">Pågår</string>
+    <string name="status_completed">Klar</string>
+    <string name="status_cancelled">Avbruten</string>
+    <string name="status_overdue">Försenad</string>
+
+    <!-- Routine Status -->
+    <string name="routine_status_scheduled">Schemalagd</string>
+    <string name="routine_status_started">Påbörjad</string>
+    <string name="routine_status_in_progress">Pågår</string>
+    <string name="routine_status_completed">Klar</string>
+    <string name="routine_status_missed">Missad</string>
+    <string name="routine_status_cancelled">Avbruten</string>
+
     <!-- Today -->
     <string name="today_title">Idag</string>
     <string name="today_show_mine">Visa mina</string>
+    <string name="today_show_all">Visa alla</string>
+    <string name="today_empty_title">Inga aktiviteter eller rutiner</string>
+    <string name="today_empty_message">Inga aktiviteter eller rutiner för vald period</string>
     <string name="today_period_day">Dag</string>
     <string name="today_period_week">Vecka</string>
     <string name="today_period_month">Månad</string>
@@ -124,6 +157,7 @@
     <string name="settings_notifications_push">Push</string>
     <string name="settings_notifications_sms">SMS</string>
     <string name="settings_notifications_telegram">Telegram</string>
+    <string name="settings_notifications_quiet_hours">Stäng av notiser under natten</string>
     <string name="settings_language_swedish">Svenska</string>
     <string name="settings_language_english">English</string>
 

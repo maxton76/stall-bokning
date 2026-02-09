@@ -41,6 +41,18 @@ class FeatureToggleRepository @Inject constructor(
                 )
             }
             cacheTimestamp = now
+        } catch (e: retrofit2.HttpException) {
+            when (e.code()) {
+                404 -> {
+                    // Feature toggles endpoint not implemented yet - use defaults
+                    Timber.d("Feature toggles endpoint not available (404), using defaults")
+                    _toggles.value = emptyList()
+                }
+                else -> {
+                    Timber.e(e, "Failed to fetch feature toggles: HTTP ${e.code()}")
+                    // Non-critical: don't throw, keep existing toggles
+                }
+            }
         } catch (e: Exception) {
             Timber.e(e, "Failed to fetch feature toggles")
             // Non-critical: don't throw, keep existing toggles

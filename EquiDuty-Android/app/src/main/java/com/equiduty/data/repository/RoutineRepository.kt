@@ -34,23 +34,39 @@ class RoutineRepository @Inject constructor(
     }
 
     suspend fun getInstances(stableId: String, date: String? = null): List<RoutineInstance> {
-        val response = api.getRoutineInstances(stableId = stableId, date = date)
+        val response = api.getRoutineInstances(
+            stableId = stableId,
+            startDate = date,
+            endDate = date
+        )
         return response.routineInstances.map { it.toDomain() }
     }
 
-    suspend fun startInstance(instanceId: String): RoutineInstance {
-        val response = api.startRoutineInstance(instanceId)
+    suspend fun getInstance(instanceId: String): RoutineInstance {
+        val response = api.getRoutineInstance(instanceId)
         return response.toDomain()
     }
 
+    suspend fun startInstance(instanceId: String, dailyNotesAcknowledged: Boolean = true): RoutineInstance {
+        val body = StartRoutineRequestDto(dailyNotesAcknowledged = dailyNotesAcknowledged)
+        val response = api.startRoutineInstance(instanceId, body)
+        return response.instance.toDomain()
+    }
+
     suspend fun completeStep(instanceId: String, stepId: String, body: CompleteStepDto): RoutineInstance {
-        val response = api.completeRoutineStep(instanceId, stepId, body)
-        return response.toDomain()
+        val progressBody = UpdateStepProgressDto(
+            stepId = stepId,
+            generalNotes = body.generalNotes,
+            photoUrls = body.photoUrls,
+            horseUpdates = body.horseProgress?.values?.toList()
+        )
+        val response = api.updateRoutineProgress(instanceId, progressBody)
+        return response.instance.toDomain()
     }
 
     suspend fun completeInstance(instanceId: String): RoutineInstance {
         val response = api.completeRoutineInstance(instanceId)
-        return response.toDomain()
+        return response.instance.toDomain()
     }
 
     suspend fun getDailyNotes(stableId: String, date: String): DailyNotes? {

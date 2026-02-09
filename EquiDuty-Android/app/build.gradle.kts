@@ -22,6 +22,11 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Locale configuration - Swedish as default, English supported
+    androidResources {
+        localeFilters += listOf("sv", "en")
+    }
+
     flavorDimensions += "environment"
 
     productFlavors {
@@ -73,8 +78,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
     }
 
     buildFeatures {
@@ -84,6 +91,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.core.ktx)
     // Desugaring for java.time on API < 26
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 

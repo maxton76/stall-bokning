@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equiduty.data.remote.dto.CompleteStepDto
 import com.equiduty.data.repository.AuthRepository
+import com.equiduty.data.repository.HorseRepository
 import com.equiduty.data.repository.RoutineRepository
 import com.equiduty.domain.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.time.Instant
 import javax.inject.Inject
 
 sealed class FlowState {
@@ -21,8 +23,35 @@ sealed class FlowState {
     data class StepExecution(
         val currentStepIndex: Int,
         val step: RoutineStep,
-        val totalSteps: Int
-    ) : FlowState()
+        val totalSteps: Int,
+        val horses: List<Horse>,
+        val horseProgressMap: Map<String, HorseStepProgress>
+    ) : FlowState() {
+        fun canProceed(): Boolean {
+            if (horses.isEmpty()) return true
+            if (step.allowPartialCompletion) return true
+
+            // All horses must be marked done or skipped
+            return horses.all { horse ->
+                val progress = horseProgressMap[horse.id]
+                progress?.completed == true || progress?.skipped == true
+            }
+        }
+
+        fun getUnmarkedHorseCount(): Int {
+            return horses.count { horse ->
+                val progress = horseProgressMap[horse.id]
+                progress?.completed != true && progress?.skipped != true
+            }
+        }
+
+        fun getCompletedHorseCount(): Int {
+            return horses.count { horse ->
+                val progress = horseProgressMap[horse.id]
+                progress?.completed == true || progress?.skipped == true
+            }
+        }
+    }
     data object Completing : FlowState()
     data object Completed : FlowState()
     data class Error(val message: String) : FlowState()
@@ -32,7 +61,8 @@ sealed class FlowState {
 class RoutineFlowViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val routineRepository: RoutineRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val horseRepository: HorseRepository
 ) : ViewModel() {
 
     private val instanceId: String = savedStateHandle["instanceId"] ?: ""
@@ -57,9 +87,18 @@ class RoutineFlowViewModel @Inject constructor(
         viewModelScope.launch {
             _flowState.value = FlowState.Loading
             try {
-                // Start the routine instance to get full data including template/steps
-                val started = routineRepository.startInstance(instanceId)
-                _instance.value = started
+                // First, get the current routine instance to check its status
+                val instance = routineRepository.getInstance(instanceId)
+                _instance.value = instance
+
+                // Only start the routine if it's in scheduled status
+                val finalInstance = if (instance.status == RoutineInstanceStatus.SCHEDULED) {
+                    routineRepository.startInstance(instanceId)
+                } else {
+                    // Already started or in progress, just use existing instance
+                    instance
+                }
+                _instance.value = finalInstance
 
                 // Load daily notes
                 val stableId = authRepository.selectedStable.value?.id
@@ -70,7 +109,10 @@ class RoutineFlowViewModel @Inject constructor(
                     )
                     _dailyNotes.value = notes
 
-                    if (notes != null && (notes.horseNotes.isNotEmpty() || notes.alerts.isNotEmpty())) {
+                    // Only show daily notes if routine hasn't been started yet
+                    if (instance.status == RoutineInstanceStatus.SCHEDULED &&
+                        notes != null &&
+                        (notes.horseNotes.isNotEmpty() || notes.alerts.isNotEmpty())) {
                         _flowState.value = FlowState.DailyNotesAcknowledgment(notes)
                         return@launch
                     }
@@ -114,25 +156,226 @@ class RoutineFlowViewModel @Inject constructor(
 
     private fun moveToCurrentStep() {
         if (currentStepIndex < steps.size) {
-            _flowState.value = FlowState.StepExecution(
-                currentStepIndex = currentStepIndex,
-                step = steps[currentStepIndex],
-                totalSteps = steps.size
-            )
+            val step = steps[currentStepIndex]
+            viewModelScope.launch {
+                try {
+                    val horses = loadHorsesForStep(step)
+                    val existingProgress = _instance.value?.progress?.stepProgress?.get(step.id)
+                    val horseProgressMap = existingProgress?.horseProgress?.mapValues { (_, v) -> v }
+                        ?: horses.associate { horse ->
+                            horse.id to HorseStepProgress(
+                                horseId = horse.id,
+                                horseName = horse.name,
+                                completed = false,
+                                skipped = false,
+                                skipReason = null,
+                                notes = null,
+                                photoUrls = emptyList(),
+                                feedingConfirmed = null,
+                                medicationGiven = null,
+                                medicationSkipped = null,
+                                blanketAction = null,
+                                completedAt = null,
+                                completedBy = null
+                            )
+                        }
+
+                    _flowState.value = FlowState.StepExecution(
+                        currentStepIndex = currentStepIndex,
+                        step = step,
+                        totalSteps = steps.size,
+                        horses = horses,
+                        horseProgressMap = horseProgressMap
+                    )
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to load horses for step")
+                    _flowState.value = FlowState.Error("Kunde inte ladda hästar")
+                }
+            }
         } else {
             completeRoutine()
         }
     }
 
+    private suspend fun loadHorsesForStep(step: RoutineStep): List<Horse> {
+        val stableId = authRepository.selectedStable.value?.id ?: return emptyList()
+
+        return when (step.horseContext) {
+            RoutineStepHorseContext.ALL -> {
+                // Ensure horses are fetched for the stable
+                try {
+                    horseRepository.fetchHorses(stableId)
+                    horseRepository.horses.value
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to fetch all horses")
+                    emptyList()
+                }
+            }
+            RoutineStepHorseContext.SPECIFIC -> {
+                val horseIds = step.horseFilter?.horseIds ?: emptyList()
+                horseRepository.getHorsesByIds(horseIds)
+            }
+            RoutineStepHorseContext.GROUPS -> {
+                val groupIds = step.horseFilter?.groupIds ?: emptyList()
+                // First ensure horses are loaded
+                try {
+                    horseRepository.fetchHorses(stableId)
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to fetch horses for groups")
+                }
+                horseRepository.getHorsesByGroups(groupIds)
+            }
+            RoutineStepHorseContext.NONE -> emptyList()
+        }
+    }
+
+    fun markHorseDone(horseId: String) {
+        updateHorseProgress(horseId) { progress ->
+            progress.copy(
+                completed = true,
+                skipped = false,
+                completedAt = Instant.now().toString()
+            )
+        }
+    }
+
+    fun markHorseSkipped(horseId: String, reason: String) {
+        updateHorseProgress(horseId) { progress ->
+            progress.copy(
+                completed = false,
+                skipped = true,
+                skipReason = reason.ifEmpty { null }
+            )
+        }
+    }
+
+    fun updateHorseNotes(horseId: String, notes: String) {
+        updateHorseProgress(horseId) { progress ->
+            progress.copy(notes = notes.ifEmpty { null })
+        }
+    }
+
+    fun updateFeedingConfirmation(horseId: String, confirmed: Boolean) {
+        updateHorseProgress(horseId) { progress ->
+            progress.copy(feedingConfirmed = confirmed)
+        }
+    }
+
+    fun updateMedicationGiven(horseId: String) {
+        updateHorseProgress(horseId) { progress ->
+            progress.copy(
+                medicationGiven = true,
+                medicationSkipped = false
+            )
+        }
+    }
+
+    fun updateMedicationSkipped(horseId: String, reason: String) {
+        updateHorseProgress(horseId) { progress ->
+            progress.copy(
+                medicationGiven = false,
+                medicationSkipped = true,
+                skipReason = reason
+            )
+        }
+    }
+
+    fun updateBlanketAction(horseId: String, action: BlanketAction) {
+        updateHorseProgress(horseId) { progress ->
+            progress.copy(blanketAction = action)
+        }
+    }
+
+    fun markAllRemainingAsDone() {
+        val currentState = _flowState.value as? FlowState.StepExecution ?: return
+        val updatedMap = currentState.horses.associate { horse ->
+            val existing = currentState.horseProgressMap[horse.id]
+            if (existing?.completed == true || existing?.skipped == true) {
+                horse.id to existing
+            } else {
+                horse.id to (existing?.copy(
+                    completed = true,
+                    skipped = false,
+                    completedAt = Instant.now().toString()
+                ) ?: HorseStepProgress(
+                    horseId = horse.id,
+                    horseName = horse.name,
+                    completed = true,
+                    skipped = false,
+                    skipReason = null,
+                    notes = null,
+                    photoUrls = emptyList(),
+                    feedingConfirmed = null,
+                    medicationGiven = null,
+                    medicationSkipped = null,
+                    blanketAction = null,
+                    completedAt = Instant.now().toString(),
+                    completedBy = null
+                ))
+            }
+        }
+        _flowState.value = currentState.copy(horseProgressMap = updatedMap)
+    }
+
+    private fun updateHorseProgress(
+        horseId: String,
+        update: (HorseStepProgress) -> HorseStepProgress
+    ) {
+        val currentState = _flowState.value as? FlowState.StepExecution ?: return
+        val currentProgress = currentState.horseProgressMap[horseId]
+            ?: HorseStepProgress(
+                horseId = horseId,
+                horseName = currentState.horses.find { it.id == horseId }?.name ?: "",
+                completed = false,
+                skipped = false,
+                skipReason = null,
+                notes = null,
+                photoUrls = emptyList(),
+                feedingConfirmed = null,
+                medicationGiven = null,
+                medicationSkipped = null,
+                blanketAction = null,
+                completedAt = null,
+                completedBy = null
+            )
+        val updatedProgress = update(currentProgress)
+
+        _flowState.value = currentState.copy(
+            horseProgressMap = currentState.horseProgressMap + (horseId to updatedProgress)
+        )
+    }
+
     fun completeCurrentStep(notes: String? = null) {
         val step = steps.getOrNull(currentStepIndex) ?: return
+        val currentState = _flowState.value as? FlowState.StepExecution
+
         viewModelScope.launch {
             try {
+                val horseProgressDtoMap = currentState?.horseProgressMap?.mapValues { (_, progress) ->
+                    com.equiduty.data.remote.dto.HorseStepProgressDto(
+                        horseId = progress.horseId,
+                        horseName = progress.horseName,
+                        completed = progress.completed,
+                        skipped = progress.skipped,
+                        skipReason = progress.skipReason,
+                        notes = progress.notes,
+                        photoUrls = progress.photoUrls ?: emptyList(),
+                        feedingConfirmed = progress.feedingConfirmed,
+                        medicationGiven = progress.medicationGiven,
+                        medicationSkipped = progress.medicationSkipped,
+                        blanketAction = progress.blanketAction?.value,
+                        completedAt = progress.completedAt,
+                        completedBy = progress.completedBy
+                    )
+                } ?: emptyMap()
+
                 val updated = routineRepository.completeStep(
                     instanceId = instanceId,
                     stepId = step.id,
                     body = CompleteStepDto(
-                        generalNotes = notes
+                        horseProgress = horseProgressDtoMap,
+                        generalNotes = notes,
+                        photoUrls = emptyList() // TODO: Phase 6
                     )
                 )
                 _instance.value = updated

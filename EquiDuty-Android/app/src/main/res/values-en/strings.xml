@@ -14,6 +14,7 @@
     <string name="auth_signout">Sign Out</string>
     <string name="auth_email">Email</string>
     <string name="auth_password">Password</string>
+    <string name="auth_confirm_password">Confirm Password</string>
     <string name="auth_first_name">First Name</string>
     <string name="auth_last_name">Last Name</string>
     <string name="auth_forgot_password">Forgot password?</string>
@@ -22,6 +23,10 @@
     <string name="auth_google_signin">Sign in with Google</string>
     <string name="auth_creating_account">Creating account…</string>
     <string name="auth_signing_in">Signing in…</string>
+    <string name="password_show">Show password</string>
+    <string name="password_hide">Hide password</string>
+    <string name="password_min_length">At least 6 characters</string>
+    <string name="password_mismatch">Passwords do not match</string>
 
     <!-- Common -->
     <string name="save">Save</string>
@@ -34,10 +39,17 @@
     <string name="retry">Retry</string>
     <string name="search">Search</string>
     <string name="filter">Filter</string>
+    <string name="filter_action">Filter</string>
+    <string name="clear">Clear</string>
     <string name="active">Active</string>
     <string name="inactive">Inactive</string>
     <string name="yes">Yes</string>
     <string name="no">No</string>
+    <string name="or_divider">or</string>
+    <string name="assigned_to">Assigned: %s</string>
+    <string name="photo_allowed">Photo allowed</string>
+    <string name="nav_previous">Previous</string>
+    <string name="nav_next">Next</string>
 
     <!-- Horses -->
     <string name="horses_title">Horses</string>
@@ -46,6 +58,8 @@
     <string name="horses_search_placeholder">Search horses…</string>
     <string name="horses_show_active_only">Show active</string>
     <string name="horse_add">Add horse</string>
+    <string name="horse_create_title">Add Horse</string>
+    <string name="horse_edit_title">Edit Horse</string>
     <string name="horse_detail_info">Info</string>
     <string name="horse_detail_health">Health</string>
     <string name="horse_detail_team">Team</string>
@@ -96,6 +110,7 @@
     <string name="activities_empty_title">No activities</string>
     <string name="activities_empty_message">No activities scheduled for this period</string>
     <string name="activity_add">Create activity</string>
+    <string name="activity_new">New Activity</string>
     <string name="activity_title_label">Title</string>
     <string name="activity_description">Description</string>
     <string name="activity_date">Date</string>
@@ -104,9 +119,27 @@
     <string name="activity_category">Category</string>
     <string name="activity_notes">Notes</string>
 
+    <!-- Activity Status -->
+    <string name="status_pending">Pending</string>
+    <string name="status_in_progress">In Progress</string>
+    <string name="status_completed">Completed</string>
+    <string name="status_cancelled">Cancelled</string>
+    <string name="status_overdue">Overdue</string>
+
+    <!-- Routine Status -->
+    <string name="routine_status_scheduled">Scheduled</string>
+    <string name="routine_status_started">Started</string>
+    <string name="routine_status_in_progress">In Progress</string>
+    <string name="routine_status_completed">Completed</string>
+    <string name="routine_status_missed">Missed</string>
+    <string name="routine_status_cancelled">Cancelled</string>
+
     <!-- Today -->
     <string name="today_title">Today</string>
     <string name="today_show_mine">Show mine</string>
+    <string name="today_show_all">Show all</string>
+    <string name="today_empty_title">No activities or routines</string>
+    <string name="today_empty_message">No activities or routines for selected period</string>
     <string name="today_period_day">Day</string>
     <string name="today_period_week">Week</string>
     <string name="today_period_month">Month</string>
@@ -124,6 +157,7 @@
     <string name="settings_notifications_push">Push</string>
     <string name="settings_notifications_sms">SMS</string>
     <string name="settings_notifications_telegram">Telegram</string>
+    <string name="settings_notifications_quiet_hours">Turn off notifications at night</string>
     <string name="settings_language_swedish">Svenska</string>
     <string name="settings_language_english">English</string>
 

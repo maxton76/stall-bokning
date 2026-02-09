@@ -213,3 +213,26 @@ data class DailyNotesDto(
 data class DailyNotesResponseDto(
     val dailyNotes: DailyNotesDto? = null
 )
+
+// ── Response Wrappers ───────────────────────────────────────────
+
+@Serializable
+data class RoutineInstanceResponseDto(
+    val instance: RoutineInstanceDto
+)
+
+// ── Request DTOs ────────────────────────────────────────────────
+
+@Serializable
+data class StartRoutineRequestDto(
+    val dailyNotesAcknowledged: Boolean = true
+)
+
+@Serializable
+data class UpdateStepProgressDto(
+    val stepId: String,
+    val status: String? = null,
+    val generalNotes: String? = null,
+    val photoUrls: List<String>? = null,
+    val horseUpdates: List<HorseStepProgressDto>? = null
+)

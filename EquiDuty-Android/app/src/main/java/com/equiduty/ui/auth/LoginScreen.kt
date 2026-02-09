@@ -21,8 +21,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.equiduty.R
 
 @Composable
 fun LoginScreen(
@@ -58,7 +60,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Logga in",
+            text = stringResource(R.string.auth_login),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -85,7 +87,7 @@ fun LoginScreen(
         OutlinedTextField(
             value = email,
             onValueChange = { email = it; onClearError() },
-            label = { Text("E-post") },
+            label = { Text(stringResource(R.string.auth_email)) },
             leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
@@ -103,13 +105,15 @@ fun LoginScreen(
         OutlinedTextField(
             value = password,
             onValueChange = { password = it; onClearError() },
-            label = { Text("Lösenord") },
+            label = { Text(stringResource(R.string.auth_password)) },
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
                         if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = if (passwordVisible) "Dölj lösenord" else "Visa lösenord"
+                        contentDescription = stringResource(
+                            if (passwordVisible) R.string.password_hide else R.string.password_show
+                        )
                     )
                 }
             },
@@ -136,7 +140,7 @@ fun LoginScreen(
             onClick = { if (email.isNotBlank()) onForgotPassword(email) },
             modifier = Modifier.align(Alignment.End)
         ) {
-            Text("Glömt lösenord?")
+            Text(stringResource(R.string.auth_forgot_password))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -155,7 +159,7 @@ fun LoginScreen(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else {
-                Text("Logga in", fontSize = 16.sp)
+                Text(stringResource(R.string.auth_login), fontSize = 16.sp)
             }
         }
 
@@ -167,9 +171,10 @@ fun LoginScreen(
         ) {
             HorizontalDivider(modifier = Modifier.weight(1f))
             Text(
-                text = "  eller  ",
+                text = stringResource(R.string.or_divider),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 8.dp)
             )
             HorizontalDivider(modifier = Modifier.weight(1f))
         }
@@ -183,7 +188,7 @@ fun LoginScreen(
                 .fillMaxWidth()
                 .height(50.dp)
         ) {
-            Text("Logga in med Google", fontSize = 16.sp)
+            Text(stringResource(R.string.auth_google_signin), fontSize = 16.sp)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -192,12 +197,12 @@ fun LoginScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Har du inget konto?",
+                text = stringResource(R.string.auth_no_account),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             TextButton(onClick = onNavigateToSignUp) {
-                Text("Skapa konto")
+                Text(stringResource(R.string.auth_signup))
             }
         }
 

@@ -124,10 +124,11 @@ data class TierDefinitionDto(
     val isBillable: Boolean = false
 )
 
-@Serializable
-data class TierDefinitionsResponseDto(
-    val tiers: List<TierDefinitionDto>
-)
+/**
+ * API returns array directly, not wrapped in object.
+ * Response format: [{"tier": "starter", ...}, {"tier": "pro", ...}]
+ */
+typealias TierDefinitionsResponseDto = List<TierDefinitionDto>
 
 @Serializable
 data class StripeSubscriptionInfoDto(

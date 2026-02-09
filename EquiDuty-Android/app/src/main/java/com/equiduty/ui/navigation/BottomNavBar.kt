@@ -3,6 +3,7 @@ package com.equiduty.ui.navigation
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -18,7 +19,15 @@ fun BottomNavBar(navController: NavController) {
             val isSelected = currentRoute == tab.route ||
                 currentRoute?.startsWith(tab.route + "/") == true
             NavigationBarItem(
-                icon = { Icon(tab.icon, contentDescription = label) },
+                icon = {
+                    when (val icon = tab.icon) {
+                        is NavIcon.Vector -> Icon(icon.imageVector, contentDescription = label)
+                        is NavIcon.Drawable -> Icon(
+                            painter = painterResource(icon.resId),
+                            contentDescription = label
+                        )
+                    }
+                },
                 label = { Text(label) },
                 selected = isSelected,
                 onClick = {
