@@ -383,6 +383,14 @@ tasks:
       - cd {{.ROOT_DIR}} && firebase deploy --only hosting:landing --project {{.PROJECT_ID}}
       - echo "Landing site deployed to {{.ENV}}"
 
+  deploy:frontend:all:
+    desc: Deploy both landing and app sites to Firebase Hosting
+    deps: [deploy:gate]
+    cmds:
+      - task: deploy:landing
+      - task: deploy:frontend
+      - echo "✅ Complete frontend deployment (landing + app) to {{.ENV}} complete"
+
   deploy:api:
     desc: Deploy API to Cloud Run
     deps: [deploy:gate]

@@ -65,17 +65,39 @@ task env                                 # Show current environment config
 task env:switch ENV=staging              # Switch to different environment
 ```
 
-### Deployments (defaults to dev)
+### Frontend Deployments
+
+**IMPORTANT**: The frontend consists of TWO separate Firebase Hosting sites:
+- **Landing site** → Marketing pages at `equiduty-{env}.web.app`
+- **App site** → React SPA at `equiduty-{env}-app.web.app`
+
+The custom domain `app.equiduty.se` points to the **app site** in production.
+
 ```bash
-task deploy:frontend                     # Build & deploy frontend
+# Deploy both landing + app (RECOMMENDED for production)
+task deploy:frontend:all ENV=prod TAG=v0.x.y
+
+# Deploy individually (for targeted updates)
+task deploy:landing ENV=dev       # Landing site only
+task deploy:frontend ENV=dev      # React app only
+task deploy:all ENV=prod TAG=v0.x.y  # Everything (frontend, API, functions, rules)
+```
+
+**Verification after deployment**:
+```bash
+# Verify both hosting targets are accessible
+bash scripts/verify-hosting-deployment.sh prod
+```
+
+### Backend Deployments
+```bash
 task deploy:api                          # Build & deploy Cloud Run API
 task deploy:functions                    # Deploy all Cloud Functions
 task deploy:function NAME=scanForReminders  # Deploy specific function
-task deploy:all                          # Deploy everything
 
 # Deploy to other environments
-task deploy:frontend ENV=staging
-task deploy:api ENV=prod
+task deploy:api ENV=staging
+task deploy:api ENV=prod TAG=v0.x.y
 ```
 
 ### Terraform
@@ -238,6 +260,31 @@ lsof -ti:5003 | xargs kill -9
 # Stripe webhook testing locally
 stripe listen --forward-to localhost:5003/api/v1/webhooks/stripe
 ```
+
+#### Frontend Returns 404 After Deployment
+
+If `app.equiduty.se` returns 404:
+
+1. **Check both hosting targets are deployed**:
+   ```bash
+   curl -I https://equiduty-prod.web.app/        # Landing
+   curl -I https://equiduty-prod-app.web.app/    # App
+   ```
+
+2. **Run verification script**:
+   ```bash
+   bash scripts/verify-hosting-deployment.sh prod
+   ```
+
+3. **Redeploy both targets**:
+   ```bash
+   task deploy:frontend:all ENV=prod TAG=v0.x.y
+   ```
+
+4. **Check Firebase Console**:
+   - Visit: https://console.firebase.google.com/project/equiduty-prod/hosting/sites
+   - Verify both `equiduty-prod` and `equiduty-prod-app` show recent deployments
+   - Verify custom domain `app.equiduty.se` is connected to `equiduty-prod-app`
 
 ## API Documentation
 **Location**: `packages/api/openapi.json` (auto-generated, do not commit to git)
