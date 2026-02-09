@@ -47,7 +47,7 @@ enum AppEnvironment {
         case .staging:
             return "https://api-staging-service.europe-west1.run.app/api/v1"
         case .production:
-            return "https://api.equiduty.com/api/v1"
+            return "https://api.equiduty.se/api/v1"
         }
     }
 
@@ -58,7 +58,7 @@ enum AppEnvironment {
         case .staging:
             return "https://equiduty-staging.web.app"
         case .production:
-            return "https://app.equiduty.com"
+            return "https://app.equiduty.se"
         }
     }
 

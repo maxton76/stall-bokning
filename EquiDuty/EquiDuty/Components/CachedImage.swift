@@ -32,8 +32,10 @@ struct CachedImage<Placeholder: View, ErrorView: View>: View {
         self.errorView = errorView
     }
 
+    @State private var hasError = false
+    
     var body: some View {
-        if let url = url {
+        if let url = url, !hasError {
             KFImage(url)
                 .placeholder {
                     if let blurhash = blurhash {
@@ -43,7 +45,7 @@ struct CachedImage<Placeholder: View, ErrorView: View>: View {
                     }
                 }
                 .onFailure { _ in
-                    errorView()
+                    hasError = true
                 }
                 .resizable()
                 .aspectRatio(contentMode: contentMode == .fill ? .fill : .fit)

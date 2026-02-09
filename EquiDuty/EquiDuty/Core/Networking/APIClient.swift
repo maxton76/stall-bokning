@@ -10,15 +10,23 @@ import Foundation
 
 /// API configuration
 enum APIConfig {
+    /// Base URL from environment configuration
     static let baseURL: String = {
+        // First, try to get from Info.plist (allows override for testing)
         if let plistURL = Bundle.main.infoDictionary?["API_BASE_URL"] as? String, !plistURL.isEmpty {
             return plistURL
         }
-        #if DEBUG
-        return "https://dev-api-service-auky5oec3a-ew.a.run.app"
-        #else
-        return "https://prod-api-service-wigho7gnca-ew.a.run.app"
-        #endif
+        
+        // Use environment-specific configuration
+        // Note: AppEnvironment.current.apiBaseURL already includes /api/v1
+        let envBaseURL = AppEnvironment.current.apiBaseURL
+        
+        // Remove /api/v1 suffix if present, since we add it back in apiV1()
+        if envBaseURL.hasSuffix("/api/v1") {
+            return String(envBaseURL.dropLast(7))
+        }
+        
+        return envBaseURL
     }()
 
     static let apiVersion = "v1"
@@ -127,6 +135,14 @@ final class APIClient {
         config.timeoutIntervalForRequest = 30
         config.timeoutIntervalForResource = 60
         self.session = URLSession(configuration: config)
+        
+        // Log API configuration on startup
+        if AppEnvironment.current.enableLogging {
+            print("🌐 APIClient initialized")
+            print("   Environment: \(AppEnvironment.current.name)")
+            print("   Base URL: \(APIConfig.baseURL)")
+            print("   Full API URL: \(APIConfig.baseURL)/api/\(APIConfig.apiVersion)")
+        }
 
         self.decoder = JSONDecoder()
         self.decoder.dateDecodingStrategy = .custom { decoder in

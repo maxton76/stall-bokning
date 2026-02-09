@@ -48,9 +48,10 @@ final class PushNotificationService: NSObject, ObservableObject {
     /// Request notification permission from the user
     func requestPermission() {
         let center = UNUserNotificationCenter.current()
-        center.requestAuthorization(options: [.alert, .badge, .sound]) { [weak self] granted, error in
-            Task { @MainActor in
-                self?.permissionGranted = granted
+        center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.permissionGranted = granted
                 if granted {
                     UIApplication.shared.registerForRemoteNotifications()
                 }
@@ -63,9 +64,10 @@ final class PushNotificationService: NSObject, ObservableObject {
 
     /// Check current notification authorization status
     func checkPermissionStatus() {
-        UNUserNotificationCenter.current().getNotificationSettings { [weak self] settings in
-            Task { @MainActor in
-                self?.permissionGranted = settings.authorizationStatus == .authorized
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.permissionGranted = settings.authorizationStatus == .authorized
             }
         }
     }

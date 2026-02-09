@@ -184,6 +184,8 @@ struct PhotoSlotView: View {
     let placeholder: String      // SF Symbol name for empty state
     let aspectRatio: CGFloat     // Width/height ratio (e.g., 16/9 for cover, 1 for avatar)
     let label: String            // Accessibility label
+    
+    @State private var hasLoadError = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -199,7 +201,7 @@ struct PhotoSlotView: View {
                         .scaledToFill()
                         .frame(width: geometry.size.width, height: geometry.size.height)
                         .clipped()
-                } else if let urlString = remoteURL, let url = URL(string: urlString) {
+                } else if let urlString = remoteURL, let url = URL(string: urlString), !hasLoadError {
                     // Remote image from server - use cached version
                     KFImage(url)
                         .placeholder {
@@ -210,7 +212,7 @@ struct PhotoSlotView: View {
                             }
                         }
                         .onFailure { _ in
-                            placeholderView
+                            hasLoadError = true
                         }
                         .resizable()
                         .aspectRatio(contentMode: .fill)
