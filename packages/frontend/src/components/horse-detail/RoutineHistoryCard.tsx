@@ -63,6 +63,11 @@ export function RoutineHistoryCard({ horse }: RoutineHistoryCardProps) {
   );
   const [dateRange, setDateRange] = useState<string>("30");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [selectedPhoto, setSelectedPhoto] = useState<{
+    url: string;
+    urls: string[];
+    index: number;
+  } | null>(null);
 
   // Calculate start date based on range - memoized to prevent query key changes
   const startDate = useMemo(() => {
@@ -182,6 +187,38 @@ export function RoutineHistoryCard({ horse }: RoutineHistoryCardProps) {
             {t("common:notes")}
           </p>
           <p className="italic">{activity.notes}</p>
+        </div>,
+      );
+    }
+
+    // Photos
+    if (activity.photoUrls && activity.photoUrls.length > 0) {
+      details.push(
+        <div key="photos" className="text-sm space-y-2">
+          <p className="font-medium text-muted-foreground">
+            📷{" "}
+            {t("horses:routineHistory.photos", {
+              count: activity.photoUrls.length,
+            })}
+          </p>
+          <div className="flex gap-2 overflow-x-auto">
+            {activity.photoUrls.map((url, i) => (
+              <button
+                key={i}
+                onClick={() =>
+                  setSelectedPhoto({ url, urls: activity.photoUrls!, index: i })
+                }
+                className="shrink-0 rounded-md overflow-hidden border hover:ring-2 hover:ring-primary transition-all"
+              >
+                <img
+                  src={url}
+                  alt=""
+                  className="w-20 h-20 object-cover"
+                  loading="lazy"
+                />
+              </button>
+            ))}
+          </div>
         </div>,
       );
     }
@@ -308,6 +345,23 @@ export function RoutineHistoryCard({ horse }: RoutineHistoryCardProps) {
                             `horses:routineHistory.status.${activity.executionStatus || "unknown"}`,
                           )}
                         </Badge>
+                        {activity.photoUrls &&
+                          activity.photoUrls.length > 0 && (
+                            <span
+                              title={t("horses:routineHistory.hasPhotos")}
+                              className="text-sm"
+                            >
+                              📷
+                            </span>
+                          )}
+                        {activity.notes && (
+                          <span
+                            title={t("horses:routineHistory.hasNotes")}
+                            className="text-sm"
+                          >
+                            📝
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-muted-foreground">
@@ -336,7 +390,9 @@ export function RoutineHistoryCard({ horse }: RoutineHistoryCardProps) {
                       activity.medicationSnapshot ||
                       activity.blanketSnapshot ||
                       activity.notes ||
-                      activity.skipReason) && (
+                      activity.skipReason ||
+                      (activity.photoUrls &&
+                        activity.photoUrls.length > 0)) && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -376,6 +432,66 @@ export function RoutineHistoryCard({ horse }: RoutineHistoryCardProps) {
           </div>
         )}
       </CardContent>
+      {/* Photo Lightbox */}
+      {selectedPhoto && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <div
+            className="relative max-w-4xl max-h-[90vh] mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={selectedPhoto.url}
+              alt=""
+              className="max-w-full max-h-[85vh] object-contain rounded-lg"
+            />
+            <button
+              onClick={() => setSelectedPhoto(null)}
+              className="absolute top-2 right-2 bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/70"
+            >
+              ✕
+            </button>
+            {selectedPhoto.urls.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                <button
+                  onClick={() => {
+                    const prev =
+                      (selectedPhoto.index - 1 + selectedPhoto.urls.length) %
+                      selectedPhoto.urls.length;
+                    setSelectedPhoto({
+                      ...selectedPhoto,
+                      url: selectedPhoto.urls[prev],
+                      index: prev,
+                    });
+                  }}
+                  className="bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/70"
+                >
+                  ‹
+                </button>
+                <span className="bg-black/50 text-white rounded-full px-3 py-1 text-sm">
+                  {selectedPhoto.index + 1} / {selectedPhoto.urls.length}
+                </span>
+                <button
+                  onClick={() => {
+                    const next =
+                      (selectedPhoto.index + 1) % selectedPhoto.urls.length;
+                    setSelectedPhoto({
+                      ...selectedPhoto,
+                      url: selectedPhoto.urls[next],
+                      index: next,
+                    });
+                  }}
+                  className="bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/70"
+                >
+                  ›
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

@@ -4,6 +4,7 @@ import { db, storage } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
+import { sanitizeFileName } from "../utils/sanitization.js";
 import {
   VALID_ENTITY_ID,
   ALLOWED_IMAGE_TYPES,
@@ -257,11 +258,7 @@ export async function horseMediaRoutes(fastify: FastifyInstance) {
 
         // Sanitize filename: strip path separators, normalize unicode, limit length
         const timestamp = Date.now();
-        const safeFileName = data.fileName
-          .normalize("NFC")
-          .replace(/[^a-zA-Z0-9.-]/g, "_")
-          .replace(/\.{2,}/g, ".")
-          .slice(0, 100);
+        const safeFileName = sanitizeFileName(data.fileName);
         const subFolder =
           purpose === "cover" || purpose === "avatar" ? "profile" : "media";
         // 'cover' | 'avatar' | 'general' — validated above

@@ -83,6 +83,7 @@ enum NotificationType: String, Codable, CaseIterable, Sendable {
     case subscriptionExpiring = "subscription_expiring"
     case paymentFailed = "payment_failed"
     case paymentMethodRequired = "payment_method_required"
+    case routinePhotoEvidence = "routine_photo_evidence"
 
     var iconName: String {
         switch self {
@@ -110,6 +111,8 @@ enum NotificationType: String, Codable, CaseIterable, Sendable {
             return "clock.badge.exclamationmark"
         case .paymentFailed, .paymentMethodRequired:
             return "creditcard.trianglebadge.exclamationmark"
+        case .routinePhotoEvidence:
+            return "camera.fill"
         }
     }
 
@@ -137,6 +140,8 @@ enum NotificationType: String, Codable, CaseIterable, Sendable {
             return .cyan
         case .trialExpiring, .subscriptionExpiring:
             return .orange
+        case .routinePhotoEvidence:
+            return .blue
         }
     }
 }

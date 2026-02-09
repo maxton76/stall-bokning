@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { Timestamp } from "firebase-admin/firestore";
 import { v4 as uuidv4 } from "uuid";
-import { db, auth } from "../utils/firebase.js";
+import { db, auth, storage } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import { checkSubscriptionLimit } from "../middleware/checkSubscriptionLimit.js";
 import type { AuthenticatedRequest } from "../types/index.js";
@@ -39,6 +39,8 @@ import type {
   ListRoutineTemplatesQuery,
   ListRoutineInstancesQuery,
 } from "@equiduty/shared";
+import { VALID_ENTITY_ID, ALLOWED_IMAGE_TYPES } from "@equiduty/shared";
+import { sanitizeFileName } from "../utils/sanitization.js";
 import {
   createActivityHistoryEntries,
   findExistingEntry,
@@ -1341,6 +1343,163 @@ export async function routinesRoutes(fastify: FastifyInstance) {
   );
 
   /**
+   * POST /api/v1/routines/instances/:instanceId/steps/:stepId/upload-url
+   * Generate a signed upload URL for routine evidence photos
+   */
+  fastify.post(
+    "/instances/:instanceId/steps/:stepId/upload-url",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+        const { instanceId, stepId } = request.params as {
+          instanceId: string;
+          stepId: string;
+        };
+        const data = request.body as {
+          horseId?: string;
+          fileName: string;
+          mimeType: string;
+        };
+
+        if (!data.fileName || !data.mimeType) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Missing required fields: fileName, mimeType",
+          });
+        }
+
+        // Validate MIME type
+        if (
+          !(ALLOWED_IMAGE_TYPES as readonly string[]).includes(data.mimeType)
+        ) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: `Unsupported image type: ${data.mimeType}`,
+          });
+        }
+
+        // Verify instance exists and user has access
+        const doc = await db
+          .collection("routineInstances")
+          .doc(instanceId)
+          .get();
+        if (!doc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Routine instance not found",
+          });
+        }
+
+        const instanceData = doc.data() as RoutineInstance;
+        const hasAccess = await hasStableAccess(
+          instanceData.stableId,
+          user.uid,
+          user.role,
+        );
+        if (!hasAccess) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have access to this routine",
+          });
+        }
+
+        // S1: Validate horseId belongs to the same stable as the routine
+        if (data.horseId) {
+          if (!VALID_ENTITY_ID.test(data.horseId)) {
+            return reply.status(400).send({
+              error: "Bad Request",
+              message: "Invalid horseId format",
+            });
+          }
+          const horseDoc = await db
+            .collection("horses")
+            .doc(data.horseId)
+            .get();
+          if (!horseDoc.exists) {
+            return reply.status(404).send({
+              error: "Not Found",
+              message: "Horse not found",
+            });
+          }
+          const horseData = horseDoc.data() as { currentStableId?: string };
+          if (horseData.currentStableId !== instanceData.stableId) {
+            return reply.status(403).send({
+              error: "Forbidden",
+              message: "Horse does not belong to this stable",
+            });
+          }
+        }
+
+        // S2: Validate stepId exists in the routine template
+        const templateDoc = await db
+          .collection("routineTemplates")
+          .doc(instanceData.templateId)
+          .get();
+        if (!templateDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Routine template not found",
+          });
+        }
+        const templateData = templateDoc.data() as RoutineTemplate;
+        if (!templateData.steps.find((s) => s.id === stepId)) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: `Step "${stepId}" does not exist in template`,
+          });
+        }
+
+        // Build storage path
+        const timestamp = Date.now();
+        const safeFileName = sanitizeFileName(data.fileName);
+
+        let storagePath: string;
+        if (data.horseId) {
+          storagePath = `horses/${data.horseId}/routine-evidence/${instanceId}_${stepId}_${timestamp}_${safeFileName}`;
+        } else {
+          storagePath = `routines/${instanceId}/steps/${stepId}/${timestamp}_${safeFileName}`;
+        }
+
+        // Generate signed URLs
+        const bucket = storage.bucket();
+        const file = bucket.file(storagePath);
+
+        const [uploadUrl] = await file.getSignedUrl({
+          version: "v4",
+          action: "write",
+          expires: Date.now() + 15 * 60 * 1000,
+          contentType: data.mimeType,
+        });
+
+        const [readUrl] = await file.getSignedUrl({
+          version: "v4",
+          action: "read",
+          expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
+        });
+
+        return {
+          uploadUrl,
+          readUrl,
+          storagePath,
+          expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+        };
+      } catch (error) {
+        request.log.error(
+          { error },
+          "Failed to generate routine evidence upload URL",
+        );
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to generate upload URL",
+        });
+      }
+    },
+  );
+
+  /**
    * PUT /api/v1/routines/instances/:id/progress
    * Update step progress
    */
@@ -1480,6 +1639,35 @@ export async function routinesRoutes(fastify: FastifyInstance) {
         };
 
         await db.collection("routineInstances").doc(id).update(updateData);
+
+        // Notify horse owners about photo evidence (fire-and-forget)
+        if (input.horseUpdates) {
+          for (const update of input.horseUpdates) {
+            if (update.photoUrls && update.photoUrls.length > 0) {
+              notifyHorseOwnerOfPhoto({
+                horseId: update.horseId,
+                actorId: user.uid,
+                actorName: user.displayName || user.email || "Someone",
+                routineName: data.templateName || "",
+                stepName:
+                  (
+                    data.progress?.stepProgress?.[
+                      input.stepId
+                    ] as unknown as Record<string, string>
+                  )?.stepName || "",
+                instanceId: id,
+                stepId: input.stepId,
+                organizationId: data.organizationId,
+                stableId: data.stableId,
+              }).catch((err) =>
+                request.log.error(
+                  { err },
+                  "Failed to notify owner of photo evidence",
+                ),
+              );
+            }
+          }
+        }
 
         // Create activity history entries when step is completed or skipped
         if (input.status === "completed" || input.status === "skipped") {
@@ -2197,4 +2385,60 @@ export async function routinesRoutes(fastify: FastifyInstance) {
       }
     },
   );
+
+  async function notifyHorseOwnerOfPhoto(params: {
+    horseId: string;
+    actorId: string;
+    actorName: string;
+    routineName: string;
+    stepName: string;
+    instanceId: string;
+    stepId: string;
+    organizationId: string;
+    stableId: string;
+  }) {
+    const horseDoc = await db.collection("horses").doc(params.horseId).get();
+    if (!horseDoc.exists) return;
+
+    const horse = horseDoc.data() as { ownerId?: string; name?: string };
+    const ownerId = horse.ownerId;
+
+    // Don't notify yourself
+    if (!ownerId || ownerId === params.actorId) return;
+
+    const now = Timestamp.now();
+    const notificationId = uuidv4();
+
+    const notification = {
+      id: notificationId,
+      userId: ownerId,
+      type: "routine_photo_evidence",
+      priority: "normal",
+      title: `Nytt foto av ${horse.name || "din häst"}`,
+      body: `${params.actorName} lade till ett foto under ${params.routineName}${params.stepName ? ` - ${params.stepName}` : ""}`,
+      read: false,
+      readAt: null,
+      actionUrl: `equiduty://horse/${params.horseId}/history`,
+      entityType: "horse",
+      entityId: params.horseId,
+      organizationId: params.organizationId,
+      stableId: params.stableId,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await db.collection("notifications").doc(notificationId).set(notification);
+
+    // Queue for push delivery
+    await db
+      .collection("notificationQueue")
+      .doc(notificationId)
+      .set({
+        notificationId,
+        userId: ownerId,
+        channels: ["inApp", "push"],
+        status: "pending",
+        createdAt: now,
+      });
+  }
 }

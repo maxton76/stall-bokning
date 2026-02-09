@@ -9,6 +9,7 @@ import SwiftUI
 
 struct HorseDetailView: View {
     let horseId: String
+    var initialTab: Tab?
 
     @State private var horseService = HorseService.shared
     @State private var horse: Horse?
@@ -97,6 +98,9 @@ struct HorseDetailView: View {
             }
         }
         .onAppear {
+            if let initialTab {
+                selectedTab = initialTab
+            }
             loadHorse()
         }
     }

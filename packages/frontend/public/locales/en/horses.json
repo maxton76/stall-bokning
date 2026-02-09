@@ -928,6 +928,14 @@
       "feeding": "Feeding",
       "medication": "Medication",
       "blanket": "Blanket"
+    },
+    "photos": "Photos ({{count}})",
+    "hasPhotos": "Photos attached",
+    "hasNotes": "Notes",
+    "photoViewer": {
+      "close": "Close",
+      "next": "Next",
+      "previous": "Previous"
     }
   }
 }

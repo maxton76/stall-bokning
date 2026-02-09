@@ -61,6 +61,10 @@
     "title": "Betalningsmetod krävs",
     "body": "Provperioden för {{organizationName}} går snart ut. Lägg till en betalningsmetod för att fortsätta."
   },
+  "routinePhotoEvidence": {
+    "title": "Nytt foto av {{horseName}}",
+    "body": "{{actorName}} lade till ett foto under {{routineName}} - {{stepName}}"
+  },
   "priority": {
     "urgent": "Brådskande",
     "high": "Hög",

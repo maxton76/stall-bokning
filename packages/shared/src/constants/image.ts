@@ -11,6 +11,8 @@ export const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",
   "image/png",
   "image/webp",
+  "image/heic",
+  "image/heif",
 ] as const;
 
 export const VALID_ENTITY_ID = /^[a-zA-Z0-9_-]{1,128}$/;

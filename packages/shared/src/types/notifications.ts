@@ -38,7 +38,8 @@ export type NotificationType =
   | "payment_failed" // Invoice payment failed
   | "payment_method_required" // Trial ending and no payment method on file
   | "activity_note_added" // Note added to activity by non-owner
-  | "activity_media_added"; // Media/photo added to activity by non-owner
+  | "activity_media_added" // Media/photo added to activity by non-owner
+  | "routine_photo_evidence"; // Photo evidence added to routine step
 
 /**
  * Notification priority levels
@@ -455,6 +456,12 @@ export const NOTIFICATION_TEMPLATES = {
   activity_media_added: {
     titleKey: "notifications.activityMediaAdded.title",
     bodyKey: "notifications.activityMediaAdded.body",
+    priority: "normal" as NotificationPriority,
+    defaultChannels: ["inApp", "push"] as NotificationChannel[],
+  },
+  routine_photo_evidence: {
+    titleKey: "notifications.routinePhotoEvidence.title",
+    bodyKey: "notifications.routinePhotoEvidence.body",
     priority: "normal" as NotificationPriority,
     defaultChannels: ["inApp", "push"] as NotificationChannel[],
   },

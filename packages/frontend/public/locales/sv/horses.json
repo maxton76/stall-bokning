@@ -928,6 +928,14 @@
       "feeding": "Utfodring",
       "medication": "Medicinering",
       "blanket": "Täcke"
+    },
+    "photos": "Foton ({{count}})",
+    "hasPhotos": "Foton bifogade",
+    "hasNotes": "Anteckningar",
+    "photoViewer": {
+      "close": "Stäng",
+      "next": "Nästa",
+      "previous": "Föregående"
     }
   }
 }

@@ -36,7 +36,7 @@ The app supports three environments, each with separate Firebase projects and OA
 
 - **Development**: `https://api-service-773558333623.europe-west1.run.app/api/v1`
 - **Staging**: `https://api-staging-service.europe-west1.run.app/api/v1`
-- **Production**: `https://api.equiduty.com/api/v1`
+- **Production**: `https://api.equiduty.se/api/v1`
 
 ## Configuration Files
 

@@ -15,7 +15,7 @@ GOOGLE_CLIENT_ID = 618787536909-du9t652ousstc9um4liq0na5n68hcg2l.apps.googleuser
 REVERSED_CLIENT_ID = com.googleusercontent.apps.618787536909-du9t652ousstc9um4liq0na5n68hcg2l
 
 // API Endpoints
-API_BASE_URL = https:/$()/api.equiduty.com/api/v1
+API_BASE_URL = https:/$()/api.equiduty.se/api/v1
 
 // Code Signing
 CODE_SIGN_STYLE = Automatic

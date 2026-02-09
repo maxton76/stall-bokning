@@ -86,19 +86,19 @@ struct SettingsView: View {
 
                 // Support section
                 Section(String(localized: "settings.support")) {
-                    Link(destination: URL(string: "https://equiduty.com/help")!) {
+                    Link(destination: URL(string: "https://equiduty.se/help")!) {
                         Label(String(localized: "settings.help"), systemImage: "questionmark.circle")
                     }
 
-                    Link(destination: URL(string: "mailto:support@equiduty.com")!) {
+                    Link(destination: URL(string: "mailto:support@equiduty.se")!) {
                         Label(String(localized: "settings.contact"), systemImage: "envelope")
                     }
 
-                    Link(destination: URL(string: "https://equiduty.com/privacy")!) {
+                    Link(destination: URL(string: "https://equiduty.se/privacy")!) {
                         Label(String(localized: "settings.privacy"), systemImage: "hand.raised")
                     }
 
-                    Link(destination: URL(string: "https://equiduty.com/terms")!) {
+                    Link(destination: URL(string: "https://equiduty.se/terms")!) {
                         Label(String(localized: "settings.terms"), systemImage: "doc.text")
                     }
                 }

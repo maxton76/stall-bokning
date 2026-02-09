@@ -133,27 +133,20 @@ final class ImageUploadService {
 
     // MARK: - Photo Upload
 
-    /// Upload horse photo with full workflow
-    /// - Parameters:
-    ///   - horseId: Horse identifier
-    ///   - image: Source UIImage
-    ///   - purpose: Photo purpose (cover or avatar)
-    /// - Returns: Storage path of uploaded image
-    /// - Throws: ImageUploadError on any step failure
-    func uploadHorsePhoto(horseId: String, image: UIImage, purpose: PhotoPurpose) async throws -> String {
-        #if DEBUG
-        print("📤 Starting upload for horse \(horseId), purpose: \(purpose.rawValue)")
-        #endif
-
-        // Step 1: Compress image based on purpose
-        let maxDimension: CGFloat = purpose == .cover ? 1200 : 600
-        let quality: CGFloat = 0.75
-
+    /// Compress an image and upload it to GCS via a signed URL.
+    /// Shared workflow used by both horse photo and routine evidence uploads.
+    private func compressAndUpload<Body: Encodable>(
+        image: UIImage,
+        maxDimension: CGFloat = 1200,
+        quality: CGFloat = 0.75,
+        endpoint: String,
+        body: Body
+    ) async throws -> (readUrl: String, storagePath: String) {
+        // Step 1: Compress
         guard let compressedData = compressImage(image, maxDimension: maxDimension, quality: quality) else {
             throw ImageUploadError.compressionFailed
         }
 
-        // Validate compressed size before upload (must match storage rules: 5MB)
         let maxSize = 5 * 1024 * 1024
         guard compressedData.count <= maxSize else {
             #if DEBUG
@@ -163,25 +156,9 @@ final class ImageUploadService {
         }
 
         // Step 2: Get signed upload URL from API
-        let fileName = "\(purpose.rawValue)_\(UUID().uuidString).jpg"
-        let uploadUrlRequest = GetUploadUrlRequest(
-            horseId: horseId,
-            fileName: fileName,
-            mimeType: "image/jpeg",
-            type: "photo",
-            purpose: purpose.rawValue
-        )
-
-        #if DEBUG
-        print("📡 Requesting upload URL for file: \(fileName)")
-        #endif
-
         let uploadResponse: UploadUrlResponse
         do {
-            uploadResponse = try await apiClient.post(
-                APIEndpoints.horseMediaUploadUrl,
-                body: uploadUrlRequest
-            )
+            uploadResponse = try await apiClient.post(endpoint, body: body)
         } catch {
             #if DEBUG
             print("❌ Failed to get upload URL: \(error)")
@@ -202,15 +179,11 @@ final class ImageUploadService {
             throw ImageUploadError.noStoragePath
         }
 
-        #if DEBUG
-        print("✅ Got upload URL, storage path: \(storagePath)")
-        #endif
-
-        // Step 3: Upload to signed URL (no auth headers for GCS)
+        // Step 3: Upload to signed URL
         do {
             try await uploadToSignedUrl(uploadUrl, data: compressedData)
             #if DEBUG
-            print("✅ Successfully uploaded to GCS")
+            print("✅ Successfully uploaded to GCS: \(storagePath)")
             #endif
         } catch {
             #if DEBUG
@@ -218,6 +191,32 @@ final class ImageUploadService {
             #endif
             throw ImageUploadError.uploadFailed(error)
         }
+
+        return (readUrl, storagePath)
+    }
+
+    /// Upload horse photo with full workflow
+    func uploadHorsePhoto(horseId: String, image: UIImage, purpose: PhotoPurpose) async throws -> String {
+        #if DEBUG
+        print("📤 Starting upload for horse \(horseId), purpose: \(purpose.rawValue)")
+        #endif
+
+        let maxDimension: CGFloat = purpose == .cover ? 1200 : 600
+        let fileName = "\(purpose.rawValue)_\(UUID().uuidString).jpg"
+        let uploadUrlRequest = GetUploadUrlRequest(
+            horseId: horseId,
+            fileName: fileName,
+            mimeType: "image/jpeg",
+            type: "photo",
+            purpose: purpose.rawValue
+        )
+
+        let (readUrl, storagePath) = try await compressAndUpload(
+            image: image,
+            maxDimension: maxDimension,
+            endpoint: APIEndpoints.horseMediaUploadUrl,
+            body: uploadUrlRequest
+        )
 
         // Step 4: Create media metadata record
         let mediaRequest = CreateMediaRecordRequest(
@@ -228,7 +227,7 @@ final class ImageUploadService {
             fileUrl: readUrl,
             storagePath: storagePath,
             fileName: fileName,
-            fileSize: compressedData.count,
+            fileSize: 0, // Size not tracked after compression
             mimeType: "image/jpeg"
         )
 
@@ -247,7 +246,7 @@ final class ImageUploadService {
             throw ImageUploadError.metadataCreationFailed(error)
         }
 
-        // Step 5: Update horse with photo path (only set the relevant field, omit the other)
+        // Step 5: Update horse with photo path
         let horseUpdate: UpdateHorsePhotoRequest
         if purpose == .cover {
             horseUpdate = UpdateHorsePhotoRequest(coverPhotoPath: storagePath)
@@ -269,10 +268,6 @@ final class ImageUploadService {
             #endif
             throw ImageUploadError.horseUpdateFailed(error)
         }
-
-        #if DEBUG
-        print("✅ Upload complete: \(storagePath)")
-        #endif
 
         return storagePath
     }
@@ -340,6 +335,80 @@ final class ImageUploadService {
             throw ImageUploadError.horseUpdateFailed(error)
         }
     }
+
+    // MARK: - Routine Evidence Upload
+
+    /// Upload a single routine evidence photo
+    func uploadRoutineEvidencePhoto(
+        image: UIImage,
+        horseId: String?,
+        instanceId: String,
+        stepId: String
+    ) async throws -> String {
+        #if DEBUG
+        print("📤 Starting routine evidence upload for instance \(instanceId), step \(stepId)")
+        #endif
+
+        let fileName = "evidence_\(UUID().uuidString).jpg"
+        let body = RoutineEvidenceUploadRequest(
+            horseId: horseId,
+            instanceId: instanceId,
+            stepId: stepId,
+            fileName: fileName,
+            mimeType: "image/jpeg"
+        )
+
+        let (readUrl, _) = try await compressAndUpload(
+            image: image,
+            endpoint: APIEndpoints.routineStepUploadUrl(instanceId, stepId: stepId),
+            body: body
+        )
+
+        return readUrl
+    }
+
+    /// Upload a batch of routine evidence photos concurrently.
+    /// Returns successful URLs and the count of failures so callers can show user feedback.
+    func uploadRoutineEvidenceBatch(
+        images: [UIImage],
+        horseId: String?,
+        instanceId: String,
+        stepId: String
+    ) async -> (urls: [String], failedCount: Int) {
+        var urls: [String] = []
+        var failedCount = 0
+
+        await withTaskGroup(of: Result<String, Error>.self) { group in
+            for image in images {
+                group.addTask {
+                    do {
+                        let url = try await self.uploadRoutineEvidencePhoto(
+                            image: image,
+                            horseId: horseId,
+                            instanceId: instanceId,
+                            stepId: stepId
+                        )
+                        return .success(url)
+                    } catch {
+                        return .failure(error)
+                    }
+                }
+            }
+            for await result in group {
+                switch result {
+                case .success(let url):
+                    urls.append(url)
+                case .failure(let error):
+                    failedCount += 1
+                    #if DEBUG
+                    print("❌ Evidence photo upload failed: \(error.localizedDescription)")
+                    #endif
+                }
+            }
+        }
+
+        return (urls, failedCount)
+    }
 }
 
 // MARK: - Request/Response Types
@@ -356,6 +425,14 @@ private struct UploadUrlResponse: Codable {
     let uploadUrl: String?
     let readUrl: String?
     let storagePath: String?
+}
+
+private struct RoutineEvidenceUploadRequest: Codable {
+    let horseId: String?
+    let instanceId: String
+    let stepId: String
+    let fileName: String
+    let mimeType: String
 }
 
 /// Note on orphaned GCS files (accepted trade-off):

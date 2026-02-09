@@ -103,7 +103,7 @@ Run through the verification steps (Part 4 in the guide).
 - **Display Name**: EquiDuty
 - **Firebase Project**: equiduty-prod
 - **Client ID**: `618787536909-du9t652ousstc9um4liq0na5n68hcg2l.apps.googleusercontent.com`
-- **API**: `https://api.equiduty.com/api/v1`
+- **API**: `https://api.equiduty.se/api/v1`
 
 ## Key Benefits
 

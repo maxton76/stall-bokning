@@ -61,6 +61,10 @@
     "title": "Payment method required",
     "body": "The trial for {{organizationName}} is ending soon. Please add a payment method to continue."
   },
+  "routinePhotoEvidence": {
+    "title": "New photo of {{horseName}}",
+    "body": "{{actorName}} added a photo during {{routineName}} - {{stepName}}"
+  },
   "priority": {
     "urgent": "Urgent",
     "high": "High",

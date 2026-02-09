@@ -100,6 +100,9 @@ enum APIEndpoints {
     static func routineInstanceComplete(_ instanceId: String) -> String {
         "/routines/instances/\(instanceId)/complete"
     }
+    static func routineStepUploadUrl(_ instanceId: String, stepId: String) -> String {
+        "/routines/instances/\(instanceId)/steps/\(stepId)/upload-url"
+    }
 
     // MARK: - Daily Notes
     static func dailyNotes(_ stableId: String, date: String) -> String {

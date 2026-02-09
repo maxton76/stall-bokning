@@ -21,6 +21,7 @@ enum AppDestination: Hashable {
     // Horses
     case horseDetail(horseId: String)
     case horseForm(horseId: String?)
+    case horseHistory(horseId: String)
 
     // Routines
     case routineFlow(instanceId: String)
@@ -118,7 +119,11 @@ final class NavigationRouter {
         case "horse":
             if let horseId = pathComponents.first {
                 switchToTab(.horses)
-                navigateToHorseDetail(horseId)
+                if pathComponents.count > 1 && pathComponents[1] == "history" {
+                    horsesPath.append(AppDestination.horseHistory(horseId: horseId))
+                } else {
+                    navigateToHorseDetail(horseId)
+                }
             }
         case "routine":
             if let instanceId = pathComponents.first {
@@ -182,6 +187,8 @@ extension View {
                 HorseDetailView(horseId: horseId)
             case .horseForm(let horseId):
                 HorseFormView(horseId: horseId)
+            case .horseHistory(let horseId):
+                HorseDetailView(horseId: horseId, initialTab: .history)
             case .routineFlow(let instanceId):
                 RoutineFlowView(instanceId: instanceId)
             case .routineDetail(let templateId):

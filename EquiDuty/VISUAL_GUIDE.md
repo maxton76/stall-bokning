@@ -142,7 +142,7 @@ case .staging:
 
 case .production:
     // Firebase: equiduty-production
-    // API: api.equiduty.com
+    // API: api.equiduty.se
     // Optimized, no debug logs
     print("Running in PRODUCTION")
 }

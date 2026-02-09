@@ -302,6 +302,20 @@ struct ActivityHistoryRow: View {
                             .font(.headline)
                             .foregroundStyle(.primary)
 
+                        // Photo/notes indicators
+                        if let photoUrls = activity.photoUrls, !photoUrls.isEmpty {
+                            Image(systemName: "camera.fill")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .accessibilityLabel(String(localized: "horse.history.hasPhotos"))
+                        }
+                        if let notes = activity.notes, !notes.isEmpty {
+                            Image(systemName: "note.text")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .accessibilityLabel(String(localized: "horse.history.hasNotes"))
+                        }
+
                         Spacer()
 
                         ModernStatusBadge(
@@ -394,6 +408,7 @@ struct ActivityHistoryRow: View {
 
 struct ActivityDetailSection: View {
     let activity: HorseActivityHistoryEntry
+    @State private var selectedPhotoIndex: Int?
 
     var body: some View {
         VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.md) {
@@ -439,20 +454,24 @@ struct ActivityDetailSection: View {
 
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: EquiDutyDesign.Spacing.sm) {
-                            ForEach(photoUrls, id: \.self) { url in
-                                AsyncImage(url: URL(string: url)) { image in
-                                    image
-                                        .resizable()
-                                        .scaledToFill()
-                                } placeholder: {
-                                    Rectangle()
-                                        .fill(.quaternary)
-                                        .overlay {
-                                            ProgressView()
-                                        }
+                            ForEach(Array(photoUrls.enumerated()), id: \.offset) { index, url in
+                                Button {
+                                    selectedPhotoIndex = index
+                                } label: {
+                                    AsyncImage(url: URL(string: url)) { image in
+                                        image
+                                            .resizable()
+                                            .scaledToFill()
+                                    } placeholder: {
+                                        Rectangle()
+                                            .fill(.quaternary)
+                                            .overlay {
+                                                ProgressView()
+                                            }
+                                    }
+                                    .frame(width: 80, height: 80)
+                                    .clipShape(RoundedRectangle(cornerRadius: EquiDutyDesign.CornerRadius.small, style: .continuous))
                                 }
-                                .frame(width: 80, height: 80)
-                                .clipShape(RoundedRectangle(cornerRadius: EquiDutyDesign.CornerRadius.small, style: .continuous))
                             }
                         }
                     }
@@ -472,7 +491,26 @@ struct ActivityDetailSection: View {
                     .italic()
             }
         }
+        .fullScreenCover(item: Binding(
+            get: { selectedPhotoIndex.map { FullScreenPhotoBinding(index: $0) } },
+            set: { selectedPhotoIndex = $0?.index }
+        )) { binding in
+            if let photoUrls = activity.photoUrls {
+                FullScreenPhotoViewer(
+                    photoUrls: photoUrls,
+                    selectedIndex: Binding(
+                        get: { binding.index },
+                        set: { selectedPhotoIndex = $0 }
+                    )
+                )
+            }
+        }
     }
+}
+
+private struct FullScreenPhotoBinding: Identifiable {
+    let index: Int
+    var id: Int { index }
 }
 
 // MARK: - Detail Row

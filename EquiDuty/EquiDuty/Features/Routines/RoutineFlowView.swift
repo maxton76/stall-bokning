@@ -508,6 +508,7 @@ struct StepHorseListView: View {
                     StepHorseRow(
                         horse: horse,
                         step: step,
+                        instanceId: instance.id,
                         feedingInfo: feedingInfoMap[horse.id],
                         medicationInfo: nil, // TODO: Load from horse data when available
                         blanketInfo: nil, // TODO: Load from horse data when available
@@ -518,12 +519,13 @@ struct StepHorseListView: View {
                         isSkipped: progress?.skipped ?? false,
                         savedNotes: progress?.notes,
                         skipReason: progress?.skipReason,
-                        onMarkDone: { notes in
+                        onMarkDone: { notes, photoUrls in
                             Task {
                                 await handleMarkDone(
                                     horseId: horse.id,
                                     horseName: horse.name,
-                                    notes: notes
+                                    notes: notes,
+                                    photoUrls: photoUrls
                                 )
                             }
                         },
@@ -715,7 +717,8 @@ struct StepHorseListView: View {
     private func handleMarkDone(
         horseId: String,
         horseName: String,
-        notes: String?
+        notes: String?,
+        photoUrls: [String]? = nil
     ) async {
         #if DEBUG
         print("📝 handleMarkDone called - horseId: \(horseId), notes: \(notes ?? "nil")")
@@ -739,7 +742,7 @@ struct StepHorseListView: View {
                         medicationGiven: nil,
                         medicationSkipped: nil,
                         blanketAction: nil,
-                        photoUrls: nil
+                        photoUrls: photoUrls
                     )
                 ]
             )
@@ -761,6 +764,7 @@ struct StepHorseListView: View {
             )
             progress.completed = true
             progress.notes = notes
+            progress.photoUrls = photoUrls
             progress.completedAt = Date()
             horseProgressMap[horseId] = progress
             updateUnmarkedCount()
@@ -903,6 +907,7 @@ struct StepHorseListView: View {
 struct StepHorseRow: View {
     let horse: Horse
     let step: RoutineStep
+    let instanceId: String
 
     // Context data
     let feedingInfo: FeedingInfoForCard?
@@ -919,7 +924,7 @@ struct StepHorseRow: View {
     let skipReason: String?
 
     // Action callbacks
-    var onMarkDone: ((String?) -> Void)?  // (notes) -> mark as done
+    var onMarkDone: ((String?, [String]?) -> Void)?  // (notes, photoUrls) -> mark as done
     var onSkip: ((String) -> Void)?        // (reason) -> skip
     var onMedicationConfirm: ((Bool, String?) -> Void)?
     var onBlanketAction: ((BlanketAction) -> Void)?
@@ -929,6 +934,11 @@ struct StepHorseRow: View {
     @State private var showMedicationSkipSheet = false
     @State private var noteText = ""
     @State private var skipReasonText = ""
+    @State private var pendingPhotos: [UIImage] = []
+    @State private var uploadedPhotoUrls: [String] = []
+    @State private var isUploadingPhotos = false
+    @State private var showUploadError = false
+    @State private var uploadErrorMessage = ""
 
     /// Check if we have any notes to show
     private var hasAnyNotes: Bool {
@@ -946,6 +956,39 @@ struct StepHorseRow: View {
     /// Whether this horse is done (either completed or skipped)
     private var isDone: Bool {
         isCompleted || isSkipped
+    }
+
+    /// Handle marking as done with optional photo upload
+    private func performMarkDone() {
+        if step.allowPhotoEvidence == true && !pendingPhotos.isEmpty {
+            Task {
+                isUploadingPhotos = true
+                var photoUrls: [String] = uploadedPhotoUrls
+
+                let (batchUrls, failedCount) = await ImageUploadService.shared.uploadRoutineEvidenceBatch(
+                    images: pendingPhotos,
+                    horseId: horse.id,
+                    instanceId: instanceId,
+                    stepId: step.id
+                )
+                photoUrls.append(contentsOf: batchUrls)
+
+                await MainActor.run {
+                    isUploadingPhotos = false
+                    if failedCount > 0 {
+                        uploadErrorMessage = String(localized: "routine.evidence.uploadPartialFailure \(failedCount)")
+                        showUploadError = true
+                    }
+                    onMarkDone?(noteText.isEmpty ? nil : noteText, photoUrls.isEmpty ? nil : photoUrls)
+                    noteText = ""
+                    pendingPhotos = []
+                    uploadedPhotoUrls = []
+                }
+            }
+        } else {
+            onMarkDone?(noteText.isEmpty ? nil : noteText, uploadedPhotoUrls.isEmpty ? nil : uploadedPhotoUrls)
+            noteText = ""
+        }
     }
 
     /// Check if there's any expandable content
@@ -1106,6 +1149,11 @@ struct StepHorseRow: View {
                 }
             )
         }
+        .alert(String(localized: "routine.evidence.uploadError"), isPresented: $showUploadError) {
+            Button(String(localized: "common.ok"), role: .cancel) {}
+        } message: {
+            Text(uploadErrorMessage)
+        }
     }
 
     // MARK: - Status Indicator
@@ -1167,8 +1215,7 @@ struct StepHorseRow: View {
         HorseActionButtonsRow(
             isExpanded: false,
             onDone: {
-                onMarkDone?(noteText.isEmpty ? nil : noteText)
-                noteText = ""
+                performMarkDone()
             },
             onSkip: {
                 showSkipReasonSheet = true
@@ -1256,12 +1303,23 @@ struct StepHorseRow: View {
                         TextField(String(localized: "routine.horse.addNote"), text: $noteText)
                             .textFieldStyle(.roundedBorder)
 
+                        // Photo evidence
+                        if step.allowPhotoEvidence == true {
+                            PhotoEvidenceView(
+                                instanceId: instanceId,
+                                stepId: step.id,
+                                horseId: horse.id,
+                                pendingPhotos: $pendingPhotos,
+                                uploadedPhotoUrls: $uploadedPhotoUrls,
+                                isUploading: $isUploadingPhotos
+                            )
+                        }
+
                         // Action buttons
                         HorseActionButtonsRow(
                             isExpanded: true,
                             onDone: {
-                                onMarkDone?(noteText.isEmpty ? nil : noteText)
-                                noteText = ""
+                                performMarkDone()
                             },
                             onSkip: {
                                 showSkipReasonSheet = true
