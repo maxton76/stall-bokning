@@ -28,7 +28,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>3</string>
+	<string>4</string>
 	<key>NSCameraUsageDescription</key>
 	<string>EquiDuty needs camera access to take photos of your horses.</string>
 	<key>UIApplicationSceneManifest</key>
