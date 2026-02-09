@@ -356,23 +356,22 @@ struct RoutineStepView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.lg) {
-                // Step description
-                if let description = step.description {
-                    Text(description)
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal)
+                // Step description card (if present)
+                if let description = step.description, !description.isEmpty {
+                    VStack(alignment: .leading, spacing: EquiDutyDesign.Spacing.md) {
+                        Text(String(localized: "routine.step.description"))
+                            .font(.headline)
+                            .padding(.horizontal)
+                        
+                        Text(description)
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentCard()
+                    .padding(.horizontal)
                 }
-
-                // Category icon
-                HStack {
-                    Spacer()
-                    Image(systemName: step.displayIcon)
-                        .font(.system(size: 60))
-                        .foregroundStyle(Color.accentColor.opacity(0.5))
-                    Spacer()
-                }
-                .padding()
 
                 // Horse list (if applicable)
                 if step.horseContext != .none {
@@ -962,9 +961,11 @@ struct StepHorseRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header row - always visible
-            HStack {
-                // Status indicator circle
-                statusIndicator
+            HStack(spacing: EquiDutyDesign.Spacing.sm) {
+                // Status indicator circle (only shown when completed or skipped)
+                if isCompleted || isSkipped {
+                    statusIndicator
+                }
 
                 HorseAvatarView(horse: horse, size: 40)
 
@@ -986,6 +987,28 @@ struct StepHorseRow: View {
                         }
                     }
 
+                    // Placement info row (always visible when available)
+                    if let box = horse.boxName, let paddock = horse.paddockName {
+                        HStack(spacing: 4) {
+                            Text(box)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            Text("•")
+                                .foregroundStyle(.secondary)
+                            Text(paddock)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else if let box = horse.boxName {
+                        Text(box)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    } else if let paddock = horse.paddockName {
+                        Text(paddock)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+
                     // Show skip reason or saved notes when collapsed
                     if isSkipped, let reason = skipReason, !reason.isEmpty {
                         Text("\(String(localized: "routine.horse.skipReason")): \(reason)")
@@ -996,7 +1019,8 @@ struct StepHorseRow: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
-                    } else if let group = horse.horseGroupName {
+                    } else if horse.boxName == nil && horse.paddockName == nil, let group = horse.horseGroupName {
+                        // Only show group as fallback if no placement info
                         Text(group)
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -1088,23 +1112,21 @@ struct StepHorseRow: View {
 
     @ViewBuilder
     private var statusIndicator: some View {
-        ZStack {
-            Circle()
-                .fill(statusBackgroundColor)
-                .frame(width: 36, height: 36)
+        if isCompleted || isSkipped {
+            ZStack {
+                Circle()
+                    .fill(statusBackgroundColor)
+                    .frame(width: 36, height: 36)
 
-            if isCompleted {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.green)
-            } else if isSkipped {
-                Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.gray)
-            } else {
-                Text(String(horse.name.prefix(1)))
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.blue)
+                if isCompleted {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.green)
+                } else if isSkipped {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.gray)
+                }
             }
         }
     }
@@ -1115,7 +1137,7 @@ struct StepHorseRow: View {
         } else if isSkipped {
             return Color.gray.opacity(0.15)
         }
-        return Color.blue.opacity(0.15)
+        return Color.clear
     }
 
     private var cardBackground: some ShapeStyle {
