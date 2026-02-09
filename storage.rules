@@ -32,31 +32,44 @@ service firebase.storage {
           .data.ownerId == request.auth.uid;
     }
 
-    // Check if user is a MEMBER of a specific stable
-    function isStableMember(stableId) {
-      let memberId = request.auth.uid + '_' + stableId;
+    // Get the org member doc for the current user in the stable's organization
+    // Returns null if user is not a member
+    function getOrgMemberForStable(stableId) {
+      let orgId = firestore.get(/databases/(default)/documents/stables/$(stableId)).data.organizationId;
+      let memberId = request.auth.uid + '_' + orgId;
+      return firestore.get(/databases/(default)/documents/organizationMembers/$(memberId));
+    }
+
+    // Check if user is an active organization member with access to this stable
+    function isOrganizationMemberWithStableAccess(stableId) {
+      let member = getOrgMemberForStable(stableId);
       return isAuthenticated() &&
-        firestore.exists(/databases/(default)/documents/stableMembers/$(memberId)) &&
-        firestore.get(/databases/(default)/documents/stableMembers/$(memberId))
-          .data.status == 'active';
+        member != null &&
+        member.data.status == 'active' &&
+        (member.data.stableAccess == 'all' ||
+         stableId in member.data.assignedStableIds);
     }
 
-    // Check if user is a MANAGER of a specific stable
-    function isStableManager(stableId) {
-      let memberId = request.auth.uid + '_' + stableId;
-      return isStableMember(stableId) &&
-        firestore.get(/databases/(default)/documents/stableMembers/$(memberId))
-          .data.role == 'manager';
+    // Check if user is an org admin/manager with access to this stable
+    function isOrganizationManagerWithStableAccess(stableId) {
+      let member = getOrgMemberForStable(stableId);
+      return isAuthenticated() &&
+        member != null &&
+        member.data.status == 'active' &&
+        (member.data.stableAccess == 'all' ||
+         stableId in member.data.assignedStableIds) &&
+        (member.data.primaryRole == 'administrator' ||
+         member.data.primaryRole == 'stable_manager');
     }
 
-    // Check if user can MANAGE a stable (owner OR manager)
-    function canManageStable(stableId) {
-      return isSystemAdmin() || isStableOwnerOf(stableId) || isStableManager(stableId);
+    // Can user access this stable's files? (admin, owner, or org member with access)
+    function canAccessStableFiles(stableId) {
+      return isSystemAdmin() || isStableOwnerOf(stableId) || isOrganizationMemberWithStableAccess(stableId);
     }
 
-    // Check if user has ANY ACCESS to stable (owner, manager, or member)
-    function canAccessStable(stableId) {
-      return isSystemAdmin() || isStableOwnerOf(stableId) || isStableMember(stableId);
+    // Can user manage this stable's files? (admin, owner, or org manager with access)
+    function canManageStableFiles(stableId) {
+      return isSystemAdmin() || isStableOwnerOf(stableId) || isOrganizationManagerWithStableAccess(stableId);
     }
 
     // ============================================================================
@@ -94,10 +107,10 @@ service firebase.storage {
     // Stable images (stable logo, photos)
     match /stables/{stableId}/images/{imageId} {
       // READ: Stable members only
-      allow read: if canAccessStable(stableId);
+      allow read: if canAccessStableFiles(stableId);
 
       // WRITE: Owner or manager + image validation
-      allow write: if canManageStable(stableId) && isValidImageSize() && isValidImageType();
+      allow write: if canManageStableFiles(stableId) && isValidImageSize() && isValidImageType();
 
       // DELETE: Owner only
       allow delete: if isStableOwnerOf(stableId);
@@ -107,13 +120,13 @@ service firebase.storage {
     // NEW PATH: /stables/{stableId}/shifts/{shiftId}/attachments/{fileId}
     match /stables/{stableId}/shifts/{shiftId}/attachments/{fileId} {
       // READ: Stable members only
-      allow read: if canAccessStable(stableId);
+      allow read: if canAccessStableFiles(stableId);
 
       // WRITE: Owner or manager + size validation
-      allow write: if canManageStable(stableId) && isValidAttachmentSize();
+      allow write: if canManageStableFiles(stableId) && isValidAttachmentSize();
 
       // DELETE: Owner or manager
-      allow delete: if canManageStable(stableId);
+      allow delete: if canManageStableFiles(stableId);
     }
 
     // Horse files: images, profile photos, and media
@@ -124,7 +137,7 @@ service firebase.storage {
         isSystemAdmin() ||
         firestore.get(/databases/(default)/documents/horses/$(horseId)).data.ownerId == request.auth.uid ||
         (firestore.get(/databases/(default)/documents/horses/$(horseId)).data.currentStableId != null &&
-         canAccessStable(firestore.get(/databases/(default)/documents/horses/$(horseId)).data.currentStableId))
+         canAccessStableFiles(firestore.get(/databases/(default)/documents/horses/$(horseId)).data.currentStableId))
       );
 
       // WRITE: Horse owner only + image validation

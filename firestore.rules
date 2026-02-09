@@ -395,13 +395,8 @@ service cloud.firestore {
     // ============================================================================
     // STABLE MEMBERS COLLECTION - DEPRECATED
     // ============================================================================
-    // NOTE: stableMembers collection has been replaced by organizationMembers.
-    // Stable access is now controlled via organizationMembers.stableAccess and
-    // organizationMembers.assignedStableIds fields.
-    // This collection is kept read-only for backward compatibility during migration.
-
+    // DEPRECATED: stableMembers replaced by organizationMembers
     match /stableMembers/{memberId} {
-      // All operations disabled - collection is deprecated
       allow read, write: if false;
     }
 

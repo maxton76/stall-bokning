@@ -36,7 +36,11 @@ export async function computeTurnOrder(params: {
   selectionEndDate: string;
 }): Promise<ComputedTurnOrder> {
   // Resolve member details (names and emails)
-  const members = await resolveMemberDetails(params.stableId, params.memberIds);
+  const members = await resolveMemberDetails(
+    params.stableId,
+    params.organizationId,
+    params.memberIds,
+  );
 
   switch (params.algorithm) {
     case "quota_based":
@@ -170,6 +174,15 @@ async function computePointsBalanceOrder(params: {
 }): Promise<ComputedTurnOrder> {
   const { stableId, members } = params;
 
+  // Defensive: Early return if no members
+  if (members.length === 0) {
+    return {
+      turns: [],
+      algorithm: "points_balance",
+      metadata: { memberPointsMap: {} },
+    };
+  }
+
   // Get stable's memoryHorizonDays from stable doc
   const stableDoc = await db.collection("stables").doc(stableId).get();
   const stableData = stableDoc.data();
@@ -189,26 +202,40 @@ async function computePointsBalanceOrder(params: {
     .where("completedAt", ">=", cutoffTimestamp)
     .get();
 
-  // Aggregate points per user
+  // Initialize ALL members with 0 points explicitly
   const pointsMap: Record<string, number> = {};
   for (const member of members) {
-    pointsMap[member.userId] = 0;
+    pointsMap[member.userId] = 0; // Explicitly set to 0, not null/undefined
   }
 
+  // Add points from completed instances
   for (const doc of instancesSnapshot.docs) {
     const data = doc.data();
     const completedBy = data.completedBy as string | undefined;
+
+    // Only count points for members in our list
     if (completedBy && completedBy in pointsMap) {
-      pointsMap[completedBy] += data.pointsAwarded ?? data.pointsValue ?? 0;
+      const points = data.pointsAwarded ?? data.pointsValue ?? 0;
+      pointsMap[completedBy] = (pointsMap[completedBy] ?? 0) + points;
     }
   }
 
-  // Sort members by points ascending (lowest first), tiebreaker: alphabetical
+  // Sort members by points (defensive: ensure no undefined/null values)
   const orderedMembers = [...members].sort((a, b) => {
-    const pointsDiff = (pointsMap[a.userId] ?? 0) - (pointsMap[b.userId] ?? 0);
+    const pointsA = pointsMap[a.userId] ?? 0;
+    const pointsB = pointsMap[b.userId] ?? 0;
+    const pointsDiff = pointsA - pointsB;
+
     if (pointsDiff !== 0) return pointsDiff;
     return a.userName.localeCompare(b.userName, "sv");
   });
+
+  // Defensive validation: ensure all members are in result
+  if (orderedMembers.length !== members.length) {
+    console.error(
+      `Point balance ordering mismatch: input=${members.length}, output=${orderedMembers.length}`,
+    );
+  }
 
   return {
     turns: orderedMembers,
@@ -358,10 +385,11 @@ export async function saveSelectionProcessHistory(
 
 /**
  * Resolve member details (name, email) from member IDs
- * Uses stable members collection + stable owner
+ * Uses organizationMembers collection + stable owner fallback
  */
 async function resolveMemberDetails(
   stableId: string,
+  organizationId: string,
   memberIds: string[],
 ): Promise<CreateSelectionProcessMember[]> {
   // Get stable to check owner
@@ -369,30 +397,30 @@ async function resolveMemberDetails(
   const stableData = stableDoc.data();
   const ownerId = stableData?.ownerId;
 
-  // Batch get users for all member IDs
-  const members: CreateSelectionProcessMember[] = [];
-
-  // Get stable members
-  const membersSnapshot = await db
-    .collection("stableMembers")
-    .where("stableId", "==", stableId)
-    .where("status", "==", "active")
-    .get();
-
   const memberMap = new Map<
     string,
     { firstName?: string; lastName?: string; userEmail?: string }
   >();
-  for (const doc of membersSnapshot.docs) {
-    const data = doc.data();
-    memberMap.set(data.userId, {
-      firstName: data.firstName,
-      lastName: data.lastName,
-      userEmail: data.userEmail,
-    });
+
+  // 1. Batch-fetch ALL memberIds from organizationMembers
+  // organizationMembers doc ID = {userId}_{organizationId}
+  const orgMemberRefs = memberIds.map((userId) =>
+    db.collection("organizationMembers").doc(`${userId}_${organizationId}`),
+  );
+  const orgMemberDocs = await db.getAll(...orgMemberRefs);
+  for (const doc of orgMemberDocs) {
+    if (doc.exists) {
+      const data = doc.data()!;
+      const userId = data.userId as string;
+      memberMap.set(userId, {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        userEmail: data.userEmail ?? data.email,
+      });
+    }
   }
 
-  // Also check owner
+  // 2. Check owner as fallback
   if (ownerId && memberIds.includes(ownerId) && !memberMap.has(ownerId)) {
     const ownerDoc = await db.collection("users").doc(ownerId).get();
     if (ownerDoc.exists) {
@@ -405,19 +433,20 @@ async function resolveMemberDetails(
     }
   }
 
+  // 3. Build result - NEVER silently drop members
+  const members: CreateSelectionProcessMember[] = [];
   for (const userId of memberIds) {
     const memberData = memberMap.get(userId);
-    if (memberData) {
-      const name =
-        `${memberData.firstName ?? ""} ${memberData.lastName ?? ""}`.trim() ||
+    const name = memberData
+      ? `${memberData.firstName ?? ""} ${memberData.lastName ?? ""}`.trim() ||
         memberData.userEmail ||
-        userId;
-      members.push({
-        userId,
-        userName: name,
-        userEmail: memberData.userEmail || "",
-      });
-    }
+        userId
+      : userId; // Fallback to userId if no data found anywhere
+    members.push({
+      userId,
+      userName: name,
+      userEmail: memberData?.userEmail || "",
+    });
   }
 
   return members;
