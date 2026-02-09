@@ -74,10 +74,10 @@ struct HorseDoneButton: View {
     var body: some View {
         HorseActionButton(
             title: String(localized: "routine.horse.done"),
-            icon: "checkmark",
-            foregroundColor: .green,
-            backgroundColor: Color.green.opacity(0.1),
-            borderColor: Color.green.opacity(0.3),
+            icon: nil,
+            foregroundColor: .blue,
+            backgroundColor: Color.blue.opacity(0.1),
+            borderColor: Color.blue.opacity(0.3),
             isExpanded: isExpanded,
             action: action
         )

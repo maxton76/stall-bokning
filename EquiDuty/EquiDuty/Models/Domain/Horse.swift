@@ -180,6 +180,8 @@ struct Horse: Codable, Identifiable, Equatable {
     var currentStableId: String?
     var currentStableName: String?
     var assignedAt: Date?
+    var boxName: String?           // Box/stall name or number
+    var paddockName: String?       // Paddock/pasture name
 
     // Status
     var status: HorseStatus
@@ -259,6 +261,7 @@ struct Horse: Codable, Identifiable, Equatable {
         case id, name, breed, age, color, gender
         case ownerId, ownerName, ownerEmail
         case currentStableId, currentStableName, assignedAt
+        case boxName, paddockName
         case status, notes, specialInstructions, equipment, hasSpecialInstructions
         case usage
         case horseGroupId, horseGroupName
@@ -294,6 +297,8 @@ struct Horse: Codable, Identifiable, Equatable {
         currentStableId = try container.decodeIfPresent(String.self, forKey: .currentStableId)
         currentStableName = try container.decodeIfPresent(String.self, forKey: .currentStableName)
         assignedAt = try container.decodeIfPresent(Date.self, forKey: .assignedAt)
+        boxName = try container.decodeIfPresent(String.self, forKey: .boxName)
+        paddockName = try container.decodeIfPresent(String.self, forKey: .paddockName)
 
         status = try container.decode(HorseStatus.self, forKey: .status)
         notes = try container.decodeIfPresent(String.self, forKey: .notes)
@@ -380,6 +385,8 @@ struct Horse: Codable, Identifiable, Equatable {
         currentStableId: String? = nil,
         currentStableName: String? = nil,
         assignedAt: Date? = nil,
+        boxName: String? = nil,
+        paddockName: String? = nil,
         status: HorseStatus,
         notes: String? = nil,
         specialInstructions: String? = nil,
@@ -436,6 +443,8 @@ struct Horse: Codable, Identifiable, Equatable {
         self.currentStableId = currentStableId
         self.currentStableName = currentStableName
         self.assignedAt = assignedAt
+        self.boxName = boxName
+        self.paddockName = paddockName
         self.status = status
         self.notes = notes
         self.specialInstructions = specialInstructions

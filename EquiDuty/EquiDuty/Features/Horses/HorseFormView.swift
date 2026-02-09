@@ -21,6 +21,8 @@ struct HorseFormView: View {
     @State private var gender: HorseGender?
     @State private var dateOfBirth: Date?
     @State private var withersHeight: String = ""
+    @State private var boxName = ""
+    @State private var paddockName = ""
     @State private var ueln = ""
     @State private var chipNumber = ""
     @State private var specialInstructions = ""
@@ -150,6 +152,17 @@ struct HorseFormView: View {
                     }
                 }
 
+                // Placement
+                Section(String(localized: "horse.form.placement")) {
+                    TextField(String(localized: "horse.form.box"), text: $boxName)
+                        .textContentType(.none)
+                        .autocapitalization(.none)
+
+                    TextField(String(localized: "horse.form.paddock"), text: $paddockName)
+                        .textContentType(.none)
+                        .autocapitalization(.none)
+                }
+
                 // Identification
                 Section(String(localized: "horse.form.identification")) {
                     TextField("UELN", text: $ueln)
@@ -249,6 +262,8 @@ struct HorseFormView: View {
                     gender = horse.gender
                     dateOfBirth = horse.dateOfBirth
                     withersHeight = horse.withersHeight.map { String($0) } ?? ""
+                    boxName = horse.boxName ?? ""
+                    paddockName = horse.paddockName ?? ""
                     ueln = horse.ueln ?? ""
                     chipNumber = horse.chipNumber ?? ""
                     specialInstructions = horse.specialInstructions ?? ""
@@ -279,6 +294,8 @@ struct HorseFormView: View {
                     age: nil,
                     status: nil,
                     currentStableId: nil,
+                    boxName: boxName.isEmpty ? nil : boxName,
+                    paddockName: paddockName.isEmpty ? nil : paddockName,
                     notes: notes.isEmpty ? nil : notes,
                     specialInstructions: specialInstructions.isEmpty ? nil : specialInstructions,
                     equipment: nil,
@@ -300,6 +317,8 @@ struct HorseFormView: View {
                     age: nil,
                     status: .active,
                     currentStableId: authService.selectedStable?.id,
+                    boxName: boxName.isEmpty ? nil : boxName,
+                    paddockName: paddockName.isEmpty ? nil : paddockName,
                     notes: notes.isEmpty ? nil : notes,
                     specialInstructions: specialInstructions.isEmpty ? nil : specialInstructions,
                     equipment: nil,

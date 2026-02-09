@@ -43,9 +43,9 @@ enum AppEnvironment {
     var apiBaseURL: String {
         switch self {
         case .development:
-            return "https://api-service-773558333623.europe-west1.run.app/api/v1"
+            return "https://dev-api-service-auky5oec3a-ew.a.run.app/api/v1"
         case .staging:
-            return "https://api-staging-service.europe-west1.run.app/api/v1"
+            return "https://staging-api-service-rgjasworaq-ew.a.run.app/api/v1"
         case .production:
             return "https://api.equiduty.se/api/v1"
         }

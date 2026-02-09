@@ -20,44 +20,60 @@ struct HorseListView: View {
     @State private var showFilterSheet = false
     @State private var debouncedSearchText = ""
     @State private var searchDebounceTask: Task<Void, Never>?
+    @State private var showOwnedOnly = false
 
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
-            Group {
-                if isLoading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let errorMessage {
-                    ErrorView(message: errorMessage) {
-                        loadHorses()
+            VStack(spacing: 0) {
+                // Scope selector (only show when stable is selected)
+                if authService.selectedStable != nil {
+                    Picker(String(localized: "horses.scope"), selection: $showOwnedOnly) {
+                        Text(String(localized: "horses.scope.all")).tag(false)
+                        Text(String(localized: "horses.scope.owned")).tag(true)
                     }
-                } else if filteredHorses.isEmpty {
-                    if searchText.isEmpty && !filters.hasActiveFilters {
-                        ModernEmptyStateView(
-                            icon: "pawprint.fill",
-                            title: String(localized: "horses.empty.title"),
-                            message: String(localized: "horses.empty.message"),
-                            actionTitle: String(localized: "horses.add"),
-                            action: { showAddHorse = true }
-                        )
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, EquiDutyDesign.Spacing.md)
+                    .padding(.vertical, EquiDutyDesign.Spacing.sm)
+                    .background(Color(.systemGroupedBackground))
+                }
+                
+                // Main content
+                Group {
+                    if isLoading {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if let errorMessage {
+                        ErrorView(message: errorMessage) {
+                            loadHorses()
+                        }
+                    } else if filteredHorses.isEmpty {
+                        if searchText.isEmpty && !filters.hasActiveFilters {
+                            ModernEmptyStateView(
+                                icon: "pawprint.fill",
+                                title: String(localized: "horses.empty.title"),
+                                message: String(localized: "horses.empty.message"),
+                                actionTitle: String(localized: "horses.add"),
+                                action: { showAddHorse = true }
+                            )
+                        } else {
+                            ModernEmptyStateView(
+                                icon: "magnifyingglass",
+                                title: String(localized: "horses.no_results.title"),
+                                message: String(localized: "horses.no_results.message")
+                            )
+                        }
                     } else {
-                        ModernEmptyStateView(
-                            icon: "magnifyingglass",
-                            title: String(localized: "horses.no_results.title"),
-                            message: String(localized: "horses.no_results.message")
-                        )
-                    }
-                } else {
-                    List {
-                        ForEach(filteredHorses) { horse in
-                            NavigationLink(value: AppDestination.horseDetail(horseId: horse.id)) {
-                                HorseRowView(horse: horse)
+                        List {
+                            ForEach(filteredHorses) { horse in
+                                NavigationLink(value: AppDestination.horseDetail(horseId: horse.id)) {
+                                    HorseRowView(horse: horse)
+                                }
                             }
                         }
+                        .listStyle(.plain)
                     }
-                    .listStyle(.plain)
                 }
             }
             .navigationTitle(String(localized: "horses.title"))
@@ -132,6 +148,9 @@ struct HorseListView: View {
                 loadHorses()
             }
             .onChange(of: authService.selectedStable?.id) { _, _ in
+                loadHorses()
+            }
+            .onChange(of: showOwnedOnly) { _, _ in
                 loadHorses()
             }
             .onChange(of: searchText) { _, newValue in
@@ -224,12 +243,16 @@ struct HorseListView: View {
 
         Task {
             do {
-                // If a stable is selected, get stable horses; otherwise get all accessible
+                // If a stable is selected, get stable horses or user's horses; otherwise get all accessible
                 if let stableId = authService.selectedStable?.id {
                     #if DEBUG
-                    print("🔄 Fetching horses for stable: \(stableId)")
+                    print("🔄 Fetching horses for stable: \(stableId), ownedOnly: \(showOwnedOnly)")
                     #endif
-                    horses = try await horseService.getStableHorses(stableId: stableId)
+                    if showOwnedOnly {
+                        horses = try await horseService.getMyHorses(stableId: stableId)
+                    } else {
+                        horses = try await horseService.getStableHorses(stableId: stableId)
+                    }
                     #if DEBUG
                     print("✅ Fetched \(horses.count) horses")
                     #endif
@@ -265,7 +288,11 @@ struct HorseListView: View {
     private func refreshHorses() async {
         do {
             if let stableId = authService.selectedStable?.id {
-                horses = try await horseService.getStableHorses(stableId: stableId)
+                if showOwnedOnly {
+                    horses = try await horseService.getMyHorses(stableId: stableId)
+                } else {
+                    horses = try await horseService.getStableHorses(stableId: stableId)
+                }
             } else {
                 horses = try await horseService.getAllAccessibleHorses()
             }

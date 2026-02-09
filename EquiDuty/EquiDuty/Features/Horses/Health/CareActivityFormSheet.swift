@@ -79,7 +79,7 @@ struct CareActivityFormSheet: View {
                 Section {
                     Picker(String(localized: "care.form.duration"), selection: $durationMinutes) {
                         ForEach(durationOptions, id: \.self) { minutes in
-                            Text(String(localized: "care.form.duration.minutes.\(minutes)"))
+                            Text(durationText(for: minutes))
                                 .tag(minutes)
                         }
                     }
@@ -121,6 +121,27 @@ struct CareActivityFormSheet: View {
                 }
             }
             .interactiveDismissDisabled(isSaving)
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func durationText(for minutes: Int) -> String {
+        switch minutes {
+        case 15:
+            return String(localized: "care.form.duration.minutes.15")
+        case 30:
+            return String(localized: "care.form.duration.minutes.30")
+        case 45:
+            return String(localized: "care.form.duration.minutes.45")
+        case 60:
+            return String(localized: "care.form.duration.minutes.60")
+        case 90:
+            return String(localized: "care.form.duration.minutes.90")
+        case 120:
+            return String(localized: "care.form.duration.minutes.120")
+        default:
+            return "\(minutes) min"
         }
     }
 

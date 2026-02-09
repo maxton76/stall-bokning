@@ -84,15 +84,9 @@ struct HorseDetailView: View {
         }
         .navigationTitle(horse?.name ?? String(localized: "horse.loading"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
+        .overlay(alignment: .bottomTrailing) {
             if horse != nil {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showEditSheet = true
-                    } label: {
-                        Text(String(localized: "common.edit"))
-                    }
-                }
+                editFAB
             }
         }
         .sheet(isPresented: $showEditSheet, onDismiss: {
@@ -128,6 +122,26 @@ struct HorseDetailView: View {
                 isLoading = false
             }
         }
+    }
+
+    // MARK: - Floating Action Button
+
+    private var editFAB: some View {
+        Button {
+            showEditSheet = true
+        } label: {
+            Image(systemName: "pencil")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 56, height: 56)
+                .background(
+                    Circle()
+                        .fill(Color.accentColor)
+                        .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                )
+        }
+        .padding(.trailing, 20)
+        .padding(.bottom, 20)
     }
 }
 

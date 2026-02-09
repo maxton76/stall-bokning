@@ -73,6 +73,8 @@ struct CreateHorseRequest: Encodable {
     let age: Int?
     let status: HorseStatus
     let currentStableId: String?
+    let boxName: String?
+    let paddockName: String?
     let notes: String?
     let specialInstructions: String?
     let equipment: [EquipmentItem]?
@@ -92,6 +94,8 @@ struct UpdateHorseRequest: Encodable {
     var age: Int?
     var status: HorseStatus?
     var currentStableId: String?
+    var boxName: String?
+    var paddockName: String?
     var notes: String?
     var specialInstructions: String?
     var equipment: [EquipmentItem]?
