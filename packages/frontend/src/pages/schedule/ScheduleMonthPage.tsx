@@ -19,7 +19,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { useUserStables } from "@/hooks/useUserStables";
+import { useOrganizationMembers } from "@/hooks/useOrganizationMembers";
 import { useScheduledRoutines } from "@/hooks/useScheduledRoutines";
 import {
   format,
@@ -35,7 +37,10 @@ import {
 } from "date-fns";
 import { sv } from "date-fns/locale";
 import type { RoutineInstance } from "@shared/types";
-import { formatAssigneeName } from "@/utils/formatName";
+import {
+  getDuplicateNames,
+  formatMemberDisplayName,
+} from "@/utils/memberDisplayName";
 
 /**
  * Schedule Month Page - Monthly calendar view
@@ -48,6 +53,7 @@ import { formatAssigneeName } from "@/utils/formatName";
 export default function ScheduleMonthPage() {
   const { t } = useTranslation(["common"]);
   const { user } = useAuth();
+  const { currentOrganizationId } = useOrganization();
   const navigate = useNavigate();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -77,6 +83,21 @@ export default function ScheduleMonthPage() {
 
   // Auto-select first stable if none selected
   const activeStableId = selectedStableId || stables[0]?.id;
+
+  // Fetch organization members for proper name formatting with duplicate detection
+  const { data: members = [] } = useOrganizationMembers(currentOrganizationId);
+
+  // Detect duplicate display names for disambiguation
+  const duplicateNames = useMemo(() => getDuplicateNames(members), [members]);
+
+  // Create member lookup map for efficient assignee name formatting
+  const memberMap = useMemo(() => {
+    const map = new Map<string, (typeof members)[0]>();
+    members.forEach((member) => {
+      map.set(member.userId, member);
+    });
+    return map;
+  }, [members]);
 
   // Calculate date range for the visible calendar (including overflow days)
   const monthStart = startOfMonth(currentMonth);
@@ -161,6 +182,23 @@ export default function ScheduleMonthPage() {
       const timeB = b.scheduledStartTime || "00:00";
       return timeA.localeCompare(timeB);
     });
+  };
+
+  /**
+   * Format routine assignee name with duplicate detection
+   * Uses assignedTo (userId) to lookup full member data and apply email disambiguation
+   */
+  const formatRoutineAssigneeName = (routine: RoutineInstance): string => {
+    if (!routine.assignedTo) return "";
+
+    // Lookup member by ID for accurate data
+    const member = memberMap.get(routine.assignedTo);
+    if (member) {
+      return formatMemberDisplayName(member, duplicateNames);
+    }
+
+    // Fallback to stored name if member not found (shouldn't happen normally)
+    return routine.assignedToName || "";
   };
 
   const handleDayClick = (date: Date) => {
@@ -351,13 +389,8 @@ export default function ScheduleMonthPage() {
                               </div>
                               {showAssignees && (
                                 <div className="text-[9px] text-muted-foreground pl-1 truncate">
-                                  {routine.assignedToName ? (
-                                    <>
-                                      →{" "}
-                                      {formatAssigneeName(
-                                        routine.assignedToName,
-                                      )}
-                                    </>
+                                  {routine.assignedTo ? (
+                                    <>→ {formatRoutineAssigneeName(routine)}</>
                                   ) : (
                                     <span className="italic">
                                       → {t("common:schedule.status.unassigned")}

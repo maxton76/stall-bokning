@@ -53,6 +53,7 @@ variable "cloud_functions_roles" {
     "roles/monitoring.metricWriter",      # Write metrics
     "roles/pubsub.publisher",             # Publish to Pub/Sub
     "roles/eventarc.eventReceiver",       # Receive Eventarc events
+    "roles/firebasecloudmessaging.admin", # Send FCM push notifications
   ]
 }
 

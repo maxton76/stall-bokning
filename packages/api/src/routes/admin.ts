@@ -182,6 +182,37 @@ const putTierSchema = {
   },
 };
 
+// ============================================
+// JSON Schema for notification test endpoint
+// ============================================
+
+const testNotificationSchema = {
+  body: {
+    type: "object" as const,
+    required: ["userId", "title", "body", "channels"],
+    additionalProperties: false,
+    properties: {
+      userId: { type: "string" as const, minLength: 1, maxLength: 128 },
+      title: { type: "string" as const, minLength: 1, maxLength: 200 },
+      body: { type: "string" as const, minLength: 1, maxLength: 1000 },
+      channels: {
+        type: "array" as const,
+        items: {
+          type: "string" as const,
+          enum: ["push", "inApp", "email"],
+        },
+        minItems: 1,
+      },
+      priority: {
+        type: "string" as const,
+        enum: ["low", "normal", "high", "urgent"],
+      },
+      actionUrl: { type: "string" as const, maxLength: 500 },
+      imageUrl: { type: "string" as const, maxLength: 500 },
+    },
+  },
+};
+
 export const adminRoutes = async (fastify: FastifyInstance) => {
   // ============================================
   // DASHBOARD
@@ -1303,6 +1334,232 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to update organization beta features",
+        });
+      }
+    },
+  );
+
+  // ============================================
+  // NOTIFICATION TESTING
+  // ============================================
+
+  /**
+   * GET /notifications/users-with-tokens - List users who have FCM tokens registered
+   */
+  fastify.get(
+    "/notifications/users-with-tokens",
+    { preHandler: adminPreHandler },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const usersSnapshot = await db.collection("users").get();
+        const usersWithTokens: Array<{
+          id: string;
+          email: string;
+          displayName: string;
+          tokens: Array<{ deviceName: string; platform: string }>;
+        }> = [];
+
+        for (const userDoc of usersSnapshot.docs) {
+          const userData = userDoc.data();
+          // Check for FCM tokens in the user's notification preferences subcollection
+          const prefsDoc = await db
+            .collection("users")
+            .doc(userDoc.id)
+            .collection("preferences")
+            .doc("notifications")
+            .get();
+
+          if (!prefsDoc.exists) continue;
+
+          const prefs = prefsDoc.data();
+          const fcmTokens = prefs?.push?.fcmTokens || [];
+
+          if (fcmTokens.length === 0) continue;
+
+          usersWithTokens.push({
+            id: userDoc.id,
+            email: userData.email || "",
+            displayName:
+              `${userData.firstName || ""} ${userData.lastName || ""}`.trim() ||
+              userData.email ||
+              userDoc.id,
+            tokens: fcmTokens.map(
+              (t: { deviceName?: string; platform?: string }) => ({
+                deviceName: t.deviceName || "Unknown device",
+                platform: t.platform || "unknown",
+              }),
+            ),
+          });
+        }
+
+        return reply.send({ users: usersWithTokens });
+      } catch (error) {
+        request.log.error({ error }, "Failed to list users with FCM tokens");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to fetch users with tokens",
+        });
+      }
+    },
+  );
+
+  /**
+   * POST /notifications/test-send - Send a test notification
+   */
+  fastify.post(
+    "/notifications/test-send",
+    { preHandler: adminPreHandler, schema: testNotificationSchema },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const {
+        userId,
+        title,
+        body,
+        channels,
+        priority = "normal",
+        actionUrl,
+        imageUrl,
+      } = request.body as {
+        userId: string;
+        title: string;
+        body: string;
+        channels: string[];
+        priority?: string;
+        actionUrl?: string;
+        imageUrl?: string;
+      };
+
+      if (!isValidId(userId)) {
+        return reply.status(400).send({ error: "Invalid user ID" });
+      }
+
+      try {
+        // Verify user exists
+        const userDoc = await db.collection("users").doc(userId).get();
+        if (!userDoc.exists) {
+          return reply
+            .status(404)
+            .send({ error: "Not Found", message: "User not found" });
+        }
+
+        const userData = userDoc.data()!;
+        const now = new Date();
+
+        // Create notification document
+        const notificationRef = db.collection("notifications").doc();
+        const notificationData = {
+          userId,
+          userEmail: userData.email || "",
+          type: "system_alert",
+          priority,
+          title,
+          body,
+          entityType: "organization",
+          channels,
+          deliveryStatus: Object.fromEntries(
+            channels.map((ch: string) => [ch, "pending"]),
+          ),
+          deliveryAttempts: 0,
+          read: false,
+          ...(actionUrl && { actionUrl }),
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        await notificationRef.set(notificationData);
+
+        // Create queue items for each channel
+        let queued = 0;
+
+        for (const channel of channels) {
+          if (channel === "push") {
+            // Get user's FCM tokens
+            const prefsDoc = await db
+              .collection("users")
+              .doc(userId)
+              .collection("preferences")
+              .doc("notifications")
+              .get();
+
+            const fcmTokens = prefsDoc.data()?.push?.fcmTokens || [];
+
+            // Create one queue item per FCM token
+            for (const tokenEntry of fcmTokens) {
+              const queueRef = db.collection("notificationQueue").doc();
+              await queueRef.set({
+                notificationId: notificationRef.id,
+                userId,
+                channel: "push",
+                priority,
+                payload: {
+                  title,
+                  body,
+                  ...(imageUrl && { imageUrl }),
+                  data: {
+                    notificationId: notificationRef.id,
+                    type: "system_alert",
+                    ...(actionUrl && { actionUrl }),
+                  },
+                },
+                fcmToken: tokenEntry.token,
+                status: "pending",
+                attempts: 0,
+                maxAttempts: 3,
+                scheduledFor: now,
+                createdAt: now,
+              });
+              queued++;
+            }
+          } else {
+            // inApp or email — one queue item each
+            const queueRef = db.collection("notificationQueue").doc();
+            await queueRef.set({
+              notificationId: notificationRef.id,
+              userId,
+              channel,
+              priority,
+              payload: {
+                title,
+                body,
+                ...(imageUrl && { imageUrl }),
+                data: {
+                  notificationId: notificationRef.id,
+                  type: "system_alert",
+                  ...(actionUrl && { actionUrl }),
+                },
+              },
+              ...(channel === "email" && {
+                emailData: { to: userData.email },
+              }),
+              status: "pending",
+              attempts: 0,
+              maxAttempts: 3,
+              scheduledFor: now,
+              createdAt: now,
+            });
+            queued++;
+          }
+        }
+
+        request.log.info(
+          {
+            notificationId: notificationRef.id,
+            userId,
+            channels,
+            queued,
+          },
+          "Admin sent test notification",
+        );
+
+        return reply.send({
+          success: true,
+          notificationId: notificationRef.id,
+          queued,
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to send test notification");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to send test notification",
         });
       }
     },

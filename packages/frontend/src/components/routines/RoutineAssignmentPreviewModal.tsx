@@ -143,11 +143,23 @@ export function RoutineAssignmentPreviewModal({
     if (!userId) return t("routines:schedules.preview.unassigned");
     const member = members.find((m) => m.userId === userId);
     if (member) return formatMemberDisplayName(member, duplicateNames);
+
     // Try suggestion data as fallback
     const suggestion = suggestionsData?.suggestions.find(
       (s) => s.userId === userId,
     );
-    return suggestion?.displayName || userId;
+    if (suggestion?.displayName && suggestion.displayName !== "Unknown") {
+      // Try to match suggestion name to a member for proper duplicate handling
+      const matchingMember = members.find(
+        (m) => `${m.firstName} ${m.lastName}`.trim() === suggestion.displayName,
+      );
+      if (matchingMember) {
+        return formatMemberDisplayName(matchingMember, duplicateNames);
+      }
+      return suggestion.displayName;
+    }
+
+    return userId;
   };
 
   // Get dropdown item name - prefers member data over suggestion data
@@ -157,9 +169,22 @@ export function RoutineAssignmentPreviewModal({
   ): string => {
     const member = members.find((m) => m.userId === userId);
     if (member) return formatMemberDisplayName(member, duplicateNames);
+
+    // For API-provided display names, check if we have the full member data
+    // This can happen when member has planning access but isn't in suggestions
     if (suggestionDisplayName && suggestionDisplayName !== "Unknown") {
+      // Try to find member by matching display name to reconstruct with email
+      const matchingMember = members.find(
+        (m) => `${m.firstName} ${m.lastName}`.trim() === suggestionDisplayName,
+      );
+      if (matchingMember) {
+        return formatMemberDisplayName(matchingMember, duplicateNames);
+      }
+      // Fallback: If we can't find the member, use the provided name
+      // This shouldn't happen in practice if members are loaded correctly
       return suggestionDisplayName;
     }
+
     return userId;
   };
 

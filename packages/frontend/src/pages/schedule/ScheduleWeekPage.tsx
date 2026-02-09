@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -25,6 +25,8 @@ import {
 } from "@/components/routines";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserStables } from "@/hooks/useUserStables";
+import { useOrganizationMembers } from "@/hooks/useOrganizationMembers";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   useWeekScheduledRoutines,
   type ScheduleSlot,
@@ -32,7 +34,10 @@ import {
 } from "@/hooks/useScheduledRoutines";
 import { format, addWeeks, subWeeks, startOfWeek, addDays } from "date-fns";
 import { sv } from "date-fns/locale";
-import { formatAssigneeName } from "@/utils/formatName";
+import {
+  getDuplicateNames,
+  formatMemberDisplayName,
+} from "@/utils/memberDisplayName";
 
 /**
  * Schedule Week Page - Weekly calendar view
@@ -45,6 +50,7 @@ import { formatAssigneeName } from "@/utils/formatName";
 export default function ScheduleWeekPage() {
   const { t } = useTranslation(["common"]);
   const { user } = useAuth();
+  const { currentOrganizationId } = useOrganization();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -72,6 +78,21 @@ export default function ScheduleWeekPage() {
   // Auto-select first stable if none selected
   const activeStableId = selectedStableId || stables[0]?.id;
 
+  // Fetch organization members for proper name formatting with duplicate detection
+  const { data: members = [] } = useOrganizationMembers(currentOrganizationId);
+
+  // Detect duplicate display names for disambiguation
+  const duplicateNames = useMemo(() => getDuplicateNames(members), [members]);
+
+  // Create member lookup map for efficient assignee name formatting
+  const memberMap = useMemo(() => {
+    const map = new Map<string, (typeof members)[0]>();
+    members.forEach((member) => {
+      map.set(member.userId, member);
+    });
+    return map;
+  }, [members]);
+
   // Fetch real routine data
   const {
     data: weekSchedule,
@@ -90,6 +111,23 @@ export default function ScheduleWeekPage() {
 
   const goToToday = () => {
     setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  };
+
+  /**
+   * Format assignee name with duplicate detection
+   * Uses assigneeId to lookup full member data and apply email disambiguation
+   */
+  const formatSlotAssigneeName = (slot: ScheduleSlot): string => {
+    if (!slot.assigneeId) return "";
+
+    // Lookup member by ID for accurate data
+    const member = memberMap.get(slot.assigneeId);
+    if (member) {
+      return formatMemberDisplayName(member, duplicateNames);
+    }
+
+    // Fallback to stored name if member not found (shouldn't happen normally)
+    return slot.assignee || "";
   };
 
   const getSlotStatusColor = (slot: ScheduleSlot) => {
@@ -423,9 +461,9 @@ export default function ScheduleWeekPage() {
                         {slot.title}
                       </div>
                       <div className="text-[10px] opacity-75">{slot.time}</div>
-                      {slot.assignee ? (
+                      {slot.assigneeId ? (
                         <div className="text-[10px] font-bold mt-1">
-                          {formatAssigneeName(slot.assignee)}
+                          {formatSlotAssigneeName(slot)}
                         </div>
                       ) : (
                         <div className="text-[10px] text-muted-foreground mt-1">

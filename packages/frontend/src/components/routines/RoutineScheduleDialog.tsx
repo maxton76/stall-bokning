@@ -107,6 +107,23 @@ export function RoutineScheduleDialog({
   // Detect duplicate display names for disambiguation
   const duplicateNames = useMemo(() => getDuplicateNames(members), [members]);
 
+  // Debug: Log members to verify owner is present (remove after debugging)
+  useEffect(() => {
+    if (members.length > 0 && open) {
+      console.log("[RoutineScheduleDialog] Members loaded:", {
+        count: members.length,
+        members: members.map((m) => ({
+          userId: m.userId,
+          name: `${m.firstName} ${m.lastName}`,
+          email: m.userEmail,
+          roles: m.roles,
+          showInPlanning: m.showInPlanning,
+        })),
+        organizationId,
+      });
+    }
+  }, [members, open, organizationId]);
+
   // Reset form when opening or schedule changes
   useEffect(() => {
     if (open) {

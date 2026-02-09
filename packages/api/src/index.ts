@@ -265,7 +265,7 @@ export async function build() {
     prefix: "/api/v1/admin/reprocess-images",
   });
   await fastify.register(subscriptionRoutes, {
-    prefix: "/api/v1/subscriptions",
+    prefix: "/api/v1",
   });
   await fastify.register(stripeWebhookRoutes, {
     prefix: "/api/v1/webhooks/stripe",

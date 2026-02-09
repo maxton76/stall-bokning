@@ -103,6 +103,8 @@ interface QueueItem {
   lastError?: string;
   scheduledFor: Timestamp;
   createdAt: Timestamp;
+  lockedAt?: Timestamp;
+  lockedBy?: string;
 }
 
 /**
@@ -282,12 +284,6 @@ async function processQueueItem(
     return;
   }
 
-  // Mark as processing
-  await queueItemRef.update({
-    status: "processing",
-    attempts: FieldValue.increment(1),
-  });
-
   let success = false;
   let error: string | undefined;
 
@@ -421,6 +417,44 @@ async function processQueueItem(
   );
 }
 
+const DEFAULT_MAX_ATTEMPTS = 5;
+const STALE_LOCK_MS = 10 * 60 * 1000; // 10 minutes
+
+async function claimQueueItem(
+  docRef: FirebaseFirestore.DocumentReference,
+  executionId: string,
+): Promise<QueueItem | null> {
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(docRef);
+    if (!snap.exists) return null;
+    const data = snap.data()!;
+
+    const isPending = data.status === "pending";
+    const isStaleProcessing =
+      data.status === "processing" &&
+      (!data.lockedAt || Date.now() - data.lockedAt.toMillis() > STALE_LOCK_MS);
+
+    if (!isPending && !isStaleProcessing) return null;
+
+    const now = Timestamp.now();
+    tx.update(docRef, {
+      status: "processing",
+      lockedAt: now,
+      lockedBy: executionId,
+      attempts: FieldValue.increment(1),
+    });
+
+    return {
+      id: snap.id,
+      ...data,
+      status: "processing",
+      lockedAt: now,
+      lockedBy: executionId,
+      attempts: (data.attempts || 0) + 1,
+    } as QueueItem;
+  });
+}
+
 /**
  * Notification Queue Processor
  * Triggers when a new document is created in notificationQueue collection
@@ -435,74 +469,103 @@ export const processNotificationQueue = onDocumentCreated(
   },
   async (event) => {
     const executionId = crypto.randomUUID();
-    const snapshot = event.data;
 
-    if (!snapshot) {
-      logger.warn({ executionId }, "No data in queue item");
-      return;
-    }
+    // Try to extract doc ID — tolerant of protobuf deserialization failures
+    const docId = (event.data as any)?.id || event.params?.queueItemId || null;
 
-    const queueItem = {
-      id: snapshot.id,
-      ...snapshot.data(),
-    } as QueueItem;
-
-    // Check if already processed (idempotency)
-    if (queueItem.status !== "pending") {
+    if (docId) {
+      // Happy path: we know which document triggered
       logger.info(
-        {
-          executionId,
-          queueItemId: queueItem.id,
-          status: queueItem.status,
-        },
-        "Queue item already processed",
+        { executionId, queueItemId: docId, hasData: !!event.data },
+        "Processing notification queue event",
       );
+
+      const docRef = db.collection("notificationQueue").doc(docId);
+      const queueItem = await claimQueueItem(docRef, executionId);
+      if (!queueItem) return;
+
+      const maxAttempts = queueItem.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
+      if (queueItem.attempts > maxAttempts) {
+        await docRef.update({
+          status: "failed",
+          lastError: "Max delivery attempts reached",
+          processedAt: Timestamp.now(),
+        });
+        await updateDeliveryStatus(
+          queueItem.notificationId,
+          queueItem.channel,
+          "failed",
+          "Max delivery attempts reached",
+        );
+        return;
+      }
+
+      await processQueueItem(docRef, queueItem, executionId);
       return;
     }
 
-    // Check if max attempts reached
-    if (queueItem.attempts >= queueItem.maxAttempts) {
-      logger.warn(
-        {
-          executionId,
-          queueItemId: queueItem.id,
-          attempts: queueItem.attempts,
-        },
-        "Max delivery attempts reached",
-      );
+    // Fallback: Eventarc protobuf issue — query pending + stale processing items
+    logger.info(
+      { executionId },
+      "event.data undefined (protobuf issue), querying pending items",
+    );
 
-      await snapshot.ref.update({
-        status: "failed",
-        lastError: "Max delivery attempts reached",
-        processedAt: Timestamp.now(),
-      });
+    const pendingSnap = await db
+      .collection("notificationQueue")
+      .where("status", "==", "pending")
+      .limit(10)
+      .get();
 
-      await updateDeliveryStatus(
-        queueItem.notificationId,
-        queueItem.channel,
-        "failed",
-        "Max delivery attempts reached",
-      );
+    let docs = pendingSnap.docs;
 
+    // Also pick up stale "processing" items (crashed mid-processing)
+    if (docs.length < 10) {
+      const processingSnap = await db
+        .collection("notificationQueue")
+        .where("status", "==", "processing")
+        .limit(10 - docs.length)
+        .get();
+      docs = docs.concat(processingSnap.docs);
+    }
+
+    if (docs.length === 0) {
+      logger.info({ executionId }, "No pending queue items found");
       return;
     }
 
-    // Check scheduled time (don't process if scheduled for future)
-    const scheduledFor = queueItem.scheduledFor?.toDate();
-    if (scheduledFor && scheduledFor > new Date()) {
-      logger.info(
-        {
-          executionId,
-          queueItemId: queueItem.id,
-          scheduledFor: scheduledFor.toISOString(),
-        },
-        "Queue item scheduled for future - skipping",
-      );
-      return;
-    }
+    logger.info(
+      { executionId, count: docs.length },
+      "Processing pending queue items",
+    );
+    for (const doc of docs) {
+      try {
+        const queueItem = await claimQueueItem(doc.ref, executionId);
+        if (!queueItem) continue;
 
-    // Process the queue item
-    await processQueueItem(snapshot.ref, queueItem, executionId);
+        const maxAttempts = queueItem.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
+        if (queueItem.attempts > maxAttempts) {
+          await doc.ref.update({
+            status: "failed",
+            lastError: "Max delivery attempts reached",
+            processedAt: Timestamp.now(),
+          });
+          await updateDeliveryStatus(
+            queueItem.notificationId,
+            queueItem.channel,
+            "failed",
+            "Max delivery attempts reached",
+          );
+          continue;
+        }
+
+        await processQueueItem(doc.ref, queueItem, executionId);
+      } catch (err) {
+        logger.error(
+          { executionId, queueItemId: doc.id, error: formatErrorMessage(err) },
+          "Failed to process queue item",
+        );
+      }
+    }
   },
 );
 

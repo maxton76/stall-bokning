@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx-js-style";
 import type { Horse } from "@/types/roles";
 import { toDate } from "@/utils/timestampUtils";
 

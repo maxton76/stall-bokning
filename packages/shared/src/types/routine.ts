@@ -451,6 +451,7 @@ export interface UpdateRoutineTemplateInput {
   name?: string;
   description?: string;
   type?: RoutineType;
+  stableId?: string | null; // Allow updating stable assignment (null = all stables)
   icon?: string;
   color?: string;
   defaultStartTime?: string;

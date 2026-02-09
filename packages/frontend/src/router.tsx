@@ -206,6 +206,9 @@ const AdminFeatureRequestsPage = lazy(
 const FeatureTogglesPage = lazy(
   () => import("./pages/admin/FeatureTogglesPage"),
 );
+const AdminNotificationTestPage = lazy(
+  () => import("./pages/admin/AdminNotificationTestPage"),
+);
 
 // Finance & Invoicing pages
 const PaymentDashboardPage = lazy(() => import("./pages/PaymentDashboardPage"));
@@ -770,6 +773,10 @@ export const router = createBrowserRouter([
           {
             path: "/admin/feature-toggles",
             element: withSuspense(FeatureTogglesPage),
+          },
+          {
+            path: "/admin/notifications-test",
+            element: withSuspense(AdminNotificationTestPage),
           },
           {
             path: "/admin/stripe-products",
