@@ -416,10 +416,10 @@
       "defaultAssigneePlaceholder": "Select person...",
       "defaultAssigneeDescription": "Person assigned to the routine by default",
       "assignmentDescription": {
-        "auto": "Routine is automatically assigned based on work schedule and fairness points.",
-        "unassigned": "Routine is created without assignment and can be picked up by available staff.",
-        "manual": "Routine is always assigned to the selected person.",
-        "selfBooked": "Staff can book themselves for the routine."
+        "auto": "Routines are distributed evenly based on historical points. You can review and adjust assignments before creating the schedule.",
+        "unassigned": "No routines are automatically assigned. Members can book themselves or assignments are made manually later.",
+        "manual": "All routines are assigned to the same person you select below.",
+        "selfBooked": "Members can book open routines themselves according to available times."
       },
       "isEnabled": "Active Schedule",
       "isEnabledDescription": "Inactive schedules do not generate new routine instances",

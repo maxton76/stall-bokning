@@ -52,10 +52,8 @@ const LoginForm = () => {
       )}
 
       {/* Email */}
-      <div className="space-y-1">
-        <Label className="leading-5" htmlFor="userEmail">
-          {t("login.emailLabel")}
-        </Label>
+      <div className="space-y-2">
+        <Label htmlFor="userEmail">{t("login.emailLabel")}</Label>
         <Input
           type="email"
           id="userEmail"
@@ -68,15 +66,21 @@ const LoginForm = () => {
       </div>
 
       {/* Password */}
-      <div className="w-full space-y-1">
-        <Label className="leading-5" htmlFor="password">
-          {t("login.passwordLabel")}
-        </Label>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="password">{t("login.passwordLabel")}</Label>
+          <a
+            href="#"
+            className="text-sm text-muted-foreground hover:text-primary hover:underline"
+          >
+            {t("login.forgotPassword")}
+          </a>
+        </div>
         <div className="relative">
           <Input
             id="password"
             type={isVisible ? "text" : "password"}
-            placeholder={t("login.passwordPlaceholder")}
+            placeholder="••••••••••••••••"
             className="pr-9"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -99,18 +103,15 @@ const LoginForm = () => {
         </div>
       </div>
 
-      {/* Remember Me and Forgot Password */}
-      <div className="flex items-center justify-between gap-y-2">
-        <div className="flex items-center gap-3">
-          <Checkbox id="rememberMe" className="size-6" disabled={isLoading} />
-          <Label htmlFor="rememberMe" className="text-muted-foreground">
-            {t("login.rememberMe")}
-          </Label>
-        </div>
-
-        <a href="#" className="hover:underline">
-          {t("login.forgotPassword")}
-        </a>
+      {/* Remember Me */}
+      <div className="flex items-center gap-2">
+        <Checkbox id="rememberMe" disabled={isLoading} />
+        <Label
+          htmlFor="rememberMe"
+          className="text-sm font-normal text-muted-foreground"
+        >
+          {t("login.rememberMe")}
+        </Label>
       </div>
 
       <Button className="w-full" type="submit" disabled={isLoading}>

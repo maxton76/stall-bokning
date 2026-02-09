@@ -10,6 +10,7 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
+  OAuthProvider,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   setPersistence,
@@ -29,6 +30,7 @@ interface AuthContextType {
   profileLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   error: string | null;
@@ -152,6 +154,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const signInWithApple = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      const provider = new OAuthProvider("apple.com");
+      await signInWithPopup(auth, provider);
+      // onAuthStateChanged will handle the user profile fetch
+    } catch (err: any) {
+      console.error("Apple sign in error:", err);
+
+      // User-friendly error messages
+      let errorMessage = "Failed to sign in with Apple. Please try again.";
+
+      if (err.code === "auth/popup-closed-by-user") {
+        errorMessage = "Sign in cancelled.";
+      } else if (err.code === "auth/popup-blocked") {
+        errorMessage = "Pop-up blocked. Please allow pop-ups for this site.";
+      } else if (err.code === "auth/network-request-failed") {
+        errorMessage = "Network error. Please check your connection.";
+      } else if (err.code === "auth/unauthorized-domain") {
+        errorMessage = "This domain is not authorized. Please contact support.";
+      }
+
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const signOut = async () => {
     try {
       setError(null);
@@ -192,6 +224,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     profileLoading,
     signIn,
     signInWithGoogle,
+    signInWithApple,
     signOut,
     refreshProfile,
     error,

@@ -1,7 +1,7 @@
-import LoginPageComponent from '@/components/shadcn-studio/blocks/login-page-01/login-page-01'
+import LoginPageComponent from "@/components/shadcn-studio/blocks/login-page-05/login-page-05";
 
 const LoginPage = () => {
-  return <LoginPageComponent />
-}
+  return <LoginPageComponent />;
+};
 
-export default LoginPage
+export default LoginPage;
