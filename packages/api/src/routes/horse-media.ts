@@ -320,7 +320,8 @@ export async function horseMediaRoutes(fastify: FastifyInstance) {
           !data.fileUrl ||
           !data.storagePath ||
           !data.fileName ||
-          !data.fileSize ||
+          data.fileSize === undefined ||
+          data.fileSize === null ||
           !data.mimeType
         ) {
           return reply.status(400).send({

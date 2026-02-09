@@ -211,6 +211,11 @@ final class ImageUploadService {
             purpose: purpose.rawValue
         )
 
+        // Compress image first to get actual file size
+        guard let compressedData = compressImage(image, maxDimension: maxDimension, quality: 0.75) else {
+            throw ImageUploadError.compressionFailed
+        }
+
         let (readUrl, storagePath) = try await compressAndUpload(
             image: image,
             maxDimension: maxDimension,
@@ -227,7 +232,7 @@ final class ImageUploadService {
             fileUrl: readUrl,
             storagePath: storagePath,
             fileName: fileName,
-            fileSize: 0, // Size not tracked after compression
+            fileSize: compressedData.count, // Use actual compressed size (API rejects 0)
             mimeType: "image/jpeg"
         )
 
