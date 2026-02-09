@@ -103,3 +103,6 @@ override.tf.json
 .terraformrc
 terraform.rc
 .terraform.lock.hcl
+
+# User data exports
+users.json
