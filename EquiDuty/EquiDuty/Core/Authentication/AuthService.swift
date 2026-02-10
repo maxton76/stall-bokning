@@ -79,8 +79,9 @@ final class AuthService {
 
     // MARK: - Session Timeout (CIS 5.1)
 
-    /// Session timeout interval (15 minutes)
-    private let sessionTimeoutInterval: TimeInterval = 15 * 60 // 15 minutes
+    /// Session timeout interval (120 minutes / 2 hours)
+    /// Long timeout appropriate for stable management where users may be working with horses
+    private let sessionTimeoutInterval: TimeInterval = 120 * 60 // 120 minutes
 
     /// Timer for session timeout
     private var sessionTimeoutTimer: Timer?
@@ -174,6 +175,9 @@ final class AuthService {
     /// Reset session timeout (call on user activity)
     func resetSessionTimeout() {
         lastActivityTimestamp = Date()
+        #if DEBUG
+        print("⏱️ Session timeout reset - activity detected")
+        #endif
     }
 
     /// Check if session has timed out and auto-logout if needed
@@ -182,12 +186,16 @@ final class AuthService {
 
         let timeSinceLastActivity = Date().timeIntervalSince(lastActivityTimestamp)
 
+        #if DEBUG
+        print("⏱️ Session timeout check: \(Int(timeSinceLastActivity))s since last activity (threshold: \(Int(sessionTimeoutInterval))s)")
+        #endif
+
         if timeSinceLastActivity >= sessionTimeoutInterval {
             #if DEBUG
-            print("⏱️ Session timeout: \(timeSinceLastActivity)s since last activity")
+            print("⏱️ Session timeout triggered: \(Int(timeSinceLastActivity))s since last activity")
             #endif
 
-            AppLogger.auth.warning("🔒 Session timeout after 15 minutes of inactivity - auto-logout")
+            AppLogger.auth.warning("🔒 Session timeout after \(Int(sessionTimeoutInterval/60)) minutes of inactivity - auto-logout")
 
             // Auto-logout due to inactivity
             do {
@@ -223,9 +231,17 @@ final class AuthService {
         print("📱 App entered foreground (was in background for \(backgroundDuration)s)")
         #endif
 
+        #if DEBUG
+        print("📱 Background duration: \(Int(backgroundDuration))s (threshold: \(Int(sessionTimeoutInterval))s)")
+        #endif
+
         // If app was in background longer than session timeout, auto-logout
         if backgroundDuration >= sessionTimeoutInterval {
-            AppLogger.auth.warning("🔒 Session expired during background (\(backgroundDuration)s) - auto-logout")
+            #if DEBUG
+            print("🔒 Background timeout triggered: \(Int(backgroundDuration))s in background")
+            #endif
+
+            AppLogger.auth.warning("🔒 Session expired during background (\(Int(backgroundDuration))s) - auto-logout")
 
             do {
                 try signOut()
