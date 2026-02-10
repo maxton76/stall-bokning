@@ -49,9 +49,9 @@
 		DB94F7532F24DB290044785D /* Exceptions for "EquiDuty" folder in "EquiDuty" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Info.plist,
 				"Info-Dev.plist",
 				"Info-Staging.plist",
+				Info.plist,
 			);
 			target = DB1A9B132F24C90E00B87596 /* EquiDuty */;
 		};

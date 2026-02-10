@@ -846,7 +846,7 @@
     },
     "upload": {
       "formatTitle": "Filformat",
-      "formatDescription": "Kolumn A = ägarens e-postadress (måste vara befintlig medlem), Kolumn B och framåt = hästnamn. Varje cell med ett hästnamn skapar en häst.",
+      "formatDescription": "Kolumn A = ägarens e-postadress (måste vara befintlig medlem), Kolumn B = hästnamn (obligatoriskt), Kolumn C = födelsedatum (valfritt, YYYY-MM-DD), Kolumn D = UELN-nummer (valfritt), Kolumn E = chipnummer (valfritt, 15 siffror).",
       "dropzone": "Dra och släpp din fil här, eller klicka för att välja",
       "formats": "CSV, XLSX eller XLS (max 5MB)",
       "hasHeaders": "Första raden är rubrik",
@@ -867,6 +867,9 @@
       "ownerEmail": "Ägare (e-post)",
       "ownerName": "Ägarnamn",
       "horseName": "Hästnamn",
+      "dateOfBirth": "Födelsedatum",
+      "ueln": "UELN-nummer",
+      "chipNumber": "Chipnummer",
       "stable": "Stall",
       "valid": "Giltigt",
       "importButton": "Importera {{count}} hästar",
@@ -886,7 +889,10 @@
       "memberNotFound": "E-postadressen tillhör inte en medlem i organisationen",
       "emptyHorseName": "Hästnamnet är tomt",
       "duplicateHorseForOwner": "Duplicerat hästnamn för samma ägare",
-      "invalidEmail": "Ogiltig e-postadress"
+      "invalidEmail": "Ogiltig e-postadress",
+      "invalidDateFormat": "Ogiltigt datumformat. Använd YYYY-MM-DD.",
+      "invalidUelnFormat": "Ogiltigt UELN-format. Måste vara 10-20 tecken (bokstäver och siffror).",
+      "invalidChipNumberFormat": "Ogiltigt chipnummer. Måste vara 10-20 siffror."
     },
     "errors": {
       "fileTooLarge": "Filen är för stor (max {{maxSize}})",

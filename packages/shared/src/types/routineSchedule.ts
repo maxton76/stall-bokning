@@ -16,7 +16,12 @@ import type { RoutineAssignmentType, RoutineType } from "./routine.js";
 /**
  * Repeat pattern for routine schedules
  */
-export type RoutineScheduleRepeatPattern = "daily" | "weekdays" | "custom";
+export type RoutineScheduleRepeatPattern =
+  | "daily"
+  | "weekdays"
+  | "weekends"
+  | "holidays"
+  | "custom";
 
 // ============================================================
 // Routine Schedule (Definition)
@@ -185,6 +190,12 @@ export function getRepeatPatternDisplayText(
       return locale === "sv" ? "Dagligen" : "Daily";
     case "weekdays":
       return locale === "sv" ? "Vardagar" : "Weekdays";
+    case "weekends":
+      return locale === "sv" ? "Helger (Lör, Sön)" : "Weekends (Sat, Sun)";
+    case "holidays":
+      return locale === "sv"
+        ? "Helgdagar (Lör, Sön, Helgdag)"
+        : "Holidays (Sat, Sun, Holiday)";
     case "custom": {
       if (repeatDays && repeatDays.length > 0) {
         const sortedDays = [...repeatDays].sort((a, b) => a - b);

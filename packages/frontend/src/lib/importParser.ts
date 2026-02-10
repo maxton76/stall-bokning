@@ -157,6 +157,7 @@ export function parseImportFile(
           header: 1,
           defval: "",
           blankrows: false,
+          raw: true, // Return raw values without date parsing - preserve ISO date strings
         });
 
         if (rawData.length === 0) {

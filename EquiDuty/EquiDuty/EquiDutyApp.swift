@@ -11,6 +11,7 @@ import FirebaseCore
 import FirebaseMessaging
 import GoogleSignIn
 import UserNotifications
+import os
 
 // MARK: - App Delegate for Firebase
 

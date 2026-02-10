@@ -417,7 +417,7 @@
       "defaultAssigneeDescription": "Person assigned to the routine by default",
       "assignmentDescription": {
         "auto": "Routines are distributed evenly based on historical points. You can review and adjust assignments before creating the schedule.",
-        "unassigned": "No routines are automatically assigned. Members can book themselves or assignments are made manually later.",
+        "unassigned": "No routines are automatically assigned. Members can book themselves or assignment is done later via the routine selection feature.",
         "manual": "All routines are assigned to the same person you select below.",
         "selfBooked": "Members can book open routines themselves according to available times."
       },
@@ -431,12 +431,15 @@
       "updateError": "Failed to update schedule",
       "noTemplates": "No templates available",
       "noTemplatesDescription": "Create a routine template first to create schedules.",
-      "holidays": "Holidays"
+      "holidays": "Holidays",
+      "selectAllDays": "Select All",
+      "deselectAllDays": "Deselect All"
     },
     "repeatPatterns": {
       "daily": "Daily",
       "weekdays": "Weekdays",
-      "weekends": "Weekends",
+      "weekends": "Weekends (Sat, Sun)",
+      "holidays": "Holidays (Sat, Sun, Holiday)",
       "custom": "Custom"
     },
     "preview": {

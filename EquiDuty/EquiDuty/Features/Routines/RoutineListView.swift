@@ -21,6 +21,8 @@ struct RoutineListView: View {
     @State private var templates: [RoutineTemplate] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @Environment(NotificationViewModel.self) private var notificationViewModel
+    @State private var showNotificationCenter = false
 
     var body: some View {
         NavigationStack(path: $router.routinesPath) {
@@ -62,6 +64,7 @@ struct RoutineListView: View {
                 .padding(.vertical)
             }
             .navigationTitle(String(localized: "routines.title"))
+            .notificationBellToolbar(viewModel: notificationViewModel, showNotificationCenter: $showNotificationCenter)
             .refreshable {
                 await refreshData()
             }

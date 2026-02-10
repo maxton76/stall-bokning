@@ -846,7 +846,7 @@
     },
     "upload": {
       "formatTitle": "File format",
-      "formatDescription": "Column A = owner email (must be an existing member), Column B onwards = horse names. Each non-empty horse cell creates one horse.",
+      "formatDescription": "Column A = owner email (must be existing member), Column B = horse name (required), Column C = date of birth (optional, YYYY-MM-DD), Column D = UELN number (optional), Column E = chip number (optional, 15 digits).",
       "dropzone": "Drag and drop your file here, or click to select",
       "formats": "CSV, XLSX or XLS (max 5MB)",
       "hasHeaders": "First row is header",
@@ -867,6 +867,9 @@
       "ownerEmail": "Owner (email)",
       "ownerName": "Owner name",
       "horseName": "Horse name",
+      "dateOfBirth": "Date of Birth",
+      "ueln": "UELN Number",
+      "chipNumber": "Chip Number",
       "stable": "Stable",
       "valid": "Valid",
       "importButton": "Import {{count}} horses",
@@ -886,7 +889,10 @@
       "memberNotFound": "Email does not belong to an organization member",
       "emptyHorseName": "Horse name is empty",
       "duplicateHorseForOwner": "Duplicate horse name for the same owner",
-      "invalidEmail": "Invalid email address"
+      "invalidEmail": "Invalid email address",
+      "invalidDateFormat": "Invalid date format. Use YYYY-MM-DD.",
+      "invalidUelnFormat": "Invalid UELN format. Must be 10-20 characters (letters and digits).",
+      "invalidChipNumberFormat": "Invalid chip number. Must be 10-20 digits."
     },
     "errors": {
       "fileTooLarge": "File is too large (max {{maxSize}})",

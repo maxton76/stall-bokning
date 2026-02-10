@@ -23,6 +23,9 @@ interface BulkImportHorse {
   color: string;
   currentStableId: string;
   currentStableName: string;
+  dateOfBirth?: string; // ISO 8601 string
+  ueln?: string; // UELN number
+  chipNumber?: string; // Microchip number
 }
 
 interface BulkImportHorseResult {
@@ -126,6 +129,17 @@ async function processSingleHorse(
       createdBy,
       lastModifiedBy: createdBy,
     };
+
+    // Add optional fields if provided
+    if (horse.dateOfBirth) {
+      horseData.dateOfBirth = Timestamp.fromDate(new Date(horse.dateOfBirth));
+    }
+    if (horse.ueln) {
+      horseData.ueln = horse.ueln;
+    }
+    if (horse.chipNumber) {
+      horseData.chipNumber = horse.chipNumber;
+    }
 
     // Handle placement if stable org differs from owner org
     if (ownerOrganizationId) {

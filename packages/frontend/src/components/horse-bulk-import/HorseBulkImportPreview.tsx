@@ -177,6 +177,11 @@ export function HorseBulkImportPreview({
               <TableHead>{t("horses:bulkImport.preview.ownerEmail")}</TableHead>
               <TableHead>{t("horses:bulkImport.preview.ownerName")}</TableHead>
               <TableHead>{t("horses:bulkImport.preview.horseName")}</TableHead>
+              <TableHead>
+                {t("horses:bulkImport.preview.dateOfBirth")}
+              </TableHead>
+              <TableHead>{t("horses:bulkImport.preview.ueln")}</TableHead>
+              <TableHead>{t("horses:bulkImport.preview.chipNumber")}</TableHead>
               <TableHead>{t("horses:bulkImport.preview.stable")}</TableHead>
             </TableRow>
           </TableHeader>
@@ -230,6 +235,21 @@ export function HorseBulkImportPreview({
                   </TableCell>
                   <TableCell className="text-sm font-medium">
                     {row.horseName}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {row.dateOfBirth || (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {row.ueln || (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {row.chipNumber || (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Select

@@ -143,8 +143,9 @@ final class AuthService {
             withTimeInterval: 60.0,
             repeats: true
         ) { [weak self] _ in
+            guard let self else { return }
             Task { @MainActor in
-                self?.checkSessionTimeout()
+                self.checkSessionTimeout()
             }
         }
     }
@@ -156,8 +157,9 @@ final class AuthService {
             object: nil,
             queue: .main
         ) { [weak self] _ in
+            guard let self else { return }
             Task { @MainActor in
-                self?.handleAppDidEnterBackground()
+                self.handleAppDidEnterBackground()
             }
         }
 
@@ -166,8 +168,9 @@ final class AuthService {
             object: nil,
             queue: .main
         ) { [weak self] _ in
+            guard let self else { return }
             Task { @MainActor in
-                self?.handleAppWillEnterForeground()
+                self.handleAppWillEnterForeground()
             }
         }
     }
@@ -195,7 +198,8 @@ final class AuthService {
             print("⏱️ Session timeout triggered: \(Int(timeSinceLastActivity))s since last activity")
             #endif
 
-            AppLogger.auth.warning("🔒 Session timeout after \(Int(sessionTimeoutInterval/60)) minutes of inactivity - auto-logout")
+            let timeoutMinutes = Int(self.sessionTimeoutInterval / 60)
+            AppLogger.auth.warning("🔒 Session timeout after \(timeoutMinutes) minutes of inactivity - auto-logout")
 
             // Auto-logout due to inactivity
             do {

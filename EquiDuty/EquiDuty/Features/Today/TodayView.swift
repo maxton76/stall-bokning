@@ -17,6 +17,8 @@ struct TodayView: View {
     @State private var viewModel = TodayViewModel()
     @State private var authService = AuthService.shared
     @State private var router = NavigationRouter.shared
+    @Environment(NotificationViewModel.self) private var notificationViewModel
+    @State private var showNotificationCenter = false
 
     var body: some View {
         NavigationStack(path: $router.todayPath) {
@@ -29,11 +31,6 @@ struct TodayView: View {
                         onDateChanged: { viewModel.loadData() },
                         onPeriodChanged: { viewModel.loadData() }
                     )
-
-                    // Stable selector
-                    if let stable = authService.selectedStable {
-                        StableContextBadge(stable: stable)
-                    }
 
                     // View mode selector with counts
                     TodayViewModeSelector(
@@ -79,6 +76,7 @@ struct TodayView: View {
                 .padding(EquiDutyDesign.Spacing.md)
             }
             .navigationTitle(String(localized: "today.title"))
+            .notificationBellToolbar(viewModel: notificationViewModel, showNotificationCenter: $showNotificationCenter)
             .withAppNavigationDestinations()
             .refreshable {
                 await viewModel.refreshData()
@@ -307,39 +305,6 @@ struct DateNavigationHeader: View {
             .buttonStyle(.scale)
         }
         .glassNavigation()
-    }
-}
-
-// MARK: - Stable Context Badge
-
-struct StableContextBadge: View {
-    let stable: Stable
-
-    var body: some View {
-        HStack(spacing: EquiDutyDesign.Spacing.sm) {
-            Image(systemName: "building.2.fill")
-                .font(.system(size: EquiDutyDesign.IconSize.small))
-                .foregroundStyle(.secondary)
-
-            Text(stable.name)
-                .font(.subheadline)
-                .fontWeight(.medium)
-
-            Spacer()
-
-            Button {
-                // TODO: Show stable selector
-            } label: {
-                Text(String(localized: "common.change"))
-                    .font(.caption)
-                    .fontWeight(.medium)
-            }
-            .buttonStyle(.scale)
-        }
-        .padding(.horizontal, EquiDutyDesign.Spacing.md)
-        .padding(.vertical, EquiDutyDesign.Spacing.md)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: EquiDutyDesign.CornerRadius.medium, style: .continuous))
     }
 }
 

@@ -171,6 +171,8 @@ export function RoutineTemplateEditor({
       ...DEFAULT_STEP,
       id: generateStepId(),
       order: steps.length,
+      // Auto-set name to match default category
+      name: t(`routines:categories.${DEFAULT_STEP.category}`),
     };
     setSteps([...steps, newStep]);
     setExpandedStepId(newStep.id);
@@ -502,6 +504,41 @@ function StepEditor({
   feedingTimes,
   t,
 }: StepEditorProps) {
+  // Track if user has manually edited the name
+  const [hasManuallyEditedName, setHasManuallyEditedName] = useState(false);
+  const [lastCategory, setLastCategory] = useState(step.category);
+
+  // When category changes, update name automatically (unless manually edited)
+  const handleCategoryChange = (newCategory: RoutineCategory) => {
+    const updates: Partial<RoutineStep> = { category: newCategory };
+
+    // Auto-update name if not manually edited
+    if (!hasManuallyEditedName) {
+      const categoryName = t(`routines:categories.${newCategory}`);
+      updates.name = categoryName;
+    }
+
+    // Auto-enable relevant display options based on category
+    if (newCategory === "feeding") {
+      updates.showFeeding = true;
+    } else if (newCategory === "medication") {
+      updates.showMedication = true;
+    } else if (newCategory === "blanket") {
+      updates.showBlanketStatus = true;
+    }
+
+    onUpdate(updates);
+    setLastCategory(newCategory);
+  };
+
+  // When user manually changes the name
+  const handleNameChange = (newName: string) => {
+    // Mark as manually edited if different from category name
+    const categoryName = t(`routines:categories.${step.category}`);
+    setHasManuallyEditedName(newName !== categoryName && newName !== "");
+    onUpdate({ name: newName });
+  };
+
   return (
     <Card className={cn(isExpanded && "ring-2 ring-primary/20")}>
       <Collapsible open={isExpanded} onOpenChange={onToggle}>
@@ -579,7 +616,7 @@ function StepEditor({
                 <Label>{t("routines:stepConfig.name")} *</Label>
                 <Input
                   value={step.name}
-                  onChange={(e) => onUpdate({ name: e.target.value })}
+                  onChange={(e) => handleNameChange(e.target.value)}
                   placeholder={t("routines:stepConfig.name")}
                 />
               </div>
@@ -589,7 +626,7 @@ function StepEditor({
                 <Select
                   value={step.category}
                   onValueChange={(v) =>
-                    onUpdate({ category: v as RoutineCategory })
+                    handleCategoryChange(v as RoutineCategory)
                   }
                 >
                   <SelectTrigger>

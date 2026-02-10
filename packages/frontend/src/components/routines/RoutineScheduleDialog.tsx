@@ -217,9 +217,18 @@ export function RoutineScheduleDialog({
         startDate,
         endDate,
         repeatPattern,
-        repeatDays: repeatPattern === "custom" ? selectedDays : undefined,
+        repeatDays:
+          repeatPattern === "custom" ||
+          repeatPattern === "weekends" ||
+          repeatPattern === "holidays"
+            ? selectedDays
+            : undefined,
         includeHolidays:
-          repeatPattern === "custom" ? includeHolidays : undefined,
+          repeatPattern === "custom" ||
+          repeatPattern === "weekends" ||
+          repeatPattern === "holidays"
+            ? includeHolidays
+            : undefined,
         scheduledStartTime,
         assignmentMode,
         defaultAssignedTo:
@@ -241,9 +250,18 @@ export function RoutineScheduleDialog({
         startDate,
         endDate,
         repeatPattern,
-        repeatDays: repeatPattern === "custom" ? selectedDays : undefined,
+        repeatDays:
+          repeatPattern === "custom" ||
+          repeatPattern === "weekends" ||
+          repeatPattern === "holidays"
+            ? selectedDays
+            : undefined,
         includeHolidays:
-          repeatPattern === "custom" ? includeHolidays : undefined,
+          repeatPattern === "custom" ||
+          repeatPattern === "weekends" ||
+          repeatPattern === "holidays"
+            ? includeHolidays
+            : undefined,
         scheduledStartTime,
         assignmentMode,
         defaultAssignedTo:
@@ -427,7 +445,16 @@ export function RoutineScheduleDialog({
               value={repeatPattern}
               onValueChange={(v) => {
                 setRepeatPattern(v as RoutineScheduleRepeatPattern);
-                if (v !== "custom") setIncludeHolidays(false);
+                // Auto-set days based on pattern
+                if (v === "weekends") {
+                  setSelectedDays([6, 0]); // Saturday, Sunday
+                  setIncludeHolidays(false);
+                } else if (v === "holidays") {
+                  setSelectedDays([6, 0]); // Saturday, Sunday
+                  setIncludeHolidays(true);
+                } else if (v !== "custom") {
+                  setIncludeHolidays(false);
+                }
               }}
             >
               <SelectTrigger>
@@ -440,6 +467,12 @@ export function RoutineScheduleDialog({
                 <SelectItem value="weekdays">
                   {t("routines:schedules.repeatPatterns.weekdays")}
                 </SelectItem>
+                <SelectItem value="weekends">
+                  {t("routines:schedules.repeatPatterns.weekends")}
+                </SelectItem>
+                <SelectItem value="holidays">
+                  {t("routines:schedules.repeatPatterns.holidays")}
+                </SelectItem>
                 <SelectItem value="custom">
                   {t("routines:schedules.repeatPatterns.custom")}
                 </SelectItem>
@@ -450,7 +483,29 @@ export function RoutineScheduleDialog({
           {/* Custom Days Selection */}
           {repeatPattern === "custom" && (
             <div className="space-y-2">
-              <Label>{t("routines:schedules.dialog.repeatDays")}</Label>
+              <div className="flex items-center justify-between">
+                <Label>{t("routines:schedules.dialog.repeatDays")}</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedDays([0, 1, 2, 3, 4, 5, 6])}
+                    className="h-7 text-xs"
+                  >
+                    {t("routines:schedules.dialog.selectAllDays")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedDays([])}
+                    className="h-7 text-xs"
+                  >
+                    {t("routines:schedules.dialog.deselectAllDays")}
+                  </Button>
+                </div>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {WEEKDAY_OPTIONS.map((day) => (
                   <div key={day.value} className="flex items-center space-x-2">
@@ -583,7 +638,9 @@ export function RoutineScheduleDialog({
               !startDate ||
               !endDate ||
               !isEndDateValid ||
-              (repeatPattern === "custom" &&
+              ((repeatPattern === "custom" ||
+                repeatPattern === "weekends" ||
+                repeatPattern === "holidays") &&
                 selectedDays.length === 0 &&
                 !includeHolidays) ||
               isSubmitting

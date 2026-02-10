@@ -9,6 +9,8 @@ import SwiftUI
 
 struct SettingsView: View {
     @State private var authService = AuthService.shared
+    @Environment(NotificationViewModel.self) private var notificationViewModel
+    @State private var showNotificationCenter = false
 
     var body: some View {
         NavigationStack {
@@ -130,6 +132,7 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle(String(localized: "settings.title"))
+            .notificationBellToolbar(viewModel: notificationViewModel, showNotificationCenter: $showNotificationCenter)
             .withAppNavigationDestinations()
         }
     }

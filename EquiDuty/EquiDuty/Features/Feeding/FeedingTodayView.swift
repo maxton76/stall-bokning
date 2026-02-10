@@ -57,6 +57,8 @@ struct FeedingTodayView: View {
     @State private var routineInstances: [RoutineInstance] = []  // Store for status lookup
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @Environment(NotificationViewModel.self) private var notificationViewModel
+    @State private var showNotificationCenter = false
 
     var body: some View {
         NavigationStack {
@@ -109,6 +111,7 @@ struct FeedingTodayView: View {
                 .padding(EquiDutyDesign.Spacing.standard)
             }
             .navigationTitle(String(localized: "feeding.title"))
+            .notificationBellToolbar(viewModel: notificationViewModel, showNotificationCenter: $showNotificationCenter)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     NavigationLink(value: AppDestination.feedingSchedule(stableId: authService.selectedStable?.id ?? "")) {

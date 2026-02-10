@@ -224,25 +224,86 @@ async function getOwnedHorses(
   stableId?: string,
   status?: string,
 ): Promise<any[]> {
-  let query = db.collection("horses").where("ownerId", "==", userId);
+  // Query 1: Horses where user is primary owner
+  let primaryQuery = db.collection("horses").where("ownerId", "==", userId);
 
   if (stableId) {
-    query = query.where("currentStableId", "==", stableId) as any;
+    primaryQuery = primaryQuery.where("currentStableId", "==", stableId) as any;
   }
   if (status) {
-    query = query.where("status", "==", status) as any;
+    primaryQuery = primaryQuery.where("status", "==", status) as any;
   }
 
-  const snapshot = await query.get();
-  const horses = snapshot.docs.map((doc) => ({
+  const primarySnapshot = await primaryQuery.get();
+  const primaryHorses = primarySnapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
     _accessLevel: "owner",
     _isOwner: true,
   }));
 
-  await Promise.all(horses.map((h) => attachPhotoURLs(h, h.id)));
-  return horses;
+  // Query 2: Horses where user has active ownership record in subcollection
+  // We need to query all horses and check their ownership subcollections
+  // This is a two-step process due to Firestore limitations
+  const secondaryOwnedHorses: any[] = [];
+
+  try {
+    // Get all horses (or apply filters if provided)
+    let horsesQuery = db.collection("horses");
+    if (stableId) {
+      horsesQuery = horsesQuery.where("currentStableId", "==", stableId) as any;
+    }
+    if (status) {
+      horsesQuery = horsesQuery.where("status", "==", status) as any;
+    }
+
+    const allHorsesSnapshot = await horsesQuery.get();
+
+    // For each horse, check if user has an active ownership record
+    const ownershipChecks = allHorsesSnapshot.docs.map(async (horseDoc) => {
+      // Skip if user is already primary owner (already in primaryHorses)
+      if (horseDoc.data().ownerId === userId) {
+        return null;
+      }
+
+      // Check ownership subcollection
+      const ownershipSnapshot = await db
+        .collection("horses")
+        .doc(horseDoc.id)
+        .collection("ownership")
+        .where("userId", "==", userId)
+        .where("endDate", "==", null) // Only active ownerships
+        .limit(1)
+        .get();
+
+      if (!ownershipSnapshot.empty) {
+        return {
+          id: horseDoc.id,
+          ...horseDoc.data(),
+          _accessLevel: "owner",
+          _isOwner: true,
+        };
+      }
+
+      return null;
+    });
+
+    const ownershipResults = await Promise.all(ownershipChecks);
+    secondaryOwnedHorses.push(...ownershipResults.filter((h) => h !== null));
+  } catch (error) {
+    // Log error but don't fail the entire request
+    console.error("Error fetching secondary ownership horses:", error);
+  }
+
+  // Merge and deduplicate (shouldn't have duplicates, but safeguard)
+  const horseMap = new Map();
+  [...primaryHorses, ...secondaryOwnedHorses].forEach((horse) => {
+    horseMap.set(horse.id, horse);
+  });
+  const allOwnedHorses = Array.from(horseMap.values());
+
+  await Promise.all(allOwnedHorses.map((h) => attachPhotoURLs(h, h.id)));
+  return allOwnedHorses;
 }
 
 /**

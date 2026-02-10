@@ -13,7 +13,10 @@ export type HorseValidationCode =
   | "MEMBER_NOT_FOUND"
   | "EMPTY_HORSE_NAME"
   | "DUPLICATE_HORSE_FOR_OWNER"
-  | "INVALID_EMAIL";
+  | "INVALID_EMAIL"
+  | "INVALID_DATE_FORMAT"
+  | "INVALID_UELN_FORMAT"
+  | "INVALID_CHIP_NUMBER_FORMAT";
 
 /**
  * A horse row prepared for the preview step with validation.
@@ -24,6 +27,9 @@ export interface HorsePreviewRow {
   ownerId: string | null;
   ownerName: string | null;
   horseName: string;
+  dateOfBirth?: string; // ISO 8601 string
+  ueln?: string; // UELN number
+  chipNumber?: string; // Microchip number
   stableId: string | null;
   stableName: string | null;
   validation: {
@@ -49,6 +55,35 @@ interface ResolvedMember {
   email: string;
   userId: string;
   name: string;
+}
+
+/**
+ * Validate ISO date format (YYYY-MM-DD).
+ */
+function isValidISODate(dateStr: string): boolean {
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+
+  const [_, year, month, day] = match;
+  const date = new Date(`${year}-${month}-${day}`);
+  return !isNaN(date.getTime());
+}
+
+/**
+ * Validate UELN format (permissive - accept any alphanumeric).
+ */
+function isValidUELN(ueln: string): boolean {
+  // UELN formats vary by country and registry
+  // Accept any alphanumeric string of reasonable length (10-20 chars)
+  return /^[A-Z0-9]{10,20}$/i.test(ueln);
+}
+
+/**
+ * Validate chip number format (10-20 digits).
+ */
+function isValidChipNumber(chip: string): boolean {
+  // Microchip: 10-20 digits (permissive - formats vary by manufacturer)
+  return /^\d{10,20}$/.test(chip);
 }
 
 /**
@@ -98,6 +133,21 @@ export function validateHorseImportRows(
       ownerNames.add(horseNameLower);
     }
 
+    // Validate date of birth format (if provided)
+    if (row.dateOfBirth && !isValidISODate(row.dateOfBirth)) {
+      warnings.push("INVALID_DATE_FORMAT");
+    }
+
+    // Validate UELN format (if provided)
+    if (row.ueln && !isValidUELN(row.ueln)) {
+      warnings.push("INVALID_UELN_FORMAT");
+    }
+
+    // Validate chip number format (if provided)
+    if (row.chipNumber && !isValidChipNumber(row.chipNumber)) {
+      warnings.push("INVALID_CHIP_NUMBER_FORMAT");
+    }
+
     const resolved = resolvedMap.get(emailLower);
 
     const status: HorseRowValidationStatus =
@@ -109,6 +159,9 @@ export function validateHorseImportRows(
       ownerId: resolved?.userId ?? null,
       ownerName: resolved?.name ?? null,
       horseName: row.horseName,
+      dateOfBirth: row.dateOfBirth,
+      ueln: row.ueln,
+      chipNumber: row.chipNumber,
       stableId: null,
       stableName: null,
       validation: { status, errors, warnings },
@@ -149,6 +202,10 @@ export function getHorseValidationMessageKey(
     DUPLICATE_HORSE_FOR_OWNER:
       "horses:bulkImport.validation.duplicateHorseForOwner",
     INVALID_EMAIL: "horses:bulkImport.validation.invalidEmail",
+    INVALID_DATE_FORMAT: "horses:bulkImport.validation.invalidDateFormat",
+    INVALID_UELN_FORMAT: "horses:bulkImport.validation.invalidUelnFormat",
+    INVALID_CHIP_NUMBER_FORMAT:
+      "horses:bulkImport.validation.invalidChipNumberFormat",
   };
   return map[code];
 }

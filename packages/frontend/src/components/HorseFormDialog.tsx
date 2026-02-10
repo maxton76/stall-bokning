@@ -66,7 +66,7 @@ const horseSchema = z
     name: z.string().min(1, "Horse name is required").max(100),
     breed: z.string().optional(),
     age: z.number().min(0).max(50).optional(),
-    color: z.string().min(1, "Color is required"),
+    color: z.string().optional(),
     gender: z.enum(["stallion", "mare", "gelding"]).optional(),
     isExternal: z.boolean(),
     dateOfArrival: z.preprocess(
@@ -162,7 +162,7 @@ export function HorseFormDialog({
       color: "",
       gender: undefined,
       isExternal: false,
-      dateOfArrival: undefined,
+      dateOfArrival: new Date().toISOString().split("T")[0] as any,
       currentStableId: "none",
       boxName: "",
       paddockName: "",
@@ -599,7 +599,6 @@ export function HorseFormDialog({
         form={form}
         options={colorOptions}
         placeholder={t("horses:options.selectColor")}
-        required
       />
 
       <FormSelect

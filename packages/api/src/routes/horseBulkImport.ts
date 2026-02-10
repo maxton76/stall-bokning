@@ -28,6 +28,16 @@ const bulkImportHorseSchema = z.object({
   color: z.string().default("brown"),
   currentStableId: z.string().min(1),
   currentStableName: z.string().min(1),
+  // NEW optional fields
+  dateOfBirth: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  ueln: z.string().min(1).max(30).optional(), // Permissive - UELN formats vary by country
+  chipNumber: z
+    .string()
+    .regex(/^\d{10,20}$/)
+    .optional(),
 });
 
 const horseBulkImportRequestSchema = z

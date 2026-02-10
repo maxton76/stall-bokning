@@ -10,6 +10,7 @@ import SwiftUI
 struct HorseListView: View {
     @State private var authService = AuthService.shared
     @State private var horseService = HorseService.shared
+    @State private var permissionService = PermissionService.shared
     @State private var horses: [Horse] = []
     @State private var horseGroups: [HorseGroup] = []
     @State private var searchText = ""
@@ -20,15 +21,29 @@ struct HorseListView: View {
     @State private var showFilterSheet = false
     @State private var debouncedSearchText = ""
     @State private var searchDebounceTask: Task<Void, Never>?
-    @State private var showOwnedOnly = false
+    @State private var showOwnedOnly = UserDefaults.standard.horsesShowOwnedOnly
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(NotificationViewModel.self) private var notificationViewModel
+    @State private var showNotificationCenter = false
+
+    /// Whether the current user can toggle between "All" and "Mine" horse views
+    /// Only privileged roles (administrator, stable_manager, groom) can see all stable horses
+    private var canToggleHorseScope: Bool {
+        guard authService.selectedOrganization != nil else {
+            return false
+        }
+
+        // Check if user has any of the privileged roles
+        let privilegedRoles: [OrganizationRole] = [.administrator, .stableManager, .groom]
+        return permissionService.hasAnyRole(privilegedRoles)
+    }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Scope selector (only show when stable is selected)
-                if authService.selectedStable != nil {
+                // Scope selector (only show when stable is selected and user has privileged role)
+                if authService.selectedStable != nil && canToggleHorseScope {
                     Picker(String(localized: "horses.scope"), selection: $showOwnedOnly) {
                         Text(String(localized: "horses.scope.all")).tag(false)
                         Text(String(localized: "horses.scope.owned")).tag(true)
@@ -130,6 +145,7 @@ struct HorseListView: View {
                     }
                 }
             }
+            .notificationBellToolbar(viewModel: notificationViewModel, showNotificationCenter: $showNotificationCenter)
             .sheet(isPresented: $showFilterSheet) {
                 HorseFilterSheet(
                     filters: $filters,
@@ -150,7 +166,9 @@ struct HorseListView: View {
             .onChange(of: authService.selectedStable?.id) { _, _ in
                 loadHorses()
             }
-            .onChange(of: showOwnedOnly) { _, _ in
+            .onChange(of: showOwnedOnly) { _, newValue in
+                // Save preference to UserDefaults
+                UserDefaults.standard.horsesShowOwnedOnly = newValue
                 loadHorses()
             }
             .onChange(of: searchText) { _, newValue in
@@ -245,10 +263,13 @@ struct HorseListView: View {
             do {
                 // If a stable is selected, get stable horses or user's horses; otherwise get all accessible
                 if let stableId = authService.selectedStable?.id {
+                    // Force "Mine" scope for non-privileged users
+                    let effectiveShowOwnedOnly = canToggleHorseScope ? showOwnedOnly : true
+
                     #if DEBUG
-                    print("🔄 Fetching horses for stable: \(stableId), ownedOnly: \(showOwnedOnly)")
+                    print("🔄 Fetching horses for stable: \(stableId), ownedOnly: \(effectiveShowOwnedOnly), canToggle: \(canToggleHorseScope)")
                     #endif
-                    if showOwnedOnly {
+                    if effectiveShowOwnedOnly {
                         horses = try await horseService.getMyHorses(stableId: stableId)
                     } else {
                         horses = try await horseService.getStableHorses(stableId: stableId)
@@ -288,7 +309,10 @@ struct HorseListView: View {
     private func refreshHorses() async {
         do {
             if let stableId = authService.selectedStable?.id {
-                if showOwnedOnly {
+                // Force "Mine" scope for non-privileged users
+                let effectiveShowOwnedOnly = canToggleHorseScope ? showOwnedOnly : true
+
+                if effectiveShowOwnedOnly {
                     horses = try await horseService.getMyHorses(stableId: stableId)
                 } else {
                     horses = try await horseService.getStableHorses(stableId: stableId)

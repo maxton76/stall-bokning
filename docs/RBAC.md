@@ -34,6 +34,7 @@ Stored in `organizationMembers` collection. Users can have **multiple roles** si
 | Role | Description | Default Access Level |
 |------|-------------|---------------------|
 | `administrator` | Full organization access | Management |
+| `stable_manager` | Stable operations manager | Management |
 | `veterinarian` | Animal health services | Professional (medical focus) |
 | `dentist` | Equine dental services | Professional (dental focus) |
 | `farrier` | Hoof care services | Professional (hoof focus) |
@@ -63,7 +64,7 @@ Each user's access level for a horse is determined by:
 ```
 Level 5: owner (full access)
    ↓
-Level 4: management (administrators, stable owners)
+Level 4: management (administrators, stable managers, stable owners)
    ↓
 Level 3: professional (veterinarian, farrier, dentist)
    ↓

@@ -417,7 +417,7 @@
       "defaultAssigneeDescription": "Person som tilldelas rutinen som standard",
       "assignmentDescription": {
         "auto": "Rutiner fördelas jämnt baserat på historiska poäng. Du kan granska och justera tilldelningarna innan du skapar schemat.",
-        "unassigned": "Inga rutiner tilldelas automatiskt. Medlemmar kan boka själva eller tilldelning görs manuellt senare.",
+        "unassigned": "Inga rutiner tilldelas automatiskt. Medlemmar kan boka själva eller tilldelning görs senare via rutinval-funktionen.",
         "manual": "Alla rutiner tilldelas samma person som du väljer nedan.",
         "selfBooked": "Medlemmar kan boka öppna rutiner själva enligt tillgängliga tider."
       },
@@ -431,12 +431,15 @@
       "updateError": "Kunde inte uppdatera schema",
       "noTemplates": "Inga mallar tillgängliga",
       "noTemplatesDescription": "Skapa en rutinmall först för att kunna skapa scheman.",
-      "holidays": "Helgdagar"
+      "holidays": "Helgdagar",
+      "selectAllDays": "Välj alla",
+      "deselectAllDays": "Avmarkera alla"
     },
     "repeatPatterns": {
       "daily": "Dagligen",
       "weekdays": "Vardagar",
-      "weekends": "Helger",
+      "weekends": "Helger (Lör, Sön)",
+      "holidays": "Helgdagar (Lör, Sön, Helgdag)",
       "custom": "Anpassad"
     },
     "preview": {

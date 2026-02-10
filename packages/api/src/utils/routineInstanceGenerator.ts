@@ -25,7 +25,7 @@ interface ScheduleData {
   stableName?: string;
   startDate: string; // YYYY-MM-DD (from validated API input)
   endDate: string; // YYYY-MM-DD (from validated API input)
-  repeatPattern: "daily" | "weekdays" | "custom";
+  repeatPattern: "daily" | "weekdays" | "weekends" | "holidays" | "custom";
   repeatDays?: number[];
   includeHolidays?: boolean;
   scheduledStartTime: string;
@@ -54,7 +54,7 @@ interface TemplateData {
 
 function shouldGenerateForDate(
   date: Date,
-  repeatPattern: "daily" | "weekdays" | "custom",
+  repeatPattern: "daily" | "weekdays" | "weekends" | "holidays" | "custom",
   repeatDays?: number[],
   includeHolidays?: boolean,
 ): boolean {
@@ -65,6 +65,12 @@ function shouldGenerateForDate(
       return true;
     case "weekdays":
       return dayOfWeek >= 1 && dayOfWeek <= 5;
+    case "weekends":
+      return dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
+    case "holidays":
+      return (
+        dayOfWeek === 0 || dayOfWeek === 6 || holidayService.isHoliday(date)
+      ); // Weekends + holidays
     case "custom": {
       const matchesDay = repeatDays?.includes(dayOfWeek) ?? false;
       return (
@@ -80,7 +86,7 @@ function shouldGenerateForDate(
 function generateScheduledDates(
   startDate: Date,
   endDate: Date,
-  repeatPattern: "daily" | "weekdays" | "custom",
+  repeatPattern: "daily" | "weekdays" | "weekends" | "holidays" | "custom",
   repeatDays?: number[],
   includeHolidays?: boolean,
 ): Date[] {

@@ -43,6 +43,10 @@ export interface BulkImportHorse {
   color: string;
   currentStableId: string;
   currentStableName: string;
+  // Optional fields
+  dateOfBirth?: string; // ISO 8601 string (YYYY-MM-DD)
+  ueln?: string; // UELN number
+  chipNumber?: string; // Microchip number (15 digits)
 }
 
 /**

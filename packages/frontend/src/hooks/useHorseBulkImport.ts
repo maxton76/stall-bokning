@@ -1,7 +1,10 @@
 import { useState, useCallback, useMemo } from "react";
 import type { ParseResult } from "@/lib/importParser";
 import { parseImportFile, MAX_ROWS } from "@/lib/importParser";
-import { unpivotHorseData, type HorseImportRow } from "@/lib/horseImportParser";
+import {
+  parseHorseImportFile,
+  type HorseImportRow,
+} from "@/lib/horseImportParser";
 import {
   validateHorseImportRows,
   computeHorseValidationSummary,
@@ -84,11 +87,11 @@ export function useHorseBulkImport(remainingSlots: number) {
         parseError: null,
       }));
       try {
-        // Parse with large max rows — we'll truncate after unpivoting
+        // Parse with large max rows — we'll truncate after parsing
         const result = await parseImportFile(file, hasHeaders, MAX_ROWS);
 
-        // Unpivot: each horse cell becomes a row
-        let unpivoted = unpivotHorseData(result);
+        // Parse horse data: one horse per row
+        let unpivoted = parseHorseImportFile(result);
 
         // Truncate if exceeds subscription limit
         let wasTruncated = false;
@@ -194,7 +197,7 @@ export function useHorseBulkImport(remainingSlots: number) {
       .filter((r) => !r.excluded && r.validation.status !== "error")
       .map((r) => {
         const stableOverride = state.perHorseStableOverrides.get(r.index);
-        return {
+        const payload: BulkImportHorse = {
           name: r.horseName,
           ownerEmail: r.ownerEmail,
           ownerId: r.ownerId!,
@@ -204,6 +207,17 @@ export function useHorseBulkImport(remainingSlots: number) {
           currentStableName:
             stableOverride?.stableName || state.defaultStableName!,
         };
+        // Add optional fields if provided
+        if (r.dateOfBirth) {
+          payload.dateOfBirth = r.dateOfBirth;
+        }
+        if (r.ueln) {
+          payload.ueln = r.ueln;
+        }
+        if (r.chipNumber) {
+          payload.chipNumber = r.chipNumber;
+        }
+        return payload;
       });
   }, [
     state.previewRows,
