@@ -218,7 +218,8 @@ export function RoutineScheduleDialog({
         endDate,
         repeatPattern,
         repeatDays: repeatPattern === "custom" ? selectedDays : undefined,
-        includeHolidays: repeatPattern === "custom" ? includeHolidays : undefined,
+        includeHolidays:
+          repeatPattern === "custom" ? includeHolidays : undefined,
         scheduledStartTime,
         assignmentMode,
         defaultAssignedTo:
@@ -241,7 +242,8 @@ export function RoutineScheduleDialog({
         endDate,
         repeatPattern,
         repeatDays: repeatPattern === "custom" ? selectedDays : undefined,
-        includeHolidays: repeatPattern === "custom" ? includeHolidays : undefined,
+        includeHolidays:
+          repeatPattern === "custom" ? includeHolidays : undefined,
         scheduledStartTime,
         assignmentMode,
         defaultAssignedTo:

@@ -512,16 +512,21 @@ export async function routineSchedulesRoutes(fastify: FastifyInstance) {
         }
 
         // Validate that custom pattern has at least days or holidays
-        const mergedPattern = (updateData.repeatPattern ?? data.repeatPattern) as string;
+        const mergedPattern = (updateData.repeatPattern ??
+          data.repeatPattern) as string;
         if (mergedPattern === "custom") {
-          const mergedDays = (updateData.repeatDays ?? data.repeatDays) as number[] | undefined;
-          const mergedHolidays = (updateData.includeHolidays ?? data.includeHolidays) as boolean | undefined;
+          const mergedDays = (updateData.repeatDays ?? data.repeatDays) as
+            | number[]
+            | undefined;
+          const mergedHolidays = (updateData.includeHolidays ??
+            data.includeHolidays) as boolean | undefined;
           const hasDays = mergedDays && mergedDays.length > 0;
           const hasHolidays = mergedHolidays === true;
           if (!hasDays && !hasHolidays) {
             return reply.status(400).send({
               error: "Bad Request",
-              message: "Custom pattern requires at least one day or holidays to be selected",
+              message:
+                "Custom pattern requires at least one day or holidays to be selected",
             });
           }
         }

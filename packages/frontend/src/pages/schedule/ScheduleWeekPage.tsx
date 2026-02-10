@@ -468,75 +468,77 @@ export default function ScheduleWeekPage() {
             }
 
             return (
-            <Card
-              key={day.dateStr}
-              className={`${cardBg} ${todayFlag ? "border-primary ring-1 ring-primary" : ""}`}
-            >
-              <CardHeader className="p-3 pb-2">
-                <CardTitle className={`text-sm ${dateColor}`}>
-                  <div className="font-medium">
-                    {format(day.date, "EEEE", { locale: sv })}
-                  </div>
-                  <div
-                    className={`text-2xl ${todayFlag ? "font-bold" : "font-normal"}`}
-                  >
-                    {format(day.date, "d")}
-                  </div>
-                  {holiday && showHolidays && (
-                    <div
-                      className={`text-[10px] font-normal truncate ${
-                        holiday.isHalfDay
-                          ? "text-orange-600 dark:text-orange-400"
-                          : "text-red-600 dark:text-red-400"
-                      }`}
-                    >
-                      {holiday.name}
+              <Card
+                key={day.dateStr}
+                className={`${cardBg} ${todayFlag ? "border-primary ring-1 ring-primary" : ""}`}
+              >
+                <CardHeader className="p-3 pb-2">
+                  <CardTitle className={`text-sm ${dateColor}`}>
+                    <div className="font-medium">
+                      {format(day.date, "EEEE", { locale: sv })}
                     </div>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-2 space-y-1.5">
-                {day.slots.length === 0 ? (
-                  <div className="text-xs text-muted-foreground text-center py-4">
-                    {t("common:schedule.noRoutines")}
-                  </div>
-                ) : (
-                  day.slots.map((slot) => (
                     <div
-                      key={slot.id}
-                      onClick={() => handleSlotClick(slot, day.date)}
-                      className={`p-2 rounded-md border text-xs cursor-pointer transition-colors hover:opacity-80 ${getSlotStatusColor(slot)}`}
+                      className={`text-2xl ${todayFlag ? "font-bold" : "font-normal"}`}
                     >
+                      {format(day.date, "d")}
+                    </div>
+                    {holiday && showHolidays && (
                       <div
-                        className={`font-medium truncate ${slot.status === "cancelled" ? "line-through" : ""}`}
+                        className={`text-[10px] font-normal truncate ${
+                          holiday.isHalfDay
+                            ? "text-orange-600 dark:text-orange-400"
+                            : "text-red-600 dark:text-red-400"
+                        }`}
                       >
-                        {slot.title}
+                        {holiday.name}
                       </div>
-                      <div className="text-[10px] opacity-75">{slot.time}</div>
-                      {slot.assigneeId ? (
-                        <div className="text-[10px] font-bold mt-1">
-                          {formatSlotAssigneeName(slot)}
-                        </div>
-                      ) : (
-                        <div className="text-[10px] text-muted-foreground mt-1">
-                          {t("common:schedule.status.unassigned")}
-                        </div>
-                      )}
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-2 space-y-1.5">
+                  {day.slots.length === 0 ? (
+                    <div className="text-xs text-muted-foreground text-center py-4">
+                      {t("common:schedule.noRoutines")}
                     </div>
-                  ))
-                )}
-                {/* Add routine button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full h-7 text-[10px] text-muted-foreground hover:text-foreground no-print"
-                  onClick={() => handleBookSlot(day)}
-                >
-                  <Plus className="h-3 w-3 mr-0.5" />
-                  {t("common:schedule.addRoutine")}
-                </Button>
-              </CardContent>
-            </Card>
+                  ) : (
+                    day.slots.map((slot) => (
+                      <div
+                        key={slot.id}
+                        onClick={() => handleSlotClick(slot, day.date)}
+                        className={`p-2 rounded-md border text-xs cursor-pointer transition-colors hover:opacity-80 ${getSlotStatusColor(slot)}`}
+                      >
+                        <div
+                          className={`font-medium truncate ${slot.status === "cancelled" ? "line-through" : ""}`}
+                        >
+                          {slot.title}
+                        </div>
+                        <div className="text-[10px] opacity-75">
+                          {slot.time}
+                        </div>
+                        {slot.assigneeId ? (
+                          <div className="text-[10px] font-bold mt-1">
+                            {formatSlotAssigneeName(slot)}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-muted-foreground mt-1">
+                            {t("common:schedule.status.unassigned")}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                  {/* Add routine button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full h-7 text-[10px] text-muted-foreground hover:text-foreground no-print"
+                    onClick={() => handleBookSlot(day)}
+                  >
+                    <Plus className="h-3 w-3 mr-0.5" />
+                    {t("common:schedule.addRoutine")}
+                  </Button>
+                </CardContent>
+              </Card>
             );
           })}
         </div>

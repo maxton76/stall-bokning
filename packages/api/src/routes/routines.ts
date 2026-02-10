@@ -39,8 +39,15 @@ import type {
   ListRoutineTemplatesQuery,
   ListRoutineInstancesQuery,
 } from "@equiduty/shared";
-import { VALID_ENTITY_ID, ALLOWED_IMAGE_TYPES, holidayService } from "@equiduty/shared";
-import { computeHolidayPoints, fetchHolidaySettings } from "../utils/holidayPoints.js";
+import {
+  VALID_ENTITY_ID,
+  ALLOWED_IMAGE_TYPES,
+  holidayService,
+} from "@equiduty/shared";
+import {
+  computeHolidayPoints,
+  fetchHolidaySettings,
+} from "../utils/holidayPoints.js";
 import { sanitizeFileName } from "../utils/sanitization.js";
 import {
   createActivityHistoryEntries,
@@ -1204,9 +1211,15 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           typeof input.scheduledDate === "string"
             ? new Date(input.scheduledDate)
             : input.scheduledDate;
-        const holidaySettings = await fetchHolidaySettings(template.organizationId);
+        const holidaySettings = await fetchHolidaySettings(
+          template.organizationId,
+        );
         const { pointsValue, isHolidayShift, isHalfDayShift } =
-          computeHolidayPoints(scheduledDateObj, template.pointsValue, holidaySettings);
+          computeHolidayPoints(
+            scheduledDateObj,
+            template.pointsValue,
+            holidaySettings,
+          );
 
         const now = Timestamp.now();
         const instanceData: Omit<RoutineInstance, "id"> = {
@@ -2355,7 +2368,9 @@ export async function routinesRoutes(fastify: FastifyInstance) {
         const batch = db.batch();
         const createdIds: string[] = [];
         const now = Timestamp.now();
-        const holidaySettings = await fetchHolidaySettings(template.organizationId);
+        const holidaySettings = await fetchHolidaySettings(
+          template.organizationId,
+        );
 
         for (const date of dates) {
           // Initialize progress for all steps

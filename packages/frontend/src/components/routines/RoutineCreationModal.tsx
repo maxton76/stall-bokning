@@ -138,7 +138,9 @@ export function RoutineCreationModal({
           return !isWeekend(day);
         case "custom": {
           const matchesDay = selectedDays.includes(dayOfWeek);
-          return matchesDay || (includeHolidays && holidayService.isHoliday(day));
+          return (
+            matchesDay || (includeHolidays && holidayService.isHoliday(day))
+          );
         }
         default:
           return false;
@@ -167,7 +169,8 @@ export function RoutineCreationModal({
         startDate,
         endDate: repeatPattern === "single" ? startDate : endDate,
         repeatDays,
-        includeHolidays: repeatPattern === "custom" ? includeHolidays : undefined,
+        includeHolidays:
+          repeatPattern === "custom" ? includeHolidays : undefined,
         assignmentMode: "unassigned",
       });
     },

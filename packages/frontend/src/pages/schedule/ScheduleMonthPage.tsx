@@ -362,7 +362,9 @@ export default function ScheduleMonthPage() {
                 const isWeekendDay = isWeekend(date);
 
                 // Background classes based on day type
-                let dayBg = isCurrentMonth ? "bg-background" : "bg-muted/30 text-muted-foreground";
+                let dayBg = isCurrentMonth
+                  ? "bg-background"
+                  : "bg-muted/30 text-muted-foreground";
                 if (isCurrentMonth && showHolidays && holiday) {
                   dayBg = holiday.isHalfDay
                     ? "bg-orange-50 dark:bg-orange-950/20"

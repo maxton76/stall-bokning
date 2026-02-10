@@ -344,7 +344,11 @@ export async function horseMediaRoutes(fastify: FastifyInstance) {
             fileSize: { type: "number", minimum: 0 },
             mimeType: { type: "string", maxLength: 128 },
             description: { type: "string", maxLength: 1000 },
-            tags: { type: "array", maxItems: 20, items: { type: "string", maxLength: 64 } },
+            tags: {
+              type: "array",
+              maxItems: 20,
+              items: { type: "string", maxLength: 64 },
+            },
             purpose: { type: "string", maxLength: 32 },
             expiryDate: { type: "string", maxLength: 64 },
           },

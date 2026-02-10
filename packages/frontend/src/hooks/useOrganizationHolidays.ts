@@ -85,8 +85,10 @@ export function useOrganizationCalendarHolidays(
 
   const settings = organization?.settings?.holidayCalendar;
 
-  const { holidays, showHolidays, isHoliday, getHoliday } =
-    useCalendarHolidays(month, settings);
+  const { holidays, showHolidays, isHoliday, getHoliday } = useCalendarHolidays(
+    month,
+    settings,
+  );
 
   return {
     holidays,

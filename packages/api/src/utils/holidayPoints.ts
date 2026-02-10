@@ -41,7 +41,11 @@ export function computeHolidayPoints(
 ): HolidayPointsResult {
   const holiday = holidayService.getHoliday(date);
   if (!holiday) {
-    return { pointsValue: basePoints, isHolidayShift: false, isHalfDayShift: false };
+    return {
+      pointsValue: basePoints,
+      isHolidayShift: false,
+      isHalfDayShift: false,
+    };
   }
 
   const isHalfDayShift = holiday.isHalfDay === true;
