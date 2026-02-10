@@ -76,11 +76,27 @@ final class AuthService {
     /// Firebase Auth automatically handles listener cleanup when the app terminates.
     private var authStateListener: AuthStateDidChangeListenerHandle?
 
+    // MARK: - Session Timeout (CIS 5.1)
+
+    /// Session timeout interval (15 minutes)
+    private let sessionTimeoutInterval: TimeInterval = 15 * 60 // 15 minutes
+
+    /// Timer for session timeout
+    private var sessionTimeoutTimer: Timer?
+
+    /// Last activity timestamp
+    private var lastActivityTimestamp: Date = Date()
+
+    /// Background timestamp (when app entered background)
+    private var backgroundTimestamp: Date?
+
     private init() {
         // Delay setup until Firebase is configured
         Task { @MainActor in
             setupAuthStateListener()
             setupTokenProvider()
+            setupSessionTimeout()
+            setupAppLifecycleObservers()
 
             // Fallback: If auth state is still unknown after 3 seconds, check manually
             try? await Task.sleep(nanoseconds: 3_000_000_000)
@@ -113,6 +129,109 @@ final class AuthService {
     private func setupTokenProvider() {
         APIClient.shared.tokenProvider = { [weak self] in
             await self?.getIdToken()
+        }
+    }
+
+    // MARK: - Session Timeout Setup
+
+    /// Setup session timeout timer (CIS 5.1 - Session Management)
+    private func setupSessionTimeout() {
+        // Start timer that checks for inactivity every 60 seconds
+        sessionTimeoutTimer = Timer.scheduledTimer(
+            withTimeInterval: 60.0,
+            repeats: true
+        ) { [weak self] _ in
+            Task { @MainActor in
+                await self?.checkSessionTimeout()
+            }
+        }
+    }
+
+    /// Setup app lifecycle observers for background/foreground transitions
+    private func setupAppLifecycleObservers() {
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didEnterBackgroundNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleAppDidEnterBackground()
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.willEnterForegroundNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                await self?.handleAppWillEnterForeground()
+            }
+        }
+    }
+
+    /// Reset session timeout (call on user activity)
+    func resetSessionTimeout() {
+        lastActivityTimestamp = Date()
+    }
+
+    /// Check if session has timed out and auto-logout if needed
+    private func checkSessionTimeout() async {
+        guard authState != .signedOut else { return }
+
+        let timeSinceLastActivity = Date().timeIntervalSince(lastActivityTimestamp)
+
+        if timeSinceLastActivity >= sessionTimeoutInterval {
+            #if DEBUG
+            print("⏱️ Session timeout: \(timeSinceLastActivity)s since last activity")
+            #endif
+
+            AppLogger.auth.warning("🔒 Session timeout after 15 minutes of inactivity - auto-logout")
+
+            // Auto-logout due to inactivity
+            do {
+                try await signOut()
+            } catch {
+                AppLogger.error.error("❌ Failed to sign out on session timeout: \(error)")
+            }
+        }
+    }
+
+    /// Handle app entering background (CIS 5.1 - Auto-logout on app background)
+    private func handleAppDidEnterBackground() {
+        guard authState != .signedOut else { return }
+
+        backgroundTimestamp = Date()
+
+        #if DEBUG
+        print("📱 App entered background")
+        #endif
+
+        AppLogger.app.info("📱 App entered background - session timeout active")
+    }
+
+    /// Handle app entering foreground (check if session expired during background)
+    private func handleAppWillEnterForeground() async {
+        guard authState != .signedOut else { return }
+        guard let backgroundTime = backgroundTimestamp else { return }
+
+        let backgroundDuration = Date().timeIntervalSince(backgroundTime)
+        backgroundTimestamp = nil
+
+        #if DEBUG
+        print("📱 App entered foreground (was in background for \(backgroundDuration)s)")
+        #endif
+
+        // If app was in background longer than session timeout, auto-logout
+        if backgroundDuration >= sessionTimeoutInterval {
+            AppLogger.auth.warning("🔒 Session expired during background (\(backgroundDuration)s) - auto-logout")
+
+            do {
+                try await signOut()
+            } catch {
+                AppLogger.error.error("❌ Failed to sign out after background timeout: \(error)")
+            }
+        } else {
+            // Reset activity timestamp (user returned to app)
+            resetSessionTimeout()
         }
     }
 
