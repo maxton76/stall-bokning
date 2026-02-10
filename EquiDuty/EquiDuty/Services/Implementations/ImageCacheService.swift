@@ -53,7 +53,8 @@ class ImageCacheService: ImageCacheServiceProtocol {
 
         // Security: Enable file protection for cached images (NSFileProtectionComplete)
         // This encrypts cached files and makes them inaccessible when device is locked
-        cache.diskStorage.config.fileProtectionType = .complete
+        // In Kingfisher 8.x, we need to set file protection on the cache directory
+        setFileProtectionForCacheDirectory(cache: cache)
 
         // Memory cache: Uses Kingfisher 8.x defaults (auto-managed based on system memory)
         // The new memory storage backend handles limits automatically
@@ -61,6 +62,27 @@ class ImageCacheService: ImageCacheServiceProtocol {
         #if DEBUG
         print("📦 ImageCache configured: Disk 200MB (30 day expiration), Memory auto-managed, File protection enabled")
         #endif
+    }
+
+    /// Set file protection attributes on Kingfisher cache directory (CIS 3.1)
+    private func setFileProtectionForCacheDirectory(cache: ImageCache) {
+        let cacheURL = cache.diskStorage.directoryURL
+
+        do {
+            // Set NSFileProtectionComplete on cache directory
+            try FileManager.default.setAttributes(
+                [.protectionKey: FileProtectionType.complete],
+                ofItemAtPath: cacheURL.path
+            )
+
+            #if DEBUG
+            print("🔒 File protection enabled for image cache: \(cacheURL.path)")
+            #endif
+        } catch {
+            #if DEBUG
+            print("⚠️ Failed to set file protection on cache directory: \(error)")
+            #endif
+        }
     }
 
     // MARK: - Memory Management
