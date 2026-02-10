@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import os
 
 /// API configuration
 enum APIConfig {
@@ -132,17 +133,14 @@ final class APIClient {
 
     private init() {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 30
-        config.timeoutIntervalForResource = 60
+        config.timeoutIntervalForRequest = 15  // Reduced from 30s (CIS 12.1 - prevent DoS via hanging connections)
+        config.timeoutIntervalForResource = 30  // Reduced from 60s
         self.session = URLSession(configuration: config)
         
-        // Log API configuration on startup
-        if AppEnvironment.current.enableLogging {
-            print("🌐 APIClient initialized")
-            print("   Environment: \(AppEnvironment.current.name)")
-            print("   Base URL: \(APIConfig.baseURL)")
-            print("   Full API URL: \(APIConfig.baseURL)/api/\(APIConfig.apiVersion)")
-        }
+        // Log API configuration on startup (uses OSLog - persists in production)
+        AppLogger.network.info("🌐 APIClient initialized - \(AppEnvironment.current.name)")
+        AppLogger.network.debug("Base URL: \(APIConfig.baseURL)")
+        AppLogger.network.debug("Full API URL: \(APIConfig.baseURL)/api/\(APIConfig.apiVersion)")
 
         self.decoder = JSONDecoder()
         self.decoder.dateDecodingStrategy = .custom { decoder in
@@ -272,9 +270,8 @@ final class APIClient {
             throw APIError.invalidURL
         }
 
-        #if DEBUG
-        print("📡 API Request: \(method.rawValue) \(url.absoluteString)")
-        #endif
+        // Log request (OSLog - works in production)
+        AppLogger.network.logRequest(method.rawValue, url: url.absoluteString, hasToken: await tokenProvider?() != nil)
 
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
@@ -284,13 +281,9 @@ final class APIClient {
         // Add authorization header
         if let token = await tokenProvider?() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            #if DEBUG
-            print("🔑 Token present: true, length: \(token.count)")
-            #endif
+            AppLogger.auth.debug("🔑 Token present: \(token.count) chars")
         } else {
-            #if DEBUG
-            print("⚠️ No token available from tokenProvider")
-            #endif
+            AppLogger.auth.warning("⚠️ No token available from tokenProvider")
         }
 
         // Add body if present
@@ -311,13 +304,14 @@ final class APIClient {
             throw APIError.unknown
         }
 
-        #if DEBUG
-        print("📥 API Response: \(httpResponse.statusCode)")
-        if httpResponse.statusCode != 200 {
+        // Log response (OSLog - works in production)
+        AppLogger.network.logResponse(statusCode: httpResponse.statusCode, url: url.absoluteString)
+
+        if httpResponse.statusCode >= 400 {
             let errorResponse = try? JSONDecoder().decode(APIErrorResponse.self, from: data)
-            print("📥 Error: \(errorResponse?.message ?? errorResponse?.error ?? "Unknown") (status: \(httpResponse.statusCode))")
+            let errorMsg = errorResponse?.message ?? errorResponse?.error ?? "Unknown error"
+            AppLogger.error.error("API Error: \(errorMsg, privacy: .public) (status: \(httpResponse.statusCode))")
         }
-        #endif
 
         // Handle error status codes
         switch httpResponse.statusCode {
@@ -375,12 +369,10 @@ final class APIClient {
         do {
             return try decoder.decode(T.self, from: data)
         } catch {
-            #if DEBUG
-            print("Decoding error: \(error)")
+            AppLogger.error.error("Decoding error: \(error.localizedDescription, privacy: .public)")
             if let jsonString = String(data: data, encoding: .utf8) {
-                print("Response JSON: \(jsonString)")
+                AppLogger.error.debug("Response JSON: \(jsonString, privacy: .private)")
             }
-            #endif
             throw APIError.decodingError(error)
         }
     }

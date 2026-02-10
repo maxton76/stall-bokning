@@ -51,11 +51,15 @@ class ImageCacheService: ImageCacheServiceProtocol {
         cache.diskStorage.config.sizeLimit = 200 * 1024 * 1024
         cache.diskStorage.config.expiration = .days(30)
 
+        // Security: Enable file protection for cached images (NSFileProtectionComplete)
+        // This encrypts cached files and makes them inaccessible when device is locked
+        cache.diskStorage.config.fileProtectionType = .complete
+
         // Memory cache: Uses Kingfisher 8.x defaults (auto-managed based on system memory)
         // The new memory storage backend handles limits automatically
 
         #if DEBUG
-        print("📦 ImageCache configured: Disk 200MB (30 day expiration), Memory auto-managed")
+        print("📦 ImageCache configured: Disk 200MB (30 day expiration), Memory auto-managed, File protection enabled")
         #endif
     }
 
