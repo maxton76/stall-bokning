@@ -25,7 +25,7 @@ import { useApiQuery } from "@/hooks/useApiQuery";
 import { useDialog } from "@/hooks/useDialog";
 import { useHorse } from "@/hooks/useHorses";
 import { useHorsePhotoUpload } from "@/hooks/useHorsePhotoUpload";
-import { queryKeys } from "@/lib/queryClient";
+import { queryClient, queryKeys } from "@/lib/queryClient";
 import { updateHorse } from "@/services/horseService";
 import { getOrganizationHorseGroups } from "@/services/horseGroupService";
 import { getStable } from "@/services/stableService";
@@ -46,6 +46,7 @@ import { ActivitiesCard } from "@/components/horse-detail/ActivitiesCard";
 import { TeamCard } from "@/components/horse-detail/TeamCard";
 import { RoutineHistoryCard } from "@/components/horse-detail/RoutineHistoryCard";
 import { ImageCropDialog } from "@/components/horse-detail/ImageCropDialog";
+import { DeleteHorseDialog } from "@/components/DeleteHorseDialog";
 import type { Horse, HorseGroup } from "@/types/roles";
 
 export default function HorseDetailPage() {
@@ -61,6 +62,10 @@ export default function HorseDetailPage() {
     reload: reloadHorse,
     query: horseQuery,
   } = useHorse(horseId);
+
+  // Check if current user is the horse owner or system admin
+  const isOwner =
+    user?.uid === horseData?.ownerId || user?.systemRole === "system_admin";
 
   // Horse groups for the form
   const horseGroupsQuery = useApiQuery<HorseGroup[]>(
@@ -94,8 +99,9 @@ export default function HorseDetailPage() {
       ]
     : [];
 
-  // Dialog state for edit
+  // Dialog state for edit and delete
   const formDialog = useDialog<Horse>();
+  const deleteDialog = useDialog<Horse>();
 
   // Photo upload hooks
   const avatarUpload = useHorsePhotoUpload({
@@ -412,6 +418,8 @@ export default function HorseDetailPage() {
               <BasicInfoCard
                 horse={horse}
                 onEdit={handleEdit}
+                onDelete={() => deleteDialog.openDialog(horse)}
+                isOwner={isOwner}
                 onAvatarUpload={handleAvatarFileSelected}
                 onAvatarRemove={handleAvatarRemove}
                 isUploadingAvatar={avatarUpload.isUploading}
@@ -446,6 +454,23 @@ export default function HorseDetailPage() {
               onOpenChange={setCropDialogOpen}
               imageSrc={cropImageSrc}
               onConfirm={handleCropConfirm}
+            />
+
+            {/* Delete Horse Dialog */}
+            <DeleteHorseDialog
+              open={deleteDialog.open}
+              onOpenChange={deleteDialog.closeDialog}
+              horse={deleteDialog.data}
+              onSuccess={() => {
+                // Invalidate queries before navigation to ensure cache consistency
+                queryClient.invalidateQueries({
+                  queryKey: queryKeys.horses.all,
+                });
+                queryClient.invalidateQueries({
+                  queryKey: queryKeys.admin.all,
+                });
+                navigate("/horses");
+              }}
             />
 
             {/* Hidden cover file input */}

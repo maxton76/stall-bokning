@@ -9,6 +9,7 @@ import {
   Lightbulb,
   ToggleLeft,
   Bell,
+  PawPrint,
 } from "lucide-react";
 
 export interface AdminNavigationItem {
@@ -48,6 +49,12 @@ export const adminNavigation: AdminNavigationItem[] = [
     label: "Users",
     href: "/admin/users",
     icon: Users,
+  },
+  {
+    id: "admin-horses",
+    label: "Horses",
+    href: "/admin/horses",
+    icon: PawPrint,
   },
   {
     id: "admin-payments",

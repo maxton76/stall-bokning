@@ -6,7 +6,7 @@
  */
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-import { db } from "../utils/firebase.js";
+import { db, FieldPath } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import { requireSystemAdmin } from "../middleware/requireSystemAdmin.js";
 import type { AuthenticatedRequest } from "../types/index.js";
@@ -1564,4 +1564,161 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
       }
     },
   );
+
+  // ============================================================================
+  // HORSE MANAGEMENT
+  // ============================================================================
+
+  /**
+   * GET /admin/horses - List all horses with admin context
+   */
+  fastify.get<{
+    Querystring: {
+      search?: string;
+      page?: string;
+      limit?: string;
+    };
+  }>("/horses", { preHandler: adminPreHandler }, async (request, reply) => {
+    try {
+      const { search, page = "1", limit = "20" } = request.query;
+      const pageNum = parseInt(page, 10);
+      const limitNum = parseInt(limit, 10);
+
+      // Validate pagination params
+      if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
+        return reply.status(400).send({
+          error: "Bad Request",
+          message: "Invalid pagination parameters",
+        });
+      }
+
+      let horsesQuery = db.collection("horses").orderBy("name", "asc");
+
+      // Apply search filter FIRST (before counting)
+      if (search && search.trim()) {
+        const searchLower = search.toLowerCase().trim();
+        // Use searchName field for case-insensitive search
+        horsesQuery = horsesQuery
+          .where("searchName", ">=", searchLower)
+          .where("searchName", "<=", searchLower + "\uf8ff");
+      }
+
+      // Get total count AFTER applying search filter
+      const countSnapshot = await horsesQuery.count().get();
+      const total = countSnapshot.data().count;
+
+      // Apply pagination
+      const offset = (pageNum - 1) * limitNum;
+      const snapshot = await horsesQuery.limit(limitNum).offset(offset).get();
+
+      // Collect all unique IDs for batch fetching (eliminates N+1 queries)
+      const ownerIds = new Set<string>();
+      const stableIds = new Set<string>();
+
+      for (const doc of snapshot.docs) {
+        const horse = doc.data();
+        if (horse.ownerId) ownerIds.add(horse.ownerId);
+        if (horse.currentStableId) stableIds.add(horse.currentStableId);
+      }
+
+      // Batch fetch owners (max 10 per query due to Firestore 'in' limit)
+      const ownerMap = new Map<string, any>();
+      if (ownerIds.size > 0) {
+        const ownerIdArray = Array.from(ownerIds);
+        // Handle batches of 10 (Firestore 'in' query limit)
+        for (let i = 0; i < ownerIdArray.length; i += 10) {
+          const batch = ownerIdArray.slice(i, i + 10);
+          const ownerDocs = await db
+            .collection("users")
+            .where(FieldPath.documentId(), "in", batch)
+            .get();
+          ownerDocs.forEach((doc) => ownerMap.set(doc.id, doc.data()));
+        }
+      }
+
+      // Batch fetch stables and collect organization IDs
+      const stableMap = new Map<string, any>();
+      const orgIds = new Set<string>();
+      if (stableIds.size > 0) {
+        const stableIdArray = Array.from(stableIds);
+        // Handle batches of 10
+        for (let i = 0; i < stableIdArray.length; i += 10) {
+          const batch = stableIdArray.slice(i, i + 10);
+          const stableDocs = await db
+            .collection("stables")
+            .where(FieldPath.documentId(), "in", batch)
+            .get();
+          stableDocs.forEach((doc) => {
+            const data = doc.data();
+            stableMap.set(doc.id, data);
+            if (data.organizationId) orgIds.add(data.organizationId);
+          });
+        }
+      }
+
+      // Batch fetch organizations
+      const orgMap = new Map<string, any>();
+      if (orgIds.size > 0) {
+        const orgIdArray = Array.from(orgIds);
+        // Handle batches of 10
+        for (let i = 0; i < orgIdArray.length; i += 10) {
+          const batch = orgIdArray.slice(i, i + 10);
+          const orgDocs = await db
+            .collection("organizations")
+            .where(FieldPath.documentId(), "in", batch)
+            .get();
+          orgDocs.forEach((doc) => orgMap.set(doc.id, doc.data()));
+        }
+      }
+
+      // Build horses array using cached data (no individual queries)
+      const horses = [];
+      for (const doc of snapshot.docs) {
+        const horse = doc.data();
+
+        // Lookup from cached maps instead of individual queries
+        const owner = horse.ownerId ? ownerMap.get(horse.ownerId) : null;
+        const stable = horse.currentStableId
+          ? stableMap.get(horse.currentStableId)
+          : null;
+        const org = stable?.organizationId
+          ? orgMap.get(stable.organizationId)
+          : null;
+
+        horses.push({
+          id: doc.id,
+          name: horse.name,
+          breed: horse.breed,
+          color: horse.color,
+          ownerId: horse.ownerId,
+          ownerName: owner
+            ? `${owner.firstName || ""} ${owner.lastName || ""}`.trim()
+            : undefined,
+          ownerEmail: owner?.email,
+          currentStableId: horse.currentStableId,
+          currentStableName: stable?.name,
+          organizationId: stable?.organizationId,
+          organizationName: org?.name,
+          isExternal: horse.isExternal || false,
+          createdAt:
+            horse.createdAt?.toDate?.()?.toISOString() ||
+            new Date().toISOString(),
+        });
+      }
+
+      return reply.send({
+        data: horses,
+        total,
+        page: pageNum,
+        limit: limitNum,
+        hasMore: offset + limitNum < total,
+      });
+    } catch (error) {
+      request.log.error({ error }, "Failed to fetch admin horses");
+      return reply.status(500).send({
+        error: "Internal Server Error",
+        message: "Failed to fetch horses",
+      });
+    }
+  });
 };

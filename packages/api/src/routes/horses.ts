@@ -775,6 +775,41 @@ export async function horsesRoutes(fastify: FastifyInstance) {
           });
         }
 
+        // TODO: Implement cascading deletion or document retention policy
+        // Related data that should be considered for deletion or retention:
+        //
+        // 1. Horse media in Firebase Storage (photos, documents)
+        //    - Current: Left orphaned (storage cleanup needed separately)
+        //    - Consideration: May want to keep for audit trail vs. GDPR compliance
+        //
+        // 2. Vaccination records (subcollection: horses/{id}/vaccinations)
+        //    - Current: Left orphaned (Firestore doesn't auto-delete subcollections)
+        //    - Consideration: Medical records retention requirements
+        //
+        // 3. Location history (horses/{id}/locationHistory)
+        //    - Current: Left orphaned
+        //    - Consideration: May be valuable for analytics/audit
+        //
+        // 4. Activity records and routine assignments
+        //    - Current: References may become stale
+        //    - Consideration: Historical activity data integrity
+        //
+        // 5. Horse group memberships
+        //    - Current: References may become stale
+        //    - Consideration: Need to update group rosters
+        //
+        // Current approach: Delete only the main horse document
+        // - Pro: Simple implementation, maintains audit trail
+        // - Con: Orphaned data accumulates, potential GDPR issues
+        //
+        // Alternative approaches:
+        // - Soft delete: Set status: 'deleted', isDeleted: true (allows restoration)
+        // - Cascading delete: Remove all related data (GDPR compliant but irreversible)
+        // - Hybrid: Soft delete + scheduled cleanup job (best of both worlds)
+        //
+        // Risk: GDPR "right to deletion" may legally require full data cleanup
+        // Recommendation: Implement soft delete with scheduled hard delete after retention period
+
         await db.collection("horses").doc(id).delete();
 
         return reply.status(204).send();
