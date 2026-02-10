@@ -39,7 +39,8 @@ import type {
   ListRoutineTemplatesQuery,
   ListRoutineInstancesQuery,
 } from "@equiduty/shared";
-import { VALID_ENTITY_ID, ALLOWED_IMAGE_TYPES } from "@equiduty/shared";
+import { VALID_ENTITY_ID, ALLOWED_IMAGE_TYPES, holidayService } from "@equiduty/shared";
+import { computeHolidayPoints, fetchHolidaySettings } from "../utils/holidayPoints.js";
 import { sanitizeFileName } from "../utils/sanitization.js";
 import {
   createActivityHistoryEntries,
@@ -1198,6 +1199,15 @@ export async function routinesRoutes(fastify: FastifyInstance) {
             ? Timestamp.fromDate(new Date(input.scheduledDate))
             : Timestamp.fromDate(input.scheduledDate);
 
+        // Apply holiday multiplier at creation for transparency
+        const scheduledDateObj =
+          typeof input.scheduledDate === "string"
+            ? new Date(input.scheduledDate)
+            : input.scheduledDate;
+        const holidaySettings = await fetchHolidaySettings(template.organizationId);
+        const { pointsValue, isHolidayShift, isHalfDayShift } =
+          computeHolidayPoints(scheduledDateObj, template.pointsValue, holidaySettings);
+
         const now = Timestamp.now();
         const instanceData: Omit<RoutineInstance, "id"> = {
           templateId: input.templateId,
@@ -1212,7 +1222,9 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           assignmentType: input.assignedTo ? "manual" : "auto",
           status: "scheduled",
           progress: initialProgress,
-          pointsValue: template.pointsValue,
+          pointsValue,
+          isHolidayShift,
+          isHalfDayShift,
           dailyNotesAcknowledged: false,
           createdAt: now,
           createdBy: user.uid,
@@ -2261,6 +2273,7 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           startDate,
           endDate,
           repeatDays,
+          includeHolidays,
           scheduledStartTime,
           assignmentMode,
         } = request.body as {
@@ -2269,6 +2282,7 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           startDate: string;
           endDate: string;
           repeatDays?: number[]; // 0=Sunday, 1=Monday, etc.
+          includeHolidays?: boolean;
           scheduledStartTime?: string;
           assignmentMode: "auto" | "manual" | "unassigned";
         };
@@ -2279,6 +2293,18 @@ export async function routinesRoutes(fastify: FastifyInstance) {
             error: "Bad Request",
             message:
               "templateId, stableId, startDate, and endDate are required",
+          });
+        }
+
+        // Cap date range to prevent resource exhaustion
+        const MAX_BULK_DAYS = 366;
+        const startMs = new Date(startDate).getTime();
+        const endMs = new Date(endDate).getTime();
+        const diffDays = Math.ceil((endMs - startMs) / (1000 * 60 * 60 * 24));
+        if (diffDays < 0 || diffDays > MAX_BULK_DAYS) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: `Date range cannot exceed ${MAX_BULK_DAYS} days`,
           });
         }
 
@@ -2313,12 +2339,14 @@ export async function routinesRoutes(fastify: FastifyInstance) {
 
         for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
           const dayOfWeek = d.getDay();
-          // If repeatDays is specified, only include those days
-          if (
+          // If repeatDays is specified, only include those days (plus holidays if enabled)
+          const matchesDay =
             !repeatDays ||
             repeatDays.length === 0 ||
-            repeatDays.includes(dayOfWeek)
-          ) {
+            repeatDays.includes(dayOfWeek);
+          const matchesHoliday =
+            includeHolidays === true && holidayService.isHoliday(d);
+          if (matchesDay || matchesHoliday) {
             dates.push(new Date(d));
           }
         }
@@ -2327,6 +2355,7 @@ export async function routinesRoutes(fastify: FastifyInstance) {
         const batch = db.batch();
         const createdIds: string[] = [];
         const now = Timestamp.now();
+        const holidaySettings = await fetchHolidaySettings(template.organizationId);
 
         for (const date of dates) {
           // Initialize progress for all steps
@@ -2345,6 +2374,10 @@ export async function routinesRoutes(fastify: FastifyInstance) {
             stepProgress,
           };
 
+          // Apply holiday multiplier at creation for transparency
+          const { pointsValue, isHolidayShift, isHalfDayShift } =
+            computeHolidayPoints(date, template.pointsValue, holidaySettings);
+
           const instanceData: Omit<RoutineInstance, "id"> = {
             templateId,
             templateName: template.name,
@@ -2356,7 +2389,9 @@ export async function routinesRoutes(fastify: FastifyInstance) {
             assignmentType: assignmentMode === "auto" ? "auto" : "manual",
             status: "scheduled",
             progress: initialProgress,
-            pointsValue: template.pointsValue,
+            pointsValue,
+            isHolidayShift,
+            isHalfDayShift,
             dailyNotesAcknowledged: false,
             createdAt: now,
             createdBy: user.uid,

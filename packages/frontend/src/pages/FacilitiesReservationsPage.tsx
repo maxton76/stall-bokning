@@ -41,6 +41,7 @@ import { Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { toDate } from "@/utils/timestampUtils";
 import { STATUS_COLORS } from "@/constants/facilityConstants";
+import { useOrganizationCalendarHolidays } from "@/hooks/useOrganizationHolidays";
 
 type ViewType = "calendar" | "timeline";
 
@@ -67,6 +68,10 @@ export default function FacilitiesReservationsPage() {
     endTime?: string;
   }>();
   const reservationDialog = useDialog<FacilityReservation>();
+
+  // Holiday data for calendar views
+  const { holidays, showHolidays } =
+    useOrganizationCalendarHolidays(selectedDate);
 
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
@@ -604,6 +609,8 @@ export default function FacilitiesReservationsPage() {
                 selected={selectedDate}
                 onSelect={(date) => date && setSelectedDate(date)}
                 className="rounded-md border"
+                holidays={holidays}
+                showHolidays={showHolidays}
                 modifiers={{
                   hasReservations: datesWithReservations,
                 }}
@@ -683,6 +690,7 @@ export default function FacilitiesReservationsPage() {
           onDateSelect={handleTimelineSelect}
           onEventDrop={handleEventDrop}
           onEventResize={handleEventResize}
+          holidayOptions={{ holidays, showHolidays }}
         />
       )}
 

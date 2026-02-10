@@ -207,7 +207,7 @@
     "scheduleTitle": "Om utfodringsschemat",
     "scheduleDescription": "Schemat visar alla aktiva utfodringsposter för valt datum. Utfodringar visas baserat på start- och slutdatum. För att lägga till eller ändra fodertyper och utfodringstider, gå till Inställningar.",
     "settingsTitle": "Om utfodringsinställningar",
-    "settingsDescription": "Fodertyper definierar vilka foder som finns tillgängliga i ditt stall (grovfoder, kraftfoder, tillskott, medicin). Utfodringstider definierar dagliga tidpunkter för utfodring. Om inga utfodringstider är konfigurerade skapas standardtider automatiskt (morgon 07:00, eftermiddag 13:00, kväll 20:00)."
+    "settingsDescription": "Fodertyper definierar vilka foder som finns tillgängliga i ditt stall (grovfoder, kraftfoder, tillskott, medicin). Utfodringstider definierar dagliga tidpunkter för utfodring."
   },
   "deleteDialog": {
     "feedTypeTitle": "Ta bort fodertyp",

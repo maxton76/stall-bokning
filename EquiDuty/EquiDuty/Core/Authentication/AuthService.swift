@@ -10,6 +10,7 @@ import Foundation
 import FirebaseAuth
 import FirebaseCore
 import GoogleSignIn
+import os
 
 /// Authentication state
 enum AuthState: Equatable {
@@ -92,7 +93,7 @@ final class AuthService {
 
     private init() {
         // Delay setup until Firebase is configured
-        Task { @MainActor in
+        Task { @MainActor [self] in
             setupAuthStateListener()
             setupTokenProvider()
             setupSessionTimeout()
@@ -142,7 +143,7 @@ final class AuthService {
             repeats: true
         ) { [weak self] _ in
             Task { @MainActor in
-                await self?.checkSessionTimeout()
+                self?.checkSessionTimeout()
             }
         }
     }
@@ -154,7 +155,9 @@ final class AuthService {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.handleAppDidEnterBackground()
+            Task { @MainActor in
+                self?.handleAppDidEnterBackground()
+            }
         }
 
         NotificationCenter.default.addObserver(
@@ -163,7 +166,7 @@ final class AuthService {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
-                await self?.handleAppWillEnterForeground()
+                self?.handleAppWillEnterForeground()
             }
         }
     }
@@ -174,8 +177,8 @@ final class AuthService {
     }
 
     /// Check if session has timed out and auto-logout if needed
-    private func checkSessionTimeout() async {
-        guard authState != .signedOut else { return }
+    private func checkSessionTimeout() {
+        guard case .signedIn = authState else { return }
 
         let timeSinceLastActivity = Date().timeIntervalSince(lastActivityTimestamp)
 
@@ -188,7 +191,7 @@ final class AuthService {
 
             // Auto-logout due to inactivity
             do {
-                try await signOut()
+                try signOut()
             } catch {
                 AppLogger.error.error("❌ Failed to sign out on session timeout: \(error)")
             }
@@ -209,7 +212,7 @@ final class AuthService {
     }
 
     /// Handle app entering foreground (check if session expired during background)
-    private func handleAppWillEnterForeground() async {
+    private func handleAppWillEnterForeground() {
         guard authState != .signedOut else { return }
         guard let backgroundTime = backgroundTimestamp else { return }
 
@@ -225,7 +228,7 @@ final class AuthService {
             AppLogger.auth.warning("🔒 Session expired during background (\(backgroundDuration)s) - auto-logout")
 
             do {
-                try await signOut()
+                try signOut()
             } catch {
                 AppLogger.error.error("❌ Failed to sign out after background timeout: \(error)")
             }

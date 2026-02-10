@@ -207,7 +207,7 @@
     "scheduleTitle": "About the Feeding Schedule",
     "scheduleDescription": "This schedule shows all active feeding entries for the selected date. Feedings are shown based on their start and end dates. To add or modify feed types and feeding time slots, go to the Settings page.",
     "settingsTitle": "About Feeding Settings",
-    "settingsDescription": "Feed types define the different feeds available at your stable (roughage, concentrate, supplements, medicine). Feeding times define the daily schedule slots when horses are fed. If no feeding times are configured, default times (morning 07:00, afternoon 13:00, evening 20:00) will be created automatically."
+    "settingsDescription": "Feed types define the different feeds available at your stable (roughage, concentrate, supplements, medicine). Feeding times define the daily schedule slots when horses are fed."
   },
   "deleteDialog": {
     "feedTypeTitle": "Delete Feed Type",

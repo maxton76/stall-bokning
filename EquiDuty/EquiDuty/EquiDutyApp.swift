@@ -21,6 +21,20 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     ) -> Bool {
         FirebaseApp.configure()
 
+        // Security: Prevent debugger attachment in production builds (CIS 10.2)
+        DebuggerDetector.shared.denyDebuggerAttachment()
+
+        // Security: Check for jailbroken device (CIS 10.1)
+        let jailbreakStatus = JailbreakDetector.shared.checkJailbreakStatus()
+        if jailbreakStatus.isJailbroken {
+            AppLogger.app.warning("⚠️ Jailbreak detected on device")
+        }
+
+        // Security: Start continuous debugger monitoring in production
+        DebuggerDetector.shared.startMonitoring {
+            DebuggerDetector.shared.handleDebuggerDetection()
+        }
+
         // Set up push notification delegates
         UNUserNotificationCenter.current().delegate = PushNotificationService.shared
         Messaging.messaging().delegate = PushNotificationService.shared

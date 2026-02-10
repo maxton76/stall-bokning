@@ -34,6 +34,7 @@ import {
   addDays,
   isSameMonth,
   isSameDay,
+  isWeekend,
 } from "date-fns";
 import { sv } from "date-fns/locale";
 import type { RoutineInstance } from "@shared/types";
@@ -41,6 +42,7 @@ import {
   getDuplicateNames,
   formatMemberDisplayName,
 } from "@/utils/memberDisplayName";
+import { useOrganizationCalendarHolidays } from "@/hooks/useOrganizationHolidays";
 
 /**
  * Schedule Month Page - Monthly calendar view
@@ -98,6 +100,10 @@ export default function ScheduleMonthPage() {
     });
     return map;
   }, [members]);
+
+  // Holiday data for the current month view
+  const { showHolidays, getHoliday } =
+    useOrganizationCalendarHolidays(currentMonth);
 
   // Calculate date range for the visible calendar (including overflow days)
   const monthStart = startOfMonth(currentMonth);
@@ -352,6 +358,30 @@ export default function ScheduleMonthPage() {
                 const isCurrentMonth = isSameMonth(date, currentMonth);
                 const isCurrentDay = isSameDay(date, today);
                 const routines = getRoutinesForDay(date);
+                const holiday = showHolidays ? getHoliday(date) : null;
+                const isWeekendDay = isWeekend(date);
+
+                // Background classes based on day type
+                let dayBg = isCurrentMonth ? "bg-background" : "bg-muted/30 text-muted-foreground";
+                if (isCurrentMonth && showHolidays && holiday) {
+                  dayBg = holiday.isHalfDay
+                    ? "bg-orange-50 dark:bg-orange-950/20"
+                    : "bg-red-50 dark:bg-red-950/20";
+                } else if (isCurrentMonth && isWeekendDay) {
+                  dayBg = "bg-muted/30";
+                }
+
+                // Date number text color
+                let dateTextColor = "";
+                if (isCurrentDay) {
+                  dateTextColor = "text-primary font-bold";
+                } else if (isCurrentMonth && showHolidays && holiday) {
+                  dateTextColor = holiday.isHalfDay
+                    ? "text-orange-600 dark:text-orange-400"
+                    : "text-red-600 dark:text-red-400";
+                } else if (isCurrentMonth && isWeekendDay) {
+                  dateTextColor = "text-muted-foreground";
+                }
 
                 return (
                   <div
@@ -359,19 +389,27 @@ export default function ScheduleMonthPage() {
                     onClick={() => handleDayClick(date)}
                     className={`
                       min-h-[80px] p-2 rounded-md border transition-colors cursor-pointer
-                      ${isCurrentMonth ? "bg-background" : "bg-muted/30 text-muted-foreground"}
+                      ${dayBg}
                       ${isCurrentDay ? "border-primary ring-1 ring-primary" : "border-border"}
                       hover:bg-muted/50
                     `}
                   >
                     <div
-                      className={`
-                        text-sm font-medium mb-1
-                        ${isCurrentDay ? "text-primary font-bold" : ""}
-                      `}
+                      className={`text-sm font-medium mb-1 ${dateTextColor}`}
                     >
                       {format(date, "d")}
                     </div>
+                    {isCurrentMonth && holiday && showHolidays && (
+                      <div
+                        className={`text-[9px] truncate mb-0.5 ${
+                          holiday.isHalfDay
+                            ? "text-orange-600 dark:text-orange-400"
+                            : "text-red-600 dark:text-red-400"
+                        }`}
+                      >
+                        {holiday.name}
+                      </div>
+                    )}
                     {isCurrentMonth && routines.length > 0 && (
                       <div className="space-y-0.5 overflow-hidden">
                         {routines
@@ -421,7 +459,7 @@ export default function ScheduleMonthPage() {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 text-sm text-muted-foreground no-print">
+      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground no-print">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded border-2 border-primary" />
           <span>Idag</span>
@@ -430,6 +468,22 @@ export default function ScheduleMonthPage() {
           <span className="line-through">Rutin</span>
           <span>= Klar</span>
         </div>
+        {showHolidays && (
+          <>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-muted/50 border border-border" />
+              <span>{t("common:schedule.legend.weekend")}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-red-100 border border-red-200" />
+              <span>{t("common:schedule.legend.publicHoliday")}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-orange-100 border border-orange-200" />
+              <span>{t("common:schedule.legend.halfDay")}</span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

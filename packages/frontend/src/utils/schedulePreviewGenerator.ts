@@ -6,6 +6,7 @@
  */
 
 import type { RoutineScheduleRepeatPattern } from "@shared/types";
+import { holidayService } from "@equiduty/shared";
 import type { AssignmentSuggestion } from "@/services/fairnessService";
 
 /**
@@ -37,6 +38,7 @@ function shouldGenerateForDate(
   date: Date,
   repeatPattern: RoutineScheduleRepeatPattern,
   repeatDays?: number[],
+  includeHolidays?: boolean,
 ): boolean {
   const dayOfWeek = date.getDay(); // 0=Sunday, 6=Saturday
 
@@ -45,8 +47,10 @@ function shouldGenerateForDate(
       return true;
     case "weekdays":
       return dayOfWeek >= 1 && dayOfWeek <= 5; // Mon-Fri
-    case "custom":
-      return repeatDays?.includes(dayOfWeek) ?? false;
+    case "custom": {
+      const matchesDay = repeatDays?.includes(dayOfWeek) ?? false;
+      return matchesDay || (includeHolidays === true && holidayService.isHoliday(date));
+    }
     default:
       return false;
   }
@@ -60,6 +64,7 @@ function generateScheduledDates(
   endDate: Date,
   repeatPattern: RoutineScheduleRepeatPattern,
   repeatDays?: number[],
+  includeHolidays?: boolean,
 ): Date[] {
   const dates: Date[] = [];
   const currentDate = new Date(startDate);
@@ -70,7 +75,7 @@ function generateScheduledDates(
   normalizedEndDate.setHours(23, 59, 59, 999);
 
   while (currentDate <= normalizedEndDate) {
-    if (shouldGenerateForDate(currentDate, repeatPattern, repeatDays)) {
+    if (shouldGenerateForDate(currentDate, repeatPattern, repeatDays, includeHolidays)) {
       dates.push(new Date(currentDate));
     }
     currentDate.setDate(currentDate.getDate() + 1);
@@ -89,6 +94,7 @@ export function generateSchedulePreview(
   repeatDays: number[] | undefined,
   scheduledTime: string,
   suggestions?: AssignmentSuggestion[],
+  includeHolidays?: boolean,
 ): PreviewInstance[] {
   const startDate = new Date(startDateStr);
   const endDate = new Date(endDateStr);
@@ -99,6 +105,7 @@ export function generateSchedulePreview(
     endDate,
     repeatPattern,
     repeatDays,
+    includeHolidays,
   );
 
   // Build suggestion map for round-robin assignment

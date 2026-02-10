@@ -9,6 +9,8 @@
 import crypto from "crypto";
 import { Timestamp, FieldValue } from "firebase-admin/firestore";
 import { db } from "./firebase.js";
+import { holidayService } from "@equiduty/shared";
+import { computeHolidayPoints, fetchHolidaySettings } from "./holidayPoints.js";
 import type { MemberForAssignment } from "../services/autoAssignmentService.js";
 import { autoAssignRoutineInstances } from "../services/routineAutoAssignmentService.js";
 
@@ -25,6 +27,7 @@ interface ScheduleData {
   endDate: string; // YYYY-MM-DD (from validated API input)
   repeatPattern: "daily" | "weekdays" | "custom";
   repeatDays?: number[];
+  includeHolidays?: boolean;
   scheduledStartTime: string;
   assignmentMode: string;
   defaultAssignedTo?: string;
@@ -53,6 +56,7 @@ function shouldGenerateForDate(
   date: Date,
   repeatPattern: "daily" | "weekdays" | "custom",
   repeatDays?: number[],
+  includeHolidays?: boolean,
 ): boolean {
   const dayOfWeek = date.getDay(); // 0=Sunday, 6=Saturday
 
@@ -61,8 +65,10 @@ function shouldGenerateForDate(
       return true;
     case "weekdays":
       return dayOfWeek >= 1 && dayOfWeek <= 5;
-    case "custom":
-      return repeatDays?.includes(dayOfWeek) ?? false;
+    case "custom": {
+      const matchesDay = repeatDays?.includes(dayOfWeek) ?? false;
+      return matchesDay || (includeHolidays === true && holidayService.isHoliday(date));
+    }
     default:
       return false;
   }
@@ -73,6 +79,7 @@ function generateScheduledDates(
   endDate: Date,
   repeatPattern: "daily" | "weekdays" | "custom",
   repeatDays?: number[],
+  includeHolidays?: boolean,
 ): Date[] {
   const dates: Date[] = [];
   const currentDate = new Date(startDate);
@@ -82,7 +89,7 @@ function generateScheduledDates(
   normalizedEndDate.setHours(23, 59, 59, 999);
 
   while (currentDate <= normalizedEndDate) {
-    if (shouldGenerateForDate(currentDate, repeatPattern, repeatDays)) {
+    if (shouldGenerateForDate(currentDate, repeatPattern, repeatDays, includeHolidays)) {
       dates.push(new Date(currentDate));
     }
     currentDate.setDate(currentDate.getDate() + 1);
@@ -185,6 +192,7 @@ export async function generateRoutineInstances(
     endDate,
     schedule.repeatPattern,
     schedule.repeatDays,
+    schedule.includeHolidays,
   );
 
   if (scheduledDates.length === 0) {
@@ -256,6 +264,9 @@ export async function generateRoutineInstances(
     }
   }
 
+  // Fetch holiday settings once for all dates in this schedule
+  const holidaySettings = await fetchHolidaySettings(schedule.organizationId);
+
   // Create instances in batches
   const BATCH_SIZE = 500;
   let totalCreated = 0;
@@ -310,6 +321,10 @@ export async function generateRoutineInstances(
         };
       }
 
+      // Apply holiday multiplier at creation for transparency
+      const { pointsValue, isHolidayShift, isHalfDayShift } =
+        computeHolidayPoints(date, template.pointsValue, holidaySettings);
+
       const instanceData = {
         id: instanceId,
         scheduleId,
@@ -336,7 +351,9 @@ export async function generateRoutineInstances(
           stepProgress,
         },
 
-        pointsValue: template.pointsValue,
+        pointsValue,
+        isHolidayShift,
+        isHalfDayShift,
         dailyNotesAcknowledged: false,
 
         createdAt: FieldValue.serverTimestamp(),

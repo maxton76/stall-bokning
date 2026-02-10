@@ -83,6 +83,7 @@ export function RoutineScheduleDialog({
   const [repeatPattern, setRepeatPattern] =
     useState<RoutineScheduleRepeatPattern>("daily");
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [includeHolidays, setIncludeHolidays] = useState(false);
   const [scheduledStartTime, setScheduledStartTime] = useState("07:00");
   const [assignmentMode, setAssignmentMode] =
     useState<AssignmentMode>("unassigned");
@@ -161,6 +162,7 @@ export function RoutineScheduleDialog({
         }
         setRepeatPattern(schedule.repeatPattern);
         setSelectedDays(schedule.repeatDays || [1, 2, 3, 4, 5]);
+        setIncludeHolidays(schedule.includeHolidays || false);
         setScheduledStartTime(schedule.scheduledStartTime || "07:00");
         setAssignmentMode(schedule.assignmentMode);
         setDefaultAssignedTo(schedule.defaultAssignedTo || "");
@@ -172,6 +174,7 @@ export function RoutineScheduleDialog({
         setEndDate(format(addMonths(new Date(), 1), "yyyy-MM-dd"));
         setRepeatPattern("daily");
         setSelectedDays([1, 2, 3, 4, 5]);
+        setIncludeHolidays(false);
         setScheduledStartTime("07:00");
         setAssignmentMode("unassigned");
         setDefaultAssignedTo("");
@@ -215,6 +218,7 @@ export function RoutineScheduleDialog({
         endDate,
         repeatPattern,
         repeatDays: repeatPattern === "custom" ? selectedDays : undefined,
+        includeHolidays: repeatPattern === "custom" ? includeHolidays : undefined,
         scheduledStartTime,
         assignmentMode,
         defaultAssignedTo:
@@ -237,6 +241,7 @@ export function RoutineScheduleDialog({
         endDate,
         repeatPattern,
         repeatDays: repeatPattern === "custom" ? selectedDays : undefined,
+        includeHolidays: repeatPattern === "custom" ? includeHolidays : undefined,
         scheduledStartTime,
         assignmentMode,
         defaultAssignedTo:
@@ -418,9 +423,10 @@ export function RoutineScheduleDialog({
             <Label>{t("routines:schedules.dialog.repeatPattern")}</Label>
             <Select
               value={repeatPattern}
-              onValueChange={(v) =>
-                setRepeatPattern(v as RoutineScheduleRepeatPattern)
-              }
+              onValueChange={(v) => {
+                setRepeatPattern(v as RoutineScheduleRepeatPattern);
+                if (v !== "custom") setIncludeHolidays(false);
+              }}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -459,6 +465,23 @@ export function RoutineScheduleDialog({
                     </label>
                   </div>
                 ))}
+              </div>
+              <div className="border-t pt-2 mt-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="includeHolidays"
+                    checked={includeHolidays}
+                    onCheckedChange={(checked) =>
+                      setIncludeHolidays(checked === true)
+                    }
+                  />
+                  <label
+                    htmlFor="includeHolidays"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    {t("routines:schedules.dialog.holidays")}
+                  </label>
+                </div>
               </div>
             </div>
           )}
@@ -558,6 +581,9 @@ export function RoutineScheduleDialog({
               !startDate ||
               !endDate ||
               !isEndDateValid ||
+              (repeatPattern === "custom" &&
+                selectedDays.length === 0 &&
+                !includeHolidays) ||
               isSubmitting
             }
           >

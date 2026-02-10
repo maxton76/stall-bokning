@@ -276,11 +276,12 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
       );
 
       try {
-        // Server-side pagination with Firestore limit + cursor
+        // Cap max fetch to prevent excessive memory usage
+        const maxFetch = Math.min(limitNum * pageNum, 1000);
         let query = db
           .collection("organizations")
           .orderBy("createdAt", "desc")
-          .limit(limitNum * pageNum); // Fetch enough docs for current page
+          .limit(maxFetch);
 
         const snapshot = await query.get();
         let orgs = snapshot.docs.map((doc) => {
@@ -550,10 +551,12 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
       );
 
       try {
+        // Cap max fetch to prevent excessive memory usage
+        const maxFetch = Math.min(limitNum * pageNum, 1000);
         const snapshot = await db
           .collection("users")
           .orderBy("createdAt", "desc")
-          .limit(limitNum * pageNum) // Limit fetch size
+          .limit(maxFetch)
           .get();
 
         let users = snapshot.docs.map((doc) => {
@@ -1581,16 +1584,13 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
   }>("/horses", { preHandler: adminPreHandler }, async (request, reply) => {
     try {
       const { search, page = "1", limit = "20" } = request.query;
-      const pageNum = parseInt(page, 10);
-      const limitNum = parseInt(limit, 10);
-
-      // Validate pagination params
-      if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
-        return reply.status(400).send({
-          error: "Bad Request",
-          message: "Invalid pagination parameters",
-        });
-      }
+      const parsedPage = parseInt(page, 10);
+      const parsedLimit = parseInt(limit, 10);
+      const pageNum = Math.max(1, isNaN(parsedPage) ? 1 : parsedPage);
+      const limitNum = Math.min(
+        100,
+        Math.max(1, isNaN(parsedLimit) ? 20 : parsedLimit),
+      );
 
       let horsesQuery = db.collection("horses").orderBy("name", "asc");
 

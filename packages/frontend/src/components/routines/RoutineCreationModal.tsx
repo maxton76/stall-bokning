@@ -35,6 +35,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { scheduledRoutinesKeys } from "@/hooks/useScheduledRoutines";
 import { bulkCreateRoutineInstances } from "@/services/routineService";
 import type { BulkCreateRoutineInstancesResponse } from "@/services/routineService";
+import { holidayService } from "@equiduty/shared";
 import { format, addDays, eachDayOfInterval, isWeekend } from "date-fns";
 import { sv } from "date-fns/locale";
 
@@ -95,6 +96,7 @@ export function RoutineCreationModal({
   const [selectedDays, setSelectedDays] = useState<number[]>([
     initialDate ? initialDate.getDay() : new Date().getDay(),
   ]);
+  const [includeHolidays, setIncludeHolidays] = useState(false);
 
   // Reset form when modal opens with new date
   const handleOpenChange = (newOpen: boolean) => {
@@ -108,6 +110,7 @@ export function RoutineCreationModal({
       // Reset form when closing
       setTemplateId("");
       setRepeatPattern("single");
+      setIncludeHolidays(false);
     }
     onOpenChange(newOpen);
   };
@@ -133,13 +136,15 @@ export function RoutineCreationModal({
           return true;
         case "weekdays":
           return !isWeekend(day);
-        case "custom":
-          return selectedDays.includes(dayOfWeek);
+        case "custom": {
+          const matchesDay = selectedDays.includes(dayOfWeek);
+          return matchesDay || (includeHolidays && holidayService.isHoliday(day));
+        }
         default:
           return false;
       }
     });
-  }, [startDate, endDate, repeatPattern, selectedDays]);
+  }, [startDate, endDate, repeatPattern, selectedDays, includeHolidays]);
 
   // Get selected template
   const selectedTemplate = templates.find((t) => t.id === templateId);
@@ -162,6 +167,7 @@ export function RoutineCreationModal({
         startDate,
         endDate: repeatPattern === "single" ? startDate : endDate,
         repeatDays,
+        includeHolidays: repeatPattern === "custom" ? includeHolidays : undefined,
         assignmentMode: "unassigned",
       });
     },
@@ -309,7 +315,10 @@ export function RoutineCreationModal({
             <Label>Upprepning</Label>
             <Select
               value={repeatPattern}
-              onValueChange={(v) => setRepeatPattern(v as RepeatPattern)}
+              onValueChange={(v) => {
+                setRepeatPattern(v as RepeatPattern);
+                if (v !== "custom") setIncludeHolidays(false);
+              }}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -361,6 +370,23 @@ export function RoutineCreationModal({
                     </label>
                   </div>
                 ))}
+              </div>
+              <div className="border-t pt-2 mt-2">
+                <div className="flex items-center space-x-1.5">
+                  <Checkbox
+                    id="includeHolidays"
+                    checked={includeHolidays}
+                    onCheckedChange={(checked) =>
+                      setIncludeHolidays(checked === true)
+                    }
+                  />
+                  <label
+                    htmlFor="includeHolidays"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    Helgdagar (svenska helgdagar)
+                  </label>
+                </div>
               </div>
             </div>
           )}

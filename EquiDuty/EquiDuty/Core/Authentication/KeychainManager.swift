@@ -20,6 +20,7 @@ final class KeychainManager {
         static let userId = "firebase_user_id"
         static let selectedOrganizationId = "selected_organization_id"
         static let selectedStableId = "selected_stable_id"
+        static let biometricsEnabled = "biometrics_enabled"
     }
 
     private init() {}
@@ -85,11 +86,12 @@ final class KeychainManager {
         delete(forKey: Keys.userId)
         delete(forKey: Keys.selectedOrganizationId)
         delete(forKey: Keys.selectedStableId)
+        delete(forKey: Keys.biometricsEnabled)
     }
 
-    // MARK: - Private Methods
+    // MARK: - Generic Keychain Access
 
-    private func save(_ value: String, forKey key: String) throws {
+    func save(_ value: String, forKey key: String) throws {
         guard let data = value.data(using: .utf8) else {
             throw KeychainError.encodingError
         }
@@ -112,7 +114,7 @@ final class KeychainManager {
         }
     }
 
-    private func get(forKey key: String) -> String? {
+    func get(forKey key: String) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,

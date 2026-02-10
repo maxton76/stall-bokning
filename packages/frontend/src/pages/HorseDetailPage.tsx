@@ -63,7 +63,7 @@ export default function HorseDetailPage() {
     query: horseQuery,
   } = useHorse(horseId);
 
-  // Check if current user is the horse owner or system admin
+  // UI-only visibility check — actual authorization enforced server-side in DELETE /api/v1/horses/:id
   const isOwner =
     user?.uid === horseData?.ownerId || user?.systemRole === "system_admin";
 

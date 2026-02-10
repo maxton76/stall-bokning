@@ -454,7 +454,10 @@
       "inProgress": "In Progress",
       "cancelled": "Cancelled",
       "overdue": "Overdue",
-      "completed": "Completed"
+      "completed": "Completed",
+      "weekend": "Weekend",
+      "publicHoliday": "Public Holiday",
+      "halfDay": "Half Day"
     }
   },
   "pwa": {

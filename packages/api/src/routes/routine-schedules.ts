@@ -333,6 +333,7 @@ export async function routineSchedulesRoutes(fastify: FastifyInstance) {
             : undefined,
           repeatPattern: input.repeatPattern,
           repeatDays: input.repeatDays,
+          includeHolidays: input.includeHolidays,
           scheduledStartTime: input.scheduledStartTime,
 
           // Assignment configuration
@@ -370,6 +371,7 @@ export async function routineSchedulesRoutes(fastify: FastifyInstance) {
                 endDate: input.endDate,
                 repeatPattern: input.repeatPattern,
                 repeatDays: input.repeatDays,
+                includeHolidays: input.includeHolidays,
                 scheduledStartTime: input.scheduledStartTime,
                 assignmentMode: input.assignmentMode,
                 defaultAssignedTo: input.defaultAssignedTo,
@@ -485,6 +487,9 @@ export async function routineSchedulesRoutes(fastify: FastifyInstance) {
         if (input.repeatDays !== undefined) {
           updateData.repeatDays = input.repeatDays;
         }
+        if (input.includeHolidays !== undefined) {
+          updateData.includeHolidays = input.includeHolidays;
+        }
         if (input.scheduledStartTime !== undefined) {
           updateData.scheduledStartTime = input.scheduledStartTime;
         }
@@ -504,6 +509,21 @@ export async function routineSchedulesRoutes(fastify: FastifyInstance) {
         }
         if (input.isEnabled !== undefined) {
           updateData.isEnabled = input.isEnabled;
+        }
+
+        // Validate that custom pattern has at least days or holidays
+        const mergedPattern = (updateData.repeatPattern ?? data.repeatPattern) as string;
+        if (mergedPattern === "custom") {
+          const mergedDays = (updateData.repeatDays ?? data.repeatDays) as number[] | undefined;
+          const mergedHolidays = (updateData.includeHolidays ?? data.includeHolidays) as boolean | undefined;
+          const hasDays = mergedDays && mergedDays.length > 0;
+          const hasHolidays = mergedHolidays === true;
+          if (!hasDays && !hasHolidays) {
+            return reply.status(400).send({
+              error: "Bad Request",
+              message: "Custom pattern requires at least one day or holidays to be selected",
+            });
+          }
         }
 
         await db.collection("routineSchedules").doc(id).update(updateData);

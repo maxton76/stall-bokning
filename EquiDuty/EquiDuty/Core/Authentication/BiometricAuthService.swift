@@ -69,7 +69,7 @@ enum BiometricError: LocalizedError {
 final class BiometricAuthService {
     static let shared = BiometricAuthService()
 
-    private let context = LAContext()
+    private let keychain = KeychainManager.shared
     private let logger = Logger(subsystem: "com.equiduty.app", category: "biometrics")
 
     // MARK: - User Preferences
@@ -77,8 +77,8 @@ final class BiometricAuthService {
     private let biometricsEnabledKey = "biometrics_enabled"
 
     var isBiometricsEnabled: Bool {
-        get { UserDefaults.standard.bool(forKey: biometricsEnabledKey) }
-        set { UserDefaults.standard.set(newValue, forKey: biometricsEnabledKey) }
+        get { keychain.get(forKey: biometricsEnabledKey) == "true" }
+        set { try? keychain.save(newValue ? "true" : "false", forKey: biometricsEnabledKey) }
     }
 
     private init() {}

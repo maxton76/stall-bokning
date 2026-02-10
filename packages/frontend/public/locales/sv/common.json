@@ -454,7 +454,10 @@
       "inProgress": "Pågår",
       "cancelled": "Avbruten",
       "overdue": "Försenad",
-      "completed": "Klar"
+      "completed": "Klar",
+      "weekend": "Helg",
+      "publicHoliday": "Helgdag",
+      "halfDay": "Halvdag"
     }
   },
   "pwa": {

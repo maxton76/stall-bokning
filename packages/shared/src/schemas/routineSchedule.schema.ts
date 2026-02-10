@@ -61,6 +61,7 @@ export const createRoutineScheduleSchema = z
       .min(1, "At least one day required for custom pattern")
       .max(7)
       .optional(),
+    includeHolidays: z.boolean().optional(),
     scheduledStartTime: scheduleTimeSchema,
 
     // Assignment configuration
@@ -72,14 +73,17 @@ export const createRoutineScheduleSchema = z
   })
   .refine(
     (data) => {
-      // If pattern is 'custom', repeatDays is required
+      // If pattern is 'custom', at least one day or includeHolidays is required
       if (data.repeatPattern === "custom") {
-        return data.repeatDays && data.repeatDays.length > 0;
+        const hasDays = data.repeatDays && data.repeatDays.length > 0;
+        const hasHolidays = data.includeHolidays === true;
+        return hasDays || hasHolidays;
       }
       return true;
     },
     {
-      message: "Custom pattern requires at least one day to be selected",
+      message:
+        "Custom pattern requires at least one day or holidays to be selected",
       path: ["repeatDays"],
     },
   )
@@ -128,6 +132,7 @@ export const updateRoutineScheduleSchema = z
     endDate: scheduleDateStringSchema.nullable().optional(),
     repeatPattern: routineScheduleRepeatPatternSchema.optional(),
     repeatDays: z.array(dayOfWeekSchema).min(1).max(7).optional(),
+    includeHolidays: z.boolean().optional(),
     scheduledStartTime: scheduleTimeSchema.optional(),
     assignmentMode: scheduleAssignmentModeSchema.optional(),
     defaultAssignedTo: z.string().nullable().optional(),
@@ -135,14 +140,22 @@ export const updateRoutineScheduleSchema = z
   })
   .refine(
     (data) => {
-      // If pattern is 'custom', repeatDays is required
+      // If pattern is 'custom', at least one day or includeHolidays is required
       if (data.repeatPattern === "custom") {
-        return data.repeatDays && data.repeatDays.length > 0;
+        const hasDays = data.repeatDays && data.repeatDays.length > 0;
+        const hasHolidays = data.includeHolidays === true;
+        return hasDays || hasHolidays;
+      }
+      // If explicitly disabling holidays without sending repeatPattern,
+      // require days to be present
+      if (data.includeHolidays === false && data.repeatDays !== undefined) {
+        return data.repeatDays.length > 0;
       }
       return true;
     },
     {
-      message: "Custom pattern requires at least one day to be selected",
+      message:
+        "Custom pattern requires at least one day or holidays to be selected",
       path: ["repeatDays"],
     },
   );

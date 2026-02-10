@@ -100,6 +100,7 @@ export function RoutineAssignmentPreviewModal({
       scheduleData.repeatDays,
       scheduleData.scheduledStartTime,
       suggestionsData?.suggestions,
+      scheduleData.includeHolidays,
     );
   }, [scheduleData, suggestionsData?.suggestions, suggestionsLoading]);
 

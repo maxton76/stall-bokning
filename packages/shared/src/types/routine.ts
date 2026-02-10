@@ -178,6 +178,7 @@ export interface RoutineInstance {
   pointsValue: number;
   pointsAwarded?: number;
   isHolidayShift?: boolean;
+  isHalfDayShift?: boolean;
 
   // Daily notes acknowledgment
   dailyNotesAcknowledged: boolean;

@@ -117,6 +117,7 @@ export default function ScheduleRoutinesPage() {
       schedule.repeatPattern,
       schedule.repeatDays,
       langCode as "sv" | "en",
+      schedule.includeHolidays,
     );
   };
 

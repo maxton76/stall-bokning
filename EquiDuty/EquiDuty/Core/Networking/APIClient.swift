@@ -281,7 +281,9 @@ final class APIClient {
         // Add authorization header
         if let token = await tokenProvider?() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            #if DEBUG
             AppLogger.auth.debug("🔑 Token present: \(token.count) chars")
+            #endif
         } else {
             AppLogger.auth.warning("⚠️ No token available from tokenProvider")
         }
@@ -290,6 +292,9 @@ final class APIClient {
         if let body = body {
             request.httpBody = try encoder.encode(body)
         }
+
+        // Reset session timeout on user activity
+        AuthService.shared.resetSessionTimeout()
 
         // Perform request
         let (data, response): (Data, URLResponse)

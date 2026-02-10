@@ -206,6 +206,7 @@ export interface BulkCreateRoutineInstancesInput {
   startDate: string; // "YYYY-MM-DD"
   endDate: string; // "YYYY-MM-DD"
   repeatDays?: number[]; // 0=Sunday, 1=Monday, etc.
+  includeHolidays?: boolean;
   scheduledStartTime?: string;
   assignmentMode: "auto" | "manual" | "unassigned";
 }

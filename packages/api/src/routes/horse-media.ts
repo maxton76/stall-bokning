@@ -202,19 +202,31 @@ export async function horseMediaRoutes(fastify: FastifyInstance) {
     "/upload-url",
     {
       preHandler: [authenticate],
+      schema: {
+        body: {
+          type: "object",
+          required: ["horseId", "fileName", "mimeType", "type"],
+          additionalProperties: false,
+          properties: {
+            horseId: { type: "string", maxLength: 128 },
+            fileName: { type: "string", maxLength: 255 },
+            mimeType: { type: "string", maxLength: 128 },
+            type: { type: "string", maxLength: 32 },
+            purpose: { type: "string", maxLength: 32 },
+          },
+        },
+      },
     },
     async (request, reply) => {
       try {
         const user = (request as AuthenticatedRequest).user!;
-        const data = request.body as any;
-
-        if (!data.horseId || !data.fileName || !data.mimeType || !data.type) {
-          return reply.status(400).send({
-            error: "Bad Request",
-            message:
-              "Missing required fields: horseId, fileName, mimeType, type",
-          });
-        }
+        const data = request.body as {
+          horseId: string;
+          fileName: string;
+          mimeType: string;
+          type: string;
+          purpose?: string;
+        };
 
         // Validate horseId format
         if (!VALID_ENTITY_ID.test(data.horseId)) {
@@ -227,7 +239,7 @@ export async function horseMediaRoutes(fastify: FastifyInstance) {
         // Validate MIME type for image uploads
         if (
           data.type === "photo" &&
-          !ALLOWED_IMAGE_TYPES.includes(data.mimeType)
+          !(ALLOWED_IMAGE_TYPES as readonly string[]).includes(data.mimeType)
         ) {
           return reply.status(400).send({
             error: "Bad Request",
@@ -306,6 +318,38 @@ export async function horseMediaRoutes(fastify: FastifyInstance) {
     "/",
     {
       preHandler: [authenticate],
+      schema: {
+        body: {
+          type: "object",
+          required: [
+            "horseId",
+            "type",
+            "category",
+            "title",
+            "fileUrl",
+            "storagePath",
+            "fileName",
+            "fileSize",
+            "mimeType",
+          ],
+          additionalProperties: false,
+          properties: {
+            horseId: { type: "string", maxLength: 128 },
+            type: { type: "string", maxLength: 32 },
+            category: { type: "string", maxLength: 32 },
+            title: { type: "string", maxLength: 255 },
+            fileUrl: { type: "string", maxLength: 2048 },
+            storagePath: { type: "string", maxLength: 512 },
+            fileName: { type: "string", maxLength: 255 },
+            fileSize: { type: "number", minimum: 0 },
+            mimeType: { type: "string", maxLength: 128 },
+            description: { type: "string", maxLength: 1000 },
+            tags: { type: "array", maxItems: 20, items: { type: "string", maxLength: 64 } },
+            purpose: { type: "string", maxLength: 32 },
+            expiryDate: { type: "string", maxLength: 64 },
+          },
+        },
+      },
     },
     async (request, reply) => {
       try {

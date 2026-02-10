@@ -32,12 +32,20 @@ import {
   type ScheduleSlot,
   type DaySchedule,
 } from "@/hooks/useScheduledRoutines";
-import { format, addWeeks, subWeeks, startOfWeek, addDays } from "date-fns";
+import {
+  format,
+  addWeeks,
+  subWeeks,
+  startOfWeek,
+  addDays,
+  isWeekend,
+} from "date-fns";
 import { sv } from "date-fns/locale";
 import {
   getDuplicateNames,
   formatMemberDisplayName,
 } from "@/utils/memberDisplayName";
+import { useOrganizationHolidays } from "@/hooks/useOrganizationHolidays";
 
 /**
  * Schedule Week Page - Weekly calendar view
@@ -92,6 +100,16 @@ export default function ScheduleWeekPage() {
     });
     return map;
   }, [members]);
+
+  // Holiday data for the current week
+  const weekEnd = useMemo(
+    () => addDays(currentWeekStart, 6),
+    [currentWeekStart],
+  );
+  const { showHolidays, getHoliday } = useOrganizationHolidays({
+    startDate: currentWeekStart,
+    endDate: weekEnd,
+  });
 
   // Fetch real routine data
   const {
@@ -422,25 +440,59 @@ export default function ScheduleWeekPage() {
 
         {/* Week Grid */}
         <div className="grid grid-cols-7 gap-2 overflow-x-auto">
-          {weekDays.map((day) => (
+          {weekDays.map((day) => {
+            const holiday = showHolidays ? getHoliday(day.date) : null;
+            const isWeekendDay = isWeekend(day.date);
+            const todayFlag = isToday(day.date);
+
+            // Card background class based on day type
+            let cardBg = "";
+            if (showHolidays && holiday) {
+              cardBg = holiday.isHalfDay
+                ? "bg-orange-50/50 dark:bg-orange-950/10"
+                : "bg-red-50/50 dark:bg-red-950/10";
+            } else if (isWeekendDay) {
+              cardBg = "bg-muted/30";
+            }
+
+            // Date text color
+            let dateColor = "";
+            if (todayFlag) {
+              dateColor = "text-primary";
+            } else if (showHolidays && holiday) {
+              dateColor = holiday.isHalfDay
+                ? "text-orange-600 dark:text-orange-400"
+                : "text-red-600 dark:text-red-400";
+            } else if (isWeekendDay) {
+              dateColor = "text-muted-foreground";
+            }
+
+            return (
             <Card
               key={day.dateStr}
-              className={
-                isToday(day.date) ? "border-primary ring-1 ring-primary" : ""
-              }
+              className={`${cardBg} ${todayFlag ? "border-primary ring-1 ring-primary" : ""}`}
             >
               <CardHeader className="p-3 pb-2">
-                <CardTitle
-                  className={`text-sm ${isToday(day.date) ? "text-primary" : ""}`}
-                >
+                <CardTitle className={`text-sm ${dateColor}`}>
                   <div className="font-medium">
                     {format(day.date, "EEEE", { locale: sv })}
                   </div>
                   <div
-                    className={`text-2xl ${isToday(day.date) ? "font-bold" : "font-normal"}`}
+                    className={`text-2xl ${todayFlag ? "font-bold" : "font-normal"}`}
                   >
                     {format(day.date, "d")}
                   </div>
+                  {holiday && showHolidays && (
+                    <div
+                      className={`text-[10px] font-normal truncate ${
+                        holiday.isHalfDay
+                          ? "text-orange-600 dark:text-orange-400"
+                          : "text-red-600 dark:text-red-400"
+                      }`}
+                    >
+                      {holiday.name}
+                    </div>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-2 space-y-1.5">
@@ -485,7 +537,8 @@ export default function ScheduleWeekPage() {
                 </Button>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -515,6 +568,22 @@ export default function ScheduleWeekPage() {
           <div className="w-3 h-3 rounded bg-green-100 border border-green-200" />
           <span>{t("common:schedule.legend.completed")}</span>
         </div>
+        {showHolidays && (
+          <>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-muted/50 border border-border" />
+              <span>{t("common:schedule.legend.weekend")}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-red-100 border border-red-200" />
+              <span>{t("common:schedule.legend.publicHoliday")}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-orange-100 border border-orange-200" />
+              <span>{t("common:schedule.legend.halfDay")}</span>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Routine Creation Modal */}
