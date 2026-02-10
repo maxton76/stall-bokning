@@ -359,10 +359,22 @@
     },
     "statistics": {
       "title": "My Statistics",
-      "subtitle": "Your activity overview",
-      "tasksCompleted": "Tasks completed",
-      "hoursWorked": "Hours worked",
-      "feedingsCompleted": "Feedings completed"
+      "subtitle": "Your activity overview (last 30 days)",
+      "completedRoutines": "Completed Routines",
+      "feedingsGiven": "Feedings Given",
+      "horsesCaredFor": "Horses Cared For",
+      "completionStreak": "Completion Streak",
+      "favoriteRoutine": "Favorite Routine",
+      "teamContribution": "Team Contribution",
+      "thisWeek": "this week",
+      "inARow": "in a row",
+      "times": "times",
+      "ofTotal": "of total",
+      "lastMonth": "last month",
+      "days": "days",
+      "noData": "No data yet - start completing routines to see your statistics!",
+      "loading": "Loading statistics...",
+      "noFavorite": "No favorite routine yet"
     },
     "invoices": {
       "title": "My Invoices",

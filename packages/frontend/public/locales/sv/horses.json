@@ -96,6 +96,20 @@
     "loadError": "Kunde inte ladda hästar. Försök igen.",
     "confirmDelete": "Är du säker på att du vill ta bort {{name}}? Denna åtgärd kan inte ångras."
   },
+  "deleteDialog": {
+    "firstConfirmation": {
+      "title": "Ta bort häst?",
+      "description": "Är du säker på att du vill ta bort {{horseName}}? Denna åtgärd kan inte ångras.",
+      "cancel": "Nej, Avbryt",
+      "confirm": "Ja, Ta bort"
+    },
+    "secondConfirmation": {
+      "title": "Slutgiltig bekräftelse",
+      "description": "Är du verkligen säker på att du vill ta bort {{horseName}} permanent? Denna åtgärd är oåterkallelig.",
+      "cancel": "Nej, Gå tillbaka",
+      "confirm": "Ja, Jag är säker"
+    }
+  },
   "actions": {
     "addHorse": "Lägg till häst",
     "editHorse": "Redigera häst",

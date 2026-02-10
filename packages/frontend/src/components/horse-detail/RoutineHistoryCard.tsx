@@ -460,11 +460,14 @@ export function RoutineHistoryCard({ horse }: RoutineHistoryCardProps) {
                     const prev =
                       (selectedPhoto.index - 1 + selectedPhoto.urls.length) %
                       selectedPhoto.urls.length;
-                    setSelectedPhoto({
-                      ...selectedPhoto,
-                      url: selectedPhoto.urls[prev],
-                      index: prev,
-                    });
+                    const prevUrl = selectedPhoto.urls[prev];
+                    if (prevUrl) {
+                      setSelectedPhoto({
+                        ...selectedPhoto,
+                        url: prevUrl,
+                        index: prev,
+                      });
+                    }
                   }}
                   className="bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/70"
                 >
@@ -477,11 +480,14 @@ export function RoutineHistoryCard({ horse }: RoutineHistoryCardProps) {
                   onClick={() => {
                     const next =
                       (selectedPhoto.index + 1) % selectedPhoto.urls.length;
-                    setSelectedPhoto({
-                      ...selectedPhoto,
-                      url: selectedPhoto.urls[next],
-                      index: next,
-                    });
+                    const nextUrl = selectedPhoto.urls[next];
+                    if (nextUrl) {
+                      setSelectedPhoto({
+                        ...selectedPhoto,
+                        url: nextUrl,
+                        index: next,
+                      });
+                    }
                   }}
                   className="bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/70"
                 >

@@ -111,5 +111,26 @@
       "deleteHasOrgs": "{{count}} organization(s) are using this tier. The tier will be disabled and hidden instead of deleted.",
       "deleteCannotDefault": "The default tier cannot be deleted."
     }
+  },
+  "horses": {
+    "title": "Horse Management",
+    "description": "View and manage all horses in the platform",
+    "search": "Search horses...",
+    "table": {
+      "horse": "Horse",
+      "owner": "Owner",
+      "stable": "Stable",
+      "organization": "Organization",
+      "type": "Type",
+      "actions": "Actions"
+    },
+    "types": {
+      "internal": "Internal",
+      "external": "External"
+    },
+    "noStable": "No stable",
+    "noOrganization": "-",
+    "viewDetails": "View Details",
+    "showingCount": "Showing {{count}} of {{total}} horses"
   }
 }

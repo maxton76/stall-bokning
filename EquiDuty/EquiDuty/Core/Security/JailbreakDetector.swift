@@ -8,6 +8,8 @@
 
 import Foundation
 import UIKit
+import Darwin
+import MachO
 
 /// Jailbreak detection result
 enum JailbreakStatus {
@@ -136,7 +138,20 @@ final class JailbreakDetector {
 
     /// Check if fork() system call succeeds (should fail on non-jailbroken devices due to sandbox)
     private func canFork() -> Bool {
-        let result = fork()
+        // fork() is marked unavailable in iOS SDK, so we use dynamic loading
+        // On non-jailbroken devices, this will fail due to sandbox restrictions
+
+        // Use function pointer type to avoid compile-time check
+        typealias ForkFunction = @convention(c) () -> Int32
+
+        guard let forkPtr = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "fork") else {
+            // fork symbol not found - likely not jailbroken
+            return false
+        }
+
+        let forkFunc = unsafeBitCast(forkPtr, to: ForkFunction.self)
+        let result = forkFunc()
+
         if result >= 0 {
             // Fork succeeded - this is a jailbreak indicator
             if result > 0 {

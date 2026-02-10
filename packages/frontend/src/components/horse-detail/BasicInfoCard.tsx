@@ -26,8 +26,10 @@ import type { Timestamp } from "firebase/firestore";
 interface BasicInfoCardProps {
   horse: Horse;
   onEdit?: () => void; // Edit handler
+  onDelete?: () => void; // Delete handler
+  isOwner?: boolean; // Whether current user is owner (shows delete button)
   onShare?: () => void; // Future feature
-  onRemove?: () => void; // Future feature
+  onRemove?: () => void; // Future feature (deprecated - use onDelete)
   onAvatarUpload?: (file: File) => void;
   onAvatarRemove?: () => void;
   isUploadingAvatar?: boolean;
@@ -37,6 +39,8 @@ interface BasicInfoCardProps {
 export function BasicInfoCard({
   horse,
   onEdit,
+  onDelete,
+  isOwner = false,
   onShare,
   onRemove,
   onAvatarUpload,
@@ -233,14 +237,17 @@ export function BasicInfoCard({
             >
               <Share className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              disabled
-              title={t("horses:detail.basicInfo.removeComingSoon")}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {isOwner && onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onDelete}
+                title={t("horses:actions.deleteHorse")}
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
             {onEdit && (
               <Button
                 variant="ghost"

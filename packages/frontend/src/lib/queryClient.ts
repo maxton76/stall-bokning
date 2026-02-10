@@ -602,6 +602,13 @@ export const queryKeys = {
     profile: () => [...queryKeys.portal.all, "profile"] as const,
   },
 
+  // Admin Portal
+  admin: {
+    all: ["admin"] as const,
+    horses: (search?: string, page?: number) =>
+      [...queryKeys.admin.all, "horses", { search, page }] as const,
+  },
+
   // Selection Processes (Turn-based routine selection)
   selectionProcesses: {
     all: ["selectionProcesses"] as const,

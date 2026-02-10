@@ -78,7 +78,8 @@ enum AppEnvironment {
     }
 
     var enableLogging: Bool {
-        return self != .production
+        // Temporarily enable logging in production for debugging
+        return true  // TODO: Revert to `self != .production` after debugging
     }
 }
 

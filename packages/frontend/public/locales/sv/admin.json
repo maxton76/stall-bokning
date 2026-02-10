@@ -111,5 +111,26 @@
       "deleteHasOrgs": "{{count}} organisation(er) använder denna nivå. Nivån kommer att inaktiveras och döljas istället för att tas bort.",
       "deleteCannotDefault": "Standardnivån kan inte tas bort."
     }
+  },
+  "horses": {
+    "title": "Hästhantering",
+    "description": "Visa och hantera alla hästar på plattformen",
+    "search": "Sök hästar...",
+    "table": {
+      "horse": "Häst",
+      "owner": "Ägare",
+      "stable": "Stall",
+      "organization": "Organisation",
+      "type": "Typ",
+      "actions": "Åtgärder"
+    },
+    "types": {
+      "internal": "Intern",
+      "external": "Extern"
+    },
+    "noStable": "Inget stall",
+    "noOrganization": "-",
+    "viewDetails": "Visa detaljer",
+    "showingCount": "Visar {{count}} av {{total}} hästar"
   }
 }

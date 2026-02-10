@@ -191,6 +191,7 @@ const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"));
 const AdminUserDetailPage = lazy(
   () => import("./pages/admin/AdminUserDetailPage"),
 );
+const AdminHorsesPage = lazy(() => import("./pages/admin/AdminHorsesPage"));
 const AdminPaymentsPage = lazy(() => import("./pages/admin/AdminPaymentsPage"));
 const AdminSystemHealthPage = lazy(
   () => import("./pages/admin/AdminSystemHealthPage"),
@@ -760,6 +761,7 @@ export const router = createBrowserRouter([
             path: "/admin/users/:id",
             element: withSuspense(AdminUserDetailPage),
           },
+          { path: "/admin/horses", element: withSuspense(AdminHorsesPage) },
           { path: "/admin/payments", element: withSuspense(AdminPaymentsPage) },
           {
             path: "/admin/system",

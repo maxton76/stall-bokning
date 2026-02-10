@@ -359,10 +359,22 @@
     },
     "statistics": {
       "title": "Min statistik",
-      "subtitle": "Din aktivitetsöversikt",
-      "tasksCompleted": "Slutförda uppgifter",
-      "hoursWorked": "Arbetade timmar",
-      "feedingsCompleted": "Utfodringar genomförda"
+      "subtitle": "Din aktivitetsöversikt (senaste 30 dagarna)",
+      "completedRoutines": "Slutförda rutiner",
+      "feedingsGiven": "Utfodringar genomförda",
+      "horsesCaredFor": "Hästar omhändertagna",
+      "completionStreak": "Dagars streak",
+      "favoriteRoutine": "Favoritrutin",
+      "teamContribution": "Bidrag till teamet",
+      "thisWeek": "denna vecka",
+      "inARow": "i rad",
+      "times": "gånger",
+      "ofTotal": "av totalen",
+      "lastMonth": "senaste månaden",
+      "days": "dagar",
+      "noData": "Ingen data ännu - börja genomföra rutiner för att se din statistik!",
+      "loading": "Laddar statistik...",
+      "noFavorite": "Ingen favoritrutin ännu"
     },
     "invoices": {
       "title": "Mina fakturor",

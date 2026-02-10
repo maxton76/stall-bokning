@@ -182,3 +182,34 @@ export async function sendTestNotification(data: {
     queued: number;
   }>("/admin/notifications/test-send", data);
 }
+
+// ============================================
+// HORSES
+// ============================================
+
+export interface AdminHorseSummary {
+  id: string;
+  name: string;
+  breed?: string;
+  color?: string;
+  ownerId: string;
+  ownerName?: string;
+  ownerEmail?: string;
+  currentStableId?: string;
+  currentStableName?: string;
+  organizationId?: string;
+  organizationName?: string;
+  isExternal: boolean;
+  createdAt: string;
+}
+
+export async function getAdminHorses(params?: {
+  search?: string;
+  page?: number;
+  limit?: number;
+}): Promise<PaginatedResponse<AdminHorseSummary>> {
+  return apiClient.get<PaginatedResponse<AdminHorseSummary>>(
+    "/admin/horses",
+    params as Record<string, string | number | boolean | undefined>,
+  );
+}

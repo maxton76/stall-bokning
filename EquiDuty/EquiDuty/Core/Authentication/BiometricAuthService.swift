@@ -99,6 +99,8 @@ final class BiometricAuthService {
             return .faceID
         case .touchID:
             return .touchID
+        case .opticID:
+            return .faceID  // Treat Optic ID same as Face ID for now
         case .none:
             return .none
         @unknown default:
@@ -129,7 +131,7 @@ final class BiometricAuthService {
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
             logger.error("❌ Biometric authentication not available: \(error?.localizedDescription ?? "unknown")")
 
-            if let laError = error {
+            if let nsError = error, let laError = nsError as? LAError {
                 throw mapLAError(laError)
             }
             throw BiometricError.notAvailable
@@ -184,12 +186,8 @@ final class BiometricAuthService {
     // MARK: - Error Mapping
 
     /// Map LAError to BiometricError
-    private func mapLAError(_ error: NSError) -> BiometricError {
-        guard let laError = error as? LAError else {
-            return .unknown(error)
-        }
-
-        switch laError.code {
+    private func mapLAError(_ error: LAError) -> BiometricError {
+        switch error.code {
         case .biometryNotAvailable:
             return .biometryNotAvailable
         case .biometryNotEnrolled:
@@ -205,7 +203,7 @@ final class BiometricAuthService {
         case .passcodeNotSet:
             return .passcodeNotSet
         default:
-            return .unknown(error)
+            return .unknown(error as Error)
         }
     }
 

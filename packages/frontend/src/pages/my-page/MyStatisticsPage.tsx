@@ -1,44 +1,81 @@
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   CheckSquare,
-  Clock,
   Wheat,
+  Heart,
+  Flame,
+  Star,
   TrendingUp,
-  Calendar,
-  BarChart3,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/contexts/AuthContext";
 import { useOrganizationContext } from "@/contexts/OrganizationContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { StatisticCard } from "./components/StatisticCard";
+import { calculateStatistics } from "@/utils/statisticsCalculations";
+import {
+  getMyRoutineStats,
+  getMyFeedingStats,
+  getTeamRoutineStats,
+} from "@/services/statisticsService";
 
 /**
- * My Statistics Page - Personal activity overview
+ * My Statistics Page - Personal activity overview with real data
  *
- * Shows user's statistics:
- * - Tasks completed
- * - Hours worked
- * - Feedings completed
- * - Activity trends
+ * Shows user's statistics over the last 30 days:
+ * - Completed routines with weekly trend
+ * - Feedings given with weekly trend
+ * - Unique horses cared for
+ * - Completion streak (consecutive days)
+ * - Favorite routine (most frequently completed)
+ * - Team contribution percentage
  */
 export default function MyStatisticsPage() {
   const { t } = useTranslation(["common"]);
+  const { currentOrganizationId } = useOrganizationContext();
   const { user } = useAuth();
-  const { currentOrganization } = useOrganizationContext();
 
-  // Placeholder data - will be replaced with actual data fetching
-  const stats = {
-    tasksCompleted: 42,
-    tasksThisWeek: 12,
-    hoursWorked: 28,
-    hoursThisWeek: 8,
-    feedingsCompleted: 84,
-    feedingsThisWeek: 21,
-  };
+  // Fetch user's routine completions (last 30 days)
+  const { data: myRoutines, isLoading: loadingRoutines } = useApiQuery(
+    ["statistics", "my-routines", currentOrganizationId, user?.uid],
+    () => getMyRoutineStats(currentOrganizationId!, user!.uid),
+    {
+      enabled: !!currentOrganizationId && !!user,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  );
+
+  // Fetch user's feeding activities (last 30 days)
+  const { data: myFeedings, isLoading: loadingFeedings } = useApiQuery(
+    ["statistics", "my-feedings", currentOrganizationId, user?.uid],
+    () => getMyFeedingStats(currentOrganizationId!, user!.uid),
+    {
+      enabled: !!currentOrganizationId && !!user,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
+
+  // Fetch team routine completions (for contribution %)
+  const { data: teamRoutines, isLoading: loadingTeam } = useApiQuery(
+    ["statistics", "team-routines", currentOrganizationId],
+    () => getTeamRoutineStats(currentOrganizationId!),
+    {
+      enabled: !!currentOrganizationId,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
+
+  // Calculate all statistics
+  const stats = useMemo(() => {
+    if (!myRoutines || !myFeedings || !teamRoutines) return null;
+    return calculateStatistics(myRoutines, myFeedings, teamRoutines);
+  }, [myRoutines, myFeedings, teamRoutines]);
+
+  const isLoading = loadingRoutines || loadingFeedings || loadingTeam;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-2">
+      <div>
         <h1 className="text-3xl font-bold tracking-tight">
           {t("common:myPage.statistics.title")}
         </h1>
@@ -47,112 +84,76 @@ export default function MyStatisticsPage() {
         </p>
       </div>
 
-      {/* Stats Grid */}
+      {!isLoading && (!stats || stats.completedRoutines.total === 0) && (
+        <div className="text-center py-12 text-muted-foreground">
+          {t("common:myPage.statistics.noData")}
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Tasks Completed */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t("common:myPage.statistics.tasksCompleted")}
-            </CardTitle>
-            <CheckSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.tasksCompleted}</div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <TrendingUp className="h-3 w-3 text-green-600" />+
-              {stats.tasksThisWeek} denna vecka
-            </p>
-          </CardContent>
-        </Card>
+        <StatisticCard
+          title={t("common:myPage.statistics.completedRoutines")}
+          value={stats?.completedRoutines.total || 0}
+          icon={CheckSquare}
+          trend={{
+            value: `+${stats?.completedRoutines.thisWeek || 0}`,
+            label: t("common:myPage.statistics.thisWeek"),
+            isPositive: true,
+          }}
+          isLoading={isLoading}
+        />
 
-        {/* Hours Worked */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t("common:myPage.statistics.hoursWorked")}
-            </CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.hoursWorked}h</div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <TrendingUp className="h-3 w-3 text-green-600" />+
-              {stats.hoursThisWeek}h denna vecka
-            </p>
-          </CardContent>
-        </Card>
+        <StatisticCard
+          title={t("common:myPage.statistics.feedingsGiven")}
+          value={stats?.feedingsGiven.total || 0}
+          icon={Wheat}
+          trend={{
+            value: `+${stats?.feedingsGiven.thisWeek || 0}`,
+            label: t("common:myPage.statistics.thisWeek"),
+            isPositive: true,
+          }}
+          isLoading={isLoading}
+        />
 
-        {/* Feedings Completed */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t("common:myPage.statistics.feedingsCompleted")}
-            </CardTitle>
-            <Wheat className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.feedingsCompleted}</div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <TrendingUp className="h-3 w-3 text-green-600" />+
-              {stats.feedingsThisWeek} denna vecka
-            </p>
-          </CardContent>
-        </Card>
+        <StatisticCard
+          title={t("common:myPage.statistics.horsesCaredFor")}
+          value={stats?.horsesCaredFor || 0}
+          icon={Heart}
+          subtitle={t("common:myPage.statistics.lastMonth")}
+          isLoading={isLoading}
+        />
+
+        <StatisticCard
+          title={t("common:myPage.statistics.completionStreak")}
+          value={`🔥 ${stats?.completionStreak || 0}`}
+          icon={Flame}
+          subtitle={t("common:myPage.statistics.days")}
+          isLoading={isLoading}
+        />
+
+        <StatisticCard
+          title={t("common:myPage.statistics.favoriteRoutine")}
+          value={
+            stats?.favoriteRoutine?.templateName ||
+            t("common:myPage.statistics.noFavorite")
+          }
+          icon={Star}
+          subtitle={
+            stats?.favoriteRoutine
+              ? `${stats.favoriteRoutine.count} ${t("common:myPage.statistics.times")}`
+              : undefined
+          }
+          isLoading={isLoading}
+        />
+
+        <StatisticCard
+          title={t("common:myPage.statistics.teamContribution")}
+          value={`${stats?.teamContribution || 0}%`}
+          icon={TrendingUp}
+          subtitle={t("common:myPage.statistics.ofTotal")}
+          isLoading={isLoading}
+        />
       </div>
-
-      {/* Activity Chart Placeholder */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            Aktivitetsöversikt
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-64 flex items-center justify-center text-muted-foreground border-2 border-dashed rounded-lg">
-            <div className="text-center">
-              <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Diagram kommer snart</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Recent Activity Placeholder */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Senaste aktivitet
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
-              <CheckSquare className="h-5 w-5 text-green-600" />
-              <div className="flex-1">
-                <p className="font-medium">Morgonfoder - Stall A</p>
-                <p className="text-sm text-muted-foreground">Idag 07:15</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
-              <CheckSquare className="h-5 w-5 text-green-600" />
-              <div className="flex-1">
-                <p className="font-medium">Mocka boxar - Sektion 1</p>
-                <p className="text-sm text-muted-foreground">Igår 09:30</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
-              <Wheat className="h-5 w-5 text-amber-600" />
-              <div className="flex-1">
-                <p className="font-medium">Kvällsfoder - Stall A</p>
-                <p className="text-sm text-muted-foreground">Igår 18:05</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

@@ -8,6 +8,7 @@
 
 import Foundation
 import Darwin
+import os
 
 /// Debugger detection and prevention service
 final class DebuggerDetector {

@@ -96,6 +96,20 @@
     "loadError": "Failed to load horses. Please try again.",
     "confirmDelete": "Are you sure you want to delete {{name}}? This action cannot be undone."
   },
+  "deleteDialog": {
+    "firstConfirmation": {
+      "title": "Delete Horse?",
+      "description": "Are you sure you want to delete {{horseName}}? This action cannot be undone.",
+      "cancel": "No, Cancel",
+      "confirm": "Yes, Delete"
+    },
+    "secondConfirmation": {
+      "title": "Final Confirmation",
+      "description": "Are you really sure you want to permanently delete {{horseName}}? This action is irreversible.",
+      "cancel": "No, Go Back",
+      "confirm": "Yes, I'm Sure"
+    }
+  },
   "actions": {
     "addHorse": "Add Horse",
     "editHorse": "Edit Horse",
