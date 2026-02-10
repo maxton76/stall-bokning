@@ -49,6 +49,7 @@ export interface RoutineSchedule {
   endDate?: FirestoreTimestamp; // null = indefinite
   repeatPattern: RoutineScheduleRepeatPattern;
   repeatDays?: number[]; // [0-6] where 0=Sunday, 6=Saturday (used when pattern is 'custom')
+  includeHolidays?: boolean; // Include configured public holidays (used when pattern is 'custom')
   scheduledStartTime: string; // "HH:MM" format, e.g., "07:00"
 
   // Assignment configuration
@@ -93,6 +94,7 @@ export interface CreateRoutineScheduleInput {
   endDate: string; // ISO date string - required, max 12 months from startDate
   repeatPattern: RoutineScheduleRepeatPattern;
   repeatDays?: number[]; // Required when repeatPattern is 'custom'
+  includeHolidays?: boolean; // Include configured public holidays (custom pattern)
   scheduledStartTime: string; // "HH:MM" format
 
   // Assignment configuration
@@ -112,6 +114,7 @@ export interface UpdateRoutineScheduleInput {
   endDate?: string | null; // null to remove end date
   repeatPattern?: RoutineScheduleRepeatPattern;
   repeatDays?: number[];
+  includeHolidays?: boolean;
   scheduledStartTime?: string;
   assignmentMode?: RoutineAssignmentType | "unassigned";
   defaultAssignedTo?: string | null;
@@ -149,6 +152,7 @@ export interface RoutineScheduleSummary {
   endDate?: string; // ISO date
   repeatPattern: RoutineScheduleRepeatPattern;
   repeatDays?: number[];
+  includeHolidays?: boolean;
   scheduledStartTime: string;
   assignmentMode: RoutineAssignmentType | "unassigned";
   defaultAssignedToName?: string;
@@ -163,23 +167,34 @@ export function getRepeatPatternDisplayText(
   pattern: RoutineScheduleRepeatPattern,
   repeatDays?: number[],
   locale: "sv" | "en" = "sv",
+  includeHolidays?: boolean,
 ): string {
   const dayNames =
     locale === "sv"
       ? ["Sön", "Mån", "Tis", "Ons", "Tor", "Fre", "Lör"]
       : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+  const holidaySuffix = includeHolidays
+    ? locale === "sv"
+      ? " + Helgdagar"
+      : " + Holidays"
+    : "";
+
   switch (pattern) {
     case "daily":
       return locale === "sv" ? "Dagligen" : "Daily";
     case "weekdays":
       return locale === "sv" ? "Vardagar" : "Weekdays";
-    case "custom":
+    case "custom": {
       if (repeatDays && repeatDays.length > 0) {
         const sortedDays = [...repeatDays].sort((a, b) => a - b);
-        return sortedDays.map((d) => dayNames[d]).join(", ");
+        return sortedDays.map((d) => dayNames[d]).join(", ") + holidaySuffix;
+      }
+      if (includeHolidays) {
+        return locale === "sv" ? "Helgdagar" : "Holidays";
       }
       return locale === "sv" ? "Anpassad" : "Custom";
+    }
     default:
       return pattern;
   }

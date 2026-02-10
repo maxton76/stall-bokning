@@ -430,7 +430,8 @@
       "createError": "Kunde inte skapa schema",
       "updateError": "Kunde inte uppdatera schema",
       "noTemplates": "Inga mallar tillgängliga",
-      "noTemplatesDescription": "Skapa en rutinmall först för att kunna skapa scheman."
+      "noTemplatesDescription": "Skapa en rutinmall först för att kunna skapa scheman.",
+      "holidays": "Helgdagar"
     },
     "repeatPatterns": {
       "daily": "Dagligen",

@@ -430,7 +430,8 @@
       "createError": "Failed to create schedule",
       "updateError": "Failed to update schedule",
       "noTemplates": "No templates available",
-      "noTemplatesDescription": "Create a routine template first to create schedules."
+      "noTemplatesDescription": "Create a routine template first to create schedules.",
+      "holidays": "Holidays"
     },
     "repeatPatterns": {
       "daily": "Daily",
