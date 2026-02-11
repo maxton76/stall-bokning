@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 // MARK: - Feeding Session View Model
 
@@ -159,7 +160,9 @@ struct FeedingTodayView: View {
 
                 let (instances, fetchedHorses, fetchedFeedings) = try await (instancesFetch, horsesFetch, feedingsFetch)
 
-                horses = fetchedHorses
+                AppLogger.data.info("🍽️ FeedingView: decoded \(instances.count) instances, \(fetchedHorses.count) horses, \(fetchedFeedings.count) feedings")
+
+                horses = fetchedHorses.sorted { ($0.name ?? "") < ($1.name ?? "") }
                 routineInstances = instances  // Store for status lookup
 
                 // Group feedings by horseId for quick lookup
@@ -169,8 +172,12 @@ struct FeedingTodayView: View {
                 feedingSessions = extractFeedingSessions(from: instances)
                     .sorted { parseTimeToMinutes($0.time) < parseTimeToMinutes($1.time) }
 
+                AppLogger.data.info("🍽️ FeedingView: extracted \(self.feedingSessions.count) feeding sessions from \(instances.count) instances")
+
                 isLoading = false
             } catch {
+                AppLogger.error.error("🍽️ FeedingView: loadData FAILED: \(error.localizedDescription, privacy: .public)")
+                AppLogger.error.error("🍽️ FeedingView: error detail: \(String(describing: error), privacy: .public)")
                 errorMessage = error.localizedDescription
                 isLoading = false
             }
@@ -193,7 +200,7 @@ struct FeedingTodayView: View {
 
             let (instances, fetchedHorses, fetchedFeedings) = try await (instancesFetch, horsesFetch, feedingsFetch)
 
-            horses = fetchedHorses
+            horses = fetchedHorses.sorted { ($0.name ?? "") < ($1.name ?? "") }
             routineInstances = instances  // Store for status lookup
             horseFeedings = Dictionary(grouping: fetchedFeedings, by: { $0.horseId })
             feedingSessions = extractFeedingSessions(from: instances)

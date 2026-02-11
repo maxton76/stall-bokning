@@ -372,11 +372,16 @@ final class APIClient {
 
         // Decode response
         do {
-            return try decoder.decode(T.self, from: data)
+            let decoded = try decoder.decode(T.self, from: data)
+            AppLogger.network.debug("📦 Decoded \(String(describing: T.self), privacy: .public) (\(data.count) bytes) from \(url.path, privacy: .public)")
+            return decoded
         } catch {
-            AppLogger.error.error("Decoding error: \(error.localizedDescription, privacy: .public)")
+            AppLogger.error.error("❌ Decoding \(String(describing: T.self), privacy: .public) FAILED: \(error.localizedDescription, privacy: .public)")
+            AppLogger.error.error("❌ Decode detail: \(String(describing: error), privacy: .public)")
             if let jsonString = String(data: data, encoding: .utf8) {
-                AppLogger.error.debug("Response JSON: \(jsonString, privacy: .private)")
+                // Log first 500 chars publicly so we can see the structure
+                let preview = String(jsonString.prefix(500))
+                AppLogger.error.error("❌ Response preview: \(preview, privacy: .public)")
             }
             throw APIError.decodingError(error)
         }

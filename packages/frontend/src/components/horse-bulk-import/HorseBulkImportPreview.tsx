@@ -168,7 +168,7 @@ export function HorseBulkImportPreview({
       </div>
 
       {/* Table */}
-      <div className="rounded-md border max-h-[400px] overflow-y-auto">
+      <div className="rounded-md border max-h-[400px] overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>

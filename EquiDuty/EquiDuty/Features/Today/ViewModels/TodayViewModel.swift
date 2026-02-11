@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 /// ViewModel for TodayView with comprehensive state management
 @MainActor
@@ -258,47 +259,39 @@ final class TodayViewModel {
                     let today = Date()
 
                     // Routines are ALWAYS fetched for today only, regardless of period selection
-                    #if DEBUG
-                    print("🔄 Fetching routines for stable: \(stableId), date: today")
-                    #endif
+                    AppLogger.data.info("📱 TodayVM: loading routines for stable=\(stableId, privacy: .public)")
                     routines = try await routineService.getRoutineInstances(
                         stableId: stableId,
                         date: today
                     )
+                    AppLogger.data.info("📱 TodayVM: decoded \(self.routines.count) routines")
                     #if DEBUG
-                    print("✅ Fetched \(routines.count) routines for today")
                     for r in routines {
-                        print("  📋 Routine: \(r.templateName), assignedTo: \(r.assignedTo ?? "nil"), assignedToName: \(r.assignedToName ?? "nil"), assignmentType: \(r.assignmentType.rawValue)")
+                        print("  📋 Routine: \(r.templateName), status=\(r.status.rawValue), assignedTo=\(r.assignedTo ?? "nil")")
                     }
-                    print("  👤 Current userId: \(authService.currentUser?.uid ?? "nil")")
                     #endif
 
                     // Activities are fetched for the selected date range
-                    #if DEBUG
-                    print("🔄 Fetching activities for stable: \(stableId), range: \(range.start) to \(range.end)")
-                    #endif
+                    AppLogger.data.info("📱 TodayVM: loading activities range=\(range.start) to \(range.end)")
                     activities = try await activityService.getActivitiesForStable(
                         stableId: stableId,
                         startDate: range.start,
                         endDate: range.end,
                         types: nil
                     )
-                    #if DEBUG
-                    print("✅ Fetched \(activities.count) activities")
-                    #endif
+                    AppLogger.data.info("📱 TodayVM: decoded \(self.activities.count) activities")
+
+                    AppLogger.data.info("📱 TodayVM: viewMode=\(self.viewMode.rawValue, privacy: .public) filteredRoutines=\(self.filteredRoutines.count) filteredActivities=\(self.filteredActivities.count) isEmpty=\(self.isEmpty)")
                 } else {
-                    #if DEBUG
-                    print("⚠️ No stable selected, skipping data fetch")
-                    #endif
+                    AppLogger.data.warning("📱 TodayVM: no stable selected, skipping fetch")
                     routines = []
                     activities = []
                 }
 
                 isLoading = false
             } catch {
-                #if DEBUG
-                print("❌ Error loading data: \(error)")
-                #endif
+                AppLogger.error.error("📱 TodayVM: loadData FAILED: \(error.localizedDescription, privacy: .public)")
+                AppLogger.error.error("📱 TodayVM: error detail: \(String(describing: error), privacy: .public)")
                 errorMessage = error.localizedDescription
                 isLoading = false
             }

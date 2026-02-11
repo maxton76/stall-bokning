@@ -238,7 +238,13 @@ struct GroupedActivities {
                 let groupKey = key.isEmpty ? String(localized: "today.grouping.noHorse") : key
                 grouped[groupKey, default: []].append(activity)
             }
-            groups = grouped.map { ($0.key, $0.value) }.sorted { $0.key < $1.key }
+            let sortByTime: (ActivityInstance, ActivityInstance) -> Bool = { a, b in
+                if let timeA = a.scheduledTime, let timeB = b.scheduledTime {
+                    return timeA < timeB
+                }
+                return a.scheduledDate < b.scheduledDate
+            }
+            groups = grouped.map { ($0.key, $0.value.sorted(by: sortByTime)) }.sorted { $0.key < $1.key }
 
         case .staff:
             var grouped: [String: [ActivityInstance]] = [:]
@@ -246,7 +252,13 @@ struct GroupedActivities {
                 let key = activity.assignedToName ?? String(localized: "today.grouping.unassigned")
                 grouped[key, default: []].append(activity)
             }
-            groups = grouped.map { ($0.key, $0.value) }.sorted { $0.key < $1.key }
+            let sortByTime: (ActivityInstance, ActivityInstance) -> Bool = { a, b in
+                if let timeA = a.scheduledTime, let timeB = b.scheduledTime {
+                    return timeA < timeB
+                }
+                return a.scheduledDate < b.scheduledDate
+            }
+            groups = grouped.map { ($0.key, $0.value.sorted(by: sortByTime)) }.sorted { $0.key < $1.key }
 
         case .type:
             var grouped: [String: [ActivityInstance]] = [:]
@@ -254,7 +266,13 @@ struct GroupedActivities {
                 let key = activity.activityTypeName
                 grouped[key, default: []].append(activity)
             }
-            groups = grouped.map { ($0.key, $0.value) }.sorted { $0.key < $1.key }
+            let sortByTime: (ActivityInstance, ActivityInstance) -> Bool = { a, b in
+                if let timeA = a.scheduledTime, let timeB = b.scheduledTime {
+                    return timeA < timeB
+                }
+                return a.scheduledDate < b.scheduledDate
+            }
+            groups = grouped.map { ($0.key, $0.value.sorted(by: sortByTime)) }.sorted { $0.key < $1.key }
         }
     }
 
