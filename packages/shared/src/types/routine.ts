@@ -351,6 +351,13 @@ export interface HorseDailyNote {
   createdAt: FirestoreTimestamp;
   createdBy: string;
   createdByName?: string;
+
+  // Owner note extensions (date-range notes)
+  rangeGroupId?: string; // UUID linking copies across days
+  startDate?: string; // "YYYY-MM-DD"
+  endDate?: string; // "YYYY-MM-DD"
+  routineType?: RoutineType | "all"; // Filter to specific routine or all
+  isOwnerNote?: boolean; // Distinguish from staff notes
 }
 
 /**
@@ -535,6 +542,29 @@ export interface CreateHorseNoteInput {
   note: string;
   priority: NotePriority;
   category?: DailyNoteCategory;
+}
+
+/**
+ * Input for creating an owner horse note (ranged)
+ */
+export interface CreateOwnerHorseNoteInput {
+  horseId: string;
+  note: string;
+  priority: NotePriority;
+  category?: DailyNoteCategory;
+  startDate: string; // "YYYY-MM-DD"
+  endDate?: string; // "YYYY-MM-DD" (defaults to startDate)
+  routineType?: RoutineType | "all"; // Filter to specific routine type
+}
+
+/**
+ * Input for updating an owner horse note across its date range
+ */
+export interface UpdateOwnerHorseNoteInput {
+  note?: string;
+  priority?: NotePriority;
+  category?: DailyNoteCategory;
+  routineType?: RoutineType | "all";
 }
 
 /**

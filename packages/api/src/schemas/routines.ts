@@ -45,6 +45,11 @@ export {
   updateDailyNotesSchema,
   getDailyNotesQuerySchema,
 
+  // Owner horse note schemas
+  createOwnerHorseNoteSchema,
+  updateOwnerHorseNoteSchema,
+  listOwnerNotesQuerySchema,
+
   // Query schemas
   listRoutineTemplatesQuerySchema,
   listRoutineInstancesQuerySchema,
@@ -72,6 +77,9 @@ export type {
   CreateHorseNoteInput,
   CreateAlertInput,
   CreateRoutineInstanceInput,
+  // Owner note types
+  CreateOwnerHorseNoteInput,
+  UpdateOwnerHorseNoteInput,
   // Query types
   ListRoutineTemplatesQuery,
   ListRoutineInstancesQuery,

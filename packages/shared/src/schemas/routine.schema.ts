@@ -229,6 +229,36 @@ export const createAlertSchema = z.object({
   expiresAt: z.union([z.string().datetime(), z.date()]).optional(),
 });
 
+// ============================================================
+// Owner Horse Note Schemas
+// ============================================================
+
+export const createOwnerHorseNoteSchema = z.object({
+  horseId: z.string().min(1, "Horse ID is required"),
+  note: z.string().min(1, "Note is required").max(1000, "Note too long"),
+  priority: notePrioritySchema,
+  category: dailyNoteCategorySchema.optional(),
+  startDate: dateStringSchema,
+  endDate: dateStringSchema.optional(),
+  routineType: z
+    .union([routineTypeSchema, z.literal("all")])
+    .optional()
+    .default("all"),
+});
+
+export const updateOwnerHorseNoteSchema = z.object({
+  note: z.string().min(1).max(1000).optional(),
+  priority: notePrioritySchema.optional(),
+  category: dailyNoteCategorySchema.optional(),
+  routineType: z.union([routineTypeSchema, z.literal("all")]).optional(),
+});
+
+export const listOwnerNotesQuerySchema = z.object({
+  horseId: z.string().optional(),
+  from: dateStringSchema.optional(),
+  to: dateStringSchema.optional(),
+});
+
 export const updateDailyNotesSchema = z.object({
   stableId: z.string().min(1, "Stable ID is required"),
   date: dateStringSchema,

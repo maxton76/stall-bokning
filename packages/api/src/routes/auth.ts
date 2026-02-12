@@ -340,6 +340,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
                 format: "date-time",
                 description: "ISO 8601 timestamp",
               },
+              emailVerified: {
+                type: "boolean",
+                description:
+                  "Whether the user has verified their email address",
+              },
             },
           },
           401: {
@@ -387,6 +392,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
           serializeTimestamps({
             id: userDoc.id,
             ...userDoc.data(),
+            emailVerified: user.emailVerified,
           }),
         );
       } catch (error) {

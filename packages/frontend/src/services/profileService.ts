@@ -80,6 +80,12 @@ export function createAppUser(
     email: firebaseUser.email,
   });
 
+  const linkedProviders = firebaseUser.providerData.map((p) => ({
+    providerId: p.providerId,
+    email: p.email,
+    displayName: p.displayName,
+  }));
+
   return {
     uid: firebaseUser.uid,
     email: firebaseUser.email,
@@ -89,6 +95,9 @@ export function createAppUser(
     systemRole: firestoreUser?.systemRole || null,
     createdAt: firestoreUser?.createdAt || null,
     updatedAt: firestoreUser?.updatedAt || null,
+    emailVerified: firebaseUser.emailVerified,
+    providerType: firebaseUser.providerData[0]?.providerId ?? "unknown",
+    linkedProviders,
     fullName,
     initials,
   };

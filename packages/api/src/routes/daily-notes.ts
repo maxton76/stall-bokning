@@ -5,10 +5,16 @@ import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
-import { hasStableAccess } from "../utils/authorization.js";
+import {
+  hasStableAccess,
+  canCreateHorseOwnerNote,
+} from "../utils/authorization.js";
 import {
   updateDailyNotesSchema,
   getDailyNotesQuerySchema,
+  createOwnerHorseNoteSchema,
+  updateOwnerHorseNoteSchema,
+  listOwnerNotesQuerySchema,
 } from "../schemas/routines.js";
 import type {
   DailyNotes,
@@ -629,6 +635,424 @@ export async function dailyNotesRoutes(fastify: FastifyInstance) {
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to remove alert",
+        });
+      }
+    },
+  );
+
+  // ============================================================================
+  // OWNER HORSE NOTES (DATE-RANGE NOTES)
+  // ============================================================================
+
+  /**
+   * POST /api/v1/daily-notes/stable/:stableId/owner-note
+   * Create an owner horse note spanning a date range.
+   * Replicates the note into each day's dailyNotes document.
+   */
+  fastify.post(
+    "/stable/:stableId/owner-note",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { stableId } = request.params as { stableId: string };
+        const user = (request as AuthenticatedRequest).user!;
+
+        const parsed = createOwnerHorseNoteSchema.safeParse(request.body);
+        if (!parsed.success) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invalid input",
+            details: parsed.error.issues,
+          });
+        }
+
+        const input = parsed.data;
+        const endDate = input.endDate || input.startDate;
+
+        // Validate date range (max 30 days)
+        const start = new Date(input.startDate);
+        const end = new Date(endDate);
+        const diffDays =
+          Math.round(
+            (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+          ) + 1;
+        if (diffDays < 1 || diffDays > 30) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Date range must be 1-30 days",
+          });
+        }
+
+        // Permission check: must be horse owner or stable manager
+        const canCreate = await canCreateHorseOwnerNote(
+          user.uid,
+          input.horseId,
+          stableId,
+        );
+        if (!canCreate) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message:
+              "You must be the horse owner or a stable manager to create owner notes",
+          });
+        }
+
+        // Get horse name for denormalization
+        const horseDoc = await db.collection("horses").doc(input.horseId).get();
+        const horseName = horseDoc.exists
+          ? horseDoc.data()?.name || "Unknown"
+          : "Unknown";
+
+        // Get user name
+        const userDoc = await db.collection("users").doc(user.uid).get();
+        const userName = userDoc.exists
+          ? userDoc.data()?.displayName || user.email
+          : user.email;
+
+        // Get stable's organizationId
+        const stableDoc = await db.collection("stables").doc(stableId).get();
+        const organizationId = stableDoc.data()?.organizationId || "";
+
+        const rangeGroupId = uuidv4();
+        const now = Timestamp.now();
+
+        // Enumerate dates
+        const dates: string[] = [];
+        const current = new Date(input.startDate);
+        while (current <= end) {
+          dates.push(current.toISOString().split("T")[0]!);
+          current.setDate(current.getDate() + 1);
+        }
+
+        // Batch write to all date documents
+        const batch = db.batch();
+        for (const dateStr of dates) {
+          const docId = `${stableId}_${dateStr}`;
+          const docRef = db.collection("dailyNotes").doc(docId);
+
+          const newNote: HorseDailyNote = {
+            id: uuidv4(),
+            horseId: input.horseId,
+            horseName,
+            note: input.note,
+            priority: input.priority,
+            category: input.category,
+            createdAt: now,
+            createdBy: user.uid,
+            createdByName: userName,
+            rangeGroupId,
+            startDate: input.startDate,
+            endDate,
+            routineType: input.routineType || "all",
+            isOwnerNote: true,
+          };
+
+          const existingDoc = await docRef.get();
+          if (existingDoc.exists) {
+            const data = existingDoc.data() as DailyNotes;
+            batch.update(docRef, {
+              horseNotes: [...data.horseNotes, newNote],
+              updatedAt: now,
+              lastUpdatedBy: user.uid,
+              lastUpdatedByName: userName,
+            });
+          } else {
+            batch.set(docRef, {
+              id: docId,
+              organizationId,
+              stableId,
+              date: dateStr,
+              horseNotes: [newNote],
+              alerts: [],
+              createdAt: now,
+              updatedAt: now,
+              lastUpdatedBy: user.uid,
+              lastUpdatedByName: userName,
+            });
+          }
+        }
+
+        await batch.commit();
+
+        return reply.status(201).send({
+          rangeGroupId,
+          datesAffected: dates,
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to create owner horse note");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to create owner horse note",
+        });
+      }
+    },
+  );
+
+  /**
+   * PUT /api/v1/daily-notes/stable/:stableId/owner-note/:rangeGroupId
+   * Edit an owner horse note across all days in its range.
+   * Client sends startDate+endDate query params to identify the range.
+   */
+  fastify.put(
+    "/stable/:stableId/owner-note/:rangeGroupId",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { stableId, rangeGroupId } = request.params as {
+          stableId: string;
+          rangeGroupId: string;
+        };
+        const { startDate, endDate } = request.query as {
+          startDate: string;
+          endDate: string;
+        };
+        const user = (request as AuthenticatedRequest).user!;
+
+        const parsed = updateOwnerHorseNoteSchema.safeParse(request.body);
+        if (!parsed.success) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invalid input",
+            details: parsed.error.issues,
+          });
+        }
+
+        const hasAccess = await hasStableAccess(stableId, user.uid, user.role);
+        if (!hasAccess) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to edit notes for this stable",
+          });
+        }
+
+        const updates = parsed.data;
+        const now = Timestamp.now();
+
+        // Enumerate dates
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const dates: string[] = [];
+        const current = new Date(start);
+        while (current <= end) {
+          dates.push(current.toISOString().split("T")[0]!);
+          current.setDate(current.getDate() + 1);
+        }
+
+        // Batch update across all date documents
+        const batch = db.batch();
+        let updatedCount = 0;
+
+        for (const dateStr of dates) {
+          const docId = `${stableId}_${dateStr}`;
+          const docRef = db.collection("dailyNotes").doc(docId);
+          const doc = await docRef.get();
+          if (!doc.exists) continue;
+
+          const data = doc.data() as DailyNotes;
+          let modified = false;
+
+          const updatedNotes = data.horseNotes.map((n) => {
+            if (n.rangeGroupId !== rangeGroupId) return n;
+            modified = true;
+            return {
+              ...n,
+              ...(updates.note !== undefined && { note: updates.note }),
+              ...(updates.priority !== undefined && {
+                priority: updates.priority,
+              }),
+              ...(updates.category !== undefined && {
+                category: updates.category,
+              }),
+              ...(updates.routineType !== undefined && {
+                routineType: updates.routineType,
+              }),
+            };
+          });
+
+          if (modified) {
+            batch.update(docRef, {
+              horseNotes: updatedNotes,
+              updatedAt: now,
+              lastUpdatedBy: user.uid,
+            });
+            updatedCount++;
+          }
+        }
+
+        await batch.commit();
+
+        return { success: true, datesUpdated: updatedCount };
+      } catch (error) {
+        request.log.error({ error }, "Failed to update owner horse note");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to update owner horse note",
+        });
+      }
+    },
+  );
+
+  /**
+   * DELETE /api/v1/daily-notes/stable/:stableId/owner-note/:rangeGroupId
+   * Remove an owner horse note from all days in its range.
+   */
+  fastify.delete(
+    "/stable/:stableId/owner-note/:rangeGroupId",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { stableId, rangeGroupId } = request.params as {
+          stableId: string;
+          rangeGroupId: string;
+        };
+        const { startDate, endDate } = request.query as {
+          startDate: string;
+          endDate: string;
+        };
+        const user = (request as AuthenticatedRequest).user!;
+
+        const hasAccess = await hasStableAccess(stableId, user.uid, user.role);
+        if (!hasAccess) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message:
+              "You do not have permission to delete notes for this stable",
+          });
+        }
+
+        const now = Timestamp.now();
+
+        // Enumerate dates
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const dates: string[] = [];
+        const current = new Date(start);
+        while (current <= end) {
+          dates.push(current.toISOString().split("T")[0]!);
+          current.setDate(current.getDate() + 1);
+        }
+
+        // Batch delete across all date documents
+        const batch = db.batch();
+        let deletedCount = 0;
+
+        for (const dateStr of dates) {
+          const docId = `${stableId}_${dateStr}`;
+          const docRef = db.collection("dailyNotes").doc(docId);
+          const doc = await docRef.get();
+          if (!doc.exists) continue;
+
+          const data = doc.data() as DailyNotes;
+          const filtered = data.horseNotes.filter(
+            (n) => n.rangeGroupId !== rangeGroupId,
+          );
+
+          if (filtered.length !== data.horseNotes.length) {
+            batch.update(docRef, {
+              horseNotes: filtered,
+              updatedAt: now,
+              lastUpdatedBy: user.uid,
+            });
+            deletedCount++;
+          }
+        }
+
+        await batch.commit();
+
+        return { success: true, datesUpdated: deletedCount };
+      } catch (error) {
+        request.log.error({ error }, "Failed to delete owner horse note");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to delete owner horse note",
+        });
+      }
+    },
+  );
+
+  /**
+   * GET /api/v1/daily-notes/stable/:stableId/owner-notes
+   * List owner notes (deduplicated by rangeGroupId).
+   */
+  fastify.get(
+    "/stable/:stableId/owner-notes",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { stableId } = request.params as { stableId: string };
+        const user = (request as AuthenticatedRequest).user!;
+
+        const hasAccess = await hasStableAccess(stableId, user.uid, user.role);
+        if (!hasAccess) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to access this stable",
+          });
+        }
+
+        const parsed = listOwnerNotesQuerySchema.safeParse(request.query);
+        if (!parsed.success) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invalid query parameters",
+            details: parsed.error.issues,
+          });
+        }
+
+        const { horseId, from, to } = parsed.data;
+
+        // Default range: today to 30 days ahead
+        const fromDate = from || new Date().toISOString().split("T")[0]!;
+        const toDate =
+          to ||
+          new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0]!;
+
+        // Query dailyNotes docs in range
+        const start = new Date(fromDate);
+        const end = new Date(toDate);
+        const dates: string[] = [];
+        const current = new Date(start);
+        while (current <= end) {
+          dates.push(current.toISOString().split("T")[0]!);
+          current.setDate(current.getDate() + 1);
+        }
+
+        // Read docs in batches (max 30 days worth)
+        const seenGroups = new Set<string>();
+        const ownerNotes: any[] = [];
+
+        for (const dateStr of dates) {
+          const docId = `${stableId}_${dateStr}`;
+          const doc = await db.collection("dailyNotes").doc(docId).get();
+          if (!doc.exists) continue;
+
+          const data = doc.data() as DailyNotes;
+          for (const note of data.horseNotes) {
+            if (!note.isOwnerNote || !note.rangeGroupId) continue;
+            if (seenGroups.has(note.rangeGroupId)) continue;
+            if (horseId && note.horseId !== horseId) continue;
+
+            seenGroups.add(note.rangeGroupId);
+            ownerNotes.push(serializeTimestamps(note));
+          }
+        }
+
+        return { ownerNotes };
+      } catch (error) {
+        request.log.error({ error }, "Failed to list owner horse notes");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to list owner horse notes",
         });
       }
     },

@@ -13,6 +13,14 @@ struct HorseHealthTabView: View {
     @State private var vaccinationService = VaccinationService.shared
     @State private var authService = AuthService.shared
 
+    private var canEdit: Bool {
+        RBACFilterService.shared.canEditHorse(horse)
+    }
+
+    private var canViewProfessional: Bool {
+        RBACFilterService.shared.canViewProfessionalFields(horse)
+    }
+
     @State private var vaccinationRecords: [VaccinationRecord] = []
     @State private var vaccinationRules: [VaccinationRule] = []
     @State private var isLoading = false
@@ -24,22 +32,28 @@ struct HorseHealthTabView: View {
 
     var body: some View {
         VStack(spacing: EquiDutyDesign.Spacing.standard) {
-            // Vaccination Status Card
+            // Vaccination Status Card (Level 1: visible to all)
             VaccinationStatusCard(horse: horse)
 
-            // Vaccination History
-            VaccinationHistoryCard(
-                records: vaccinationRecords,
-                isLoading: isLoading,
-                onAdd: { showAddVaccination = true },
-                onEdit: { record in editingRecord = record },
-                onDelete: { record in
-                    recordToDelete = record
-                    showDeleteConfirmation = true
-                }
-            )
+            // Vaccination History (Level 3: Professional - medical data)
+            if canViewProfessional {
+                VaccinationHistoryCard(
+                    records: vaccinationRecords,
+                    isLoading: isLoading,
+                    canEdit: canEdit,
+                    onAdd: { showAddVaccination = true },
+                    onEdit: { record in editingRecord = record },
+                    onDelete: { record in
+                        recordToDelete = record
+                        showDeleteConfirmation = true
+                    }
+                )
 
-            // Care Activities
+                // Health Records (Level 3: Professional)
+                HealthRecordListView(horse: horse)
+            }
+
+            // Care Activities (Level 2: Basic Care)
             CareActivityCardView(horse: horse)
         }
         .padding(.horizontal)
@@ -101,6 +115,7 @@ struct HorseHealthTabView: View {
         errorMessage = nil
 
         Task {
+            defer { isLoading = false }
             do {
                 // Fetch records
                 vaccinationRecords = try await vaccinationService.getVaccinationRecords(horseId: horse.id)
@@ -114,11 +129,8 @@ struct HorseHealthTabView: View {
 
                 // Sort records by date descending
                 vaccinationRecords.sort { $0.date > $1.date }
-
-                isLoading = false
             } catch {
                 errorMessage = error.localizedDescription
-                isLoading = false
             }
         }
     }
@@ -238,6 +250,7 @@ struct VaccinationStatusCard: View {
 struct VaccinationHistoryCard: View {
     let records: [VaccinationRecord]
     let isLoading: Bool
+    var canEdit: Bool = true
     let onAdd: () -> Void
     let onEdit: (VaccinationRecord) -> Void
     let onDelete: (VaccinationRecord) -> Void
@@ -249,11 +262,13 @@ struct VaccinationHistoryCard: View {
                 Text(String(localized: "horse.vaccination.history"))
                     .font(.headline)
                 Spacer()
-                Button {
-                    onAdd()
-                } label: {
-                    Label(String(localized: "common.add"), systemImage: "plus.circle.fill")
-                        .font(.subheadline)
+                if canEdit {
+                    Button {
+                        onAdd()
+                    } label: {
+                        Label(String(localized: "common.add"), systemImage: "plus.circle.fill")
+                            .font(.subheadline)
+                    }
                 }
             }
 
@@ -272,11 +287,13 @@ struct VaccinationHistoryCard: View {
                     Text(String(localized: "horse.vaccination.history.empty"))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    Button {
-                        onAdd()
-                    } label: {
-                        Text(String(localized: "horse.vaccination.add_first"))
-                            .font(.subheadline)
+                    if canEdit {
+                        Button {
+                            onAdd()
+                        } label: {
+                            Text(String(localized: "horse.vaccination.add_first"))
+                                .font(.subheadline)
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity)

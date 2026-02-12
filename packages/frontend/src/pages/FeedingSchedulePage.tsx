@@ -47,6 +47,7 @@ import { FeedingCellPopover } from "@/components/FeedingCellPopover";
 import { HorseFeedingFormDialog } from "@/components/HorseFeedingFormDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserStables } from "@/hooks/useUserStables";
+import { useDefaultStableId } from "@/hooks/useUserPreferences";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { useFeedTypesQuery } from "@/hooks/useFeedTypesQuery";
 import { useFeedingTimesQuery } from "@/hooks/useFeedingTimesQuery";
@@ -94,18 +95,22 @@ export default function FeedingSchedulePage() {
 
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
+  const defaultStableId = useDefaultStableId();
 
   // Get the selected stable's organizationId
   const selectedStable = stables.find((s) => s.id === selectedStableId);
   const organizationId = selectedStable?.organizationId;
 
-  // Auto-select first stable when stables load
+  // Auto-select: default stable (if accessible) > first stable
   useEffect(() => {
-    const firstStable = stables[0];
-    if (firstStable && !selectedStableId) {
-      setSelectedStableId(firstStable.id);
+    if (stables.length > 0 && !selectedStableId) {
+      const preferred =
+        defaultStableId && stables.some((s) => s.id === defaultStableId)
+          ? defaultStableId
+          : stables[0]?.id;
+      if (preferred) setSelectedStableId(preferred);
     }
-  }, [stables, selectedStableId]);
+  }, [stables, selectedStableId, defaultStableId]);
 
   // Date string for query key
   const dateString = selectedDate.toISOString().split("T")[0] ?? "";

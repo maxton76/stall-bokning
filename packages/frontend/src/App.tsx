@@ -21,6 +21,7 @@ const LoginPage = lazy(() => import("./pages/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const SignupPage = lazy(() => import("./pages/SignupPage"));
 const CompleteProfilePage = lazy(() => import("./pages/CompleteProfilePage"));
+const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage"));
 const InviteAcceptPage = lazy(() => import("./pages/InviteAcceptPage"));
 
 // Lazy-load authenticated pages
@@ -311,6 +312,7 @@ function App() {
                     path="/complete-profile"
                     element={<CompleteProfilePage />}
                   />
+                  <Route path="/verify-email" element={<VerifyEmailPage />} />
                   <Route
                     path="/invites/accept"
                     element={<InviteAcceptPage />}

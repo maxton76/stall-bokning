@@ -1,0 +1,6 @@
+email,name,dateOfBirth,chipNumber
+test1@example.com,Horse ISO Format,2015-06-05,203011995403115
+test2@example.com,Horse Slash Format,05/06/2015,203011995403116
+test3@example.com,Horse Dot Format,05.06.2015,203011995403117
+test4@example.com,Horse Excel Serial,42173,203011995403118
+test5@example.com,Horse Invalid Date,invalid,203011995403119

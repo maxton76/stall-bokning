@@ -31,6 +31,12 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/login" replace />;
   }
 
+  // Gate unverified email/password users (skip in emulator mode)
+  const isEmulator = import.meta.env.VITE_USE_FIREBASE_EMULATOR === "true";
+  if (!isEmulator && user.providerType === "password" && !user.emailVerified) {
+    return <Navigate to="/verify-email" replace />;
+  }
+
   // User is authenticated, render children
   return <>{children}</>;
 }

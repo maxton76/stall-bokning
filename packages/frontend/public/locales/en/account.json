@@ -28,6 +28,39 @@
     "defaultOrganizationHint": "This organization is automatically selected when you log in",
     "saved": "Preferences saved"
   },
+  "linkedAccounts": {
+    "title": "Connected Accounts",
+    "description": "Link your Google or Apple account for faster sign-in",
+    "providers": {
+      "password": "Email & Password",
+      "google": "Google",
+      "apple": "Apple"
+    },
+    "linkedAs": "Connected as {{email}}",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "warnings": {
+      "emailMismatch": "This account uses a different email than your EquiDuty account",
+      "cannotDisconnect": "You must have at least one sign-in method",
+      "alreadyInUse": "This {{provider}} account is already linked to another EquiDuty account"
+    },
+    "confirmDisconnect": {
+      "title": "Disconnect {{provider}}?",
+      "description": "You will no longer be able to sign in with {{provider}}.",
+      "confirm": "Disconnect",
+      "cancel": "Cancel"
+    },
+    "errors": {
+      "linkFailed": "Failed to connect {{provider}}. Please try again.",
+      "unlinkFailed": "Failed to disconnect {{provider}}. Please try again.",
+      "cancelled": "Sign in cancelled",
+      "recentLoginRequired": "For security, please sign in again before making this change"
+    },
+    "success": {
+      "linked": "{{provider}} account connected",
+      "unlinked": "{{provider}} account disconnected"
+    }
+  },
   "danger": {
     "title": "Danger Zone",
     "description": "Irreversible actions",

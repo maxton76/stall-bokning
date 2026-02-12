@@ -3,11 +3,14 @@ import type {
   RoutineTemplate,
   RoutineInstance,
   DailyNotes,
+  HorseDailyNote,
   HorseStepProgress,
   CreateRoutineTemplateInput,
   UpdateRoutineTemplateInput,
   UpdateStepProgressInput,
   UpdateHorseProgressInput,
+  CreateOwnerHorseNoteInput,
+  UpdateOwnerHorseNoteInput,
 } from "@shared/types";
 
 // Local interface for creating routine instances
@@ -458,4 +461,63 @@ export async function removeDailyAlert(
   );
 
   return response.notes;
+}
+
+// ==================== Owner Horse Notes ====================
+
+/**
+ * Create an owner horse note spanning a date range
+ */
+export async function createOwnerHorseNote(
+  stableId: string,
+  data: CreateOwnerHorseNoteInput,
+): Promise<{ rangeGroupId: string; datesAffected: string[] }> {
+  return apiClient.post<{ rangeGroupId: string; datesAffected: string[] }>(
+    `/daily-notes/stable/${stableId}/owner-note`,
+    data,
+  );
+}
+
+/**
+ * Update an owner horse note across all days in its range
+ */
+export async function updateOwnerHorseNote(
+  stableId: string,
+  rangeGroupId: string,
+  startDate: string,
+  endDate: string,
+  data: UpdateOwnerHorseNoteInput,
+): Promise<{ success: boolean; datesUpdated: number }> {
+  return apiClient.put<{ success: boolean; datesUpdated: number }>(
+    `/daily-notes/stable/${stableId}/owner-note/${rangeGroupId}?startDate=${startDate}&endDate=${endDate}`,
+    data,
+  );
+}
+
+/**
+ * Delete an owner horse note from all days in its range
+ */
+export async function deleteOwnerHorseNote(
+  stableId: string,
+  rangeGroupId: string,
+  startDate: string,
+  endDate: string,
+): Promise<{ success: boolean; datesUpdated: number }> {
+  return apiClient.delete<{ success: boolean; datesUpdated: number }>(
+    `/daily-notes/stable/${stableId}/owner-note/${rangeGroupId}?startDate=${startDate}&endDate=${endDate}`,
+  );
+}
+
+/**
+ * List owner notes for a stable (deduplicated by rangeGroupId)
+ */
+export async function listOwnerHorseNotes(
+  stableId: string,
+  params?: { horseId?: string; from?: string; to?: string },
+): Promise<HorseDailyNote[]> {
+  const response = await apiClient.get<{ ownerNotes: HorseDailyNote[] }>(
+    `/daily-notes/stable/${stableId}/owner-notes`,
+    params as Record<string, string>,
+  );
+  return response.ownerNotes;
 }

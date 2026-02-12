@@ -51,6 +51,9 @@ final class AuthService {
     private(set) var isLoading = false
     private(set) var error: Error?
 
+    /// Whether the current user's email is verified (defaults to true so OAuth users pass through)
+    private(set) var isEmailVerified: Bool = true
+
     // MARK: - Selected Context
 
     var selectedOrganization: Organization? {
@@ -311,6 +314,14 @@ final class AuthService {
             isLoading = true
             error = nil
 
+            // Check email verification for password users
+            let isPasswordUser = firebaseUser.providerData.first?.providerID == "password"
+            if isPasswordUser && !firebaseUser.isEmailVerified {
+                self.isEmailVerified = false
+            } else {
+                self.isEmailVerified = true
+            }
+
             // Save user ID to keychain
             try? keychain.saveUserId(firebaseUser.uid)
 
@@ -398,6 +409,7 @@ final class AuthService {
         selectedOrganization = nil
         selectedStable = nil
         authState = .signedOut
+        isEmailVerified = true
         keychain.clearAll()
 
         // Clear permission, subscription, and settings caches
@@ -532,6 +544,30 @@ final class AuthService {
         }
     }
 
+    // MARK: - Email Verification
+
+    /// Send email verification to the current user
+    func sendEmailVerification() async throws {
+        guard let user = Auth.auth().currentUser else {
+            throw AuthError.userNotFound
+        }
+        try await user.sendEmailVerification()
+    }
+
+    /// Check if the current user's email is verified (reloads user from Firebase)
+    @discardableResult
+    func checkEmailVerification() async throws -> Bool {
+        guard let user = Auth.auth().currentUser else { return false }
+        try await user.reload()
+        let verified = user.isEmailVerified
+        if verified {
+            self.isEmailVerified = true
+            // Force token refresh so the backend sees the updated claim
+            _ = try await user.getIDToken(forcingRefresh: true)
+        }
+        return verified
+    }
+
     // MARK: - Sign In Methods
 
     /// Sign in with email and password
@@ -615,6 +651,9 @@ final class AuthService {
             changeRequest.displayName = "\(firstName) \(lastName)"
             try await changeRequest.commitChanges()
 
+            // Send email verification
+            try await result.user.sendEmailVerification()
+
             // The auth state listener will handle the rest
         } catch {
             self.error = error
@@ -632,6 +671,74 @@ final class AuthService {
         } catch {
             throw AuthError.passwordResetFailed(error)
         }
+    }
+
+    // MARK: - Account Linking
+
+    /// Link Google account to the current user
+    func linkGoogleAccount() async throws {
+        guard let currentUser = Auth.auth().currentUser else {
+            throw AuthError.userNotFound
+        }
+
+        guard let clientID = FirebaseApp.app()?.options.clientID else {
+            throw AuthError.configurationError("Missing Firebase client ID")
+        }
+
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
+
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else {
+            throw AuthError.configurationError("No root view controller found")
+        }
+
+        let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController)
+
+        guard let idToken = result.user.idToken?.tokenString else {
+            throw AuthError.signInFailed(NSError(domain: "GoogleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "No ID token"]))
+        }
+
+        let credential = GoogleAuthProvider.credential(
+            withIDToken: idToken,
+            accessToken: result.user.accessToken.tokenString
+        )
+
+        try await currentUser.link(with: credential)
+
+        #if DEBUG
+        print("✅ Google account linked successfully")
+        #endif
+    }
+
+    /// Unlink a provider from the current user
+    func unlinkProvider(_ providerId: String) async throws {
+        guard let currentUser = Auth.auth().currentUser else {
+            throw AuthError.userNotFound
+        }
+
+        // Guard: must have more than 1 provider
+        guard currentUser.providerData.count > 1 else {
+            throw AuthError.configurationError("Cannot unlink last provider")
+        }
+
+        try await currentUser.unlink(fromProvider: providerId)
+
+        #if DEBUG
+        print("✅ Provider \(providerId) unlinked successfully")
+        #endif
+    }
+
+    /// Get currently linked provider IDs
+    var linkedProviderIds: [String] {
+        Auth.auth().currentUser?.providerData.map { $0.providerID } ?? []
+    }
+
+    /// Get provider data for display
+    var linkedProviders: [(providerId: String, email: String?, displayName: String?)] {
+        Auth.auth().currentUser?.providerData.map {
+            (providerId: $0.providerID, email: $0.email, displayName: $0.displayName)
+        } ?? []
     }
 
     // MARK: - Sign Out
@@ -723,6 +830,8 @@ enum AuthError: Error, LocalizedError {
     case signUpFailed(Error)
     case signOutFailed(Error)
     case passwordResetFailed(Error)
+    case linkFailed(Error)
+    case unlinkFailed(Error)
     case configurationError(String)
     case cancelled
     case userNotFound
@@ -738,6 +847,10 @@ enum AuthError: Error, LocalizedError {
             return String(localized: "error.auth.sign_out_failed \(error.localizedDescription)")
         case .passwordResetFailed(let error):
             return String(localized: "error.auth.password_reset_failed \(error.localizedDescription)")
+        case .linkFailed(let error):
+            return String(localized: "error.auth.link_failed \(error.localizedDescription)")
+        case .unlinkFailed(let error):
+            return String(localized: "error.auth.unlink_failed \(error.localizedDescription)")
         case .configurationError(let message):
             return String(localized: "error.auth.configuration \(message)")
         case .cancelled:

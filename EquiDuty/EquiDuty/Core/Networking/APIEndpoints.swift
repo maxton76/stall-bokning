@@ -70,6 +70,17 @@ enum APIEndpoints {
     static func horseActivities(_ horseId: String) -> String { "/activities/horse/\(horseId)" }
     static func horseActivityHistory(_ horseId: String) -> String { "/horse-activity-history/horse/\(horseId)" }
 
+    // MARK: - Health Records
+    static func healthRecords(_ horseId: String) -> String { "/health-records/horse/\(horseId)" }
+    static func healthRecordStats(_ horseId: String) -> String { "/health-records/horse/\(horseId)/stats" }
+    static func healthRecordFollowUps(_ horseId: String) -> String { "/health-records/horse/\(horseId)/upcoming-followups" }
+    static let healthRecordsCreate = "/health-records"
+    static func healthRecord(_ id: String) -> String { "/health-records/\(id)" }
+
+    // MARK: - Transport Instructions
+    static func horseTransport(_ horseId: String) -> String { "/horses/\(horseId)/transport" }
+    static func horseTransportPrintable(_ horseId: String) -> String { "/horses/\(horseId)/transport/printable" }
+
     // MARK: - Feeding
     static func feedTypes(_ organizationId: String) -> String { "/feed-types/organization/\(organizationId)" }
     static func feedType(_ typeId: String) -> String { "/feed-types/\(typeId)" }

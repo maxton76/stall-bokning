@@ -492,6 +492,30 @@ export async function canAccessHorse(
   }
 }
 
+/**
+ * Check if user can create owner horse notes for a horse in a stable.
+ * Returns true if user is the horse's owner OR can manage the stable.
+ */
+export async function canCreateHorseOwnerNote(
+  userId: string,
+  horseId: string,
+  stableId: string,
+): Promise<boolean> {
+  try {
+    // Check if user is horse owner
+    const horseDoc = await db.collection("horses").doc(horseId).get();
+    if (horseDoc.exists && horseDoc.data()?.ownerId === userId) {
+      return true;
+    }
+
+    // Fall back to stable management check
+    return canManageStable(userId, stableId);
+  } catch (error) {
+    console.error("Error checking horse owner note permission:", error);
+    return false;
+  }
+}
+
 // ============================================
 // HORSE FIELD-LEVEL RBAC
 // ============================================

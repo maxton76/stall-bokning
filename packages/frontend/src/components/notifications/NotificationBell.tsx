@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { OrganizationInviteDialog } from "@/components/invites";
 import {
   Popover,
   PopoverContent,
@@ -96,6 +97,10 @@ export function NotificationBell({ className }: NotificationBellProps) {
   const { t, i18n } = useTranslation(["notifications", "common"]);
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [selectedInviteMemberId, setSelectedInviteMemberId] = useState<
+    string | null
+  >(null);
 
   const {
     notifications,
@@ -136,11 +141,31 @@ export function NotificationBell({ className }: NotificationBellProps) {
       await markAsRead(notification.id);
     }
 
+    // Handle membership invite - show modal instead of navigating
+    if (notification.type === "membership_invite") {
+      // Extract memberId from actionUrl like /invite-accept?memberId=xxx
+      const actionUrl = notification.actionUrl || "";
+      const urlParams = new URLSearchParams(actionUrl.split("?")[1] || "");
+      const memberId = urlParams.get("memberId");
+
+      if (memberId) {
+        setSelectedInviteMemberId(memberId);
+        setInviteDialogOpen(true);
+        setOpen(false);
+        return;
+      }
+    }
+
     // Navigate to action URL if provided and validated
     if (notification.actionUrl && isValidInternalUrl(notification.actionUrl)) {
       setOpen(false);
       navigate(notification.actionUrl);
     }
+  };
+
+  const handleInviteSuccess = () => {
+    // Refresh notifications after accepting/declining invite
+    clearRead();
   };
 
   const handleMarkAllAsRead = async () => {
@@ -177,162 +202,177 @@ export function NotificationBell({ className }: NotificationBellProps) {
   const hasRead = notifications.some((n) => n.read);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn("relative", className)}
-        >
-          {hasUnread ? (
-            <BellRing className="h-5 w-5" />
-          ) : (
-            <Bell className="h-5 w-5" />
-          )}
-          {hasUnread && (
-            <Badge
-              variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-            >
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </Badge>
-          )}
-        </Button>
-      </PopoverTrigger>
-
-      <PopoverContent className="w-80 p-0" align="end">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <h3 className="font-semibold">{t("notifications:title")}</h3>
-          <div className="flex items-center gap-1">
-            {hasUnread && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleMarkAllAsRead}
-                disabled={actionLoading === "markAll"}
-                className="text-xs h-7"
-              >
-                {actionLoading === "markAll" ? (
-                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                ) : (
-                  <CheckCheck className="h-3 w-3 mr-1" />
-                )}
-                {t("notifications:actions.markAllRead")}
-              </Button>
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn("relative", className)}
+          >
+            {hasUnread ? (
+              <BellRing className="h-5 w-5" />
+            ) : (
+              <Bell className="h-5 w-5" />
             )}
-          </div>
-        </div>
-
-        {/* Notifications List */}
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : notifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-            <Bell className="h-8 w-8 mb-2 opacity-50" />
-            <span className="text-sm">{t("notifications:empty")}</span>
-          </div>
-        ) : (
-          <ScrollArea className="h-[300px]">
-            <div className="divide-y">
-              {notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={cn(
-                    "p-3 cursor-pointer transition-colors hover:bg-muted/50 border-l-4",
-                    getPriorityColor(notification.priority),
-                    !notification.read && "bg-muted/30",
-                  )}
-                  onClick={() => handleNotificationClick(notification)}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 mt-0.5 text-muted-foreground">
-                      {getNotificationIcon(notification.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className={cn(
-                            "font-medium text-sm truncate",
-                            !notification.read && "text-foreground",
-                          )}
-                        >
-                          {notification.title}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 flex-shrink-0"
-                          onClick={(e) => handleDelete(e, notification.id)}
-                          disabled={actionLoading === notification.id}
-                        >
-                          {actionLoading === notification.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
-                        {notification.body}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(toDate(notification.createdAt), {
-                            addSuffix: true,
-                            locale,
-                          })}
-                        </span>
-                        {notification.read && (
-                          <Check className="h-3 w-3 text-green-500" />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-        )}
-
-        {/* Footer */}
-        {notifications.length > 0 && (
-          <>
-            <Separator />
-            <div className="p-2 flex items-center justify-between">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs"
-                onClick={() => {
-                  setOpen(false);
-                  navigate("/settings/notifications");
-                }}
+            {hasUnread && (
+              <Badge
+                variant="destructive"
+                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
               >
-                {t("notifications:settings")}
-              </Button>
-              {hasRead && (
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </Badge>
+            )}
+          </Button>
+        </PopoverTrigger>
+
+        <PopoverContent className="w-80 p-0" align="end">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b">
+            <h3 className="font-semibold">{t("notifications:title")}</h3>
+            <div className="flex items-center gap-1">
+              {hasUnread && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-xs text-destructive hover:text-destructive"
-                  onClick={handleClearRead}
-                  disabled={actionLoading === "clearRead"}
+                  onClick={handleMarkAllAsRead}
+                  disabled={actionLoading === "markAll"}
+                  className="text-xs h-7"
                 >
-                  {actionLoading === "clearRead" ? (
+                  {actionLoading === "markAll" ? (
                     <Loader2 className="h-3 w-3 animate-spin mr-1" />
                   ) : (
-                    <Trash2 className="h-3 w-3 mr-1" />
+                    <CheckCheck className="h-3 w-3 mr-1" />
                   )}
-                  {t("notifications:actions.clearRead")}
+                  {t("notifications:actions.markAllRead")}
                 </Button>
               )}
             </div>
-          </>
-        )}
-      </PopoverContent>
-    </Popover>
+          </div>
+
+          {/* Notifications List */}
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+              <Bell className="h-8 w-8 mb-2 opacity-50" />
+              <span className="text-sm">{t("notifications:empty")}</span>
+            </div>
+          ) : (
+            <ScrollArea className="h-[300px]">
+              <div className="divide-y">
+                {notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className={cn(
+                      "p-3 cursor-pointer transition-colors hover:bg-muted/50 border-l-4",
+                      getPriorityColor(notification.priority),
+                      !notification.read && "bg-muted/30",
+                    )}
+                    onClick={() => handleNotificationClick(notification)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-0.5 text-muted-foreground">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className={cn(
+                              "font-medium text-sm truncate",
+                              !notification.read && "text-foreground",
+                            )}
+                          >
+                            {notification.title}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 flex-shrink-0"
+                            onClick={(e) => handleDelete(e, notification.id)}
+                            disabled={actionLoading === notification.id}
+                          >
+                            {actionLoading === notification.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                          {notification.body}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(
+                              toDate(notification.createdAt),
+                              {
+                                addSuffix: true,
+                                locale,
+                              },
+                            )}
+                          </span>
+                          {notification.read && (
+                            <Check className="h-3 w-3 text-green-500" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+
+          {/* Footer */}
+          {notifications.length > 0 && (
+            <>
+              <Separator />
+              <div className="p-2 flex items-center justify-between">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => {
+                    setOpen(false);
+                    navigate("/settings/notifications");
+                  }}
+                >
+                  {t("notifications:settings")}
+                </Button>
+                {hasRead && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-destructive hover:text-destructive"
+                    onClick={handleClearRead}
+                    disabled={actionLoading === "clearRead"}
+                  >
+                    {actionLoading === "clearRead" ? (
+                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                    ) : (
+                      <Trash2 className="h-3 w-3 mr-1" />
+                    )}
+                    {t("notifications:actions.clearRead")}
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+        </PopoverContent>
+      </Popover>
+
+      {/* Organization Invite Modal Dialog */}
+      {selectedInviteMemberId && (
+        <OrganizationInviteDialog
+          open={inviteDialogOpen}
+          onOpenChange={setInviteDialogOpen}
+          memberId={selectedInviteMemberId}
+          onSuccess={handleInviteSuccess}
+        />
+      )}
+    </>
   );
 }

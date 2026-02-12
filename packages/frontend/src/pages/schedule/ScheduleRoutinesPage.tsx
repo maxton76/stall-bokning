@@ -50,6 +50,7 @@ import { RoutineScheduleDialog } from "@/components/routines/RoutineScheduleDial
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useUserStables } from "@/hooks/useUserStables";
+import { useDefaultStableId } from "@/hooks/useUserPreferences";
 import {
   useRoutineSchedules,
   useRoutineSchedulesForStable,
@@ -85,9 +86,15 @@ export default function ScheduleRoutinesPage() {
 
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
+  const defaultStableId = useDefaultStableId();
 
-  // Auto-select first stable
-  const activeStableId = selectedStableId || stables[0]?.id || "";
+  // Auto-select: user selection > default stable (if accessible) > first stable
+  const activeStableId =
+    selectedStableId ||
+    (defaultStableId && stables.some((s) => s.id === defaultStableId)
+      ? defaultStableId
+      : stables[0]?.id) ||
+    "";
 
   // Find active stable
   const activeStable = stables.find((s) => s.id === activeStableId);

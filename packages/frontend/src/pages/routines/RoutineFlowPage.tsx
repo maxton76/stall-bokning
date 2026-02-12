@@ -444,6 +444,7 @@ export default function RoutineFlowPage() {
           onOpenChange={setShowNotesModal}
           notes={dailyNotes}
           onAcknowledge={handleNotesAcknowledged}
+          routineType={template?.type}
         />
       </div>
     );

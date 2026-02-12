@@ -11,9 +11,8 @@ import SwiftUI
 enum AppTab: String, CaseIterable {
     case today
     case horses
-    case feeding
     case routines
-    case settings
+    case more
 }
 
 /// Navigation destinations for the app
@@ -26,8 +25,13 @@ enum AppDestination: Hashable {
     // Routines
     case routineFlow(instanceId: String)
     case routineDetail(templateId: String)
+    case routineTemplates
+    case routineTemplate(id: String)
+    case routineSchedules
+    case routineSchedule(id: String)
 
     // Feeding
+    case feeding
     case feedingSchedule(stableId: String)
     case feedTypeList(stableId: String)
 
@@ -36,6 +40,7 @@ enum AppDestination: Hashable {
     case activityForm(activityId: String?)
 
     // Settings
+    case settings
     case account
     case notificationSettings
     case languageSettings
@@ -55,9 +60,8 @@ final class NavigationRouter {
     /// Navigation paths for each tab
     var todayPath = NavigationPath()
     var horsesPath = NavigationPath()
-    var feedingPath = NavigationPath()
     var routinesPath = NavigationPath()
-    var settingsPath = NavigationPath()
+    var morePath = NavigationPath()
 
     private init() {}
 
@@ -80,7 +84,7 @@ final class NavigationRouter {
     }
 
     func navigateToAccount() {
-        settingsPath.append(AppDestination.account)
+        morePath.append(AppDestination.account)
     }
 
     // MARK: - Tab Switching
@@ -96,12 +100,10 @@ final class NavigationRouter {
             todayPath.append(destination)
         case .horses:
             horsesPath.append(destination)
-        case .feeding:
-            feedingPath.append(destination)
         case .routines:
             routinesPath.append(destination)
-        case .settings:
-            settingsPath.append(destination)
+        case .more:
+            morePath.append(destination)
         }
     }
 
@@ -140,11 +142,13 @@ final class NavigationRouter {
         case "horses":
             switchToTab(.horses)
         case "feeding":
-            switchToTab(.feeding)
+            switchToTab(.more)
+            morePath.append(AppDestination.feeding)
         case "routines":
             switchToTab(.routines)
         case "settings":
-            switchToTab(.settings)
+            switchToTab(.more)
+            morePath.append(AppDestination.settings)
         default:
             break
         }
@@ -156,9 +160,8 @@ final class NavigationRouter {
         selectedTab = .today
         todayPath = NavigationPath()
         horsesPath = NavigationPath()
-        feedingPath = NavigationPath()
         routinesPath = NavigationPath()
-        settingsPath = NavigationPath()
+        morePath = NavigationPath()
     }
 
     func resetCurrentTabPath() {
@@ -167,12 +170,10 @@ final class NavigationRouter {
             todayPath = NavigationPath()
         case .horses:
             horsesPath = NavigationPath()
-        case .feeding:
-            feedingPath = NavigationPath()
         case .routines:
             routinesPath = NavigationPath()
-        case .settings:
-            settingsPath = NavigationPath()
+        case .more:
+            morePath = NavigationPath()
         }
     }
 }
@@ -193,6 +194,16 @@ extension View {
                 RoutineFlowView(instanceId: instanceId)
             case .routineDetail(let templateId):
                 RoutineDetailView(templateId: templateId)
+            case .routineTemplates:
+                SchemaView() // Opens Schema view (tab will need to switch to templates)
+            case .routineTemplate(let id):
+                SchemaView() // Opens Schema view with specific template
+            case .routineSchedules:
+                SchemaView() // Opens Schema view (tab will need to switch to schedules)
+            case .routineSchedule(let id):
+                SchemaView() // Opens Schema view with specific schedule
+            case .feeding:
+                FeedingTodayView()
             case .feedingSchedule(let stableId):
                 FeedingScheduleView(stableId: stableId)
             case .feedTypeList(let stableId):
@@ -201,6 +212,8 @@ extension View {
                 ActivityDetailByIdView(activityId: activityId)
             case .activityForm(let activityId):
                 ActivityFormView(activityId: activityId)
+            case .settings:
+                SettingsView()
             case .account:
                 AccountView()
             case .notificationSettings:

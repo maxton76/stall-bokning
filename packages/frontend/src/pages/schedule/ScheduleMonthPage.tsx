@@ -7,6 +7,7 @@ import {
   Loader2,
   Printer,
   Users,
+  StickyNote,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useUserStables } from "@/hooks/useUserStables";
+import { useDefaultStableId } from "@/hooks/useUserPreferences";
 import { useOrganizationMembers } from "@/hooks/useOrganizationMembers";
 import { useScheduledRoutines } from "@/hooks/useScheduledRoutines";
 import {
@@ -43,6 +45,16 @@ import {
   formatMemberDisplayName,
 } from "@/utils/memberDisplayName";
 import { useOrganizationCalendarHolidays } from "@/hooks/useOrganizationHolidays";
+import { useOwnerHorseNotes } from "@/hooks/useOwnerHorseNotes";
+import { getStableHorses } from "@/services/horseService";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { HorseOwnerNoteModal } from "@/components/daily-notes/HorseOwnerNoteModal";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import type { Horse } from "@/types/roles";
 
 /**
  * Schedule Month Page - Monthly calendar view
@@ -68,6 +80,8 @@ export default function ScheduleMonthPage() {
     }
   });
 
+  const [noteModalOpen, setNoteModalOpen] = useState(false);
+
   const toggleAssignees = () => {
     setShowAssignees((prev) => {
       const next = !prev;
@@ -82,9 +96,14 @@ export default function ScheduleMonthPage() {
 
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
+  const defaultStableId = useDefaultStableId();
 
-  // Auto-select first stable if none selected
-  const activeStableId = selectedStableId || stables[0]?.id;
+  // Auto-select: user selection > default stable (if accessible) > first stable
+  const activeStableId =
+    selectedStableId ||
+    (defaultStableId && stables.some((s) => s.id === defaultStableId)
+      ? defaultStableId
+      : stables[0]?.id);
 
   // Fetch organization members for proper name formatting with duplicate detection
   const { data: members = [] } = useOrganizationMembers(currentOrganizationId);
@@ -104,6 +123,43 @@ export default function ScheduleMonthPage() {
   // Holiday data for the current month view
   const { showHolidays, getHoliday } =
     useOrganizationCalendarHolidays(currentMonth);
+
+  // Fetch horses for the note modal
+  const { data: stableHorses = [] } = useApiQuery<Horse[]>(
+    ["stableHorses", activeStableId],
+    () => getStableHorses(activeStableId!),
+    { enabled: !!activeStableId },
+  );
+
+  // Fetch owner notes for the displayed month (for indicators)
+  const monthFromStr = useMemo(
+    () => format(startOfMonth(currentMonth), "yyyy-MM-dd"),
+    [currentMonth],
+  );
+  const monthToStr = useMemo(
+    () => format(endOfMonth(currentMonth), "yyyy-MM-dd"),
+    [currentMonth],
+  );
+  const { ownerNotes } = useOwnerHorseNotes(activeStableId, {
+    from: monthFromStr,
+    to: monthToStr,
+  });
+
+  // Build a set of dates that have owner notes for quick lookup
+  const datesWithOwnerNotes = useMemo(() => {
+    const dates = new Set<string>();
+    for (const note of ownerNotes) {
+      if (!note.startDate) continue;
+      const start = new Date(note.startDate);
+      const end = note.endDate ? new Date(note.endDate) : start;
+      const cur = new Date(start);
+      while (cur <= end) {
+        dates.add(cur.toISOString().split("T")[0]!);
+        cur.setDate(cur.getDate() + 1);
+      }
+    }
+    return dates;
+  }, [ownerNotes]);
 
   // Calculate date range for the visible calendar (including overflow days)
   const monthStart = startOfMonth(currentMonth);
@@ -276,6 +332,15 @@ export default function ScheduleMonthPage() {
             </Select>
           )}
           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setNoteModalOpen(true)}
+            className="no-print"
+          >
+            <StickyNote className="h-4 w-4 mr-2" />
+            {t("routines:ownerNotes.addNote")}
+          </Button>
+          <Button
             variant={showAssignees ? "default" : "outline"}
             size="sm"
             onClick={toggleAssignees}
@@ -396,10 +461,21 @@ export default function ScheduleMonthPage() {
                       hover:bg-muted/50
                     `}
                   >
-                    <div
-                      className={`text-sm font-medium mb-1 ${dateTextColor}`}
-                    >
-                      {format(date, "d")}
+                    <div className="flex items-center gap-1">
+                      <span className={`text-sm font-medium ${dateTextColor}`}>
+                        {format(date, "d")}
+                      </span>
+                      {isCurrentMonth &&
+                        datesWithOwnerNotes.has(format(date, "yyyy-MM-dd")) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <StickyNote className="h-3 w-3 text-amber-500" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {t("routines:ownerNotes.hasOwnerNotes")}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                     </div>
                     {isCurrentMonth && holiday && showHolidays && (
                       <div
@@ -487,6 +563,16 @@ export default function ScheduleMonthPage() {
           </>
         )}
       </div>
+
+      {/* Horse Owner Note Modal */}
+      {activeStableId && (
+        <HorseOwnerNoteModal
+          open={noteModalOpen}
+          onOpenChange={setNoteModalOpen}
+          stableId={activeStableId}
+          horses={stableHorses}
+        />
+      )}
     </div>
   );
 }

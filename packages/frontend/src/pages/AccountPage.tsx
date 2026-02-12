@@ -24,6 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserIcon, Mail, Calendar, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getUserOrganizations } from "@/services/organizationService";
+import LinkedAccountsCard from "@/components/account/LinkedAccountsCard";
 import type { Organization } from "@shared/types";
 
 export default function AccountPage() {
@@ -183,6 +184,9 @@ export default function AccountPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Connected Accounts */}
+      <LinkedAccountsCard />
 
       {/* Preferences */}
       {organizations.length > 1 && (

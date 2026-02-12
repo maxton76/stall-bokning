@@ -1,0 +1,5 @@
+email,Namn,Födelsedatum,UELN-nummer,Chipnummer
+anna@example.com,Snickers,2018-05-15,SE123456789012345,982000123456789
+anna@example.com,Bella,2019-03-20,,982000987654321
+bob@example.com,Max,,SE987654321012345,
+charlie@example.com,Thunder,2020-01-10,SE555555555555555,982000555555555

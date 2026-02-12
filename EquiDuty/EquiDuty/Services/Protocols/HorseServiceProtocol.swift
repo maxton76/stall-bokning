@@ -84,6 +84,18 @@ struct CreateHorseRequest: Encodable {
     let ueln: String?
     let chipNumber: String?
     let isExternal: Bool?
+    // Identification
+    var federationNumber: String?
+    var feiPassNumber: String?
+    var feiExpiryDate: Date?
+    // Pedigree
+    var sire: String?
+    var dam: String?
+    var damsire: String?
+    var breeder: String?
+    var studbook: String?
+    // Usage & management
+    var usage: [HorseUsage]?
 }
 
 struct UpdateHorseRequest: Encodable {
@@ -106,4 +118,17 @@ struct UpdateHorseRequest: Encodable {
     var chipNumber: String?
     var coverPhotoPath: String?
     var avatarPhotoPath: String?
+    // Identification
+    var federationNumber: String?
+    var feiPassNumber: String?
+    var feiExpiryDate: Date?
+    // Pedigree
+    var sire: String?
+    var dam: String?
+    var damsire: String?
+    var breeder: String?
+    var studbook: String?
+    // Usage & management
+    var usage: [HorseUsage]?
+    var assignedAt: Date?
 }

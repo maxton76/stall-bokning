@@ -82,6 +82,9 @@ export async function authenticate(
     }
 
     // Attach user info to request
+    const signInProvider = decodedToken.firebase?.sign_in_provider ?? "unknown";
+    const emailVerified = decodedToken.email_verified ?? false;
+
     (request as AuthenticatedRequest).user = {
       uid: decodedToken.uid || decodedToken.user_id,
       email: decodedToken.email || "",
@@ -93,7 +96,35 @@ export async function authenticate(
       role:
         (decodedToken.role as "user" | "system_admin" | "stable_owner") ||
         "user",
+      emailVerified,
+      signInProvider,
     };
+
+    // Enforce email verification for password users (B3)
+    // Exempt: /auth/signup, /auth/me, /auth/me/settings, webhooks, health
+    const url = request.url;
+    const isExemptPath =
+      url === "/api/v1/auth/signup" ||
+      url.startsWith("/api/v1/auth/signup?") ||
+      url === "/api/v1/auth/me" ||
+      url.startsWith("/api/v1/auth/me/") ||
+      url.startsWith("/api/v1/auth/me?") ||
+      url.startsWith("/api/v1/webhooks/") ||
+      url === "/api/v1/webhooks" ||
+      url === "/health";
+
+    if (
+      !isExemptPath &&
+      signInProvider === "password" &&
+      !emailVerified &&
+      !process.env.FIREBASE_AUTH_EMULATOR_HOST
+    ) {
+      return reply.status(403).send({
+        error: "EmailNotVerified",
+        message:
+          "Please verify your email address before accessing this resource",
+      });
+    }
   } catch (error) {
     request.log.error({ error }, "Authentication failed");
     return reply.status(401).send({

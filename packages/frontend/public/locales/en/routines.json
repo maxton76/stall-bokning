@@ -170,6 +170,31 @@
       "other": "Other"
     }
   },
+  "ownerNotes": {
+    "title": "Horse Owner Notes",
+    "addNote": "Add Owner Note",
+    "editNote": "Edit Owner Note",
+    "deleteNote": "Delete Owner Note",
+    "dateRange": "Date Range",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "routineFilter": "Routine Type",
+    "allRoutines": "All Routines",
+    "confirmDelete": "Are you sure you want to delete this note? It will be removed from all days in the range.",
+    "ownerBadge": "Owner Note",
+    "noteText": "Note",
+    "selectHorse": "Select horse",
+    "category": "Category",
+    "priority": "Priority",
+    "maxDays": "Max 30 days",
+    "createdSuccess": "Owner note created",
+    "updatedSuccess": "Owner note updated",
+    "deletedSuccess": "Owner note deleted",
+    "dateRangeLabel": "{{startDate}} – {{endDate}}",
+    "singleDayLabel": "{{date}}",
+    "onlyRoutineType": "Only {{type}}",
+    "hasOwnerNotes": "Has owner notes"
+  },
   "template": {
     "name": "Name",
     "description": "Description",

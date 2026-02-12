@@ -344,6 +344,8 @@ Detta meddelande skickades automatiskt från EquiDuty.
       subject: `Inbjudan till ${invite.organizationName}`,
       text: plainText,
       html: htmlContent,
+      encoding: "utf-8",
+      textEncoding: "base64",
     });
 
     console.log(
@@ -397,6 +399,8 @@ Detta meddelande skickades automatiskt från EquiDuty.
       subject: `Inbjudan till EquiDuty - ${invite.organizationName}`,
       text: plainText,
       html: htmlContent,
+      encoding: "utf-8",
+      textEncoding: "base64",
     });
 
     console.log(
@@ -457,6 +461,8 @@ Detta meddelande skickades automatiskt från EquiDuty.
       subject: `Inbjudan till ${data.organizationName}`,
       text: plainText,
       html: htmlContent,
+      encoding: "utf-8",
+      textEncoding: "base64",
     });
 
     console.log(

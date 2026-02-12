@@ -13,7 +13,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import type { DailyNotes } from "@shared/types";
+import type { DailyNotes, RoutineType } from "@shared/types";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { PRIORITY_STYLES } from "@/constants/routineStyles";
@@ -23,6 +23,8 @@ interface DailyNotesModalProps {
   onOpenChange: (open: boolean) => void;
   notes: DailyNotes | null;
   onAcknowledge: () => void;
+  /** When set, filters horse notes to only show notes matching this routine type (or "all") */
+  routineType?: RoutineType;
 }
 
 export function DailyNotesModal({
@@ -30,6 +32,7 @@ export function DailyNotesModal({
   onOpenChange,
   notes,
   onAcknowledge,
+  routineType,
 }: DailyNotesModalProps) {
   const { t } = useTranslation(["routines", "common"]);
   const [acknowledged, setAcknowledged] = useState(false);
@@ -141,61 +144,118 @@ export function DailyNotesModal({
                 ))}
 
               {/* Horse-Specific Notes */}
-              {notes?.horseNotes && notes.horseNotes.length > 0 && (
-                <>
-                  <Separator />
-                  <div>
-                    <h4 className="font-medium mb-3 flex items-center gap-2">
-                      {t("routines:dailyNotes.horseNotes")}
-                      <Badge variant="outline">{notes.horseNotes.length}</Badge>
-                    </h4>
-                    <div className="space-y-2">
-                      {notes.horseNotes.map((horseNote, idx) => {
-                        const styles =
-                          PRIORITY_STYLES[horseNote.priority] ||
-                          PRIORITY_STYLES.info;
-                        return (
-                          <div
-                            key={`${horseNote.horseId}-${idx}`}
-                            className={cn(
-                              "p-3 rounded-lg border",
-                              styles.bg,
-                              styles.border,
-                            )}
-                          >
-                            <div className="flex items-start gap-3">
-                              <AlertTriangle
-                                className={cn("h-4 w-4 mt-0.5", styles.icon)}
-                              />
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium">
-                                    {/* TODO: Get horse name from context */}
-                                    {t("routines:horse.feeding")}
-                                  </span>
-                                  {horseNote.category && (
-                                    <Badge
-                                      variant="outline"
-                                      className={styles.badge}
-                                    >
-                                      {t(
-                                        `routines:dailyNotes.noteCategory.${horseNote.category}`,
+              {notes?.horseNotes &&
+                notes.horseNotes.length > 0 &&
+                (() => {
+                  // Filter notes by routine type if specified
+                  const filteredNotes = routineType
+                    ? notes.horseNotes.filter(
+                        (n) =>
+                          !n.routineType ||
+                          n.routineType === "all" ||
+                          n.routineType === routineType,
+                      )
+                    : notes.horseNotes;
+
+                  if (filteredNotes.length === 0) return null;
+
+                  return (
+                    <>
+                      <Separator />
+                      <div>
+                        <h4 className="font-medium mb-3 flex items-center gap-2">
+                          {t("routines:dailyNotes.horseNotes")}
+                          <Badge variant="outline">
+                            {filteredNotes.length}
+                          </Badge>
+                        </h4>
+                        <div className="space-y-2">
+                          {filteredNotes.map((horseNote, idx) => {
+                            const styles =
+                              PRIORITY_STYLES[horseNote.priority] ||
+                              PRIORITY_STYLES.info;
+                            return (
+                              <div
+                                key={`${horseNote.horseId}-${idx}`}
+                                className={cn(
+                                  "p-3 rounded-lg border",
+                                  styles.bg,
+                                  styles.border,
+                                )}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <AlertTriangle
+                                    className={cn(
+                                      "h-4 w-4 mt-0.5",
+                                      styles.icon,
+                                    )}
+                                  />
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="font-medium">
+                                        {horseNote.horseName ||
+                                          t("routines:horse.feeding")}
+                                      </span>
+                                      {horseNote.isOwnerNote && (
+                                        <Badge
+                                          variant="secondary"
+                                          className="text-xs"
+                                        >
+                                          {t("routines:ownerNotes.ownerBadge")}
+                                        </Badge>
                                       )}
-                                    </Badge>
-                                  )}
+                                      {horseNote.category && (
+                                        <Badge
+                                          variant="outline"
+                                          className={styles.badge}
+                                        >
+                                          {t(
+                                            `routines:dailyNotes.noteCategory.${horseNote.category}`,
+                                          )}
+                                        </Badge>
+                                      )}
+                                      {horseNote.routineType &&
+                                        horseNote.routineType !== "all" && (
+                                          <Badge
+                                            variant="outline"
+                                            className="text-xs"
+                                          >
+                                            {t(
+                                              `routines:types.${horseNote.routineType}`,
+                                            )}
+                                          </Badge>
+                                        )}
+                                    </div>
+                                    <p
+                                      className={cn(
+                                        "text-sm mt-1",
+                                        styles.text,
+                                      )}
+                                    >
+                                      {horseNote.note}
+                                    </p>
+                                    {/* Date range for owner notes */}
+                                    {horseNote.isOwnerNote &&
+                                      horseNote.startDate && (
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                          {horseNote.startDate}
+                                          {horseNote.endDate &&
+                                            horseNote.endDate !==
+                                              horseNote.startDate && (
+                                              <> → {horseNote.endDate}</>
+                                            )}
+                                        </p>
+                                      )}
+                                  </div>
                                 </div>
-                                <p className={cn("text-sm mt-1", styles.text)}>
-                                  {horseNote.note}
-                                </p>
                               </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </>
-              )}
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
             </div>
           )}
         </ScrollArea>

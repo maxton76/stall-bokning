@@ -34,6 +34,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserStables } from "@/hooks/useUserStables";
+import { useDefaultStableId } from "@/hooks/useUserPreferences";
 import { useFairnessDistribution } from "@/hooks/useFairnessDistribution";
 import { TemplatePointsChart } from "@/components/fairness/TemplatePointsChart";
 import type {
@@ -68,9 +69,14 @@ export default function ScheduleDistributionPage() {
 
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
+  const defaultStableId = useDefaultStableId();
 
-  // Auto-select first stable if none selected
-  const activeStableId = selectedStableId || stables[0]?.id;
+  // Auto-select: user selection > default stable (if accessible) > first stable
+  const activeStableId =
+    selectedStableId ||
+    (defaultStableId && stables.some((s) => s.id === defaultStableId)
+      ? defaultStableId
+      : stables[0]?.id);
 
   // Check if user has organization membership by checking if any stable has an organizationId
   const hasOrganization = useMemo(() => {

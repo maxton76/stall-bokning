@@ -138,9 +138,105 @@ final class RoutineService: RoutineServiceProtocol {
             return nil
         }
     }
+
+    // MARK: - Template CRUD
+
+    func createRoutineTemplate(template: RoutineTemplateCreate) async throws -> RoutineTemplate {
+        let response: RoutineTemplateResponse = try await apiClient.post(
+            "/routines/templates",
+            body: template
+        )
+        return response.template
+    }
+
+    func updateRoutineTemplate(templateId: String, updates: RoutineTemplateUpdate) async throws -> RoutineTemplate {
+        let response: RoutineTemplateResponse = try await apiClient.put(
+            APIEndpoints.routineTemplate(templateId),
+            body: updates
+        )
+        return response.template
+    }
+
+    func deleteRoutineTemplate(templateId: String) async throws {
+        let _: EmptyResponse = try await apiClient.delete(
+            APIEndpoints.routineTemplate(templateId)
+        )
+    }
+
+    func duplicateRoutineTemplate(templateId: String, newName: String) async throws -> RoutineTemplate {
+        let body = DuplicateTemplateRequest(name: newName)
+        let response: RoutineTemplateResponse = try await apiClient.post(
+            "\(APIEndpoints.routineTemplate(templateId))/duplicate",
+            body: body
+        )
+        return response.template
+    }
+
+    func toggleTemplateActive(templateId: String, isActive: Bool) async throws {
+        struct ActiveRequest: Encodable {
+            let isActive: Bool
+        }
+        let _: EmptyResponse = try await apiClient.patch(
+            "\(APIEndpoints.routineTemplate(templateId))/active",
+            body: ActiveRequest(isActive: isActive)
+        )
+    }
+
+    // MARK: - Schedule CRUD
+
+    func getRoutineSchedules(stableId: String) async throws -> [RoutineSchedule] {
+        let params = ["stableId": stableId]
+        let response: RoutineSchedulesResponse = try await apiClient.get(
+            "/routine-schedules",
+            params: params
+        )
+        return response.schedules
+    }
+
+    func createRoutineSchedule(schedule: RoutineScheduleCreate) async throws -> RoutineSchedule {
+        let response: RoutineScheduleResponse = try await apiClient.post(
+            "/routine-schedules",
+            body: schedule
+        )
+        return response.schedule
+    }
+
+    func updateRoutineSchedule(scheduleId: String, updates: RoutineScheduleUpdate) async throws -> RoutineSchedule {
+        let response: RoutineScheduleResponse = try await apiClient.put(
+            "/routine-schedules/\(scheduleId)",
+            body: updates
+        )
+        return response.schedule
+    }
+
+    func deleteRoutineSchedule(scheduleId: String) async throws {
+        let _: EmptyResponse = try await apiClient.delete(
+            "/routine-schedules/\(scheduleId)"
+        )
+    }
+
+    func toggleScheduleEnabled(scheduleId: String) async throws {
+        let _: EmptyResponse = try await apiClient.post(
+            "/routine-schedules/\(scheduleId)/toggle",
+            body: EmptyRequest()
+        )
+    }
+
+    func publishSchedule(scheduleId: String, startDate: Date, endDate: Date) async throws {
+        struct PublishRequest: Encodable {
+            let startDate: Date
+            let endDate: Date
+        }
+        let _: EmptyResponse = try await apiClient.post(
+            "/routine-schedules/\(scheduleId)/publish",
+            body: PublishRequest(startDate: startDate, endDate: endDate)
+        )
+    }
 }
 
 // MARK: - Request Types
+
+private struct EmptyRequest: Encodable {}
 
 private struct StartRoutineRequest: Encodable {
     let dailyNotesAcknowledged: Bool
@@ -158,10 +254,18 @@ private struct CompleteRoutineRequest: Encodable {
     let notes: String?
 }
 
+private struct DuplicateTemplateRequest: Encodable {
+    let name: String
+}
+
 // MARK: - Response Types
 
 private struct StartRoutineResponse: Decodable {
     let instance: RoutineInstance
+}
+
+private struct RoutineTemplateResponse: Decodable {
+    let template: RoutineTemplate
 }
 
 // MARK: - Progress Update Types

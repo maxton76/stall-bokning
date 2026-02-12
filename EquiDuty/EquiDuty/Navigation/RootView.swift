@@ -19,10 +19,14 @@ struct RootView: View {
             case .signedOut:
                 AuthenticationView()
             case .signedIn:
-                MainTabView()
-                    .onAppear {
-                        PushNotificationService.shared.requestPermission()
-                    }
+                if !authService.isEmailVerified {
+                    EmailVerificationView()
+                } else {
+                    MainTabView()
+                        .onAppear {
+                            PushNotificationService.shared.requestPermission()
+                        }
+                }
             }
         }
         .animation(.easeInOut(duration: 0.3), value: authService.authState)

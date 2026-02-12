@@ -5,6 +5,8 @@ export interface AuthUser {
   email: string;
   displayName?: string;
   role: "user" | "system_admin" | "stable_owner"; // Fixed: 'admin' → 'system_admin'
+  emailVerified: boolean;
+  signInProvider: string;
 }
 
 export interface AuthenticatedRequest extends FastifyRequest {

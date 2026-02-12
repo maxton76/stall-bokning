@@ -20,7 +20,8 @@ extension Date {
 
         case .week:
             let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: self)) ?? self
-            let endOfWeek = calendar.date(byAdding: DateComponents(day: 6), to: startOfWeek) ?? startOfWeek
+            // Add 6 days + 23:59:59 to cover full week (Sunday night)
+            let endOfWeek = calendar.date(byAdding: DateComponents(day: 7, second: -1), to: startOfWeek) ?? startOfWeek
             return (startOfWeek, endOfWeek)
 
         case .month:

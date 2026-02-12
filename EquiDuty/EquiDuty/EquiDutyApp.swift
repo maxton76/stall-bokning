@@ -91,9 +91,71 @@ struct EquiDutyApp: App {
             RootView()
                 .onOpenURL { url in
                     // Handle Google Sign-In URL callback
-                    GIDSignIn.sharedInstance.handle(url)
+                    if GIDSignIn.sharedInstance.handle(url) {
+                        return
+                    }
+
+                    // Handle deep links
+                    handleDeepLink(url)
                 }
         }
         .modelContainer(sharedModelContainer)
+    }
+
+    /// Handle deep link URLs
+    /// Supported schemes:
+    /// - equiduty://schedule/templates
+    /// - equiduty://schedule/templates/:id
+    /// - equiduty://schedule/schedules
+    /// - equiduty://schedule/schedules/:id
+    private func handleDeepLink(_ url: URL) {
+        guard url.scheme == "equiduty" else { return }
+
+        let pathComponents = url.pathComponents.filter { $0 != "/" }
+
+        guard pathComponents.count >= 2 else { return }
+
+        let section = pathComponents[0]
+        let subsection = pathComponents[1]
+
+        // Get the router from environment (if available)
+        // Note: In production, you'd inject NavigationRouter into environment
+
+        switch (section, subsection) {
+        case ("schedule", "templates"):
+            if pathComponents.count == 3 {
+                let templateId = pathComponents[2]
+                // Navigate to specific template
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("DeepLinkNavigate"),
+                    object: AppDestination.routineTemplate(id: templateId)
+                )
+            } else {
+                // Navigate to templates list
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("DeepLinkNavigate"),
+                    object: AppDestination.routineTemplates
+                )
+            }
+
+        case ("schedule", "schedules"):
+            if pathComponents.count == 3 {
+                let scheduleId = pathComponents[2]
+                // Navigate to specific schedule
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("DeepLinkNavigate"),
+                    object: AppDestination.routineSchedule(id: scheduleId)
+                )
+            } else {
+                // Navigate to schedules list
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("DeepLinkNavigate"),
+                    object: AppDestination.routineSchedules
+                )
+            }
+
+        default:
+            break
+        }
     }
 }

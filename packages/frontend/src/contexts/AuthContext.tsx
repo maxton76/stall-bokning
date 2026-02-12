@@ -9,6 +9,8 @@ import {
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
+  linkWithPopup,
+  unlink,
   GoogleAuthProvider,
   OAuthProvider,
   signOut as firebaseSignOut,
@@ -33,6 +35,10 @@ interface AuthContextType {
   signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  refreshEmailVerification: () => Promise<void>;
+  linkGoogle: () => Promise<void>;
+  linkApple: () => Promise<void>;
+  unlinkProvider: (providerId: string) => Promise<void>;
   error: string | null;
 }
 
@@ -199,6 +205,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const refreshEmailVerification = useCallback(async () => {
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) return;
+
+    await firebaseUser.reload();
+    await firebaseUser.getIdToken(true);
+
+    // Rebuild AppUser with updated emailVerified
+    const profile = await fetchUserProfile(firebaseUser.uid, true);
+    const appUser = createAppUser(firebaseUser, profile);
+    setUser(appUser);
+  }, []);
+
   const refreshProfile = useCallback(async () => {
     if (!user?.uid) return;
 
@@ -218,6 +237,47 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [user?.uid]);
 
+  const linkGoogle = useCallback(async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) throw new Error("Not signed in");
+
+    const provider = new GoogleAuthProvider();
+    await linkWithPopup(currentUser, provider);
+    await currentUser.reload();
+
+    // Rebuild AppUser with updated providerData
+    const profile = await fetchUserProfile(currentUser.uid, true);
+    setUser(createAppUser(currentUser, profile));
+  }, []);
+
+  const linkApple = useCallback(async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) throw new Error("Not signed in");
+
+    const provider = new OAuthProvider("apple.com");
+    await linkWithPopup(currentUser, provider);
+    await currentUser.reload();
+
+    const profile = await fetchUserProfile(currentUser.uid, true);
+    setUser(createAppUser(currentUser, profile));
+  }, []);
+
+  const unlinkProviderFn = useCallback(async (providerId: string) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) throw new Error("Not signed in");
+
+    // Guard: must have more than 1 provider
+    if (currentUser.providerData.length <= 1) {
+      throw new Error("Cannot unlink last provider");
+    }
+
+    await unlink(currentUser, providerId);
+    await currentUser.reload();
+
+    const profile = await fetchUserProfile(currentUser.uid, true);
+    setUser(createAppUser(currentUser, profile));
+  }, []);
+
   const value = {
     user,
     loading,
@@ -227,6 +287,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signInWithApple,
     signOut,
     refreshProfile,
+    refreshEmailVerification,
+    linkGoogle,
+    linkApple,
+    unlinkProvider: unlinkProviderFn,
     error,
   };
 

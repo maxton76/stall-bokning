@@ -12,6 +12,7 @@ struct HorseDetailView: View {
     var initialTab: Tab?
 
     @State private var horseService = HorseService.shared
+    @State private var rbacService = RBACFilterService.shared
     @State private var horse: Horse?
     @State private var isLoading = true
     @State private var errorMessage: String?
@@ -21,6 +22,7 @@ struct HorseDetailView: View {
     enum Tab: String, CaseIterable {
         case info
         case health
+        case transport
         case team
         case history
 
@@ -28,6 +30,7 @@ struct HorseDetailView: View {
             switch self {
             case .info: return String(localized: "horse.tab.info")
             case .health: return String(localized: "horse.tab.health")
+            case .transport: return String(localized: "horse.tab.transport")
             case .team: return String(localized: "horse.tab.team")
             case .history: return String(localized: "horse.tab.history")
             }
@@ -37,6 +40,7 @@ struct HorseDetailView: View {
             switch self {
             case .info: return "info.circle"
             case .health: return "heart.text.square"
+            case .transport: return "car.rear.and.tire.marks"
             case .team: return "person.3"
             case .history: return "clock.arrow.circlepath"
             }
@@ -73,6 +77,8 @@ struct HorseDetailView: View {
                             HorseInfoSection(horse: horse)
                         case .health:
                             HorseHealthTabView(horse: horse)
+                        case .transport:
+                            TransportInstructionsView(horse: horse)
                         case .team:
                             HorseTeamTabView(horse: horse)
                         case .history:
@@ -86,7 +92,7 @@ struct HorseDetailView: View {
         .navigationTitle(horse?.name ?? String(localized: "horse.loading"))
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottomTrailing) {
-            if horse != nil {
+            if let horse, rbacService.canEditHorse(horse) {
                 editFAB
             }
         }
@@ -274,82 +280,100 @@ struct HorseDetailHeader: View {
 struct HorseInfoSection: View {
     let horse: Horse
 
+    private var rbac: RBACFilterService { .shared }
+
     var body: some View {
         VStack(spacing: EquiDutyDesign.Spacing.standard) {
-            // Basic info
+            // Basic info (Level 1: Public - always visible)
             InfoCard(title: String(localized: "horse.info.basic")) {
                 InfoRow(label: String(localized: "horse.color"), value: horse.color.displayName)
                 if let gender = horse.gender {
                     InfoRow(label: String(localized: "horse.gender"), value: gender.displayName)
                 }
-                if let age = horse.age {
-                    InfoRow(label: String(localized: "horse.age"), value: "\(age) \(String(localized: "common.years"))")
-                }
-                if let dob = horse.dateOfBirth {
-                    InfoRow(
-                        label: String(localized: "horse.date_of_birth"),
-                        value: dob.formatted(date: .abbreviated, time: .omitted)
-                    )
-                }
-                if let height = horse.withersHeight {
-                    InfoRow(label: String(localized: "horse.height"), value: "\(height) cm")
-                }
-                if let usage = horse.usage, !usage.isEmpty {
-                    HStack {
-                        Text(String(localized: "horse.usage"))
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        HStack(spacing: EquiDutyDesign.Spacing.xs) {
-                            ForEach(usage, id: \.self) { u in
-                                UsageBadge(usage: u)
-                            }
-                        }
+                // Level 3: Professional
+                if rbac.canViewProfessionalFields(horse) {
+                    if let age = horse.age {
+                        InfoRow(label: String(localized: "horse.age"), value: "\(age) \(String(localized: "common.years"))")
                     }
-                    .font(.body)
+                    if let dob = horse.dateOfBirth {
+                        InfoRow(
+                            label: String(localized: "horse.date_of_birth"),
+                            value: dob.formatted(date: .abbreviated, time: .omitted)
+                        )
+                    }
+                    if let height = horse.withersHeight {
+                        InfoRow(label: String(localized: "horse.height"), value: "\(height) cm")
+                    }
                 }
-            }
-
-            // Identification
-            IdentificationCard(horse: horse)
-
-            // Pedigree (if any data available)
-            if horse.sire != nil || horse.dam != nil || horse.breeder != nil {
-                PedigreeCard(horse: horse)
-            }
-
-            // Special instructions
-            if let instructions = horse.specialInstructions, !instructions.isEmpty {
-                InfoCard(title: String(localized: "horse.special_instructions")) {
-                    Text(instructions)
-                        .font(.body)
-                }
-            }
-
-            // Equipment
-            if let equipment = horse.equipment, !equipment.isEmpty {
-                InfoCard(title: String(localized: "horse.equipment")) {
-                    ForEach(equipment) { item in
+                // Level 2: Basic Care
+                if rbac.canViewBasicCareFields(horse) {
+                    if let usage = horse.usage, !usage.isEmpty {
                         HStack {
-                            VStack(alignment: .leading) {
-                                Text(item.name)
-                                    .font(.body)
-                                if let location = item.location {
-                                    Text(location)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                            Text(String(localized: "horse.usage"))
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            HStack(spacing: EquiDutyDesign.Spacing.xs) {
+                                ForEach(usage, id: \.self) { u in
+                                    UsageBadge(usage: u)
                                 }
                             }
-                            Spacer()
+                        }
+                        .font(.body)
+                    }
+                }
+            }
+
+            // Identification (Level 3: Professional for UELN/chip, Level 4: Management for federation/FEI)
+            if rbac.canViewProfessionalFields(horse) {
+                IdentificationCard(horse: horse)
+            }
+
+            // Pedigree (Level 3: Professional)
+            if rbac.canViewProfessionalFields(horse) {
+                if horse.sire != nil || horse.dam != nil || horse.breeder != nil {
+                    PedigreeCard(horse: horse)
+                }
+            }
+
+            // Special instructions (Level 2: Basic Care)
+            if rbac.canViewBasicCareFields(horse) {
+                if let instructions = horse.specialInstructions, !instructions.isEmpty {
+                    InfoCard(title: String(localized: "horse.special_instructions")) {
+                        Text(instructions)
+                            .font(.body)
+                    }
+                }
+            }
+
+            // Equipment (Level 2: Basic Care)
+            if rbac.canViewBasicCareFields(horse) {
+                if let equipment = horse.equipment, !equipment.isEmpty {
+                    InfoCard(title: String(localized: "horse.equipment")) {
+                        ForEach(equipment) { item in
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text(item.name)
+                                        .font(.body)
+                                    if let location = item.location {
+                                        Text(location)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                Spacer()
+                            }
                         }
                     }
                 }
             }
 
-            // Notes
-            if let notes = horse.notes, !notes.isEmpty {
-                InfoCard(title: String(localized: "horse.notes")) {
-                    Text(notes)
-                        .font(.body)
+            // Notes (Level 2: Basic Care)
+            if rbac.canViewBasicCareFields(horse) {
+                if let notes = horse.notes, !notes.isEmpty {
+                    InfoCard(title: String(localized: "horse.notes")) {
+                        Text(notes)
+                            .font(.body)
+                    }
                 }
             }
         }
@@ -387,32 +411,40 @@ struct UsageBadge: View {
 struct IdentificationCard: View {
     let horse: Horse
 
+    private var rbac: RBACFilterService { .shared }
+
     var body: some View {
         InfoCard(title: String(localized: "horse.info.identification")) {
+            // Level 3: Professional
             if let ueln = horse.ueln, !ueln.isEmpty {
                 CopyableInfoRow(label: "UELN", value: ueln)
             }
             if let chip = horse.chipNumber, !chip.isEmpty {
                 CopyableInfoRow(label: String(localized: "horse.chip"), value: chip)
             }
-            if let federation = horse.federationNumber, !federation.isEmpty {
-                CopyableInfoRow(label: String(localized: "horse.federation_number"), value: federation)
-            }
-            if let fei = horse.feiPassNumber, !fei.isEmpty {
-                HStack {
-                    CopyableInfoRow(label: String(localized: "horse.fei_pass"), value: fei)
+
+            // Level 4: Management
+            if rbac.canViewManagementFields(horse) {
+                if let federation = horse.federationNumber, !federation.isEmpty {
+                    CopyableInfoRow(label: String(localized: "horse.federation_number"), value: federation)
                 }
-                if let expiryDate = horse.feiExpiryDate {
+                if let fei = horse.feiPassNumber, !fei.isEmpty {
                     HStack {
-                        Spacer()
-                        FEIExpiryBadge(expiryDate: expiryDate)
+                        CopyableInfoRow(label: String(localized: "horse.fei_pass"), value: fei)
+                    }
+                    if let expiryDate = horse.feiExpiryDate {
+                        HStack {
+                            Spacer()
+                            FEIExpiryBadge(expiryDate: expiryDate)
+                        }
                     }
                 }
             }
 
-            // Show empty state if no identification
-            if horse.ueln == nil && horse.chipNumber == nil &&
-               horse.federationNumber == nil && horse.feiPassNumber == nil {
+            // Show empty state if no visible identification
+            let hasLevel3 = horse.ueln != nil || horse.chipNumber != nil
+            let hasLevel4 = rbac.canViewManagementFields(horse) && (horse.federationNumber != nil || horse.feiPassNumber != nil)
+            if !hasLevel3 && !hasLevel4 {
                 Text(String(localized: "horse.identification.empty"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)

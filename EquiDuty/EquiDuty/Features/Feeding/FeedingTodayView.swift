@@ -162,7 +162,7 @@ struct FeedingTodayView: View {
 
                 AppLogger.data.info("🍽️ FeedingView: decoded \(instances.count) instances, \(fetchedHorses.count) horses, \(fetchedFeedings.count) feedings")
 
-                horses = fetchedHorses.sorted { ($0.name ?? "") < ($1.name ?? "") }
+                horses = fetchedHorses.sorted { $0.name < $1.name }
                 routineInstances = instances  // Store for status lookup
 
                 // Group feedings by horseId for quick lookup
@@ -200,7 +200,7 @@ struct FeedingTodayView: View {
 
             let (instances, fetchedHorses, fetchedFeedings) = try await (instancesFetch, horsesFetch, feedingsFetch)
 
-            horses = fetchedHorses.sorted { ($0.name ?? "") < ($1.name ?? "") }
+            horses = fetchedHorses.sorted { $0.name < $1.name }
             routineInstances = instances  // Store for status lookup
             horseFeedings = Dictionary(grouping: fetchedFeedings, by: { $0.horseId })
             feedingSessions = extractFeedingSessions(from: instances)

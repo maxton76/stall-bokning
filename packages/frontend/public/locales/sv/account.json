@@ -28,6 +28,39 @@
     "defaultOrganizationHint": "Denna organisation väljs automatiskt när du loggar in",
     "saved": "Preferenser sparade"
   },
+  "linkedAccounts": {
+    "title": "Kopplade konton",
+    "description": "Koppla ditt Google- eller Apple-konto för snabbare inloggning",
+    "providers": {
+      "password": "E-post & Lösenord",
+      "google": "Google",
+      "apple": "Apple"
+    },
+    "linkedAs": "Kopplad som {{email}}",
+    "connect": "Koppla",
+    "disconnect": "Koppla bort",
+    "warnings": {
+      "emailMismatch": "Det här kontot har en annan e-postadress än ditt EquiDuty-konto",
+      "cannotDisconnect": "Du måste ha minst en inloggningsmetod",
+      "alreadyInUse": "Det här {{provider}}-kontot är redan kopplat till ett annat EquiDuty-konto"
+    },
+    "confirmDisconnect": {
+      "title": "Koppla bort {{provider}}?",
+      "description": "Du kommer inte längre kunna logga in med {{provider}}.",
+      "confirm": "Koppla bort",
+      "cancel": "Avbryt"
+    },
+    "errors": {
+      "linkFailed": "Kunde inte koppla {{provider}}. Försök igen.",
+      "unlinkFailed": "Kunde inte koppla bort {{provider}}. Försök igen.",
+      "cancelled": "Inloggning avbröts",
+      "recentLoginRequired": "Av säkerhetsskäl, logga in igen innan du gör denna ändring"
+    },
+    "success": {
+      "linked": "{{provider}}-konto kopplat",
+      "unlinked": "{{provider}}-konto bortkopplat"
+    }
+  },
   "danger": {
     "title": "Riskzon",
     "description": "Oåterkalleliga åtgärder",

@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+} from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -175,6 +178,9 @@ export default function SignupPage() {
         formData.password,
       );
 
+      // Step 1.5: Send verification email
+      await sendEmailVerification(userCredential.user);
+
       // Step 2: Call backend to create Firestore user document and migrate invites
       const token = await userCredential.user.getIdToken();
       const response = await fetch(
@@ -200,21 +206,17 @@ export default function SignupPage() {
         throw new Error(t("errors.registrationFailed"));
       }
 
-      // Step 3: If there's an invite token, accept it
+      // Step 3: If there's an invite token, accept it, then redirect to verify-email
       if (inviteToken) {
         try {
           await acceptOrganizationInvite(inviteToken);
-          alert(t("success.accountCreated"));
-          navigate("/organizations");
         } catch (inviteError: any) {
           // Signup succeeded but invite acceptance failed
           console.error("Failed to accept invite:", inviteError);
-          alert(t("success.accountCreated"));
-          navigate("/organizations");
         }
+        navigate(`/verify-email?invite=${inviteToken}`);
       } else {
-        alert(t("success.accountCreated"));
-        navigate("/horses");
+        navigate("/verify-email");
       }
     } catch (err: any) {
       console.error("Signup error:", err);

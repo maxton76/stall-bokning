@@ -568,3 +568,55 @@ struct HorseBlanketContext: Codable, Equatable {
     var targetBlanket: String?
     var reason: String?
 }
+
+// MARK: - Template Creation/Update Models
+
+/// Step data for creating a new routine template
+struct RoutineStepCreate: Codable {
+    var name: String
+    var description: String?
+    var category: String  // RoutineCategory rawValue
+    var order: Int
+    var horseContext: String  // RoutineStepHorseContext rawValue
+    var horseFilter: RoutineStepHorseFilter?
+    var requiresConfirmation: Bool
+    var allowPartialCompletion: Bool
+    var estimatedMinutes: Int?
+    var showFeeding: Bool?
+    var showMedication: Bool?
+    var showBlanketStatus: Bool?
+    var icon: String?
+}
+
+/// Request body for creating a new routine template
+struct RoutineTemplateCreate: Codable {
+    var name: String
+    var description: String?
+    var type: String  // RoutineType rawValue
+    var defaultStartTime: String  // "HH:MM"
+    var estimatedDuration: Int
+    var steps: [RoutineStepCreate]
+    var requiresNotesRead: Bool
+    var allowSkipSteps: Bool
+    var pointsValue: Int
+    var stableId: String?
+    var icon: String?
+    var color: String?
+}
+
+/// Request body for updating an existing routine template
+struct RoutineTemplateUpdate: Codable {
+    var name: String?
+    var description: String?
+    var type: String?
+    var defaultStartTime: String?
+    var estimatedDuration: Int?
+    var steps: [RoutineStepCreate]?
+    var requiresNotesRead: Bool?
+    var allowSkipSteps: Bool?
+    var pointsValue: Int?
+    var stableId: String?
+    var icon: String?
+    var color: String?
+    var isActive: Bool?
+}

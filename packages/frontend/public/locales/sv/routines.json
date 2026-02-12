@@ -170,6 +170,31 @@
       "other": "Övrigt"
     }
   },
+  "ownerNotes": {
+    "title": "Hästägarnoteringar",
+    "addNote": "Lägg till ägarnot",
+    "editNote": "Redigera ägarnot",
+    "deleteNote": "Ta bort ägarnot",
+    "dateRange": "Datumperiod",
+    "startDate": "Startdatum",
+    "endDate": "Slutdatum",
+    "routineFilter": "Rutintyp",
+    "allRoutines": "Alla rutiner",
+    "confirmDelete": "Är du säker på att du vill ta bort denna not? Den tas bort från alla dagar i perioden.",
+    "ownerBadge": "Ägarnot",
+    "noteText": "Notering",
+    "selectHorse": "Välj häst",
+    "category": "Kategori",
+    "priority": "Prioritet",
+    "maxDays": "Max 30 dagar",
+    "createdSuccess": "Ägarnot skapad",
+    "updatedSuccess": "Ägarnot uppdaterad",
+    "deletedSuccess": "Ägarnot borttagen",
+    "dateRangeLabel": "{{startDate}} – {{endDate}}",
+    "singleDayLabel": "{{date}}",
+    "onlyRoutineType": "Endast {{type}}",
+    "hasOwnerNotes": "Har ägarnoteringar"
+  },
   "template": {
     "name": "Namn",
     "description": "Beskrivning",

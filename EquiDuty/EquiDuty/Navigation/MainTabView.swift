@@ -38,20 +38,15 @@ struct MainTabView: View {
                 icon: "figure.equestrian.sports",
                 selectedIcon: "figure.equestrian.sports"
             )
-            case .feeding: return TabInfo(
-                title: String(localized: "tab.feeding"),
-                icon: "leaf.fill",
-                selectedIcon: "leaf.fill"
-            )
             case .routines: return TabInfo(
                 title: String(localized: "tab.routines"),
                 icon: "checklist",
                 selectedIcon: "checklist.checked"
             )
-            case .settings: return TabInfo(
-                title: String(localized: "tab.settings"),
-                icon: "gearshape.fill",
-                selectedIcon: "gearshape.fill"
+            case .more: return TabInfo(
+                title: String(localized: "common.more"),
+                icon: "ellipsis.circle",
+                selectedIcon: "ellipsis.circle.fill"
             )
             }
         }
@@ -73,13 +68,6 @@ struct MainTabView: View {
                 }
                 .tag(AppTab.horses)
 
-            FeedingTodayView()
-                .tabItem {
-                    let info = TabInfo.forTab(.feeding)
-                    Label(info.title, systemImage: router.selectedTab == .feeding ? info.selectedIcon : info.icon)
-                }
-                .tag(AppTab.feeding)
-
             RoutineListView()
                 .tabItem {
                     let info = TabInfo.forTab(.routines)
@@ -87,12 +75,12 @@ struct MainTabView: View {
                 }
                 .tag(AppTab.routines)
 
-            SettingsView()
+            MoreView()
                 .tabItem {
-                    let info = TabInfo.forTab(.settings)
-                    Label(info.title, systemImage: router.selectedTab == .settings ? info.selectedIcon : info.icon)
+                    let info = TabInfo.forTab(.more)
+                    Label(info.title, systemImage: router.selectedTab == .more ? info.selectedIcon : info.icon)
                 }
-                .tag(AppTab.settings)
+                .tag(AppTab.more)
         }
         .tint(.accentColor)
         .environment(notificationViewModel)

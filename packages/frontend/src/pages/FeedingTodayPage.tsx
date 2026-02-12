@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserStables } from "@/hooks/useUserStables";
+import { useDefaultStableId } from "@/hooks/useUserPreferences";
 import { useFeedingToday } from "@/hooks/useFeedingToday";
 import { useDailyNotes } from "@/hooks/useRoutines";
 import { useToast } from "@/hooks/use-toast";
@@ -70,14 +71,19 @@ export default function FeedingTodayPage() {
 
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
+  const defaultStableId = useDefaultStableId();
   const [selectedStableId, setSelectedStableId] = useState<string>("");
 
-  // Set initial stable when stables load
+  // Set initial stable: default stable (if accessible) > first stable
   useEffect(() => {
     if (stables.length > 0 && !selectedStableId) {
-      setSelectedStableId(stables[0]?.id ?? "");
+      const preferred =
+        defaultStableId && stables.some((s) => s.id === defaultStableId)
+          ? defaultStableId
+          : stables[0]?.id;
+      setSelectedStableId(preferred ?? "");
     }
-  }, [stables, selectedStableId]);
+  }, [stables, selectedStableId, defaultStableId]);
 
   // Find selected stable for display
   const selectedStable = stables.find((s) => s.id === selectedStableId);

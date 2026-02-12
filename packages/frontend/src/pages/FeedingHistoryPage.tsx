@@ -23,12 +23,14 @@ import {
 } from "@/services/feedingHistoryService";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserStables } from "@/hooks/useUserStables";
+import { useDefaultStableId } from "@/hooks/useUserPreferences";
 import type { AuditLog } from "@shared/types/auditLog";
 
 export default function FeedingHistoryPage() {
   const { t } = useTranslation(["feeding", "common"]);
   const { user } = useAuth();
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
+  const defaultStableId = useDefaultStableId();
 
   const [selectedStableId, setSelectedStableId] = useState<string>("");
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -39,12 +41,16 @@ export default function FeedingHistoryPage() {
     horseId: "all",
   });
 
-  // Set default stable when stables load
+  // Set default stable: default stable (if accessible) > first stable
   useEffect(() => {
-    if (!selectedStableId && stables.length > 0 && stables[0]) {
-      setSelectedStableId(stables[0].id);
+    if (!selectedStableId && stables.length > 0) {
+      const preferred =
+        defaultStableId && stables.some((s) => s.id === defaultStableId)
+          ? defaultStableId
+          : stables[0]?.id;
+      if (preferred) setSelectedStableId(preferred);
     }
-  }, [stables, selectedStableId]);
+  }, [stables, selectedStableId, defaultStableId]);
 
   // Load history when stable or filters change
   useEffect(() => {
