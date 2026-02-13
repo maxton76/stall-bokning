@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
+import resourceTimeGridPlugin from "@fullcalendar/resource-timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import listPlugin from "@fullcalendar/list";
 import svLocale from "@fullcalendar/core/locales/sv";
@@ -17,6 +18,10 @@ import type { Facility } from "@/types/facility";
 import type { FacilityReservation } from "@/types/facilityReservation";
 import type { Holiday } from "@equiduty/shared";
 import { toDate } from "@/utils/timestampUtils";
+import {
+  getEffectiveTimeBlocks,
+  createDefaultSchedule,
+} from "@equiduty/shared";
 
 // Default status colors using Tailwind palette
 const DEFAULT_STATUS_COLORS = {
@@ -56,7 +61,12 @@ export interface ViewOptions {
   showTimeGridWeek?: boolean;
   showTimeGridDay?: boolean;
   showList?: boolean;
-  initialView?: "dayGridMonth" | "timeGridWeek" | "timeGridDay" | "listWeek";
+  initialView?:
+    | "dayGridMonth"
+    | "timeGridWeek"
+    | "timeGridDay"
+    | "listWeek"
+    | "resourceTimeGridWeek";
 }
 
 // Generic calendar event interface
@@ -70,6 +80,7 @@ export interface CalendarEvent {
   borderColor: string;
   textColor?: string;
   borderWidth?: string;
+  resourceId?: string; // For resource timeline views
   extendedProps?: Record<string, any>;
 }
 
@@ -104,6 +115,10 @@ interface GenericCalendarViewProps<T> {
 
   // Holiday display options
   holidayOptions?: HolidayDisplayOptions;
+
+  // Resource support (for resourceTimeGridWeek view)
+  resources?: Array<{ id: string; title: string; eventColor?: string }>;
+  businessHours?: any[]; // FullCalendar business hours format
 }
 
 interface FacilityCalendarViewProps {
@@ -144,6 +159,8 @@ export function GenericCalendarView<T>({
   editable = true,
   className = "",
   holidayOptions = {},
+  resources,
+  businessHours,
 }: GenericCalendarViewProps<T>) {
   const calendarRef = useRef<FullCalendar>(null);
   const { i18n } = useTranslation();
@@ -257,13 +274,32 @@ export function GenericCalendarView<T>({
   };
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
-    if (onDateSelect) {
+    if (!onDateSelect) return;
+
+    // Type-safe resource extraction for resource timeline views
+    const resourceId =
+      "resource" in selectInfo &&
+      selectInfo.resource &&
+      typeof selectInfo.resource === "object" &&
+      "id" in selectInfo.resource
+        ? String(selectInfo.resource.id)
+        : undefined;
+
+    if (resourceId) {
+      // For resource views, call with resourceId as first parameter
+      // Cast to specific signature that accepts resourceId
+      const resourceCallback = onDateSelect as unknown as (
+        resourceId: string,
+        start: Date,
+        end: Date,
+      ) => void;
+      resourceCallback(resourceId, selectInfo.start, selectInfo.end);
+    } else {
       onDateSelect(selectInfo.start, selectInfo.end);
     }
 
     // Clear selection
-    const calendarApi = selectInfo.view.calendar;
-    calendarApi.unselect();
+    selectInfo.view.calendar.unselect();
   };
 
   const handleEventDrop = (info: EventDropArg) => {
@@ -378,7 +414,21 @@ export function GenericCalendarView<T>({
         }
 
         .fc .fc-highlight {
-          background-color: hsl(var(--primary) / 0.1);
+          background-color: hsl(var(--primary) / 0.2);
+          border: 2px dashed hsl(var(--primary));
+          border-radius: 4px;
+          animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 0.8; }
+          50% { opacity: 1; }
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+          .fc .fc-timegrid-slot {
+            height: 4rem; /* Larger touch targets on mobile */
+          }
         }
 
         /* List view customization */
@@ -432,10 +482,20 @@ export function GenericCalendarView<T>({
 
       <FullCalendar
         ref={calendarRef}
-        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
+        plugins={[
+          dayGridPlugin,
+          timeGridPlugin,
+          resourceTimeGridPlugin,
+          interactionPlugin,
+          listPlugin,
+        ]}
         initialView={viewOpts.initialView}
         headerToolbar={buildHeaderToolbar()}
         events={events}
+        resources={resources}
+        businessHours={businessHours}
+        selectConstraint={businessHours ? "businessHours" : undefined}
+        selectOverlap={false}
         editable={editable}
         selectable={editable}
         selectMirror={true}
@@ -449,6 +509,7 @@ export function GenericCalendarView<T>({
         slotMinTime={config.slotMinTime}
         slotMaxTime={config.slotMaxTime}
         height="auto"
+        expandRows={true}
         slotDuration={config.slotDuration}
         slotLabelInterval={config.slotLabelInterval}
         scrollTime={config.scrollTime}
@@ -488,6 +549,60 @@ export function FacilityCalendarView({
     );
   });
 
+  // Map facilities to FullCalendar resources (for resourceTimeGridWeek view)
+  const facilityResources = useMemo(() => {
+    return facilities.map((facility, index) => ({
+      id: facility.id,
+      title: facility.name,
+      eventColor: facilityColors[index % facilityColors.length] || "#3b82f6",
+    }));
+  }, [facilities, facilityColors]);
+
+  // Create business hours configuration from facility schedules
+  const businessHoursConfig = useMemo(() => {
+    // Use normalized date to prevent unnecessary recalculations
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const allBusinessHours: any[] = [];
+
+    // Map day names to FullCalendar day numbers
+    const dayMap: Record<string, number> = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    };
+
+    facilities.forEach((facility) => {
+      const schedule = facility.availabilitySchedule || createDefaultSchedule();
+      const effectiveBlocks = getEffectiveTimeBlocks(schedule, today);
+
+      // Get facility's available days
+      const availableDays = facility.daysAvailable
+        ? Object.entries(facility.daysAvailable)
+            .filter(([_, isAvailable]) => isAvailable)
+            .map(([day]) => dayMap[day])
+            .filter((dayNum): dayNum is number => dayNum !== undefined)
+        : [0, 1, 2, 3, 4, 5, 6]; // Default to all days if not specified
+
+      // Map each time block to business hours format
+      effectiveBlocks.forEach((block) => {
+        allBusinessHours.push({
+          resourceId: facility.id,
+          daysOfWeek: availableDays,
+          startTime: block.from,
+          endTime: block.to,
+        });
+      });
+    });
+
+    return allBusinessHours;
+  }, [facilities]);
+
   // Filter reservations based on selected facility
   const filteredReservations =
     selectedFacilityId === "all"
@@ -506,6 +621,7 @@ export function FacilityCalendarView({
 
     return {
       id: reservation.id,
+      resourceId: reservation.facilityId, // Top-level for FullCalendar resource views
       title:
         selectedFacilityId === "all"
           ? `${facility?.name || t("common:labels.unknown")} - ${reservation.userFullName || reservation.userEmail}`
@@ -557,6 +673,16 @@ export function FacilityCalendarView({
       editable={editable}
       className={className}
       holidayOptions={holidayOptions}
+      resources={
+        viewOptions?.initialView === "resourceTimeGridWeek"
+          ? facilityResources
+          : undefined
+      }
+      businessHours={
+        viewOptions?.initialView === "resourceTimeGridWeek"
+          ? businessHoursConfig
+          : undefined
+      }
     />
   );
 }

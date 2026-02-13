@@ -202,11 +202,130 @@
     <string name="limit_reached">Limit reached</string>
     <string name="limit_reached_message">You have reached the maximum limit for your current subscription. Upgrade to add more.</string>
 
+    <!-- Navigation - Facilities -->
+    <string name="nav_facilities">Facilities</string>
+
+    <!-- Facilities -->
+    <string name="facilities_title">Facilities</string>
+    <string name="facilities_upcoming">Upcoming Reservations</string>
+    <string name="facilities_available">Available Facilities</string>
+    <string name="facilities_no_facilities">No facilities available</string>
+    <string name="facilities_book">Book Time</string>
+    <string name="facilities_new_booking">New Booking</string>
+    <string name="facilities_my_reservations">My Reservations</string>
+    <string name="facilities_filter_all">All</string>
+    <string name="facilities_quick_book">Quick Book</string>
+    <string name="facilities_reservations_today">Today\'s Reservations</string>
+    <string name="facility_status_maintenance">Maintenance</string>
+
+    <!-- Facility Detail -->
+    <string name="facility_detail_title">Facility Details</string>
+    <string name="facility_availability">Availability</string>
+    <string name="facility_booking_rules">Booking Rules</string>
+    <string name="facility_min_duration">Min. duration</string>
+    <string name="facility_max_duration">Max. duration</string>
+    <string name="facility_max_horses">Max horses</string>
+    <string name="facility_available_hours">Available hours</string>
+
+    <!-- Reservation Form -->
+    <string name="reservation_form_title">Book Facility</string>
+    <string name="reservation_form_edit">Edit Reservation</string>
+    <string name="reservation_facility">Facility</string>
+    <string name="reservation_date">Date</string>
+    <string name="reservation_start_time">Start time</string>
+    <string name="reservation_end_time">End time</string>
+    <string name="reservation_horse">Horse</string>
+    <string name="reservation_notes">Notes</string>
+    <string name="reservation_submit">Book</string>
+    <string name="reservation_update">Update</string>
+    <string name="reservation_conflict_warning">Time conflict detected</string>
+    <string name="reservation_booked_by">Booked by</string>
+
+    <!-- Reservation Status -->
+    <string name="reservation_status_pending">Pending</string>
+    <string name="reservation_status_confirmed">Confirmed</string>
+    <string name="reservation_status_cancelled">Cancelled</string>
+    <string name="reservation_status_completed">Completed</string>
+    <string name="reservation_status_no_show">No Show</string>
+    <string name="reservation_status_rejected">Rejected</string>
+
+    <!-- Reservation Actions -->
+    <string name="reservation_cancel">Cancel Reservation</string>
+    <string name="reservation_cancel_confirm">Do you want to cancel this reservation?</string>
+    <string name="reservation_cancel_success">Reservation cancelled</string>
+    <string name="reservation_create_success">Reservation created</string>
+
+    <!-- Facility Types -->
+    <string name="facility_type_indoor_arena">Indoor Arena</string>
+    <string name="facility_type_outdoor_arena">Outdoor Arena</string>
+    <string name="facility_type_walker">Walker</string>
+    <string name="facility_type_solarium">Solarium</string>
+    <string name="facility_type_wash_stall">Wash Stall</string>
+    <string name="facility_type_paddock">Paddock</string>
+    <string name="facility_type_lunging_ring">Lunging Ring</string>
+    <string name="facility_type_treadmill">Treadmill</string>
+    <string name="facility_type_water_treadmill">Water Treadmill</string>
+    <string name="facility_type_galloping_track">Galloping Track</string>
+    <string name="facility_type_jumping_yard">Jumping Yard</string>
+    <string name="facility_type_vibration_plate">Vibration Plate</string>
+    <string name="facility_type_pasture">Pasture</string>
+    <string name="facility_type_transport">Transport</string>
+    <string name="facility_type_other">Other</string>
+
+    <!-- Reservation Tabs -->
+    <string name="reservations_upcoming">Upcoming</string>
+    <string name="reservations_past">Past</string>
+    <string name="reservations_no_upcoming">No upcoming reservations</string>
+    <string name="reservations_no_past">No past reservations</string>
+
+    <!-- Feature Requests -->
+    <string name="fr_title">Feature Requests</string>
+    <string name="fr_detail_title">Request</string>
+    <string name="fr_create_title">New Request</string>
+    <string name="fr_settings_subtitle">Suggest and vote on features</string>
+    <string name="fr_empty_title">No requests</string>
+    <string name="fr_empty_message">Be the first to suggest an improvement!</string>
+    <string name="fr_load_more">Load more</string>
+    <string name="fr_my_requests">My Requests</string>
+    <string name="fr_filter_category">Category</string>
+    <string name="fr_vote">Vote</string>
+    <string name="fr_admin_response">Admin Response</string>
+    <string name="fr_admin_badge">Admin</string>
+    <string name="fr_comments_title">Comments</string>
+    <string name="fr_no_comments">No comments yet</string>
+    <string name="fr_comment_placeholder">Write a comment…</string>
+    <string name="fr_comment_send">Send</string>
+    <string name="fr_form_title">Title</string>
+    <string name="fr_form_description">Description</string>
+    <string name="fr_form_category">Category</string>
+    <string name="fr_submit">Submit</string>
+    <string name="fr_improve_ai">Improve with AI</string>
+    <string name="fr_refining">Improving…</string>
+    <string name="fr_revert_original">Revert to original</string>
+    <string name="fr_validation_title_min">Title must be at least 5 characters</string>
+    <string name="fr_validation_description_min">Description must be at least 20 characters</string>
+    <string name="fr_status_open">Open</string>
+    <string name="fr_status_under_review">Under Review</string>
+    <string name="fr_status_planned">Planned</string>
+    <string name="fr_status_in_progress">In Progress</string>
+    <string name="fr_status_completed">Completed</string>
+    <string name="fr_status_declined">Declined</string>
+    <string name="fr_category_improvement">Improvement</string>
+    <string name="fr_category_new_feature">New Feature</string>
+    <string name="fr_category_integration">Integration</string>
+    <string name="fr_category_bug_fix">Bug Fix</string>
+    <string name="fr_category_other">Other</string>
+    <string name="fr_sort_votes">Most Votes</string>
+    <string name="fr_sort_newest">Newest</string>
+    <string name="fr_sort_oldest">Oldest</string>
+
     <!-- Errors -->
     <string name="error_load_horses">Could not load horses</string>
     <string name="error_load_routines">Could not load routines</string>
     <string name="error_load_feeding">Could not load feeding data</string>
     <string name="error_load_activities">Could not load activities</string>
+    <string name="error_load_facilities">Could not load facilities</string>
+    <string name="error_load_reservations">Could not load reservations</string>
     <string name="error_save_failed">Could not save</string>
     <string name="error_delete_failed">Could not delete</string>
     <string name="error_start_routine">Could not start routine</string>

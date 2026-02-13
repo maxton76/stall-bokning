@@ -8,9 +8,9 @@ import {
   Star,
   TrendingUp,
 } from "lucide-react";
-import { useOrganizationContext } from "@/contexts/OrganizationContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiQuery } from "@/hooks/useApiQuery";
+import { useUserStables } from "@/hooks/useUserStables";
 import { StatisticCard } from "./components/StatisticCard";
 import { calculateStatistics } from "@/utils/statisticsCalculations";
 import {
@@ -32,35 +32,36 @@ import {
  */
 export default function MyStatisticsPage() {
   const { t } = useTranslation(["common"]);
-  const { currentOrganizationId } = useOrganizationContext();
   const { user } = useAuth();
+  const { stables, loading: stablesLoading } = useUserStables(user?.uid);
+  const stableId = stables[0]?.id;
 
   // Fetch user's routine completions (last 30 days)
   const { data: myRoutines, isLoading: loadingRoutines } = useApiQuery(
-    ["statistics", "my-routines", currentOrganizationId, user?.uid],
-    () => getMyRoutineStats(currentOrganizationId!, user!.uid),
+    ["statistics", "my-routines", stableId, user?.uid],
+    () => getMyRoutineStats(stableId!, user!.uid),
     {
-      enabled: !!currentOrganizationId && !!user,
+      enabled: !!stableId && !!user,
       staleTime: 5 * 60 * 1000, // 5 minutes
     },
   );
 
   // Fetch user's feeding activities (last 30 days)
   const { data: myFeedings, isLoading: loadingFeedings } = useApiQuery(
-    ["statistics", "my-feedings", currentOrganizationId, user?.uid],
-    () => getMyFeedingStats(currentOrganizationId!, user!.uid),
+    ["statistics", "my-feedings", stableId, user?.uid],
+    () => getMyFeedingStats(stableId!, user!.uid),
     {
-      enabled: !!currentOrganizationId && !!user,
+      enabled: !!stableId && !!user,
       staleTime: 5 * 60 * 1000,
     },
   );
 
   // Fetch team routine completions (for contribution %)
   const { data: teamRoutines, isLoading: loadingTeam } = useApiQuery(
-    ["statistics", "team-routines", currentOrganizationId],
-    () => getTeamRoutineStats(currentOrganizationId!),
+    ["statistics", "team-routines", stableId],
+    () => getTeamRoutineStats(stableId!),
     {
-      enabled: !!currentOrganizationId,
+      enabled: !!stableId,
       staleTime: 5 * 60 * 1000,
     },
   );
@@ -71,7 +72,8 @@ export default function MyStatisticsPage() {
     return calculateStatistics(myRoutines, myFeedings, teamRoutines);
   }, [myRoutines, myFeedings, teamRoutines]);
 
-  const isLoading = loadingRoutines || loadingFeedings || loadingTeam;
+  const isLoading =
+    stablesLoading || loadingRoutines || loadingFeedings || loadingTeam;
 
   return (
     <div className="container mx-auto p-6 space-y-6">

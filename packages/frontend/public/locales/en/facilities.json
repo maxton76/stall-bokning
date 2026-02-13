@@ -110,7 +110,12 @@
       "horse": "Horse",
       "contactInfo": "Contact information",
       "notes": "Notes",
-      "status": "Status"
+      "status": "Status",
+      "availability": "Availability",
+      "recurringWeekly": "Recurring weekly"
+    },
+    "descriptions": {
+      "recurringWeekly": "Automatically book the same time each week for 4 weeks ahead"
     },
     "placeholders": {
       "facility": "Select facility",
@@ -129,7 +134,8 @@
       "deleteSuccess": "Reservation deleted successfully",
       "cancelSuccess": "Reservation cancelled successfully",
       "createError": "Failed to create reservation",
-      "updateError": "Failed to update reservation"
+      "updateError": "Failed to update reservation",
+      "timePreFilled": "Times pre-filled from calendar selection"
     },
     "actions": {
       "book": "Book",
@@ -272,7 +278,10 @@
   },
   "calendar": {
     "title": "Facility Calendar",
-    "noReservations": "No reservations on this day"
+    "noReservations": "No reservations on this day",
+    "dragToSelectHelp": "Drag to select time range and book directly",
+    "selectingTimeRange": "Selecting time range",
+    "multiResourceView": "Multi-facility view"
   },
   "reservations": {
     "noReservationsForDate": "No reservations for this date",
@@ -285,5 +294,94 @@
   "emptyState": {
     "title": "No facilities yet",
     "description": "Get started by adding your first facility"
+  },
+  "views": {
+    "selectView": "Select View",
+    "customer": "Customer View",
+    "customerDescription": "Simplified booking interface optimized for horse owners with quick access to your reservations",
+    "operations": "Operations View",
+    "operationsDescription": "Today's schedule and status updates for stable staff and schedule managers",
+    "manager": "Manager View",
+    "managerDescription": "Analytics and reports for stable owners with utilization overview and trends",
+    "admin": "Admin View",
+    "adminDescription": "Complete system administration and configuration",
+    "noAvailableViews": "No views available"
+  },
+  "customerView": {
+    "title": "Book Facility",
+    "calendarDescription": "Drag to select time range and book",
+    "gridDescription": "Tap an available time slot to book"
+  },
+  "analytics": {
+    "title": "Facility Analytics",
+    "utilizationRate": "Utilization Rate",
+    "peakHours": "Peak Hours",
+    "noShowRate": "No-Show Rate",
+    "topUsers": "Top Users",
+    "averageDuration": "Average Duration",
+    "bookingTrends": "Booking Trends",
+    "statusDistribution": "Status Distribution",
+    "facilityComparison": "Facility Comparison",
+    "timeRange": "Time Range",
+    "exportData": "Export Data",
+    "lastWeek": "Last Week",
+    "lastMonth": "Last Month",
+    "last3Months": "Last 3 Months",
+    "customRange": "Custom Range",
+    "groupBy": {
+      "day": "By Day",
+      "week": "By Week",
+      "month": "By Month"
+    },
+    "metrics": {
+      "totalBookings": "Total Bookings",
+      "confirmedBookings": "Confirmed Bookings",
+      "completedBookings": "Completed Bookings",
+      "cancelledBookings": "Cancelled Bookings",
+      "noShows": "No Shows",
+      "utilizationPercentage": "Utilization (%)",
+      "averageBookingDuration": "Average Booking Duration",
+      "peakHourStart": "Peak Booking Time",
+      "totalRevenue": "Total Revenue"
+    },
+    "noData": "No data available for selected period",
+    "loading": "Loading analytics data..."
+  },
+  "operations": {
+    "todaySchedule": "Today's Schedule",
+    "upcomingArrivals": "Upcoming Arrivals",
+    "nextArrival": "Next Arrival",
+    "preparationNotes": "Preparation",
+    "markCompleted": "Mark as Completed",
+    "markNoShow": "Mark as No-Show",
+    "contactCustomer": "Contact Customer",
+    "facilityPreparation": "Facility Preparation",
+    "preparationChecklist": "Preparation Checklist",
+    "noBookingsToday": "No bookings today",
+    "noUpcoming": "No upcoming arrivals in the next few hours",
+    "printSchedule": "Print Schedule",
+    "countdown": "In {{time}}",
+    "inProgress": "In Progress",
+    "quickActions": "Quick Actions"
+  },
+  "quickBook": {
+    "title": "Quick Book",
+    "favoriteLabel": "Favorite Facility",
+    "recentLabel": "Recently Used",
+    "bookAgain": "Book Again",
+    "suggestedTimes": "Suggested Times",
+    "basedOnHistory": "Based on your booking history"
+  },
+  "availability": {
+    "available": "Available",
+    "limited": "Limited",
+    "full": "Fully Booked",
+    "closed": "Closed",
+    "showGrid": "Show Availability Grid",
+    "availableSlots": "{{count}} available slots",
+    "clickToBook": "Click to book",
+    "fullWithCapacity": "Fully booked ({{capacity}} spots)",
+    "limitedWithRemaining": "{{remaining}} of {{capacity}} spots available",
+    "availableWithCapacity": "Available ({{capacity}} spots)"
   }
 }

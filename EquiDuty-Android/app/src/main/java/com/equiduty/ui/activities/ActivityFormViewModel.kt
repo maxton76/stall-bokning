@@ -114,17 +114,17 @@ class ActivityFormViewModel @Inject constructor(
                     return@launch
                 }
 
-                val isoDate = combineDateTimeIso(date.value, scheduledTime.value)
+                val isoDate = combineDateTimeIso(date.value.trim(), scheduledTime.value.trim())
                 if (isEditing) {
                     activityRepository.updateActivity(
                         activityId!!,
                         UpdateActivityDto(
-                            activityType = activityType.value.ifBlank { null },
+                            activityType = activityType.value.trim().ifBlank { null },
                             date = isoDate,
-                            scheduledTime = scheduledTime.value.ifBlank { null },
-                            duration = duration.value.toIntOrNull(),
+                            scheduledTime = scheduledTime.value.trim().ifBlank { null },
+                            duration = duration.value.trim().toIntOrNull(),
                             horseIds = selectedHorseIds.value.ifEmpty { null },
-                            notes = notes.value.ifBlank { null }
+                            notes = notes.value.trim().ifBlank { null }
                         )
                     )
                 } else {
@@ -132,12 +132,12 @@ class ActivityFormViewModel @Inject constructor(
                     activityRepository.createActivity(
                         CreateActivityDto(
                             stableId = stableId,
-                            activityType = activityType.value.ifBlank { "other" },
+                            activityType = activityType.value.trim().ifBlank { "other" },
                             date = isoDate,
-                            scheduledTime = scheduledTime.value.ifBlank { null },
-                            duration = duration.value.toIntOrNull(),
+                            scheduledTime = scheduledTime.value.trim().ifBlank { null },
+                            duration = duration.value.trim().toIntOrNull(),
                             horseIds = selectedHorseIds.value.ifEmpty { null },
-                            notes = notes.value.ifBlank { null }
+                            notes = notes.value.trim().ifBlank { null }
                         )
                     )
                 }

@@ -18,6 +18,7 @@ sealed class Route(val route: String) {
     data object Horses : Route("horses")
     data object Feeding : Route("feeding")
     data object Routines : Route("routines")
+    data object Facilities : Route("facilities")
     data object Settings : Route("settings")
 
     // Horse sub-routes
@@ -43,6 +44,30 @@ sealed class Route(val route: String) {
         fun createRoute(instanceId: String) = "routines/flow/$instanceId"
     }
 
+    // Facility sub-routes
+    data object FacilityDetail : Route("facilities/{facilityId}") {
+        fun createRoute(facilityId: String) = "facilities/$facilityId"
+    }
+    data object ReservationForm : Route("facilities/reservation/form?reservationId={reservationId}&facilityId={facilityId}") {
+        fun createRoute(reservationId: String? = null, facilityId: String? = null): String {
+            val params = mutableListOf<String>()
+            if (reservationId != null) params.add("reservationId=$reservationId")
+            if (facilityId != null) params.add("facilityId=$facilityId")
+            return if (params.isNotEmpty()) "facilities/reservation/form?${params.joinToString("&")}" else "facilities/reservation/form"
+        }
+    }
+    data object ReservationDetail : Route("facilities/reservation/{reservationId}") {
+        fun createRoute(reservationId: String) = "facilities/reservation/$reservationId"
+    }
+    data object MyReservations : Route("facilities/my-reservations")
+
+    // Feature Requests sub-routes
+    data object FeatureRequests : Route("feature-requests")
+    data object FeatureRequestDetail : Route("feature-requests/{requestId}") {
+        fun createRoute(requestId: String) = "feature-requests/$requestId"
+    }
+    data object CreateFeatureRequest : Route("feature-requests/create")
+
     // Settings sub-routes
     data object Account : Route("settings/account")
     data object NotificationSettings : Route("settings/notifications")
@@ -63,5 +88,5 @@ enum class BottomNavTab(
     HORSES(Route.Horses.route, R.string.nav_horses, NavIcon.Drawable(R.drawable.ic_horse)),
     FEEDING(Route.Feeding.route, R.string.nav_feeding, NavIcon.Vector(Icons.Default.Restaurant)),
     ROUTINES(Route.Routines.route, R.string.nav_routines, NavIcon.Vector(Icons.Default.Checklist)),
-    SETTINGS(Route.Settings.route, R.string.nav_settings, NavIcon.Vector(Icons.Default.Settings))
+    FACILITIES(Route.Facilities.route, R.string.nav_facilities, NavIcon.Vector(Icons.Default.MeetingRoom))
 }

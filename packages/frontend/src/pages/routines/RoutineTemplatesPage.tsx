@@ -107,9 +107,19 @@ export default function RoutineTemplatesPage() {
   const handleDuplicateTemplate = async (template: RoutineTemplate) => {
     try {
       await create({
-        ...template,
-        name: `${template.name} (${t("common:labels.copy")})`,
         organizationId: currentOrganizationId!,
+        stableId: template.stableId,
+        name: `${template.name} (${t("common:labels.copy")})`,
+        description: template.description,
+        type: template.type,
+        icon: template.icon,
+        color: template.color,
+        defaultStartTime: template.defaultStartTime,
+        estimatedDuration: template.estimatedDuration,
+        steps: template.steps.map(({ id, order, ...step }) => step),
+        requiresNotesRead: template.requiresNotesRead,
+        allowSkipSteps: template.allowSkipSteps,
+        pointsValue: template.pointsValue,
       });
       toast({
         title: t("routines:template.duplicated"),

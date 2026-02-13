@@ -42,6 +42,11 @@ import { useToast } from "@/hooks/use-toast";
 import { toDate } from "@/utils/timestampUtils";
 import { STATUS_COLORS } from "@/constants/facilityConstants";
 import { useOrganizationCalendarHolidays } from "@/hooks/useOrganizationHolidays";
+import { ViewModeSelector } from "@/components/ViewModeSelector";
+import { CustomerBookingView } from "@/components/CustomerBookingView";
+import { FacilityUtilizationDashboard } from "@/components/FacilityUtilizationDashboard";
+import { TodayScheduleView } from "@/components/TodayScheduleView";
+import { useViewMode } from "@/hooks/useViewMode";
 
 type ViewType = "calendar" | "timeline";
 
@@ -49,6 +54,7 @@ export default function FacilitiesReservationsPage() {
   const { t } = useTranslation(["facilities", "common", "constants"]);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { viewMode, setViewMode, availableViewModes } = useViewMode();
   const [viewType, setViewType] = useState<ViewType>("timeline");
 
   // Helper function to get translated facility type
@@ -200,6 +206,22 @@ export default function FacilitiesReservationsPage() {
       facilityId:
         facilityId || selectedFacility !== "all" ? selectedFacility : undefined,
       date: start,
+      startTime,
+      endTime,
+    });
+    reservationDialog.openDialog();
+  };
+
+  const handleQuickBook = (
+    facilityId: string,
+    date: Date,
+    startTime: string,
+    endTime: string,
+  ) => {
+    // Pre-fill form with selected facility and time for quick booking
+    setDialogInitialValues({
+      facilityId,
+      date,
       startTime,
       endTime,
     });
@@ -405,8 +427,93 @@ export default function FacilitiesReservationsPage() {
           </p>
         </div>
         <div className="flex items-center gap-4">
-          {/* View Switcher */}
-          <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
+          {/* Persona View Mode Selector */}
+          <ViewModeSelector
+            viewMode={viewMode}
+            onChange={setViewMode}
+            availableViewModes={availableViewModes}
+          />
+          {viewMode === "admin" && (
+            <Button onClick={handleNewReservation}>
+              <Plus className="mr-2 h-4 w-4" />
+              {t("facilities:reservation.title.create")}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Customer View - Simplified booking interface */}
+      {viewMode === "customer" && (
+        <CustomerBookingView
+          facilities={facilitiesData || []}
+          reservations={reservationsData || []}
+          horses={horsesData || []}
+          onCreateReservation={handleNewReservation}
+          onReservationClick={handleReservationClick}
+          onQuickBook={handleQuickBook}
+          userId={user?.uid}
+        />
+      )}
+
+      {/* Manager View - Analytics and utilization */}
+      {viewMode === "manager" && (
+        <FacilityUtilizationDashboard
+          facilities={facilitiesData || []}
+          reservations={reservationsData || []}
+        />
+      )}
+
+      {/* Operations View - Today's schedule */}
+      {viewMode === "operations" && (
+        <TodayScheduleView
+          facilities={facilitiesData || []}
+          reservations={reservationsData || []}
+          onReservationClick={handleReservationClick}
+        />
+      )}
+
+      {/* Admin View - Full control with calendar/timeline */}
+      {viewMode === "admin" && (
+        <>
+          {/* Stats Cards */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {t("facilities:page.reservationsTitle")}
+                </CardTitle>
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.total}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {t("common:status.pending")}
+                </CardTitle>
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.upcoming}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {t("common:status.completed")}
+                </CardTitle>
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.completed}</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* View Switcher for Admin */}
+          <div className="flex items-center gap-2 p-1 bg-muted rounded-lg w-fit">
             <Button
               variant={viewType === "calendar" ? "default" : "ghost"}
               size="sm"
@@ -424,274 +531,245 @@ export default function FacilitiesReservationsPage() {
               {t("common:navigation.schedule")}
             </Button>
           </div>
-          <Button onClick={handleNewReservation}>
-            <Plus className="mr-2 h-4 w-4" />
-            {t("facilities:reservation.title.create")}
-          </Button>
-        </div>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t("facilities:page.reservationsTitle")}
-            </CardTitle>
-            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t("common:status.pending")}
-            </CardTitle>
-            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.upcoming}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t("common:status.completed")}
-            </CardTitle>
-            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.completed}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            {t("common:buttons.filter")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                {t("common:navigation.stables")}
-              </label>
-              <Select
-                value={selectedStableId}
-                onValueChange={setSelectedStableId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t("common:navigation.stables")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {stables.map((stable) => (
-                    <SelectItem key={stable.id} value={stable.id}>
-                      {stable.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                {t("facilities:reservation.labels.facility")}
-              </label>
-              <Select
-                value={selectedFacility}
-                onValueChange={setSelectedFacility}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t("facilities:page.title")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">
-                    {t("facilities:page.title")}
-                  </SelectItem>
-                  {facilitiesData?.map((facility) => (
-                    <SelectItem key={facility.id} value={facility.id}>
-                      {facility.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                {t("facilities:form.labels.type")}
-              </label>
-              <Select
-                value={selectedFacilityType}
-                onValueChange={setSelectedFacilityType}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t("common:labels.type")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t("common:labels.type")}</SelectItem>
-                  {(
-                    [
-                      "transport",
-                      "water_treadmill",
-                      "indoor_arena",
-                      "outdoor_arena",
-                      "galloping_track",
-                      "lunging_ring",
-                      "paddock",
-                      "solarium",
-                      "jumping_yard",
-                      "treadmill",
-                      "vibration_plate",
-                      "pasture",
-                      "walker",
-                      "other",
-                    ] as FacilityType[]
-                  ).map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {getFacilityTypeLabel(type)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                {t("common:labels.status")}
-              </label>
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("common:labels.status")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">
-                    {t("common:labels.status")}
-                  </SelectItem>
-                  <SelectItem value="pending">
-                    {t("constants:reservationStatus.pending")}
-                  </SelectItem>
-                  <SelectItem value="confirmed">
-                    {t("constants:reservationStatus.confirmed")}
-                  </SelectItem>
-                  <SelectItem value="cancelled">
-                    {t("constants:reservationStatus.cancelled")}
-                  </SelectItem>
-                  <SelectItem value="completed">
-                    {t("constants:reservationStatus.completed")}
-                  </SelectItem>
-                  <SelectItem value="no_show">
-                    {t("constants:reservationStatus.no_show")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Calendar View */}
-      {viewType === "calendar" && (
-        <>
+          {/* Filters */}
           <Card>
             <CardHeader>
-              <CardTitle>{t("facilities:calendar.title")}</CardTitle>
-              <CardDescription>
-                {t("facilities:page.reservationsDescription")}
-              </CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                {t("common:buttons.filter")}
+              </CardTitle>
             </CardHeader>
-            <CardContent className="flex justify-center">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
-                className="rounded-md border"
-                holidays={holidays}
-                showHolidays={showHolidays}
-                modifiers={{
-                  hasReservations: datesWithReservations,
-                }}
-                modifiersStyles={{
-                  hasReservations: {
-                    fontWeight: "bold",
-                    textDecoration: "underline",
-                  },
-                }}
-              />
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    {t("common:navigation.stables")}
+                  </label>
+                  <Select
+                    value={selectedStableId}
+                    onValueChange={setSelectedStableId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={t("common:navigation.stables")}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {stables.map((stable) => (
+                        <SelectItem key={stable.id} value={stable.id}>
+                          {stable.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    {t("facilities:reservation.labels.facility")}
+                  </label>
+                  <Select
+                    value={selectedFacility}
+                    onValueChange={setSelectedFacility}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("facilities:page.title")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">
+                        {t("facilities:page.title")}
+                      </SelectItem>
+                      {facilitiesData?.map((facility) => (
+                        <SelectItem key={facility.id} value={facility.id}>
+                          {facility.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    {t("facilities:form.labels.type")}
+                  </label>
+                  <Select
+                    value={selectedFacilityType}
+                    onValueChange={setSelectedFacilityType}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("common:labels.type")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">
+                        {t("common:labels.type")}
+                      </SelectItem>
+                      {(
+                        [
+                          "transport",
+                          "water_treadmill",
+                          "indoor_arena",
+                          "outdoor_arena",
+                          "galloping_track",
+                          "lunging_ring",
+                          "paddock",
+                          "solarium",
+                          "jumping_yard",
+                          "treadmill",
+                          "vibration_plate",
+                          "pasture",
+                          "walker",
+                          "other",
+                        ] as FacilityType[]
+                      ).map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {getFacilityTypeLabel(type)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    {t("common:labels.status")}
+                  </label>
+                  <Select
+                    value={selectedStatus}
+                    onValueChange={setSelectedStatus}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("common:labels.status")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">
+                        {t("common:labels.status")}
+                      </SelectItem>
+                      <SelectItem value="pending">
+                        {t("constants:reservationStatus.pending")}
+                      </SelectItem>
+                      <SelectItem value="confirmed">
+                        {t("constants:reservationStatus.confirmed")}
+                      </SelectItem>
+                      <SelectItem value="cancelled">
+                        {t("constants:reservationStatus.cancelled")}
+                      </SelectItem>
+                      <SelectItem value="completed">
+                        {t("constants:reservationStatus.completed")}
+                      </SelectItem>
+                      <SelectItem value="no_show">
+                        {t("constants:reservationStatus.no_show")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Reservations for Selected Date */}
-          {selectedDate && (
-            <Card>
-              <CardHeader>
-                <CardTitle>{format(selectedDate, "PPP")}</CardTitle>
-                <CardDescription>
-                  {reservationsForSelectedDate.length}{" "}
-                  {t("facilities:page.reservationsTitle").toLowerCase()}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {reservationsForSelectedDate.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    {t("facilities:calendar.noReservations")}
-                  </p>
-                ) : (
-                  <div className="space-y-4">
-                    {reservationsForSelectedDate.map((reservation) => (
-                      <div
-                        key={reservation.id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent cursor-pointer"
-                        onClick={() => handleReservationClick(reservation)}
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold">
-                              {reservation.facilityName}
-                            </h4>
-                            <Badge variant="outline">
-                              {getFacilityTypeLabel(reservation.facilityType)}
+          {/* Calendar View */}
+          {viewType === "calendar" && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t("facilities:calendar.title")}</CardTitle>
+                  <CardDescription>
+                    {t("facilities:page.reservationsDescription")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-center">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => date && setSelectedDate(date)}
+                    className="rounded-md border"
+                    holidays={holidays}
+                    showHolidays={showHolidays}
+                    modifiers={{
+                      hasReservations: datesWithReservations,
+                    }}
+                    modifiersStyles={{
+                      hasReservations: {
+                        fontWeight: "bold",
+                        textDecoration: "underline",
+                      },
+                    }}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Reservations for Selected Date */}
+              {selectedDate && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{format(selectedDate, "PPP")}</CardTitle>
+                    <CardDescription>
+                      {reservationsForSelectedDate.length}{" "}
+                      {t("facilities:page.reservationsTitle").toLowerCase()}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {reservationsForSelectedDate.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        {t("facilities:calendar.noReservations")}
+                      </p>
+                    ) : (
+                      <div className="space-y-4">
+                        {reservationsForSelectedDate.map((reservation) => (
+                          <div
+                            key={reservation.id}
+                            className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent cursor-pointer"
+                            onClick={() => handleReservationClick(reservation)}
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold">
+                                  {reservation.facilityName}
+                                </h4>
+                                <Badge variant="outline">
+                                  {getFacilityTypeLabel(
+                                    reservation.facilityType,
+                                  )}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {toDate(reservation.startTime) &&
+                                  toDate(reservation.endTime) &&
+                                  `${format(toDate(reservation.startTime)!, "HH:mm")} - ${format(toDate(reservation.endTime)!, "HH:mm")}`}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {reservation.userFullName ||
+                                  reservation.userEmail}
+                              </p>
+                            </div>
+                            <Badge
+                              className={STATUS_COLORS[reservation.status]}
+                            >
+                              {t(
+                                `constants:reservationStatus.${reservation.status}`,
+                              )}
                             </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {toDate(reservation.startTime) &&
-                              toDate(reservation.endTime) &&
-                              `${format(toDate(reservation.startTime)!, "HH:mm")} - ${format(toDate(reservation.endTime)!, "HH:mm")}`}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {reservation.userFullName || reservation.userEmail}
-                          </p>
-                        </div>
-                        <Badge className={STATUS_COLORS[reservation.status]}>
-                          {t(
-                            `constants:reservationStatus.${reservation.status}`,
-                          )}
-                        </Badge>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
+
+          {/* Timeline View */}
+          {viewType === "timeline" && (
+            <FacilityCalendarView
+              facilities={facilitiesData || []}
+              reservations={filteredReservations}
+              selectedFacilityId={selectedFacility}
+              onEventClick={handleReservationClick}
+              onDateSelect={handleTimelineSelect}
+              onEventDrop={handleEventDrop}
+              onEventResize={handleEventResize}
+              holidayOptions={{ holidays, showHolidays }}
+            />
           )}
         </>
-      )}
-
-      {/* Timeline View */}
-      {viewType === "timeline" && (
-        <FacilityCalendarView
-          facilities={facilitiesData || []}
-          reservations={filteredReservations}
-          selectedFacilityId={selectedFacility}
-          onEventClick={handleReservationClick}
-          onDateSelect={handleTimelineSelect}
-          onEventDrop={handleEventDrop}
-          onEventResize={handleEventResize}
-          holidayOptions={{ holidays, showHolidays }}
-        />
       )}
 
       {/* Reservation Dialog */}

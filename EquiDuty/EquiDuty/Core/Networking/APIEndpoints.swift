@@ -190,6 +190,26 @@ enum APIEndpoints {
     static func selectionProcessDates(_ id: String) -> String { "/selection-processes/\(id)/dates" }
     static let selectionProcessComputeOrder = "/selection-processes/compute-order"
 
+    // MARK: - Facilities
+    static let facilities = "/facilities"
+    static func facility(_ id: String) -> String { "/facilities/\(id)" }
+    static func facilityAvailableSlots(_ id: String) -> String { "/facilities/\(id)/available-slots" }
+
+    // MARK: - Facility Reservations
+    static let facilityReservations = "/facility-reservations"
+    static func facilityReservation(_ id: String) -> String { "/facility-reservations/\(id)" }
+    static let facilityReservationCheckConflicts = "/facility-reservations/check-conflicts"
+    static func facilityReservationCancel(_ id: String) -> String {
+        "/facility-reservations/\(id)/cancel"
+    }
+    static func facilityReservationApprove(_ id: String) -> String {
+        "/facility-reservations/\(id)/approve"
+    }
+    static func facilityReservationReject(_ id: String) -> String {
+        "/facility-reservations/\(id)/reject"
+    }
+    static let facilityReservationAnalytics = "/facility-reservations/analytics"
+
     // MARK: - Notifications
     static let notifications = "/notifications"
     static func notification(_ id: String) -> String { "/notifications/\(id)" }
@@ -201,4 +221,11 @@ enum APIEndpoints {
     static func notificationsFcmTokenDevice(_ deviceId: String) -> String {
         "/notifications/preferences/fcm-token/\(deviceId)"
     }
+
+    // MARK: - Feature Requests
+    static let featureRequests = "/feature-requests"
+    static let featureRequestRefine = "/feature-requests/refine"
+    static func featureRequest(_ id: String) -> String { "/feature-requests/\(id)" }
+    static func featureRequestVote(_ id: String) -> String { "/feature-requests/\(id)/vote" }
+    static func featureRequestComments(_ id: String) -> String { "/feature-requests/\(id)/comments" }
 }

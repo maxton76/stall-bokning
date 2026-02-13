@@ -168,7 +168,8 @@
     "unknownError": "Unknown error",
     "actionCannotBeUndone": "This action cannot be undone.",
     "noStables": "No stables",
-    "joinStableFirst": "You need to be a member of a stable to view this page."
+    "joinStableFirst": "You need to be a member of a stable to view this page.",
+    "noDataToExport": "There is no data to export for the selected period"
   },
   "time": {
     "today": "Today",
@@ -288,7 +289,9 @@
     "somethingWentWrong": "Something went wrong",
     "loadFailed": "Failed to load data",
     "connectionFailed": "Could not connect to the server",
-    "notFound": "The resource could not be found"
+    "notFound": "The resource could not be found",
+    "permissionDenied": "Permission Denied",
+    "noExportPermission": "You do not have permission to export data"
   },
   "dashboard": {
     "title": "Dashboard",

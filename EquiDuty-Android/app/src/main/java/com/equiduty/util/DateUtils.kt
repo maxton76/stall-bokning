@@ -1,5 +1,6 @@
 package com.equiduty.util
 
+import android.text.format.DateUtils
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -39,4 +40,14 @@ object DateUtils {
     fun formatDate(date: LocalDate): String = dateFormatter.format(date)
 
     fun today(): LocalDate = LocalDate.now(stockholmZone)
+
+    fun formatRelativeTime(isoString: String?): String {
+        val instant = parseIso(isoString) ?: return isoString ?: ""
+        return DateUtils.getRelativeTimeSpanString(
+            instant.toEpochMilli(),
+            System.currentTimeMillis(),
+            DateUtils.MINUTE_IN_MILLIS,
+            DateUtils.FORMAT_ABBREV_RELATIVE
+        ).toString()
+    }
 }

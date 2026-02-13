@@ -147,6 +147,12 @@ export async function facilitiesRoutes(fastify: FastifyInstance) {
           capacity: data.capacity || null,
           bookingRules: data.bookingRules || null,
           status: data.status || "active",
+          // Booking rule fields (extracted for top-level access)
+          planningWindowOpens: data.planningWindowOpens || 7,
+          planningWindowCloses: data.planningWindowCloses || 1,
+          maxHorsesPerReservation: data.maxHorsesPerReservation || 1,
+          minTimeSlotDuration: data.minTimeSlotDuration || 30,
+          maxHoursPerReservation: data.maxHoursPerReservation || 4,
           // New schedule fields
           availabilitySchedule,
           // Legacy fields preserved for backward compatibility
@@ -346,6 +352,18 @@ export async function facilitiesRoutes(fastify: FastifyInstance) {
         if (data.bookingRules !== undefined)
           updates.bookingRules = data.bookingRules;
         if (data.status !== undefined) updates.status = data.status;
+
+        // Update booking rule fields if provided
+        if (data.planningWindowOpens !== undefined)
+          updates.planningWindowOpens = data.planningWindowOpens;
+        if (data.planningWindowCloses !== undefined)
+          updates.planningWindowCloses = data.planningWindowCloses;
+        if (data.maxHorsesPerReservation !== undefined)
+          updates.maxHorsesPerReservation = data.maxHorsesPerReservation;
+        if (data.minTimeSlotDuration !== undefined)
+          updates.minTimeSlotDuration = data.minTimeSlotDuration;
+        if (data.maxHoursPerReservation !== undefined)
+          updates.maxHoursPerReservation = data.maxHoursPerReservation;
 
         // Handle availability schedule update
         if (data.availabilitySchedule !== undefined) {

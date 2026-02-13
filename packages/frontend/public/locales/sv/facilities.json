@@ -110,7 +110,12 @@
       "horse": "Häst",
       "contactInfo": "Kontaktinformation",
       "notes": "Anteckningar",
-      "status": "Status"
+      "status": "Status",
+      "availability": "Tillgänglighet",
+      "recurringWeekly": "Återkommande veckovis"
+    },
+    "descriptions": {
+      "recurringWeekly": "Boka automatiskt samma tid varje vecka i 4 veckor framåt"
     },
     "placeholders": {
       "facility": "Välj anläggning",
@@ -129,7 +134,8 @@
       "deleteSuccess": "Bokning har tagits bort",
       "cancelSuccess": "Bokning har avbokats",
       "createError": "Kunde inte skapa bokning",
-      "updateError": "Kunde inte uppdatera bokning"
+      "updateError": "Kunde inte uppdatera bokning",
+      "timePreFilled": "Tider förvalda från kalenderval"
     },
     "actions": {
       "book": "Boka",
@@ -272,7 +278,10 @@
   },
   "calendar": {
     "title": "Anläggningskalender",
-    "noReservations": "Inga bokningar denna dag"
+    "noReservations": "Inga bokningar denna dag",
+    "dragToSelectHelp": "Dra för att välja tidsperiod och boka direkt",
+    "selectingTimeRange": "Väljer tidsintervall",
+    "multiResourceView": "Flerfacilitetsvy"
   },
   "reservations": {
     "noReservationsForDate": "Inga bokningar för detta datum",
@@ -285,5 +294,94 @@
   "emptyState": {
     "title": "Inga anläggningar ännu",
     "description": "Kom igång genom att lägga till din första anläggning"
+  },
+  "views": {
+    "selectView": "Välj vy",
+    "customer": "Kundvy",
+    "customerDescription": "Förenklad bokningsvy optimerad för hästägare med snabb tillgång till dina bokningar",
+    "operations": "Driftssvy",
+    "operationsDescription": "Dagens schema och statusuppdateringar för stallpersonal och schemaläggare",
+    "manager": "Övervakningssvy",
+    "managerDescription": "Analys och rapporter för stallägare med översikt över utnyttjande och trender",
+    "admin": "Administratörssvy",
+    "adminDescription": "Fullständig systemadministration och konfiguration",
+    "noAvailableViews": "Inga vyer tillgängliga"
+  },
+  "customerView": {
+    "title": "Boka anläggning",
+    "calendarDescription": "Dra för att välja tidsperiod och boka",
+    "gridDescription": "Tryck på en ledig tid för att boka"
+  },
+  "analytics": {
+    "title": "Anläggningsanalys",
+    "utilizationRate": "Utnyttjandegrad",
+    "peakHours": "Toppbelastning",
+    "noShowRate": "Uteblivande",
+    "topUsers": "Mest aktiva användare",
+    "averageDuration": "Genomsnittlig längd",
+    "bookingTrends": "Bokningstrender",
+    "statusDistribution": "Statusfördelning",
+    "facilityComparison": "Anläggningsjämförelse",
+    "timeRange": "Tidsperiod",
+    "exportData": "Exportera data",
+    "lastWeek": "Senaste veckan",
+    "lastMonth": "Senaste månaden",
+    "last3Months": "Senaste 3 månaderna",
+    "customRange": "Anpassad period",
+    "groupBy": {
+      "day": "Per dag",
+      "week": "Per vecka",
+      "month": "Per månad"
+    },
+    "metrics": {
+      "totalBookings": "Totalt antal bokningar",
+      "confirmedBookings": "Bekräftade bokningar",
+      "completedBookings": "Genomförda bokningar",
+      "cancelledBookings": "Avbokade bokningar",
+      "noShows": "Uteblivanden",
+      "utilizationPercentage": "Utnyttjande (%)",
+      "averageBookingDuration": "Genomsnittlig bokningstid",
+      "peakHourStart": "Mest bokad tid",
+      "totalRevenue": "Total intäkt"
+    },
+    "noData": "Ingen data tillgänglig för vald period",
+    "loading": "Laddar analysdata..."
+  },
+  "operations": {
+    "todaySchedule": "Dagens schema",
+    "upcomingArrivals": "Kommande ankomster",
+    "nextArrival": "Nästa ankomst",
+    "preparationNotes": "Förberedelse",
+    "markCompleted": "Markera som klar",
+    "markNoShow": "Markera som utebliven",
+    "contactCustomer": "Kontakta kund",
+    "facilityPreparation": "Anläggningsförberedelse",
+    "preparationChecklist": "Förberedelsechecklista",
+    "noBookingsToday": "Inga bokningar idag",
+    "noUpcoming": "Inga kommande ankomster närmaste timmarna",
+    "printSchedule": "Skriv ut schema",
+    "countdown": "Om {{time}}",
+    "inProgress": "Pågår nu",
+    "quickActions": "Snabbåtgärder"
+  },
+  "quickBook": {
+    "title": "Snabboka",
+    "favoriteLabel": "Favoritanläggning",
+    "recentLabel": "Senast använd",
+    "bookAgain": "Boka igen",
+    "suggestedTimes": "Föreslagna tider",
+    "basedOnHistory": "Baserat på dina tidigare bokningar"
+  },
+  "availability": {
+    "available": "Tillgänglig",
+    "limited": "Begränsat",
+    "full": "Fullbokat",
+    "closed": "Stängt",
+    "showGrid": "Visa tillgänglighetstabell",
+    "availableSlots": "{{count}} lediga tider",
+    "clickToBook": "Klicka för att boka",
+    "fullWithCapacity": "Fullbokat ({{capacity}} platser)",
+    "limitedWithRemaining": "{{remaining}} av {{capacity}} platser kvar",
+    "availableWithCapacity": "Tillgänglig ({{capacity}} platser)"
   }
 }

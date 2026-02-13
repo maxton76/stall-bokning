@@ -43,6 +43,11 @@ struct MainTabView: View {
                 icon: "checklist",
                 selectedIcon: "checklist.checked"
             )
+            case .facilities: return TabInfo(
+                title: String(localized: "tab.facilities"),
+                icon: "calendar.badge.clock",
+                selectedIcon: "calendar.badge.clock"
+            )
             case .more: return TabInfo(
                 title: String(localized: "common.more"),
                 icon: "ellipsis.circle",
@@ -74,6 +79,13 @@ struct MainTabView: View {
                     Label(info.title, systemImage: router.selectedTab == .routines ? info.selectedIcon : info.icon)
                 }
                 .tag(AppTab.routines)
+
+            FacilityTabRootView()
+                .tabItem {
+                    let info = TabInfo.forTab(.facilities)
+                    Label(info.title, systemImage: router.selectedTab == .facilities ? info.selectedIcon : info.icon)
+                }
+                .tag(AppTab.facilities)
 
             MoreView()
                 .tabItem {

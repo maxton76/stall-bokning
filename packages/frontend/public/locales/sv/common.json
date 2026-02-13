@@ -168,7 +168,8 @@
     "unknownError": "Okänt fel",
     "actionCannotBeUndone": "Denna åtgärd kan inte ångras.",
     "noStables": "Inga stall",
-    "joinStableFirst": "Du behöver vara medlem i ett stall för att se denna sida."
+    "joinStableFirst": "Du behöver vara medlem i ett stall för att se denna sida.",
+    "noDataToExport": "Det finns ingen data att exportera för den valda perioden"
   },
   "time": {
     "today": "Idag",
@@ -243,7 +244,9 @@
     "somethingWentWrong": "Något gick fel",
     "loadFailed": "Kunde inte ladda data",
     "connectionFailed": "Kunde inte ansluta till servern",
-    "notFound": "Resursen kunde inte hittas"
+    "notFound": "Resursen kunde inte hittas",
+    "permissionDenied": "Åtkomst nekad",
+    "noExportPermission": "Du har inte behörighet att exportera data"
   },
   "weekdays": {
     "monday": "Måndag",

@@ -55,3 +55,16 @@ export function formatDateTime(
     minute: "2-digit",
   });
 }
+
+/**
+ * Round a date to exact minutes (zero out seconds and milliseconds)
+ * Prevents off-by-one errors in time slot calculations
+ *
+ * @param date - Date object to round
+ * @returns New Date object with seconds and milliseconds set to zero
+ */
+export function roundToMinute(date: Date): Date {
+  const rounded = new Date(date);
+  rounded.setSeconds(0, 0);
+  return rounded;
+}

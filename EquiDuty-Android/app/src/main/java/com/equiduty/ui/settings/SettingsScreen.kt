@@ -101,6 +101,14 @@ fun SettingsScreen(
                 onClick = { navController.navigate(Route.LanguageSettings.route) }
             )
 
+            // Feature Requests
+            SettingsItem(
+                icon = Icons.Default.Lightbulb,
+                title = stringResource(R.string.fr_title),
+                subtitle = stringResource(R.string.fr_settings_subtitle),
+                onClick = { navController.navigate(Route.FeatureRequests.route) }
+            )
+
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             // Legal

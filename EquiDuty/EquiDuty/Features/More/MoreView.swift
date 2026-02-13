@@ -58,6 +58,16 @@ struct MoreView: View {
                     }
                 }
 
+                // Feature Requests
+                NavigationLink(value: AppDestination.featureRequests) {
+                    Label {
+                        Text(String(localized: "featureRequests.title"))
+                    } icon: {
+                        Image(systemName: "lightbulb.fill")
+                            .foregroundStyle(.yellow)
+                    }
+                }
+
                 // Settings
                 Button {
                     showSettings = true

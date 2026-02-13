@@ -317,7 +317,11 @@ export default function ManageFacilitiesPage() {
                         {facility.availableFrom} - {facility.availableTo}
                       </TableCell>
                       <TableCell>{facility.maxHorsesPerReservation}</TableCell>
-                      <TableCell>{facility.minTimeSlotDuration} min</TableCell>
+                      <TableCell>
+                        {facility.minTimeSlotDuration
+                          ? `${facility.minTimeSlotDuration} min`
+                          : "N/A"}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Button

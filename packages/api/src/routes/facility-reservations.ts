@@ -10,6 +10,7 @@ import {
   createDefaultSchedule,
   type FacilityAvailabilitySchedule,
 } from "../utils/facilityAvailability.js";
+import { hasStablePermission } from "../utils/permissionEngine.js";
 
 /**
  * Check if user has organization membership with stable access
@@ -375,11 +376,11 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
           );
         }
         if (endDate && facilityId) {
-          query = query.where(
-            "startTime",
-            "<=",
-            Timestamp.fromDate(new Date(endDate)),
-          );
+          // When endDate is a date-only string (e.g. "2026-02-13"), new Date() gives
+          // midnight UTC. We need end-of-day to include all reservations on that date.
+          const endOfDay = new Date(endDate);
+          endOfDay.setUTCHours(23, 59, 59, 999);
+          query = query.where("startTime", "<=", Timestamp.fromDate(endOfDay));
         }
 
         const snapshot = await query.get();
@@ -767,6 +768,235 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to reject reservation",
+        });
+      }
+    },
+  );
+
+  /**
+   * GET /api/v1/facility-reservations/analytics
+   * Get aggregated analytics for facility reservations
+   * Requires stable owner role
+   */
+  fastify.get(
+    "/analytics",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const user = (request as AuthenticatedRequest).user!;
+        const query = request.query as any;
+
+        const stableId = query.stableId as string | undefined;
+        const MAX_DATE_RANGE_DAYS = 365; // 1 year maximum
+
+        if (!stableId) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "stableId query parameter is required",
+          });
+        }
+
+        // Parse and validate dates
+        const startDate = query.startDate
+          ? new Date(query.startDate as string)
+          : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Default: 30 days ago
+        const endDate = query.endDate
+          ? new Date(query.endDate as string)
+          : new Date(); // Default: now
+
+        // Validate date formats
+        if (isNaN(startDate.getTime())) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message:
+              "Invalid startDate format. Use ISO 8601 format (YYYY-MM-DD)",
+          });
+        }
+
+        if (isNaN(endDate.getTime())) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invalid endDate format. Use ISO 8601 format (YYYY-MM-DD)",
+          });
+        }
+
+        // Validate date range logic
+        if (startDate > endDate) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "startDate must be before endDate",
+          });
+        }
+
+        // Validate date range size
+        const daysDiff =
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysDiff > MAX_DATE_RANGE_DAYS) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: `Date range cannot exceed ${MAX_DATE_RANGE_DAYS} days`,
+          });
+        }
+
+        // Check stable permission using Permission V2
+        const hasAccess = await hasStablePermission(
+          user.uid,
+          stableId,
+          "view_financial_reports", // Analytics viewing requires financial reports permission
+          { systemRole: user.role },
+        );
+        if (!hasAccess) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message:
+              "You do not have permission to view analytics for this stable",
+          });
+        }
+
+        // Query reservations within date range
+        const reservationsSnapshot = await db
+          .collection("facilityReservations")
+          .where("stableId", "==", stableId)
+          .where("startTime", ">=", Timestamp.fromDate(startDate))
+          .where("startTime", "<=", Timestamp.fromDate(endDate))
+          .get();
+
+        const reservations = reservationsSnapshot.docs.map((doc) => doc.data());
+
+        // Calculate metrics
+        const totalBookings = reservations.length;
+        const confirmedBookings = reservations.filter(
+          (r) => r.status === "confirmed",
+        ).length;
+        const completedBookings = reservations.filter(
+          (r) => r.status === "completed",
+        ).length;
+        const cancelledBookings = reservations.filter(
+          (r) => r.status === "cancelled",
+        ).length;
+        const noShows = reservations.filter(
+          (r) => r.status === "no_show",
+        ).length;
+
+        // Calculate utilization by facility
+        const facilityUtilization = new Map<
+          string,
+          {
+            facilityId: string;
+            facilityName: string;
+            bookings: number;
+            bookedHours: number;
+          }
+        >();
+
+        reservations.forEach((r) => {
+          const existing = facilityUtilization.get(r.facilityId) || {
+            facilityId: r.facilityId,
+            facilityName: r.facilityName,
+            bookings: 0,
+            bookedHours: 0,
+          };
+
+          existing.bookings++;
+
+          // Calculate duration in hours
+          if (r.startTime && r.endTime) {
+            const startMs = r.startTime.toMillis();
+            const endMs = r.endTime.toMillis();
+            const hours = (endMs - startMs) / (1000 * 60 * 60);
+            existing.bookedHours += hours;
+          }
+
+          facilityUtilization.set(r.facilityId, existing);
+        });
+
+        // Calculate peak hours (hour of day with most bookings)
+        const hourCounts = new Map<number, number>();
+        reservations.forEach((r) => {
+          if (r.startTime) {
+            const hour = r.startTime.toDate().getHours();
+            hourCounts.set(hour, (hourCounts.get(hour) || 0) + 1);
+          }
+        });
+
+        const peakHourEntry = Array.from(hourCounts.entries()).sort(
+          (a, b) => b[1] - a[1],
+        )[0];
+        const peakHour = peakHourEntry ? peakHourEntry[0] : null;
+
+        // Calculate top users
+        const userBookings = new Map<
+          string,
+          {
+            userId: string;
+            userEmail: string;
+            userName?: string;
+            bookingCount: number;
+          }
+        >();
+
+        reservations.forEach((r) => {
+          const existing = userBookings.get(r.userId) || {
+            userId: r.userId,
+            userEmail: r.userEmail,
+            userName: r.userFullName,
+            bookingCount: 0,
+          };
+
+          existing.bookingCount++;
+          userBookings.set(r.userId, existing);
+        });
+
+        const topUsers = Array.from(userBookings.values())
+          .sort((a, b) => b.bookingCount - a.bookingCount)
+          .slice(0, 10);
+
+        // Calculate average duration
+        let totalMinutes = 0;
+        let validDurations = 0;
+        reservations.forEach((r) => {
+          if (r.startTime && r.endTime) {
+            const startMs = r.startTime.toMillis();
+            const endMs = r.endTime.toMillis();
+            const minutes = (endMs - startMs) / (1000 * 60);
+            totalMinutes += minutes;
+            validDurations++;
+          }
+        });
+
+        const averageDuration =
+          validDurations > 0 ? Math.round(totalMinutes / validDurations) : 0;
+
+        // Calculate no-show rate
+        const completableBookings = completedBookings + noShows;
+        const noShowRate =
+          completableBookings > 0 ? (noShows / completableBookings) * 100 : 0;
+
+        return reply.send({
+          metrics: {
+            totalBookings,
+            confirmedBookings,
+            completedBookings,
+            cancelledBookings,
+            noShows,
+            averageDuration,
+            noShowRate: Math.round(noShowRate * 10) / 10,
+            peakHour,
+          },
+          facilityUtilization: Array.from(facilityUtilization.values()),
+          topUsers,
+          dateRange: {
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+          },
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to get analytics");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to get analytics",
         });
       }
     },

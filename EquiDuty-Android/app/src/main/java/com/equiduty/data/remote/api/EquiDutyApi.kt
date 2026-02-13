@@ -278,4 +278,78 @@ interface EquiDutyApi {
 
     @DELETE("api/v1/notifications/preferences/fcm-token/{deviceId}")
     suspend fun removeFcmToken(@Path("deviceId") deviceId: String)
+
+    // ── Facilities ──────────────────────────────────────────────────
+    @GET("api/v1/facilities")
+    suspend fun getFacilities(
+        @Query("stableId") stableId: String,
+        @Query("status") status: String? = null
+    ): FacilitiesResponseDto
+
+    @GET("api/v1/facilities/{id}")
+    suspend fun getFacility(@Path("id") id: String): FacilityDto
+
+    // ── Facility Reservations ───────────────────────────────────────
+    @GET("api/v1/facility-reservations")
+    suspend fun getFacilityReservations(
+        @Query("stableId") stableId: String? = null,
+        @Query("facilityId") facilityId: String? = null,
+        @Query("userId") userId: String? = null,
+        @Query("startDate") startDate: String? = null,
+        @Query("endDate") endDate: String? = null
+    ): FacilityReservationsResponseDto
+
+    @GET("api/v1/facility-reservations/{id}")
+    suspend fun getFacilityReservation(@Path("id") id: String): FacilityReservationDto
+
+    @POST("api/v1/facility-reservations")
+    suspend fun createFacilityReservation(@Body body: CreateReservationDto): FacilityReservationDto
+
+    @PATCH("api/v1/facility-reservations/{id}")
+    suspend fun updateFacilityReservation(
+        @Path("id") id: String,
+        @Body body: UpdateReservationDto
+    ): FacilityReservationDto
+
+    @POST("api/v1/facility-reservations/{id}/cancel")
+    suspend fun cancelFacilityReservation(@Path("id") id: String)
+
+    @POST("api/v1/facility-reservations/check-conflicts")
+    suspend fun checkReservationConflicts(@Body body: CheckConflictsDto): ConflictsResponseDto
+
+    // ── Feature Requests ──────────────────────────────────────────────
+    @GET("api/v1/feature-requests")
+    suspend fun getFeatureRequests(
+        @Query("status") status: String? = null,
+        @Query("category") category: String? = null,
+        @Query("sort") sort: String = "votes",
+        @Query("mine") mine: String? = null,
+        @Query("cursor") cursor: String? = null,
+        @Query("limit") limit: Int = 20
+    ): FeatureRequestListResponseDto
+
+    @POST("api/v1/feature-requests")
+    suspend fun createFeatureRequest(@Body body: CreateFeatureRequestDto): FeatureRequestDto
+
+    @POST("api/v1/feature-requests/refine")
+    suspend fun refineFeatureRequestText(@Body body: RefineTextRequestDto): RefineTextResponseDto
+
+    @GET("api/v1/feature-requests/{id}")
+    suspend fun getFeatureRequest(@Path("id") id: String): FeatureRequestDetailResponseDto
+
+    @POST("api/v1/feature-requests/{id}/vote")
+    suspend fun toggleFeatureRequestVote(@Path("id") id: String): FeatureRequestVoteResponseDto
+
+    @GET("api/v1/feature-requests/{id}/comments")
+    suspend fun getFeatureRequestComments(
+        @Path("id") id: String,
+        @Query("cursor") cursor: String? = null,
+        @Query("limit") limit: Int = 20
+    ): FeatureRequestCommentsResponseDto
+
+    @POST("api/v1/feature-requests/{id}/comments")
+    suspend fun addFeatureRequestComment(
+        @Path("id") id: String,
+        @Body body: CreateFeatureRequestCommentDto
+    ): FeatureRequestCommentDto
 }

@@ -202,6 +202,123 @@
     <string name="limit_reached">Gränsen har nåtts</string>
     <string name="limit_reached_message">Du har nått maxgränsen för din nuvarande prenumeration. Uppgradera för att lägga till fler.</string>
 
+    <!-- Navigation - Facilities -->
+    <string name="nav_facilities">Anläggningar</string>
+
+    <!-- Facilities -->
+    <string name="facilities_title">Anläggningar</string>
+    <string name="facilities_upcoming">Kommande bokningar</string>
+    <string name="facilities_available">Tillgängliga anläggningar</string>
+    <string name="facilities_no_facilities">Inga anläggningar tillgängliga</string>
+    <string name="facilities_book">Boka tid</string>
+    <string name="facilities_new_booking">Ny bokning</string>
+    <string name="facilities_my_reservations">Mina bokningar</string>
+    <string name="facilities_filter_all">Alla</string>
+    <string name="facilities_quick_book">Snabbbokning</string>
+    <string name="facilities_reservations_today">Dagens bokningar</string>
+    <string name="facility_status_maintenance">Underhåll</string>
+
+    <!-- Facility Detail -->
+    <string name="facility_detail_title">Anläggningsdetaljer</string>
+    <string name="facility_availability">Tillgänglighet</string>
+    <string name="facility_booking_rules">Bokningsregler</string>
+    <string name="facility_min_duration">Min. tid</string>
+    <string name="facility_max_duration">Max. tid</string>
+    <string name="facility_max_horses">Max hästar</string>
+    <string name="facility_available_hours">Öppettider</string>
+
+    <!-- Reservation Form -->
+    <string name="reservation_form_title">Boka anläggning</string>
+    <string name="reservation_form_edit">Redigera bokning</string>
+    <string name="reservation_facility">Anläggning</string>
+    <string name="reservation_date">Datum</string>
+    <string name="reservation_start_time">Starttid</string>
+    <string name="reservation_end_time">Sluttid</string>
+    <string name="reservation_horse">Häst</string>
+    <string name="reservation_notes">Anteckningar</string>
+    <string name="reservation_submit">Boka</string>
+    <string name="reservation_update">Uppdatera</string>
+    <string name="reservation_conflict_warning">Tidskonflikt upptäckt</string>
+    <string name="reservation_booked_by">Bokad av</string>
+
+    <!-- Reservation Status -->
+    <string name="reservation_status_pending">Väntande</string>
+    <string name="reservation_status_confirmed">Bekräftad</string>
+    <string name="reservation_status_cancelled">Avbokad</string>
+    <string name="reservation_status_completed">Slutförd</string>
+    <string name="reservation_status_no_show">Ej inkommen</string>
+    <string name="reservation_status_rejected">Avvisad</string>
+
+    <!-- Reservation Actions -->
+    <string name="reservation_cancel">Avboka</string>
+    <string name="reservation_cancel_confirm">Vill du avboka denna bokning?</string>
+    <string name="reservation_cancel_success">Bokningen har avbokats</string>
+    <string name="reservation_create_success">Bokningen har skapats</string>
+
+    <!-- Facility Types -->
+    <string name="facility_type_indoor_arena">Inomhusridhus</string>
+    <string name="facility_type_outdoor_arena">Utomhusridbana</string>
+    <string name="facility_type_walker">Skrittmaskin</string>
+    <string name="facility_type_solarium">Solarium</string>
+    <string name="facility_type_wash_stall">Tvättspilta</string>
+    <string name="facility_type_paddock">Paddock</string>
+    <string name="facility_type_lunging_ring">Longering</string>
+    <string name="facility_type_treadmill">Löpband</string>
+    <string name="facility_type_water_treadmill">Vattenlöpband</string>
+    <string name="facility_type_galloping_track">Galoppstig</string>
+    <string name="facility_type_jumping_yard">Hoppbana</string>
+    <string name="facility_type_vibration_plate">Vibrationsplatta</string>
+    <string name="facility_type_pasture">Hage</string>
+    <string name="facility_type_transport">Transport</string>
+    <string name="facility_type_other">Övrigt</string>
+
+    <!-- Reservation Tabs -->
+    <string name="reservations_upcoming">Kommande</string>
+    <string name="reservations_past">Tidigare</string>
+    <string name="reservations_no_upcoming">Inga kommande bokningar</string>
+    <string name="reservations_no_past">Inga tidigare bokningar</string>
+
+    <!-- Feature Requests -->
+    <string name="fr_title">Funktionsförslag</string>
+    <string name="fr_detail_title">Förslag</string>
+    <string name="fr_create_title">Nytt förslag</string>
+    <string name="fr_settings_subtitle">Föreslå och rösta på funktioner</string>
+    <string name="fr_empty_title">Inga förslag</string>
+    <string name="fr_empty_message">Var först med att föreslå en förbättring!</string>
+    <string name="fr_load_more">Ladda fler</string>
+    <string name="fr_my_requests">Mina förslag</string>
+    <string name="fr_filter_category">Kategori</string>
+    <string name="fr_vote">Rösta</string>
+    <string name="fr_admin_response">Svar från admin</string>
+    <string name="fr_admin_badge">Admin</string>
+    <string name="fr_comments_title">Kommentarer</string>
+    <string name="fr_no_comments">Inga kommentarer ännu</string>
+    <string name="fr_comment_placeholder">Skriv en kommentar…</string>
+    <string name="fr_comment_send">Skicka</string>
+    <string name="fr_form_title">Titel</string>
+    <string name="fr_form_description">Beskrivning</string>
+    <string name="fr_form_category">Kategori</string>
+    <string name="fr_submit">Skicka</string>
+    <string name="fr_improve_ai">Förbättra med AI</string>
+    <string name="fr_refining">Förbättrar…</string>
+    <string name="fr_revert_original">Återställ original</string>
+    <string name="fr_validation_title_min">Titeln måste vara minst 5 tecken</string>
+    <string name="fr_validation_description_min">Beskrivningen måste vara minst 20 tecken</string>
+    <string name="fr_status_open">Öppen</string>
+    <string name="fr_status_under_review">Under granskning</string>
+    <string name="fr_status_planned">Planerad</string>
+    <string name="fr_status_in_progress">Pågår</string>
+    <string name="fr_status_completed">Klar</string>
+    <string name="fr_status_declined">Avvisad</string>
+    <string name="fr_category_improvement">Förbättring</string>
+    <string name="fr_category_new_feature">Ny funktion</string>
+    <string name="fr_category_integration">Integration</string>
+    <string name="fr_category_bug_fix">Buggfix</string>
+    <string name="fr_category_other">Övrigt</string>
+    <string name="fr_sort_votes">Flest röster</string>
+    <string name="fr_sort_newest">Nyaste</string>
+    <string name="fr_sort_oldest">Äldsta</string>
+
     <!-- Errors -->
     <string name="error_load_horses">Kunde inte ladda hästar</string>
     <string name="error_load_routines">Kunde inte ladda rutiner</string>
@@ -213,5 +330,7 @@
     <string name="error_complete_step">Kunde inte slutföra steg</string>
     <string name="error_skip_step">Kunde inte hoppa över steg</string>
     <string name="error_complete_routine">Kunde inte slutföra rutin</string>
+    <string name="error_load_facilities">Kunde inte ladda anläggningar</string>
+    <string name="error_load_reservations">Kunde inte ladda bokningar</string>
     <string name="error_network">Nätverksfel. Kontrollera din anslutning.</string>
 </resources>

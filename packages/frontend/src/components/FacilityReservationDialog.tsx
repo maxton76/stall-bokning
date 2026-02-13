@@ -26,8 +26,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { queryKeys } from "@/lib/queryClient";
 import type { FacilityReservation } from "@/types/facilityReservation";
 import type { Facility, TimeBlock } from "@/types/facility";
-import { toDate } from "@/utils/timestampUtils";
+import { toDate, roundToMinute } from "@/utils/timestampUtils";
 import { isTimeRangeAvailable } from "@equiduty/shared/utils/facilityAvailability";
+import {
+  getSmartDefaults,
+  saveLastUsedFacilityId,
+  addToBookingHistory,
+} from "@/utils/bookingSmartDefaults";
+import { AvailabilityIndicator } from "@/components/AvailabilityIndicator";
 
 // Schema will be created with useMemo inside component for translations
 type ReservationFormData = {
@@ -38,6 +44,7 @@ type ReservationFormData = {
   horseId: string;
   contactInfo?: string;
   notes?: string;
+  recurringWeekly?: boolean;
 };
 
 interface FacilityReservationDialogProps {
@@ -163,8 +170,15 @@ export function FacilityReservationDialog({
       horseId: "",
       contactInfo: "",
       notes: "",
+      recurringWeekly: false,
     },
     onSubmit: async (data) => {
+      // Save booking history for smart defaults
+      if (!isEditMode && data.facilityId) {
+        const durationMinutes = calculateDuration(data.startTime, data.endTime);
+        addToBookingHistory(data.facilityId, durationMinutes);
+        saveLastUsedFacilityId(data.facilityId);
+      }
       await onSave({ ...data, adminOverride: adminOverride || undefined });
     },
     onSuccess: () => {
@@ -177,6 +191,13 @@ export function FacilityReservationDialog({
       ? t("reservation.messages.updateError")
       : t("reservation.messages.createError"),
   });
+
+  // Helper function to calculate duration in minutes
+  const calculateDuration = (startTime: string, endTime: string): number => {
+    const [startHour = 0, startMin = 0] = startTime.split(":").map(Number);
+    const [endHour = 0, endMin = 0] = endTime.split(":").map(Number);
+    return endHour * 60 + endMin - (startHour * 60 + startMin);
+  };
 
   // Reset form when dialog opens with reservation data or initial values
   useEffect(() => {
@@ -191,6 +212,7 @@ export function FacilityReservationDialog({
         horseId: reservation.horseId || "",
         contactInfo: reservation.contactInfo || "",
         notes: reservation.notes || "",
+        recurringWeekly: false,
       });
     } else if (initialValues) {
       resetForm({
@@ -201,11 +223,25 @@ export function FacilityReservationDialog({
         horseId: "",
         contactInfo: "",
         notes: "",
+        recurringWeekly: false,
       });
     } else {
-      resetForm();
+      // Apply smart defaults when creating new reservation
+      const smartDefaults = getSmartDefaults(facilities, new Date().getHours());
+      const autoHorseId = horses.length === 1 ? horses[0]?.id || "" : "";
+
+      resetForm({
+        facilityId: smartDefaults.facilityId || "",
+        date: new Date(),
+        startTime: smartDefaults.startTime,
+        endTime: smartDefaults.endTime,
+        horseId: autoHorseId,
+        contactInfo: "",
+        notes: "",
+        recurringWeekly: false,
+      });
     }
-  }, [reservation, initialValues, open]);
+  }, [reservation, initialValues, open, facilities, horses]);
 
   // Watch fields for conflict checking
   const facilityId = form.watch("facilityId");
@@ -233,9 +269,13 @@ export function FacilityReservationDialog({
     const endDateTime = new Date(date);
     endDateTime.setHours(endHour, endMin, 0, 0);
 
+    // Ensure exact minute precision (no seconds/milliseconds)
+    const roundedStart = roundToMinute(startDateTime);
+    const roundedEnd = roundToMinute(endDateTime);
+
     return {
-      startDateTime: Timestamp.fromDate(startDateTime),
-      endDateTime: Timestamp.fromDate(endDateTime),
+      startDateTime: Timestamp.fromDate(roundedStart),
+      endDateTime: Timestamp.fromDate(roundedEnd),
     };
   };
 
@@ -321,6 +361,16 @@ export function FacilityReservationDialog({
         required
       />
 
+      {/* Pre-fill indicator for calendar selections */}
+      {initialValues && !isEditMode && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            {t("reservation.messages.timePreFilled")}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Date Picker - Custom implementation */}
       <div className="space-y-2">
         <Label>
@@ -357,21 +407,58 @@ export function FacilityReservationDialog({
       </div>
 
       {/* Time Range */}
-      <div className="grid grid-cols-2 gap-4">
-        <FormInput
-          name="startTime"
-          label={t("reservation.labels.startTime")}
-          form={form}
-          type="time"
-          required
-        />
-        <FormInput
-          name="endTime"
-          label={t("reservation.labels.endTime")}
-          form={form}
-          type="time"
-          required
-        />
+      <div className="space-y-2">
+        <div className="flex items-center justify-between mb-2">
+          <Label className="text-sm font-medium">
+            {t("reservation.labels.startTime")} /{" "}
+            {t("reservation.labels.endTime")}
+          </Label>
+          {startTime && endTime && (
+            <Badge variant="secondary" className="ml-2">
+              {calculateDuration(startTime, endTime)}{" "}
+              {t("common:labels.minutes")}
+            </Badge>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <FormInput
+            name="startTime"
+            label=""
+            form={form}
+            type="time"
+            required
+          />
+          <FormInput name="endTime" label="" form={form} type="time" required />
+        </div>
+
+        {/* Availability Indicator */}
+        {facilityId && date && startTime && endTime && !checkingConflicts && (
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-sm text-muted-foreground">
+              {t("reservation.labels.availability")}:
+            </span>
+            <AvailabilityIndicator
+              status={
+                isClosed
+                  ? "closed"
+                  : conflicts.length > 0
+                    ? "full"
+                    : isOutsideAvailability
+                      ? "limited"
+                      : "available"
+              }
+              size="sm"
+            />
+          </div>
+        )}
+        {checkingConflicts && (
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-sm text-muted-foreground">
+              {t("reservation.labels.availability")}:
+            </span>
+            <AvailabilityIndicator status="checking" size="sm" />
+          </div>
+        )}
       </div>
 
       {/* Available Slots Display */}
@@ -469,6 +556,30 @@ export function FacilityReservationDialog({
         placeholder={t("reservation.placeholders.notes")}
         rows={3}
       />
+
+      {/* Recurring Booking Option - Only for new reservations */}
+      {!isEditMode && (
+        <div className="flex items-center space-x-2 p-3 rounded-md border bg-muted/50">
+          <Checkbox
+            id="recurringWeekly"
+            checked={form.watch("recurringWeekly")}
+            onCheckedChange={(checked) =>
+              form.setValue("recurringWeekly", checked === true)
+            }
+          />
+          <div className="space-y-0.5">
+            <Label
+              htmlFor="recurringWeekly"
+              className="text-sm font-medium cursor-pointer"
+            >
+              {t("reservation.labels.recurringWeekly")}
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              {t("reservation.descriptions.recurringWeekly")}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Delete Section - Only shown in edit mode */}
       {isEditMode && onDelete && (

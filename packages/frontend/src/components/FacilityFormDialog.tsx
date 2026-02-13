@@ -350,6 +350,7 @@ export function FacilityFormDialog({
           label={t("bookingRules.minSlotDuration")}
           form={form}
           options={timeSlotOptions}
+          required
         />
 
         <div className="space-y-2">

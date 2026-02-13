@@ -1,18 +1,25 @@
 package com.equiduty.ui.navigation
 
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import com.equiduty.R
 import com.equiduty.ui.activities.ActivityDetailScreen
 import com.equiduty.ui.activities.ActivityFormScreen
+import com.equiduty.ui.facilities.*
 import com.equiduty.ui.feeding.FeedingScreen
 import com.equiduty.ui.horses.HorseDetailScreen
 import com.equiduty.ui.horses.HorseFormScreen
@@ -20,15 +27,42 @@ import com.equiduty.ui.horses.HorseListScreen
 import com.equiduty.ui.routines.RoutineFlowScreen
 import com.equiduty.ui.routines.RoutineListScreen
 import com.equiduty.ui.notifications.NotificationScreen
+import com.equiduty.ui.featurerequests.*
 import com.equiduty.ui.settings.*
 import com.equiduty.ui.today.TodayScreen
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavGraph(
     onSignOut: () -> Unit,
     navController: NavHostController = rememberNavController()
 ) {
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    // Show settings icon on top-level tab screens
+    val isTopLevelRoute = BottomNavTab.entries.any { it.route == currentRoute }
+
     Scaffold(
+        topBar = {
+            if (isTopLevelRoute) {
+                TopAppBar(
+                    title = { },
+                    actions = {
+                        IconButton(onClick = {
+                            navController.navigate(Route.Settings.route) {
+                                launchSingleTop = true
+                            }
+                        }) {
+                            Icon(
+                                Icons.Default.Settings,
+                                contentDescription = stringResource(R.string.nav_settings)
+                            )
+                        }
+                    }
+                )
+            }
+        },
         bottomBar = { BottomNavBar(navController) }
     ) { padding ->
         NavHost(
@@ -111,7 +145,68 @@ fun AppNavGraph(
                 RoutineFlowScreen(navController = navController)
             }
 
-            // Settings tab
+            // Facilities tab
+            composable(
+                route = Route.Facilities.route,
+                deepLinks = listOf(navDeepLink { uriPattern = "equiduty://facilities" })
+            ) {
+                FacilitiesScreen(navController = navController)
+            }
+
+            composable(
+                route = Route.FacilityDetail.route,
+                arguments = listOf(navArgument("facilityId") { type = NavType.StringType }),
+                deepLinks = listOf(navDeepLink { uriPattern = "equiduty://facilities/{facilityId}" })
+            ) {
+                FacilityDetailScreen(navController = navController)
+            }
+
+            composable(
+                route = Route.ReservationForm.route,
+                arguments = listOf(
+                    navArgument("reservationId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("facilityId") { type = NavType.StringType; nullable = true; defaultValue = null }
+                )
+            ) {
+                ReservationFormScreen(navController = navController)
+            }
+
+            composable(
+                route = Route.ReservationDetail.route,
+                arguments = listOf(navArgument("reservationId") { type = NavType.StringType }),
+                deepLinks = listOf(navDeepLink { uriPattern = "equiduty://facilities/reservation/{reservationId}" })
+            ) {
+                ReservationDetailScreen(navController = navController)
+            }
+
+            composable(
+                route = Route.MyReservations.route,
+                deepLinks = listOf(navDeepLink { uriPattern = "equiduty://facilities/my-reservations" })
+            ) {
+                MyReservationsScreen(navController = navController)
+            }
+
+            // Feature Requests
+            composable(
+                route = Route.FeatureRequests.route,
+                deepLinks = listOf(navDeepLink { uriPattern = "equiduty://feature-requests" })
+            ) {
+                FeatureRequestListScreen(navController = navController)
+            }
+
+            composable(
+                route = Route.FeatureRequestDetail.route,
+                arguments = listOf(navArgument("requestId") { type = NavType.StringType }),
+                deepLinks = listOf(navDeepLink { uriPattern = "equiduty://feature-requests/{requestId}" })
+            ) {
+                FeatureRequestDetailScreen(navController = navController)
+            }
+
+            composable(route = Route.CreateFeatureRequest.route) {
+                CreateFeatureRequestScreen(navController = navController)
+            }
+
+            // Settings (now accessible via top-right gear icon)
             composable(
                 route = Route.Settings.route,
                 deepLinks = listOf(navDeepLink { uriPattern = "equiduty://settings" })

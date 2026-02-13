@@ -12,6 +12,7 @@ enum AppTab: String, CaseIterable {
     case today
     case horses
     case routines
+    case facilities
     case more
 }
 
@@ -43,6 +44,14 @@ enum AppDestination: Hashable {
     case selectionProcessDetail(processId: String)
     case createSelectionProcess(stableId: String, organizationId: String)
 
+    // Facilities
+    case facilityDetail(facilityId: String)
+    case facilityReservationDetail(reservationId: String)
+
+    // Feature Requests
+    case featureRequests
+    case featureRequestDetail(requestId: String)
+
     // Settings
     case settings
     case account
@@ -65,6 +74,7 @@ final class NavigationRouter {
     var todayPath = NavigationPath()
     var horsesPath = NavigationPath()
     var routinesPath = NavigationPath()
+    var facilitiesPath = NavigationPath()
     var morePath = NavigationPath()
 
     private init() {}
@@ -87,8 +97,20 @@ final class NavigationRouter {
         todayPath.append(AppDestination.activityDetail(activityId: activityId))
     }
 
+    func navigateToFacilityDetail(_ facilityId: String) {
+        facilitiesPath.append(AppDestination.facilityDetail(facilityId: facilityId))
+    }
+
     func navigateToAccount() {
         morePath.append(AppDestination.account)
+    }
+
+    func navigateToFeatureRequests() {
+        morePath.append(AppDestination.featureRequests)
+    }
+
+    func navigateToFeatureRequestDetail(_ requestId: String) {
+        morePath.append(AppDestination.featureRequestDetail(requestId: requestId))
     }
 
     // MARK: - Tab Switching
@@ -106,6 +128,8 @@ final class NavigationRouter {
             horsesPath.append(destination)
         case .routines:
             routinesPath.append(destination)
+        case .facilities:
+            facilitiesPath.append(destination)
         case .more:
             morePath.append(destination)
         }
@@ -150,6 +174,22 @@ final class NavigationRouter {
             morePath.append(AppDestination.feeding)
         case "routines":
             switchToTab(.routines)
+        case "facilities":
+            switchToTab(.facilities)
+        case "facility":
+            if let facilityId = pathComponents.first {
+                switchToTab(.facilities)
+                navigateToFacilityDetail(facilityId)
+            }
+        case "feature-requests":
+            switchToTab(.more)
+            navigateToFeatureRequests()
+        case "feature-request":
+            if let requestId = pathComponents.first {
+                switchToTab(.more)
+                navigateToFeatureRequests()
+                navigateToFeatureRequestDetail(requestId)
+            }
         case "settings":
             switchToTab(.more)
             morePath.append(AppDestination.settings)
@@ -165,6 +205,7 @@ final class NavigationRouter {
         todayPath = NavigationPath()
         horsesPath = NavigationPath()
         routinesPath = NavigationPath()
+        facilitiesPath = NavigationPath()
         morePath = NavigationPath()
     }
 
@@ -176,6 +217,8 @@ final class NavigationRouter {
             horsesPath = NavigationPath()
         case .routines:
             routinesPath = NavigationPath()
+        case .facilities:
+            facilitiesPath = NavigationPath()
         case .more:
             morePath = NavigationPath()
         }
@@ -220,6 +263,14 @@ extension View {
                 ActivityDetailByIdView(activityId: activityId)
             case .activityForm(let activityId):
                 ActivityFormView(activityId: activityId)
+            case .facilityDetail(let facilityId):
+                FacilityDetailView(facilityId: facilityId)
+            case .facilityReservationDetail(let reservationId):
+                ReservationDetailView(reservationId: reservationId)
+            case .featureRequests:
+                FeatureRequestListView()
+            case .featureRequestDetail(let requestId):
+                FeatureRequestDetailView(requestId: requestId)
             case .settings:
                 SettingsView()
             case .account:
