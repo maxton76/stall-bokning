@@ -98,7 +98,7 @@ export default function CreateSchedulePage() {
     queryKey: ["routineTemplates", organizationId, stableId],
     queryFn: async () => {
       if (!organizationId) return [];
-      return await getRoutineTemplates(organizationId, stableId, true);
+      return await getRoutineTemplates(organizationId, stableId);
     },
     enabled: !!organizationId,
     staleTime: 5 * 60 * 1000,

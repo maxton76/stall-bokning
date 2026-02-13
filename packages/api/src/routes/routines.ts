@@ -577,12 +577,18 @@ export async function routinesRoutes(fastify: FastifyInstance) {
 
         const snapshot = await dbQuery.orderBy("name", "asc").get();
 
-        const templates = snapshot.docs.map((doc) =>
-          serializeTimestamps({
-            id: doc.id,
-            ...doc.data(),
-          }),
-        );
+        // Filter out deleted templates (those with deletedAt field set)
+        // NOTE: We do this in application code because Firestore treats missing fields
+        // differently from null values, and existing templates don't have deletedAt field
+        const templates = snapshot.docs
+          .map((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+            const data = doc.data();
+            return serializeTimestamps({
+              id: doc.id,
+              ...data,
+            });
+          })
+          .filter((template: any) => !template.deletedAt); // Exclude templates with deletedAt set
 
         return { routineTemplates: templates };
       } catch (error) {
@@ -866,7 +872,7 @@ export async function routinesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const permanent = query.permanent !== "false"; // Default to permanent deletion
+        const permanent = query.permanent === "true"; // Change default to false
 
         if (permanent) {
           // Check for dependencies before permanent deletion
@@ -886,7 +892,7 @@ export async function routinesRoutes(fastify: FastifyInstance) {
             return reply.status(400).send({
               error: "Bad Request",
               message:
-                "Cannot delete template: it is being used by schedules or instances. Disable it instead.",
+                "Cannot permanently delete template: it is being used by schedules or instances.",
               hasSchedules: !schedulesSnapshot.empty,
               hasInstances: !instancesSnapshot.empty,
             });
@@ -897,14 +903,15 @@ export async function routinesRoutes(fastify: FastifyInstance) {
 
           return { success: true, message: "Template permanently deleted" };
         } else {
-          // Soft delete by marking inactive
+          // Soft delete by setting deletedAt timestamp (don't change isActive)
           await db.collection("routineTemplates").doc(id).update({
-            isActive: false,
+            deletedAt: Timestamp.now(),
+            deletedBy: user.uid,
             updatedAt: Timestamp.now(),
             updatedBy: user.uid,
           });
 
-          return { success: true, message: "Template archived" };
+          return { success: true, message: "Template deleted" };
         }
       } catch (error) {
         request.log.error({ error }, "Failed to delete routine template");

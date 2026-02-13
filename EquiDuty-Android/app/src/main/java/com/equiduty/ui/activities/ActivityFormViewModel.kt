@@ -8,6 +8,7 @@ import com.equiduty.data.remote.dto.CreateActivityDto
 import com.equiduty.data.remote.dto.UpdateActivityDto
 import com.equiduty.data.repository.ActivityRepository
 import com.equiduty.data.repository.AuthRepository
+import com.equiduty.ui.utils.DateValidation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,6 +39,11 @@ class ActivityFormViewModel @Inject constructor(
     )
     val duration = mutableStateOf("60")
     val notes = mutableStateOf("")
+    val selectedHorseIds = mutableStateOf<List<String>>(emptyList())
+    val priority = mutableStateOf("normal")
+    val contactName = mutableStateOf("")
+    val contactPhone = mutableStateOf("")
+    val contactEmail = mutableStateOf("")
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -99,7 +105,15 @@ class ActivityFormViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
+
             try {
+                // Validate date before processing
+                if (!DateValidation.isValidDate(date.value)) {
+                    _error.value = "Ogiltigt datum. Använd ÅÅÅÅ-MM-DD"
+                    _isLoading.value = false
+                    return@launch
+                }
+
                 val isoDate = combineDateTimeIso(date.value, scheduledTime.value)
                 if (isEditing) {
                     activityRepository.updateActivity(
@@ -109,6 +123,7 @@ class ActivityFormViewModel @Inject constructor(
                             date = isoDate,
                             scheduledTime = scheduledTime.value.ifBlank { null },
                             duration = duration.value.toIntOrNull(),
+                            horseIds = selectedHorseIds.value.ifEmpty { null },
                             notes = notes.value.ifBlank { null }
                         )
                     )
@@ -121,6 +136,7 @@ class ActivityFormViewModel @Inject constructor(
                             date = isoDate,
                             scheduledTime = scheduledTime.value.ifBlank { null },
                             duration = duration.value.toIntOrNull(),
+                            horseIds = selectedHorseIds.value.ifEmpty { null },
                             notes = notes.value.ifBlank { null }
                         )
                     )

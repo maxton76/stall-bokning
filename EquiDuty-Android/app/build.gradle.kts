@@ -36,6 +36,8 @@ android {
             versionNameSuffix = "-dev"
             buildConfigField("String", "BASE_URL", "\"https://dev-api-service-auky5oec3a-ew.a.run.app\"")
             buildConfigField("String", "ENVIRONMENT", "\"dev\"")
+            // TODO: Create separate OAuth 2.0 client ID in GCP Console for dev environment
+            // For now, using production client ID (update after creating dev-specific client)
             buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"623133738566-sj8s5dbkhhflu7dlu605mguoj02mpa3r.apps.googleusercontent.com\"")
             resValue("string", "app_name", "EquiDuty Dev")
         }
@@ -46,6 +48,8 @@ android {
             versionNameSuffix = "-staging"
             buildConfigField("String", "BASE_URL", "\"https://staging-api-service-auky5oec3a-ew.a.run.app\"")
             buildConfigField("String", "ENVIRONMENT", "\"staging\"")
+            // TODO: Create separate OAuth 2.0 client ID in GCP Console for staging environment
+            // For now, using production client ID (update after creating staging-specific client)
             buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"623133738566-sj8s5dbkhhflu7dlu605mguoj02mpa3r.apps.googleusercontent.com\"")
             resValue("string", "app_name", "EquiDuty Staging")
         }
@@ -54,6 +58,7 @@ android {
             dimension = "environment"
             buildConfigField("String", "BASE_URL", "\"https://prod-api-service-wigho7gnca-ew.a.run.app\"")
             buildConfigField("String", "ENVIRONMENT", "\"prod\"")
+            // Production OAuth 2.0 client ID
             buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"623133738566-sj8s5dbkhhflu7dlu605mguoj02mpa3r.apps.googleusercontent.com\"")
             resValue("string", "app_name", "EquiDuty")
         }

@@ -70,7 +70,7 @@ export default function StableDetailPage() {
 
   const routinesQuery = useApiQuery<RoutineTemplate[]>(
     queryKeys.routines.templates(stableData?.organizationId, stableId),
-    () => getRoutineTemplates(stableData!.organizationId!, stableId!, true),
+    () => getRoutineTemplates(stableData!.organizationId!, stableId),
     {
       enabled: !!stableData?.organizationId && !!stableId,
       staleTime: 5 * 60 * 1000,

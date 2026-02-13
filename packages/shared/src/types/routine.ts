@@ -71,7 +71,9 @@ export interface RoutineTemplate {
   createdBy: string;
   updatedAt: FirestoreTimestamp;
   updatedBy?: string;
-  isActive: boolean;
+  isActive: boolean; // Toggle switch state
+  deletedAt?: FirestoreTimestamp; // Soft delete timestamp
+  deletedBy?: string; // User who soft deleted
 }
 
 /**

@@ -16,16 +16,20 @@ import javax.inject.Inject
 @HiltViewModel
 class HorseDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val horseRepository: HorseRepository
+    private val horseRepository: HorseRepository,
+    private val healthRecordRepository: com.equiduty.data.repository.HealthRecordRepository
 ) : ViewModel() {
 
-    private val horseId: String = savedStateHandle["horseId"] ?: ""
+    val horseId: String = savedStateHandle["horseId"] ?: ""
 
     private val _horse = MutableStateFlow<Horse?>(null)
     val horse: StateFlow<Horse?> = _horse.asStateFlow()
 
     private val _vaccinations = MutableStateFlow<List<VaccinationRecord>>(emptyList())
     val vaccinations: StateFlow<List<VaccinationRecord>> = _vaccinations.asStateFlow()
+
+    private val _healthRecords = MutableStateFlow<List<HealthRecord>>(emptyList())
+    val healthRecords: StateFlow<List<HealthRecord>> = _healthRecords.asStateFlow()
 
     private val _team = MutableStateFlow<HorseTeam?>(null)
     val team: StateFlow<HorseTeam?> = _team.asStateFlow()
@@ -64,6 +68,16 @@ class HorseDetailViewModel @Inject constructor(
                 _vaccinations.value = horseRepository.getVaccinationRecords(horseId)
             } catch (e: Exception) {
                 Timber.w(e, "Failed to load vaccinations")
+            }
+        }
+    }
+
+    fun loadHealthRecords(professionalType: String? = null) {
+        viewModelScope.launch {
+            try {
+                _healthRecords.value = healthRecordRepository.getHealthRecords(horseId, professionalType)
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to load health records")
             }
         }
     }

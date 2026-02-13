@@ -44,6 +44,9 @@ data class HorseDto(
     val externalLocation: String? = null,
     val externalMoveType: String? = null,
     val externalDepartureDate: String? = null,
+    // Photos
+    val coverPhotoUrl: String? = null,
+    val avatarUrl: String? = null,
     // Team is an object with named slots (backend verified)
     val team: HorseTeamDto? = null,
     val createdAt: String = "",
@@ -111,7 +114,19 @@ data class CreateHorseDto(
     val specialInstructions: String? = null,
     val usage: List<String>? = null,
     val dateOfBirth: String? = null,
-    val withersHeight: Int? = null
+    val withersHeight: Int? = null,
+    val horseGroupId: String? = null,
+    val ueln: String? = null,
+    val chipNumber: String? = null,
+    val federationNumber: String? = null,
+    val feiPassNumber: String? = null,
+    val feiExpiryDate: String? = null,
+    val sire: String? = null,
+    val dam: String? = null,
+    val damsire: String? = null,
+    val breeder: String? = null,
+    val studbook: String? = null,
+    val equipment: List<EquipmentItemDto>? = null
 )
 
 @Serializable
@@ -125,7 +140,19 @@ data class UpdateHorseDto(
     val usage: List<String>? = null,
     val dateOfBirth: String? = null,
     val withersHeight: Int? = null,
-    val status: String? = null
+    val status: String? = null,
+    val horseGroupId: String? = null,
+    val ueln: String? = null,
+    val chipNumber: String? = null,
+    val federationNumber: String? = null,
+    val feiPassNumber: String? = null,
+    val feiExpiryDate: String? = null,
+    val sire: String? = null,
+    val dam: String? = null,
+    val damsire: String? = null,
+    val breeder: String? = null,
+    val studbook: String? = null,
+    val equipment: List<EquipmentItemDto>? = null
 )
 
 // ── Vaccination ──────────────────────────────────────────────────
@@ -223,6 +250,23 @@ data class UpdateHorseOwnershipDto(
     val email: String? = null,
     val phone: String? = null,
     val notes: String? = null
+)
+
+// ── Horse Media ──────────────────────────────────────────────────
+
+@Serializable
+data class HorseMediaUploadRequestDto(
+    val horseId: String,
+    val mediaType: String, // "cover" or "avatar"
+    val contentType: String = "image/jpeg"
+)
+
+@Serializable
+data class HorseMediaUploadResponseDto(
+    val uploadUrl: String,
+    val publicUrl: String,
+    val mediaId: String,
+    val expiresAt: String
 )
 
 // ── Horse Activity History ───────────────────────────────────────

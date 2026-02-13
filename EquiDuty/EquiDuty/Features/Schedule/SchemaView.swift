@@ -27,6 +27,19 @@ struct SchemaView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                // Segmented picker for tab switching
+                Picker("", selection: $selectedTab) {
+                    ForEach(SchemaTab.allCases) { tab in
+                        Label(String(localized: String.LocalizationValue(tab.rawValue)),
+                              systemImage: tab.icon)
+                            .tag(tab)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding()
+
+                Divider()
+
                 // Conditional period selector (only for selection tab)
                 if selectedTab == .selection {
                     TodayPeriodSelector(
@@ -41,19 +54,6 @@ struct SchemaView: View {
 
                     Divider()
                 }
-
-                // Segmented picker for tab switching
-                Picker("", selection: $selectedTab) {
-                    ForEach(SchemaTab.allCases) { tab in
-                        Label(String(localized: String.LocalizationValue(tab.rawValue)),
-                              systemImage: tab.icon)
-                            .tag(tab)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding()
-
-                Divider()
 
                 // Tab content
                 TabView(selection: $selectedTab) {

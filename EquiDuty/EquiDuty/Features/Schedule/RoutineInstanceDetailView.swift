@@ -22,7 +22,7 @@ struct RoutineInstanceDetailView: View {
 
     init(instanceId: String) {
         self.instanceId = instanceId
-        _viewModel = State(initialValue: RoutineInstanceDetailViewModel(instanceId: instanceId))
+        _viewModel = State(initialValue: RoutineInstanceDetailViewModel.create(instanceId: instanceId))
     }
 
     var body: some View {

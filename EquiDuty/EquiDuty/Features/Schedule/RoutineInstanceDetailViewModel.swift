@@ -24,11 +24,21 @@ final class RoutineInstanceDetailViewModel {
     private let permissionService: PermissionService
     private let authService: AuthService
 
-    init(
+    // Convenience factory method for default services
+    static func create(instanceId: String) -> RoutineInstanceDetailViewModel {
+        RoutineInstanceDetailViewModel(
+            instanceId: instanceId,
+            routineService: .shared,
+            permissionService: .shared,
+            authService: .shared
+        )
+    }
+
+    nonisolated init(
         instanceId: String,
-        routineService: RoutineService = .shared,
-        permissionService: PermissionService = .shared,
-        authService: AuthService = .shared
+        routineService: RoutineService,
+        permissionService: PermissionService,
+        authService: AuthService
     ) {
         self.instanceId = instanceId
         self.routineService = routineService

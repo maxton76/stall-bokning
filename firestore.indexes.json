@@ -969,6 +969,15 @@
       ]
     },
     {
+      "collectionGroup": "routineTemplates",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "organizationId", "order": "ASCENDING" },
+        { "fieldPath": "deletedAt", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "routineSchedules",
       "queryScope": "COLLECTION",
       "fields": [

@@ -39,6 +39,8 @@ data class Horse(
     val externalLocation: String?,
     val externalMoveType: String?,
     val externalDepartureDate: String?,
+    val coverPhotoUrl: String?,
+    val avatarUrl: String?,
     val team: HorseTeam?,
     val createdAt: String,
     val updatedAt: String,

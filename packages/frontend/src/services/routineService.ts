@@ -30,18 +30,24 @@ interface CreateRoutineInstanceInput {
 export async function getRoutineTemplates(
   organizationId: string,
   stableId?: string,
-  activeOnly: boolean = true,
 ): Promise<RoutineTemplate[]> {
-  const params: Record<string, string> = { organizationId };
-  if (stableId) params.stableId = stableId;
-  if (activeOnly) params.activeOnly = "true";
+  const params: Record<string, string> = {};
 
-  const response = await apiClient.get<{ templates: RoutineTemplate[] }>(
-    "/routines/templates",
+  // Use correct endpoint path
+  const path = `/routines/templates/organization/${organizationId}`;
+
+  if (stableId) {
+    params.stableId = stableId;
+  }
+
+  // API filters by deletedAt automatically, no need to pass isActive
+
+  const response = await apiClient.get<{ routineTemplates: RoutineTemplate[] }>(
+    path,
     params,
   );
 
-  return response.templates;
+  return response.routineTemplates; // Fix response field name
 }
 
 /**

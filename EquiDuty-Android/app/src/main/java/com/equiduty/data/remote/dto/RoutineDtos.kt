@@ -60,6 +60,44 @@ data class RoutineTemplatesResponseDto(
 )
 
 @Serializable
+data class RoutineTemplateResponseDto(
+    val template: RoutineTemplateDto
+)
+
+@Serializable
+data class CreateRoutineTemplateDto(
+    val organizationId: String,
+    val stableId: String? = null,
+    val name: String,
+    val description: String? = null,
+    val type: String = "custom",
+    val icon: String? = null,
+    val color: String? = null,
+    val defaultStartTime: String = "07:00",
+    val estimatedDuration: Int = 60,
+    val steps: List<RoutineStepDto> = emptyList(),
+    val requiresNotesRead: Boolean = false,
+    val allowSkipSteps: Boolean = false,
+    val pointsValue: Int = 1
+)
+
+@Serializable
+data class UpdateRoutineTemplateDto(
+    val name: String? = null,
+    val description: String? = null,
+    val type: String? = null,
+    val icon: String? = null,
+    val color: String? = null,
+    val defaultStartTime: String? = null,
+    val estimatedDuration: Int? = null,
+    val steps: List<RoutineStepDto>? = null,
+    val requiresNotesRead: Boolean? = null,
+    val allowSkipSteps: Boolean? = null,
+    val pointsValue: Int? = null,
+    val isActive: Boolean? = null
+)
+
+@Serializable
 data class HorseStepProgressDto(
     val horseId: String,
     val horseName: String = "",
@@ -235,4 +273,21 @@ data class UpdateStepProgressDto(
     val generalNotes: String? = null,
     val photoUrls: List<String>? = null,
     val horseUpdates: List<HorseStepProgressDto>? = null
+)
+
+@Serializable
+data class AssignRoutineRequestDto(
+    val userId: String
+)
+
+@Serializable
+data class CancelRoutineRequestDto(
+    val reason: String
+)
+
+@Serializable
+data class StepPhotoUploadResponseDto(
+    val uploadUrl: String,
+    val publicUrl: String,
+    val expiresAt: String
 )

@@ -69,6 +69,22 @@ class RoutineRepository @Inject constructor(
         return response.instance.toDomain()
     }
 
+    suspend fun assignInstance(instanceId: String, userId: String): RoutineInstance {
+        val body = AssignRoutineRequestDto(userId = userId)
+        val response = api.assignRoutineInstance(instanceId, body)
+        return response.instance.toDomain()
+    }
+
+    suspend fun cancelInstance(instanceId: String, reason: String): RoutineInstance {
+        val body = CancelRoutineRequestDto(reason = reason)
+        val response = api.cancelRoutineInstance(instanceId, body)
+        return response.instance.toDomain()
+    }
+
+    suspend fun getStepPhotoUploadUrl(instanceId: String, stepId: String): StepPhotoUploadResponseDto {
+        return api.getRoutineStepUploadUrl(instanceId, stepId)
+    }
+
     suspend fun getDailyNotes(stableId: String, date: String): DailyNotes? {
         return try {
             val response = api.getDailyNotes(stableId = stableId, date = date)

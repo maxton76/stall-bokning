@@ -68,6 +68,13 @@ interface EquiDutyApi {
     @DELETE("api/v1/horses/{id}")
     suspend fun deleteHorse(@Path("id") id: String)
 
+    // ── Horse Media ──────────────────────────────────────────────
+    @POST("api/v1/horse-media/upload-url")
+    suspend fun getHorseMediaUploadUrl(@Body body: HorseMediaUploadRequestDto): HorseMediaUploadResponseDto
+
+    @DELETE("api/v1/horse-media/{mediaId}")
+    suspend fun deleteHorseMedia(@Path("mediaId") mediaId: String)
+
     // ── Horse Team ───────────────────────────────────────────────
     @GET("api/v1/horses/{horseId}/team")
     suspend fun getHorseTeam(@Path("horseId") horseId: String): HorseTeamResponseDto
@@ -87,6 +94,28 @@ interface EquiDutyApi {
         @Query("scope") scope: String = "organization",
         @Query("organizationId") organizationId: String
     ): VaccinationRulesResponseDto
+
+    // ── Health Records ───────────────────────────────────────────
+    @GET("api/v1/health-records/horse/{horseId}")
+    suspend fun getHealthRecords(
+        @Path("horseId") horseId: String,
+        @Query("professionalType") professionalType: String? = null
+    ): HealthRecordsResponseDto
+
+    @GET("api/v1/health-records/horse/{horseId}/stats")
+    suspend fun getHealthRecordStats(@Path("horseId") horseId: String): HealthRecordStatsResponseDto
+
+    @GET("api/v1/health-records/horse/{horseId}/upcoming-followups")
+    suspend fun getUpcomingFollowups(@Path("horseId") horseId: String): UpcomingFollowupsResponseDto
+
+    @POST("api/v1/health-records")
+    suspend fun createHealthRecord(@Body body: CreateHealthRecordDto): HealthRecordDto
+
+    @PUT("api/v1/health-records/{id}")
+    suspend fun updateHealthRecord(@Path("id") id: String, @Body body: UpdateHealthRecordDto): HealthRecordDto
+
+    @DELETE("api/v1/health-records/{id}")
+    suspend fun deleteHealthRecord(@Path("id") id: String)
 
     // ── Horse Ownership ──────────────────────────────────────────
     @GET("api/v1/horse-ownership/horse/{horseId}")
@@ -131,6 +160,18 @@ interface EquiDutyApi {
     @GET("api/v1/routines/templates/organization/{orgId}")
     suspend fun getRoutineTemplates(@Path("orgId") orgId: String): RoutineTemplatesResponseDto
 
+    @GET("api/v1/routines/templates/{id}")
+    suspend fun getRoutineTemplate(@Path("id") id: String): RoutineTemplateResponseDto
+
+    @POST("api/v1/routines/templates")
+    suspend fun createRoutineTemplate(@Body body: CreateRoutineTemplateDto): RoutineTemplateResponseDto
+
+    @PUT("api/v1/routines/templates/{id}")
+    suspend fun updateRoutineTemplate(@Path("id") id: String, @Body body: UpdateRoutineTemplateDto): RoutineTemplateResponseDto
+
+    @DELETE("api/v1/routines/templates/{id}")
+    suspend fun deleteRoutineTemplate(@Path("id") id: String)
+
     @GET("api/v1/routines/instances/stable/{stableId}")
     suspend fun getRoutineInstances(
         @Path("stableId") stableId: String,
@@ -155,6 +196,24 @@ interface EquiDutyApi {
 
     @POST("api/v1/routines/instances/{id}/complete")
     suspend fun completeRoutineInstance(@Path("id") id: String): RoutineInstanceResponseDto
+
+    @POST("api/v1/routines/instances/{id}/assign")
+    suspend fun assignRoutineInstance(
+        @Path("id") id: String,
+        @Body body: AssignRoutineRequestDto
+    ): RoutineInstanceResponseDto
+
+    @POST("api/v1/routines/instances/{id}/cancel")
+    suspend fun cancelRoutineInstance(
+        @Path("id") id: String,
+        @Body body: CancelRoutineRequestDto
+    ): RoutineInstanceResponseDto
+
+    @POST("api/v1/routines/instances/{instanceId}/steps/{stepId}/upload-url")
+    suspend fun getRoutineStepUploadUrl(
+        @Path("instanceId") instanceId: String,
+        @Path("stepId") stepId: String
+    ): StepPhotoUploadResponseDto
 
     // ── Daily Notes ──────────────────────────────────────────────
     @GET("api/v1/stables/{stableId}/daily-notes/{date}")
