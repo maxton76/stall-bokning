@@ -142,19 +142,19 @@ final class RoutineService: RoutineServiceProtocol {
     // MARK: - Template CRUD
 
     func createRoutineTemplate(template: RoutineTemplateCreate) async throws -> RoutineTemplate {
-        let response: RoutineTemplateResponse = try await apiClient.post(
+        let response: RoutineTemplate = try await apiClient.post(
             "/routines/templates",
             body: template
         )
-        return response.template
+        return response
     }
 
     func updateRoutineTemplate(templateId: String, updates: RoutineTemplateUpdate) async throws -> RoutineTemplate {
-        let response: RoutineTemplateResponse = try await apiClient.put(
+        let response: RoutineTemplate = try await apiClient.put(
             APIEndpoints.routineTemplate(templateId),
             body: updates
         )
-        return response.template
+        return response
     }
 
     func deleteRoutineTemplate(templateId: String) async throws {
@@ -194,19 +194,19 @@ final class RoutineService: RoutineServiceProtocol {
     }
 
     func createRoutineSchedule(schedule: RoutineScheduleCreate) async throws -> RoutineSchedule {
-        let response: RoutineScheduleResponse = try await apiClient.post(
+        let response: RoutineSchedule = try await apiClient.post(
             "/routine-schedules",
             body: schedule
         )
-        return response.schedule
+        return response
     }
 
     func updateRoutineSchedule(scheduleId: String, updates: RoutineScheduleUpdate) async throws -> RoutineSchedule {
-        let response: RoutineScheduleResponse = try await apiClient.put(
+        let response: RoutineSchedule = try await apiClient.put(
             "/routine-schedules/\(scheduleId)",
             body: updates
         )
-        return response.schedule
+        return response
     }
 
     func deleteRoutineSchedule(scheduleId: String) async throws {
@@ -230,6 +230,35 @@ final class RoutineService: RoutineServiceProtocol {
         let _: EmptyResponse = try await apiClient.post(
             "/routine-schedules/\(scheduleId)/publish",
             body: PublishRequest(startDate: startDate, endDate: endDate)
+        )
+    }
+
+    // MARK: - Instance Management
+
+    func assignRoutineInstance(
+        instanceId: String,
+        assignedTo: String,
+        assignedToName: String
+    ) async throws -> RoutineInstance {
+        let body = AssignInstanceRequest(assignedTo: assignedTo, assignedToName: assignedToName)
+        let response: RoutineInstance = try await apiClient.post(
+            APIEndpoints.routineInstanceAssign(instanceId),
+            body: body
+        )
+        return response
+    }
+
+    func cancelRoutineInstance(instanceId: String) async throws -> RoutineInstance {
+        let response: RoutineInstance = try await apiClient.post(
+            APIEndpoints.routineInstanceCancel(instanceId),
+            body: EmptyRequest()
+        )
+        return response
+    }
+
+    func deleteRoutineInstance(instanceId: String) async throws {
+        let _: EmptyResponse = try await apiClient.delete(
+            APIEndpoints.routineInstance(instanceId)
         )
     }
 }
@@ -256,6 +285,11 @@ private struct CompleteRoutineRequest: Encodable {
 
 private struct DuplicateTemplateRequest: Encodable {
     let name: String
+}
+
+private struct AssignInstanceRequest: Encodable {
+    let assignedTo: String
+    let assignedToName: String
 }
 
 // MARK: - Response Types

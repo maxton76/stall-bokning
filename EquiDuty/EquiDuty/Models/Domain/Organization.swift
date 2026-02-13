@@ -81,8 +81,14 @@ struct OrganizationMember: Codable, Identifiable, Equatable {
     var userEmail: String?
     var firstName: String?
     var lastName: String?
-    var role: StableMemberRole
+    var phoneNumber: String?
+    var roles: [String]  // Organization roles (array)
+    var primaryRole: String?
+    var role: StableMemberRole?  // Legacy field, optional
     var status: MembershipStatus
+    var showInPlanning: Bool?
+    var stableAccess: String?  // "all", "specific", etc.
+    var assignedStableIds: [String]?
     let joinedAt: Date
     var invitedBy: String?
     var inviteAcceptedAt: Date?
@@ -90,6 +96,10 @@ struct OrganizationMember: Codable, Identifiable, Equatable {
     var fullName: String? {
         guard let first = firstName, let last = lastName else { return nil }
         return "\(first) \(last)"
+    }
+
+    var displayName: String {
+        fullName ?? userEmail ?? "Unknown"
     }
 }
 

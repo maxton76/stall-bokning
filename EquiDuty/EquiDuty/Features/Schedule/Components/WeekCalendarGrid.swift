@@ -1,115 +1,118 @@
 import SwiftUI
 
-/// 7-column grid showing week days with routine instances
+/// 7-column grid showing week days with rich routine cards
 struct WeekCalendarGrid: View {
     let startDate: Date
     let endDate: Date
     let routines: [RoutineInstance]
+    var onRoutineTap: ((RoutineInstance) -> Void)?
 
     private var days: [Date] {
-        // Generate 7 days from startDate
-        let generatedDays = (0..<7).compactMap { offset in
+        (0..<7).compactMap { offset in
             Calendar.current.date(byAdding: .day, value: offset, to: startDate)
         }
-
-        // Ensure we always have 7 days
-        assert(generatedDays.count == 7, "Week grid must have exactly 7 days, got \(generatedDays.count)")
-
-        return generatedDays
     }
 
     var body: some View {
         ScrollView {
-            LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 7),
-                spacing: 8
-            ) {
+            HStack(alignment: .top, spacing: 4) {
                 ForEach(days, id: \.self) { day in
-                    DayCell(
+                    WeekDayColumn(
                         date: day,
                         routines: routines.filter { routine in
-                            // Validate routine has valid scheduled date
                             guard let year = Calendar.current.dateComponents([.year], from: routine.scheduledDate).year,
                                   year > 1990 && year < 2100 else {
                                 return false
                             }
                             return Calendar.current.isDate(routine.scheduledDate, inSameDayAs: day)
-                        }
+                        },
+                        onRoutineTap: onRoutineTap
                     )
                 }
             }
-            .padding()
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
         }
     }
 }
 
-/// Individual day cell in the week grid
-struct DayCell: View {
+/// Single day column in the week grid
+private struct WeekDayColumn: View {
     let date: Date
     let routines: [RoutineInstance]
+    var onRoutineTap: ((RoutineInstance) -> Void)?
 
-    // Static formatters to avoid recreating on every render
     private static let dayFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEE"
-        return formatter
+        let f = DateFormatter()
+        f.dateFormat = "EEE"
+        return f
     }()
 
     private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d"
-        return formatter
+        let f = DateFormatter()
+        f.dateFormat = "d"
+        return f
     }()
 
     private var isToday: Bool {
         Calendar.current.isDateInToday(date)
     }
 
+    private var sortedRoutines: [RoutineInstance] {
+        routines.sorted { $0.scheduledStartTime < $1.scheduledStartTime }
+    }
+
     var body: some View {
-        VStack(alignment: .center, spacing: 4) {
-            // Weekday abbreviation (Mon, Tue, etc.)
-            Text(Self.dayFormatter.string(from: date))
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
+        VStack(spacing: 4) {
+            // Day header
+            VStack(spacing: 1) {
+                Text(Self.dayFormatter.string(from: date))
+                    .font(.system(size: 9))
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
 
-            // Day number
-            Text(Self.dateFormatter.string(from: date))
-                .font(.caption)
-                .fontWeight(isToday ? .bold : .regular)
-                .foregroundStyle(isToday ? .blue : .primary)
+                Text(Self.dateFormatter.string(from: date))
+                    .font(.caption)
+                    .fontWeight(isToday ? .bold : .regular)
+                    .foregroundStyle(isToday ? .white : .primary)
+                    .frame(width: 24, height: 24)
+                    .background(
+                        Circle()
+                            .fill(isToday ? Color.accentColor : Color.clear)
+                    )
+            }
+            .padding(.bottom, 2)
 
-            Spacer()
-
-            // Routine count or placeholder
+            // Routine cards
             if routines.isEmpty {
                 Text("—")
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, minHeight: 40)
             } else {
-                VStack(spacing: 2) {
-                    Text("\(routines.count)")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.blue)
-
-                    Text(routines.count == 1 ? "routine" : "routines")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                VStack(spacing: 3) {
+                    ForEach(sortedRoutines) { routine in
+                        Button {
+                            onRoutineTap?(routine)
+                        } label: {
+                            RoutineCardView(routine: routine)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
             }
 
-            Spacer()
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, minHeight: 80)
-        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(isToday ? Color.blue.opacity(0.1) : Color(.systemBackground))
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(isToday ? Color.accentColor.opacity(0.06) : Color(.systemBackground))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(isToday ? Color.blue : Color.clear, lineWidth: 2)
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .stroke(isToday ? Color.accentColor.opacity(0.4) : Color(.separator).opacity(0.3), lineWidth: isToday ? 1.5 : 0.5)
         )
     }
 }
@@ -119,160 +122,38 @@ struct DayCell: View {
     let startOfWeek = interval?.start ?? Date()
     let endOfWeek = interval?.start.addingTimeInterval(6 * 24 * 3600) ?? Date()
 
-    // Mock routines for preview
     let mockRoutines: [RoutineInstance] = [
         RoutineInstance(
-            id: "1",
-            templateId: "template1",
-            templateName: "Morning Feeding",
-            organizationId: "org1",
-            stableId: "stable1",
-            stableName: "Main Stable",
-            template: nil,
-            scheduledDate: startOfWeek,
-            scheduledStartTime: "08:00",
-            estimatedDuration: 60,
-            assignedTo: nil,
-            assignedToName: nil,
-            assignmentType: .unassigned,
-            assignedAt: nil,
-            assignedBy: nil,
-            status: .scheduled,
-            startedAt: nil,
-            startedBy: nil,
-            startedByName: nil,
-            completedAt: nil,
-            completedBy: nil,
-            completedByName: nil,
-            cancelledAt: nil,
-            cancelledBy: nil,
-            cancellationReason: nil,
-            currentStepId: nil,
-            currentStepOrder: nil,
-            progress: RoutineProgress(
-                stepsCompleted: 0,
-                stepsTotal: 5,
-                percentComplete: 0,
-                stepProgress: [:]
-            ),
-            pointsValue: 10,
-            pointsAwarded: nil,
-            isHolidayShift: nil,
-            dailyNotesAcknowledged: false,
-            dailyNotesAcknowledgedAt: nil,
-            notes: nil,
-            createdAt: Date(),
-            createdBy: "system",
-            updatedAt: Date(),
-            updatedBy: nil
+            id: "1", templateId: "t1", templateName: "Morgonrutin",
+            organizationId: "o1", stableId: "s1",
+            scheduledDate: startOfWeek, scheduledStartTime: "07:00",
+            estimatedDuration: 60, assignedTo: "u1", assignedToName: "Anna",
+            assignmentType: .manual, status: .scheduled,
+            progress: RoutineProgress(stepsCompleted: 0, stepsTotal: 5, percentComplete: 0, stepProgress: [:]),
+            pointsValue: 10, dailyNotesAcknowledged: false,
+            createdAt: Date(), createdBy: "sys", updatedAt: Date()
         ),
         RoutineInstance(
-            id: "2",
-            templateId: "template2",
-            templateName: "Evening Feeding",
-            organizationId: "org1",
-            stableId: "stable1",
-            stableName: "Main Stable",
-            template: nil,
-            scheduledDate: startOfWeek,
-            scheduledStartTime: "18:00",
-            estimatedDuration: 60,
-            assignedTo: nil,
-            assignedToName: nil,
-            assignmentType: .unassigned,
-            assignedAt: nil,
-            assignedBy: nil,
-            status: .scheduled,
-            startedAt: nil,
-            startedBy: nil,
-            startedByName: nil,
-            completedAt: nil,
-            completedBy: nil,
-            completedByName: nil,
-            cancelledAt: nil,
-            cancelledBy: nil,
-            cancellationReason: nil,
-            currentStepId: nil,
-            currentStepOrder: nil,
-            progress: RoutineProgress(
-                stepsCompleted: 0,
-                stepsTotal: 5,
-                percentComplete: 0,
-                stepProgress: [:]
-            ),
-            pointsValue: 10,
-            pointsAwarded: nil,
-            isHolidayShift: nil,
-            dailyNotesAcknowledged: false,
-            dailyNotesAcknowledgedAt: nil,
-            notes: nil,
-            createdAt: Date(),
-            createdBy: "system",
-            updatedAt: Date(),
-            updatedBy: nil
+            id: "2", templateId: "t2", templateName: "Kvällsrutin",
+            organizationId: "o1", stableId: "s1",
+            scheduledDate: startOfWeek, scheduledStartTime: "18:00",
+            estimatedDuration: 45, assignmentType: .unassigned, status: .inProgress,
+            progress: RoutineProgress(stepsCompleted: 2, stepsTotal: 4, percentComplete: 50, stepProgress: [:]),
+            pointsValue: 8, dailyNotesAcknowledged: false,
+            createdAt: Date(), createdBy: "sys", updatedAt: Date()
         ),
         RoutineInstance(
-            id: "3",
-            templateId: "template3",
-            templateName: "Stable Cleaning",
-            organizationId: "org1",
-            stableId: "stable1",
-            stableName: "Main Stable",
-            template: nil,
+            id: "3", templateId: "t3", templateName: "Städning",
+            organizationId: "o1", stableId: "s1",
             scheduledDate: Calendar.current.date(byAdding: .day, value: 2, to: startOfWeek) ?? startOfWeek,
             scheduledStartTime: "10:00",
-            estimatedDuration: 90,
-            assignedTo: nil,
-            assignedToName: nil,
-            assignmentType: .unassigned,
-            assignedAt: nil,
-            assignedBy: nil,
-            status: .scheduled,
-            startedAt: nil,
-            startedBy: nil,
-            startedByName: nil,
-            completedAt: nil,
-            completedBy: nil,
-            completedByName: nil,
-            cancelledAt: nil,
-            cancelledBy: nil,
-            cancellationReason: nil,
-            currentStepId: nil,
-            currentStepOrder: nil,
-            progress: RoutineProgress(
-                stepsCompleted: 0,
-                stepsTotal: 5,
-                percentComplete: 0,
-                stepProgress: [:]
-            ),
-            pointsValue: 15,
-            pointsAwarded: nil,
-            isHolidayShift: nil,
-            dailyNotesAcknowledged: false,
-            dailyNotesAcknowledgedAt: nil,
-            notes: nil,
-            createdAt: Date(),
-            createdBy: "system",
-            updatedAt: Date(),
-            updatedBy: nil
+            estimatedDuration: 90, assignedTo: "u2", assignedToName: "Erik",
+            assignmentType: .manual, status: .completed,
+            progress: RoutineProgress(stepsCompleted: 5, stepsTotal: 5, percentComplete: 100, stepProgress: [:]),
+            pointsValue: 15, dailyNotesAcknowledged: false,
+            createdAt: Date(), createdBy: "sys", updatedAt: Date()
         )
     ]
 
-    WeekCalendarGrid(
-        startDate: startOfWeek,
-        endDate: endOfWeek,
-        routines: mockRoutines
-    )
-}
-
-#Preview("Week Grid Empty") {
-    let interval = Calendar.current.dateInterval(of: .weekOfYear, for: Date())
-    let startOfWeek = interval?.start ?? Date()
-    let endOfWeek = interval?.start.addingTimeInterval(6 * 24 * 3600) ?? Date()
-
-    WeekCalendarGrid(
-        startDate: startOfWeek,
-        endDate: endOfWeek,
-        routines: []
-    )
+    WeekCalendarGrid(startDate: startOfWeek, endDate: endOfWeek, routines: mockRoutines)
 }

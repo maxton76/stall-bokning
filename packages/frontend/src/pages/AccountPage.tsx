@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserIcon, Mail, Calendar, Settings } from "lucide-react";
+import { UserIcon, Mail, Calendar, Settings, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getUserOrganizations } from "@/services/organizationService";
 import LinkedAccountsCard from "@/components/account/LinkedAccountsCard";
@@ -229,6 +229,38 @@ export default function AccountPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Legal */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("legal.title")}</CardTitle>
+          <CardDescription>{t("legal.description")}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <a
+            href="https://equiduty.se/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between rounded-md p-2 hover:bg-muted transition-colors"
+          >
+            <span className="text-sm font-medium">
+              {t("legal.privacyPolicy")}
+            </span>
+            <ExternalLink className="h-4 w-4 text-muted-foreground" />
+          </a>
+          <a
+            href="https://equiduty.se/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between rounded-md p-2 hover:bg-muted transition-colors"
+          >
+            <span className="text-sm font-medium">
+              {t("legal.termsOfService")}
+            </span>
+            <ExternalLink className="h-4 w-4 text-muted-foreground" />
+          </a>
+        </CardContent>
+      </Card>
 
       {/* Danger Zone */}
       <Card className="border-destructive">

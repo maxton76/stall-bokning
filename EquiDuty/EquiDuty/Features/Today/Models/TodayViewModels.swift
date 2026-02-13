@@ -11,7 +11,6 @@ import Foundation
 
 /// Period type for date navigation
 enum TodayPeriodType: String, CaseIterable, Identifiable {
-    case day
     case week
     case month
 
@@ -19,7 +18,6 @@ enum TodayPeriodType: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .day: return String(localized: "today.period.day")
         case .week: return String(localized: "today.period.week")
         case .month: return String(localized: "today.period.month")
         }
@@ -27,7 +25,6 @@ enum TodayPeriodType: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .day: return "calendar.day.timeline.leading"
         case .week: return "calendar.badge.clock"
         case .month: return "calendar"
         }

@@ -38,8 +38,6 @@ private extension TodayPeriodType {
     /// SF Symbol icon for each period type
     var iconName: String? {
         switch self {
-        case .day:
-            return "sun.max"
         case .week:
             return "calendar.day.timeline.left"
         case .month:
@@ -49,7 +47,7 @@ private extension TodayPeriodType {
 }
 
 #Preview("Light Mode") {
-    TodayPeriodSelector(selectedPeriod: .constant(.day)) {
+    TodayPeriodSelector(selectedPeriod: .constant(.week)) {
         print("Period changed")
     }
     .padding()
@@ -57,7 +55,7 @@ private extension TodayPeriodType {
 }
 
 #Preview("Dark Mode") {
-    TodayPeriodSelector(selectedPeriod: .constant(.week)) {
+    TodayPeriodSelector(selectedPeriod: .constant(.month)) {
         print("Period changed")
     }
     .padding()
@@ -67,7 +65,6 @@ private extension TodayPeriodType {
 
 #Preview("In Context") {
     VStack(spacing: 20) {
-        TodayPeriodSelector(selectedPeriod: .constant(.day)) {}
         TodayPeriodSelector(selectedPeriod: .constant(.week)) {}
         TodayPeriodSelector(selectedPeriod: .constant(.month)) {}
     }

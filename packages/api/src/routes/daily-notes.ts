@@ -21,6 +21,9 @@ import type {
   HorseDailyNote,
   DailyAlert,
   UpdateDailyNotesInput,
+  NotePriority,
+  DailyNoteCategory,
+  RoutineType,
 } from "@equiduty/shared";
 
 export async function dailyNotesRoutes(fastify: FastifyInstance) {
@@ -737,15 +740,15 @@ export async function dailyNotesRoutes(fastify: FastifyInstance) {
             horseId: input.horseId,
             horseName,
             note: input.note,
-            priority: input.priority,
-            category: input.category,
+            priority: input.priority as NotePriority,
+            category: input.category as DailyNoteCategory | undefined,
             createdAt: now,
             createdBy: user.uid,
             createdByName: userName,
             rangeGroupId,
             startDate: input.startDate,
             endDate,
-            routineType: input.routineType || "all",
+            routineType: (input.routineType || "all") as RoutineType | "all",
             isOwnerNote: true,
           };
 

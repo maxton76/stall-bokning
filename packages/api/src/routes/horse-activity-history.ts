@@ -192,6 +192,22 @@ export async function horseActivityHistoryRoutes(fastify: FastifyInstance) {
           cursor,
         });
 
+        // Debug logging: Check photo URLs in response
+        request.log.info({
+          msg: `[PHOTO DEBUG] Returning ${result.activities.length} history entries`,
+        });
+        result.activities.forEach(
+          (act: HorseActivityHistoryEntry, idx: number) => {
+            request.log.info({
+              msg: `[PHOTO DEBUG] Entry ${idx}`,
+              id: act.id,
+              category: act.category,
+              photoUrls: act.photoUrls,
+              photoCount: act.photoUrls?.length || 0,
+            });
+          },
+        );
+
         return {
           activities: result.activities.map((a: HorseActivityHistoryEntry) =>
             serializeTimestamps(a),

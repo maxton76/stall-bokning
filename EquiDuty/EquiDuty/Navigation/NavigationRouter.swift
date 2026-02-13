@@ -39,6 +39,10 @@ enum AppDestination: Hashable {
     case activityDetail(activityId: String)
     case activityForm(activityId: String?)
 
+    // Selection Processes
+    case selectionProcessDetail(processId: String)
+    case createSelectionProcess(stableId: String, organizationId: String)
+
     // Settings
     case settings
     case account
@@ -196,12 +200,16 @@ extension View {
                 RoutineDetailView(templateId: templateId)
             case .routineTemplates:
                 SchemaView() // Opens Schema view (tab will need to switch to templates)
-            case .routineTemplate(let id):
+            case .routineTemplate(_):
                 SchemaView() // Opens Schema view with specific template
             case .routineSchedules:
                 SchemaView() // Opens Schema view (tab will need to switch to schedules)
-            case .routineSchedule(let id):
+            case .routineSchedule(_):
                 SchemaView() // Opens Schema view with specific schedule
+            case .selectionProcessDetail(let processId):
+                SelectionProcessDetailView(processId: processId)
+            case .createSelectionProcess(let stableId, let organizationId):
+                CreateSelectionProcessView(stableId: stableId, organizationId: organizationId) {}
             case .feeding:
                 FeedingTodayView()
             case .feedingSchedule(let stableId):

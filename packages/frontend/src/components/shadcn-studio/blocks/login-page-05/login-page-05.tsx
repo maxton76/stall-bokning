@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -21,10 +21,18 @@ import LoginForm from "@/components/shadcn-studio/blocks/login-page-05/login-for
 
 const Login = () => {
   const { t } = useTranslation("auth");
-  const { signInWithGoogle } = useAuth();
+  const { user, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  // Redirect authenticated users away from login page
+  if (user) {
+    if (user.providerType === "password" && !user.emailVerified) {
+      return <Navigate to="/verify-email" replace />;
+    }
+    return <Navigate to="/horses" replace />;
+  }
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);

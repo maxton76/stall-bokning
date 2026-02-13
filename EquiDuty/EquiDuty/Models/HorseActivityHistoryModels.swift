@@ -50,27 +50,27 @@ struct HorseActivityHistoryEntry: Codable, Identifiable, Equatable {
     // Query keys
     let horseId: String
     let routineInstanceId: String
-    let routineStepId: String
-    let organizationId: String
-    let stableId: String
+    let routineStepId: String?  // Optional - may not be present for all activity types
+    let organizationId: String?  // Optional - may not be present in all responses
+    let stableId: String?  // Optional - may not be present in all responses
 
     // Denormalized (snapshot at execution time)
-    var horseName: String
+    var horseName: String?
     var stableName: String?
 
     // Routine context
-    var routineTemplateName: String
-    var routineType: RoutineType
-    var stepName: String
+    var routineTemplateName: String?
+    var routineType: RoutineType?
+    var stepName: String?
     var category: RoutineCategory
-    var stepOrder: Int
+    var stepOrder: Int?
 
     // Execution
-    var executionStatus: ExecutionStatus
-    var executedAt: Date
-    var executedBy: String
+    var executionStatus: ExecutionStatus?
+    var executedAt: Date?
+    var executedBy: String?
     var executedByName: String?
-    var scheduledDate: Date
+    var scheduledDate: Date?
 
     // Skip details
     var skipReason: String?
@@ -84,8 +84,8 @@ struct HorseActivityHistoryEntry: Codable, Identifiable, Equatable {
     var horseContextSnapshot: HorseContextSnapshot?
 
     // Metadata
-    let createdAt: Date
-    let updatedAt: Date
+    let createdAt: Date?
+    let updatedAt: Date?
     var version: Int?
 }
 

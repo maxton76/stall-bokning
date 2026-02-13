@@ -61,6 +61,12 @@
       "unlinked": "{{provider}}-konto bortkopplat"
     }
   },
+  "legal": {
+    "title": "Juridiskt",
+    "description": "Integritetspolicy och användarvillkor",
+    "privacyPolicy": "Integritetspolicy",
+    "termsOfService": "Användarvillkor"
+  },
   "danger": {
     "title": "Riskzon",
     "description": "Oåterkalleliga åtgärder",

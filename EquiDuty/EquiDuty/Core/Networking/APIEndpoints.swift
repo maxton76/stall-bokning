@@ -11,6 +11,7 @@ import Foundation
 enum APIEndpoints {
     // MARK: - Auth
     static let authMe = "/auth/me"
+    static let authSignup = "/auth/signup"
 
     // MARK: - Users
     static let usersMe = "/auth/me"  // Alias for backwards compatibility
@@ -31,8 +32,8 @@ enum APIEndpoints {
     static func stable(_ orgId: String, stableId: String) -> String {
         "/organizations/\(orgId)/stables/\(stableId)"
     }
-    static func stableMembers(_ orgId: String, stableId: String) -> String {
-        "/organizations/\(orgId)/stables/\(stableId)/members"
+    static func stableMembers(_ stableId: String) -> String {
+        "/stables/\(stableId)/members?includeUserDetails=true"
     }
 
     // MARK: - Horses
@@ -111,6 +112,12 @@ enum APIEndpoints {
     static func routineInstanceComplete(_ instanceId: String) -> String {
         "/routines/instances/\(instanceId)/complete"
     }
+    static func routineInstanceAssign(_ instanceId: String) -> String {
+        "/routines/instances/\(instanceId)/assign"
+    }
+    static func routineInstanceCancel(_ instanceId: String) -> String {
+        "/routines/instances/\(instanceId)/cancel"
+    }
     static func routineStepUploadUrl(_ instanceId: String, stepId: String) -> String {
         "/routines/instances/\(instanceId)/steps/\(stepId)/upload-url"
     }
@@ -173,6 +180,15 @@ enum APIEndpoints {
 
     // MARK: - Subscriptions
     static let tierDefinitions = "/tiers"
+
+    // MARK: - Selection Processes
+    static let selectionProcesses = "/selection-processes"
+    static func selectionProcess(_ id: String) -> String { "/selection-processes/\(id)" }
+    static func selectionProcessStart(_ id: String) -> String { "/selection-processes/\(id)/start" }
+    static func selectionProcessCompleteTurn(_ id: String) -> String { "/selection-processes/\(id)/complete-turn" }
+    static func selectionProcessCancel(_ id: String) -> String { "/selection-processes/\(id)/cancel" }
+    static func selectionProcessDates(_ id: String) -> String { "/selection-processes/\(id)/dates" }
+    static let selectionProcessComputeOrder = "/selection-processes/compute-order"
 
     // MARK: - Notifications
     static let notifications = "/notifications"

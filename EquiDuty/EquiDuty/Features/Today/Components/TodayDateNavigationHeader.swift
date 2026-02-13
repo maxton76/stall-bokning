@@ -123,24 +123,12 @@ struct TodayDateNavigationHeader: View {
 
     private var todayButtonLabel: String {
         switch periodType {
-        case .day:
-            return String(localized: "today.navigation.goToToday")
         case .week:
             return String(localized: "today.navigation.goToThisWeek")
         case .month:
             return String(localized: "today.navigation.goToThisMonth")
         }
     }
-}
-
-#Preview("Day View") {
-    TodayDateNavigationHeader(
-        selectedDate: .constant(Date()),
-        periodType: .constant(.day),
-        onDateChanged: {},
-        onPeriodChanged: {}
-    )
-    .padding()
 }
 
 #Preview("Week View") {

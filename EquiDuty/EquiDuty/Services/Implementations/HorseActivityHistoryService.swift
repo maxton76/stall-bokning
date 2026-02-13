@@ -67,6 +67,13 @@ final class HorseActivityHistoryService {
             params: params
         )
 
+        #if DEBUG
+        print("[PHOTO DEBUG] Received \(response.activities.count) activities")
+        response.activities.forEach { activity in
+            print("[PHOTO DEBUG] Activity \(activity.id): photoUrls=\(activity.photoUrls?.count ?? 0)")
+        }
+        #endif
+
         // If we have multiple categories to filter, do it client-side
         if let categories = categories, categories.count > 1 {
             let filteredActivities = response.activities.filter { activity in

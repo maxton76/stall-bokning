@@ -186,9 +186,13 @@ struct RoutineScheduleFormView: View {
 
     private func save() async {
         isSaving = true
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        let timeString = formatter.string(from: startTime)
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "HH:mm"
+        let timeString = timeFormatter.string(from: startTime)
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
 
         do {
             guard let stableId = authService.selectedStable?.id,
@@ -197,6 +201,12 @@ struct RoutineScheduleFormView: View {
             // Convert Set<Int> to sorted [Int] for API
             let repeatDaysArray = repeatPattern == .custom ? Array(repeatDays).sorted() : nil
 
+            // Format dates as YYYY-MM-DD strings
+            let startDateString = dateFormatter.string(from: startDate)
+            // endDate is required by backend; default to 3 months from start if not set
+            let effectiveEndDate = hasEndDate ? endDate : Calendar.current.date(byAdding: .month, value: 3, to: startDate) ?? startDate
+            let endDateString = dateFormatter.string(from: effectiveEndDate)
+
             switch mode {
             case .create:
                 let create = RoutineScheduleCreate(
@@ -204,8 +214,8 @@ struct RoutineScheduleFormView: View {
                     stableId: stableId,
                     templateId: selectedTemplateId,
                     name: nil,
-                    startDate: startDate,
-                    endDate: hasEndDate ? endDate : nil,
+                    startDate: startDateString,
+                    endDate: endDateString,
                     repeatPattern: repeatPattern.rawValue,
                     repeatDays: repeatDaysArray,
                     includeHolidays: includeHolidays,
@@ -220,8 +230,8 @@ struct RoutineScheduleFormView: View {
             case .edit(let existing):
                 let update = RoutineScheduleUpdate(
                     name: nil,
-                    startDate: startDate,
-                    endDate: hasEndDate ? endDate : nil,
+                    startDate: startDateString,
+                    endDate: endDateString,
                     repeatPattern: repeatPattern.rawValue,
                     repeatDays: repeatDaysArray,
                     includeHolidays: includeHolidays,

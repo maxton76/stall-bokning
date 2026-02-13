@@ -46,13 +46,6 @@ struct TodayActivityList: View {
                 groupBy: groupBy,
                 onActivityTap: onActivityTap
             )
-        } else if periodType == .day {
-            // Temporal sections for day view
-            TemporalActivityList(
-                activities: activities,
-                referenceDate: referenceDate,
-                onActivityTap: onActivityTap
-            )
         } else {
             // Simple list for week/month view with no grouping
             SimpleActivityList(activities: activities, onActivityTap: onActivityTap)
@@ -85,6 +78,7 @@ struct TemporalActivityList: View {
                     activities: sections.overdue,
                     icon: "exclamationmark.triangle.fill",
                     color: .red,
+                    isToday: false,
                     onActivityTap: onActivityTap
                 )
             }
@@ -96,6 +90,7 @@ struct TemporalActivityList: View {
                     activities: sections.today,
                     icon: "sun.max.fill",
                     color: .orange,
+                    isToday: true,
                     onActivityTap: onActivityTap
                 )
             }
@@ -107,6 +102,7 @@ struct TemporalActivityList: View {
                     activities: sections.upcoming,
                     icon: "calendar.badge.clock",
                     color: .blue,
+                    isToday: false,
                     onActivityTap: onActivityTap
                 )
             }
@@ -138,13 +134,14 @@ struct GroupedActivityList: View {
                     activities: group.activities,
                     icon: nil,
                     color: .accentColor,
+                    isToday: false, // Grouped view shows dates for all activities
                     onActivityTap: onActivityTap
                 )
             }
 
             if !grouped.ungrouped.isEmpty {
                 ForEach(grouped.ungrouped) { activity in
-                    TodayActivityCard(activity: activity, onTap: onActivityTap)
+                    TodayActivityCard(activity: activity, onTap: onActivityTap, isToday: false)
                 }
             }
         }
@@ -169,7 +166,7 @@ struct SimpleActivityList: View {
     var body: some View {
         VStack(spacing: EquiDutyDesign.Spacing.md) {
             ForEach(activities) { activity in
-                TodayActivityCard(activity: activity, onTap: onActivityTap)
+                TodayActivityCard(activity: activity, onTap: onActivityTap, isToday: false)
             }
         }
     }
@@ -183,6 +180,7 @@ struct ActivitySectionView: View {
     let activities: [ActivityInstance]
     let icon: String?
     let color: Color
+    let isToday: Bool
     let onActivityTap: ((ActivityInstance) -> Void)?
 
     init(
@@ -190,12 +188,14 @@ struct ActivitySectionView: View {
         activities: [ActivityInstance],
         icon: String?,
         color: Color,
+        isToday: Bool = false,
         onActivityTap: ((ActivityInstance) -> Void)? = nil
     ) {
         self.title = title
         self.activities = activities
         self.icon = icon
         self.color = color
+        self.isToday = isToday
         self.onActivityTap = onActivityTap
     }
 
@@ -224,7 +224,7 @@ struct ActivitySectionView: View {
 
             // Activity cards
             ForEach(activities) { activity in
-                TodayActivityCard(activity: activity, onTap: onActivityTap)
+                TodayActivityCard(activity: activity, onTap: onActivityTap, isToday: isToday)
             }
         }
     }
@@ -237,10 +237,12 @@ struct ActivitySectionView: View {
 struct TodayActivityCard: View {
     let activity: ActivityInstance
     let onTap: ((ActivityInstance) -> Void)?
+    let isToday: Bool
 
-    init(activity: ActivityInstance, onTap: ((ActivityInstance) -> Void)? = nil) {
+    init(activity: ActivityInstance, onTap: ((ActivityInstance) -> Void)? = nil, isToday: Bool = false) {
         self.activity = activity
         self.onTap = onTap
+        self.isToday = isToday
     }
 
     private var isInProgress: Bool {
@@ -314,23 +316,40 @@ struct TodayActivityCard: View {
             }
 
             HStack {
-                // Date & Time
-                if let time = activity.scheduledTime {
-                    Label {
-                        Text(time)
-                    } icon: {
-                        Image(systemName: "clock")
+                // Date & Time logic:
+                // - Today view + has time: show time only
+                // - Today view + no time: show nothing
+                // - Other days: show date (+ time if exists)
+                if isToday {
+                    // Today's activities: only show time if available
+                    if let time = activity.scheduledTime {
+                        Label {
+                            Text(time)
+                        } icon: {
+                            Image(systemName: "clock")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 } else {
-                    Label {
-                        Text(activity.scheduledDate, format: .dateTime.day().month(.abbreviated))
-                    } icon: {
-                        Image(systemName: "calendar")
+                    // Other days: show date, and time if available
+                    if let time = activity.scheduledTime {
+                        Label {
+                            Text("\(activity.scheduledDate.formatted(.dateTime.day().month(.abbreviated))) • \(time)")
+                        } icon: {
+                            Image(systemName: "calendar")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    } else {
+                        Label {
+                            Text(activity.scheduledDate, format: .dateTime.day().month(.abbreviated))
+                        } icon: {
+                            Image(systemName: "calendar")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 }
 
                 // Assigned person
@@ -394,7 +413,7 @@ struct TodayActivityCard: View {
         TodayActivityList(
             activities: [],
             groupBy: .none,
-            periodType: .day,
+            periodType: .week,
             referenceDate: Date()
         )
         .padding()
@@ -405,7 +424,7 @@ struct TodayActivityCard: View {
     TodayActivityList(
         activities: [],
         groupBy: .none,
-        periodType: .day,
+        periodType: .week,
         referenceDate: Date()
     )
     .padding()

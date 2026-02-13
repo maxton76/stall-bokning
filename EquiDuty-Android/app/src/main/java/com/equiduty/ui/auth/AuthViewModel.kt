@@ -24,6 +24,7 @@ class AuthViewModel @Inject constructor(
     val organizations = authRepository.organizations
     val selectedOrganization = authRepository.selectedOrganization
     val selectedStable = authRepository.selectedStable
+    val isEmailVerified = authRepository.isEmailVerified
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
@@ -49,10 +50,26 @@ class AuthViewModel @Inject constructor(
     }
 
     fun signUp(email: String, password: String, firstName: String, lastName: String) {
+        signUp(email, password, firstName, lastName, null, null, null, null)
+    }
+
+    fun signUp(
+        email: String,
+        password: String,
+        firstName: String,
+        lastName: String,
+        organizationType: String?,
+        organizationName: String?,
+        contactEmail: String?,
+        phoneNumber: String?
+    ) {
         viewModelScope.launch {
             _error.value = null
             try {
-                authRepository.signUp(email, password, firstName, lastName)
+                authRepository.signUp(
+                    email, password, firstName, lastName,
+                    organizationType, organizationName, contactEmail, phoneNumber
+                )
             } catch (e: Exception) {
                 Timber.e(e, "Sign up failed")
                 _error.value = e.localizedMessage ?: "Registrering misslyckades"
@@ -95,5 +112,27 @@ class AuthViewModel @Inject constructor(
 
     fun clearError() {
         _error.value = null
+    }
+
+    fun checkEmailVerification() {
+        viewModelScope.launch {
+            try {
+                authRepository.checkEmailVerification()
+            } catch (e: Exception) {
+                Timber.e(e, "Email verification check failed")
+            }
+        }
+    }
+
+    fun resendVerificationEmail() {
+        viewModelScope.launch {
+            _error.value = null
+            try {
+                authRepository.sendEmailVerification()
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to resend verification email")
+                _error.value = e.localizedMessage ?: "Kunde inte skicka e-post"
+            }
+        }
     }
 }

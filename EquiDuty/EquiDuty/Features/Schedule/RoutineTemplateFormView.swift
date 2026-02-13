@@ -139,7 +139,13 @@ struct RoutineTemplateFormView: View {
                                 editingStepIndex = index
                                 showStepEditor = true
                             } label: {
-                                HStack {
+                                HStack(spacing: 12) {
+                                    // Drag handle indicator
+                                    Image(systemName: "line.3.horizontal")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: 16)
+
                                     Text("\(index + 1)")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
@@ -177,19 +183,13 @@ struct RoutineTemplateFormView: View {
                     Text(String(localized: "templates.form.steps"))
                 }
             }
+            .environment(\.editMode, .constant(.active))
             .navigationTitle(mode.isEditing ? String(localized: "templates.form.edit_title") : String(localized: "templates.form.create_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(String(localized: "common.cancel")) {
                         dismiss()
-                    }
-                }
-
-                // Edit button to enable drag-to-reorder for steps
-                ToolbarItem(placement: .principal) {
-                    if !steps.isEmpty {
-                        EditButton()
                     }
                 }
 
@@ -328,7 +328,11 @@ struct RoutineTemplateFormView: View {
             let template: RoutineTemplate = try await RetryHelper.retry {
                 switch mode {
                 case .create:
+                    guard let orgId = authService.selectedOrganization?.id else {
+                        throw NSError(domain: "EquiDuty", code: 0, userInfo: [NSLocalizedDescriptionKey: String(localized: "common.error.no_organization")])
+                    }
                     let create = RoutineTemplateCreate(
+                        organizationId: orgId,
                         name: name,
                         description: description.isEmpty ? nil : description,
                         type: type.rawValue,

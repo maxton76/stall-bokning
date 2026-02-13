@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { auth } from "@/lib/firebase";
 
 const LoginForm = () => {
   const { t } = useTranslation("auth");
@@ -33,8 +34,16 @@ const LoginForm = () => {
     try {
       setIsLoading(true);
       await signIn(email, password);
-      // Redirect to horses page on successful login
-      navigate("/horses");
+      const currentUser = auth.currentUser;
+      if (
+        currentUser &&
+        !currentUser.emailVerified &&
+        currentUser.providerData[0]?.providerId === "password"
+      ) {
+        navigate("/verify-email");
+      } else {
+        navigate("/horses");
+      }
     } catch (err: any) {
       setError(err.message || t("errors.loginFailed"));
     } finally {

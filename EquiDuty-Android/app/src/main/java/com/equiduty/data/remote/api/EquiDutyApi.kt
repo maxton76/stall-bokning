@@ -17,6 +17,9 @@ interface EquiDutyApi {
     @GET("api/v1/auth/me")
     suspend fun getAuthMe(): UserDto
 
+    @POST("api/v1/auth/signup")
+    suspend fun signup(@Body body: SignupRequestDto): UserDto
+
     // ── Organizations ────────────────────────────────────────────
     @GET("api/v1/organizations")
     suspend fun getOrganizations(): OrganizationsResponseDto

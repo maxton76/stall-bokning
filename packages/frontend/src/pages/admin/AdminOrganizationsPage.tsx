@@ -1,13 +1,25 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, Building2, ExternalLink } from "lucide-react";
+import { Search, Building2, ExternalLink, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/PageHeader";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { QueryBoundary } from "@/components/ui/QueryBoundary";
 import { useApiQuery } from "@/hooks/useApiQuery";
+import { useApiMutation } from "@/hooks/useApiMutation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import {
   Table,
@@ -21,7 +33,7 @@ import type {
   AdminOrganizationSummary,
   PaginatedResponse,
 } from "@equiduty/shared";
-import { getOrganizations } from "@/services/adminService";
+import { getOrganizations, deleteOrganization } from "@/services/adminService";
 
 const tierBadgeVariants: Record<string, string> = {
   free: "bg-gray-100 text-gray-800",
@@ -46,7 +58,21 @@ function OrgsTableSkeleton() {
 
 export default function AdminOrganizationsPage() {
   const [search, setSearch] = useState("");
+  const [deleteTarget, setDeleteTarget] =
+    useState<AdminOrganizationSummary | null>(null);
   const debouncedSearch = useDebouncedValue(search, 300);
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useApiMutation(
+    (orgId: string) => deleteOrganization(orgId),
+    {
+      successMessage: "Organization deleted",
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["admin-orgs"] });
+        setDeleteTarget(null);
+      },
+    },
+  );
 
   const query = useApiQuery<PaginatedResponse<AdminOrganizationSummary>>(
     ["admin-orgs", debouncedSearch],
@@ -130,11 +156,21 @@ export default function AdminOrganizationsPage() {
                           {org.ownerEmail}
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/admin/organizations/${org.id}`}>
-                              <ExternalLink className="h-4 w-4" />
-                            </Link>
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link to={`/admin/organizations/${org.id}`}>
+                                <ExternalLink className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteTarget(org)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -152,6 +188,34 @@ export default function AdminOrganizationsPage() {
           Showing {query.data.data.length} of {query.data.total} organizations
         </p>
       )}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete organization</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete organization <strong>{deleteTarget?.name}</strong>, its
+              stables, members, and owner user account? This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() =>
+                deleteTarget && deleteMutation.mutate(deleteTarget.id)
+              }
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

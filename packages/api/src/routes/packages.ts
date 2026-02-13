@@ -624,7 +624,7 @@ export async function packagesRoutes(fastify: FastifyInstance) {
                       description: "ISO 8601 timestamp",
                     },
                     expiresAt: {
-                      type: "string",
+                      type: ["string", "null"],
                       format: "date-time",
                       description: "ISO 8601 timestamp",
                     },
@@ -1202,14 +1202,14 @@ export async function packagesRoutes(fastify: FastifyInstance) {
                       description:
                         'Package name (or "Unknown Package" if definition not found)',
                     },
-                    packageDescription: { type: "string" },
+                    packageDescription: { type: ["string", "null"] },
                     purchaseDate: {
                       type: "string",
                       format: "date-time",
                       description: "ISO 8601 timestamp",
                     },
                     expiresAt: {
-                      type: "string",
+                      type: ["string", "null"],
                       format: "date-time",
                       description: "ISO 8601 timestamp",
                     },
@@ -1228,7 +1228,7 @@ export async function packagesRoutes(fastify: FastifyInstance) {
                       description: "Computed expiry status based on expiresAt",
                     },
                     daysUntilExpiry: {
-                      type: "integer",
+                      type: ["integer", "null"],
                       description:
                         "Days until package expires (null if no expiry date)",
                     },

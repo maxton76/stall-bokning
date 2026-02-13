@@ -36,6 +36,8 @@ function InlineLoader() {
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const SignupPage = lazy(() => import("./pages/SignupPage"));
+const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage"));
+const AuthActionPage = lazy(() => import("./pages/AuthActionPage"));
 const CompleteProfilePage = lazy(() => import("./pages/CompleteProfilePage"));
 const InviteAcceptPage = lazy(() => import("./pages/InviteAcceptPage"));
 const OverviewPage = lazy(() => import("./pages/OverviewPage"));
@@ -318,6 +320,14 @@ export const router = createBrowserRouter([
         element: withSuspense(RegisterPage, <PageLoader />),
       },
       { path: "/signup", element: withSuspense(SignupPage, <PageLoader />) },
+      {
+        path: "/verify-email",
+        element: withSuspense(VerifyEmailPage, <PageLoader />),
+      },
+      {
+        path: "/auth/action",
+        element: withSuspense(AuthActionPage, <PageLoader />),
+      },
       {
         path: "/complete-profile",
         element: withSuspense(CompleteProfilePage, <PageLoader />),

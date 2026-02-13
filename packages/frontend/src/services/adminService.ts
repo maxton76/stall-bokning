@@ -60,6 +60,18 @@ export async function updateOrganizationSubscription(
   }>(`/admin/organizations/${orgId}/subscription`, subscription);
 }
 
+export async function deleteOrganization(orgId: string): Promise<{
+  success: boolean;
+  deleted: {
+    organization: number;
+    stables: number;
+    members: number;
+    user: number;
+  };
+}> {
+  return apiClient.delete(`/admin/organizations/${orgId}`);
+}
+
 // ============================================
 // USERS
 // ============================================

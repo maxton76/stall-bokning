@@ -14,7 +14,7 @@ struct AppNotification: Identifiable, Codable, Sendable {
     let id: String
     let userId: String
     let type: String
-    let priority: String
+    let priority: String?
     let title: String
     let body: String
     var read: Bool
@@ -30,7 +30,8 @@ struct AppNotification: Identifiable, Codable, Sendable {
     }
 
     var notificationPriority: NotificationPriority {
-        NotificationPriority(rawValue: priority) ?? .normal
+        guard let priority else { return .normal }
+        return NotificationPriority(rawValue: priority) ?? .normal
     }
 
     /// Parse createdAt string into a Date for display

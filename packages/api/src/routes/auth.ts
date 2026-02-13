@@ -15,6 +15,8 @@ const signupSchema = z.object({
   lastName: z.string().min(1),
   phoneNumber: z.string().optional(),
   organizationType: z.enum(["personal", "business"]).optional(),
+  organizationName: z.string().optional(),
+  contactEmail: z.string().email().optional(),
 });
 
 export default async function authRoutes(fastify: FastifyInstance) {
@@ -41,6 +43,8 @@ export default async function authRoutes(fastify: FastifyInstance) {
               type: "string",
               enum: ["personal", "business"],
             },
+            organizationName: { type: "string" },
+            contactEmail: { type: "string", format: "email" },
           },
         },
         response: {
@@ -121,8 +125,15 @@ export default async function authRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const { email, firstName, lastName, phoneNumber, organizationType } =
-          validation.data;
+        const {
+          email,
+          firstName,
+          lastName,
+          phoneNumber,
+          organizationType,
+          organizationName,
+          contactEmail,
+        } = validation.data;
 
         // Check if user document already exists
         const existingUserDoc = await db
@@ -178,9 +189,13 @@ export default async function authRoutes(fastify: FastifyInstance) {
           const memberId = `${user.uid}_${organizationId}`;
 
           const orgData = {
-            name: `${firstName}'s Organization`,
+            name: organizationName?.trim() || `${firstName}'s Organization`,
             ownerId: user.uid,
             ownerEmail: email.toLowerCase(),
+            primaryEmail: contactEmail?.toLowerCase() || email.toLowerCase(),
+            phoneNumber: phoneNumber || null,
+            contactType:
+              organizationType === "business" ? "Business" : undefined,
             organizationType: organizationType || ("personal" as const),
             subscriptionTier: "free" as const,
             implicitStableId, // Link to the implicit stable

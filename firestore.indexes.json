@@ -777,6 +777,14 @@
       "collectionGroup": "healthRecords",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "recordType", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "healthRecords",
+      "queryScope": "COLLECTION",
+      "fields": [
         { "fieldPath": "horseId", "order": "ASCENDING" },
         { "fieldPath": "requiresFollowUp", "order": "ASCENDING" },
         { "fieldPath": "followUpDate", "order": "ASCENDING" }

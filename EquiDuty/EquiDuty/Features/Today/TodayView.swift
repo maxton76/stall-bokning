@@ -87,6 +87,12 @@ struct TodayView: View {
             .onChange(of: authService.selectedStable?.id) { _, _ in
                 viewModel.loadData()
             }
+            .onChange(of: PermissionService.shared.userPermissions) { _, newValue in
+                // Reload when permissions finish loading (fixes race condition on app launch)
+                if newValue != nil && viewModel.errorMessage != nil {
+                    viewModel.loadData()
+                }
+            }
             .onChange(of: router.todayPath.count) { oldCount, newCount in
                 // Reload data when navigating back (path gets shorter)
                 if newCount < oldCount {

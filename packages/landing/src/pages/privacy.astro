@@ -1,0 +1,1082 @@
+---
+import LegalLayout from '../components/LegalLayout.astro';
+---
+
+<LegalLayout title="Integritetspolicy | Privacy Policy - EquiDuty" lang="sv">
+  <div class="legal-content">
+    <!-- Placeholder Warning -->
+    <div class="placeholder-warning">
+      <p><strong>OBS:</strong> Detta dokument innehåller platshållare [FÖRETAGSNAMN], [ORG.NR], [ADRESS] som måste ersättas med faktiska företagsuppgifter innan publicering till produktion. / <strong>NOTE:</strong> This document contains placeholders [COMPANY NAME], [ORG NUMBER], [ADDRESS] that must be replaced with actual company information before production deployment.</p>
+    </div>
+
+    <!-- Swedish Section -->
+    <section class="legal-section">
+      <h1>Integritetspolicy</h1>
+      <p class="legal-meta">Senast uppdaterad: {new Date().toLocaleDateString('sv-SE', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+
+      <!-- Table of Contents -->
+      <nav class="legal-toc">
+        <h2>Innehåll</h2>
+        <ul>
+          <li><a href="#sv-intro">1. Introduktion och tillämpningsområde</a></li>
+          <li><a href="#sv-controller">2. Personuppgiftsansvarig</a></li>
+          <li><a href="#sv-data-collection">3. Vilka personuppgifter samlar vi in</a></li>
+          <li><a href="#sv-purpose">4. Varför samlar vi in personuppgifter</a></li>
+          <li><a href="#sv-legal-basis">5. Laglig grund för behandling (GDPR)</a></li>
+          <li><a href="#sv-third-party">6. Tredjepartstjänster och datadelning</a></li>
+          <li><a href="#sv-retention">7. Lagringstid</a></li>
+          <li><a href="#sv-rights">8. Dina rättigheter enligt GDPR</a></li>
+          <li><a href="#sv-security">9. Datasäkerhet</a></li>
+          <li><a href="#sv-transfers">10. Internationella dataöverföringar</a></li>
+          <li><a href="#sv-cookies">11. Cookies och lokal lagring</a></li>
+          <li><a href="#sv-children">12. Barns integritet</a></li>
+          <li><a href="#sv-changes">13. Ändringar av integritetspolicyn</a></li>
+          <li><a href="#sv-contact">14. Kontaktinformation</a></li>
+        </ul>
+      </nav>
+
+      <!-- 1. Introduction -->
+      <div id="sv-intro">
+        <h2>1. Introduktion och tillämpningsområde</h2>
+        <p>
+          Välkommen till EquiDuty. Vi värnar om din integritet och är engagerade i att skydda dina personuppgifter.
+          Denna integritetspolicy förklarar hur vi samlar in, använder, lagrar och skyddar dina personuppgifter när
+          du använder vår SaaS-plattform för stallhantering.
+        </p>
+        <p>
+          Denna policy gäller för alla användare av EquiDuty:s webbplats, webbapplikation (PWA), iOS-app, Android-app
+          och relaterade tjänster.
+        </p>
+        <p>
+          Genom att använda EquiDuty godkänner du villkoren i denna integritetspolicy. Om du inte samtycker till
+          dessa villkor, vänligen använd inte våra tjänster.
+        </p>
+      </div>
+
+      <!-- 2. Data Controller -->
+      <div id="sv-controller">
+        <h2>2. Personuppgiftsansvarig</h2>
+        <p>Personuppgiftsansvarig för behandling av dina personuppgifter är:</p>
+        <ul>
+          <li><strong>Företagsnamn:</strong> [FÖRETAGSNAMN]</li>
+          <li><strong>Organisationsnummer:</strong> [ORG.NR]</li>
+          <li><strong>Adress:</strong> [ADRESS]</li>
+          <li><strong>E-post:</strong> info@equiduty.se</li>
+          <li><strong>GDPR-kontaktperson:</strong> [NAMN], info@equiduty.se</li>
+        </ul>
+        <p>
+          Om du har frågor om hur vi behandlar dina personuppgifter eller vill utöva dina rättigheter enligt GDPR,
+          kontakta oss på adressen ovan.
+        </p>
+      </div>
+
+      <!-- 3. Data Collection -->
+      <div id="sv-data-collection">
+        <h2>3. Vilka personuppgifter samlar vi in</h2>
+
+        <h3>3.1 Kontaktinformation</h3>
+        <ul>
+          <li>E-postadress</li>
+          <li>Förnamn och efternamn</li>
+          <li>Telefonnummer (valfritt)</li>
+          <li>Organisationsnamn och adress</li>
+          <li>Stallinformation (namn, adress, kontaktuppgifter)</li>
+        </ul>
+
+        <h3>3.2 Konto- och autentiseringsdata</h3>
+        <ul>
+          <li>Firebase Authentication UID (unikt användar-ID)</li>
+          <li>E-postverifieringsstatus</li>
+          <li>JWT-tokens för sessionshantering</li>
+          <li>OAuth-leverantörsdata (vid Google-inloggning)</li>
+          <li>Användarpreferenser (notifikationsinställningar, mörkt läge, tidszon)</li>
+          <li>Enhets-ID (UUID lagrad lokalt för sessionshantering)</li>
+        </ul>
+
+        <h3>3.3 Hästdata och användargenererat innehåll</h3>
+        <ul>
+          <li>Hästinformation (namn, ras, färg, kön, mikro chip, pass-ID)</li>
+          <li>Hälsojournaler för hästar (veterinär-, hovslagar-, tandvård, medicinering)</li>
+          <li>Foton och media (profilbilder, hälsojournalbilagor för hästar)</li>
+          <li>Scheman och pass-data</li>
+          <li>Dagliga anteckningar och aktivitetshistorik för hästar</li>
+          <li>Uppgiftsinformation (rutiner, scheman, tilldelningar)</li>
+        </ul>
+
+        <h3>3.4 Finansiell information</h3>
+        <ul>
+          <li>Stripe kund- och prenumerations-ID</li>
+          <li>Betalningshistorik och fakturaposter</li>
+          <li>Prenumerationsnivå och faktureringsintervall</li>
+          <li><strong>Observera:</strong> Vi lagrar INTE kreditkortsuppgifter. All betalningsinformation hanteras säkert av Stripe (PCI-DSS-kompatibel).</li>
+        </ul>
+
+        <h3>3.5 Användningsdata</h3>
+        <ul>
+          <li>Flödesanalys (rutinregistreringar, genomförandegrad)</li>
+          <li>Rättvisealgoritm-spårning (poäng, skiftgenomförande)</li>
+          <li>Aktivitetsstämplar (inloggningar, åtgärder)</li>
+          <li>IP-adresser (endast i revisionsloggar för säkerhet)</li>
+        </ul>
+
+        <h3>3.6 Enhets- och tekniska data</h3>
+        <ul>
+          <li>Firebase Cloud Messaging (FCM) tokens för push-notiser</li>
+          <li>Enhetstyp och operativsystem (för appkompatibilitet)</li>
+          <li>Webbläsartyp och version</li>
+        </ul>
+
+        <h3>3.7 Revision och efterlevnad</h3>
+        <ul>
+          <li>Revisionsloggar (användaråtgärder, IP-adresser, tidsstämplar)</li>
+          <li>GDPR-export och raderingsförfrågningar</li>
+        </ul>
+
+        <h3>3.8 Vad vi INTE samlar in</h3>
+        <p>Vi samlar <strong>INTE</strong> in följande:</p>
+        <ul>
+          <li>GPS-platsdata eller geografisk spårning</li>
+          <li>Analys- eller beteendespårning via tredjepartsverktyg (t.ex. Google Analytics)</li>
+          <li>Biometrisk data</li>
+          <li>Fullständiga kreditkortsuppgifter (hanteras av Stripe)</li>
+        </ul>
+      </div>
+
+      <!-- 4. Purpose -->
+      <div id="sv-purpose">
+        <h2>4. Varför samlar vi in personuppgifter</h2>
+        <p>Vi använder dina personuppgifter för följande ändamål:</p>
+
+        <h3>4.1 Tillhandahållande av tjänsten</h3>
+        <ul>
+          <li>Skapa och hantera ditt användarkonto</li>
+          <li>Autentisera din identitet och säkra din session</li>
+          <li>Lagra och hantera hästinformation, scheman och pass</li>
+          <li>Beräkna rättvis arbetsfördelning via viktbaserad algoritm</li>
+          <li>Skicka notifikationer om kommande pass och uppdateringar</li>
+        </ul>
+
+        <h3>4.2 Betalning och prenumerationshantering</h3>
+        <ul>
+          <li>Behandla betalningar via Stripe</li>
+          <li>Hantera prenumerationer och fakturering</li>
+          <li>Skicka fakturor och betalningsbekräftelser</li>
+          <li>Hantera kontouppgraderingar och nedgraderingar</li>
+        </ul>
+
+        <h3>4.3 Kundtjänst och support</h3>
+        <ul>
+          <li>Svara på dina frågor och supportärenden (via Zendesk)</li>
+          <li>Felsöka tekniska problem</li>
+          <li>Tillhandahålla användarguider och dokumentation</li>
+          <li>Förbättra textförfining via AI (Vertex AI Gemini)</li>
+        </ul>
+
+        <h3>4.4 Säkerhet och efterlevnad</h3>
+        <ul>
+          <li>Förhindra bedrägeri och obehörig åtkomst</li>
+          <li>Upptäcka och förhindra säkerhetsincidenter</li>
+          <li>Uppfylla juridiska skyldigheter (t.ex. svensk bokföringslag kräver 7 års lagring av finansiella poster)</li>
+          <li>Genomdriva våra användarvillkor</li>
+        </ul>
+
+        <h3>4.5 Tjänsteförbättringar</h3>
+        <ul>
+          <li>Analysera användningsmönster för att förbättra användarupplevelsen</li>
+          <li>Utveckla nya funktioner baserat på användarbehov</li>
+          <li>Optimera prestanda och tillförlitlighet</li>
+        </ul>
+      </div>
+
+      <!-- 5. Legal Basis (GDPR) -->
+      <div id="sv-legal-basis">
+        <h2>5. Laglig grund för behandling (GDPR)</h2>
+        <p>
+          Enligt GDPR Artikel 6 behandlar vi dina personuppgifter baserat på följande lagliga grunder:
+        </p>
+
+        <h3>5.1 Fullgörande av avtal (Artikel 6.1.b)</h3>
+        <p>
+          Behandling av konto-, hästdata, schema- och prenumerationsinformation är nödvändig för att tillhandahålla
+          EquiDuty-tjänsten som du har registrerat dig för.
+        </p>
+
+        <h3>5.2 Samtycke (Artikel 6.1.a)</h3>
+        <ul>
+          <li>Marknadsförings-e-post och kommunikation (du kan när som helst återkalla samtycke)</li>
+          <li>Valfria notifikationer (SMS, Telegram)</li>
+          <li>Foton och media som du laddar upp</li>
+        </ul>
+
+        <h3>5.3 Berättigat intresse (Artikel 6.1.f)</h3>
+        <ul>
+          <li>Säkerhet och bedrägeriskydd</li>
+          <li>Tjänsteförbättringar och produktutveckling</li>
+          <li>Intern analys (utan tredjepartsspårning)</li>
+        </ul>
+
+        <h3>5.4 Juridisk skyldighet (Artikel 6.1.c)</h3>
+        <ul>
+          <li>Finansiella poster (svensk bokföringslag kräver 7 års lagring)</li>
+          <li>Revisionsloggar (säkerhets- och efterlevnadskrav)</li>
+        </ul>
+      </div>
+
+      <!-- 6. Third-Party Services -->
+      <div id="sv-third-party">
+        <h2>6. Tredjepartstjänster och datadelning</h2>
+        <p>
+          Vi delar dina personuppgifter med följande tredjepartstjänster som är nödvändiga för att driva EquiDuty.
+          Alla leverantörer uppfyller GDPR-krav och har dataskyddsavtal på plats.
+        </p>
+
+        <h3>6.1 Google Cloud Platform (GCP)</h3>
+        <ul>
+          <li><strong>Syfte:</strong> Molninfrastruktur, databas, lagring, autentisering</li>
+          <li><strong>Data som delas:</strong> ALL applikationsdata (användarkonton, hästdata, scheman, foton)</li>
+          <li><strong>Plats:</strong> Europa (europe-west1 region)</li>
+          <li><strong>Integritetspolicy:</strong> <a href="https://cloud.google.com/terms/cloud-privacy-notice" target="_blank" rel="noopener noreferrer">https://cloud.google.com/terms/cloud-privacy-notice</a></li>
+          <li><strong>Tjänster:</strong> Firebase Authentication, Firestore, Cloud Storage, Cloud Run, Cloud Functions</li>
+        </ul>
+
+        <h3>6.2 Stripe</h3>
+        <ul>
+          <li><strong>Syfte:</strong> Betalningsbehandling och prenumerationshantering</li>
+          <li><strong>Data som delas:</strong> E-post, namn, betalningsmetoder, faktureringshistorik</li>
+          <li><strong>Plats:</strong> USA (med EU Standard Contractual Clauses)</li>
+          <li><strong>Integritetspolicy:</strong> <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer">https://stripe.com/privacy</a></li>
+          <li><strong>Notera:</strong> Stripe är PCI-DSS-certifierad. Vi lagrar INTE kreditkortsuppgifter själva.</li>
+        </ul>
+
+        <h3>6.3 send.one.com (SMTP)</h3>
+        <ul>
+          <li><strong>Syfte:</strong> E-postleverans (organisationsinbjudningar, aviseringar)</li>
+          <li><strong>Data som delas:</strong> E-postadresser, organisationsnamn</li>
+          <li><strong>Plats:</strong> Danmark/EU</li>
+          <li><strong>Integritetspolicy:</strong> <a href="https://www.one.com/en/about/privacy" target="_blank" rel="noopener noreferrer">https://www.one.com/en/about/privacy</a></li>
+        </ul>
+
+        <h3>6.4 Zendesk</h3>
+        <ul>
+          <li><strong>Syfte:</strong> Supportärenden och kundsupport</li>
+          <li><strong>Data som delas:</strong> E-post, namn, organisationsinformation, ärendeinnehåll</li>
+          <li><strong>Plats:</strong> USA (med EU Standard Contractual Clauses)</li>
+          <li><strong>Integritetspolicy:</strong> <a href="https://www.zendesk.com/company/agreements-and-terms/privacy-notice/" target="_blank" rel="noopener noreferrer">https://www.zendesk.com/company/agreements-and-terms/privacy-notice/</a></li>
+        </ul>
+
+        <h3>6.5 Telegram Bot API</h3>
+        <ul>
+          <li><strong>Syfte:</strong> Notifikationer via Telegram</li>
+          <li><strong>Data som delas:</strong> Telegram chatt-ID, meddelandeinnehåll</li>
+          <li><strong>Plats:</strong> Globalt</li>
+          <li><strong>Integritetspolicy:</strong> <a href="https://telegram.org/privacy" target="_blank" rel="noopener noreferrer">https://telegram.org/privacy</a></li>
+          <li><strong>Notera:</strong> Valfritt, endast om du väljer att aktivera Telegram-notifikationer</li>
+        </ul>
+
+        <h3>6.6 Firebase Cloud Messaging (FCM)</h3>
+        <ul>
+          <li><strong>Syfte:</strong> Push-notifikationer till iOS/Android-appar</li>
+          <li><strong>Data som delas:</strong> FCM-tokens, meddelandeinnehåll</li>
+          <li><strong>Plats:</strong> Globalt (Google-servrar)</li>
+          <li><strong>Integritetspolicy:</strong> <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener noreferrer">https://firebase.google.com/support/privacy</a></li>
+        </ul>
+
+        <h3>6.7 Vertex AI (Google Gemini)</h3>
+        <ul>
+          <li><strong>Syfte:</strong> AI-textförfining (för supportärenden och användargenererade förfrågningar)</li>
+          <li><strong>Data som delas:</strong> Användargenererat textinnehåll (på begäran)</li>
+          <li><strong>Plats:</strong> Europa (europe-west1)</li>
+          <li><strong>Integritetspolicy:</strong> Täcks av GCP-integritetspolicy</li>
+        </ul>
+
+        <h3>6.8 Twilio (valfritt, ej fullt implementerat)</h3>
+        <ul>
+          <li><strong>Syfte:</strong> SMS-notifikationer</li>
+          <li><strong>Data som delas:</strong> Telefonnummer, SMS-innehåll</li>
+          <li><strong>Integritetspolicy:</strong> <a href="https://www.twilio.com/legal/privacy" target="_blank" rel="noopener noreferrer">https://www.twilio.com/legal/privacy</a></li>
+          <li><strong>Notera:</strong> För närvarande inte fullt aktiverad</li>
+        </ul>
+      </div>
+
+      <!-- 7. Data Retention -->
+      <div id="sv-retention">
+        <h2>7. Lagringstid</h2>
+        <p>Vi lagrar dina personuppgifter endast så länge som nödvändigt för de ändamål som beskrivs i denna policy:</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Datakategori</th>
+              <th>Lagringstid</th>
+              <th>Motivering</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Användarkonton</td>
+              <td>Prenumerationens varaktighet + 30 dagar</td>
+              <td>Tillåter kontoåterställning</td>
+            </tr>
+            <tr>
+              <td>Hästdata och innehåll</td>
+              <td>Prenumerationens varaktighet + 30 dagar</td>
+              <td>Tjänstetillhandahållande</td>
+            </tr>
+            <tr>
+              <td>Finansiella poster</td>
+              <td>7 år</td>
+              <td>Svensk bokföringslag</td>
+            </tr>
+            <tr>
+              <td>Revisionsloggar</td>
+              <td>2 år</td>
+              <td>Säkerhets- och efterlevnadskrav</td>
+            </tr>
+            <tr>
+              <td>Marknadsföringssamtycke</td>
+              <td>Tills det återkallas</td>
+              <td>Användarens samtycke</td>
+            </tr>
+            <tr>
+              <td>Supportärenden</td>
+              <td>3 år</td>
+              <td>Kundsupporthistorik</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p>
+          Efter att lagringsperioden har löpt ut raderas personuppgifterna säkert från våra system. Du kan när som
+          helst begära tidigare radering genom att kontakta oss på info@equiduty.se.
+        </p>
+      </div>
+
+      <!-- 8. User Rights (GDPR) -->
+      <div id="sv-rights">
+        <h2>8. Dina rättigheter enligt GDPR</h2>
+        <p>
+          Enligt Allmänna dataskyddsförordningen (GDPR) har du följande rättigheter avseende dina personuppgifter:
+        </p>
+
+        <h3>8.1 Rätt till tillgång (Artikel 15)</h3>
+        <p>
+          Du har rätt att få en kopia av alla personuppgifter vi har om dig. Begär dataexport via
+          kontoinställningar eller kontakta info@equiduty.se.
+        </p>
+
+        <h3>8.2 Rätt till rättelse (Artikel 16)</h3>
+        <p>
+          Du har rätt att korrigera felaktiga eller ofullständiga personuppgifter. Du kan uppdatera din
+          profilinformation direkt i appen eller kontakta oss för hjälp.
+        </p>
+
+        <h3>8.3 Rätt till radering - "Rätten att bli glömd" (Artikel 17)</h3>
+        <p>
+          Du har rätt att begära att vi raderar dina personuppgifter. Du kan radera ditt konto via
+          kontoinställningar eller kontakta info@equiduty.se. Observera att vissa data kan behöva
+          lagras för juridiska skyldigheter (t.ex. finansiella poster i 7 år).
+        </p>
+
+        <h3>8.4 Rätt till dataportabilitet (Artikel 20)</h3>
+        <p>
+          Du har rätt att få dina personuppgifter i ett strukturerat, maskinläsbart format (JSON) och
+          överföra dem till en annan tjänsteleverantör. Använd dataexportfunktionen i kontoinställningar.
+        </p>
+
+        <h3>8.5 Rätt att invända (Artikel 21)</h3>
+        <p>
+          Du har rätt att invända mot behandling av dina personuppgifter baserat på berättigat intresse.
+          Kontakta info@equiduty.se med ditt ärende.
+        </p>
+
+        <h3>8.6 Rätt att återkalla samtycke</h3>
+        <p>
+          Om behandlingen baseras på samtycke kan du när som helst återkalla ditt samtycke. Detta påverkar
+          inte lagligheten av behandling baserad på samtycke innan återkallelsen.
+        </p>
+
+        <h3>8.7 Rätt att lämna klagomål</h3>
+        <p>
+          Du har rätt att lämna klagomål till den svenska dataskyddsmyndigheten (Integritetsskyddsmyndigheten - IMY):
+        </p>
+        <ul>
+          <li><strong>Webbplats:</strong> <a href="https://www.imy.se" target="_blank" rel="noopener noreferrer">https://www.imy.se</a></li>
+          <li><strong>E-post:</strong> imy@imy.se</li>
+          <li><strong>Telefon:</strong> 08-657 61 00</li>
+          <li><strong>Adress:</strong> Integritetsskyddsmyndigheten, Box 8114, 104 20 Stockholm</li>
+        </ul>
+      </div>
+
+      <!-- 9. Security -->
+      <div id="sv-security">
+        <h2>9. Datasäkerhet</h2>
+        <p>
+          Vi vidtar lämpliga tekniska och organisatoriska åtgärder för att skydda dina personuppgifter mot
+          obehörig åtkomst, förlust, förstörelse eller ändring:
+        </p>
+
+        <h3>9.1 Tekniska säkerhetsåtgärder</h3>
+        <ul>
+          <li><strong>Kryptering:</strong> All data krypteras under överföring (TLS/SSL) och i vila (AES-256)</li>
+          <li><strong>Autentisering:</strong> Firebase Authentication med JWT-tokens och säkra sessionshantering</li>
+          <li><strong>Åtkomstkontroll:</strong> Rollbaserad åtkomstkontroll (RBAC) med fältnivåbehörigheter</li>
+          <li><strong>Brandväggar och säkerhet:</strong> GCP-brandväggar, DDoS-skydd, säkerhetsregler</li>
+          <li><strong>Säkerhetskopiering:</strong> Regelbundna automatiska säkerhetskopieringar med point-in-time-återställning</li>
+        </ul>
+
+        <h3>9.2 Organisatoriska säkerhetsåtgärder</h3>
+        <ul>
+          <li>Regelbundna säkerhetsgranskningar och sårbarhetsanalyser</li>
+          <li>Åtkomst till data begränsad till auktoriserad personal med behov av åtkomst</li>
+          <li>Incidentresponsplan för databrott</li>
+          <li>Medarbetarutbildning om datasäkerhet och integritet</li>
+        </ul>
+
+        <h3>9.3 Dataintrång</h3>
+        <p>
+          I händelse av ett dataintrång kommer vi att meddela berörda användare och Integritetsskyddsmyndigheten
+          inom 72 timmar enligt GDPR-kraven.
+        </p>
+      </div>
+
+      <!-- 10. International Transfers -->
+      <div id="sv-transfers">
+        <h2>10. Internationella dataöverföringar</h2>
+        <p>
+          Dina personuppgifter lagras huvudsakligen inom EU (GCP europe-west1 region i Belgien), men vissa
+          tredjepartstjänster kan innebära dataöverföringar utanför EU/EES:
+        </p>
+
+        <h3>10.1 USA-baserade tjänster</h3>
+        <ul>
+          <li><strong>Stripe:</strong> USA (EU Standard Contractual Clauses)</li>
+          <li><strong>Zendesk:</strong> USA (EU Standard Contractual Clauses)</li>
+        </ul>
+
+        <h3>10.2 Skyddsåtgärder</h3>
+        <p>
+          För alla internationella dataöverföringar utanför EU/EES säkerställer vi lämpliga skyddsåtgärder:
+        </p>
+        <ul>
+          <li><strong>EU Standard Contractual Clauses (SCCs):</strong> Juridiskt bindande avtal som kräver samma dataskyddsnivå som GDPR</li>
+          <li><strong>Dataskyddsavtal:</strong> Alla tredjepartstjänster har dataskyddsavtal på plats</li>
+          <li><strong>Kryptering:</strong> All data krypteras under överföring och i vila</li>
+        </ul>
+      </div>
+
+      <!-- 11. Cookies -->
+      <div id="sv-cookies">
+        <h2>11. Cookies och lokal lagring</h2>
+        <p>
+          EquiDuty använder minimal cookie- och lokal lagring för att tillhandahålla tjänsten. Vi använder
+          <strong>INTE</strong> tredjepartsspårningscookies eller analyskakies.
+        </p>
+
+        <h3>11.1 Nödvändiga cookies och lokal lagring</h3>
+        <ul>
+          <li><strong>Autentiseringstokens:</strong> JWT-tokens lagras i localStorage för sessionshantering</li>
+          <li><strong>Användarpreferenser:</strong> Inställningar för språk, mörkt läge, tidszon</li>
+          <li><strong>Enhets-ID:</strong> UUID för stabil enhetsidentifiering</li>
+          <li><strong>Firebase-sessioner:</strong> Firebase Authentication-sessionshantering</li>
+        </ul>
+
+        <h3>11.2 Ingen tredjepartsspårning</h3>
+        <p>
+          Vi använder <strong>INTE</strong>:
+        </p>
+        <ul>
+          <li>Google Analytics eller andra analyskakies</li>
+          <li>Spårningspixlar från sociala medier</li>
+          <li>Tredjepartsannonskakies</li>
+          <li>Beteendespårning eller sessionsinspelning</li>
+        </ul>
+      </div>
+
+      <!-- 12. Children's Privacy -->
+      <div id="sv-children">
+        <h2>12. Barns integritet</h2>
+        <p>
+          EquiDuty är inte avsett för barn under 16 år. Vi samlar inte medvetet in personuppgifter från barn
+          under 16 år utan föräldrarnas samtycke.
+        </p>
+        <p>
+          Om du är förälder eller vårdnadshavare och upptäcker att ditt barn har tillhandahållit oss personuppgifter
+          utan ditt samtycke, vänligen kontakta oss på info@equiduty.se. Vi kommer att radera sådan information
+          från våra system.
+        </p>
+      </div>
+
+      <!-- 13. Changes -->
+      <div id="sv-changes">
+        <h2>13. Ändringar av integritetspolicyn</h2>
+        <p>
+          Vi kan uppdatera denna integritetspolicy från tid till annan för att återspegla ändringar i våra
+          metoder eller av juridiska skäl. Vi kommer att meddela dig om väsentliga ändringar via:
+        </p>
+        <ul>
+          <li>E-postmeddelande till din registrerade e-postadress</li>
+          <li>Meddelande i appen</li>
+          <li>Uppdatering av "Senast uppdaterad"-datumet högst upp på denna sida</li>
+        </ul>
+        <p>
+          Vi uppmuntrar dig att regelbundet granska denna integritetspolicy. Fortsatt användning av EquiDuty
+          efter ändringar innebär att du accepterar den uppdaterade policyn.
+        </p>
+      </div>
+
+      <!-- 14. Contact -->
+      <div id="sv-contact">
+        <h2>14. Kontaktinformation</h2>
+        <p>
+          Om du har frågor, funderingar eller begäranden om denna integritetspolicy eller våra dataskyddsmetoder,
+          vänligen kontakta oss:
+        </p>
+        <ul>
+          <li><strong>E-post:</strong> info@equiduty.se</li>
+          <li><strong>Adress:</strong> [ADRESS]</li>
+          <li><strong>GDPR-kontaktperson:</strong> [NAMN], info@equiduty.se</li>
+          <li><strong>Support:</strong> <a href="/support">https://equiduty.se/support</a></li>
+        </ul>
+        <p>
+          Vi strävar efter att svara på alla förfrågningar inom 30 dagar enligt GDPR-kraven.
+        </p>
+      </div>
+    </section>
+
+    <!-- English Section -->
+    <section class="legal-section language-divider">
+      <h1>Privacy Policy</h1>
+      <p class="legal-meta">Last Updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+
+      <!-- Table of Contents -->
+      <nav class="legal-toc">
+        <h2>Contents</h2>
+        <ul>
+          <li><a href="#en-intro">1. Introduction and Scope</a></li>
+          <li><a href="#en-controller">2. Data Controller</a></li>
+          <li><a href="#en-data-collection">3. Personal Data We Collect</a></li>
+          <li><a href="#en-purpose">4. Why We Collect Personal Data</a></li>
+          <li><a href="#en-legal-basis">5. Legal Basis for Processing (GDPR)</a></li>
+          <li><a href="#en-third-party">6. Third-Party Services and Data Sharing</a></li>
+          <li><a href="#en-retention">7. Data Retention</a></li>
+          <li><a href="#en-rights">8. Your Rights Under GDPR</a></li>
+          <li><a href="#en-security">9. Data Security</a></li>
+          <li><a href="#en-transfers">10. International Data Transfers</a></li>
+          <li><a href="#en-cookies">11. Cookies and Local Storage</a></li>
+          <li><a href="#en-children">12. Children's Privacy</a></li>
+          <li><a href="#en-changes">13. Changes to Privacy Policy</a></li>
+          <li><a href="#en-contact">14. Contact Information</a></li>
+        </ul>
+      </nav>
+
+      <!-- 1. Introduction -->
+      <div id="en-intro">
+        <h2>1. Introduction and Scope</h2>
+        <p>
+          Welcome to EquiDuty. We value your privacy and are committed to protecting your personal data. This
+          privacy policy explains how we collect, use, store, and protect your personal information when you
+          use our SaaS platform for stable management.
+        </p>
+        <p>
+          This policy applies to all users of EquiDuty's website, web application (PWA), iOS app, Android app,
+          and related services.
+        </p>
+        <p>
+          By using EquiDuty, you agree to the terms of this privacy policy. If you do not agree with these terms,
+          please do not use our services.
+        </p>
+      </div>
+
+      <!-- 2. Data Controller -->
+      <div id="en-controller">
+        <h2>2. Data Controller</h2>
+        <p>The data controller responsible for processing your personal data is:</p>
+        <ul>
+          <li><strong>Company Name:</strong> [COMPANY NAME]</li>
+          <li><strong>Organization Number:</strong> [ORG NUMBER]</li>
+          <li><strong>Address:</strong> [ADDRESS]</li>
+          <li><strong>Email:</strong> info@equiduty.se</li>
+          <li><strong>GDPR Contact Person:</strong> [NAME], info@equiduty.se</li>
+        </ul>
+        <p>
+          If you have questions about how we process your personal data or wish to exercise your rights under
+          GDPR, contact us at the address above.
+        </p>
+      </div>
+
+      <!-- 3. Data Collection -->
+      <div id="en-data-collection">
+        <h2>3. Personal Data We Collect</h2>
+
+        <h3>3.1 Contact Information</h3>
+        <ul>
+          <li>Email address</li>
+          <li>First name and last name</li>
+          <li>Phone number (optional)</li>
+          <li>Organization name and address</li>
+          <li>Stable information (name, address, contact details)</li>
+        </ul>
+
+        <h3>3.2 Account and Authentication Data</h3>
+        <ul>
+          <li>Firebase Authentication UID (unique user ID)</li>
+          <li>Email verification status</li>
+          <li>JWT tokens for session management</li>
+          <li>OAuth provider data (Google login)</li>
+          <li>User preferences (notification settings, dark mode, timezone)</li>
+          <li>Device ID (UUID stored locally for session management)</li>
+        </ul>
+
+        <h3>3.3 Horse Data and User-Generated Content</h3>
+        <ul>
+          <li>Horse information (name, breed, color, gender, microchip, passport ID)</li>
+          <li>Health records for horses (veterinary, farrier, dental, medications)</li>
+          <li>Photos and media (profile pictures, horse health record attachments)</li>
+          <li>Schedule and shift data</li>
+          <li>Daily notes and horse activity history</li>
+          <li>Task information (routines, schedules, assignments)</li>
+        </ul>
+
+        <h3>3.4 Financial Information</h3>
+        <ul>
+          <li>Stripe customer and subscription IDs</li>
+          <li>Payment history and invoice records</li>
+          <li>Subscription tier and billing interval</li>
+          <li><strong>Note:</strong> We do NOT store credit card details. All payment information is securely handled by Stripe (PCI-DSS compliant).</li>
+        </ul>
+
+        <h3>3.5 Usage Data</h3>
+        <ul>
+          <li>Feed analytics (routine completions, completion rates)</li>
+          <li>Fairness algorithm tracking (points, shift completion)</li>
+          <li>Activity timestamps (logins, actions)</li>
+          <li>IP addresses (audit logs for security only)</li>
+        </ul>
+
+        <h3>3.6 Device and Technical Data</h3>
+        <ul>
+          <li>Firebase Cloud Messaging (FCM) tokens for push notifications</li>
+          <li>Device type and operating system (app compatibility)</li>
+          <li>Browser type and version</li>
+        </ul>
+
+        <h3>3.7 Audit and Compliance</h3>
+        <ul>
+          <li>Audit logs (user actions, IP addresses, timestamps)</li>
+          <li>GDPR export and deletion requests</li>
+        </ul>
+
+        <h3>3.8 What We DO NOT Collect</h3>
+        <p>We do <strong>NOT</strong> collect the following:</p>
+        <ul>
+          <li>GPS location data or geographic tracking</li>
+          <li>Analytics or behavioral tracking via third-party tools (e.g., Google Analytics)</li>
+          <li>Biometric data</li>
+          <li>Full credit card details (handled by Stripe)</li>
+        </ul>
+      </div>
+
+      <!-- 4. Purpose -->
+      <div id="en-purpose">
+        <h2>4. Why We Collect Personal Data</h2>
+        <p>We use your personal data for the following purposes:</p>
+
+        <h3>4.1 Service Provision</h3>
+        <ul>
+          <li>Create and manage your user account</li>
+          <li>Authenticate your identity and secure your session</li>
+          <li>Store and manage horse information, schedules, and shifts</li>
+          <li>Calculate fair work distribution via weight-based algorithm</li>
+          <li>Send notifications about upcoming shifts and updates</li>
+        </ul>
+
+        <h3>4.2 Payment and Subscription Management</h3>
+        <ul>
+          <li>Process payments via Stripe</li>
+          <li>Manage subscriptions and billing</li>
+          <li>Send invoices and payment confirmations</li>
+          <li>Handle account upgrades and downgrades</li>
+        </ul>
+
+        <h3>4.3 Customer Support</h3>
+        <ul>
+          <li>Respond to your questions and support tickets (via Zendesk)</li>
+          <li>Troubleshoot technical issues</li>
+          <li>Provide user guides and documentation</li>
+          <li>Improve text refinement via AI (Vertex AI Gemini)</li>
+        </ul>
+
+        <h3>4.4 Security and Compliance</h3>
+        <ul>
+          <li>Prevent fraud and unauthorized access</li>
+          <li>Detect and prevent security incidents</li>
+          <li>Comply with legal obligations (e.g., Swedish accounting law requires 7-year retention of financial records)</li>
+          <li>Enforce our Terms of Service</li>
+        </ul>
+
+        <h3>4.5 Service Improvements</h3>
+        <ul>
+          <li>Analyze usage patterns to improve user experience</li>
+          <li>Develop new features based on user needs</li>
+          <li>Optimize performance and reliability</li>
+        </ul>
+      </div>
+
+      <!-- 5. Legal Basis (GDPR) -->
+      <div id="en-legal-basis">
+        <h2>5. Legal Basis for Processing (GDPR)</h2>
+        <p>
+          Under GDPR Article 6, we process your personal data based on the following legal bases:
+        </p>
+
+        <h3>5.1 Contract Performance (Article 6.1.b)</h3>
+        <p>
+          Processing of account, horse data, schedule, and subscription information is necessary to provide
+          the EquiDuty service you have signed up for.
+        </p>
+
+        <h3>5.2 Consent (Article 6.1.a)</h3>
+        <ul>
+          <li>Marketing emails and communications (you can withdraw consent at any time)</li>
+          <li>Optional notifications (SMS, Telegram)</li>
+          <li>Photos and media you upload</li>
+        </ul>
+
+        <h3>5.3 Legitimate Interest (Article 6.1.f)</h3>
+        <ul>
+          <li>Security and fraud prevention</li>
+          <li>Service improvements and product development</li>
+          <li>Internal analytics (no third-party tracking)</li>
+        </ul>
+
+        <h3>5.4 Legal Obligation (Article 6.1.c)</h3>
+        <ul>
+          <li>Financial records (Swedish accounting law requires 7-year retention)</li>
+          <li>Audit logs (security and compliance requirements)</li>
+        </ul>
+      </div>
+
+      <!-- 6. Third-Party Services -->
+      <div id="en-third-party">
+        <h2>6. Third-Party Services and Data Sharing</h2>
+        <p>
+          We share your personal data with the following third-party services necessary to operate EquiDuty.
+          All vendors comply with GDPR requirements and have data processing agreements in place.
+        </p>
+
+        <h3>6.1 Google Cloud Platform (GCP)</h3>
+        <ul>
+          <li><strong>Purpose:</strong> Cloud infrastructure, database, storage, authentication</li>
+          <li><strong>Data shared:</strong> ALL application data (user accounts, horse data, schedules, photos)</li>
+          <li><strong>Location:</strong> Europe (europe-west1 region)</li>
+          <li><strong>Privacy Policy:</strong> <a href="https://cloud.google.com/terms/cloud-privacy-notice" target="_blank" rel="noopener noreferrer">https://cloud.google.com/terms/cloud-privacy-notice</a></li>
+          <li><strong>Services:</strong> Firebase Authentication, Firestore, Cloud Storage, Cloud Run, Cloud Functions</li>
+        </ul>
+
+        <h3>6.2 Stripe</h3>
+        <ul>
+          <li><strong>Purpose:</strong> Payment processing and subscription management</li>
+          <li><strong>Data shared:</strong> Email, name, payment methods, billing history</li>
+          <li><strong>Location:</strong> USA (with EU Standard Contractual Clauses)</li>
+          <li><strong>Privacy Policy:</strong> <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer">https://stripe.com/privacy</a></li>
+          <li><strong>Note:</strong> Stripe is PCI-DSS certified. We do NOT store credit card details ourselves.</li>
+        </ul>
+
+        <h3>6.3 send.one.com (SMTP)</h3>
+        <ul>
+          <li><strong>Purpose:</strong> Email delivery (organization invitations, notifications)</li>
+          <li><strong>Data shared:</strong> Email addresses, organization names</li>
+          <li><strong>Location:</strong> Denmark/EU</li>
+          <li><strong>Privacy Policy:</strong> <a href="https://www.one.com/en/about/privacy" target="_blank" rel="noopener noreferrer">https://www.one.com/en/about/privacy</a></li>
+        </ul>
+
+        <h3>6.4 Zendesk</h3>
+        <ul>
+          <li><strong>Purpose:</strong> Support tickets and customer support</li>
+          <li><strong>Data shared:</strong> Email, name, organization info, ticket content</li>
+          <li><strong>Location:</strong> USA (with EU Standard Contractual Clauses)</li>
+          <li><strong>Privacy Policy:</strong> <a href="https://www.zendesk.com/company/agreements-and-terms/privacy-notice/" target="_blank" rel="noopener noreferrer">https://www.zendesk.com/company/agreements-and-terms/privacy-notice/</a></li>
+        </ul>
+
+        <h3>6.5 Telegram Bot API</h3>
+        <ul>
+          <li><strong>Purpose:</strong> Notifications via Telegram</li>
+          <li><strong>Data shared:</strong> Telegram chat IDs, message content</li>
+          <li><strong>Location:</strong> Global</li>
+          <li><strong>Privacy Policy:</strong> <a href="https://telegram.org/privacy" target="_blank" rel="noopener noreferrer">https://telegram.org/privacy</a></li>
+          <li><strong>Note:</strong> Optional, only if you choose to enable Telegram notifications</li>
+        </ul>
+
+        <h3>6.6 Firebase Cloud Messaging (FCM)</h3>
+        <ul>
+          <li><strong>Purpose:</strong> Push notifications to iOS/Android apps</li>
+          <li><strong>Data shared:</strong> FCM tokens, message content</li>
+          <li><strong>Location:</strong> Global (Google servers)</li>
+          <li><strong>Privacy Policy:</strong> <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener noreferrer">https://firebase.google.com/support/privacy</a></li>
+        </ul>
+
+        <h3>6.7 Vertex AI (Google Gemini)</h3>
+        <ul>
+          <li><strong>Purpose:</strong> AI text refinement (for support tickets and user-generated requests)</li>
+          <li><strong>Data shared:</strong> User-generated text content (on request)</li>
+          <li><strong>Location:</strong> Europe (europe-west1)</li>
+          <li><strong>Privacy Policy:</strong> Covered by GCP privacy policy</li>
+        </ul>
+
+        <h3>6.8 Twilio (optional, not fully implemented)</h3>
+        <ul>
+          <li><strong>Purpose:</strong> SMS notifications</li>
+          <li><strong>Data shared:</strong> Phone numbers, SMS content</li>
+          <li><strong>Privacy Policy:</strong> <a href="https://www.twilio.com/legal/privacy" target="_blank" rel="noopener noreferrer">https://www.twilio.com/legal/privacy</a></li>
+          <li><strong>Note:</strong> Currently not fully activated</li>
+        </ul>
+      </div>
+
+      <!-- 7. Data Retention -->
+      <div id="en-retention">
+        <h2>7. Data Retention</h2>
+        <p>We retain your personal data only as long as necessary for the purposes described in this policy:</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Data Category</th>
+              <th>Retention Period</th>
+              <th>Justification</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>User accounts</td>
+              <td>Subscription duration + 30 days</td>
+              <td>Allows account recovery</td>
+            </tr>
+            <tr>
+              <td>Horse data and content</td>
+              <td>Subscription duration + 30 days</td>
+              <td>Service provision</td>
+            </tr>
+            <tr>
+              <td>Financial records</td>
+              <td>7 years</td>
+              <td>Swedish accounting law</td>
+            </tr>
+            <tr>
+              <td>Audit logs</td>
+              <td>2 years</td>
+              <td>Security and compliance requirements</td>
+            </tr>
+            <tr>
+              <td>Marketing consent</td>
+              <td>Until withdrawn</td>
+              <td>User consent</td>
+            </tr>
+            <tr>
+              <td>Support tickets</td>
+              <td>3 years</td>
+              <td>Customer support history</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p>
+          After the retention period expires, personal data is securely deleted from our systems. You can
+          request earlier deletion at any time by contacting info@equiduty.se.
+        </p>
+      </div>
+
+      <!-- 8. User Rights (GDPR) -->
+      <div id="en-rights">
+        <h2>8. Your Rights Under GDPR</h2>
+        <p>
+          Under the General Data Protection Regulation (GDPR), you have the following rights regarding your
+          personal data:
+        </p>
+
+        <h3>8.1 Right to Access (Article 15)</h3>
+        <p>
+          You have the right to obtain a copy of all personal data we hold about you. Request data export
+          via account settings or contact info@equiduty.se.
+        </p>
+
+        <h3>8.2 Right to Rectification (Article 16)</h3>
+        <p>
+          You have the right to correct inaccurate or incomplete personal data. You can update your profile
+          information directly in the app or contact us for assistance.
+        </p>
+
+        <h3>8.3 Right to Erasure - "Right to be Forgotten" (Article 17)</h3>
+        <p>
+          You have the right to request that we delete your personal data. You can delete your account via
+          account settings or contact info@equiduty.se. Note that some data may need to be retained for
+          legal obligations (e.g., financial records for 7 years).
+        </p>
+
+        <h3>8.4 Right to Data Portability (Article 20)</h3>
+        <p>
+          You have the right to receive your personal data in a structured, machine-readable format (JSON)
+          and transfer it to another service provider. Use the data export function in account settings.
+        </p>
+
+        <h3>8.5 Right to Object (Article 21)</h3>
+        <p>
+          You have the right to object to processing of your personal data based on legitimate interest.
+          Contact info@equiduty.se with your case.
+        </p>
+
+        <h3>8.6 Right to Withdraw Consent</h3>
+        <p>
+          If processing is based on consent, you can withdraw your consent at any time. This does not affect
+          the lawfulness of processing based on consent before withdrawal.
+        </p>
+
+        <h3>8.7 Right to Lodge a Complaint</h3>
+        <p>
+          You have the right to lodge a complaint with the Swedish Data Protection Authority
+          (Integritetsskyddsmyndigheten - IMY):
+        </p>
+        <ul>
+          <li><strong>Website:</strong> <a href="https://www.imy.se" target="_blank" rel="noopener noreferrer">https://www.imy.se</a></li>
+          <li><strong>Email:</strong> imy@imy.se</li>
+          <li><strong>Phone:</strong> 08-657 61 00</li>
+          <li><strong>Address:</strong> Integritetsskyddsmyndigheten, Box 8114, 104 20 Stockholm, Sweden</li>
+        </ul>
+      </div>
+
+      <!-- 9. Security -->
+      <div id="en-security">
+        <h2>9. Data Security</h2>
+        <p>
+          We implement appropriate technical and organizational measures to protect your personal data against
+          unauthorized access, loss, destruction, or alteration:
+        </p>
+
+        <h3>9.1 Technical Security Measures</h3>
+        <ul>
+          <li><strong>Encryption:</strong> All data encrypted in transit (TLS/SSL) and at rest (AES-256)</li>
+          <li><strong>Authentication:</strong> Firebase Authentication with JWT tokens and secure session management</li>
+          <li><strong>Access Control:</strong> Role-based access control (RBAC) with field-level permissions</li>
+          <li><strong>Firewalls and Security:</strong> GCP firewalls, DDoS protection, security rules</li>
+          <li><strong>Backups:</strong> Regular automated backups with point-in-time recovery</li>
+        </ul>
+
+        <h3>9.2 Organizational Security Measures</h3>
+        <ul>
+          <li>Regular security audits and vulnerability assessments</li>
+          <li>Access to data limited to authorized personnel on a need-to-know basis</li>
+          <li>Incident response plan for data breaches</li>
+          <li>Employee training on data security and privacy</li>
+        </ul>
+
+        <h3>9.3 Data Breaches</h3>
+        <p>
+          In the event of a data breach, we will notify affected users and the Swedish Data Protection
+          Authority within 72 hours as required by GDPR.
+        </p>
+      </div>
+
+      <!-- 10. International Transfers -->
+      <div id="en-transfers">
+        <h2>10. International Data Transfers</h2>
+        <p>
+          Your personal data is primarily stored within the EU (GCP europe-west1 region in Belgium), but
+          some third-party services may involve data transfers outside the EU/EEA:
+        </p>
+
+        <h3>10.1 US-Based Services</h3>
+        <ul>
+          <li><strong>Stripe:</strong> USA (EU Standard Contractual Clauses)</li>
+          <li><strong>Zendesk:</strong> USA (EU Standard Contractual Clauses)</li>
+        </ul>
+
+        <h3>10.2 Safeguards</h3>
+        <p>
+          For all international data transfers outside the EU/EEA, we ensure appropriate safeguards:
+        </p>
+        <ul>
+          <li><strong>EU Standard Contractual Clauses (SCCs):</strong> Legally binding agreements requiring the same level of data protection as GDPR</li>
+          <li><strong>Data Processing Agreements:</strong> All third-party services have data processing agreements in place</li>
+          <li><strong>Encryption:</strong> All data encrypted in transit and at rest</li>
+        </ul>
+      </div>
+
+      <!-- 11. Cookies -->
+      <div id="en-cookies">
+        <h2>11. Cookies and Local Storage</h2>
+        <p>
+          EquiDuty uses minimal cookies and local storage to provide the service. We do <strong>NOT</strong>
+          use third-party tracking cookies or analytics cookies.
+        </p>
+
+        <h3>11.1 Essential Cookies and Local Storage</h3>
+        <ul>
+          <li><strong>Authentication tokens:</strong> JWT tokens stored in localStorage for session management</li>
+          <li><strong>User preferences:</strong> Settings for language, dark mode, timezone</li>
+          <li><strong>Device ID:</strong> UUID for stable device identification</li>
+          <li><strong>Firebase sessions:</strong> Firebase Authentication session management</li>
+        </ul>
+
+        <h3>11.2 No Third-Party Tracking</h3>
+        <p>
+          We do <strong>NOT</strong> use:
+        </p>
+        <ul>
+          <li>Google Analytics or other analytics cookies</li>
+          <li>Social media tracking pixels</li>
+          <li>Third-party advertising cookies</li>
+          <li>Behavioral tracking or session recording</li>
+        </ul>
+      </div>
+
+      <!-- 12. Children's Privacy -->
+      <div id="en-children">
+        <h2>12. Children's Privacy</h2>
+        <p>
+          EquiDuty is not intended for children under 16 years of age. We do not knowingly collect personal
+          data from children under 16 without parental consent.
+        </p>
+        <p>
+          If you are a parent or guardian and discover that your child has provided us with personal data
+          without your consent, please contact us at info@equiduty.se. We will delete such information from
+          our systems.
+        </p>
+      </div>
+
+      <!-- 13. Changes -->
+      <div id="en-changes">
+        <h2>13. Changes to Privacy Policy</h2>
+        <p>
+          We may update this privacy policy from time to time to reflect changes in our practices or for
+          legal reasons. We will notify you of material changes via:
+        </p>
+        <ul>
+          <li>Email notification to your registered email address</li>
+          <li>In-app notification</li>
+          <li>Updating the "Last Updated" date at the top of this page</li>
+        </ul>
+        <p>
+          We encourage you to review this privacy policy regularly. Continued use of EquiDuty after changes
+          constitutes acceptance of the updated policy.
+        </p>
+      </div>
+
+      <!-- 14. Contact -->
+      <div id="en-contact">
+        <h2>14. Contact Information</h2>
+        <p>
+          If you have questions, concerns, or requests about this privacy policy or our data protection
+          practices, please contact us:
+        </p>
+        <ul>
+          <li><strong>Email:</strong> info@equiduty.se</li>
+          <li><strong>Address:</strong> [ADDRESS]</li>
+          <li><strong>GDPR Contact Person:</strong> [NAME], info@equiduty.se</li>
+          <li><strong>Support:</strong> <a href="/support">https://equiduty.se/support</a></li>
+        </ul>
+        <p>
+          We strive to respond to all requests within 30 days as required by GDPR.
+        </p>
+      </div>
+    </section>
+  </div>
+</LegalLayout>

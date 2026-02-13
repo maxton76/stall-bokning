@@ -13,11 +13,6 @@ extension Date {
     /// Get the start and end dates for a given period type
     func dateRange(for periodType: TodayPeriodType, calendar: Calendar = .current) -> (start: Date, end: Date) {
         switch periodType {
-        case .day:
-            let start = calendar.startOfDay(for: self)
-            let end = calendar.date(byAdding: DateComponents(day: 1, second: -1), to: start) ?? start
-            return (start, end)
-
         case .week:
             let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: self)) ?? self
             // Add 6 days + 23:59:59 to cover full week (Sunday night)
@@ -36,8 +31,6 @@ extension Date {
     /// Navigate to the next period
     func nextPeriod(for periodType: TodayPeriodType, calendar: Calendar = .current) -> Date {
         switch periodType {
-        case .day:
-            return calendar.date(byAdding: .day, value: 1, to: self) ?? self
         case .week:
             return calendar.date(byAdding: .weekOfYear, value: 1, to: self) ?? self
         case .month:
@@ -48,8 +41,6 @@ extension Date {
     /// Navigate to the previous period
     func previousPeriod(for periodType: TodayPeriodType, calendar: Calendar = .current) -> Date {
         switch periodType {
-        case .day:
-            return calendar.date(byAdding: .day, value: -1, to: self) ?? self
         case .week:
             return calendar.date(byAdding: .weekOfYear, value: -1, to: self) ?? self
         case .month:
@@ -64,17 +55,6 @@ extension Date {
         let today = Date()
 
         switch periodType {
-        case .day:
-            if calendar.isDateInToday(self) {
-                return String(localized: "today.navigation.today")
-            } else if calendar.isDateInYesterday(self) {
-                return String(localized: "today.navigation.yesterday")
-            } else if calendar.isDateInTomorrow(self) {
-                return String(localized: "today.navigation.tomorrow")
-            } else {
-                return self.formatted(.dateTime.weekday(.wide).day().month(.abbreviated))
-            }
-
         case .week:
             let (start, end) = dateRange(for: .week, calendar: calendar)
             let todayRange = today.dateRange(for: .week, calendar: calendar)
@@ -134,13 +114,6 @@ extension Date {
     /// Get secondary display label (e.g., date under weekday)
     func periodSecondaryLabel(for periodType: TodayPeriodType, calendar: Calendar = .current) -> String? {
         switch periodType {
-        case .day:
-            // Return the full date unless it's a relative day
-            if calendar.isDateInToday(self) || calendar.isDateInYesterday(self) || calendar.isDateInTomorrow(self) {
-                return self.formatted(.dateTime.day().month(.abbreviated).year())
-            }
-            return nil
-
         case .week:
             let (start, end) = dateRange(for: .week, calendar: calendar)
             let today = Date()
@@ -183,8 +156,6 @@ extension Date {
     /// Check if date is in the same period as another date
     func isInSamePeriod(as other: Date, for periodType: TodayPeriodType, calendar: Calendar = .current) -> Bool {
         switch periodType {
-        case .day:
-            return calendar.isDate(self, inSameDayAs: other)
         case .week:
             let selfRange = dateRange(for: .week, calendar: calendar)
             let otherRange = other.dateRange(for: .week, calendar: calendar)

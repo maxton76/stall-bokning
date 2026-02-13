@@ -23,7 +23,7 @@ final class TodayViewModel {
     // MARK: - Navigation State
 
     var selectedDate: Date = Date()
-    var periodType: TodayPeriodType = .day
+    var periodType: TodayPeriodType = .week
 
     // MARK: - View Mode State
 
@@ -122,12 +122,9 @@ final class TodayViewModel {
         RoutineGroups(from: filteredRoutines)
     }
 
-    /// Temporal sections for activities (day view only)
+    /// Temporal sections for activities
     var temporalSections: TemporalSections {
-        guard periodType == .day else {
-            // For week/month view, put everything in "today" section
-            return TemporalSections(from: filteredActivities, referenceDate: selectedDate)
-        }
+        // For week/month view, organize activities by temporal sections
         return TemporalSections(from: filteredActivities, referenceDate: selectedDate)
     }
 
@@ -263,10 +260,14 @@ final class TodayViewModel {
         }
 
         // SECURITY: Verify user has permission to view schedules
-        guard permissionService.hasPermission(.viewSchedules) else {
-            errorMessage = "No permission to view schedules"
-            isLoading = false
-            return
+        // Skip check if permissions haven't loaded yet (race condition on app launch)
+        // They will be checked once permissions arrive via onChange observer
+        if permissionService.userPermissions != nil {
+            guard permissionService.hasPermission(.viewSchedules) else {
+                errorMessage = "No permission to view schedules"
+                isLoading = false
+                return
+            }
         }
 
         let stableId = stable.id
@@ -277,32 +278,45 @@ final class TodayViewModel {
 
         Task {
             do {
-                // stableId is guaranteed non-nil due to guard above
                 let range = dateRange
-                let today = Date()
 
-                // Routines are ALWAYS fetched for today only, regardless of period selection
-                AppLogger.data.info("📱 TodayVM: loading routines for stable=\(stableId, privacy: .public)")
-                routines = try await routineService.getRoutineInstances(
-                    stableId: stableId,
-                    date: today
+                // Retry with validation: auto-retry when both results are empty
+                // (likely cold start) but accept if at least one has data
+                let (fetchedRoutines, fetchedActivities) = try await RetryHelper.retryWithValidation(
+                    maxAttempts: 3,
+                    delay: 0.5,
+                    shouldRetryResult: { (result: ([RoutineInstance], [ActivityInstance])) in
+                        let isEmpty = result.0.isEmpty && result.1.isEmpty
+                        if isEmpty {
+                            AppLogger.data.info("📱 TodayVM: empty response, retrying (possible cold start)")
+                        }
+                        return isEmpty
+                    },
+                    operation: { [routineService, activityService] in
+                        async let r = routineService.getRoutineInstancesForDateRange(
+                            stableId: stableId,
+                            startDate: range.start,
+                            endDate: range.end
+                        )
+                        async let a = activityService.getActivitiesForStable(
+                            stableId: stableId,
+                            startDate: range.start,
+                            endDate: range.end,
+                            types: nil
+                        )
+                        return try await (r, a)
+                    }
                 )
-                AppLogger.data.info("📱 TodayVM: decoded \(self.routines.count) routines")
+
+                routines = fetchedRoutines
+                activities = fetchedActivities
+
+                AppLogger.data.info("📱 TodayVM: decoded \(self.routines.count) routines, \(self.activities.count) activities")
                 #if DEBUG
                 for r in routines {
                     print("  📋 Routine: \(r.templateName), status=\(r.status.rawValue), assignedTo=\(r.assignedTo ?? "nil")")
                 }
                 #endif
-
-                // Activities are fetched for the selected date range
-                AppLogger.data.info("📱 TodayVM: loading activities range=\(range.start) to \(range.end)")
-                activities = try await activityService.getActivitiesForStable(
-                    stableId: stableId,
-                    startDate: range.start,
-                    endDate: range.end,
-                    types: nil
-                )
-                AppLogger.data.info("📱 TodayVM: decoded \(self.activities.count) activities")
 
                 AppLogger.data.info("📱 TodayVM: viewMode=\(self.viewMode.rawValue, privacy: .public) filteredRoutines=\(self.filteredRoutines.count) filteredActivities=\(self.filteredActivities.count) isEmpty=\(self.isEmpty)")
 
@@ -323,21 +337,32 @@ final class TodayViewModel {
         do {
             if let stableId = authService.selectedStable?.id {
                 let range = dateRange
-                let today = Date()
 
-                // Routines are ALWAYS fetched for today only
-                routines = try await routineService.getRoutineInstances(
-                    stableId: stableId,
-                    date: today
+                // Fewer retries for user-initiated refresh (they can pull again)
+                let (fetchedRoutines, fetchedActivities) = try await RetryHelper.retryWithValidation(
+                    maxAttempts: 2,
+                    delay: 0.5,
+                    shouldRetryResult: { (result: ([RoutineInstance], [ActivityInstance])) in
+                        result.0.isEmpty && result.1.isEmpty
+                    },
+                    operation: { [routineService, activityService] in
+                        async let r = routineService.getRoutineInstancesForDateRange(
+                            stableId: stableId,
+                            startDate: range.start,
+                            endDate: range.end
+                        )
+                        async let a = activityService.getActivitiesForStable(
+                            stableId: stableId,
+                            startDate: range.start,
+                            endDate: range.end,
+                            types: nil
+                        )
+                        return try await (r, a)
+                    }
                 )
 
-                // Activities are fetched for the selected date range
-                activities = try await activityService.getActivitiesForStable(
-                    stableId: stableId,
-                    startDate: range.start,
-                    endDate: range.end,
-                    types: nil
-                )
+                routines = fetchedRoutines
+                activities = fetchedActivities
             } else {
                 routines = []
                 activities = []

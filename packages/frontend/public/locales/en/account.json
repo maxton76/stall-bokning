@@ -61,6 +61,12 @@
       "unlinked": "{{provider}} account disconnected"
     }
   },
+  "legal": {
+    "title": "Legal",
+    "description": "Privacy policy and terms of service",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service"
+  },
   "danger": {
     "title": "Danger Zone",
     "description": "Irreversible actions",

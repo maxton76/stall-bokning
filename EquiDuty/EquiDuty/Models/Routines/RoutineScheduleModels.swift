@@ -12,16 +12,12 @@ import Foundation
 enum RecurrencePattern: String, Codable, CaseIterable {
     case daily = "daily"
     case weekdays = "weekdays"
-    case weekends = "weekends"
-    case holidays = "holidays"
     case custom = "custom"
 
     var displayName: String {
         switch self {
         case .daily: return String(localized: "schedule.pattern.daily")
         case .weekdays: return String(localized: "schedule.pattern.weekdays")
-        case .weekends: return String(localized: "schedule.pattern.weekends")
-        case .holidays: return String(localized: "schedule.pattern.holidays")
         case .custom: return String(localized: "schedule.pattern.custom")
         }
     }
@@ -32,7 +28,7 @@ enum RecurrencePattern: String, Codable, CaseIterable {
 enum AssignmentMode: String, Codable {
     case auto = "auto"              // Fairness algorithm
     case manual = "manual"          // Admin assigns
-    case selfBook = "self_book"     // Users book themselves
+    case selfBook = "selfBooked"    // Users book themselves
     case fixed = "fixed"            // Fixed assignee
     case unassigned = "unassigned"  // No assignment
 
@@ -139,8 +135,8 @@ struct RoutineScheduleCreate: Codable {
     var stableId: String
     var templateId: String
     var name: String?
-    var startDate: Date
-    var endDate: Date?
+    var startDate: String  // "YYYY-MM-DD"
+    var endDate: String    // "YYYY-MM-DD" (required by backend)
     var repeatPattern: String  // RecurrencePattern rawValue
     var repeatDays: [Int]?
     var includeHolidays: Bool?
@@ -152,8 +148,8 @@ struct RoutineScheduleCreate: Codable {
 
 struct RoutineScheduleUpdate: Codable {
     var name: String?
-    var startDate: Date?
-    var endDate: Date?
+    var startDate: String?  // "YYYY-MM-DD"
+    var endDate: String?    // "YYYY-MM-DD"
     var repeatPattern: String?
     var repeatDays: [Int]?
     var includeHolidays: Bool?

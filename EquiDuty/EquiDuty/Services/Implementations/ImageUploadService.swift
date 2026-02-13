@@ -15,6 +15,27 @@ enum PhotoPurpose: String, Codable {
     case avatar
 }
 
+/// Background upload queue item
+struct QueuedUpload: Codable {
+    let id: UUID
+    let imageData: Data
+    let endpoint: String
+    let bodyJSON: Data
+    let createdAt: Date
+    let retryCount: Int
+    let maxRetries: Int
+
+    init(id: UUID = UUID(), imageData: Data, endpoint: String, bodyJSON: Data, retryCount: Int = 0, maxRetries: Int = 3) {
+        self.id = id
+        self.imageData = imageData
+        self.endpoint = endpoint
+        self.bodyJSON = bodyJSON
+        self.createdAt = Date()
+        self.retryCount = retryCount
+        self.maxRetries = maxRetries
+    }
+}
+
 /// Image upload service errors
 enum ImageUploadError: Error, LocalizedError {
     case compressionFailed
@@ -60,11 +81,28 @@ final class ImageUploadService {
     private let apiClient = APIClient.shared
     private let session: URLSession
 
+    // Background upload queue
+    private var uploadQueue: [QueuedUpload] = []
+    private let queueKey = "com.equiduty.upload.queue"
+    private var isProcessingQueue = false
+
     private init() {
+        // Phase 1: Increased timeouts for poor network conditions
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 60
-        config.timeoutIntervalForResource = 120
+        config.timeoutIntervalForRequest = 90   // Up from 60s
+        config.timeoutIntervalForResource = 180  // Up from 120s
         self.session = URLSession(configuration: config)
+
+        // Load persisted queue
+        loadQueue()
+
+        // Start network monitoring
+        NetworkMonitor.shared.startMonitoring()
+
+        // Process queue when network improves
+        Task { @MainActor in
+            await processQueueOnNetworkImprovement()
+        }
     }
 
     // MARK: - Image Compression
@@ -278,32 +316,63 @@ final class ImageUploadService {
     }
 
     /// Upload data to signed URL using raw URLSession
-    private func uploadToSignedUrl(_ url: URL, data: Data) async throws {
+    /// Phase 2: Added retry logic with exponential backoff
+    private func uploadToSignedUrl(_ url: URL, data: Data, retryCount: Int = 0) async throws {
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
         request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
         request.setValue("\(data.count)", forHTTPHeaderField: "Content-Length")
 
+        // Phase 2: Adjust timeout based on network quality
+        let networkMultiplier = NetworkMonitor.shared.timeoutMultiplier
+        request.timeoutInterval = 90 * networkMultiplier
+
         #if DEBUG
-        print("📤 Uploading \(data.count) bytes to signed URL")
+        print("📤 Uploading \(data.count) bytes to signed URL (attempt \(retryCount + 1)/4, timeout: \(Int(request.timeoutInterval))s)")
         #endif
 
-        let (_, response) = try await session.upload(for: request, from: data)
+        do {
+            let (_, response) = try await session.upload(for: request, from: data)
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw ImageUploadError.uploadFailed(NSError(domain: "ImageUpload", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"]))
-        }
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw ImageUploadError.uploadFailed(NSError(domain: "ImageUpload", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"]))
+            }
 
-        guard (200...299).contains(httpResponse.statusCode) else {
+            guard (200...299).contains(httpResponse.statusCode) else {
+                #if DEBUG
+                print("❌ GCS upload failed with status: \(httpResponse.statusCode)")
+                #endif
+                throw ImageUploadError.uploadFailed(NSError(domain: "ImageUpload", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "HTTP \(httpResponse.statusCode)"]))
+            }
+
             #if DEBUG
-            print("❌ GCS upload failed with status: \(httpResponse.statusCode)")
+            print("✅ GCS upload successful (status: \(httpResponse.statusCode))")
             #endif
-            throw ImageUploadError.uploadFailed(NSError(domain: "ImageUpload", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "HTTP \(httpResponse.statusCode)"]))
-        }
+        } catch let error as URLError where error.code == .timedOut && retryCount < 3 {
+            // Phase 2: Retry on timeout with exponential backoff
+            let delay = pow(2.0, Double(retryCount))  // 1s, 2s, 4s
+            #if DEBUG
+            print("⏱️ Upload timed out, retrying in \(Int(delay))s...")
+            #endif
 
-        #if DEBUG
-        print("✅ GCS upload successful (status: \(httpResponse.statusCode))")
-        #endif
+            try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            try await uploadToSignedUrl(url, data: data, retryCount: retryCount + 1)
+        } catch let error as NSError where (error.code == NSURLErrorNetworkConnectionLost ||
+                                              error.code == NSURLErrorNotConnectedToInternet) && retryCount < 3 {
+            // Phase 2: Retry on network errors with exponential backoff
+            let delay = pow(2.0, Double(retryCount))
+            #if DEBUG
+            print("🌐 Network error (\(error.localizedDescription)), retrying in \(Int(delay))s...")
+            #endif
+
+            try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            try await uploadToSignedUrl(url, data: data, retryCount: retryCount + 1)
+        } catch {
+            #if DEBUG
+            print("❌ Upload failed permanently: \(error)")
+            #endif
+            throw ImageUploadError.uploadFailed(error)
+        }
     }
 
     // MARK: - Photo Removal
@@ -344,6 +413,7 @@ final class ImageUploadService {
     // MARK: - Routine Evidence Upload
 
     /// Upload a single routine evidence photo
+    /// Phase 1: Evidence-specific compression (800px @ 0.65 quality)
     func uploadRoutineEvidencePhoto(
         image: UIImage,
         horseId: String?,
@@ -363,8 +433,14 @@ final class ImageUploadService {
             mimeType: "image/jpeg"
         )
 
+        // Phase 1: Evidence-specific compression settings
+        // - 800px maxDimension (down from 1200px)
+        // - 0.65 quality (down from 0.75)
+        // - Target: <200KB for typical evidence photos
         let (readUrl, _) = try await compressAndUpload(
             image: image,
+            maxDimension: 800,    // Evidence-specific
+            quality: 0.65,         // Evidence-specific
             endpoint: APIEndpoints.routineStepUploadUrl(instanceId, stepId: stepId),
             body: body
         )
@@ -374,6 +450,7 @@ final class ImageUploadService {
 
     /// Upload a batch of routine evidence photos concurrently.
     /// Returns successful URLs and the count of failures so callers can show user feedback.
+    /// Phase 3: Failed uploads are queued for background retry
     func uploadRoutineEvidenceBatch(
         images: [UIImage],
         horseId: String?,
@@ -382,9 +459,10 @@ final class ImageUploadService {
     ) async -> (urls: [String], failedCount: Int) {
         var urls: [String] = []
         var failedCount = 0
+        var failedUploads: [(Int, UIImage, Error)] = []
 
-        await withTaskGroup(of: Result<String, Error>.self) { group in
-            for image in images {
+        await withTaskGroup(of: (Int, Result<String, Error>).self) { group in
+            for (index, image) in images.enumerated() {
                 group.addTask {
                     do {
                         let url = try await self.uploadRoutineEvidencePhoto(
@@ -393,18 +471,19 @@ final class ImageUploadService {
                             instanceId: instanceId,
                             stepId: stepId
                         )
-                        return .success(url)
+                        return (index, .success(url))
                     } catch {
-                        return .failure(error)
+                        return (index, .failure(error))
                     }
                 }
             }
-            for await result in group {
+            for await (index, result) in group {
                 switch result {
                 case .success(let url):
                     urls.append(url)
                 case .failure(let error):
                     failedCount += 1
+                    failedUploads.append((index, images[index], error))
                     #if DEBUG
                     print("❌ Evidence photo upload failed: \(error.localizedDescription)")
                     #endif
@@ -412,7 +491,198 @@ final class ImageUploadService {
             }
         }
 
+        // Phase 3: Queue failed uploads for background retry
+        for (_, image, error) in failedUploads {
+            await queueFailedUpload(
+                image: image,
+                horseId: horseId,
+                instanceId: instanceId,
+                stepId: stepId,
+                error: error
+            )
+        }
+
         return (urls, failedCount)
+    }
+
+    // MARK: - Background Upload Queue (Phase 3)
+
+    /// Queue a failed upload for background retry
+    private func queueFailedUpload(
+        image: UIImage,
+        horseId: String?,
+        instanceId: String,
+        stepId: String,
+        error: Error
+    ) async {
+        #if DEBUG
+        print("📋 Queueing failed upload for background retry: \(error.localizedDescription)")
+        #endif
+
+        // Compress image for storage
+        guard let imageData = compressImage(image, maxDimension: 800, quality: 0.65) else {
+            #if DEBUG
+            print("❌ Failed to compress image for queue")
+            #endif
+            return
+        }
+
+        // Create request body
+        let fileName = "evidence_\(UUID().uuidString).jpg"
+        let body = RoutineEvidenceUploadRequest(
+            horseId: horseId,
+            instanceId: instanceId,
+            stepId: stepId,
+            fileName: fileName,
+            mimeType: "image/jpeg"
+        )
+
+        guard let bodyJSON = try? JSONEncoder().encode(body) else {
+            #if DEBUG
+            print("❌ Failed to encode request body for queue")
+            #endif
+            return
+        }
+
+        let queuedUpload = QueuedUpload(
+            imageData: imageData,
+            endpoint: APIEndpoints.routineStepUploadUrl(instanceId, stepId: stepId),
+            bodyJSON: bodyJSON
+        )
+
+        uploadQueue.append(queuedUpload)
+        saveQueue()
+
+        #if DEBUG
+        print("✅ Queued upload (queue size: \(uploadQueue.count))")
+        #endif
+    }
+
+    /// Save upload queue to UserDefaults
+    private func saveQueue() {
+        guard let data = try? JSONEncoder().encode(uploadQueue) else {
+            return
+        }
+        UserDefaults.standard.set(data, forKey: queueKey)
+    }
+
+    /// Load upload queue from UserDefaults
+    private func loadQueue() {
+        guard let data = UserDefaults.standard.data(forKey: queueKey),
+              let queue = try? JSONDecoder().decode([QueuedUpload].self, from: data) else {
+            return
+        }
+        uploadQueue = queue
+
+        #if DEBUG
+        print("📋 Loaded \(uploadQueue.count) queued uploads")
+        #endif
+    }
+
+    /// Process queued uploads when network conditions improve
+    private func processQueueOnNetworkImprovement() async {
+        // Monitor network quality and process queue when conditions are good
+        while true {
+            try? await Task.sleep(nanoseconds: 30_000_000_000)  // Check every 30s
+
+            if NetworkMonitor.shared.isUploadRecommended && !uploadQueue.isEmpty && !isProcessingQueue {
+                await processQueue()
+            }
+        }
+    }
+
+    /// Process all queued uploads
+    private func processQueue() async {
+        guard !uploadQueue.isEmpty, !isProcessingQueue else { return }
+
+        isProcessingQueue = true
+        defer { isProcessingQueue = false }
+
+        #if DEBUG
+        print("🔄 Processing \(uploadQueue.count) queued uploads")
+        #endif
+
+        var successfulUploads: [UUID] = []
+        var failedUploads: [(QueuedUpload, Error)] = []
+
+        for upload in uploadQueue {
+            do {
+                // Recreate UIImage from data
+                guard let image = UIImage(data: upload.imageData) else {
+                    throw ImageUploadError.invalidImage
+                }
+
+                // Decode request body
+                guard let body = try? JSONDecoder().decode(RoutineEvidenceUploadRequest.self, from: upload.bodyJSON) else {
+                    throw ImageUploadError.compressionFailed
+                }
+
+                // Attempt upload
+                let (_, _) = try await compressAndUpload(
+                    image: image,
+                    maxDimension: 800,
+                    quality: 0.65,
+                    endpoint: upload.endpoint,
+                    body: body
+                )
+
+                successfulUploads.append(upload.id)
+
+                #if DEBUG
+                print("✅ Background upload succeeded: \(upload.id)")
+                #endif
+            } catch {
+                #if DEBUG
+                print("❌ Background upload failed: \(error.localizedDescription)")
+                #endif
+
+                if upload.retryCount < upload.maxRetries {
+                    // Re-queue with incremented retry count
+                    let updatedUpload = upload
+                    failedUploads.append((updatedUpload, error))
+                } else {
+                    #if DEBUG
+                    print("⚠️ Upload exhausted retries, removing from queue")
+                    #endif
+                    successfulUploads.append(upload.id)  // Remove from queue
+                }
+            }
+
+            // Small delay between uploads to avoid overwhelming the server
+            try? await Task.sleep(nanoseconds: 1_000_000_000)  // 1s
+        }
+
+        // Remove successful uploads from queue
+        uploadQueue.removeAll { successfulUploads.contains($0.id) }
+
+        // Re-add failed uploads with incremented retry count
+        for (upload, _) in failedUploads {
+            let updatedUpload = upload
+            uploadQueue.append(QueuedUpload(
+                id: updatedUpload.id,
+                imageData: updatedUpload.imageData,
+                endpoint: updatedUpload.endpoint,
+                bodyJSON: updatedUpload.bodyJSON,
+                retryCount: updatedUpload.retryCount + 1,
+                maxRetries: updatedUpload.maxRetries
+            ))
+        }
+
+        saveQueue()
+
+        #if DEBUG
+        print("✅ Queue processing complete. Remaining: \(uploadQueue.count)")
+        #endif
+    }
+
+    /// Public method to manually retry queued uploads
+    func retryQueuedUploads() async {
+        await processQueue()
+    }
+
+    /// Get count of queued uploads
+    var queuedUploadCount: Int {
+        uploadQueue.count
     }
 }
 

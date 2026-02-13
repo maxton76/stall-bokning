@@ -21,14 +21,28 @@ struct HorseActivityHistoryView: View {
     @State private var isLoadingMore = false
 
     // Filters
-    @State private var selectedDateRange: ActivityDateRange = .last7Days
+    @State private var currentWeekStart: Date = {
+        let cal = Calendar.current
+        return cal.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
+    }()
     @State private var selectedCategories: Set<RoutineCategory> = Set(RoutineCategory.allCases)
+
+    private var weekEndDate: Date {
+        Calendar.current.date(byAdding: .day, value: 7, to: currentWeekStart) ?? currentWeekStart
+    }
+
+    private var isCurrentWeek: Bool {
+        let cal = Calendar.current
+        let thisWeekStart = cal.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
+        return cal.isDate(currentWeekStart, inSameDayAs: thisWeekStart)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Filter bar
-            ActivityHistoryFilterBar(
-                selectedDateRange: $selectedDateRange,
+            // Week navigation + category filter
+            WeekNavigationBar(
+                currentWeekStart: $currentWeekStart,
+                isCurrentWeek: isCurrentWeek,
                 selectedCategories: $selectedCategories,
                 onFilterChange: {
                     loadActivities(reset: true)
@@ -81,6 +95,7 @@ struct HorseActivityHistoryView: View {
                         }
                     }
                     .padding(.top, EquiDutyDesign.Spacing.md)
+                    .padding(.bottom, 80)  // Add padding to prevent FAB from blocking last card
                 }
             }
         }
@@ -89,7 +104,7 @@ struct HorseActivityHistoryView: View {
                 loadActivities(reset: true)
             }
         }
-        .onChange(of: selectedDateRange) { _, _ in
+        .onChange(of: currentWeekStart) { _, _ in
             loadActivities(reset: true)
         }
         .onChange(of: selectedCategories) { _, _ in
@@ -111,8 +126,9 @@ struct HorseActivityHistoryView: View {
             do {
                 let response = try await service.getActivityHistory(
                     horseId: horseId,
-                    dateRange: selectedDateRange,
                     categories: selectedCategories.isEmpty ? nil : selectedCategories,
+                    startDate: currentWeekStart,
+                    endDate: weekEndDate,
                     cursor: nil
                 )
                 activities = response.activities
@@ -135,8 +151,9 @@ struct HorseActivityHistoryView: View {
             do {
                 let response = try await service.getActivityHistory(
                     horseId: horseId,
-                    dateRange: selectedDateRange,
                     categories: selectedCategories.isEmpty ? nil : selectedCategories,
+                    startDate: currentWeekStart,
+                    endDate: weekEndDate,
                     cursor: cursor
                 )
                 activities.append(contentsOf: response.activities)
@@ -150,52 +167,83 @@ struct HorseActivityHistoryView: View {
     }
 }
 
-// MARK: - Filter Bar
+// MARK: - Week Navigation Bar
 
-struct ActivityHistoryFilterBar: View {
-    @Binding var selectedDateRange: ActivityDateRange
+struct WeekNavigationBar: View {
+    @Binding var currentWeekStart: Date
+    let isCurrentWeek: Bool
     @Binding var selectedCategories: Set<RoutineCategory>
     var onFilterChange: () -> Void
 
+    private var weekNumber: Int {
+        Calendar.current.component(.weekOfYear, from: currentWeekStart)
+    }
+
+    private var year: Int {
+        Calendar.current.component(.yearForWeekOfYear, from: currentWeekStart)
+    }
+
     var body: some View {
-        HStack(spacing: EquiDutyDesign.Spacing.md) {
-            // Date range picker
-            Menu {
-                ForEach(ActivityDateRange.allCases) { range in
-                    Button {
-                        selectedDateRange = range
-                    } label: {
-                        HStack {
-                            Text(range.displayName)
-                            if selectedDateRange == range {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
-                }
-            } label: {
+        VStack(spacing: EquiDutyDesign.Spacing.sm) {
+            HStack(spacing: EquiDutyDesign.Spacing.md) {
+                // Week navigation
                 HStack(spacing: EquiDutyDesign.Spacing.xs) {
-                    Image(systemName: "calendar")
-                        .font(.caption)
-                    Text(selectedDateRange.displayName)
-                        .font(.subheadline)
-                    Image(systemName: "chevron.down")
-                        .font(.caption2)
+                    Button {
+                        withAnimation {
+                            currentWeekStart = Calendar.current.date(byAdding: .weekOfYear, value: -1, to: currentWeekStart) ?? currentWeekStart
+                        }
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.body.weight(.semibold))
+                            .frame(width: 32, height: 32)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.scale)
+
+                    Text("v.\(weekNumber), \(String(year))")
+                        .font(.subheadline.weight(.medium))
+                        .monospacedDigit()
+                        .frame(minWidth: 80)
+
+                    Button {
+                        withAnimation {
+                            currentWeekStart = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: currentWeekStart) ?? currentWeekStart
+                        }
+                    } label: {
+                        Image(systemName: "chevron.right")
+                            .font(.body.weight(.semibold))
+                            .frame(width: 32, height: 32)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.scale)
+                    .disabled(isCurrentWeek)
+                    .opacity(isCurrentWeek ? 0.3 : 1)
                 }
-                .padding(.horizontal, EquiDutyDesign.Spacing.md)
-                .padding(.vertical, EquiDutyDesign.Spacing.sm)
-                .background(.ultraThinMaterial)
-                .clipShape(Capsule())
+
+                if !isCurrentWeek {
+                    Button {
+                        withAnimation {
+                            currentWeekStart = Calendar.current.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
+                        }
+                    } label: {
+                        Text(String(localized: "horse.history.today"))
+                            .font(.subheadline)
+                            .padding(.horizontal, EquiDutyDesign.Spacing.md)
+                            .padding(.vertical, EquiDutyDesign.Spacing.xs)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.scale)
+                }
+
+                Spacer()
+
+                // Category filter
+                CategoryFilterMenu(
+                    selectedCategories: $selectedCategories,
+                    onFilterChange: onFilterChange
+                )
             }
-            .buttonStyle(.scale)
-
-            // Category filter
-            CategoryFilterMenu(
-                selectedCategories: $selectedCategories,
-                onFilterChange: onFilterChange
-            )
-
-            Spacer()
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
@@ -259,8 +307,6 @@ struct CategoryFilterMenu: View {
             }
         } label: {
             HStack(spacing: EquiDutyDesign.Spacing.xs) {
-                Image(systemName: "line.3.horizontal.decrease.circle")
-                    .font(.caption)
                 Text(filterLabel)
                     .font(.subheadline)
                     .lineLimit(1)
@@ -298,7 +344,7 @@ struct ActivityHistoryRow: View {
                             .foregroundStyle(categoryColor)
                             .font(.title3)
 
-                        Text(activity.stepName)
+                        Text(activity.stepName ?? activity.category.displayName)
                             .font(.headline)
                             .foregroundStyle(.primary)
 
@@ -318,26 +364,30 @@ struct ActivityHistoryRow: View {
 
                         Spacer()
 
-                        ModernStatusBadge(
-                            status: activity.executionStatus == .completed
-                                ? String(localized: "horse.history.status.completed")
-                                : String(localized: "horse.history.status.skipped"),
-                            color: activity.executionStatus == .completed ? .green : .orange,
-                            icon: activity.executionStatus == .completed ? "checkmark.circle.fill" : "arrow.uturn.left"
-                        )
+                        if let executionStatus = activity.executionStatus {
+                            ModernStatusBadge(
+                                status: executionStatus == .completed
+                                    ? String(localized: "horse.history.status.completed")
+                                    : String(localized: "horse.history.status.skipped"),
+                                color: executionStatus == .completed ? .green : .orange,
+                                icon: executionStatus == .completed ? "checkmark.circle.fill" : "arrow.uturn.left"
+                            )
+                        }
                     }
 
                     // Metadata row
                     HStack(spacing: EquiDutyDesign.Spacing.md) {
                         // Date/time
-                        Label {
-                            Text(activity.executedAt.formatted(date: .abbreviated, time: .shortened))
-                                .font(.caption)
-                        } icon: {
-                            Image(systemName: "calendar")
-                                .font(.caption2)
+                        if let executedAt = activity.executedAt {
+                            Label {
+                                Text(executedAt.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.caption)
+                            } icon: {
+                                Image(systemName: "calendar")
+                                    .font(.caption2)
+                            }
+                            .foregroundStyle(.secondary)
                         }
-                        .foregroundStyle(.secondary)
 
                         // Executed by
                         if let executedByName = activity.executedByName {
@@ -360,13 +410,15 @@ struct ActivityHistoryRow: View {
                     }
 
                     // Routine name
-                    HStack(spacing: EquiDutyDesign.Spacing.xs) {
-                        Image(systemName: "tag")
-                            .font(.caption2)
-                        Text(activity.routineTemplateName)
-                            .font(.caption)
+                    if let routineTemplateName = activity.routineTemplateName {
+                        HStack(spacing: EquiDutyDesign.Spacing.xs) {
+                            Image(systemName: "tag")
+                                .font(.caption2)
+                            Text(routineTemplateName)
+                                .font(.caption)
+                        }
+                        .foregroundStyle(.secondary)
                     }
-                    .foregroundStyle(.secondary)
                 }
                 .padding(EquiDutyDesign.Spacing.standard)
             }

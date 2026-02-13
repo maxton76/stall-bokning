@@ -1,4 +1,8 @@
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+  sendEmailVerification,
+} from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { formatFullName } from "@/lib/nameUtils";
 import { apiClient } from "@/lib/apiClient";
@@ -8,6 +12,10 @@ export interface RegisterUserData {
   password: string;
   firstName: string;
   lastName: string;
+  organizationType?: "personal" | "business";
+  organizationName?: string;
+  contactEmail?: string;
+  phoneNumber?: string;
 }
 
 /**
@@ -37,6 +45,9 @@ export async function registerUser(data: RegisterUserData): Promise<string> {
       }),
     });
 
+    // 2.5 Send email verification
+    await sendEmailVerification(user);
+
     // 3. Call backend to create Firestore user document and organization
     // Backend handles:
     // - Creating user document
@@ -50,6 +61,10 @@ export async function registerUser(data: RegisterUserData): Promise<string> {
       firstName: data.firstName,
       lastName: data.lastName,
       systemRole: "member",
+      organizationType: data.organizationType,
+      organizationName: data.organizationName,
+      contactEmail: data.contactEmail,
+      phoneNumber: data.phoneNumber,
     });
 
     // Backend creates organization, but doesn't return it

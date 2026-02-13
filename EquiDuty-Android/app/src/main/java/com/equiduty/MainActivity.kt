@@ -22,6 +22,7 @@ import com.equiduty.data.repository.NotificationRepository
 import com.equiduty.domain.repository.AuthState
 import com.equiduty.service.NotificationChannelManager
 import com.equiduty.ui.auth.AuthViewModel
+import com.equiduty.ui.auth.EmailVerificationScreen
 import com.equiduty.ui.auth.LoginScreen
 import com.equiduty.ui.auth.SignUpScreen
 import com.equiduty.ui.auth.SplashScreen
@@ -148,7 +149,9 @@ class MainActivity : ComponentActivity() {
                             SignUpScreen(
                                 isLoading = isLoading,
                                 error = error,
-                                onSignUp = authViewModel::signUp,
+                                onSignUp = { email, password, firstName, lastName, orgType, orgName, contactEmail, phone ->
+                                    authViewModel.signUp(email, password, firstName, lastName, orgType, orgName, contactEmail, phone)
+                                },
                                 onNavigateBack = { authViewModel.showSignUp.value = false },
                                 onClearError = authViewModel::clearError
                             )
@@ -165,10 +168,25 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     is AuthState.SignedIn -> {
-                        LaunchedEffect(Unit) {
-                            notificationRepository.registerFcmToken()
+                        val isEmailVerified by authViewModel.isEmailVerified.collectAsState()
+
+                        if (isEmailVerified) {
+                            // Email verified OR OAuth user
+                            LaunchedEffect(Unit) {
+                                notificationRepository.registerFcmToken()
+                            }
+                            AppNavGraph(onSignOut = authViewModel::signOut)
+                        } else {
+                            // Email not verified - block with verification screen
+                            EmailVerificationScreen(
+                                isEmailVerified = isEmailVerified,
+                                error = error,
+                                onCheckVerification = authViewModel::checkEmailVerification,
+                                onResendEmail = authViewModel::resendVerificationEmail,
+                                onSignOut = authViewModel::signOut,
+                                onClearError = authViewModel::clearError
+                            )
                         }
-                        AppNavGraph(onSignOut = authViewModel::signOut)
                     }
                 }
             }

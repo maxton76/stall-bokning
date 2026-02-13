@@ -15,9 +15,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.equiduty.R
 import com.equiduty.ui.navigation.Route
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,6 +99,32 @@ fun SettingsScreen(
                 title = "Språk",
                 subtitle = "Svenska / English",
                 onClick = { navController.navigate(Route.LanguageSettings.route) }
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            // Legal
+            val uriHandler = LocalUriHandler.current
+
+            Text(
+                text = stringResource(R.string.settings_legal),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp)
+            )
+
+            SettingsItem(
+                icon = Icons.Default.PrivacyTip,
+                title = stringResource(R.string.settings_privacy_policy),
+                subtitle = "equiduty.se/privacy",
+                onClick = { uriHandler.openUri("https://equiduty.se/privacy") }
+            )
+
+            SettingsItem(
+                icon = Icons.Default.Gavel,
+                title = stringResource(R.string.settings_terms_of_service),
+                subtitle = "equiduty.se/terms",
+                onClick = { uriHandler.openUri("https://equiduty.se/terms") }
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))

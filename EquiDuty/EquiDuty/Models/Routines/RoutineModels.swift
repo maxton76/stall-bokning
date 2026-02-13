@@ -369,6 +369,20 @@ struct RoutineInstance: Codable, Identifiable, Equatable, Hashable {
     let createdBy: String
     let updatedAt: Date
     var updatedBy: String?
+
+    // MARK: - Computed Properties for Permission Checks
+
+    var isScheduled: Bool { status == .scheduled }
+    var canBeReassigned: Bool { status == .scheduled }
+    var canBeCancelled: Bool {
+        [.scheduled, .started, .inProgress].contains(status)
+    }
+    var canBeDeleted: Bool {
+        [.scheduled, .cancelled].contains(status)
+    }
+    var isUnassigned: Bool {
+        assignedTo == nil || assignedTo?.isEmpty == true
+    }
 }
 
 // MARK: - Daily Notes
@@ -590,6 +604,7 @@ struct RoutineStepCreate: Codable {
 
 /// Request body for creating a new routine template
 struct RoutineTemplateCreate: Codable {
+    var organizationId: String
     var name: String
     var description: String?
     var type: String  // RoutineType rawValue

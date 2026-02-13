@@ -6,7 +6,7 @@
  */
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-import { db, FieldPath } from "../utils/firebase.js";
+import { db, auth, FieldPath } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
 import { requireSystemAdmin } from "../middleware/requireSystemAdmin.js";
 import type { AuthenticatedRequest } from "../types/index.js";
@@ -390,6 +390,112 @@ export const adminRoutes = async (fastify: FastifyInstance) => {
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to fetch organization",
+        });
+      }
+    },
+  );
+
+  /**
+   * DELETE /organizations/:id - Delete organization with all related data
+   * Removes: organization, stables, organizationMembers, user doc, Firebase Auth user
+   */
+  fastify.delete(
+    "/organizations/:id",
+    { preHandler: adminPreHandler },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const { id } = request.params as { id: string };
+      const currentUser = (request as AuthenticatedRequest).user;
+
+      if (!isValidId(id)) {
+        return reply.status(400).send({ error: "Invalid ID" });
+      }
+
+      try {
+        const orgDoc = await db.collection("organizations").doc(id).get();
+
+        if (!orgDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Organization not found",
+          });
+        }
+
+        const orgData = orgDoc.data()!;
+        const ownerId = orgData.ownerId as string | undefined;
+
+        // Prevent admin from deleting their own organization
+        if (ownerId && currentUser && ownerId === currentUser.uid) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Cannot delete your own organization",
+          });
+        }
+
+        // Query related collections
+        const [stablesSnap, membersSnap] = await Promise.all([
+          db.collection("stables").where("organizationId", "==", id).get(),
+          db
+            .collection("organizationMembers")
+            .where("organizationId", "==", id)
+            .get(),
+        ]);
+
+        // Batch delete all related documents
+        const batch = db.batch();
+
+        for (const doc of membersSnap.docs) {
+          batch.delete(doc.ref);
+        }
+        for (const doc of stablesSnap.docs) {
+          batch.delete(doc.ref);
+        }
+        batch.delete(db.collection("organizations").doc(id));
+
+        if (ownerId) {
+          batch.delete(db.collection("users").doc(ownerId));
+        }
+
+        await batch.commit();
+
+        // Delete Firebase Auth user
+        if (ownerId) {
+          try {
+            await auth.deleteUser(ownerId);
+          } catch (authError: any) {
+            // User may already be deleted from Auth
+            if (authError.code !== "auth/user-not-found") {
+              request.log.error(
+                { error: authError, ownerId },
+                "Failed to delete Firebase Auth user",
+              );
+            }
+          }
+        }
+
+        request.log.info(
+          {
+            orgId: id,
+            ownerId,
+            stables: stablesSnap.size,
+            members: membersSnap.size,
+          },
+          "Admin deleted organization and related data",
+        );
+
+        return reply.send({
+          success: true,
+          deleted: {
+            organization: 1,
+            stables: stablesSnap.size,
+            members: membersSnap.size,
+            user: ownerId ? 1 : 0,
+          },
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to delete organization");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to delete organization",
         });
       }
     },

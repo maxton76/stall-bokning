@@ -28,6 +28,37 @@
     <string name="password_min_length">Minst 6 tecken</string>
     <string name="password_mismatch">Lösenorden matchar inte</string>
 
+    <!-- Signup Steps -->
+    <string name="signup_how_will_you_use">Hur ska du använda EquiDuty?</string>
+    <string name="signup_choose_best_fit">Välj det som passar bäst för dig.</string>
+    <string name="signup_personal_use">Personligt bruk</string>
+    <string name="signup_personal_description">Perfekt för dig som har egna hästar hemma och vill hålla koll på rutiner och skötsel</string>
+    <string name="signup_stable_or_business">Stall eller verksamhet</string>
+    <string name="signup_business_description">Hantera stallverksamhet, planera aktiviteter, fördela arbetsuppgifter och bjud in teammedlemmar</string>
+    <string name="signup_business_details_title">Uppgifter om din verksamhet</string>
+    <string name="signup_business_details_subtitle">Dessa uppgifter används för din stallorganisation</string>
+    <string name="signup_organization_name">Organisationsnamn</string>
+    <string name="signup_contact_email">Kontakt-e-post</string>
+    <string name="signup_phone_number">Telefonnummer</string>
+    <string name="signup_step_indicator">Steg %1$d av %2$d</string>
+    <string name="signup_org_name_required">Organisationsnamn krävs</string>
+    <string name="signup_agree_to">Jag godkänner</string>
+    <string name="signup_privacy_policy">integritetspolicyn</string>
+    <string name="signup_terms_of_service">användarvillkoren</string>
+    <string name="signup_and">och</string>
+
+    <!-- Email Verification -->
+    <string name="verify_email_title">Verifiera din e-post</string>
+    <string name="verify_email_subtitle">Vi har skickat en verifieringslänk till %1$s</string>
+    <string name="verify_email_check_inbox">Kontrollera din inkorg och klicka på länken för att verifiera ditt konto.</string>
+    <string name="verify_email_check_spam">Hittar du inte mailet? Kolla skräpposten.</string>
+    <string name="verify_email_resend">Skicka igen</string>
+    <string name="verify_email_resend_cooldown">Vänta %1$d sekunder</string>
+    <string name="verify_email_resent">Verifieringsmejl skickat!</string>
+    <string name="verify_email_verified">E-post verifierad!</string>
+    <string name="verify_email_checking">Kontrollerar verifiering…</string>
+    <string name="verify_email_sign_out">Logga ut</string>
+
     <!-- Common -->
     <string name="save">Spara</string>
     <string name="cancel">Avbryt</string>
@@ -160,6 +191,9 @@
     <string name="settings_notifications_quiet_hours">Stäng av notiser under natten</string>
     <string name="settings_language_swedish">Svenska</string>
     <string name="settings_language_english">English</string>
+    <string name="settings_legal">Juridiskt</string>
+    <string name="settings_privacy_policy">Integritetspolicy</string>
+    <string name="settings_terms_of_service">Användarvillkor</string>
 
     <!-- Permissions & Subscription -->
     <string name="permission_denied">Åtkomst nekad</string>

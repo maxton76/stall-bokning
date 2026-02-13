@@ -21,6 +21,8 @@ struct PhotoEvidenceView: View {
     @State private var showCamera = false
     @State private var showPhotoLibrary = false
     @State private var uploadError: String?
+    @State private var showNetworkWarning = false
+    @State private var canRetry = false
 
     private var totalPhotos: Int {
         pendingPhotos.count + uploadedPhotoUrls.count
@@ -45,6 +47,9 @@ struct PhotoEvidenceView: View {
                 .foregroundStyle(.blue)
 
                 Spacer()
+
+                // Phase 2: Network quality indicator
+                networkQualityIndicator
 
                 Text(String(localized: "routine.photo.count \(totalPhotos) \(maxPhotos)"))
                     .font(.caption2)
@@ -76,11 +81,36 @@ struct PhotoEvidenceView: View {
                 addPhotoButton
             }
 
-            // Upload error
+            // Upload error with retry button
             if let uploadError {
-                Text(uploadError)
-                    .font(.caption2)
-                    .foregroundStyle(.red)
+                HStack(spacing: EquiDutyDesign.Spacing.xs) {
+                    Text(uploadError)
+                        .font(.caption2)
+                        .foregroundStyle(.red)
+
+                    if canRetry {
+                        Button {
+                            Task {
+                                await retryFailedUploads()
+                            }
+                        } label: {
+                            Text(String(localized: "routine.photo.retry"))
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                        }
+                    }
+                }
+            }
+
+            // Phase 2: Network warning
+            if showNetworkWarning, let warning = NetworkMonitor.shared.uploadWarning {
+                HStack(spacing: EquiDutyDesign.Spacing.xs) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption2)
+                    Text(warning)
+                        .font(.caption2)
+                }
+                .foregroundStyle(.orange)
             }
 
             // Uploading indicator
@@ -121,6 +151,39 @@ struct PhotoEvidenceView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Network Quality Indicator
+
+    private var networkQualityIndicator: some View {
+        Group {
+            let monitor = NetworkMonitor.shared
+            let quality = monitor.quality
+
+            switch quality {
+            case .excellent:
+                Image(systemName: "wifi")
+                    .font(.caption2)
+                    .foregroundStyle(.green)
+            case .good:
+                Image(systemName: "wifi")
+                    .font(.caption2)
+                    .foregroundStyle(.blue)
+            case .fair:
+                Image(systemName: "wifi.exclamationmark")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            case .poor:
+                Image(systemName: "wifi.slash")
+                    .font(.caption2)
+                    .foregroundStyle(.red)
+            case .offline:
+                Image(systemName: "wifi.slash")
+                    .font(.caption2)
+                    .foregroundStyle(.gray)
+            }
+        }
+        .help(NetworkMonitor.shared.connectionType.localizedDescription)
     }
 
     // MARK: - Thumbnails
@@ -210,11 +273,16 @@ struct PhotoEvidenceView: View {
     }
 
     /// Upload all pending photos and return URLs
+    /// Phase 2: Shows network warnings and enables retry on failure
     func uploadPendingPhotos() async -> [String] {
         guard !pendingPhotos.isEmpty else { return uploadedPhotoUrls }
 
+        // Phase 2: Check network quality and warn user
+        showNetworkWarning = !NetworkMonitor.shared.isUploadRecommended
+
         isUploading = true
         uploadError = nil
+        canRetry = false
 
         var newUrls: [String] = []
 
@@ -247,7 +315,9 @@ struct PhotoEvidenceView: View {
 
         await MainActor.run {
             if newUrls.count < pendingPhotos.count {
-                uploadError = String(localized: "routine.photo.upload_failed")
+                let failedCount = pendingPhotos.count - newUrls.count
+                uploadError = String(localized: "routine.photo.upload_partial_failed \(failedCount)")
+                canRetry = true  // Enable retry button
             }
             uploadedPhotoUrls.append(contentsOf: newUrls)
             pendingPhotos.removeAll()
@@ -255,6 +325,25 @@ struct PhotoEvidenceView: View {
         }
 
         return uploadedPhotoUrls
+    }
+
+    /// Retry queued failed uploads
+    private func retryFailedUploads() async {
+        #if DEBUG
+        print("🔄 Retrying queued uploads...")
+        #endif
+
+        uploadError = nil
+        canRetry = false
+
+        await ImageUploadService.shared.retryQueuedUploads()
+
+        // Check if there are still queued uploads
+        let remainingCount = ImageUploadService.shared.queuedUploadCount
+        if remainingCount > 0 {
+            uploadError = String(localized: "routine.photo.retry_failed \(remainingCount)")
+            canRetry = true
+        }
     }
 }
 

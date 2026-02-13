@@ -182,6 +182,74 @@ function validateDuration(value: unknown): number | null {
 
 export async function activitiesRoutes(fastify: FastifyInstance) {
   /**
+   * GET /api/v1/activities/:id
+   * Get a single activity by ID
+   * Used by iOS/Android apps for activity detail views
+   */
+  fastify.get(
+    "/:id",
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const user = (request as AuthenticatedRequest).user!;
+
+        // Fetch activity from Firestore
+        const activityDoc = await db.collection("activities").doc(id).get();
+
+        if (!activityDoc.exists) {
+          return reply.status(404).send({
+            statusCode: 404,
+            error: "Not Found",
+            message: "Activity not found",
+          });
+        }
+
+        const activity = activityDoc.data()!;
+
+        // Permission check - user must have access to the stable
+        if (user.role !== "system_admin") {
+          if (activity.stableId) {
+            const hasAccess = await hasStableAccess(
+              activity.stableId,
+              user.uid,
+              user.role,
+            );
+            if (!hasAccess) {
+              return reply.status(403).send({
+                error: "Forbidden",
+                message: "You do not have permission to access this activity",
+              });
+            }
+          } else {
+            // No stableId - deny access unless system admin
+            return reply.status(403).send({
+              error: "Forbidden",
+              message: "You do not have permission to access this activity",
+            });
+          }
+        }
+
+        // Return serialized activity with ISO 8601 timestamps
+        return reply.send(
+          serializeTimestamps({
+            id: activityDoc.id,
+            ...activity,
+          }),
+        );
+      } catch (error) {
+        request.log.error({ error }, "Failed to fetch activity by ID");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to fetch activity",
+        });
+      }
+    },
+  );
+
+  /**
    * GET /api/v1/activities/horse/:horseId
    * Get activities for a specific horse
    * Respects historyVisibility settings for placement org members

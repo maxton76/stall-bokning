@@ -638,7 +638,16 @@ final class AuthService {
     // MARK: - Sign Up
 
     /// Create new account with email and password
-    func signUp(email: String, password: String, firstName: String, lastName: String) async throws {
+    func signUp(
+        email: String,
+        password: String,
+        firstName: String,
+        lastName: String,
+        organizationType: String? = nil,
+        organizationName: String? = nil,
+        contactEmail: String? = nil,
+        phoneNumber: String? = nil
+    ) async throws {
         isLoading = true
         error = nil
 
@@ -654,12 +663,32 @@ final class AuthService {
             // Send email verification
             try await result.user.sendEmailVerification()
 
+            // Call backend signup to create user document and organization
+            var body: [String: String] = [
+                "email": email,
+                "firstName": firstName,
+                "lastName": lastName
+            ]
+            if let organizationType { body["organizationType"] = organizationType }
+            if let organizationName { body["organizationName"] = organizationName }
+            if let contactEmail { body["contactEmail"] = contactEmail }
+            if let phoneNumber { body["phoneNumber"] = phoneNumber }
+
+            let _: SignupResponse = try await APIClient.shared.post(APIEndpoints.authSignup, body: body)
+
             // The auth state listener will handle the rest
         } catch {
             self.error = error
             isLoading = false
             throw AuthError.signUpFailed(error)
         }
+    }
+
+    /// Response from /auth/signup endpoint
+    private struct SignupResponse: Decodable {
+        let id: String?
+        let email: String?
+        let message: String?
     }
 
     // MARK: - Password Reset
@@ -722,7 +751,7 @@ final class AuthService {
             throw AuthError.configurationError("Cannot unlink last provider")
         }
 
-        try await currentUser.unlink(fromProvider: providerId)
+        _ = try await currentUser.unlink(fromProvider: providerId)
 
         #if DEBUG
         print("✅ Provider \(providerId) unlinked successfully")

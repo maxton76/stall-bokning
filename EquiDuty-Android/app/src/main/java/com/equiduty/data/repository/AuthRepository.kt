@@ -49,6 +49,10 @@ class AuthRepository @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     override val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    // Email verification state (defaults to true for OAuth bypass)
+    private val _isEmailVerified = MutableStateFlow(true)
+    val isEmailVerified: StateFlow<Boolean> = _isEmailVerified.asStateFlow()
+
     private var _stables = MutableStateFlow<List<Stable>>(emptyList())
     val stables: StateFlow<List<Stable>> = _stables.asStateFlow()
 
@@ -84,12 +88,47 @@ class AuthRepository @Inject constructor(
     }
 
     override suspend fun signUp(email: String, password: String, firstName: String, lastName: String) {
+        signUp(email, password, firstName, lastName, null, null, null, null)
+    }
+
+    suspend fun signUp(
+        email: String,
+        password: String,
+        firstName: String,
+        lastName: String,
+        organizationType: String?,
+        organizationName: String?,
+        contactEmail: String?,
+        phoneNumber: String?
+    ) {
         _isLoading.value = true
         try {
             val result = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
             result.user?.updateProfile(
                 userProfileChangeRequest { displayName = "$firstName $lastName" }
             )?.await()
+
+            // Send email verification
+            result.user?.sendEmailVerification()?.await()
+            Timber.d("📧 Email verification sent to: $email")
+
+            // Call signup endpoint with organization details
+            try {
+                val signupRequest = com.equiduty.data.remote.dto.SignupRequestDto(
+                    email = email,
+                    firstName = firstName,
+                    lastName = lastName,
+                    organizationType = organizationType,
+                    organizationName = organizationName,
+                    contactEmail = contactEmail,
+                    phoneNumber = phoneNumber
+                )
+                api.signup(signupRequest)
+                Timber.d("✅ Signup API call successful")
+            } catch (e: Exception) {
+                Timber.w(e, "Signup API call failed, will fall back to auto-creation via /auth/me")
+            }
+
             handleSignedIn()
         } catch (e: Exception) {
             _isLoading.value = false
@@ -116,6 +155,39 @@ class AuthRepository @Inject constructor(
 
     override suspend fun sendPasswordReset(email: String) {
         firebaseAuth.sendPasswordResetEmail(email).await()
+    }
+
+    suspend fun sendEmailVerification() {
+        val firebaseUser = firebaseAuth.currentUser
+            ?: throw IllegalStateException("No signed-in user")
+
+        try {
+            firebaseUser.sendEmailVerification().await()
+            Timber.d("📧 Verification email resent")
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to send verification email")
+            throw e
+        }
+    }
+
+    suspend fun checkEmailVerification(): Boolean {
+        val firebaseUser = firebaseAuth.currentUser ?: return false
+
+        try {
+            firebaseUser.reload().await()
+            val isVerified = firebaseUser.isEmailVerified
+
+            if (isVerified) {
+                _isEmailVerified.value = true
+                firebaseUser.getIdToken(true).await()  // Force token refresh
+                Timber.d("✅ Email verified - token refreshed")
+            }
+
+            return isVerified
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to check email verification")
+            return false
+        }
     }
 
     override fun selectOrganization(organization: Organization) {
@@ -192,6 +264,16 @@ class AuthRepository @Inject constructor(
             val firebaseUser = firebaseAuth.currentUser
             tokenManager.userId = firebaseUser?.uid
 
+            // Check email verification for password users
+            val isPasswordUser = firebaseUser?.providerData?.firstOrNull()?.providerId == "password"
+            if (isPasswordUser && firebaseUser?.isEmailVerified == false) {
+                _isEmailVerified.value = false
+                Timber.d("⚠️ Email not verified - showing verification screen")
+            } else {
+                _isEmailVerified.value = true
+                Timber.d("✅ Email verified or OAuth user - proceeding to app")
+            }
+
             // Fetch user profile
             val userDto = api.getAuthMe()
             val user = userDto.toDomain()
@@ -251,6 +333,7 @@ class AuthRepository @Inject constructor(
         _selectedStable.value = null
         _stables.value = emptyList()
         _authState.value = AuthState.SignedOut
+        _isEmailVerified.value = true  // Reset to default
         tokenManager.clearAll()
         permissionRepository.clear()
         subscriptionRepository.clear()

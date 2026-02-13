@@ -63,6 +63,19 @@ data class StablesResponseDto(
     val stables: List<StableDto>
 )
 
+// ── Signup ───────────────────────────────────────────────────────
+
+@Serializable
+data class SignupRequestDto(
+    val email: String,
+    val firstName: String,
+    val lastName: String,
+    val organizationType: String? = null,
+    val organizationName: String? = null,
+    val contactEmail: String? = null,
+    val phoneNumber: String? = null
+)
+
 // ── Permissions ──────────────────────────────────────────────────
 
 @Serializable

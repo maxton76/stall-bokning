@@ -1,0 +1,130 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from './Header.astro';
+import Footer from './Footer.astro';
+
+interface Props {
+  title: string;
+  lang?: string;
+}
+
+const { title, lang = 'sv' } = Astro.props;
+---
+
+<Layout title={title} lang={lang}>
+  <Header lang={lang} />
+  <main class="min-h-screen bg-background">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <slot />
+    </div>
+  </main>
+  <Footer lang={lang} />
+</Layout>
+
+<style>
+  /* Legal document typography */
+  :global(.legal-content) {
+    @apply space-y-8;
+  }
+
+  :global(.legal-content h1) {
+    @apply text-4xl font-bold text-foreground mb-4;
+  }
+
+  :global(.legal-content h2) {
+    @apply text-2xl font-semibold text-foreground mt-8 mb-4;
+  }
+
+  :global(.legal-content h3) {
+    @apply text-xl font-semibold text-foreground mt-6 mb-3;
+  }
+
+  :global(.legal-content h4) {
+    @apply text-lg font-medium text-foreground mt-4 mb-2;
+  }
+
+  :global(.legal-content p) {
+    @apply text-muted-foreground leading-relaxed mb-4;
+  }
+
+  :global(.legal-content ul),
+  :global(.legal-content ol) {
+    @apply list-disc list-inside space-y-2 text-muted-foreground mb-4 ml-4;
+  }
+
+  :global(.legal-content ol) {
+    @apply list-decimal;
+  }
+
+  :global(.legal-content li) {
+    @apply leading-relaxed;
+  }
+
+  :global(.legal-content a) {
+    @apply text-[#3d5a45] hover:underline;
+  }
+
+  :global(.legal-content strong) {
+    @apply font-semibold text-foreground;
+  }
+
+  :global(.legal-content table) {
+    @apply w-full border-collapse mb-4;
+  }
+
+  :global(.legal-content th),
+  :global(.legal-content td) {
+    @apply border border-border px-4 py-2 text-left;
+  }
+
+  :global(.legal-content th) {
+    @apply bg-muted font-semibold;
+  }
+
+  :global(.legal-section) {
+    @apply mb-12 pb-8 border-b border-border last:border-0;
+  }
+
+  :global(.legal-meta) {
+    @apply text-sm text-muted-foreground italic mb-8;
+  }
+
+  :global(.legal-toc) {
+    @apply bg-muted/30 rounded-lg p-6 mb-8;
+  }
+
+  :global(.legal-toc h2) {
+    @apply text-xl font-semibold mb-4 mt-0;
+  }
+
+  :global(.legal-toc ul) {
+    @apply space-y-2 ml-0;
+  }
+
+  :global(.legal-toc a) {
+    @apply text-foreground hover:text-[#3d5a45] transition-colors;
+  }
+
+  :global(.language-divider) {
+    @apply border-t-2 border-[#3d5a45] my-12 pt-12;
+  }
+
+  :global(.placeholder-warning) {
+    @apply bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6;
+  }
+
+  :global(.placeholder-warning p) {
+    @apply text-yellow-800 mb-0;
+  }
+
+  /* Print styles */
+  @media print {
+    :global(.legal-content) {
+      @apply text-black;
+    }
+
+    :global(.legal-content a) {
+      @apply text-black underline;
+    }
+  }
+</style>
