@@ -68,6 +68,7 @@ enum APIError: Error, LocalizedError {
     case decodingError(Error)
     case networkError(Error)
     case httpError(statusCode: Int, message: String?)
+    case badRequest(String)
     case unauthorized
     case forbidden
     case insufficientPermissions(action: String?)
@@ -88,6 +89,8 @@ enum APIError: Error, LocalizedError {
             return String(localized: "error.api.network \(error.localizedDescription)")
         case .httpError(let statusCode, let message):
             return message ?? String(localized: "error.api.http \(statusCode)")
+        case .badRequest(let message):
+            return message
         case .unauthorized:
             return String(localized: "error.api.unauthorized You need to sign in to access this resource.")
         case .forbidden:
@@ -275,8 +278,12 @@ final class APIClient {
 
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        // Only set Content-Type when there's a body to send
+        if body != nil {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
 
         // Add authorization header
         if let token = await tokenProvider?() {
@@ -322,6 +329,11 @@ final class APIClient {
         switch httpResponse.statusCode {
         case 200...299:
             break
+        case 400:
+            // Bad request - parse error message
+            let errorResponse = try? decoder.decode(APIErrorResponse.self, from: data)
+            let errorMsg = errorResponse?.message ?? errorResponse?.error ?? "Bad request"
+            throw APIError.badRequest(errorMsg)
         case 401:
             throw APIError.unauthorized
         case 403:

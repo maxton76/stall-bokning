@@ -183,17 +183,26 @@ struct RoutineTemplatesView: View {
         } message: {
             Text(String(localized: "templates.duplicate.message"))
         }
-        .alert(String(localized: "templates.delete.title"), isPresented: $showDeleteAlert) {
-            Button(String(localized: "common.cancel"), role: .cancel) {
-                templateToDelete = nil
+        .confirmationDialog(
+            String(localized: "templates.delete.dialog.title"),
+            isPresented: $showDeleteAlert,
+            titleVisibility: .visible
+        ) {
+            if let template = templateToDelete, template.isActive {
+                Button(String(localized: "templates.delete.dialog.disable")) {
+                    if let template = templateToDelete {
+                        Task { await disableTemplate(template: template) }
+                    }
+                }
             }
-            Button(String(localized: "common.delete"), role: .destructive) {
+            Button(String(localized: "templates.delete.dialog.delete"), role: .destructive) {
                 if let template = templateToDelete {
                     Task { await delete(template: template) }
                 }
             }
-        } message: {
-            Text(String(localized: "templates.delete.message"))
+            Button(String(localized: "common.cancel"), role: .cancel) {
+                templateToDelete = nil
+            }
         }
     }
 
@@ -258,6 +267,21 @@ struct RoutineTemplatesView: View {
     private func delete(template: RoutineTemplate) async {
         do {
             try await routineService.deleteRoutineTemplate(templateId: template.id)
+            templateToDelete = nil
+            await refreshData()
+        } catch APIError.badRequest(let message) {
+            // Template has dependencies - show specific error message
+            errorMessage = message
+            templateToDelete = nil
+        } catch {
+            errorMessage = error.localizedDescription
+            templateToDelete = nil
+        }
+    }
+
+    private func disableTemplate(template: RoutineTemplate) async {
+        do {
+            try await routineService.toggleTemplateActive(templateId: template.id, isActive: false)
             templateToDelete = nil
             await refreshData()
         } catch {

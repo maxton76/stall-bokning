@@ -2,7 +2,11 @@ import type { FastifyInstance } from "fastify";
 import { Timestamp } from "firebase-admin/firestore";
 import { v4 as uuidv4 } from "uuid";
 import { db, auth, storage } from "../utils/firebase.js";
-import { authenticate } from "../middleware/auth.js";
+import {
+  authenticate,
+  requirePermission,
+  type OrganizationContextRequest,
+} from "../middleware/auth.js";
 import { checkSubscriptionLimit } from "../middleware/checkSubscriptionLimit.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
@@ -357,6 +361,12 @@ async function createStepActivityHistory(
     // Check if there's an explicit update for this horse
     const horseProgress = stepProgress.horseProgress?.[horse.id];
 
+    // Debug logging: Check photo URLs in horse progress
+    console.log(`[PHOTO DEBUG] Creating history for horse ${horse.id}:`, {
+      horseProgressPhotoUrls: horseProgress?.photoUrls,
+      photoCount: horseProgress?.photoUrls?.length || 0,
+    });
+
     // Determine execution status: explicit skip or default to completed
     const isSkipped = horseProgress?.skipped === true;
     const executionStatus = isSkipped ? "skipped" : "completed";
@@ -463,32 +473,19 @@ export async function routinesRoutes(fastify: FastifyInstance) {
   /**
    * GET /api/v1/routines/templates
    * Get all routine templates for an organization (query params version)
+   * Requires: manage_routines permission
    */
   fastify.get(
     "/templates",
     {
-      preHandler: [authenticate],
+      preHandler: [authenticate, requirePermission("manage_routines", "query")],
     },
     async (request, reply) => {
       try {
-        const user = (request as AuthenticatedRequest).user!;
         const query = request.query as Record<string, string>;
-
-        const organizationId = query.organizationId;
-        if (!organizationId) {
-          return reply.status(400).send({
-            error: "Bad Request",
-            message: "organizationId query parameter is required",
-          });
-        }
-
-        const hasAccess = await hasOrganizationAccess(user.uid, organizationId);
-        if (!hasAccess) {
-          return reply.status(403).send({
-            error: "Forbidden",
-            message: "You do not have permission to access this organization",
-          });
-        }
+        // organizationId verified and attached by requirePermission middleware
+        const organizationId = (request as OrganizationContextRequest)
+          .organizationId!;
 
         // Parse query parameters
         const activeOnly = query.activeOnly === "true";
@@ -646,12 +643,14 @@ export async function routinesRoutes(fastify: FastifyInstance) {
   /**
    * POST /api/v1/routines/templates
    * Create a new routine template
+   * Requires: manage_routines permission
    */
   fastify.post(
     "/templates",
     {
       preHandler: [
         authenticate,
+        requirePermission("manage_routines", "body"),
         checkSubscriptionLimit("routineTemplates", "routineTemplates"),
       ],
     },
@@ -669,19 +668,7 @@ export async function routinesRoutes(fastify: FastifyInstance) {
         }
 
         const input = parsed.data as CreateRoutineTemplateInput;
-
-        // Check organization access
-        const hasAccess = await hasOrganizationAccess(
-          user.uid,
-          input.organizationId,
-        );
-        if (!hasAccess) {
-          return reply.status(403).send({
-            error: "Forbidden",
-            message:
-              "You do not have permission to create templates in this organization",
-          });
-        }
+        // organizationId verified and permission checked by requirePermission middleware
 
         // Generate IDs for steps
         const stepsWithIds = input.steps.map((step, index) => ({
@@ -737,6 +724,7 @@ export async function routinesRoutes(fastify: FastifyInstance) {
   /**
    * PUT /api/v1/routines/templates/:id
    * Update a routine template
+   * Requires: manage_routines permission
    */
   fastify.put(
     "/templates/:id",
@@ -766,14 +754,18 @@ export async function routinesRoutes(fastify: FastifyInstance) {
         }
 
         const data = doc.data() as RoutineTemplate;
-        const hasAccess = await hasOrganizationAccess(
+
+        // Check manage_routines permission
+        const allowed = await hasPermission(
           user.uid,
           data.organizationId,
+          "manage_routines",
+          { systemRole: user.role },
         );
-        if (!hasAccess) {
+        if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
-            message: "You do not have permission to update this template",
+            message: "Missing permission: manage_routines",
           });
         }
 
@@ -788,6 +780,20 @@ export async function routinesRoutes(fastify: FastifyInstance) {
         // JavaScript spread operator omits undefined values, causing the field to not update
         if (input.stableId === undefined) {
           updateData.stableId = null;
+        }
+
+        // Handle other optional fields that need explicit null when cleared
+        if (input.description === undefined) {
+          updateData.description = null;
+        }
+        if (input.icon === undefined) {
+          updateData.icon = null;
+        }
+        if (input.color === undefined) {
+          updateData.color = null;
+        }
+        if (input.defaultStartTime === undefined) {
+          updateData.defaultStartTime = null;
         }
 
         // If steps are provided, generate IDs for new steps
@@ -819,7 +825,11 @@ export async function routinesRoutes(fastify: FastifyInstance) {
 
   /**
    * DELETE /api/v1/routines/templates/:id
-   * Delete (archive) a routine template
+   * Permanently delete a routine template (with dependency checking)
+   * Requires: manage_routines permission
+   * Query params:
+   *   - permanent=true: Attempt permanent deletion (default behavior)
+   *   - permanent=false: Soft delete (archive by setting isActive=false)
    */
   fastify.delete(
     "/templates/:id",
@@ -829,6 +839,7 @@ export async function routinesRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       try {
         const { id } = request.params as { id: string };
+        const query = request.query as Record<string, string>;
         const user = (request as AuthenticatedRequest).user!;
 
         const doc = await db.collection("routineTemplates").doc(id).get();
@@ -840,30 +851,169 @@ export async function routinesRoutes(fastify: FastifyInstance) {
         }
 
         const data = doc.data() as RoutineTemplate;
-        const hasAccess = await hasOrganizationAccess(
+
+        // Check manage_routines permission
+        const allowed = await hasPermission(
           user.uid,
           data.organizationId,
+          "manage_routines",
+          { systemRole: user.role },
         );
-        if (!hasAccess) {
+        if (!allowed) {
           return reply.status(403).send({
             error: "Forbidden",
-            message: "You do not have permission to delete this template",
+            message: "Missing permission: manage_routines",
           });
         }
 
-        // Soft delete by marking inactive
-        await db.collection("routineTemplates").doc(id).update({
-          isActive: false,
-          updatedAt: Timestamp.now(),
-          updatedBy: user.uid,
-        });
+        const permanent = query.permanent !== "false"; // Default to permanent deletion
 
-        return { success: true, message: "Template archived" };
+        if (permanent) {
+          // Check for dependencies before permanent deletion
+          const schedulesSnapshot = await db
+            .collection("routineSchedules")
+            .where("templateId", "==", id)
+            .limit(1)
+            .get();
+
+          const instancesSnapshot = await db
+            .collectionGroup("routineInstances")
+            .where("templateId", "==", id)
+            .limit(1)
+            .get();
+
+          if (!schedulesSnapshot.empty || !instancesSnapshot.empty) {
+            return reply.status(400).send({
+              error: "Bad Request",
+              message:
+                "Cannot delete template: it is being used by schedules or instances. Disable it instead.",
+              hasSchedules: !schedulesSnapshot.empty,
+              hasInstances: !instancesSnapshot.empty,
+            });
+          }
+
+          // No dependencies - perform permanent deletion
+          await db.collection("routineTemplates").doc(id).delete();
+
+          return { success: true, message: "Template permanently deleted" };
+        } else {
+          // Soft delete by marking inactive
+          await db.collection("routineTemplates").doc(id).update({
+            isActive: false,
+            updatedAt: Timestamp.now(),
+            updatedBy: user.uid,
+          });
+
+          return { success: true, message: "Template archived" };
+        }
       } catch (error) {
         request.log.error({ error }, "Failed to delete routine template");
         return reply.status(500).send({
           error: "Internal Server Error",
           message: "Failed to delete routine template",
+        });
+      }
+    },
+  );
+
+  /**
+   * POST /api/v1/routines/templates/:id/duplicate
+   * Duplicate a routine template
+   * Requires: manage_routines permission
+   */
+  fastify.post(
+    "/templates/:id/duplicate",
+    {
+      preHandler: [
+        authenticate,
+        checkSubscriptionLimit("routineTemplates", "routineTemplates"),
+      ],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const user = (request as AuthenticatedRequest).user!;
+        const body = request.body as { name?: string };
+
+        // 1. Fetch original template
+        const templateRef = db.collection("routineTemplates").doc(id);
+        const templateDoc = await templateRef.get();
+
+        if (!templateDoc.exists) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Routine template not found",
+          });
+        }
+
+        const originalTemplate = {
+          id: templateDoc.id,
+          ...templateDoc.data(),
+        } as RoutineTemplate;
+
+        // 2. Authorization: Check manage_routines permission
+        const allowed = await hasPermission(
+          user.uid,
+          originalTemplate.organizationId,
+          "manage_routines",
+          { systemRole: user.role },
+        );
+
+        if (!allowed) {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "Missing permission: manage_routines",
+          });
+        }
+
+        // 3. Create duplicate with new IDs for steps
+        const duplicatedSteps = originalTemplate.steps.map((step, index) => ({
+          ...step,
+          id: uuidv4(),
+          order: index + 1,
+        }));
+
+        // 4. Generate new name (use provided name or append " (kopia)" in Swedish)
+        const duplicatedName = body.name || `${originalTemplate.name} (kopia)`;
+
+        // 5. Create new template document
+        const now = Timestamp.now();
+        const newTemplateData: Omit<RoutineTemplate, "id"> = {
+          organizationId: originalTemplate.organizationId,
+          stableId: originalTemplate.stableId,
+          name: duplicatedName,
+          description: originalTemplate.description,
+          type: originalTemplate.type,
+          icon: originalTemplate.icon,
+          color: originalTemplate.color,
+          defaultStartTime: originalTemplate.defaultStartTime,
+          estimatedDuration: originalTemplate.estimatedDuration,
+          steps: duplicatedSteps,
+          requiresNotesRead: originalTemplate.requiresNotesRead,
+          allowSkipSteps: originalTemplate.allowSkipSteps,
+          pointsValue: originalTemplate.pointsValue,
+          createdAt: now,
+          createdBy: user.uid,
+          updatedAt: now,
+          isActive: true,
+        };
+
+        const newTemplateRef = await db
+          .collection("routineTemplates")
+          .add(newTemplateData);
+
+        // 6. Return duplicated template wrapped in response object
+        return reply.status(201).send({
+          template: serializeTimestamps({
+            id: newTemplateRef.id,
+            ...newTemplateData,
+          }),
+        });
+      } catch (error) {
+        request.log.error({ error }, "Failed to duplicate routine template");
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: "Failed to duplicate template",
         });
       }
     },
@@ -1632,6 +1782,15 @@ export async function routinesRoutes(fastify: FastifyInstance) {
                   ? user.uid
                   : existing.completedBy,
             };
+
+            // Debug logging: Check photo URLs after storing horse progress
+            const storedProgress =
+              currentStep.horseProgress[horseUpdate.horseId];
+            request.log.info({
+              msg: `[PHOTO DEBUG] Stored horse progress for ${horseUpdate.horseId}`,
+              photoUrls: storedProgress?.photoUrls,
+              photoCount: storedProgress?.photoUrls?.length || 0,
+            });
           }
 
           // Calculate horse completion counts
