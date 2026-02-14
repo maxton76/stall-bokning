@@ -21,8 +21,13 @@ final class FacilityService: FacilityServiceProtocol {
         dateFormatter.locale = Locale(identifier: "en_US_POSIX")
     }
 
-    func getFacilities(stableId: String) async throws -> [Facility] {
-        let params = ["stableId": stableId]
+    func getFacilities(stableId: String, reservableOnly: Bool = false) async throws -> [Facility] {
+        var params = ["stableId": stableId]
+
+        if reservableOnly {
+            params["reservableOnly"] = "true"
+        }
+
         let response: FacilitiesResponse = try await apiClient.get(
             APIEndpoints.facilities,
             params: params
@@ -45,5 +50,37 @@ final class FacilityService: FacilityServiceProtocol {
             params: params
         )
         return response
+    }
+
+    func createFacility(_ request: CreateFacilityRequest) async throws -> String {
+        let response: CreateFacilityResponse = try await apiClient.post(
+            APIEndpoints.facilities,
+            body: request
+        )
+        return response.id
+    }
+
+    func updateFacility(id: String, updates: UpdateFacilityRequest) async throws -> Facility {
+        let response: Facility = try await apiClient.patch(
+            APIEndpoints.facility(id),
+            body: updates
+        )
+        return response
+    }
+
+    func deleteFacility(id: String) async throws {
+        try await apiClient.delete(APIEndpoints.facility(id))
+    }
+
+    func addScheduleException(facilityId: String, exception: CreateScheduleExceptionRequest) async throws -> ScheduleException {
+        let response: ScheduleExceptionResponse = try await apiClient.post(
+            APIEndpoints.facilityExceptions(facilityId),
+            body: exception
+        )
+        return response.exception
+    }
+
+    func removeScheduleException(facilityId: String, date: String) async throws {
+        try await apiClient.delete(APIEndpoints.facilityException(facilityId, date: date))
     }
 }

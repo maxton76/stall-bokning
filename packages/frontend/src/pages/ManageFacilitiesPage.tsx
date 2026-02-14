@@ -21,10 +21,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { useDialog } from "@/hooks/useDialog";
 import { useCRUD } from "@/hooks/useCRUD";
 import { useUserStables } from "@/hooks/useUserStables";
+import { useDefaultStableId } from "@/hooks/useUserPreferences";
+import { useOrgPermissions } from "@/hooks/useOrgPermissions";
 import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import {
   getFacilitiesByStable,
@@ -55,6 +58,7 @@ const STATUS_COLORS = {
 export default function ManageFacilitiesPage() {
   const { t } = useTranslation(["facilities", "common", "constants"]);
   const { user } = useAuth();
+  const { currentOrganizationId } = useOrganization();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStableId, setSelectedStableId] = useState<string>("");
@@ -64,15 +68,25 @@ export default function ManageFacilitiesPage() {
   const getFacilityTypeLabel = (type: FacilityType) =>
     t(`constants:facilityTypes.${type}`);
 
+  // Check permissions
+  const { hasPermission, isLoading: permissionsLoading } = useOrgPermissions(
+    currentOrganizationId,
+  );
+
   // Load user's stables
   const { stables, loading: stablesLoading } = useUserStables(user?.uid);
+  const defaultStableId = useDefaultStableId();
 
-  // Auto-select first stable when stables load
+  // Auto-select default stable (or first) when stables load
   useEffect(() => {
     if (stables.length > 0 && !selectedStableId) {
-      setSelectedStableId(stables[0]!.id);
+      const preferred =
+        defaultStableId && stables.some((s) => s.id === defaultStableId)
+          ? defaultStableId
+          : stables[0]?.id;
+      setSelectedStableId(preferred ?? "");
     }
-  }, [stables, selectedStableId]);
+  }, [stables, selectedStableId, defaultStableId]);
 
   // Load facilities for selected stable
   const facilitiesQuery = useApiQuery<Facility[]>(
@@ -163,10 +177,29 @@ export default function ManageFacilitiesPage() {
     }
   };
 
-  if (stablesLoading) {
+  // Loading state - wait for both permissions and stables
+  if (permissionsLoading || stablesLoading) {
     return (
       <div className="container mx-auto p-6">
         <p className="text-muted-foreground">{t("common:labels.loading")}</p>
+      </div>
+    );
+  }
+
+  // Permission check - user must have manage_facilities permission
+  if (!hasPermission("manage_facilities")) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <h3 className="text-lg font-semibold mb-2">
+              {t("common:messages.unauthorized")}
+            </h3>
+            <p className="text-muted-foreground">
+              {t("facilities:messages.noPermission")}
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }

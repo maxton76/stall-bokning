@@ -171,7 +171,9 @@ export function RoutineScheduleDialog({
         setIncludeHolidays(schedule.includeHolidays || false);
         setScheduledStartTime(schedule.scheduledStartTime || "07:00");
         setAssignmentMode(schedule.assignmentMode);
-        setAssignmentAlgorithm(schedule.assignmentAlgorithm || "points_balance");
+        setAssignmentAlgorithm(
+          schedule.assignmentAlgorithm || "points_balance",
+        );
         setAutoAssignmentMethod(schedule.autoAssignmentMethod || "direct");
         setDefaultAssignedTo(schedule.defaultAssignedTo || "");
       } else {
@@ -600,9 +602,7 @@ export function RoutineScheduleDialog({
             <div className="space-y-3 rounded-md border p-3 bg-muted/30">
               {/* Algorithm Selection */}
               <div className="space-y-2">
-                <Label>
-                  {t("routines:schedules.dialog.algorithm")}
-                </Label>
+                <Label>{t("routines:schedules.dialog.algorithm")}</Label>
                 <Select
                   value={assignmentAlgorithm}
                   onValueChange={(v) =>
@@ -636,9 +636,7 @@ export function RoutineScheduleDialog({
 
               {/* Assignment Method */}
               <div className="space-y-2">
-                <Label>
-                  {t("routines:schedules.dialog.assignmentMethod")}
-                </Label>
+                <Label>{t("routines:schedules.dialog.assignmentMethod")}</Label>
                 <Select
                   value={autoAssignmentMethod}
                   onValueChange={(v) =>

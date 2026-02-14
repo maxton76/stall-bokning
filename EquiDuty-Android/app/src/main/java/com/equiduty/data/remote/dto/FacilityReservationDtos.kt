@@ -15,6 +15,12 @@ data class FacilityDto(
     val status: String = "active",
     val bookingRules: BookingRulesDto? = null,
     val availabilitySchedule: AvailabilityScheduleDto? = null,
+    // Top-level booking rule fields (API returns these at root level)
+    val planningWindowOpens: Int? = null,
+    val planningWindowCloses: Int? = null,
+    val maxHorsesPerReservation: Int? = null,
+    val minTimeSlotDuration: Int? = null,
+    val maxHoursPerReservation: Int? = null,
     val createdAt: String = "",
     val updatedAt: String = "",
     val createdBy: String? = null
@@ -37,7 +43,14 @@ data class AvailabilityScheduleDto(
 
 @Serializable
 data class WeeklyScheduleDto(
-    val defaultTimeBlocks: List<TimeBlockDto>? = null
+    val defaultTimeBlocks: List<TimeBlockDto>? = null,
+    val days: Map<String, DayScheduleDto>? = null
+)
+
+@Serializable
+data class DayScheduleDto(
+    val available: Boolean? = null,
+    val timeBlocks: List<TimeBlockDto>? = null
 )
 
 @Serializable
@@ -57,6 +70,40 @@ data class ScheduleExceptionDto(
 @Serializable
 data class FacilitiesResponseDto(
     val facilities: List<FacilityDto>
+)
+
+@Serializable
+data class CreateFacilityDto(
+    val stableId: String,
+    val name: String,
+    val type: String,
+    val description: String? = null,
+    val status: String = "active",
+    val planningWindowOpens: Int? = null,
+    val planningWindowCloses: Int? = null,
+    val maxHorsesPerReservation: Int? = null,
+    val minTimeSlotDuration: Int? = null,
+    val maxHoursPerReservation: Int? = null,
+    val availabilitySchedule: AvailabilityScheduleDto? = null
+)
+
+@Serializable
+data class UpdateFacilityDto(
+    val name: String? = null,
+    val type: String? = null,
+    val description: String? = null,
+    val status: String? = null,
+    val planningWindowOpens: Int? = null,
+    val planningWindowCloses: Int? = null,
+    val maxHorsesPerReservation: Int? = null,
+    val minTimeSlotDuration: Int? = null,
+    val maxHoursPerReservation: Int? = null,
+    val availabilitySchedule: AvailabilityScheduleDto? = null
+)
+
+@Serializable
+data class CreateFacilityResponseDto(
+    val id: String
 )
 
 // ── Reservation DTOs ─────────────────────────────────────────────

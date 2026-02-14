@@ -48,6 +48,9 @@ enum AppDestination: Hashable {
     case facilityDetail(facilityId: String)
     case facilityReservationDetail(reservationId: String)
 
+    // Stables
+    case stableDetail(stableId: String)
+
     // Feature Requests
     case featureRequests
     case featureRequestDetail(requestId: String)
@@ -100,6 +103,10 @@ final class NavigationRouter {
 
     func navigateToFacilityDetail(_ facilityId: String) {
         facilitiesPath.append(AppDestination.facilityDetail(facilityId: facilityId))
+    }
+
+    func navigateToStableDetail(_ stableId: String) {
+        facilitiesPath.append(AppDestination.stableDetail(stableId: stableId))
     }
 
     func navigateToAccount() {
@@ -181,6 +188,11 @@ final class NavigationRouter {
             if let facilityId = pathComponents.first {
                 switchToTab(.facilities)
                 navigateToFacilityDetail(facilityId)
+            }
+        case "stable":
+            if let stableId = pathComponents.first {
+                switchToTab(.facilities)
+                navigateToStableDetail(stableId)
             }
         case "feature-requests":
             switchToTab(.more)
@@ -268,6 +280,8 @@ extension View {
                 FacilityDetailView(facilityId: facilityId)
             case .facilityReservationDetail(let reservationId):
                 ReservationDetailView(reservationId: reservationId)
+            case .stableDetail(let stableId):
+                StableDetailView(stableId: stableId)
             case .featureRequests:
                 FeatureRequestListView()
             case .featureRequestDetail(let requestId):

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.equiduty.data.repository.AuthRepository
 import com.equiduty.data.repository.FacilityRepository
 import com.equiduty.data.repository.FacilityReservationRepository
+import com.equiduty.data.repository.PermissionRepository
 import com.equiduty.domain.model.Facility
 import com.equiduty.domain.model.FacilityReservation
 import com.equiduty.domain.model.FacilityType
@@ -20,7 +21,8 @@ import javax.inject.Inject
 class FacilitiesViewModel @Inject constructor(
     private val facilityRepository: FacilityRepository,
     private val reservationRepository: FacilityReservationRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    val permissionRepository: PermissionRepository
 ) : ViewModel() {
 
     val facilities: StateFlow<List<Facility>> = facilityRepository.facilities

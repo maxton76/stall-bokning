@@ -217,6 +217,61 @@
     <string name="facilities_quick_book">Quick Book</string>
     <string name="facilities_reservations_today">Today\'s Reservations</string>
     <string name="facility_status_maintenance">Maintenance</string>
+    <string name="facilities_manage">Manage</string>
+    <string name="facilities_loading_message">Loading facilities…</string>
+    <string name="facilities_error_title">Failed to Load Facilities</string>
+    <string name="facilities_error_load_failed">Could not fetch facilities. Please check your internet connection and try again.</string>
+
+    <!-- Manage Facilities -->
+    <string name="manage_facilities_title">Manage Facilities</string>
+    <string name="manage_facilities_add">Add facility</string>
+    <string name="manage_facilities_empty">No facilities yet</string>
+    <string name="manage_facilities_empty_hint">Tap + to create your first facility</string>
+    <string name="manage_facilities_delete_title">Delete Facility</string>
+    <string name="manage_facilities_delete_confirm">Are you sure you want to delete %1$s?</string>
+
+    <!-- Facility Form -->
+    <string name="facility_form_create_title">New Facility</string>
+    <string name="facility_form_edit_title">Edit Facility</string>
+    <string name="facility_form_basic_info">Basic Information</string>
+    <string name="facility_form_name">Name *</string>
+    <string name="facility_form_type">Type</string>
+    <string name="facility_form_description">Description</string>
+    <string name="facility_form_status">Status</string>
+    <string name="facility_form_booking_rules">Booking Rules</string>
+    <string name="facility_form_planning_opens">Booking opens</string>
+    <string name="facility_form_planning_closes">Booking closes</string>
+    <string name="facility_form_max_horses">Max horses per booking</string>
+    <string name="facility_form_min_slot">Minimum booking time</string>
+    <string name="facility_form_max_duration">Maximum booking time</string>
+    <string name="facility_form_days">days</string>
+    <string name="facility_form_hours">hours</string>
+    <string name="facility_form_minutes">min</string>
+    <string name="facility_form_weekly_schedule">Weekly Schedule</string>
+    <string name="facility_form_default_hours">Default Hours</string>
+    <string name="facility_form_per_day">Day-specific Hours</string>
+    <string name="facility_form_custom_hours">Custom hours</string>
+    <string name="facility_form_from">From</string>
+    <string name="facility_form_to">To</string>
+    <string name="facility_form_add_time_block">Add time block</string>
+    <string name="facility_form_exceptions">Exceptions</string>
+    <string name="facility_form_add_exception">Add exception</string>
+    <string name="facility_form_exception_date">Date (YYYY-MM-DD)</string>
+    <string name="facility_form_exception_type">Type</string>
+    <string name="facility_form_exception_closed">Closed</string>
+    <string name="facility_form_exception_modified">Modified hours</string>
+    <string name="facility_form_exception_hours">Opening hours</string>
+    <string name="facility_form_exception_reason">Reason</string>
+    <string name="facility_form_save">Save Changes</string>
+    <string name="facility_form_create">Create Facility</string>
+    <string name="facility_form_add">Add</string>
+    <string name="facility_form_monday">Monday</string>
+    <string name="facility_form_tuesday">Tuesday</string>
+    <string name="facility_form_wednesday">Wednesday</string>
+    <string name="facility_form_thursday">Thursday</string>
+    <string name="facility_form_friday">Friday</string>
+    <string name="facility_form_saturday">Saturday</string>
+    <string name="facility_form_sunday">Sunday</string>
 
     <!-- Facility Detail -->
     <string name="facility_detail_title">Facility Details</string>

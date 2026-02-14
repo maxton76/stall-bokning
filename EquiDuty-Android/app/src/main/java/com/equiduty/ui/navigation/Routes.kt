@@ -60,6 +60,11 @@ sealed class Route(val route: String) {
         fun createRoute(reservationId: String) = "facilities/reservation/$reservationId"
     }
     data object MyReservations : Route("facilities/my-reservations")
+    data object ManageFacilities : Route("facilities/manage")
+    data object FacilityForm : Route("facilities/form?facilityId={facilityId}") {
+        fun createRoute(facilityId: String? = null) =
+            if (facilityId != null) "facilities/form?facilityId=$facilityId" else "facilities/form"
+    }
 
     // Feature Requests sub-routes
     data object FeatureRequests : Route("feature-requests")

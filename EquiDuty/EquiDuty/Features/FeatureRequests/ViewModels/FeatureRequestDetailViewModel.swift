@@ -39,6 +39,7 @@ final class FeatureRequestDetailViewModel {
         loadTask = Task {
             isLoading = true
             errorMessage = nil
+            defer { isLoading = false }
             do {
                 let response = try await service.getFeatureRequest(id: requestId)
                 guard !Task.isCancelled else { return }
@@ -49,7 +50,6 @@ final class FeatureRequestDetailViewModel {
                 guard !Task.isCancelled else { return }
                 errorMessage = error.localizedDescription
             }
-            isLoading = false
         }
     }
 

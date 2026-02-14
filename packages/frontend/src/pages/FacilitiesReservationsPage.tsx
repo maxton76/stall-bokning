@@ -92,10 +92,13 @@ export default function FacilitiesReservationsPage() {
     }
   }, [stables, selectedStableId]);
 
-  // Load facilities for selected stable
+  // Load facilities for selected stable (reservable only)
   const facilitiesQuery = useApiQuery<Facility[]>(
-    queryKeys.facilities.list({ stableId: selectedStableId }),
-    () => getFacilitiesByStable(selectedStableId),
+    queryKeys.facilities.list({
+      stableId: selectedStableId,
+      reservableOnly: true,
+    }),
+    () => getFacilitiesByStable(selectedStableId, { reservableOnly: true }),
     {
       enabled: !!selectedStableId,
       staleTime: 5 * 60 * 1000,
@@ -103,6 +106,7 @@ export default function FacilitiesReservationsPage() {
   );
   const facilitiesData = facilitiesQuery.data ?? [];
   const facilitiesLoading = facilitiesQuery.isLoading;
+  const facilitiesError = facilitiesQuery.error;
 
   // Load reservations for selected stable (initial load via API)
   const reservationsQuery = useApiQuery<FacilityReservation[]>(
@@ -420,7 +424,29 @@ export default function FacilitiesReservationsPage() {
   if (facilitiesLoading || reservationsLoading) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">{t("common:labels.loading")}</p>
+        <p className="text-muted-foreground">
+          {t("facilities:loading.message")}
+        </p>
+      </div>
+    );
+  }
+
+  if (facilitiesError) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("facilities:error.title")}</CardTitle>
+            <CardDescription>
+              {t("facilities:error.loadFailed")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => facilitiesQuery.refetch()}>
+              {t("common:buttons.retry")}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

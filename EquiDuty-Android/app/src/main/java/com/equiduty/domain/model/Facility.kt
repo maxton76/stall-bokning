@@ -15,6 +15,9 @@ data class Facility(
     val requireApproval: Boolean,
     val availableFrom: String?,
     val availableTo: String?,
+    val planningWindowOpens: Int?,
+    val planningWindowCloses: Int?,
+    val availabilitySchedule: FacilityAvailabilitySchedule?,
     val createdAt: String,
     val updatedAt: String
 )
@@ -52,3 +55,32 @@ enum class FacilityStatus(val value: String) {
             entries.find { it.value == value } ?: ACTIVE
     }
 }
+
+// ── Availability Schedule Domain Models ────────────────────────
+
+data class FacilityAvailabilitySchedule(
+    val weeklySchedule: FacilityWeeklySchedule,
+    val exceptions: List<FacilityScheduleException>
+)
+
+data class FacilityWeeklySchedule(
+    val defaultTimeBlocks: List<FacilityTimeBlock>,
+    val days: Map<String, FacilityDaySchedule>
+)
+
+data class FacilityTimeBlock(
+    val from: String,
+    val to: String
+)
+
+data class FacilityDaySchedule(
+    val available: Boolean,
+    val timeBlocks: List<FacilityTimeBlock>
+)
+
+data class FacilityScheduleException(
+    val date: String,
+    val type: String,
+    val timeBlocks: List<FacilityTimeBlock>,
+    val reason: String?
+)

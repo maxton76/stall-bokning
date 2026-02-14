@@ -403,17 +403,9 @@ struct HorseRowView: View {
 
             Spacer()
 
-            // Status and vaccination
-            VStack(alignment: .trailing, spacing: EquiDutyDesign.Spacing.xs) {
-                ModernStatusBadge(
-                    status: horse.status.displayName,
-                    color: horse.status == .active ? .green : .gray,
-                    icon: horse.status == .active ? "checkmark.circle.fill" : "circle"
-                )
-
-                if let vaccStatus = horse.vaccinationStatus {
-                    VaccinationBadge(status: vaccStatus)
-                }
+            // Vaccination badge
+            if let vaccStatus = horse.vaccinationStatus {
+                VaccinationBadge(status: vaccStatus)
             }
         }
         .padding(.vertical, EquiDutyDesign.Spacing.xs)

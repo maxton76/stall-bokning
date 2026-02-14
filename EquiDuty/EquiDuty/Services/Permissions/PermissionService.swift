@@ -195,4 +195,19 @@ extension PermissionService {
     var canManageActivities: Bool {
         hasPermission(.manageActivities)
     }
+
+    /// Check if user can create stables
+    var canCreateStables: Bool {
+        hasPermission(.createStables)
+    }
+
+    /// Check if user can manage stable settings
+    var canManageStableSettings: Bool {
+        hasPermission(.manageStableSettings)
+    }
+
+    /// Check if user can view stables (create or manage permissions)
+    var canViewStables: Bool {
+        hasPermission(.createStables) || hasPermission(.manageStableSettings)
+    }
 }

@@ -7,6 +7,13 @@
     "manageTitle": "Hantera anläggningar",
     "manageDescription": "Konfigurera anläggningar och bokningsregler"
   },
+  "loading": {
+    "message": "Laddar anläggningar..."
+  },
+  "error": {
+    "title": "Kunde inte ladda anläggningar",
+    "loadFailed": "Det gick inte att hämta anläggningar. Kontrollera din internetanslutning och försök igen."
+  },
   "myReservations": {
     "title": "Mina bokningar",
     "description": "Visa och hantera dina anläggningsbokningar",
@@ -313,7 +320,8 @@
     "updateSuccess": "Anläggning har uppdaterats",
     "deleteSuccess": "Anläggning har tagits bort",
     "createError": "Kunde inte skapa anläggning",
-    "updateError": "Kunde inte uppdatera anläggning"
+    "updateError": "Kunde inte uppdatera anläggning",
+    "noPermission": "Du har inte behörighet att hantera anläggningar för detta stall"
   },
   "actions": {
     "addFacility": "Lägg till anläggning",
@@ -337,7 +345,9 @@
   },
   "emptyState": {
     "title": "Inga anläggningar ännu",
-    "description": "Kom igång genom att lägga till din första anläggning"
+    "description": "Kom igång genom att lägga till din första anläggning",
+    "noReservable": "Inga bokningsbara anläggningar",
+    "noReservableDescription": "Det finns inga anläggningar tillgängliga för bokning just nu."
   },
   "views": {
     "selectView": "Välj vy",

@@ -582,7 +582,8 @@ export const queryKeys = {
   // User Stables
   userStables: {
     all: ["userStables"] as const,
-    byUser: (userId: string) => [...queryKeys.userStables.all, userId] as const,
+    byUser: (userId: string, ownedOnly?: boolean) =>
+      [...queryKeys.userStables.all, userId, { ownedOnly }] as const,
   },
 
   // Portal

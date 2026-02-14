@@ -186,6 +186,19 @@ fun AppNavGraph(
                 MyReservationsScreen(navController = navController)
             }
 
+            composable(route = Route.ManageFacilities.route) {
+                ManageFacilitiesScreen(navController = navController)
+            }
+
+            composable(
+                route = Route.FacilityForm.route,
+                arguments = listOf(
+                    navArgument("facilityId") { type = NavType.StringType; nullable = true; defaultValue = null }
+                )
+            ) {
+                FacilityFormScreen(navController = navController)
+            }
+
             // Feature Requests
             composable(
                 route = Route.FeatureRequests.route,

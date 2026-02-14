@@ -239,26 +239,40 @@ struct HorseFormView: View {
     }
 
     private var placementSection: some View {
-        Section(String(localized: "horse.form.placement")) {
-            TextField(String(localized: "horse.form.box"), text: $boxName)
-                .textContentType(.none)
-                .autocapitalization(.none)
+        let stableBoxes = authService.selectedStable?.boxes ?? []
+        let stablePaddocks = authService.selectedStable?.paddocks ?? []
 
-            TextField(String(localized: "horse.form.paddock"), text: $paddockName)
-                .textContentType(.none)
-                .autocapitalization(.none)
+        return Section(String(localized: "horse.form.placement")) {
+            if stableBoxes.isEmpty {
+                TextField(String(localized: "horse.form.box"), text: $boxName)
+                    .textContentType(.none)
+                    .autocapitalization(.none)
+            } else {
+                Picker(String(localized: "horse.form.box"), selection: $boxName) {
+                    Text(String(localized: "common.none")).tag("")
+                    ForEach(stableBoxes, id: \.self) { box in
+                        Text(box).tag(box)
+                    }
+                }
+            }
+
+            if stablePaddocks.isEmpty {
+                TextField(String(localized: "horse.form.paddock"), text: $paddockName)
+                    .textContentType(.none)
+                    .autocapitalization(.none)
+            } else {
+                Picker(String(localized: "horse.form.paddock"), selection: $paddockName) {
+                    Text(String(localized: "common.none")).tag("")
+                    ForEach(stablePaddocks, id: \.self) { paddock in
+                        Text(paddock).tag(paddock)
+                    }
+                }
+            }
         }
     }
 
     private var managementSection: some View {
         Section(String(localized: "horse.form.management")) {
-            // Status
-            Picker(String(localized: "horse.status"), selection: $status) {
-                ForEach(HorseStatus.allCases, id: \.self) { s in
-                    Text(s.displayName).tag(s)
-                }
-            }
-
             // Usage types (multi-select)
             NavigationLink {
                 UsageMultiSelectView(selection: $usage)

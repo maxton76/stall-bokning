@@ -199,11 +199,7 @@ export interface RoutineInstance {
 /**
  * Assignment type for routine instances
  */
-export type RoutineAssignmentType =
-  | "auto"
-  | "manual"
-  | "self"
-  | "unassigned";
+export type RoutineAssignmentType = "auto" | "manual" | "self" | "unassigned";
 
 /**
  * Status of a routine instance

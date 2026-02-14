@@ -44,10 +44,17 @@ export async function getFacility(
  */
 export async function getFacilitiesByStable(
   stableId: string,
+  options?: { reservableOnly?: boolean },
 ): Promise<Facility[]> {
+  const params: Record<string, string> = { stableId };
+
+  if (options?.reservableOnly) {
+    params.reservableOnly = "true";
+  }
+
   const response = await apiClient.get<{ facilities: Facility[] }>(
     "/facilities",
-    { stableId },
+    params,
   );
 
   return response.facilities;

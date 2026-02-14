@@ -5,6 +5,8 @@ import { authenticate } from "../middleware/auth.js";
 import { checkSubscriptionLimit } from "../middleware/checkSubscriptionLimit.js";
 import type { AuthenticatedRequest } from "../types/index.js";
 import { serializeTimestamps } from "../utils/serialization.js";
+import { hasStablePermission } from "../utils/permissionEngine.js";
+import { canAccessStable } from "../utils/authorization.js";
 import {
   createDefaultSchedule,
   validateSchedule,
@@ -21,67 +23,6 @@ function isValidDate(dateStr: string): boolean {
   if (!DATE_REGEX.test(dateStr)) return false;
   const d = new Date(dateStr + "T00:00:00");
   return !isNaN(d.getTime());
-}
-
-/**
- * Check if user has organization membership with stable access
- */
-async function hasOrgStableAccess(
-  stableId: string,
-  userId: string,
-): Promise<boolean> {
-  const stableDoc = await db.collection("stables").doc(stableId).get();
-  if (!stableDoc.exists) return false;
-
-  const stable = stableDoc.data()!;
-  const organizationId = stable.organizationId;
-
-  if (!organizationId) return false;
-
-  // Check organizationMembers collection
-  const memberId = `${userId}_${organizationId}`;
-  const memberDoc = await db
-    .collection("organizationMembers")
-    .doc(memberId)
-    .get();
-
-  if (!memberDoc.exists) return false;
-
-  const member = memberDoc.data()!;
-  if (member.status !== "active") return false;
-
-  // Check stable access permissions
-  if (member.stableAccess === "all") return true;
-  if (member.stableAccess === "specific") {
-    const assignedStables = member.assignedStableIds || [];
-    if (assignedStables.includes(stableId)) return true;
-  }
-
-  return false;
-}
-
-/**
- * Check if user has access to a stable
- */
-async function hasStableAccess(
-  stableId: string,
-  userId: string,
-  userRole: string,
-): Promise<boolean> {
-  if (userRole === "system_admin") return true;
-
-  const stableDoc = await db.collection("stables").doc(stableId).get();
-  if (!stableDoc.exists) return false;
-
-  const stable = stableDoc.data()!;
-
-  // Check ownership
-  if (stable.ownerId === userId) return true;
-
-  // Check organization membership with stable access
-  if (await hasOrgStableAccess(stableId, userId)) return true;
-
-  return false;
 }
 
 export async function facilitiesRoutes(fastify: FastifyInstance) {
@@ -110,13 +51,14 @@ export async function facilitiesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Check access to stable
-        const hasAccess = await hasStableAccess(
-          data.stableId,
+        // Check permission to manage facilities
+        const hasPermission = await hasStablePermission(
           user.uid,
-          user.role,
+          data.stableId,
+          "manage_facilities",
+          { systemRole: user.role },
         );
-        if (!hasAccess) {
+        if (!hasPermission) {
           return reply.status(403).send({
             error: "Forbidden",
             message:
@@ -152,7 +94,7 @@ export async function facilitiesRoutes(fastify: FastifyInstance) {
           planningWindowCloses: data.planningWindowCloses || 1,
           maxHorsesPerReservation: data.maxHorsesPerReservation || 1,
           minTimeSlotDuration: data.minTimeSlotDuration || 30,
-          maxHoursPerReservation: data.maxHoursPerReservation || 4,
+          maxHoursPerReservation: data.maxHoursPerReservation || null,
           // New schedule fields
           availabilitySchedule,
           // Legacy fields preserved for backward compatibility
@@ -209,16 +151,12 @@ export async function facilitiesRoutes(fastify: FastifyInstance) {
 
         const facility = doc.data()!;
 
-        // Check access to stable
-        const hasAccess = await hasStableAccess(
-          facility.stableId,
-          user.uid,
-          user.role,
-        );
+        // Check stable access (read permission - any stable member can view facilities)
+        const hasAccess = await canAccessStable(user.uid, facility.stableId);
         if (!hasAccess) {
           return reply.status(403).send({
             error: "Forbidden",
-            message: "You do not have permission to access this facility",
+            message: "You do not have access to this stable",
           });
         }
 
@@ -245,9 +183,10 @@ export async function facilitiesRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       try {
-        const { stableId, status } = request.query as {
+        const { stableId, status, reservableOnly } = request.query as {
           stableId?: string;
           status?: string;
+          reservableOnly?: string; // "true" | "false" (query params are strings)
         };
         const user = (request as AuthenticatedRequest).user!;
 
@@ -258,13 +197,12 @@ export async function facilitiesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Check access to stable
-        const hasAccess = await hasStableAccess(stableId, user.uid, user.role);
+        // Check stable access (read permission - any stable member can view facilities)
+        const hasAccess = await canAccessStable(user.uid, stableId);
         if (!hasAccess) {
           return reply.status(403).send({
             error: "Forbidden",
-            message:
-              "You do not have permission to access facilities for this stable",
+            message: "You do not have access to this stable",
           });
         }
 
@@ -275,6 +213,11 @@ export async function facilitiesRoutes(fastify: FastifyInstance) {
 
         if (status) {
           query = query.where("status", "==", status);
+        }
+
+        // Filter for reservable (active) facilities only
+        if (reservableOnly === "true") {
+          query = query.where("status", "==", "active");
         }
 
         const snapshot = await query.get();
@@ -325,13 +268,14 @@ export async function facilitiesRoutes(fastify: FastifyInstance) {
 
         const facility = doc.data()!;
 
-        // Check access to stable
-        const hasAccess = await hasStableAccess(
-          facility.stableId,
+        // Check permission to manage facilities
+        const hasPermission = await hasStablePermission(
           user.uid,
-          user.role,
+          facility.stableId,
+          "manage_facilities",
+          { systemRole: user.role },
         );
-        if (!hasAccess) {
+        if (!hasPermission) {
           return reply.status(403).send({
             error: "Forbidden",
             message: "You do not have permission to update this facility",
@@ -418,13 +362,14 @@ export async function facilitiesRoutes(fastify: FastifyInstance) {
 
         const facility = doc.data()!;
 
-        // Check access to stable
-        const hasAccess = await hasStableAccess(
-          facility.stableId,
+        // Check permission to manage facilities
+        const hasPermission = await hasStablePermission(
           user.uid,
-          user.role,
+          facility.stableId,
+          "manage_facilities",
+          { systemRole: user.role },
         );
-        if (!hasAccess) {
+        if (!hasPermission) {
           return reply.status(403).send({
             error: "Forbidden",
             message: "You do not have permission to delete this facility",
@@ -522,12 +467,13 @@ export async function facilitiesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const hasAccess = await hasStableAccess(
-          preDoc.data()!.stableId,
+        const hasPermission = await hasStablePermission(
           user.uid,
-          user.role,
+          preDoc.data()!.stableId,
+          "manage_facilities",
+          { systemRole: user.role },
         );
-        if (!hasAccess) {
+        if (!hasPermission) {
           return reply.status(403).send({
             error: "Forbidden",
             message: "You do not have permission to manage schedule exceptions",
@@ -628,12 +574,13 @@ export async function facilitiesRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const hasAccess = await hasStableAccess(
-          preDoc.data()!.stableId,
+        const hasPermission = await hasStablePermission(
           user.uid,
-          user.role,
+          preDoc.data()!.stableId,
+          "manage_facilities",
+          { systemRole: user.role },
         );
-        if (!hasAccess) {
+        if (!hasPermission) {
           return reply.status(403).send({
             error: "Forbidden",
             message: "You do not have permission to manage schedule exceptions",
@@ -729,15 +676,12 @@ export async function facilitiesRoutes(fastify: FastifyInstance) {
 
         const facility = doc.data()!;
 
-        const hasAccess = await hasStableAccess(
-          facility.stableId,
-          user.uid,
-          user.role,
-        );
+        // Check stable access (read permission - any stable member can view available slots)
+        const hasAccess = await canAccessStable(user.uid, facility.stableId);
         if (!hasAccess) {
           return reply.status(403).send({
             error: "Forbidden",
-            message: "You do not have permission to access this facility",
+            message: "You do not have access to this stable",
           });
         }
 

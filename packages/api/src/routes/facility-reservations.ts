@@ -198,7 +198,17 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const facility = facilityDoc.data()!;
+        const facilityData = facilityDoc.data()!;
+
+        // Apply defaults for missing fields (defensive programming for older facilities)
+        const facility: any = {
+          ...facilityData,
+          maxHorsesPerReservation: facilityData.maxHorsesPerReservation ?? 1,
+          planningWindowOpens: facilityData.planningWindowOpens ?? 7,
+          planningWindowCloses: facilityData.planningWindowCloses ?? 1,
+          minTimeSlotDuration: facilityData.minTimeSlotDuration ?? 30,
+          // No default for maxHoursPerReservation - allow unlimited duration
+        };
 
         // Check access to stable
         const hasAccess = await hasStableAccess(
@@ -771,7 +781,17 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
             throw new Error("FACILITY_NOT_FOUND");
           }
 
-          const facility = facilityDoc.data()!;
+          const facilityData = facilityDoc.data()!;
+
+          // Apply defaults for missing fields (defensive programming for older facilities)
+          const facility: any = {
+            ...facilityData,
+            maxHorsesPerReservation: facilityData.maxHorsesPerReservation ?? 1,
+            planningWindowOpens: facilityData.planningWindowOpens ?? 7,
+            planningWindowCloses: facilityData.planningWindowCloses ?? 1,
+            minTimeSlotDuration: facilityData.minTimeSlotDuration ?? 30,
+            // No default for maxHoursPerReservation - allow unlimited duration
+          };
 
           // Normalize horse data if provided
           let horseIds: string[] | undefined;

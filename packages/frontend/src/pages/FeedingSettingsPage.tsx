@@ -53,6 +53,7 @@ import { useFeedTypesQuery } from "@/hooks/useFeedTypesQuery";
 import { useFeedingTimesQuery } from "@/hooks/useFeedingTimesQuery";
 import { useCRUD } from "@/hooks/useCRUD";
 import { useDialog } from "@/hooks/useDialog";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { cacheInvalidation } from "@/lib/queryClient";
 import type {
   FeedType,
@@ -74,36 +75,54 @@ import {
 import { getUserOrganizations } from "@/services/organizationService";
 import type { Organization } from "@shared/types";
 
+type DeletingItem =
+  | { type: "feedType"; item: FeedType }
+  | { type: "feedingTime"; item: FeedingTime };
+
 export default function FeedingSettingsPage() {
   const { t } = useTranslation(["feeding", "common"]);
   const { user } = useAuth();
   const { currentOrganizationId, setCurrentOrganizationId } =
     useOrganizationContext();
   const [selectedStableId, setSelectedStableId] = useState<string>("");
+  const { preferences, isLoading: preferencesLoading } = useUserPreferences();
+  const [hasInitializedDefault, setHasInitializedDefault] = useState(false);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizationsLoading, setOrganizationsLoading] = useState(false);
 
   // Dialog state using useDialog hook
   const feedTypeDialog = useDialog<FeedType>();
   const feedingTimeDialog = useDialog<FeedingTime>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deletingItem, setDeletingItem] = useState<{
-    type: "feedType" | "feedingTime";
-    item: FeedType | FeedingTime;
-  } | null>(null);
+  const [deletingItem, setDeletingItem] = useState<DeletingItem | null>(null);
 
   // Load user's organizations
   useEffect(() => {
     async function loadOrganizations() {
       if (!user?.uid) return;
+
+      setOrganizationsLoading(true);
       try {
         const orgs = await getUserOrganizations(user.uid);
         setOrganizations(orgs);
+
+        // Validate current organization is still accessible
+        if (
+          currentOrganizationId &&
+          !orgs.some((o) => o.id === currentOrganizationId)
+        ) {
+          setCurrentOrganizationId(orgs[0]?.id || null);
+        }
       } catch (error) {
         console.error("Failed to load organizations:", error);
+        // TODO: Show error toast to user
+      } finally {
+        setOrganizationsLoading(false);
       }
     }
+
     loadOrganizations();
-  }, [user?.uid]);
+  }, [user?.uid, currentOrganizationId, setCurrentOrganizationId]);
 
   // Load user's stables
   const { stables: allStables, loading: stablesLoading } = useUserStables(
@@ -122,20 +141,49 @@ export default function FeedingSettingsPage() {
   // Use currentOrganizationId from context as the org for feed types
   const organizationId = currentOrganizationId || undefined;
 
-  // Auto-select first stable when org changes or stables load
+  // Auto-select default stable from preferences, fallback to first stable
   useEffect(() => {
-    if (stables.length > 0 && stables[0]) {
-      // If current stable isn't in the filtered list, reset
+    if (
+      !hasInitializedDefault &&
+      !stablesLoading &&
+      !preferencesLoading &&
+      !organizationsLoading &&
+      stables.length > 0
+    ) {
+      // If current selection is valid, keep it
       const currentStableInList = stables.find(
         (s) => s.id === selectedStableId,
       );
-      if (!currentStableInList) {
+      if (currentStableInList) {
+        setHasInitializedDefault(true);
+        return;
+      }
+
+      // Try to use default stable from preferences
+      if (preferences?.defaultStableId) {
+        const hasAccess = stables.some(
+          (s) => s.id === preferences.defaultStableId,
+        );
+        if (hasAccess) {
+          setSelectedStableId(preferences.defaultStableId);
+        } else if (stables[0]) {
+          setSelectedStableId(stables[0].id);
+        }
+      } else if (stables[0]) {
+        // Fallback to first stable if no default or default not accessible
         setSelectedStableId(stables[0].id);
       }
-    } else {
-      setSelectedStableId("");
+
+      setHasInitializedDefault(true);
     }
-  }, [stables, selectedStableId]);
+  }, [
+    hasInitializedDefault,
+    stablesLoading,
+    preferencesLoading,
+    organizationsLoading,
+    stables,
+    preferences?.defaultStableId,
+  ]);
 
   // Load feed types for the organization (shared across all stables) - include inactive
   const {
@@ -144,12 +192,18 @@ export default function FeedingSettingsPage() {
     refetch: refetchFeedTypes,
   } = useFeedTypesQuery(organizationId, true);
 
+  // Validate selectedStableId is accessible before querying
+  const isValidStableSelection = stables.some((s) => s.id === selectedStableId);
+
   // Load feeding times for selected stable - include inactive
   const {
     feedingTimes: feedingTimesData,
     loading: feedingTimesLoading,
     refetch: refetchFeedingTimes,
-  } = useFeedingTimesQuery(selectedStableId, true);
+  } = useFeedingTimesQuery(
+    isValidStableSelection ? selectedStableId : "",
+    true,
+  );
 
   // Feed Types CRUD operations
   const feedTypeCRUD = useCRUD<FeedType>({
@@ -248,15 +302,11 @@ export default function FeedingSettingsPage() {
 
   // Reactivate handlers
   const handleReactivateFeedType = async (type: FeedType) => {
-    await updateFeedType(type.id, { isActive: true });
-    await cacheInvalidation.feedTypes.all();
-    await refetchFeedTypes();
+    await feedTypeCRUD.update(type.id, { isActive: true });
   };
 
   const handleReactivateFeedingTime = async (time: FeedingTime) => {
-    await updateFeedingTime(time.id, { isActive: true });
-    await cacheInvalidation.feedingTimes.all();
-    await refetchFeedingTimes();
+    await feedingTimeCRUD.update(time.id, { isActive: true });
   };
 
   // Delete confirmation
@@ -274,8 +324,9 @@ export default function FeedingSettingsPage() {
   };
 
   // Sort feeding times by time (HH:mm format)
-  const sortedFeedingTimes = [...feedingTimesData].sort((a, b) =>
-    a.time.localeCompare(b.time),
+  const sortedFeedingTimes = useMemo(
+    () => [...feedingTimesData].sort((a, b) => a.time.localeCompare(b.time)),
+    [feedingTimesData],
   );
 
   if (stablesLoading) {

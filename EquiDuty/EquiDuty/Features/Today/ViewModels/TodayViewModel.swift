@@ -23,7 +23,7 @@ final class TodayViewModel {
     // MARK: - Navigation State
 
     var selectedDate: Date = Date()
-    var periodType: TodayPeriodType = .week
+    var periodType: TodayPeriodType = .day
 
     // MARK: - View Mode State
 

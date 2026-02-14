@@ -58,6 +58,23 @@ struct PointsSystemConfig: Codable, Equatable {
     var holidayMultiplier: Double  // Default 1.5
 }
 
+/// Scheduling configuration for a stable
+struct SchedulingConfig: Codable, Equatable {
+    var scheduleHorizonDays: Int?  // Default 14
+    var autoAssignment: Bool?
+    var allowSwaps: Bool?
+    var requireApproval: Bool?
+}
+
+/// Notification configuration for a stable
+struct NotificationConfig: Codable, Equatable {
+    var emailNotifications: Bool?
+    var shiftReminders: Bool?
+    var schedulePublished: Bool?
+    var memberJoined: Bool?
+    var shiftSwapRequests: Bool?
+}
+
 /// Stable document structure
 struct Stable: Codable, Identifiable, Equatable {
     let id: String
@@ -69,8 +86,41 @@ struct Stable: Codable, Identifiable, Equatable {
     var ownerEmail: String?
     var organizationId: String?
     var pointsSystem: PointsSystemConfig?
+    var schedulingConfig: SchedulingConfig?
+    var notificationConfig: NotificationConfig?
+    var boxes: [String]?
+    var paddocks: [String]?
     let createdAt: Date
     let updatedAt: Date
+}
+
+// MARK: - Stable Request DTOs
+
+/// Request body for creating a stable
+struct CreateStableRequest: Encodable {
+    let name: String
+    var description: String?
+    var address: String?
+    var facilityNumber: String?
+    var organizationId: String?
+    var pointsSystem: PointsSystemConfig?
+    var schedulingConfig: SchedulingConfig?
+    var notificationConfig: NotificationConfig?
+    var boxes: [String]?
+    var paddocks: [String]?
+}
+
+/// Request body for updating a stable
+struct UpdateStableRequest: Encodable {
+    var name: String?
+    var description: String?
+    var address: String?
+    var facilityNumber: String?
+    var pointsSystem: PointsSystemConfig?
+    var schedulingConfig: SchedulingConfig?
+    var notificationConfig: NotificationConfig?
+    var boxes: [String]?
+    var paddocks: [String]?
 }
 
 /// Organization member document structure

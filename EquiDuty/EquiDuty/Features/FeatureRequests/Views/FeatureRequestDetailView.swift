@@ -48,11 +48,16 @@ struct FeatureRequestDetailView: View {
                     // Comment input
                     commentInputBar
                 }
+            } else {
+                // Fallback: initial state before data loads
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .onAppear { viewModel.loadData() }
             }
         }
         .navigationTitle(String(localized: "featureRequests.detail.title"))
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
+        .task {
             viewModel.loadData()
         }
     }

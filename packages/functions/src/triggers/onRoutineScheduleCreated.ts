@@ -81,10 +81,15 @@ function shouldGenerateForDate(
     case "weekends":
       return dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
     case "holidays":
-      return dayOfWeek === 0 || dayOfWeek === 6 || holidayService.isHoliday(date);
+      return (
+        dayOfWeek === 0 || dayOfWeek === 6 || holidayService.isHoliday(date)
+      );
     case "custom": {
       const matchesDay = repeatDays?.includes(dayOfWeek) ?? false;
-      return matchesDay || (includeHolidays === true && holidayService.isHoliday(date));
+      return (
+        matchesDay ||
+        (includeHolidays === true && holidayService.isHoliday(date))
+      );
     }
     default:
       return false;
@@ -110,7 +115,14 @@ function generateScheduledDates(
   normalizedEndDate.setHours(23, 59, 59, 999);
 
   while (currentDate <= normalizedEndDate) {
-    if (shouldGenerateForDate(currentDate, repeatPattern, repeatDays, includeHolidays)) {
+    if (
+      shouldGenerateForDate(
+        currentDate,
+        repeatPattern,
+        repeatDays,
+        includeHolidays,
+      )
+    ) {
       dates.push(new Date(currentDate));
     }
     currentDate.setDate(currentDate.getDate() + 1);

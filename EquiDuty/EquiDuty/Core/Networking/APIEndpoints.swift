@@ -35,6 +35,8 @@ enum APIEndpoints {
     static func stableMembers(_ stableId: String) -> String {
         "/stables/\(stableId)/members?includeUserDetails=true"
     }
+    static func stableById(_ id: String) -> String { "/stables/\(id)" }
+    static let stablesCreate = "/stables"
 
     // MARK: - Horses
     static let horses = "/horses"
@@ -194,6 +196,8 @@ enum APIEndpoints {
     static let facilities = "/facilities"
     static func facility(_ id: String) -> String { "/facilities/\(id)" }
     static func facilityAvailableSlots(_ id: String) -> String { "/facilities/\(id)/available-slots" }
+    static func facilityExceptions(_ id: String) -> String { "/facilities/\(id)/exceptions" }
+    static func facilityException(_ id: String, date: String) -> String { "/facilities/\(id)/exceptions/\(date)" }
 
     // MARK: - Facility Reservations
     static let facilityReservations = "/facility-reservations"

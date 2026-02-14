@@ -598,6 +598,8 @@ struct RoutineStepCreate: Codable {
     var showFeeding: Bool?
     var showMedication: Bool?
     var showBlanketStatus: Bool?
+    var showSpecialInstructions: Bool?
+    var allowPhotoEvidence: Bool?
     var icon: String?
 }
 

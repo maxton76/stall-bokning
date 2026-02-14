@@ -11,7 +11,10 @@ import { Timestamp, FieldValue } from "firebase-admin/firestore";
 import { db } from "./firebase.js";
 import { holidayService } from "@equiduty/shared";
 import { computeHolidayPoints, fetchHolidaySettings } from "./holidayPoints.js";
-import type { SelectionAlgorithm, AutoAssignmentMethod } from "@equiduty/shared";
+import type {
+  SelectionAlgorithm,
+  AutoAssignmentMethod,
+} from "@equiduty/shared";
 import type { MemberForAssignment } from "../services/autoAssignmentService.js";
 import { autoAssignRoutineInstances } from "../services/routineAutoAssignmentService.js";
 

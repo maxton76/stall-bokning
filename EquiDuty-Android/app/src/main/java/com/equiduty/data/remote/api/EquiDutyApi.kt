@@ -283,11 +283,21 @@ interface EquiDutyApi {
     @GET("api/v1/facilities")
     suspend fun getFacilities(
         @Query("stableId") stableId: String,
-        @Query("status") status: String? = null
+        @Query("status") status: String? = null,
+        @Query("reservableOnly") reservableOnly: Boolean? = null
     ): FacilitiesResponseDto
 
     @GET("api/v1/facilities/{id}")
     suspend fun getFacility(@Path("id") id: String): FacilityDto
+
+    @POST("api/v1/facilities")
+    suspend fun createFacility(@Body body: CreateFacilityDto): CreateFacilityResponseDto
+
+    @PATCH("api/v1/facilities/{id}")
+    suspend fun updateFacility(@Path("id") id: String, @Body body: UpdateFacilityDto): FacilityDto
+
+    @DELETE("api/v1/facilities/{id}")
+    suspend fun deleteFacility(@Path("id") id: String)
 
     // ── Facility Reservations ───────────────────────────────────────
     @GET("api/v1/facility-reservations")

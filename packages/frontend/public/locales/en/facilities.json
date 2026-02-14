@@ -7,6 +7,13 @@
     "manageTitle": "Manage Facilities",
     "manageDescription": "Configure facilities and booking rules"
   },
+  "loading": {
+    "message": "Loading facilities..."
+  },
+  "error": {
+    "title": "Failed to Load Facilities",
+    "loadFailed": "Could not fetch facilities. Please check your internet connection and try again."
+  },
   "myReservations": {
     "title": "My reservations",
     "description": "View and manage your facility reservations",
@@ -313,7 +320,8 @@
     "updateSuccess": "Facility updated successfully",
     "deleteSuccess": "Facility deleted successfully",
     "createError": "Failed to create facility",
-    "updateError": "Failed to update facility"
+    "updateError": "Failed to update facility",
+    "noPermission": "You do not have permission to manage facilities for this stable"
   },
   "actions": {
     "addFacility": "Add Facility",
@@ -337,7 +345,9 @@
   },
   "emptyState": {
     "title": "No facilities yet",
-    "description": "Get started by adding your first facility"
+    "description": "Get started by adding your first facility",
+    "noReservable": "No Reservable Facilities",
+    "noReservableDescription": "There are no facilities available for booking at this time."
   },
   "views": {
     "selectView": "Select View",

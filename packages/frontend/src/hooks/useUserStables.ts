@@ -1,6 +1,6 @@
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { queryKeys } from "@/lib/queryClient";
-import { getUserStables } from "@/services/stableService";
+import { getUserStables, getStablesByOwner } from "@/services/stableService";
 
 /**
  * Stable data interface
@@ -23,12 +23,16 @@ interface Stable {
  * Pair with QueryBoundary for consistent loading/error states.
  *
  * @param userId - ID of the user whose stables to load
+ * @param ownedOnly - If true, only return stables owned by the user (default: false)
  * @returns Stables array, loading state, and query object for QueryBoundary
  *
  * @example
  * ```tsx
- * // Basic usage
+ * // Get all accessible stables (owned + member)
  * const { stables, loading } = useUserStables(user?.uid);
+ *
+ * // Get only owned stables
+ * const { stables, loading } = useUserStables(user?.uid, true);
  *
  * // With QueryBoundary for cold-start handling
  * const { stables, query } = useUserStables(user?.uid);
@@ -37,13 +41,19 @@ interface Stable {
  * </QueryBoundary>
  * ```
  */
-export function useUserStables(userId: string | undefined) {
+export function useUserStables(
+  userId: string | undefined,
+  ownedOnly: boolean = false,
+) {
   const query = useApiQuery<Stable[]>(
-    queryKeys.userStables.byUser(userId || ""),
+    queryKeys.userStables.byUser(userId || "", ownedOnly),
     async () => {
       if (!userId) return [];
       // Use API instead of direct Firestore queries
       // The API properly handles organization membership authorization
+      if (ownedOnly) {
+        return getStablesByOwner(userId);
+      }
       return getUserStables();
     },
     { enabled: !!userId },

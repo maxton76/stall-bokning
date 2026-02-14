@@ -53,7 +53,10 @@ interface MemberTrackingState {
 async function directAssignWithAlgorithm(
   dates: Date[],
   members: MemberForAssignment[],
-  config: Required<Pick<AssignmentConfig, "algorithm" | "stableId" | "organizationId">> & AssignmentConfig,
+  config: Required<
+    Pick<AssignmentConfig, "algorithm" | "stableId" | "organizationId">
+  > &
+    AssignmentConfig,
 ): Promise<Record<string, string>> {
   const assignments: Record<string, string> = {};
 
@@ -304,5 +307,11 @@ export async function autoAssignRoutineInstances(
   }
 
   // Legacy fallback: scoring-based assignment
-  return legacyAutoAssign(dates, members, scheduledStartTime, pointsValue, config);
+  return legacyAutoAssign(
+    dates,
+    members,
+    scheduledStartTime,
+    pointsValue,
+    config,
+  );
 }

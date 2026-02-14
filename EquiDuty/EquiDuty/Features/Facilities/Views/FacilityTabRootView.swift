@@ -11,13 +11,15 @@ import SwiftUI
 enum FacilityTabSegment: String, CaseIterable {
     case browse
     case myBookings
-    case analytics
+    case manage
+    case stables
 
     var label: String {
         switch self {
         case .browse: String(localized: "facilities.browse")
         case .myBookings: String(localized: "facilities.myBookings")
-        case .analytics: String(localized: "facilities.analytics")
+        case .manage: String(localized: "facilities.manage")
+        case .stables: String(localized: "stables.segment.label")
         }
     }
 }
@@ -30,17 +32,27 @@ struct FacilityTabRootView: View {
     @Environment(NotificationViewModel.self) private var notificationViewModel
     @State private var showNotificationCenter = false
 
-    /// Whether the user has manager-level access (for analytics tab visibility)
-    private var isManager: Bool {
-        permissionService.hasPermission(.viewFinancialReports) || permissionService.isOrgOwner
+    /// Whether the user can manage facilities
+    private var canManage: Bool {
+        permissionService.hasPermission(.manageFacilities) || permissionService.isOrgOwner
+    }
+
+    /// Whether the user can view the Stall segment
+    private var canViewStables: Bool {
+        permissionService.hasPermission(.createStables)
+            || permissionService.hasPermission(.manageStableSettings)
+            || permissionService.isOrgOwner
     }
 
     private var availableSegments: [FacilityTabSegment] {
-        if isManager {
-            return FacilityTabSegment.allCases
-        } else {
-            return [.browse, .myBookings]
+        var segments: [FacilityTabSegment] = [.browse, .myBookings]
+        if canManage {
+            segments.append(.manage)
         }
+        if canViewStables {
+            segments.append(.stables)
+        }
+        return segments
     }
 
     var body: some View {
@@ -62,10 +74,13 @@ struct FacilityTabRootView: View {
                     FacilityListView()
                 case .myBookings:
                     MyReservationsView()
-                case .analytics:
-                    FacilityAnalyticsView()
+                case .manage:
+                    ManageFacilitiesView()
+                case .stables:
+                    StablesListView()
                 }
             }
+            .frame(maxHeight: .infinity, alignment: .top)
             .navigationTitle(String(localized: "facilities.title"))
             .notificationBellToolbar(viewModel: notificationViewModel, showNotificationCenter: $showNotificationCenter)
             .withAppNavigationDestinations()

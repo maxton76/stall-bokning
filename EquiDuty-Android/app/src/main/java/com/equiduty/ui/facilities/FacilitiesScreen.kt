@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -21,7 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.equiduty.R
+import com.equiduty.data.repository.PermissionRepository
 import com.equiduty.domain.model.FacilityType
+import com.equiduty.ui.components.PermissionGate
 import com.equiduty.ui.facilities.components.FacilityCard
 import com.equiduty.ui.facilities.components.ReservationCard
 import com.equiduty.ui.navigation.Route
@@ -74,12 +77,26 @@ fun FacilitiesScreen(
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold
                         )
-                        TextButton(
-                            onClick = { navController.navigate(Route.MyReservations.route) }
-                        ) {
-                            Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(stringResource(R.string.facilities_my_reservations))
+                        Row {
+                            PermissionGate(
+                                permissionRepository = viewModel.permissionRepository,
+                                action = "manage_facilities"
+                            ) {
+                                TextButton(
+                                    onClick = { navController.navigate(Route.ManageFacilities.route) }
+                                ) {
+                                    Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(stringResource(R.string.facilities_manage))
+                                }
+                            }
+                            TextButton(
+                                onClick = { navController.navigate(Route.MyReservations.route) }
+                            ) {
+                                Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(stringResource(R.string.facilities_my_reservations))
+                            }
                         }
                     }
                 }

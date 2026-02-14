@@ -217,6 +217,61 @@
     <string name="facilities_quick_book">Snabbbokning</string>
     <string name="facilities_reservations_today">Dagens bokningar</string>
     <string name="facility_status_maintenance">Underhåll</string>
+    <string name="facilities_manage">Hantera</string>
+    <string name="facilities_loading_message">Laddar anläggningar…</string>
+    <string name="facilities_error_title">Kunde inte ladda anläggningar</string>
+    <string name="facilities_error_load_failed">Det gick inte att hämta anläggningar. Kontrollera din internetanslutning och försök igen.</string>
+
+    <!-- Manage Facilities -->
+    <string name="manage_facilities_title">Hantera anläggningar</string>
+    <string name="manage_facilities_add">Lägg till anläggning</string>
+    <string name="manage_facilities_empty">Inga anläggningar ännu</string>
+    <string name="manage_facilities_empty_hint">Tryck + för att skapa din första anläggning</string>
+    <string name="manage_facilities_delete_title">Ta bort anläggning</string>
+    <string name="manage_facilities_delete_confirm">Är du säker på att du vill ta bort %1$s?</string>
+
+    <!-- Facility Form -->
+    <string name="facility_form_create_title">Ny anläggning</string>
+    <string name="facility_form_edit_title">Redigera anläggning</string>
+    <string name="facility_form_basic_info">Grundinformation</string>
+    <string name="facility_form_name">Namn *</string>
+    <string name="facility_form_type">Typ</string>
+    <string name="facility_form_description">Beskrivning</string>
+    <string name="facility_form_status">Status</string>
+    <string name="facility_form_booking_rules">Bokningsregler</string>
+    <string name="facility_form_planning_opens">Bokning öppnar</string>
+    <string name="facility_form_planning_closes">Bokning stänger</string>
+    <string name="facility_form_max_horses">Max hästar per bokning</string>
+    <string name="facility_form_min_slot">Minsta bokningstid</string>
+    <string name="facility_form_max_duration">Max bokningstid</string>
+    <string name="facility_form_days">dagar</string>
+    <string name="facility_form_hours">timmar</string>
+    <string name="facility_form_minutes">min</string>
+    <string name="facility_form_weekly_schedule">Veckoschema</string>
+    <string name="facility_form_default_hours">Standardtider</string>
+    <string name="facility_form_per_day">Dagspecifika tider</string>
+    <string name="facility_form_custom_hours">Egna tider</string>
+    <string name="facility_form_from">Från</string>
+    <string name="facility_form_to">Till</string>
+    <string name="facility_form_add_time_block">Lägg till tidsblock</string>
+    <string name="facility_form_exceptions">Undantag</string>
+    <string name="facility_form_add_exception">Lägg till undantag</string>
+    <string name="facility_form_exception_date">Datum (ÅÅÅÅ-MM-DD)</string>
+    <string name="facility_form_exception_type">Typ</string>
+    <string name="facility_form_exception_closed">Stängt</string>
+    <string name="facility_form_exception_modified">Ändrade tider</string>
+    <string name="facility_form_exception_hours">Öppettider</string>
+    <string name="facility_form_exception_reason">Anledning</string>
+    <string name="facility_form_save">Spara ändringar</string>
+    <string name="facility_form_create">Skapa anläggning</string>
+    <string name="facility_form_add">Lägg till</string>
+    <string name="facility_form_monday">Måndag</string>
+    <string name="facility_form_tuesday">Tisdag</string>
+    <string name="facility_form_wednesday">Onsdag</string>
+    <string name="facility_form_thursday">Torsdag</string>
+    <string name="facility_form_friday">Fredag</string>
+    <string name="facility_form_saturday">Lördag</string>
+    <string name="facility_form_sunday">Söndag</string>
 
     <!-- Facility Detail -->
     <string name="facility_detail_title">Anläggningsdetaljer</string>

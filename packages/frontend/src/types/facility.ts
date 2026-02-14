@@ -46,7 +46,7 @@ export interface Facility {
   planningWindowCloses: number; // hours before
   maxHorsesPerReservation: number;
   minTimeSlotDuration: TimeSlotDuration; // minimum minutes per reservation
-  maxHoursPerReservation: number;
+  maxHoursPerReservation?: number; // optional - if not set, no limit
 
   // New availability schedule
   availabilitySchedule?: FacilityAvailabilitySchedule;

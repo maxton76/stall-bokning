@@ -15,7 +15,7 @@ import { useUserStables } from "@/hooks/useUserStables";
 export default function StablesPage() {
   const { t } = useTranslation(["stables", "common"]);
   const { user } = useAuth();
-  const { stables, loading } = useUserStables(user?.uid);
+  const { stables, loading } = useUserStables(user?.uid, true);
 
   if (loading) {
     return (
@@ -51,21 +51,12 @@ export default function StablesPage() {
           <Link to={`/stables/${stable.id}`} key={stable.id}>
             <Card className="hover:shadow-lg transition-shadow cursor-pointer">
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle>{stable.name}</CardTitle>
-                    {stable.address && (
-                      <CardDescription className="mt-1">
-                        {stable.address}
-                      </CardDescription>
-                    )}
-                  </div>
-                  <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-                    {stable.ownerId === user?.uid
-                      ? t("stables:members.owner")
-                      : t("stables:members.member")}
-                  </span>
-                </div>
+                <CardTitle>{stable.name}</CardTitle>
+                {stable.address && (
+                  <CardDescription className="mt-1">
+                    {stable.address}
+                  </CardDescription>
+                )}
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">

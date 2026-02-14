@@ -202,12 +202,20 @@ struct RoutineTemplateFormView: View {
             }
             .sheet(isPresented: $showStepEditor) {
                 if let index = editingStepIndex {
-                    RoutineStepFormView(step: steps[index]) { updatedStep in
+                    RoutineStepFormView(
+                        step: steps[index],
+                        stableId: authService.selectedStable?.id,
+                        organizationId: authService.selectedOrganization?.id
+                    ) { updatedStep in
                         steps[index] = updatedStep
                         validate() // Validate after step update
                     }
                 } else {
-                    RoutineStepFormView(step: nil) { newStep in
+                    RoutineStepFormView(
+                        step: nil,
+                        stableId: authService.selectedStable?.id,
+                        organizationId: authService.selectedOrganization?.id
+                    ) { newStep in
                         steps.append(newStep)
                         validate() // Validate after adding step
                     }
@@ -274,6 +282,8 @@ struct RoutineTemplateFormView: View {
                     showFeeding: step.showFeeding,
                     showMedication: step.showMedication,
                     showBlanketStatus: step.showBlanketStatus,
+                    showSpecialInstructions: step.showSpecialInstructions,
+                    allowPhotoEvidence: step.allowPhotoEvidence,
                     icon: step.icon
                 )
             }
@@ -320,6 +330,8 @@ struct RoutineTemplateFormView: View {
                     showFeeding: step.showFeeding,
                     showMedication: step.showMedication,
                     showBlanketStatus: step.showBlanketStatus,
+                    showSpecialInstructions: step.showSpecialInstructions,
+                    allowPhotoEvidence: step.allowPhotoEvidence,
                     icon: step.icon
                 )
             }
@@ -404,6 +416,8 @@ struct RoutineStepDraft: Identifiable {
     var showFeeding: Bool?
     var showMedication: Bool?
     var showBlanketStatus: Bool?
+    var showSpecialInstructions: Bool?
+    var allowPhotoEvidence: Bool?
     var icon: String?
 
     init(
@@ -419,6 +433,8 @@ struct RoutineStepDraft: Identifiable {
         showFeeding: Bool? = nil,
         showMedication: Bool? = nil,
         showBlanketStatus: Bool? = nil,
+        showSpecialInstructions: Bool? = nil,
+        allowPhotoEvidence: Bool? = nil,
         icon: String? = nil
     ) {
         self.id = id
@@ -433,6 +449,8 @@ struct RoutineStepDraft: Identifiable {
         self.showFeeding = showFeeding
         self.showMedication = showMedication
         self.showBlanketStatus = showBlanketStatus
+        self.showSpecialInstructions = showSpecialInstructions
+        self.allowPhotoEvidence = allowPhotoEvidence
         self.icon = icon
     }
 }
