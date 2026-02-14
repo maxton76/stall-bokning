@@ -34,6 +34,9 @@ import {
   addToBookingHistory,
 } from "@/utils/bookingSmartDefaults";
 import { AvailabilityIndicator } from "@/components/AvailabilityIndicator";
+import { HorseMultiSelect } from "@/components/HorseMultiSelect";
+import { HorseChipList } from "@/components/HorseChipList";
+import { getHorseIds, getHorses } from "@/utils/reservationHelpers";
 
 // Schema will be created with useMemo inside component for translations
 type ReservationFormData = {
@@ -41,7 +44,10 @@ type ReservationFormData = {
   date: Date;
   startTime: string;
   endTime: string;
-  horseId: string;
+  /** @deprecated Use horseIds instead */
+  horseId?: string;
+  /** Array of horse IDs for multi-horse bookings (preferred) */
+  horseIds: string[];
   contactInfo?: string;
   notes?: string;
   recurringWeekly?: boolean;
@@ -54,7 +60,10 @@ interface FacilityReservationDialogProps {
   facilities: Facility[];
   horses?: Array<{ id: string; name: string }>;
   onSave: (
-    data: ReservationFormData & { adminOverride?: boolean },
+    data: ReservationFormData & {
+      adminOverride?: boolean;
+      horseNames?: string[];
+    },
   ) => Promise<void>;
   onDelete?: (reservationId: string) => Promise<void>;
   /** Owner ID of the stable these facilities belong to */
@@ -90,7 +99,7 @@ export function FacilityReservationDialog({
     user?.systemRole === "system_admin" ||
     (stableOwnerId != null && user?.uid === stableOwnerId);
 
-  // Create schema with translated messages
+  // Create schema with translated messages (maxHorses will be checked later)
   const reservationSchema = useMemo(
     () =>
       z
@@ -111,7 +120,10 @@ export function FacilityReservationDialog({
               /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
               t("reservation.validation.timeInvalid"),
             ),
-          horseId: z.string().min(1, t("reservation.validation.horseRequired")),
+          horseIds: z
+            .array(z.string())
+            .min(1, t("reservation.validation.horsesRequired")),
+          horseId: z.string().optional(), // Legacy field
           contactInfo: z.string().optional(),
           notes: z.string().optional(),
         })
@@ -167,7 +179,7 @@ export function FacilityReservationDialog({
       date: new Date(),
       startTime: "09:00",
       endTime: "10:00",
-      horseId: "",
+      horseIds: [],
       contactInfo: "",
       notes: "",
       recurringWeekly: false,
@@ -179,7 +191,16 @@ export function FacilityReservationDialog({
         addToBookingHistory(data.facilityId, durationMinutes);
         saveLastUsedFacilityId(data.facilityId);
       }
-      await onSave({ ...data, adminOverride: adminOverride || undefined });
+
+      // Get horse names for the selected IDs
+      const selectedHorses = horses.filter((h) => data.horseIds.includes(h.id));
+      const horseNames = selectedHorses.map((h) => h.name);
+
+      await onSave({
+        ...data,
+        horseNames, // Include horse names for denormalization
+        adminOverride: adminOverride || undefined,
+      });
     },
     onSuccess: () => {
       onOpenChange(false);
@@ -191,6 +212,11 @@ export function FacilityReservationDialog({
       ? t("reservation.messages.updateError")
       : t("reservation.messages.createError"),
   });
+
+  // Get selected facility to check maxHorsesPerReservation
+  const selectedFacilityId = form.watch("facilityId");
+  const selectedFacility = facilities.find((f) => f.id === selectedFacilityId);
+  const maxHorses = selectedFacility?.maxHorsesPerReservation || 1;
 
   // Helper function to calculate duration in minutes
   const calculateDuration = (startTime: string, endTime: string): number => {
@@ -204,12 +230,14 @@ export function FacilityReservationDialog({
     if (reservation) {
       const startDate = toDate(reservation.startTime) || new Date();
       const endDate = toDate(reservation.endTime) || new Date();
+      const horseIds = getHorseIds(reservation);
+
       resetForm({
         facilityId: reservation.facilityId,
         date: startDate,
         startTime: format(startDate, "HH:mm"),
         endTime: format(endDate, "HH:mm"),
-        horseId: reservation.horseId || "",
+        horseIds,
         contactInfo: reservation.contactInfo || "",
         notes: reservation.notes || "",
         recurringWeekly: false,
@@ -220,7 +248,7 @@ export function FacilityReservationDialog({
         date: initialValues.date || new Date(),
         startTime: initialValues.startTime || "09:00",
         endTime: initialValues.endTime || "10:00",
-        horseId: "",
+        horseIds: [],
         contactInfo: "",
         notes: "",
         recurringWeekly: false,
@@ -228,14 +256,14 @@ export function FacilityReservationDialog({
     } else {
       // Apply smart defaults when creating new reservation
       const smartDefaults = getSmartDefaults(facilities, new Date().getHours());
-      const autoHorseId = horses.length === 1 ? horses[0]?.id || "" : "";
+      const autoHorseIds = horses.length === 1 ? [horses[0]!.id] : [];
 
       resetForm({
         facilityId: smartDefaults.facilityId || "",
         date: new Date(),
         startTime: smartDefaults.startTime,
         endTime: smartDefaults.endTime,
-        horseId: autoHorseId,
+        horseIds: autoHorseIds,
         contactInfo: "",
         notes: "",
         recurringWeekly: false,
@@ -329,7 +357,7 @@ export function FacilityReservationDialog({
     value: f.id,
     label: f.name,
   }));
-  const horseOptions = horses.map((h) => ({ value: h.id, label: h.name }));
+  // Horse options no longer needed - using HorseMultiSelect instead
 
   return (
     <BaseFormDialog
@@ -533,14 +561,58 @@ export function FacilityReservationDialog({
         </Alert>
       )}
 
-      <FormSelect
-        name="horseId"
-        label={t("reservation.labels.horse")}
-        form={form}
-        options={horseOptions}
-        placeholder={t("reservation.placeholders.horse")}
-        required
-      />
+      {/* Horse Selection - Multi-select */}
+      <div className="space-y-2">
+        <Label htmlFor="horse-select" className="text-sm font-medium">
+          {t("reservation.labels.horses")}
+          <span className="text-destructive ml-1">*</span>
+        </Label>
+        {selectedFacility && (
+          <HorseMultiSelect
+            stableId={selectedFacility.stableId}
+            selectedHorseIds={form.watch("horseIds") || []}
+            onChange={(horseIds) => form.setValue("horseIds", horseIds)}
+            placeholder={t("reservation.placeholders.horses")}
+            disabled={form.formState.isSubmitting}
+          />
+        )}
+        {!selectedFacility && (
+          <p className="text-sm text-muted-foreground">
+            {t("reservation.placeholders.selectFacilityFirst")}
+          </p>
+        )}
+
+        {/* Display selected horses as chips */}
+        {selectedFacility && (
+          <HorseChipList
+            horses={horses.filter((h) =>
+              (form.watch("horseIds") || []).includes(h.id),
+            )}
+            onRemove={(horseId: string) => {
+              const currentIds = form.watch("horseIds") || [];
+              form.setValue(
+                "horseIds",
+                currentIds.filter((id: string) => id !== horseId),
+              );
+            }}
+            disabled={form.formState.isSubmitting}
+          />
+        )}
+
+        {/* Show capacity info */}
+        {selectedFacility && maxHorses > 1 && (
+          <p className="text-xs text-muted-foreground">
+            {t("reservation.descriptions.maxHorses", { max: maxHorses })}
+          </p>
+        )}
+
+        {/* Show validation error */}
+        {form.formState.errors.horseIds && (
+          <p className="text-sm text-destructive">
+            {form.formState.errors.horseIds.message}
+          </p>
+        )}
+      </div>
 
       <FormInput
         name="contactInfo"

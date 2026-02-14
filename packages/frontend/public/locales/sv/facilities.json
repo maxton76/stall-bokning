@@ -108,6 +108,7 @@
       "startTime": "Starttid",
       "endTime": "Sluttid",
       "horse": "Häst",
+      "horses": "Hästar",
       "contactInfo": "Kontaktinformation",
       "notes": "Anteckningar",
       "status": "Status",
@@ -115,12 +116,15 @@
       "recurringWeekly": "Återkommande veckovis"
     },
     "descriptions": {
-      "recurringWeekly": "Boka automatiskt samma tid varje vecka i 4 veckor framåt"
+      "recurringWeekly": "Boka automatiskt samma tid varje vecka i 4 veckor framåt",
+      "maxHorses": "Maximalt {{max}} hästar tillåtna för denna anläggning"
     },
     "placeholders": {
       "facility": "Välj anläggning",
       "date": "Välj datum",
       "horse": "Välj häst",
+      "horses": "Välj hästar...",
+      "selectFacilityFirst": "Välj en anläggning först för att välja hästar",
       "contactInfo": "Telefon eller e-post för kontakt",
       "notes": "Ytterligare anteckningar eller speciella önskemål..."
     },
@@ -154,10 +158,30 @@
       "dateRequired": "Datum krävs",
       "timeInvalid": "Ogiltigt tidsformat",
       "endAfterStart": "Sluttid måste vara efter starttid",
-      "horseRequired": "Häst krävs"
+      "horseRequired": "Häst krävs",
+      "horsesRequired": "Minst en häst måste väljas",
+      "tooManyHorses": "För många hästar valda (max {{max}})",
+      "outsideBusinessHours": "Vald tid är utanför anläggningens öppettider",
+      "conflictDetected": "Tidsluckan kolliderar med befintlig bokning",
+      "belowMinimumDuration": "Bokningens längd är mindre än minimum",
+      "exceedsMaximumDuration": "Bokningens längd överskrider maximum",
+      "cannotMoveBooking": "Kan inte flytta bokning",
+      "invalidMove": "Ogiltig flytt",
+      "networkError": "Nätverksfel uppstod. Kontrollera din anslutning och försök igen.",
+      "equipmentWarning": "Verifiera att hästen har nödvändig utrustning för denna anläggning"
     },
     "delete": {
       "confirmText": "Är du säker på att du vill avboka denna bokning? Denna åtgärd kan inte ångras."
+    }
+  },
+  "calendar": {
+    "title": "Anläggningskalender",
+    "ariaLabels": {
+      "grid": "Anläggningskalender",
+      "timeHeader": "Tidskolumn för {{time}}",
+      "facilityRow": "Rad för {{facility}}",
+      "timeSlot": "Tidslucka för {{facility}} kl {{time}}",
+      "booking": "Bokning för {{user}}, {{start}} till {{end}}, status: {{status}}"
     }
   },
   "types": {
@@ -383,5 +407,7 @@
     "fullWithCapacity": "Fullbokat ({{capacity}} platser)",
     "limitedWithRemaining": "{{remaining}} av {{capacity}} platser kvar",
     "availableWithCapacity": "Tillgänglig ({{capacity}} platser)"
-  }
+  },
+  "horses": "{{count}} häst",
+  "horses_plural": "{{count}} hästar"
 }

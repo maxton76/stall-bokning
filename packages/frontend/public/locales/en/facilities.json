@@ -108,6 +108,7 @@
       "startTime": "Start time",
       "endTime": "End time",
       "horse": "Horse",
+      "horses": "Horses",
       "contactInfo": "Contact information",
       "notes": "Notes",
       "status": "Status",
@@ -115,12 +116,15 @@
       "recurringWeekly": "Recurring weekly"
     },
     "descriptions": {
-      "recurringWeekly": "Automatically book the same time each week for 4 weeks ahead"
+      "recurringWeekly": "Automatically book the same time each week for 4 weeks ahead",
+      "maxHorses": "Maximum {{max}} horses allowed for this facility"
     },
     "placeholders": {
       "facility": "Select facility",
       "date": "Pick a date",
       "horse": "Select horse",
+      "horses": "Select horses...",
+      "selectFacilityFirst": "Select a facility first to choose horses",
       "contactInfo": "Phone or email for contact",
       "notes": "Additional notes or special requirements..."
     },
@@ -154,10 +158,30 @@
       "dateRequired": "Date is required",
       "timeInvalid": "Invalid time format",
       "endAfterStart": "End time must be after start time",
-      "horseRequired": "Horse is required"
+      "horseRequired": "Horse is required",
+      "horsesRequired": "At least one horse must be selected",
+      "tooManyHorses": "Too many horses selected (max {{max}})",
+      "outsideBusinessHours": "Selected time is outside facility business hours",
+      "conflictDetected": "Time slot conflicts with existing booking",
+      "belowMinimumDuration": "Booking duration is less than minimum allowed",
+      "exceedsMaximumDuration": "Booking duration exceeds maximum allowed",
+      "cannotMoveBooking": "Cannot move booking",
+      "invalidMove": "Invalid move",
+      "networkError": "Network error occurred. Please check your connection and try again.",
+      "equipmentWarning": "Please verify horse has required equipment for this facility"
     },
     "delete": {
       "confirmText": "Are you sure you want to cancel this reservation? This action cannot be undone."
+    }
+  },
+  "calendar": {
+    "title": "Facility Calendar",
+    "ariaLabels": {
+      "grid": "Facility booking calendar grid",
+      "timeHeader": "Time column header for {{time}}",
+      "facilityRow": "Facility row for {{facility}}",
+      "timeSlot": "Time slot for {{facility}} at {{time}}",
+      "booking": "Booking for {{user}}, {{start}} to {{end}}, status: {{status}}"
     }
   },
   "types": {
@@ -383,5 +407,7 @@
     "fullWithCapacity": "Fully booked ({{capacity}} spots)",
     "limitedWithRemaining": "{{remaining}} of {{capacity}} spots available",
     "availableWithCapacity": "Available ({{capacity}} spots)"
-  }
+  },
+  "horses": "{{count}} horse",
+  "horses_plural": "{{count}} horses"
 }

@@ -1,5 +1,8 @@
-import { Timestamp } from "firebase/firestore";
-import type { FacilityType } from "./facility";
+/**
+ * Facility Reservation Types
+ *
+ * Shared types for facility booking system with multi-horse support.
+ */
 
 export type ReservationStatus =
   | "pending" // Awaiting confirmation
@@ -8,6 +11,22 @@ export type ReservationStatus =
   | "cancelled" // User cancelled
   | "completed" // Past reservation
   | "no_show"; // User didn't show up
+
+export type FacilityType =
+  | "transport"
+  | "water_treadmill"
+  | "indoor_arena"
+  | "outdoor_arena"
+  | "galloping_track"
+  | "lunging_ring"
+  | "paddock"
+  | "solarium"
+  | "jumping_yard"
+  | "treadmill"
+  | "vibration_plate"
+  | "pasture"
+  | "walker"
+  | "other";
 
 export interface FacilityReservation {
   id: string;
@@ -24,15 +43,15 @@ export interface FacilityReservation {
   userEmail: string;
   userFullName?: string; // Denormalized for display
 
-  startTime: Timestamp;
-  endTime: Timestamp;
+  startTime: Date | string; // Date object or ISO string
+  endTime: Date | string;
   status: ReservationStatus;
 
   // Horse details - Multi-horse support with backward compatibility
   /** @deprecated Use horseIds instead for new bookings */
   horseId?: string;
   /** @deprecated Use horseNames instead for new bookings */
-  horseName?: string; // Denormalized for display
+  horseName?: string;
 
   /** Array of horse IDs for multi-horse bookings (preferred for new bookings) */
   horseIds?: string[];
@@ -47,8 +66,8 @@ export interface FacilityReservation {
   conflictsWith?: string[]; // Array of overlapping reservation IDs
 
   // Timestamps (managed by API)
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  createdAt: Date | string;
+  updatedAt: Date | string;
   createdBy: string;
   lastModifiedBy: string;
 }
@@ -63,6 +82,7 @@ export interface CreateReservationData extends Omit<
   | "userEmail"
   | "userFullName"
   | "horseName"
+  | "horseNames"
   | "conflictsWith"
   | "createdAt"
   | "updatedAt"
@@ -71,3 +91,36 @@ export interface CreateReservationData extends Omit<
 > {}
 
 export interface UpdateReservationData extends Partial<CreateReservationData> {}
+
+/**
+ * Helper function to get horse IDs from a reservation (handles both legacy and new format)
+ */
+export function getHorseIds(reservation: FacilityReservation): string[] {
+  if (reservation.horseIds && reservation.horseIds.length > 0) {
+    return reservation.horseIds;
+  }
+  if (reservation.horseId) {
+    return [reservation.horseId];
+  }
+  return [];
+}
+
+/**
+ * Helper function to get horse names from a reservation (handles both legacy and new format)
+ */
+export function getHorseNames(reservation: FacilityReservation): string[] {
+  if (reservation.horseNames && reservation.horseNames.length > 0) {
+    return reservation.horseNames;
+  }
+  if (reservation.horseName) {
+    return [reservation.horseName];
+  }
+  return [];
+}
+
+/**
+ * Helper function to get horse count from a reservation
+ */
+export function getHorseCount(reservation: FacilityReservation): number {
+  return getHorseIds(reservation).length;
+}

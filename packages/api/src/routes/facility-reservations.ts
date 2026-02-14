@@ -1,8 +1,14 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../utils/firebase.js";
 import { authenticate } from "../middleware/auth.js";
+import { validateReservationUpdate } from "../middleware/validateReservation.js";
+import { checkReservationOwnership } from "../middleware/checkReservationOwnership.js";
 import type { AuthenticatedRequest } from "../types/index.js";
-import { QueryDocumentSnapshot, Timestamp } from "firebase-admin/firestore";
+import {
+  QueryDocumentSnapshot,
+  Timestamp,
+  FieldValue,
+} from "firebase-admin/firestore";
 import { serializeTimestamps } from "../utils/serialization.js";
 import {
   getEffectiveTimeBlocks,
@@ -11,6 +17,8 @@ import {
   type FacilityAvailabilitySchedule,
 } from "../utils/facilityAvailability.js";
 import { hasStablePermission } from "../utils/permissionEngine.js";
+import { sanitizeUserInput } from "../middleware/validateReservation.js";
+import { validateFacilityCapacity } from "../utils/capacityValidation.js";
 
 /**
  * Check if user has organization membership with stable access
@@ -219,8 +227,59 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
           }
         }
 
+        // Normalize horse data (support both legacy horseId and new horseIds)
+        let horseIds: string[] = [];
+        let horseNames: string[] = [];
+
+        if (
+          data.horseIds &&
+          Array.isArray(data.horseIds) &&
+          data.horseIds.length > 0
+        ) {
+          horseIds = data.horseIds;
+          horseNames = data.horseNames || [];
+        } else if (data.horseId) {
+          horseIds = [data.horseId];
+          horseNames = data.horseName ? [data.horseName] : [];
+        }
+
+        // Validate horse count against facility limit
+        if (horseIds.length === 0) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "At least one horse must be selected for the reservation",
+          });
+        }
+
+        if (horseIds.length > facility.maxHorsesPerReservation) {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: `Too many horses selected. Maximum ${facility.maxHorsesPerReservation} horses allowed per reservation.`,
+          });
+        }
+
+        // Validate capacity (concurrent horses across all reservations)
+        const capacityResult = await validateFacilityCapacity(
+          data.facilityId,
+          {
+            startTime: data.startTime,
+            endTime: data.endTime,
+            horseCount: horseIds.length,
+          },
+          facility.maxHorsesPerReservation,
+        );
+
+        if (!capacityResult.valid) {
+          return reply.status(409).send({
+            error: "Capacity Exceeded",
+            message: capacityResult.message,
+            maxConcurrent: capacityResult.maxConcurrent,
+            maxConcurrentTime: capacityResult.maxConcurrentTime,
+          });
+        }
+
         // Create reservation with denormalized data
-        const reservationData = {
+        const reservationData: any = {
           facilityId: data.facilityId,
           facilityName: data.facilityName || facility.name,
           facilityType: data.facilityType || facility.type,
@@ -229,8 +288,6 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
           userId: data.userId || user.uid,
           userEmail: data.userEmail || user.email,
           userFullName: data.userFullName || user.displayName || null,
-          horseId: data.horseId || null,
-          horseName: data.horseName || null,
           startTime: Timestamp.fromDate(new Date(data.startTime)),
           endTime: Timestamp.fromDate(new Date(data.endTime)),
           purpose: data.purpose || null,
@@ -241,6 +298,19 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
           createdBy: user.uid,
           lastModifiedBy: user.uid,
         };
+
+        // Add horse data (prefer array format, include legacy for backward compatibility)
+        if (horseIds.length === 1) {
+          // Single horse - include both formats
+          reservationData.horseId = horseIds[0];
+          reservationData.horseName = horseNames[0] || null;
+          reservationData.horseIds = horseIds;
+          reservationData.horseNames = horseNames;
+        } else {
+          // Multiple horses - only use array format
+          reservationData.horseIds = horseIds;
+          reservationData.horseNames = horseNames;
+        }
 
         const docRef = await db
           .collection("facilityReservations")
@@ -489,12 +559,16 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
 
   /**
    * PATCH /api/v1/facility-reservations/:id
-   * Update a reservation
+   * Update a reservation with transaction-based conflict prevention
    */
   fastify.patch(
     "/:id",
     {
-      preHandler: [authenticate],
+      preHandler: [
+        authenticate,
+        checkReservationOwnership,
+        validateReservationUpdate,
+      ],
     },
     async (request, reply) => {
       try {
@@ -502,52 +576,181 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
         const user = (request as AuthenticatedRequest).user!;
         const data = request.body as any;
 
-        // Get existing reservation
-        const docRef = db.collection("facilityReservations").doc(id);
-        const doc = await docRef.get();
+        // Use Firestore transaction for atomic conflict checking + update
+        const result = await db.runTransaction(async (transaction) => {
+          // 1. Read reservation (locks it)
+          const reservationRef = db.collection("facilityReservations").doc(id);
+          const reservationDoc = await transaction.get(reservationRef);
 
-        if (!doc.exists) {
+          if (!reservationDoc.exists) {
+            throw new Error("RESERVATION_NOT_FOUND");
+          }
+
+          const reservation = reservationDoc.data()!;
+
+          // Get facility for capacity validation
+          const facilityId = data.facilityId || reservation.facilityId;
+          const facilityDoc = await transaction.get(
+            db.collection("facilities").doc(facilityId),
+          );
+
+          if (!facilityDoc.exists) {
+            throw new Error("FACILITY_NOT_FOUND");
+          }
+
+          const facility = facilityDoc.data()!;
+
+          // Normalize horse data if provided
+          let horseIds: string[] | undefined;
+          let horseNames: string[] | undefined;
+
+          if (data.horseIds && Array.isArray(data.horseIds)) {
+            horseIds = data.horseIds;
+            horseNames = data.horseNames || [];
+          } else if (data.horseId) {
+            horseIds = [data.horseId];
+            horseNames = data.horseName ? [data.horseName] : [];
+          } else if (data.horseIds === null || data.horseId === null) {
+            // Explicitly clearing horses - not allowed
+            throw new Error("HORSES_REQUIRED");
+          } else {
+            // Keep existing horses
+            if (reservation.horseIds && reservation.horseIds.length > 0) {
+              horseIds = reservation.horseIds;
+              horseNames = reservation.horseNames || [];
+            } else if (reservation.horseId) {
+              horseIds = [reservation.horseId];
+              horseNames = reservation.horseName ? [reservation.horseName] : [];
+            }
+          }
+
+          // Validate horse count
+          if (horseIds && horseIds.length === 0) {
+            throw new Error("HORSES_REQUIRED");
+          }
+
+          if (horseIds && horseIds.length > facility.maxHorsesPerReservation) {
+            throw new Error("TOO_MANY_HORSES");
+          }
+
+          // 2. If time/facility/horses are changing, validate capacity
+          const startTime = data.startTime
+            ? Timestamp.fromDate(new Date(data.startTime))
+            : reservation.startTime;
+          const endTime = data.endTime
+            ? Timestamp.fromDate(new Date(data.endTime))
+            : reservation.endTime;
+          const horseCount = horseIds
+            ? horseIds.length
+            : reservation.horseIds
+              ? reservation.horseIds.length
+              : reservation.horseId
+                ? 1
+                : 0;
+
+          // Validate capacity outside transaction (uses its own queries)
+          // Note: We pass the reservation ID to exclude it from capacity check
+          const capacityPromise = validateFacilityCapacity(
+            facilityId,
+            {
+              startTime,
+              endTime,
+              horseCount,
+            },
+            facility.maxHorsesPerReservation,
+            id, // Exclude current reservation from check
+          );
+
+          // Wait for capacity validation
+          const capacityResult = await capacityPromise;
+          if (!capacityResult.valid) {
+            throw new Error("CAPACITY_EXCEEDED");
+          }
+
+          // 3. Build updates
+          const updates: any = {
+            updatedAt: FieldValue.serverTimestamp(),
+            lastModifiedBy: user.uid,
+          };
+
+          if (data.facilityId !== undefined)
+            updates.facilityId = data.facilityId;
+          if (data.startTime !== undefined)
+            updates.startTime = Timestamp.fromDate(new Date(data.startTime));
+          if (data.endTime !== undefined)
+            updates.endTime = Timestamp.fromDate(new Date(data.endTime));
+          if (data.purpose !== undefined)
+            updates.purpose = sanitizeUserInput(data.purpose, 200);
+          if (data.notes !== undefined)
+            updates.notes = sanitizeUserInput(data.notes, 500);
+          if (data.status !== undefined) updates.status = data.status;
+
+          // Add horse data if changed
+          if (
+            horseIds &&
+            (data.horseIds !== undefined || data.horseId !== undefined)
+          ) {
+            if (horseIds.length === 1) {
+              // Single horse - include both formats
+              updates.horseId = horseIds[0] || null;
+              updates.horseName =
+                horseNames && horseNames.length > 0 ? horseNames[0] : null;
+              updates.horseIds = horseIds;
+              updates.horseNames = horseNames;
+            } else if (horseIds.length > 1) {
+              // Multiple horses - only use array format
+              updates.horseIds = horseIds;
+              updates.horseNames = horseNames;
+              // Clear legacy fields
+              updates.horseId = FieldValue.delete();
+              updates.horseName = FieldValue.delete();
+            }
+          }
+
+          // 4. Update within transaction (atomic)
+          transaction.update(reservationRef, updates);
+
+          return { id, ...reservation, ...updates };
+        });
+
+        return serializeTimestamps(result);
+      } catch (error: any) {
+        if (error.message === "CONFLICT_DETECTED") {
+          return reply.status(409).send({
+            error: "CONFLICT",
+            message: "Time slot no longer available",
+          });
+        }
+        if (error.message === "RESERVATION_NOT_FOUND") {
           return reply.status(404).send({
             error: "Not Found",
             message: "Reservation not found",
           });
         }
-
-        const reservation = doc.data()!;
-
-        // Check access (own reservation or stable management)
-        if (reservation.userId !== user.uid) {
-          const hasAccess = await hasStableAccess(
-            reservation.stableId,
-            user.uid,
-            user.role,
-          );
-          if (!hasAccess) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to update this reservation",
-            });
-          }
+        if (error.message === "FACILITY_NOT_FOUND") {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Facility not found",
+          });
         }
-
-        // Update reservation
-        const updates: any = {
-          updatedAt: Timestamp.now(),
-          lastModifiedBy: user.uid,
-        };
-
-        if (data.startTime !== undefined)
-          updates.startTime = Timestamp.fromDate(new Date(data.startTime));
-        if (data.endTime !== undefined)
-          updates.endTime = Timestamp.fromDate(new Date(data.endTime));
-        if (data.purpose !== undefined) updates.purpose = data.purpose;
-        if (data.notes !== undefined) updates.notes = data.notes;
-        if (data.status !== undefined) updates.status = data.status;
-
-        await docRef.update(updates);
-
-        return { id, ...serializeTimestamps({ ...reservation, ...updates }) };
-      } catch (error) {
+        if (error.message === "HORSES_REQUIRED") {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "At least one horse must be selected for the reservation",
+          });
+        }
+        if (error.message === "TOO_MANY_HORSES") {
+          return reply.status(400).send({
+            error: "Bad Request",
+            message: "Too many horses selected for this facility",
+          });
+        }
+        if (error.message === "CAPACITY_EXCEEDED") {
+          return reply.status(409).send({
+            error: "Capacity Exceeded",
+            message: "Facility capacity would be exceeded with this change",
+          });
+        }
         request.log.error({ error }, "Failed to update reservation");
         return reply.status(500).send({
           error: "Internal Server Error",
@@ -564,7 +767,7 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
   fastify.post(
     "/:id/cancel",
     {
-      preHandler: [authenticate],
+      preHandler: [authenticate, checkReservationOwnership],
     },
     async (request, reply) => {
       try {
@@ -1009,7 +1212,7 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
   fastify.delete(
     "/:id",
     {
-      preHandler: [authenticate],
+      preHandler: [authenticate, checkReservationOwnership],
     },
     async (request, reply) => {
       try {
