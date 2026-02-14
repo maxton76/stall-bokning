@@ -51,14 +51,9 @@ final class DebuggerDetector {
         #if !DEBUG && !targetEnvironment(simulator)
         // PT_DENY_ATTACH (31) prevents debugger attachment
         // This will cause the app to exit if a debugger tries to attach
-        let result = ptrace(PT_DENY_ATTACH, 0, nil, 0)
-
-        if result != 0 {
-            // ptrace failed - log but continue (might be running on jailbroken device)
-            AppLogger.error.error("⚠️ Failed to deny debugger attachment: \(errno)")
-        } else {
-            AppLogger.app.info("🛡️ Debugger attachment prevention enabled")
-        }
+        // Note: ptrace is a C function that requires special handling in Swift
+        // For now, we'll just log that this feature is disabled
+        AppLogger.app.info("🛡️ Debugger attachment prevention (ptrace disabled in this build)")
         #else
         // Debug mode or simulator - allow debugging
         AppLogger.app.debug("🔧 Debugger attachment allowed (Debug build or Simulator)")
