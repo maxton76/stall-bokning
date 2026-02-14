@@ -76,6 +76,15 @@ struct SettingsView: View {
                         Label(String(localized: "settings.notifications"), systemImage: "bell")
                     }
 
+                    NavigationLink(value: AppDestination.appearanceSettings) {
+                        HStack {
+                            Label(String(localized: "settings.appearance"), systemImage: "paintbrush")
+                            Spacer()
+                            Text(currentTheme.displayName)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
                     NavigationLink(value: AppDestination.languageSettings) {
                         HStack {
                             Label(String(localized: "settings.language"), systemImage: "globe")
@@ -138,6 +147,10 @@ struct SettingsView: View {
     }
 
     // MARK: - Computed Properties
+
+    private var currentTheme: AppTheme {
+        AppTheme(rawValue: UserDefaults.standard.string(forKey: "appTheme") ?? "") ?? .system
+    }
 
     private var currentLanguage: String {
         let languageCode = Locale.current.language.languageCode?.identifier ?? "en"
@@ -282,6 +295,42 @@ struct NotificationSettingsView: View {
                 }
             }
         )
+    }
+}
+
+// MARK: - Appearance Settings View
+
+struct AppearanceSettingsView: View {
+    @AppStorage("appTheme") private var selectedTheme: String = AppTheme.system.rawValue
+
+    private var theme: AppTheme {
+        AppTheme(rawValue: selectedTheme) ?? .system
+    }
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(AppTheme.allCases, id: \.self) { option in
+                    Button {
+                        selectedTheme = option.rawValue
+                    } label: {
+                        HStack {
+                            Text(option.displayName)
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            if theme == option {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                        }
+                    }
+                }
+            } footer: {
+                Text(String(localized: "appearance.footer"))
+                    .font(.caption)
+            }
+        }
+        .navigationTitle(String(localized: "appearance.title"))
     }
 }
 

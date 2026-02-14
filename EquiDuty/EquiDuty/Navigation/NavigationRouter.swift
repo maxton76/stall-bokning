@@ -57,6 +57,7 @@ enum AppDestination: Hashable {
     case account
     case notificationSettings
     case languageSettings
+    case appearanceSettings
     case stableSelection
     case organizationSelection
 }
@@ -279,6 +280,8 @@ extension View {
                 NotificationSettingsView()
             case .languageSettings:
                 LanguageSettingsView()
+            case .appearanceSettings:
+                AppearanceSettingsView()
             case .stableSelection:
                 StableSelectionView()
             case .organizationSelection:

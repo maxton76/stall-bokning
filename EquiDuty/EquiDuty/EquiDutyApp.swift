@@ -69,6 +69,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 @main
 struct EquiDutyApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    @AppStorage("appTheme") private var appTheme: String = AppTheme.system.rawValue
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -89,6 +90,7 @@ struct EquiDutyApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .preferredColorScheme((AppTheme(rawValue: appTheme) ?? .system).colorScheme)
                 .onOpenURL { url in
                     // Handle Google Sign-In URL callback
                     if GIDSignIn.sharedInstance.handle(url) {

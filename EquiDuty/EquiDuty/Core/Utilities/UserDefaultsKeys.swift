@@ -6,6 +6,31 @@
 //
 
 import Foundation
+import SwiftUI
+
+/// User-selectable appearance theme
+enum AppTheme: String, CaseIterable {
+    case system
+    case light
+    case dark
+
+    /// Maps to SwiftUI's ColorScheme (nil = follow system)
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .system: String(localized: "appearance.option.system")
+        case .light: String(localized: "appearance.option.light")
+        case .dark: String(localized: "appearance.option.dark")
+        }
+    }
+}
 
 extension UserDefaults {
     private enum Keys {
