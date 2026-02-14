@@ -11,6 +11,7 @@ node_modules/
 # Testing
 coverage/
 *.lcov
+build_output.log
 
 # Production
 build/
