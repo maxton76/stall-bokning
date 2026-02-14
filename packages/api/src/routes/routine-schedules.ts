@@ -340,6 +340,8 @@ export async function routineSchedulesRoutes(fastify: FastifyInstance) {
           assignmentMode: input.assignmentMode,
           defaultAssignedTo: input.defaultAssignedTo,
           defaultAssignedToName,
+          assignmentAlgorithm: input.assignmentAlgorithm,
+          autoAssignmentMethod: input.autoAssignmentMethod,
           customAssignments: input.customAssignments,
 
           // Status
@@ -376,6 +378,8 @@ export async function routineSchedulesRoutes(fastify: FastifyInstance) {
                 assignmentMode: input.assignmentMode,
                 defaultAssignedTo: input.defaultAssignedTo,
                 defaultAssignedToName,
+                assignmentAlgorithm: input.assignmentAlgorithm,
+                autoAssignmentMethod: input.autoAssignmentMethod,
                 customAssignments: input.customAssignments,
               },
               {
@@ -506,6 +510,12 @@ export async function routineSchedulesRoutes(fastify: FastifyInstance) {
           } else {
             updateData.defaultAssignedToName = null;
           }
+        }
+        if (input.assignmentAlgorithm !== undefined) {
+          updateData.assignmentAlgorithm = input.assignmentAlgorithm;
+        }
+        if (input.autoAssignmentMethod !== undefined) {
+          updateData.autoAssignmentMethod = input.autoAssignmentMethod;
         }
         if (input.isEnabled !== undefined) {
           updateData.isEnabled = input.isEnabled;

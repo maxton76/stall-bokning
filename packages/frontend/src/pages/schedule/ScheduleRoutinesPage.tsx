@@ -135,8 +135,6 @@ export default function ScheduleRoutinesPage() {
         return t("routines:schedules.assignment.auto");
       case "manual":
         return t("routines:schedules.assignment.manual");
-      case "selfBooked":
-        return t("routines:schedules.assignment.selfBooked");
       case "unassigned":
       default:
         return t("routines:schedules.assignment.unassigned");

@@ -11,6 +11,7 @@ import { Timestamp, FieldValue } from "firebase-admin/firestore";
 import { db } from "./firebase.js";
 import { holidayService } from "@equiduty/shared";
 import { computeHolidayPoints, fetchHolidaySettings } from "./holidayPoints.js";
+import type { SelectionAlgorithm, AutoAssignmentMethod } from "@equiduty/shared";
 import type { MemberForAssignment } from "../services/autoAssignmentService.js";
 import { autoAssignRoutineInstances } from "../services/routineAutoAssignmentService.js";
 
@@ -33,6 +34,8 @@ interface ScheduleData {
   defaultAssignedTo?: string;
   defaultAssignedToName?: string;
   customAssignments?: Record<string, string | null>;
+  assignmentAlgorithm?: SelectionAlgorithm;
+  autoAssignmentMethod?: AutoAssignmentMethod;
 }
 
 interface TemplateData {
@@ -251,12 +254,18 @@ export async function generateRoutineInstances(
     );
 
     if (members.length > 0) {
-      autoAssignments = autoAssignRoutineInstances(
+      autoAssignments = await autoAssignRoutineInstances(
         scheduledDates,
         members,
         schedule.scheduledStartTime,
         template.pointsValue,
-        {}, // config
+        {
+          algorithm: schedule.assignmentAlgorithm,
+          stableId: schedule.stableId,
+          organizationId: schedule.organizationId,
+          startDate: schedule.startDate,
+          endDate: schedule.endDate,
+        },
       );
 
       // Pre-fetch user names for auto-assigned users
@@ -321,11 +330,9 @@ export async function generateRoutineInstances(
         assignedTo = schedule.defaultAssignedTo || null;
         assignedToName = schedule.defaultAssignedToName || null;
         assignmentType = assignedTo ? "manual" : "unassigned";
-      } else if (schedule.assignmentMode === "unassigned") {
-        assignmentType = "unassigned";
       } else {
-        // Fallback for other modes (e.g., selfBooked)
-        assignmentType = schedule.assignmentMode;
+        // Default: unassigned (covers "unassigned" and any legacy modes like "selfBooked")
+        assignmentType = "unassigned";
       }
 
       // Build step progress

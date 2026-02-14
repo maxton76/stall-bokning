@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { selectionAlgorithmSchema } from "./selectionProcess.schema.js";
 
 /**
  * Zod schemas for Routine Schedule API validation
@@ -18,8 +19,12 @@ export const routineScheduleRepeatPatternSchema = z.enum([
 export const scheduleAssignmentModeSchema = z.enum([
   "auto",
   "manual",
-  "selfBooked",
   "unassigned",
+]);
+
+export const autoAssignmentMethodSchema = z.enum([
+  "direct",
+  "selection_process",
 ]);
 
 // ============================================================
@@ -67,6 +72,10 @@ export const createRoutineScheduleSchema = z
     // Assignment configuration
     assignmentMode: scheduleAssignmentModeSchema,
     defaultAssignedTo: z.string().optional(),
+
+    // Auto assignment configuration (used when assignmentMode === "auto")
+    assignmentAlgorithm: selectionAlgorithmSchema.optional(),
+    autoAssignmentMethod: autoAssignmentMethodSchema.optional(),
 
     // Custom assignments for auto mode (key: YYYY-MM-DD, value: userId or null)
     customAssignments: z.record(z.string(), z.string().nullable()).optional(),
@@ -136,6 +145,8 @@ export const updateRoutineScheduleSchema = z
     scheduledStartTime: scheduleTimeSchema.optional(),
     assignmentMode: scheduleAssignmentModeSchema.optional(),
     defaultAssignedTo: z.string().nullable().optional(),
+    assignmentAlgorithm: selectionAlgorithmSchema.optional(),
+    autoAssignmentMethod: autoAssignmentMethodSchema.optional(),
     isEnabled: z.boolean().optional(),
   })
   .refine(

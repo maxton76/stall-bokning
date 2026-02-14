@@ -182,7 +182,6 @@ struct RoutineTemplate: Codable, Identifiable, Equatable {
 enum RoutineAssignmentType: String, Codable {
     case auto = "auto"
     case manual = "manual"
-    case selfBooked = "selfBooked"
     case selfAssigned = "self"
     case unassigned = "unassigned"
     case unknown

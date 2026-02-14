@@ -37,6 +37,8 @@ import type {
   UpdateRoutineScheduleInput,
   RoutineScheduleRepeatPattern,
   RoutineAssignmentType,
+  SelectionAlgorithm,
+  AutoAssignmentMethod,
 } from "@shared/types";
 import { format, addMonths } from "date-fns";
 
@@ -87,6 +89,10 @@ export function RoutineScheduleDialog({
   const [scheduledStartTime, setScheduledStartTime] = useState("07:00");
   const [assignmentMode, setAssignmentMode] =
     useState<AssignmentMode>("unassigned");
+  const [assignmentAlgorithm, setAssignmentAlgorithm] =
+    useState<SelectionAlgorithm>("points_balance");
+  const [autoAssignmentMethod, setAutoAssignmentMethod] =
+    useState<AutoAssignmentMethod>("direct");
   const [defaultAssignedTo, setDefaultAssignedTo] = useState("");
 
   // Preview modal state
@@ -165,6 +171,8 @@ export function RoutineScheduleDialog({
         setIncludeHolidays(schedule.includeHolidays || false);
         setScheduledStartTime(schedule.scheduledStartTime || "07:00");
         setAssignmentMode(schedule.assignmentMode);
+        setAssignmentAlgorithm(schedule.assignmentAlgorithm || "points_balance");
+        setAutoAssignmentMethod(schedule.autoAssignmentMethod || "direct");
         setDefaultAssignedTo(schedule.defaultAssignedTo || "");
       } else {
         // Creating mode - reset to defaults
@@ -177,6 +185,8 @@ export function RoutineScheduleDialog({
         setIncludeHolidays(false);
         setScheduledStartTime("07:00");
         setAssignmentMode("unassigned");
+        setAssignmentAlgorithm("points_balance");
+        setAutoAssignmentMethod("direct");
         setDefaultAssignedTo("");
       }
     }
@@ -235,6 +245,10 @@ export function RoutineScheduleDialog({
           assignmentMode === "manual" && defaultAssignedTo
             ? defaultAssignedTo
             : null,
+        assignmentAlgorithm:
+          assignmentMode === "auto" ? assignmentAlgorithm : undefined,
+        autoAssignmentMethod:
+          assignmentMode === "auto" ? autoAssignmentMethod : undefined,
       };
 
       await updateSchedule(schedule.id, updateData);
@@ -268,14 +282,18 @@ export function RoutineScheduleDialog({
           assignmentMode === "manual" && defaultAssignedTo
             ? defaultAssignedTo
             : undefined,
+        assignmentAlgorithm:
+          assignmentMode === "auto" ? assignmentAlgorithm : undefined,
+        autoAssignmentMethod:
+          assignmentMode === "auto" ? autoAssignmentMethod : undefined,
       };
 
-      // For auto mode, show preview modal first
-      if (assignmentMode === "auto") {
+      // For auto mode with direct assignment, show preview modal first
+      if (assignmentMode === "auto" && autoAssignmentMethod === "direct") {
         setPendingScheduleData(createData);
         setShowPreviewModal(true);
       } else {
-        // For other modes, create directly
+        // For other modes (unassigned, manual, auto+selection_process), create directly
         await createSchedule(createData);
         onSuccess?.();
         onOpenChange(false);
@@ -565,9 +583,6 @@ export function RoutineScheduleDialog({
                 <SelectItem value="manual">
                   {t("routines:schedules.assignment.manual")}
                 </SelectItem>
-                <SelectItem value="selfBooked">
-                  {t("routines:schedules.assignment.selfBooked")}
-                </SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
@@ -577,10 +592,79 @@ export function RoutineScheduleDialog({
                 t("routines:schedules.dialog.assignmentDescription.unassigned")}
               {assignmentMode === "manual" &&
                 t("routines:schedules.dialog.assignmentDescription.manual")}
-              {assignmentMode === "selfBooked" &&
-                t("routines:schedules.dialog.assignmentDescription.selfBooked")}
             </p>
           </div>
+
+          {/* Auto Assignment - Algorithm & Method */}
+          {assignmentMode === "auto" && (
+            <div className="space-y-3 rounded-md border p-3 bg-muted/30">
+              {/* Algorithm Selection */}
+              <div className="space-y-2">
+                <Label>
+                  {t("routines:schedules.dialog.algorithm")}
+                </Label>
+                <Select
+                  value={assignmentAlgorithm}
+                  onValueChange={(v) =>
+                    setAssignmentAlgorithm(v as SelectionAlgorithm)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="points_balance">
+                      {t("routines:schedules.algorithms.points_balance")}
+                    </SelectItem>
+                    <SelectItem value="fair_rotation">
+                      {t("routines:schedules.algorithms.fair_rotation")}
+                    </SelectItem>
+                    <SelectItem value="quota_based">
+                      {t("routines:schedules.algorithms.quota_based")}
+                    </SelectItem>
+                    <SelectItem value="manual">
+                      {t("routines:schedules.algorithms.manual")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {t(
+                    `routines:schedules.algorithmDescriptions.${assignmentAlgorithm}`,
+                  )}
+                </p>
+              </div>
+
+              {/* Assignment Method */}
+              <div className="space-y-2">
+                <Label>
+                  {t("routines:schedules.dialog.assignmentMethod")}
+                </Label>
+                <Select
+                  value={autoAssignmentMethod}
+                  onValueChange={(v) =>
+                    setAutoAssignmentMethod(v as AutoAssignmentMethod)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="direct">
+                      {t("routines:schedules.methods.direct")}
+                    </SelectItem>
+                    <SelectItem value="selection_process">
+                      {t("routines:schedules.methods.selection_process")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {t(
+                    `routines:schedules.methodDescriptions.${autoAssignmentMethod}`,
+                  )}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Manual Assignment - Select User */}
           {assignmentMode === "manual" && (
@@ -653,7 +737,8 @@ export function RoutineScheduleDialog({
               </>
             ) : isEditing ? (
               t("common:save")
-            ) : assignmentMode === "auto" ? (
+            ) : assignmentMode === "auto" &&
+              autoAssignmentMethod === "direct" ? (
               t("routines:schedules.preview.previewButton")
             ) : (
               t("routines:schedules.createNew")

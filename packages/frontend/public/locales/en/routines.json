@@ -408,7 +408,6 @@
     "assignment": {
       "auto": "Automatic",
       "manual": "Manual",
-      "selfBooked": "Self-booking",
       "unassigned": "Unassigned"
     },
     "dialog": {
@@ -444,7 +443,6 @@
         "auto": "Routines are distributed evenly based on historical points. You can review and adjust assignments before creating the schedule.",
         "unassigned": "No routines are automatically assigned. Members can book themselves or assignment is done later via the routine selection feature.",
         "manual": "All routines are assigned to the same person you select below.",
-        "selfBooked": "Members can book open routines themselves according to available times."
       },
       "isEnabled": "Active Schedule",
       "isEnabledDescription": "Inactive schedules do not generate new routine instances",
@@ -458,7 +456,29 @@
       "noTemplatesDescription": "Create a routine template first to create schedules.",
       "holidays": "Holidays",
       "selectAllDays": "Select All",
-      "deselectAllDays": "Deselect All"
+      "deselectAllDays": "Deselect All",
+      "algorithm": "Distribution Algorithm",
+      "assignmentMethod": "Assignment Method"
+    },
+    "algorithms": {
+      "points_balance": "Points Balance",
+      "fair_rotation": "Fair Rotation",
+      "quota_based": "Quota-Based",
+      "manual": "Manual Order"
+    },
+    "algorithmDescriptions": {
+      "points_balance": "Assigns routines to the member with the lowest accumulated points. Self-correcting and fair over time.",
+      "fair_rotation": "Rotates the order so everyone gets a turn to choose. Predictable and simple.",
+      "quota_based": "Gives each member an equal point quota to fill. Reverses order from the previous round.",
+      "manual": "You set the order manually. Best when you know who should do what."
+    },
+    "methods": {
+      "direct": "Direct Assignment",
+      "selection_process": "Via Selection Process"
+    },
+    "methodDescriptions": {
+      "direct": "The system assigns routines directly based on the selected algorithm. You can review and adjust before saving.",
+      "selection_process": "Creates a selection process where members choose shifts in fair turn order."
     },
     "repeatPatterns": {
       "daily": "Daily",

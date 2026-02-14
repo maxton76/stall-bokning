@@ -202,7 +202,6 @@ export interface RoutineInstance {
 export type RoutineAssignmentType =
   | "auto"
   | "manual"
-  | "selfBooked"
   | "self"
   | "unassigned";
 

@@ -10,7 +10,7 @@ import { logger } from "firebase-functions";
 import * as crypto from "crypto";
 
 import { db, Timestamp, FieldValue } from "../lib/firebase.js";
-import { formatErrorMessage } from "@equiduty/shared";
+import { formatErrorMessage, holidayService } from "@equiduty/shared";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -28,12 +28,15 @@ interface RoutineScheduleData {
   name?: string;
   startDate: FirebaseFirestore.Timestamp;
   endDate: FirebaseFirestore.Timestamp;
-  repeatPattern: "daily" | "weekdays" | "custom";
+  repeatPattern: "daily" | "weekdays" | "weekends" | "holidays" | "custom";
   repeatDays?: number[];
+  includeHolidays?: boolean;
   scheduledStartTime: string;
-  assignmentMode: "auto" | "manual" | "selfBooked" | "unassigned";
+  assignmentMode: "auto" | "manual" | "unassigned";
   defaultAssignedTo?: string;
   defaultAssignedToName?: string;
+  assignmentAlgorithm?: string;
+  autoAssignmentMethod?: string;
   customAssignments?: Record<string, string | null>; // key: YYYY-MM-DD, value: userId or null
   isEnabled: boolean;
   createdBy: string;
@@ -64,8 +67,9 @@ interface RoutineTemplateData {
  */
 function shouldGenerateForDate(
   date: Date,
-  repeatPattern: "daily" | "weekdays" | "custom",
+  repeatPattern: "daily" | "weekdays" | "weekends" | "holidays" | "custom",
   repeatDays?: number[],
+  includeHolidays?: boolean,
 ): boolean {
   const dayOfWeek = date.getDay(); // 0=Sunday, 6=Saturday
 
@@ -74,8 +78,14 @@ function shouldGenerateForDate(
       return true;
     case "weekdays":
       return dayOfWeek >= 1 && dayOfWeek <= 5; // Mon-Fri
-    case "custom":
-      return repeatDays?.includes(dayOfWeek) ?? false;
+    case "weekends":
+      return dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
+    case "holidays":
+      return dayOfWeek === 0 || dayOfWeek === 6 || holidayService.isHoliday(date);
+    case "custom": {
+      const matchesDay = repeatDays?.includes(dayOfWeek) ?? false;
+      return matchesDay || (includeHolidays === true && holidayService.isHoliday(date));
+    }
     default:
       return false;
   }
@@ -87,8 +97,9 @@ function shouldGenerateForDate(
 function generateScheduledDates(
   startDate: Date,
   endDate: Date,
-  repeatPattern: "daily" | "weekdays" | "custom",
+  repeatPattern: "daily" | "weekdays" | "weekends" | "holidays" | "custom",
   repeatDays?: number[],
+  includeHolidays?: boolean,
 ): Date[] {
   const dates: Date[] = [];
   const currentDate = new Date(startDate);
@@ -99,7 +110,7 @@ function generateScheduledDates(
   normalizedEndDate.setHours(23, 59, 59, 999);
 
   while (currentDate <= normalizedEndDate) {
-    if (shouldGenerateForDate(currentDate, repeatPattern, repeatDays)) {
+    if (shouldGenerateForDate(currentDate, repeatPattern, repeatDays, includeHolidays)) {
       dates.push(new Date(currentDate));
     }
     currentDate.setDate(currentDate.getDate() + 1);
@@ -194,8 +205,8 @@ async function createRoutineInstances(
       } else if (scheduleData.assignmentMode === "unassigned") {
         assignmentType = "unassigned";
       } else {
-        // Auto or selfBooked without custom assignment - leave unassigned
-        assignmentType = scheduleData.assignmentMode;
+        // Default fallback - treat as unassigned
+        assignmentType = "unassigned";
       }
 
       // Build progress object with empty step progress
@@ -381,6 +392,7 @@ export const onRoutineScheduleCreated = onDocumentCreated(
         endDate,
         scheduleData.repeatPattern,
         scheduleData.repeatDays,
+        scheduleData.includeHolidays,
       );
 
       logger.info(

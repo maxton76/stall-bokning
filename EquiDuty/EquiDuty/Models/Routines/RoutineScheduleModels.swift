@@ -28,7 +28,6 @@ enum RecurrencePattern: String, Codable, CaseIterable {
 enum AssignmentMode: String, Codable {
     case auto = "auto"              // Fairness algorithm
     case manual = "manual"          // Admin assigns
-    case selfBook = "selfBooked"    // Users book themselves
     case fixed = "fixed"            // Fixed assignee
     case unassigned = "unassigned"  // No assignment
 
@@ -36,7 +35,6 @@ enum AssignmentMode: String, Codable {
         switch self {
         case .auto: return String(localized: "schedule.assignment.auto")
         case .manual: return String(localized: "schedule.assignment.manual")
-        case .selfBook: return String(localized: "schedule.assignment.self_book")
         case .fixed: return String(localized: "schedule.assignment.fixed")
         case .unassigned: return String(localized: "schedule.assignment.unassigned")
         }
@@ -108,6 +106,8 @@ struct RoutineSchedule: Codable, Identifiable, Equatable {
     var assignmentMode: AssignmentMode
     var defaultAssignedTo: String?
     var defaultAssignedToName: String?
+    var assignmentAlgorithm: String?  // "points_balance", "fair_rotation", "quota_based", "manual"
+    var autoAssignmentMethod: String?  // "direct", "selection_process"
     var customAssignments: [String: String?]?
 
     // Status

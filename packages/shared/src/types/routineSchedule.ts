@@ -1,5 +1,13 @@
 import type { FirestoreTimestamp } from "./common.js";
 import type { RoutineAssignmentType, RoutineType } from "./routine.js";
+import type { SelectionAlgorithm } from "./selectionProcess.js";
+
+/**
+ * How "Automatisk" assignment is executed:
+ * - "direct": System assigns instances immediately using the chosen algorithm
+ * - "selection_process": Creates a draft Rutinval process for interactive turn-based selection
+ */
+export type AutoAssignmentMethod = "direct" | "selection_process";
 
 /**
  * Routine Schedule Types
@@ -62,6 +70,10 @@ export interface RoutineSchedule {
   defaultAssignedTo?: string; // User ID for manual assignment mode
   defaultAssignedToName?: string; // Denormalized
 
+  // Auto assignment configuration (used when assignmentMode === "auto")
+  assignmentAlgorithm?: SelectionAlgorithm; // Which fairness algorithm to use (default: "points_balance")
+  autoAssignmentMethod?: AutoAssignmentMethod; // "direct" or "selection_process" (default: "direct")
+
   // Custom assignments for auto mode (key: YYYY-MM-DD, value: userId or null)
   customAssignments?: Record<string, string | null>;
 
@@ -106,6 +118,10 @@ export interface CreateRoutineScheduleInput {
   assignmentMode: RoutineAssignmentType | "unassigned";
   defaultAssignedTo?: string;
 
+  // Auto assignment configuration (used when assignmentMode === "auto")
+  assignmentAlgorithm?: SelectionAlgorithm; // Which fairness algorithm to use
+  autoAssignmentMethod?: AutoAssignmentMethod; // "direct" or "selection_process"
+
   // Custom assignments for auto mode (key: YYYY-MM-DD, value: userId or null)
   customAssignments?: Record<string, string | null>;
 }
@@ -123,6 +139,8 @@ export interface UpdateRoutineScheduleInput {
   scheduledStartTime?: string;
   assignmentMode?: RoutineAssignmentType | "unassigned";
   defaultAssignedTo?: string | null;
+  assignmentAlgorithm?: SelectionAlgorithm;
+  autoAssignmentMethod?: AutoAssignmentMethod;
   isEnabled?: boolean;
 }
 

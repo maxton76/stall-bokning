@@ -408,7 +408,6 @@
     "assignment": {
       "auto": "Automatisk",
       "manual": "Manuell",
-      "selfBooked": "Självbokning",
       "unassigned": "Ej tilldelad"
     },
     "dialog": {
@@ -444,7 +443,6 @@
         "auto": "Rutiner fördelas jämnt baserat på historiska poäng. Du kan granska och justera tilldelningarna innan du skapar schemat.",
         "unassigned": "Inga rutiner tilldelas automatiskt. Medlemmar kan boka själva eller tilldelning görs senare via rutinval-funktionen.",
         "manual": "Alla rutiner tilldelas samma person som du väljer nedan.",
-        "selfBooked": "Medlemmar kan boka öppna rutiner själva enligt tillgängliga tider."
       },
       "isEnabled": "Aktivt schema",
       "isEnabledDescription": "Inaktiva scheman genererar inga nya rutininstanser",
@@ -458,7 +456,29 @@
       "noTemplatesDescription": "Skapa en rutinmall först för att kunna skapa scheman.",
       "holidays": "Helgdagar",
       "selectAllDays": "Välj alla",
-      "deselectAllDays": "Avmarkera alla"
+      "deselectAllDays": "Avmarkera alla",
+      "algorithm": "Fördelningsalgoritm",
+      "assignmentMethod": "Tilldelningsmetod"
+    },
+    "algorithms": {
+      "points_balance": "Poängbalans",
+      "fair_rotation": "Rättvis rotation",
+      "quota_based": "Kvotbaserat",
+      "manual": "Manuell ordning"
+    },
+    "algorithmDescriptions": {
+      "points_balance": "Fördelar rutiner till den med lägst ackumulerade poäng. Självkorrigerande och rättvist över tid.",
+      "fair_rotation": "Roterar ordningen så att alla får välja i tur. Förutsägbart och enkelt.",
+      "quota_based": "Ger varje medlem en lika stor poängkvot att fylla. Vänder ordningen från föregående omgång.",
+      "manual": "Du bestämmer ordningen manuellt. Passar när du vet vem som ska göra vad."
+    },
+    "methods": {
+      "direct": "Direkt tilldelning",
+      "selection_process": "Via Rutinval"
+    },
+    "methodDescriptions": {
+      "direct": "Systemet fördelar rutiner direkt baserat på vald algoritm. Du kan granska och justera innan du sparar.",
+      "selection_process": "Skapar ett rutinval där medlemmarna väljer pass i rättvis turordning."
     },
     "repeatPatterns": {
       "daily": "Dagligen",

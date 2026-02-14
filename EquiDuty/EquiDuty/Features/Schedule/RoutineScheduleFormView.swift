@@ -109,9 +109,9 @@ struct RoutineScheduleFormView: View {
                 // Assignment
                 Section {
                     Picker("Tilldelningsstrategi", selection: $assignmentMode) {
+                        Text(AssignmentMode.unassigned.displayName).tag(AssignmentMode.unassigned)
                         Text(AssignmentMode.auto.displayName).tag(AssignmentMode.auto)
                         Text(AssignmentMode.manual.displayName).tag(AssignmentMode.manual)
-                        Text(AssignmentMode.selfBook.displayName).tag(AssignmentMode.selfBook)
                     }
                 } header: {
                     Text("Tilldelning")

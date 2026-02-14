@@ -190,7 +190,7 @@ enum class RoutineInstanceStatus(val value: String) {
 }
 
 enum class RoutineAssignmentType(val value: String) {
-    AUTO("auto"), MANUAL("manual"), SELF_BOOKED("selfBooked"),
+    AUTO("auto"), MANUAL("manual"),
     SELF_ASSIGNED("self"), UNASSIGNED("unassigned"), UNKNOWN("unknown");
 
     companion object {
