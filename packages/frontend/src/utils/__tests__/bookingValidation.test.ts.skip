@@ -1,0 +1,290 @@
+/**
+ * Booking Validation Tests
+ */
+
+import { describe, it, expect } from "vitest";
+import {
+  validateBookingMove,
+  validateBusinessHours,
+  validateNoConflicts,
+  findConflicts,
+  validateNewBooking,
+} from "../bookingValidation";
+import type { Facility } from "@/types/facility";
+import type { FacilityReservation } from "@/types/facilityReservation";
+import { Timestamp } from "firebase/firestore";
+import { createDefaultSchedule } from "@equiduty/shared";
+
+// Mock facility
+const mockFacility: Facility = {
+  id: "facility-1",
+  name: "Arena 1",
+  type: "indoor_arena",
+  stableId: "stable-1",
+  description: "Main riding arena",
+  availabilitySchedule: createDefaultSchedule(),
+  minTimeSlotDuration: 30,
+  maxHoursPerReservation: 3,
+  daysAvailable: {
+    monday: true,
+    tuesday: true,
+    wednesday: true,
+    thursday: true,
+    friday: true,
+    saturday: true,
+    sunday: true,
+  },
+  createdAt: Timestamp.now(),
+  updatedAt: Timestamp.now(),
+};
+
+// Mock reservation
+const mockReservation: FacilityReservation = {
+  id: "reservation-1",
+  facilityId: "facility-1",
+  userId: "user-1",
+  userEmail: "test@example.com",
+  userFullName: "Test User",
+  stableId: "stable-1",
+  startTime: Timestamp.fromDate(new Date("2024-01-15T10:00:00")),
+  endTime: Timestamp.fromDate(new Date("2024-01-15T11:00:00")),
+  status: "confirmed",
+  createdAt: Timestamp.now(),
+  updatedAt: Timestamp.now(),
+};
+
+describe("bookingValidation", () => {
+  describe("validateBusinessHours", () => {
+    it("should validate time within business hours", () => {
+      const start = new Date("2024-01-15T10:00:00");
+      const end = new Date("2024-01-15T11:00:00");
+
+      const result = validateBusinessHours(mockFacility, start, end);
+
+      expect(result.valid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
+
+    it("should reject time outside business hours (early)", () => {
+      const start = new Date("2024-01-15T05:00:00");
+      const end = new Date("2024-01-15T06:00:00");
+
+      const result = validateBusinessHours(mockFacility, start, end);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("outside facility business hours");
+    });
+
+    it("should reject time outside business hours (late)", () => {
+      const start = new Date("2024-01-15T23:00:00");
+      const end = new Date("2024-01-15T23:30:00");
+
+      const result = validateBusinessHours(mockFacility, start, end);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("outside facility business hours");
+    });
+  });
+
+  describe("findConflicts", () => {
+    it("should find no conflicts for non-overlapping times", () => {
+      const start = new Date("2024-01-15T12:00:00");
+      const end = new Date("2024-01-15T13:00:00");
+
+      const conflicts = findConflicts(
+        "facility-1",
+        start,
+        end,
+        [mockReservation]
+      );
+
+      expect(conflicts).toHaveLength(0);
+    });
+
+    it("should find conflict for overlapping times", () => {
+      const start = new Date("2024-01-15T10:30:00");
+      const end = new Date("2024-01-15T11:30:00");
+
+      const conflicts = findConflicts(
+        "facility-1",
+        start,
+        end,
+        [mockReservation]
+      );
+
+      expect(conflicts).toHaveLength(1);
+      expect(conflicts[0].id).toBe("reservation-1");
+    });
+
+    it("should exclude reservation by ID", () => {
+      const start = new Date("2024-01-15T10:30:00");
+      const end = new Date("2024-01-15T11:30:00");
+
+      const conflicts = findConflicts(
+        "facility-1",
+        start,
+        end,
+        [mockReservation],
+        "reservation-1"
+      );
+
+      expect(conflicts).toHaveLength(0);
+    });
+
+    it("should ignore cancelled reservations", () => {
+      const cancelledReservation = {
+        ...mockReservation,
+        status: "cancelled" as const,
+      };
+
+      const start = new Date("2024-01-15T10:30:00");
+      const end = new Date("2024-01-15T11:30:00");
+
+      const conflicts = findConflicts(
+        "facility-1",
+        start,
+        end,
+        [cancelledReservation]
+      );
+
+      expect(conflicts).toHaveLength(0);
+    });
+  });
+
+  describe("validateNoConflicts", () => {
+    it("should validate no conflicts", () => {
+      const start = new Date("2024-01-15T12:00:00");
+      const end = new Date("2024-01-15T13:00:00");
+
+      const result = validateNoConflicts(
+        "facility-1",
+        start,
+        end,
+        [mockReservation]
+      );
+
+      expect(result.valid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
+
+    it("should detect conflicts", () => {
+      const start = new Date("2024-01-15T10:30:00");
+      const end = new Date("2024-01-15T11:30:00");
+
+      const result = validateNoConflicts(
+        "facility-1",
+        start,
+        end,
+        [mockReservation]
+      );
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("conflicts");
+    });
+  });
+
+  describe("validateNewBooking", () => {
+    it("should validate a valid new booking", () => {
+      const start = new Date("2024-01-15T14:00:00");
+      const end = new Date("2024-01-15T15:00:00");
+
+      const result = validateNewBooking(
+        mockFacility,
+        start,
+        end,
+        [mockReservation]
+      );
+
+      expect(result.valid).toBe(true);
+    });
+
+    it("should reject booking shorter than minimum duration", () => {
+      const start = new Date("2024-01-15T14:00:00");
+      const end = new Date("2024-01-15T14:15:00"); // Only 15 minutes
+
+      const result = validateNewBooking(
+        mockFacility,
+        start,
+        end,
+        []
+      );
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("Minimum booking duration");
+    });
+
+    it("should reject booking longer than maximum duration", () => {
+      const start = new Date("2024-01-15T10:00:00");
+      const end = new Date("2024-01-15T14:00:00"); // 4 hours, max is 3
+
+      const result = validateNewBooking(
+        mockFacility,
+        start,
+        end,
+        []
+      );
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("Maximum booking duration");
+    });
+  });
+
+  describe("validateBookingMove", () => {
+    it("should validate a valid move", async () => {
+      const newStart = new Date("2024-01-15T14:00:00");
+      const newEnd = new Date("2024-01-15T15:00:00");
+
+      const result = await validateBookingMove({
+        reservation: mockReservation,
+        targetFacility: mockFacility,
+        newStart,
+        newEnd,
+        existingReservations: [mockReservation],
+        userId: "user-1",
+      });
+
+      expect(result.valid).toBe(true);
+    });
+
+    it("should reject move outside business hours", async () => {
+      const newStart = new Date("2024-01-15T23:00:00");
+      const newEnd = new Date("2024-01-15T23:30:00");
+
+      const result = await validateBookingMove({
+        reservation: mockReservation,
+        targetFacility: mockFacility,
+        newStart,
+        newEnd,
+        existingReservations: [],
+        userId: "user-1",
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("outside facility business hours");
+    });
+
+    it("should reject move that conflicts with another booking", async () => {
+      const otherReservation = {
+        ...mockReservation,
+        id: "reservation-2",
+        startTime: Timestamp.fromDate(new Date("2024-01-15T14:00:00")),
+        endTime: Timestamp.fromDate(new Date("2024-01-15T15:00:00")),
+      };
+
+      const newStart = new Date("2024-01-15T14:30:00");
+      const newEnd = new Date("2024-01-15T15:30:00");
+
+      const result = await validateBookingMove({
+        reservation: mockReservation,
+        targetFacility: mockFacility,
+        newStart,
+        newEnd,
+        existingReservations: [mockReservation, otherReservation],
+        userId: "user-1",
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("conflicts");
+    });
+  });
+});

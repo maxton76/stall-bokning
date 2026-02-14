@@ -35,7 +35,8 @@ import {
   cancelReservation,
 } from "@/services/facilityReservationService";
 import { getUserHorsesAtStable } from "@/services/horseService";
-import { FacilityCalendarView } from "@/components/FacilityCalendarView";
+import { MultiResourceTimelineView } from "@/components/calendar/MultiResourceTimelineView";
+import { CALENDAR_DEFAULTS } from "@/components/calendar/constants";
 import { FacilityReservationDialog } from "@/components/FacilityReservationDialog";
 import type { Facility, FacilityType } from "@/types/facility";
 import type { FacilityReservation } from "@/types/facilityReservation";
@@ -447,27 +448,24 @@ export default function FacilityAvailabilityPage() {
       </Card>
 
       {/* Calendar View */}
-      <FacilityCalendarView
+      <MultiResourceTimelineView
         facilities={facilityData ? [facilityData] : []}
         reservations={reservationsData || []}
-        selectedFacilityId={facilityId}
-        onEventClick={handleReservationClick}
+        selectedDate={currentDate}
+        onDateChange={setCurrentDate}
+        onReservationClick={handleReservationClick}
         onDateSelect={handleTimelineSelect}
-        onEventDrop={handleEventDrop}
-        onEventResize={handleEventResize}
-        calendarConfig={{
-          slotMinTime: facilityData?.availableFrom
-            ? `${facilityData.availableFrom}:00`
-            : "06:00:00",
-          slotMaxTime: facilityData?.availableTo
-            ? `${facilityData.availableTo}:00`
-            : "22:00:00",
+        onReservationDrop={(reservationId, newFacilityId, newStart, newEnd) => {
+          handleEventDrop(reservationId, newStart, newEnd);
         }}
-        viewOptions={{
-          initialView: viewMode === "day" ? "timeGridDay" : "timeGridWeek",
-          showDayGrid: false,
-          showList: false,
-        }}
+        editable={true}
+        slotDuration={CALENDAR_DEFAULTS.SLOT_DURATION_MINUTES}
+        slotMinTime={
+          facilityData?.availableFrom || CALENDAR_DEFAULTS.SLOT_MIN_TIME
+        }
+        slotMaxTime={
+          facilityData?.availableTo || CALENDAR_DEFAULTS.SLOT_MAX_TIME
+        }
       />
 
       {/* Reservation Dialog */}

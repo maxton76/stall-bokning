@@ -61,6 +61,13 @@ enum HTTPMethod: String {
     case delete = "DELETE"
 }
 
+/// A suggested alternative time slot returned by the API on capacity conflicts
+struct SuggestedSlot: Sendable, Codable {
+    let startTime: String
+    let endTime: String
+    let remainingCapacity: Int
+}
+
 /// API error types
 enum APIError: Error, LocalizedError {
     case invalidURL
@@ -73,6 +80,7 @@ enum APIError: Error, LocalizedError {
     case forbidden
     case insufficientPermissions(action: String?)
     case featureNotAvailable(module: String?)
+    case capacityExceeded(message: String, suggestedSlots: [SuggestedSlot], remainingCapacity: Int)
     case notFound
     case serverError
     case unknown
@@ -100,6 +108,8 @@ enum APIError: Error, LocalizedError {
                 return String(localized: "error.permission.\(action) You don't have permission to perform this action.")
             }
             return String(localized: "error.permission.generic You don't have permission to perform this action.")
+        case .capacityExceeded(let message, _, _):
+            return message
         case .featureNotAvailable(let module):
             if let module = module {
                 return String(localized: "error.feature.\(module) This feature is not available in your subscription plan.")
@@ -120,6 +130,8 @@ struct APIErrorResponse: Codable {
     let message: String?
     let error: String?
     let statusCode: Int?
+    let suggestedSlots: [SuggestedSlot]?
+    let remainingCapacity: Int?
 }
 
 /// Main API client for authenticated requests
@@ -362,6 +374,17 @@ final class APIClient {
             }
 
             throw APIError.forbidden
+        case 409:
+            let errorResponse = try? decoder.decode(APIErrorResponse.self, from: data)
+            let errorMsg = errorResponse?.message ?? errorResponse?.error ?? "Conflict"
+            if let slots = errorResponse?.suggestedSlots, !slots.isEmpty {
+                throw APIError.capacityExceeded(
+                    message: errorMsg,
+                    suggestedSlots: slots,
+                    remainingCapacity: errorResponse?.remainingCapacity ?? 0
+                )
+            }
+            throw APIError.httpError(statusCode: 409, message: errorMsg)
         case 404:
             throw APIError.notFound
         case 500...599:

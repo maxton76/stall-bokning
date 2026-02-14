@@ -10,6 +10,7 @@
 		DB1A9B862F24CF9100B87596 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = DB1A9B852F24CF9100B87596 /* FirebaseAuth */; };
 		DB1A9B882F24CF9100B87596 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = DB1A9B872F24CF9100B87596 /* FirebaseCore */; };
 		DB1A9B8A2F24CF9100B87596 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = DB1A9B892F24CF9100B87596 /* FirebaseMessaging */; };
+		DB1A9B8C2F24CF9100B87596 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = DB1A9B8B2F24CF9100B87596 /* FirebaseFirestore */; };
 		DB94F7512F24DA290044785C /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = DB94F7522F24DA290044785C /* GoogleSignIn */; };
 		DBB62B772F38BD9600F16DA6 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = DBB62B762F38BD9600F16DA6 /* Kingfisher */; };
 		DBB62D872F3B946700F16DA6 /* OSLog.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBB62D862F3B946700F16DA6 /* OSLog.framework */; };
@@ -84,6 +85,7 @@
 				DB1A9B882F24CF9100B87596 /* FirebaseCore in Frameworks */,
 				DB1A9B862F24CF9100B87596 /* FirebaseAuth in Frameworks */,
 				DB1A9B8A2F24CF9100B87596 /* FirebaseMessaging in Frameworks */,
+				DB1A9B8C2F24CF9100B87596 /* FirebaseFirestore in Frameworks */,
 				DB94F7512F24DA290044785C /* GoogleSignIn in Frameworks */,
 				DBB62B772F38BD9600F16DA6 /* Kingfisher in Frameworks */,
 			);
@@ -162,6 +164,7 @@
 				DB1A9B852F24CF9100B87596 /* FirebaseAuth */,
 				DB1A9B872F24CF9100B87596 /* FirebaseCore */,
 				DB1A9B892F24CF9100B87596 /* FirebaseMessaging */,
+				DB1A9B8B2F24CF9100B87596 /* FirebaseFirestore */,
 				DB94F7522F24DA290044785C /* GoogleSignIn */,
 				DBB62B762F38BD9600F16DA6 /* Kingfisher */,
 			);
@@ -1312,6 +1315,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DB1A9B842F24CF9100B87596 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseMessaging;
+		};
+		DB1A9B8B2F24CF9100B87596 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB1A9B842F24CF9100B87596 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
 		};
 		DB94F7522F24DA290044785C /* GoogleSignIn */ = {
 			isa = XCSwiftPackageProductDependency;

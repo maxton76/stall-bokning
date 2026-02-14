@@ -127,8 +127,8 @@ private struct ReservationRowView: View {
                 }
             }
 
-            if let horseName = reservation.horseName {
-                Label(horseName, systemImage: "figure.equestrian.sports")
+            if !reservation.horseDisplayText.isEmpty {
+                Label(reservation.horseDisplayText, systemImage: "figure.equestrian.sports")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }

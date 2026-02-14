@@ -1,9 +1,12 @@
 import { useMemo, useCallback } from "react";
-import {
-  GenericCalendarView,
-  type CalendarEvent,
-  type CalendarConfig,
-} from "./FacilityCalendarView";
+
+// TODO: Replace with custom calendar implementation
+// For now, display a simple list view instead of calendar
+type CalendarConfig = {
+  slotMinTime?: string;
+  slotMaxTime?: string;
+  slotDuration?: string;
+};
 import { getActivityTypeColor } from "@/utils/activityTypeMigration";
 import type { ActivityEntry, ActivityTypeConfig } from "@/types/activity";
 import { toDate } from "@/utils/timestampUtils";
@@ -63,9 +66,9 @@ export function ActivityCalendarView({
     return activities; // stable view: show all
   }, [activities, viewMode, selectedHorseId, selectedStaffId]);
 
-  // Transform activity entry → calendar event
+  // Transform activity entry → calendar event (currently unused)
   const transformActivity = useCallback(
-    (entry: ActivityEntry): CalendarEvent => {
+    (entry: ActivityEntry): any => {
       const baseEvent = {
         id: entry.id,
         start: toDate(entry.date) || new Date(),
@@ -124,26 +127,19 @@ export function ActivityCalendarView({
     [activityTypes],
   );
 
+  // TODO: Implement custom activity calendar (currently using placeholder)
+  // This is a temporary stub - ActivityCalendarView needs custom implementation
   return (
-    <GenericCalendarView
-      items={filteredActivities}
-      transformEvent={transformActivity}
-      onEventClick={onEventClick}
-      onDateSelect={
-        onDateSelect ? (start: Date) => onDateSelect(start) : undefined
-      }
-      calendarConfig={{
-        ...calendarConfig,
-      }}
-      viewOptions={{
-        showDayGrid: true,
-        showTimeGridWeek: true,
-        showTimeGridDay: false, // Hide day view for activities
-        showList: true,
-        initialView: "dayGridMonth",
-      }}
-      editable={editable}
-      className={className}
-    />
+    <div
+      className={`bg-card rounded-lg border shadow-sm p-4 ${className || ""}`}
+    >
+      <div className="text-center text-muted-foreground py-8">
+        <p>Activity Calendar View</p>
+        <p className="text-sm mt-2">
+          Custom calendar implementation coming soon
+        </p>
+        <p className="text-xs mt-4">{filteredActivities.length} activities</p>
+      </div>
+    </div>
   );
 }

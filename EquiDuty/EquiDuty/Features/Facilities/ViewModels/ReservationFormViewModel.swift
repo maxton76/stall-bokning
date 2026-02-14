@@ -15,8 +15,8 @@ final class ReservationFormViewModel {
     var selectedDate: Date
     var startTime: Date
     var endTime: Date
-    var selectedHorseId: String?
-    var selectedHorseName: String?
+    var selectedHorseIds: Set<String> = []
+    var externalHorseCount: Int = 0
     var purpose: String = ""
     var notes: String = ""
     var contactInfo: String = ""
@@ -25,7 +25,12 @@ final class ReservationFormViewModel {
     var errorMessage: String?
     var hasConflict = false
     var conflictMessage: String?
+    var suggestedSlots: [SuggestedSlot] = []
     var didSave = false
+
+    // Capacity state
+    var maxHorsesPerReservation: Int = 1
+    var remainingCapacity: Int = 1
 
     // Horse picker state
     var availableHorses: [Horse] = []
@@ -101,8 +106,7 @@ final class ReservationFormViewModel {
         self.selectedDate = date ?? calendar.startOfDay(for: existingReservation.startTime)
         self.startTime = existingReservation.startTime
         self.endTime = existingReservation.endTime
-        self.selectedHorseId = existingReservation.horseId
-        self.selectedHorseName = existingReservation.horseName
+        self.selectedHorseIds = Set(existingReservation.allHorseIds)
         self.purpose = existingReservation.purpose ?? ""
         self.notes = existingReservation.notes ?? ""
         // contactInfo is not in the model yet, but ready for when it is
@@ -115,11 +119,34 @@ final class ReservationFormViewModel {
     }
 
     var canSubmit: Bool {
-        endTime > startTime && !isSubmitting && !hasConflict
+        let totalHorses = selectedHorseIds.count + externalHorseCount
+        return endTime > startTime && !isSubmitting && !hasConflict && totalHorses > 0 && totalHorses <= remainingCapacity
     }
 
     var stableId: String? {
         authService.selectedStable?.id
+    }
+
+    /// Selected horses as an ordered array
+    var selectedHorses: [Horse] {
+        availableHorses.filter { selectedHorseIds.contains($0.id) }
+    }
+
+    /// Names of selected horses
+    private var selectedHorseNames: [String] {
+        selectedHorses.map { $0.name }
+    }
+
+    /// Whether more horses can be added without exceeding capacity (accounts for external horses)
+    var canAddMoreHorses: Bool {
+        (selectedHorseIds.count + externalHorseCount) < remainingCapacity
+    }
+
+    /// Capacity usage message (nil when facility allows only 1 horse)
+    var capacityMessage: String? {
+        guard maxHorsesPerReservation > 1 else { return nil }
+        let used = maxHorsesPerReservation - remainingCapacity
+        return String(localized: "reservation.capacity.slotsUsed \(used) \(maxHorsesPerReservation)")
     }
 
     // MARK: - Actions
@@ -135,12 +162,17 @@ final class ReservationFormViewModel {
         isLoadingHorses = false
     }
 
-    func onHorseSelectionChanged() {
-        if let horseId = selectedHorseId {
-            selectedHorseName = availableHorses.first(where: { $0.id == horseId })?.name
+    func toggleHorse(_ horseId: String) {
+        if selectedHorseIds.contains(horseId) {
+            selectedHorseIds.remove(horseId)
         } else {
-            selectedHorseName = nil
+            guard canAddMoreHorses else { return }
+            selectedHorseIds.insert(horseId)
         }
+    }
+
+    func removeHorse(_ horseId: String) {
+        selectedHorseIds.remove(horseId)
     }
 
     func checkConflicts() async {
@@ -162,10 +194,19 @@ final class ReservationFormViewModel {
             } else {
                 conflictMessage = nil
             }
+            // Update capacity info
+            if let max = result.maxHorsesPerReservation {
+                maxHorsesPerReservation = max
+            }
+            if let remaining = result.remainingCapacity {
+                remainingCapacity = remaining
+            }
         } catch {
             // Don't block submission on conflict check failure
             hasConflict = false
             conflictMessage = nil
+            // Fallback: allow up to max capacity
+            remainingCapacity = maxHorsesPerReservation
         }
     }
 
@@ -174,17 +215,27 @@ final class ReservationFormViewModel {
 
         isSubmitting = true
         errorMessage = nil
+        suggestedSlots = []
 
         let startDateTime = combineDateAndTime(date: selectedDate, time: startTime)
         let endDateTime = combineDateAndTime(date: selectedDate, time: endTime)
+
+        let horseIdsList = Array(selectedHorseIds)
+        let horseNamesList = selectedHorseNames
+        // For backward compatibility, also set legacy single fields
+        let legacyHorseId = horseIdsList.first
+        let legacyHorseName = horseNamesList.first
 
         do {
             if let reservationId = existingReservationId {
                 let updates = UpdateReservationRequest(
                     startTime: iso8601Formatter.string(from: startDateTime),
                     endTime: iso8601Formatter.string(from: endDateTime),
-                    horseId: selectedHorseId,
-                    horseName: selectedHorseName,
+                    horseId: legacyHorseId,
+                    horseName: legacyHorseName,
+                    horseIds: horseIdsList.isEmpty ? nil : horseIdsList,
+                    horseNames: horseNamesList.isEmpty ? nil : horseNamesList,
+                    externalHorseCount: externalHorseCount > 0 ? externalHorseCount : nil,
                     purpose: purpose.isEmpty ? nil : purpose,
                     notes: notes.isEmpty ? nil : notes,
                     contactInfo: contactInfo.isEmpty ? nil : contactInfo
@@ -197,8 +248,11 @@ final class ReservationFormViewModel {
                     stableId: stableId,
                     startTime: iso8601Formatter.string(from: startDateTime),
                     endTime: iso8601Formatter.string(from: endDateTime),
-                    horseId: selectedHorseId,
-                    horseName: selectedHorseName,
+                    horseId: legacyHorseId,
+                    horseName: legacyHorseName,
+                    horseIds: horseIdsList.isEmpty ? nil : horseIdsList,
+                    horseNames: horseNamesList.isEmpty ? nil : horseNamesList,
+                    externalHorseCount: externalHorseCount > 0 ? externalHorseCount : nil,
                     purpose: purpose.isEmpty ? nil : purpose,
                     notes: notes.isEmpty ? nil : notes,
                     contactInfo: contactInfo.isEmpty ? nil : contactInfo
@@ -219,8 +273,11 @@ final class ReservationFormViewModel {
                             stableId: stableId,
                             startTime: iso8601Formatter.string(from: futureStart),
                             endTime: iso8601Formatter.string(from: futureEnd),
-                            horseId: selectedHorseId,
-                            horseName: selectedHorseName,
+                            horseId: legacyHorseId,
+                            horseName: legacyHorseName,
+                            horseIds: horseIdsList.isEmpty ? nil : horseIdsList,
+                            horseNames: horseNamesList.isEmpty ? nil : horseNamesList,
+                            externalHorseCount: externalHorseCount > 0 ? externalHorseCount : nil,
                             purpose: purpose.isEmpty ? nil : purpose,
                             notes: notes.isEmpty ? nil : notes,
                             contactInfo: contactInfo.isEmpty ? nil : contactInfo
@@ -240,10 +297,46 @@ final class ReservationFormViewModel {
 
             isSubmitting = false
             didSave = true
+        } catch let apiError as APIError {
+            if case .capacityExceeded(let message, let slots, _) = apiError {
+                errorMessage = message
+                suggestedSlots = slots
+            } else {
+                errorMessage = apiError.localizedDescription
+            }
+            isSubmitting = false
         } catch {
             errorMessage = error.localizedDescription
             isSubmitting = false
         }
+    }
+
+    func selectSuggestedSlot(_ slot: SuggestedSlot) {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        // Try with fractional seconds first, then without
+        let start = formatter.date(from: slot.startTime) ?? {
+            let f = ISO8601DateFormatter()
+            f.formatOptions = [.withInternetDateTime]
+            return f.date(from: slot.startTime)
+        }()
+
+        let end = formatter.date(from: slot.endTime) ?? {
+            let f = ISO8601DateFormatter()
+            f.formatOptions = [.withInternetDateTime]
+            return f.date(from: slot.endTime)
+        }()
+
+        if let start {
+            self.startTime = start
+        }
+        if let end {
+            self.endTime = end
+        }
+
+        suggestedSlots = []
+        errorMessage = nil
     }
 
     // MARK: - Private

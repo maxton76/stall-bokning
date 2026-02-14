@@ -9,6 +9,7 @@ import { BaseFormDialog } from "@/components/BaseFormDialog";
 import { useFormDialog } from "@/hooks/useFormDialog";
 import { FormInput, FormSelect, FormTextarea } from "@/components/form";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
@@ -23,6 +24,8 @@ import { cn } from "@/lib/utils";
 import { checkReservationConflicts } from "@/services/facilityReservationService";
 import { getAvailableSlots } from "@/services/facilityService";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { useOrgPermissions } from "@/hooks/useOrgPermissions";
 import { queryKeys } from "@/lib/queryClient";
 import type { FacilityReservation } from "@/types/facilityReservation";
 import type { Facility, TimeBlock } from "@/types/facility";
@@ -37,6 +40,8 @@ import { AvailabilityIndicator } from "@/components/AvailabilityIndicator";
 import { HorseMultiSelect } from "@/components/HorseMultiSelect";
 import { HorseChipList } from "@/components/HorseChipList";
 import { getHorseIds, getHorses } from "@/utils/reservationHelpers";
+import { calculatePeakConcurrentHorses } from "@/utils/bookingValidation";
+import { isApiError } from "@/lib/apiErrors";
 
 // Schema will be created with useMemo inside component for translations
 type ReservationFormData = {
@@ -48,6 +53,8 @@ type ReservationFormData = {
   horseId?: string;
   /** Array of horse IDs for multi-horse bookings (preferred) */
   horseIds: string[];
+  /** Number of external horses (not registered in the stable) */
+  externalHorseCount: number;
   contactInfo?: string;
   notes?: string;
   recurringWeekly?: boolean;
@@ -89,10 +96,26 @@ export function FacilityReservationDialog({
 }: FacilityReservationDialogProps) {
   const { t } = useTranslation("facilities");
   const { user } = useAuth();
+  const { currentOrganizationId } = useOrganization();
+  const { hasPermission, isSystemAdmin } = useOrgPermissions(
+    currentOrganizationId,
+  );
   const isEditMode = !!reservation;
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [adminOverride, setAdminOverride] = useState(false);
+  const [horseSelectionMode, setHorseSelectionMode] = useState<
+    "byName" | "byCount"
+  >("byName");
+  const [conflictInfo, setConflictInfo] = useState<{
+    message: string;
+    suggestedSlots?: Array<{
+      startTime: string;
+      endTime: string;
+      remainingCapacity: number;
+    }>;
+    remainingCapacity?: number;
+  } | null>(null);
 
   // Determine if user can override availability
   const canOverride =
@@ -120,9 +143,8 @@ export function FacilityReservationDialog({
               /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
               t("reservation.validation.timeInvalid"),
             ),
-          horseIds: z
-            .array(z.string())
-            .min(1, t("reservation.validation.horsesRequired")),
+          horseIds: z.array(z.string()).min(0),
+          externalHorseCount: z.coerce.number().min(0).default(0),
           horseId: z.string().optional(), // Legacy field
           contactInfo: z.string().optional(),
           notes: z.string().optional(),
@@ -144,6 +166,16 @@ export function FacilityReservationDialog({
             message: t("reservation.validation.endAfterStart"),
             path: ["endTime"],
           },
+        )
+        .refine(
+          (data) => {
+            // At least one horse (stable or external) must be selected
+            return data.horseIds.length + data.externalHorseCount > 0;
+          },
+          {
+            message: t("reservation.validation.atLeastOneHorse"),
+            path: ["horseIds"],
+          },
         ),
     [t],
   );
@@ -154,6 +186,8 @@ export function FacilityReservationDialog({
       setShowDeleteConfirm(false);
       setIsDeleting(false);
       setAdminOverride(false);
+      setConflictInfo(null);
+      setHorseSelectionMode("byName");
     }
   }, [open]);
 
@@ -180,11 +214,29 @@ export function FacilityReservationDialog({
       startTime: "09:00",
       endTime: "10:00",
       horseIds: [],
+      externalHorseCount: 0,
       contactInfo: "",
       notes: "",
       recurringWeekly: false,
     },
     onSubmit: async (data) => {
+      // Clear any previous conflict info
+      setConflictInfo(null);
+
+      // Block submission if over capacity (multi-horse facilities)
+      const totalHorses = data.horseIds.length + data.externalHorseCount;
+      if (
+        capacityInfo != null &&
+        totalHorses > capacityInfo.remainingCapacity
+      ) {
+        throw new Error(
+          t("reservation.capacity.overCapacity", {
+            selected: totalHorses,
+            remaining: capacityInfo.remainingCapacity,
+          }),
+        );
+      }
+
       // Save booking history for smart defaults
       if (!isEditMode && data.facilityId) {
         const durationMinutes = calculateDuration(data.startTime, data.endTime);
@@ -196,11 +248,31 @@ export function FacilityReservationDialog({
       const selectedHorses = horses.filter((h) => data.horseIds.includes(h.id));
       const horseNames = selectedHorses.map((h) => h.name);
 
-      await onSave({
-        ...data,
-        horseNames, // Include horse names for denormalization
-        adminOverride: adminOverride || undefined,
-      });
+      try {
+        await onSave({
+          ...data,
+          horseNames, // Include horse names for denormalization
+          adminOverride: adminOverride || undefined,
+        });
+      } catch (err) {
+        // Handle 409 conflict with suggested alternative slots
+        if (
+          isApiError(err) &&
+          err.status === 409 &&
+          err.details?.suggestedSlots
+        ) {
+          setConflictInfo({
+            message: err.message,
+            suggestedSlots: err.details.suggestedSlots as Array<{
+              startTime: string;
+              endTime: string;
+              remainingCapacity: number;
+            }>,
+            remainingCapacity: err.details.remainingCapacity as number,
+          });
+        }
+        throw err;
+      }
     },
     onSuccess: () => {
       onOpenChange(false);
@@ -217,6 +289,17 @@ export function FacilityReservationDialog({
   const selectedFacilityId = form.watch("facilityId");
   const selectedFacility = facilities.find((f) => f.id === selectedFacilityId);
   const maxHorses = selectedFacility?.maxHorsesPerReservation || 1;
+  const isMultiHorseFacility = maxHorses > 1;
+
+  // Determine horse scope based on user role
+  // Elevated roles (schedule planner, org owner, stable manager, system admin) see all stable horses
+  // Regular users see only their own horses
+  const horseScope: "my" | "stable" = useMemo(() => {
+    if (isSystemAdmin) return "stable";
+    if (hasPermission("manage_schedules")) return "stable";
+    if (stableOwnerId && user?.uid === stableOwnerId) return "stable";
+    return "my";
+  }, [isSystemAdmin, hasPermission, stableOwnerId, user?.uid]);
 
   // Helper function to calculate duration in minutes
   const calculateDuration = (startTime: string, endTime: string): number => {
@@ -231,6 +314,14 @@ export function FacilityReservationDialog({
       const startDate = toDate(reservation.startTime) || new Date();
       const endDate = toDate(reservation.endTime) || new Date();
       const horseIds = getHorseIds(reservation);
+      const extCount = reservation.externalHorseCount || 0;
+
+      // Auto-detect horse selection mode from reservation data
+      if (extCount > 0 && horseIds.length === 0) {
+        setHorseSelectionMode("byCount");
+      } else {
+        setHorseSelectionMode("byName");
+      }
 
       resetForm({
         facilityId: reservation.facilityId,
@@ -238,6 +329,7 @@ export function FacilityReservationDialog({
         startTime: format(startDate, "HH:mm"),
         endTime: format(endDate, "HH:mm"),
         horseIds,
+        externalHorseCount: extCount,
         contactInfo: reservation.contactInfo || "",
         notes: reservation.notes || "",
         recurringWeekly: false,
@@ -276,6 +368,11 @@ export function FacilityReservationDialog({
   const date = form.watch("date");
   const startTime = form.watch("startTime");
   const endTime = form.watch("endTime");
+
+  // Clear conflict banner when relevant form fields change
+  useEffect(() => {
+    setConflictInfo(null);
+  }, [facilityId, date, startTime, endTime]);
 
   // Calculate start and end date times
   const getDateTimes = () => {
@@ -329,6 +426,18 @@ export function FacilityReservationDialog({
     staleTime: 0, // Always check for conflicts
     refetchOnWindowFocus: false,
   });
+
+  // Compute capacity from existing conflicts (multi-horse facilities only)
+  const capacityInfo = useMemo(() => {
+    if (!isMultiHorseFacility) return null;
+    return calculatePeakConcurrentHorses(conflicts, maxHorses);
+  }, [conflicts, maxHorses, isMultiHorseFacility]);
+
+  const selectedHorseIds = form.watch("horseIds") || [];
+  const externalHorseCount = form.watch("externalHorseCount") || 0;
+  const totalHorseCount = selectedHorseIds.length + externalHorseCount;
+  const isOverCapacity =
+    capacityInfo != null && totalHorseCount > capacityInfo.remainingCapacity;
 
   // Fetch available slots for selected facility + date
   const dateStr = date ? format(date, "yyyy-MM-dd") : "";
@@ -469,11 +578,19 @@ export function FacilityReservationDialog({
               status={
                 isClosed
                   ? "closed"
-                  : conflicts.length > 0
-                    ? "full"
-                    : isOutsideAvailability
-                      ? "limited"
-                      : "available"
+                  : capacityInfo != null
+                    ? capacityInfo.remainingCapacity === 0
+                      ? "full"
+                      : capacityInfo.peakExistingHorses > 0
+                        ? "limited"
+                        : isOutsideAvailability
+                          ? "limited"
+                          : "available"
+                    : conflicts.length > 0
+                      ? "full"
+                      : isOutsideAvailability
+                        ? "limited"
+                        : "available"
               }
               size="sm"
             />
@@ -561,49 +678,229 @@ export function FacilityReservationDialog({
         </Alert>
       )}
 
-      {/* Horse Selection - Multi-select */}
+      {/* Capacity Conflict — Suggested Alternative Slots */}
+      {conflictInfo && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>{t("reservation.conflict.title")}</AlertTitle>
+          <AlertDescription>
+            <p className="mb-2">{t("reservation.conflict.description")}</p>
+            {conflictInfo.suggestedSlots &&
+              conflictInfo.suggestedSlots.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">
+                    {t("reservation.conflict.suggestedSlots")}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {conflictInfo.suggestedSlots.map((slot, idx) => (
+                      <Badge
+                        key={idx}
+                        variant="outline"
+                        className="cursor-pointer hover:bg-primary/10 transition-colors"
+                        onClick={() => {
+                          const start = new Date(slot.startTime);
+                          const end = new Date(slot.endTime);
+                          form.setValue("startTime", format(start, "HH:mm"));
+                          form.setValue("endTime", format(end, "HH:mm"));
+                          setConflictInfo(null);
+                        }}
+                      >
+                        <Clock className="mr-1 h-3 w-3" />
+                        {format(new Date(slot.startTime), "HH:mm")} –{" "}
+                        {format(new Date(slot.endTime), "HH:mm")}
+                        <span className="ml-1 text-muted-foreground">
+                          (
+                          {t("reservation.conflict.spotsAvailable", {
+                            count: slot.remainingCapacity,
+                          })}
+                          )
+                        </span>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Horse Selection */}
       <div className="space-y-2">
-        <Label htmlFor="horse-select" className="text-sm font-medium">
+        <Label className="text-sm font-medium">
           {t("reservation.labels.horses")}
           <span className="text-destructive ml-1">*</span>
         </Label>
-        {selectedFacility && (
-          <HorseMultiSelect
-            stableId={selectedFacility.stableId}
-            selectedHorseIds={form.watch("horseIds") || []}
-            onChange={(horseIds) => form.setValue("horseIds", horseIds)}
-            placeholder={t("reservation.placeholders.horses")}
-            disabled={form.formState.isSubmitting}
-          />
+
+        {/* Segmented toggle: By Name / By Count */}
+        <div className="inline-flex rounded-lg border bg-muted p-0.5">
+          <button
+            type="button"
+            className={cn(
+              "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              horseSelectionMode === "byName"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            onClick={() => {
+              setHorseSelectionMode("byName");
+              form.setValue("externalHorseCount", 0);
+            }}
+          >
+            {t("reservation.labels.horseSelectionByName")}
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              horseSelectionMode === "byCount"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            onClick={() => {
+              setHorseSelectionMode("byCount");
+              form.setValue("horseIds", []);
+            }}
+          >
+            {t("reservation.labels.horseSelectionByCount")}
+          </button>
+        </div>
+
+        {/* By Name mode: HorseMultiSelect + chips */}
+        {horseSelectionMode === "byName" && (
+          <>
+            {selectedFacility && (
+              <HorseMultiSelect
+                stableId={selectedFacility.stableId}
+                selectedHorseIds={selectedHorseIds}
+                onChange={(horseIds) => form.setValue("horseIds", horseIds)}
+                placeholder={t("reservation.placeholders.horses")}
+                disabled={form.formState.isSubmitting}
+                maxSelectable={
+                  capacityInfo?.remainingCapacity
+                    ? Math.max(0, capacityInfo.remainingCapacity)
+                    : undefined
+                }
+                scope={horseScope}
+              />
+            )}
+            {!selectedFacility && (
+              <p className="text-sm text-muted-foreground">
+                {t("reservation.placeholders.selectFacilityFirst")}
+              </p>
+            )}
+
+            {/* Display selected horses as chips */}
+            {selectedFacility && (
+              <HorseChipList
+                horses={horses.filter((h) =>
+                  (form.watch("horseIds") || []).includes(h.id),
+                )}
+                onRemove={(horseId: string) => {
+                  const currentIds = form.watch("horseIds") || [];
+                  form.setValue(
+                    "horseIds",
+                    currentIds.filter((id: string) => id !== horseId),
+                  );
+                }}
+                disabled={form.formState.isSubmitting}
+              />
+            )}
+          </>
         )}
-        {!selectedFacility && (
+
+        {/* By Count mode: Number stepper */}
+        {horseSelectionMode === "byCount" && selectedFacility && (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              {t("reservation.labels.horseCount")}
+            </Label>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-9 w-9"
+                disabled={
+                  form.formState.isSubmitting ||
+                  form.watch("externalHorseCount") <= 0
+                }
+                onClick={() => {
+                  const current = form.watch("externalHorseCount");
+                  form.setValue("externalHorseCount", Math.max(0, current - 1));
+                }}
+              >
+                -
+              </Button>
+              <Input
+                {...form.register("externalHorseCount", {
+                  valueAsNumber: true,
+                })}
+                type="number"
+                min={0}
+                max={capacityInfo?.remainingCapacity ?? maxHorses}
+                className="text-center w-20"
+                disabled={form.formState.isSubmitting}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-9 w-9"
+                disabled={
+                  form.formState.isSubmitting ||
+                  (capacityInfo?.remainingCapacity != null &&
+                    form.watch("externalHorseCount") >=
+                      capacityInfo.remainingCapacity)
+                }
+                onClick={() => {
+                  const current = form.watch("externalHorseCount");
+                  const maxExternal =
+                    capacityInfo?.remainingCapacity ?? maxHorses;
+                  form.setValue(
+                    "externalHorseCount",
+                    Math.min(current + 1, maxExternal),
+                  );
+                }}
+              >
+                +
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("reservation.placeholders.externalHorseCount")}
+            </p>
+          </div>
+        )}
+        {horseSelectionMode === "byCount" && !selectedFacility && (
           <p className="text-sm text-muted-foreground">
             {t("reservation.placeholders.selectFacilityFirst")}
           </p>
         )}
 
-        {/* Display selected horses as chips */}
-        {selectedFacility && (
-          <HorseChipList
-            horses={horses.filter((h) =>
-              (form.watch("horseIds") || []).includes(h.id),
-            )}
-            onRemove={(horseId: string) => {
-              const currentIds = form.watch("horseIds") || [];
-              form.setValue(
-                "horseIds",
-                currentIds.filter((id: string) => id !== horseId),
-              );
-            }}
-            disabled={form.formState.isSubmitting}
-          />
+        {/* Show dynamic capacity info for multi-horse facilities */}
+        {selectedFacility && isMultiHorseFacility && capacityInfo && (
+          <p className="text-xs text-muted-foreground">
+            {capacityInfo.remainingCapacity === 0
+              ? t("reservation.capacity.atCapacity", { max: maxHorses })
+              : t("reservation.capacity.slotsUsed", {
+                  used: capacityInfo.peakExistingHorses,
+                  max: maxHorses,
+                })}
+            {capacityInfo.remainingCapacity > 0 &&
+              ` — ${t("reservation.capacity.remainingSlots", { count: capacityInfo.remainingCapacity })}`}
+          </p>
         )}
 
-        {/* Show capacity info */}
-        {selectedFacility && maxHorses > 1 && (
-          <p className="text-xs text-muted-foreground">
-            {t("reservation.descriptions.maxHorses", { max: maxHorses })}
-          </p>
+        {/* Over-capacity warning */}
+        {isOverCapacity && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {t("reservation.capacity.overCapacity", {
+                selected: totalHorseCount,
+                remaining: capacityInfo!.remainingCapacity,
+              })}
+            </AlertDescription>
+          </Alert>
         )}
 
         {/* Show validation error */}

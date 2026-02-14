@@ -1,0 +1,33 @@
+# External Horse Count + Role-Based Horse Filtering
+
+## ✅ Task 1: API Implementation (Completed)
+- Updated `getHorseCount()` in capacityValidation.ts to include external horses
+- Modified POST/PATCH handlers in facility-reservations.ts for total horse validation
+- Validated with TypeScript typecheck
+
+## ✅ Task 2: Web Frontend Implementation (Completed)
+- Added `scope` prop to HorseMultiSelect component for role-based filtering
+- Updated FacilityReservationDialog with external count input and role detection
+- Added i18n translations (en + sv)
+- Fixed TypeScript errors with FormInput component
+
+## ✅ Task 3: iOS Implementation (Completed)
+- Updated models with externalHorseCount field
+- Added stepper UI in ReservationFormSheet
+- Updated ViewModel validation and capacity logic
+- Added localization strings (Swedish + English)
+
+## ✅ Task 4: Android Implementation (Completed)
+- Updated DTOs (FacilityReservationDtos.kt) with externalHorseCount field
+- Updated domain model (FacilityReservation.kt) with horseCount computed property
+- Added state and save() logic in ReservationFormViewModel.kt
+- Updated canAddMoreHorses capacity check to include external horses
+- Added stepper UI in ReservationFormScreen.kt
+- Added string resources (values/strings.xml + values-en/strings.xml)
+
+## Summary
+All platforms now support:
+- External horse count input (stepper/number control)
+- Total horse count validation (stable horses + external horses)
+- Capacity enforcement accounting for both horse types
+- Proper i18n support in Swedish and English

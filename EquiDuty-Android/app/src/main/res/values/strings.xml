@@ -235,10 +235,21 @@
     <string name="reservation_start_time">Starttid</string>
     <string name="reservation_end_time">Sluttid</string>
     <string name="reservation_horse">Häst</string>
+    <string name="reservation_horses">Hästar</string>
+    <string name="reservation_select_horses">Välj hästar…</string>
+    <string name="reservation_horses_count">%d hästar valda</string>
+    <string name="remove">Ta bort</string>
     <string name="reservation_notes">Anteckningar</string>
+    <string name="reservation_external_horse_count">Hästar du tar med</string>
+    <string name="reservation_external_horse_count_description">För hästar som inte finns i stallet</string>
     <string name="reservation_submit">Boka</string>
     <string name="reservation_update">Uppdatera</string>
     <string name="reservation_conflict_warning">Tidskonflikt upptäckt</string>
+    <string name="reservation_capacity_slots_used">%1$d av %2$d hästplatser upptagna</string>
+    <string name="reservation_capacity_full">Alla hästplatser upptagna för denna tid</string>
+    <string name="suggested_slots_title">Föreslagna lediga tider</string>
+    <string name="spots_available">%d plats ledig</string>
+    <string name="spots_available_plural">%d platser lediga</string>
     <string name="reservation_booked_by">Bokad av</string>
 
     <!-- Reservation Status -->

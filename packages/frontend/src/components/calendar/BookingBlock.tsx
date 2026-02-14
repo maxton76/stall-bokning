@@ -13,6 +13,7 @@ import type { FacilityReservation } from "@/types/facilityReservation";
 import { toDate } from "@/utils/timestampUtils";
 import { cn } from "@/lib/utils";
 import { getHorses, getHorseCount } from "@/utils/reservationHelpers";
+import { CALENDAR_DEFAULTS } from "./constants";
 import {
   Tooltip,
   TooltipContent,
@@ -63,8 +64,8 @@ interface BookingBlockProps {
 export const BookingBlock = memo(function BookingBlock({
   reservation,
   facilityIndex,
-  slotDuration = 15,
-  slotMinTime = "06:00",
+  slotDuration = CALENDAR_DEFAULTS.SLOT_DURATION_MINUTES,
+  slotMinTime = CALENDAR_DEFAULTS.SLOT_MIN_TIME,
   isDragging = false,
   editable = true,
   orientation = "horizontal",

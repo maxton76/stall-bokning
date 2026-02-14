@@ -156,6 +156,7 @@ fun SignUpScreen(
                         contactEmail = contactEmail,
                         phoneNumber = phoneNumber,
                         showOrgNameError = showOrgNameError,
+                        agreedToTerms = agreedToTerms,
                         onFirstNameChange = { firstName = it; onClearError() },
                         onLastNameChange = { lastName = it; onClearError() },
                         onEmailChange = { email = it; onClearError() },
@@ -165,6 +166,7 @@ fun SignUpScreen(
                         onOrganizationNameChange = { organizationName = it; showOrgNameError = false; onClearError() },
                         onContactEmailChange = { contactEmail = it; onClearError() },
                         onPhoneNumberChange = { phoneNumber = it; onClearError() },
+                        onAgreedToTermsChange = { agreedToTerms = it },
                         onSubmit = {
                             if (isBusiness && organizationName.isBlank()) {
                                 showOrgNameError = true
@@ -313,6 +315,7 @@ private fun StepTwoContent(
     contactEmail: String,
     phoneNumber: String,
     showOrgNameError: Boolean,
+    agreedToTerms: Boolean,
     onFirstNameChange: (String) -> Unit,
     onLastNameChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
@@ -322,10 +325,12 @@ private fun StepTwoContent(
     onOrganizationNameChange: (String) -> Unit,
     onContactEmailChange: (String) -> Unit,
     onPhoneNumberChange: (String) -> Unit,
+    onAgreedToTermsChange: (Boolean) -> Unit,
     onSubmit: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
     val focusManager = LocalFocusManager.current
+    val uriHandler = LocalUriHandler.current
 
     Column(
         modifier = Modifier
@@ -546,7 +551,7 @@ private fun StepTwoContent(
         ) {
             Checkbox(
                 checked = agreedToTerms,
-                onCheckedChange = { agreedToTerms = it }
+                onCheckedChange = onAgreedToTermsChange
             )
             Spacer(modifier = Modifier.width(4.dp))
             val privacyText = stringResource(R.string.signup_privacy_policy)

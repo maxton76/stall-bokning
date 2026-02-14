@@ -70,10 +70,10 @@ struct FacilityDetailView: View {
                         }
                         .padding(.horizontal)
 
-                        // Day schedule
+                        // Day schedule (uses live data from Firestore listener when available)
                         FacilityDayScheduleView(
                             availableSlots: viewModel.availableSlots,
-                            reservations: viewModel.reservations,
+                            reservations: viewModel.liveReservations,
                             onSlotTapped: { startTime, endTime in
                                 selectedStartTime = startTime
                                 selectedEndTime = endTime
@@ -139,6 +139,9 @@ struct FacilityDetailView: View {
         }
         .task {
             await viewModel.loadData()
+        }
+        .onDisappear {
+            viewModel.stopRealtimeUpdates()
         }
     }
 

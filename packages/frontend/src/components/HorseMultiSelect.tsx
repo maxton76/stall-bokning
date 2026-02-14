@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { queryKeys } from "@/lib/queryClient";
-import { getStableHorses } from "@/services/horseService";
+import { getStableHorses, getMyHorses } from "@/services/horseService";
 import type { Horse } from "@/types/roles";
 
 interface HorseMultiSelectProps {
@@ -40,6 +40,12 @@ interface HorseMultiSelectProps {
 
   /** Optional CSS class */
   className?: string;
+
+  /** Maximum number of horses that can be selected (based on remaining facility capacity) */
+  maxSelectable?: number;
+
+  /** Scope for horse filtering - "my" (only user's horses) or "stable" (all stable horses) */
+  scope?: "my" | "stable";
 }
 
 export function HorseMultiSelect({
@@ -49,14 +55,23 @@ export function HorseMultiSelect({
   placeholder = "Select horses...",
   disabled = false,
   className,
+  maxSelectable,
+  scope = "my",
 }: HorseMultiSelectProps) {
   const { t } = useTranslation(["horses", "common"]);
   const [open, setOpen] = useState(false);
 
-  // Load horses from stable using TanStack Query (receives cache updates)
+  // Load horses based on scope (my horses or all stable horses)
+  const horsesFetcher =
+    scope === "stable"
+      ? () => getStableHorses(stableId)
+      : () => getMyHorses(stableId);
+
   const { data: horses = [], isLoading: loading } = useApiQuery<Horse[]>(
-    queryKeys.horses.byStable(stableId),
-    () => getStableHorses(stableId),
+    scope === "stable"
+      ? queryKeys.horses.byStable(stableId)
+      : ["myHorses", stableId],
+    horsesFetcher,
     { enabled: !!stableId },
   );
 
@@ -65,9 +80,17 @@ export function HorseMultiSelect({
     selectedHorseIds.includes(horse.id),
   );
 
+  // Whether we've hit the selectable limit
+  const atCapacity =
+    maxSelectable != null && selectedHorseIds.length >= maxSelectable;
+
   // Toggle horse selection
   const toggleHorse = (horseId: string) => {
-    const newSelection = selectedHorseIds.includes(horseId)
+    const isDeselecting = selectedHorseIds.includes(horseId);
+    // Block adding if at capacity (deselecting is always allowed)
+    if (!isDeselecting && atCapacity) return;
+
+    const newSelection = isDeselecting
       ? selectedHorseIds.filter((id) => id !== horseId)
       : [...selectedHorseIds, horseId];
     onChange(newSelection);
@@ -146,12 +169,16 @@ export function HorseMultiSelect({
               {/* Horse list */}
               {horses.map((horse) => {
                 const isSelected = selectedHorseIds.includes(horse.id);
+                const isDisabledByCapacity = !isSelected && atCapacity;
                 return (
                   <CommandItem
                     key={horse.id}
                     value={horse.name}
                     onSelect={() => toggleHorse(horse.id)}
-                    className="cursor-pointer"
+                    className={cn(
+                      "cursor-pointer",
+                      isDisabledByCapacity && "opacity-40 cursor-not-allowed",
+                    )}
                   >
                     <div className="flex items-center gap-2 flex-1">
                       <div

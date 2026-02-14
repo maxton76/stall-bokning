@@ -24,15 +24,21 @@ interface CapacityValidationResult {
 
 /**
  * Get horse count from reservation data (handles both legacy and new format)
+ * Includes both registered stable horses and external horses brought by the user
  */
-function getHorseCount(reservation: any): number {
+export function getHorseCount(reservation: any): number {
+  let stableHorses = 0;
+
   if (reservation.horseIds && Array.isArray(reservation.horseIds)) {
-    return reservation.horseIds.length;
+    stableHorses = reservation.horseIds.length;
+  } else if (reservation.horseId) {
+    stableHorses = 1;
   }
-  if (reservation.horseId) {
-    return 1;
-  }
-  return 0;
+
+  // Add external horses (horses not registered in the stable)
+  const externalHorses = reservation.externalHorseCount || 0;
+
+  return stableHorses + externalHorses;
 }
 
 /**

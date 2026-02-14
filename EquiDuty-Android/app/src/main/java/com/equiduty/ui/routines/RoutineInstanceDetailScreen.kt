@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.equiduty.domain.model.RoutineInstanceStatus
 import com.equiduty.ui.components.ErrorView
 import com.equiduty.ui.components.LoadingIndicator
 import com.equiduty.ui.components.StatusBadge
@@ -43,7 +44,7 @@ fun RoutineInstanceDetailScreen(
                 actions = {
                     // Cancel button (only if not already cancelled or completed)
                     instance?.let { inst ->
-                        if (inst.status != "cancelled" && inst.status != "completed") {
+                        if (inst.status != RoutineInstanceStatus.CANCELLED && inst.status != RoutineInstanceStatus.COMPLETED) {
                             IconButton(onClick = { showCancelDialog = true }) {
                                 Icon(Icons.Default.Cancel, "Avbryt rutin")
                             }
@@ -86,7 +87,7 @@ fun RoutineInstanceDetailScreen(
                                             text = inst.templateName,
                                             style = MaterialTheme.typography.titleLarge
                                         )
-                                        StatusBadge(inst.status)
+                                        StatusBadge(inst.status.value)
                                     }
 
                                     Spacer(modifier = Modifier.height(8.dp))
@@ -164,7 +165,7 @@ fun RoutineInstanceDetailScreen(
 
                             // Action buttons
                             when (inst.status) {
-                                "scheduled" -> {
+                                RoutineInstanceStatus.SCHEDULED -> {
                                     Button(
                                         onClick = { viewModel.startRoutine() },
                                         modifier = Modifier.fillMaxWidth()
@@ -174,7 +175,8 @@ fun RoutineInstanceDetailScreen(
                                         Text("Starta rutin")
                                     }
                                 }
-                                "in_progress" -> {
+                                RoutineInstanceStatus.STARTED,
+                                RoutineInstanceStatus.IN_PROGRESS -> {
                                     Button(
                                         onClick = {
                                             // Navigate to routine flow
@@ -197,6 +199,11 @@ fun RoutineInstanceDetailScreen(
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text("Slutför rutin")
                                     }
+                                }
+                                RoutineInstanceStatus.COMPLETED,
+                                RoutineInstanceStatus.MISSED,
+                                RoutineInstanceStatus.CANCELLED -> {
+                                    // No actions for completed, missed, or cancelled routines
                                 }
                             }
                         }

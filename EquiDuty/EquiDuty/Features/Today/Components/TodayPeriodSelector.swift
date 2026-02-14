@@ -38,6 +38,8 @@ private extension TodayPeriodType {
     /// SF Symbol icon for each period type
     var iconName: String? {
         switch self {
+        case .day:
+            return "calendar.day.timeline.trailing"
         case .week:
             return "calendar.day.timeline.left"
         case .month:

@@ -235,10 +235,21 @@
     <string name="reservation_start_time">Start time</string>
     <string name="reservation_end_time">End time</string>
     <string name="reservation_horse">Horse</string>
+    <string name="reservation_horses">Horses</string>
+    <string name="reservation_select_horses">Select horses…</string>
+    <string name="reservation_horses_count">%d horses selected</string>
+    <string name="remove">Remove</string>
     <string name="reservation_notes">Notes</string>
+    <string name="reservation_external_horse_count">Horses you bring</string>
+    <string name="reservation_external_horse_count_description">For horses not registered in the stable</string>
     <string name="reservation_submit">Book</string>
     <string name="reservation_update">Update</string>
     <string name="reservation_conflict_warning">Time conflict detected</string>
+    <string name="reservation_capacity_slots_used">%1$d of %2$d horse slots taken</string>
+    <string name="reservation_capacity_full">All horse slots taken for this time</string>
+    <string name="suggested_slots_title">Suggested available times</string>
+    <string name="spots_available">%d spot available</string>
+    <string name="spots_available_plural">%d spots available</string>
     <string name="reservation_booked_by">Booked by</string>
 
     <!-- Reservation Status -->

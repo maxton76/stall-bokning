@@ -67,6 +67,7 @@ retrofit-kotlinx-serialization = { group = "com.jakewharton.retrofit", name = "r
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx" }
 firebase-messaging-ktx = { group = "com.google.firebase", name = "firebase-messaging-ktx" }
+firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx" }
 
 # Google Sign-In (Credential Manager)
 credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentialManager" }

@@ -29,7 +29,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AvailabilityGrid } from "@/components/AvailabilityGrid";
 import { MyUpcomingReservations } from "@/components/MyUpcomingReservations";
 import { QuickBookButton } from "@/components/QuickBookButton";
-import { FacilityCalendarView } from "@/components/FacilityCalendarView";
+import { MultiResourceTimelineView } from "@/components/calendar/MultiResourceTimelineView";
+import { CALENDAR_DEFAULTS } from "@/components/calendar/constants";
 import type { Facility } from "@/types/facility";
 import type { FacilityReservation } from "@/types/facilityReservation";
 import type { Horse } from "@equiduty/shared/types/domain";
@@ -220,19 +221,16 @@ export function CustomerBookingView({
                     </AlertDescription>
                   </Alert>
 
-                  <FacilityCalendarView
+                  <MultiResourceTimelineView
                     facilities={facilities}
                     reservations={activeReservations}
-                    selectedFacilityId="all"
-                    onEventClick={onReservationClick}
+                    selectedDate={selectedDate}
+                    onDateChange={setSelectedDate}
+                    onReservationClick={onReservationClick}
                     onDateSelect={(facilityId, start, end) => {
                       // Validate facility ID before booking
-                      const targetFacilityId = facilityId || facilities[0]?.id;
-
-                      if (!targetFacilityId) {
-                        console.warn(
-                          "No facility selected or available for booking",
-                        );
+                      if (!facilityId) {
+                        console.warn("No facility selected for booking");
                         toast({
                           variant: "destructive",
                           title: t("common:errors.error"),
@@ -245,7 +243,7 @@ export function CustomerBookingView({
 
                       // Find the selected facility
                       const targetFacility = facilities.find(
-                        (f) => f.id === targetFacilityId,
+                        (f) => f.id === facilityId,
                       );
                       if (!targetFacility) {
                         console.warn("Selected facility not found");
@@ -285,25 +283,12 @@ export function CustomerBookingView({
                       }
 
                       // Proceed with booking
-                      onQuickBook(targetFacilityId, start, startTime, endTime);
+                      onQuickBook(facilityId, start, startTime, endTime);
                     }}
-                    editable={false}
-                    viewOptions={{
-                      showDayGrid: false,
-                      showTimeGridWeek: false,
-                      showTimeGridDay: false,
-                      showList: false,
-                      initialView: "resourceTimeGridWeek",
-                    }}
-                    calendarConfig={{
-                      slotMinTime: "06:00:00",
-                      slotMaxTime: "22:00:00",
-                      slotDuration: "00:15:00",
-                      slotLabelInterval: "01:00:00",
-                      scrollTime: "08:00:00",
-                      weekends: true,
-                      nowIndicator: true,
-                    }}
+                    editable={true}
+                    slotDuration={CALENDAR_DEFAULTS.SLOT_DURATION_MINUTES}
+                    slotMinTime={CALENDAR_DEFAULTS.SLOT_MIN_TIME}
+                    slotMaxTime={CALENDAR_DEFAULTS.SLOT_MAX_TIME}
                   />
                 </div>
               )}

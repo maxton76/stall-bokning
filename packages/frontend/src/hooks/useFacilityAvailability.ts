@@ -45,8 +45,9 @@ export function useFacilityAvailability({
 }: UseFacilityAvailabilityOptions): UseFacilityAvailabilityReturn {
   // Fetch facility availability schedule
   const { data: availabilitySchedule, isLoading } = useQuery({
-    queryKey: queryKeys.facilities.availability(facility?.id || ""),
-    queryFn: () => getAvailableSlots(facility?.id || "", date),
+    queryKey: queryKeys.facilities.detail(facility?.id || ""),
+    queryFn: () =>
+      getAvailableSlots(facility?.id || "", format(date, "yyyy-MM-dd")),
     enabled: enabled && !!facility,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -58,7 +59,7 @@ export function useFacilityAvailability({
     }
 
     const slots: AvailabilitySlot[] = [];
-    const slotDuration = facility.minSlotDuration || 30; // minutes
+    const slotDuration = facility.minTimeSlotDuration || 30; // minutes
 
     // Get time blocks for the day
     const timeBlocks = availabilitySchedule?.timeBlocks || [];
@@ -67,8 +68,8 @@ export function useFacilityAvailability({
       const [startHour, startMin] = block.from.split(":").map(Number);
       const [endHour, endMin] = block.to.split(":").map(Number);
 
-      const blockStartMinutes = startHour * 60 + startMin;
-      const blockEndMinutes = endHour * 60 + endMin;
+      const blockStartMinutes = (startHour ?? 0) * 60 + (startMin ?? 0);
+      const blockEndMinutes = (endHour ?? 0) * 60 + (endMin ?? 0);
 
       // Generate slots within this block
       for (
@@ -96,7 +97,8 @@ export function useFacilityAvailability({
           reservations,
         );
 
-        const maxCapacity = facility.capacity || 1;
+        // Note: capacity field removed from Facility type - assuming single booking per slot
+        const maxCapacity = 1;
 
         slots.push({
           start: startTime,
@@ -121,7 +123,8 @@ export function useFacilityAvailability({
       endTime,
       reservations,
     );
-    const maxCapacity = facility.capacity || 1;
+    // Note: capacity field removed from Facility type - assuming single booking per slot
+    const maxCapacity = 1;
 
     return conflictCount < maxCapacity;
   };
@@ -138,7 +141,7 @@ export function useFacilityAvailability({
       if (!slot.available) continue;
 
       const [startHr, startMn] = slot.start.split(":").map(Number);
-      const slotStartMinutes = startHr * 60 + startMn;
+      const slotStartMinutes = (startHr ?? 0) * 60 + (startMn ?? 0);
 
       // Skip past slots if checking for today
       if (isToday && slotStartMinutes <= currentMinutes) continue;
@@ -200,10 +203,10 @@ function getConflictCount(
   const [endHr, endMn] = endTime.split(":").map(Number);
 
   const checkStart = new Date(date);
-  checkStart.setHours(startHr, startMn, 0, 0);
+  checkStart.setHours(startHr ?? 0, startMn ?? 0, 0, 0);
 
   const checkEnd = new Date(date);
-  checkEnd.setHours(endHr, endMn, 0, 0);
+  checkEnd.setHours(endHr ?? 0, endMn ?? 0, 0, 0);
 
   // Count overlapping reservations
   return reservations.filter((res) => {

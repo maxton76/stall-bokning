@@ -101,7 +101,8 @@ export function BookingTrendChart({
         />
         <Tooltip
           content={({ active, payload }) => {
-            if (!active || !payload || !payload.length) return null;
+            if (!active || !payload || !payload.length || !payload[0])
+              return null;
 
             const data = payload[0].payload;
             return (

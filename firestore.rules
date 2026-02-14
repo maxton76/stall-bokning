@@ -597,8 +597,12 @@ service cloud.firestore {
     // ============================================================================
 
     match /facilityReservations/{reservationId} {
-      // LIST: Blocked - use API /api/v1/facility-reservations for centralized authorization
-      allow list: if false;
+      // LIST: Allow for real-time onSnapshot listeners
+      // Client queries MUST filter by stableId for this rule to evaluate correctly
+      allow list: if isAuthenticated() && (
+        isSystemAdmin() ||
+        canAccessStable(resource.data.stableId)
+      );
 
       // GET: Full access check - stable members or reservation owner
       allow get: if isAuthenticated() && (
@@ -627,6 +631,16 @@ service cloud.firestore {
         isOwner(resource.data.userId) ||
         canManageStable(resource.data.stableId)
       );
+    }
+
+    // ============================================================================
+    // FACILITY DAY SLOTS COLLECTION - SERVER-SIDE CONCURRENCY CONTROL
+    // ============================================================================
+    // Internal collection used by API for transactional capacity validation.
+    // All access through Admin SDK only — no client access.
+
+    match /facilityDaySlots/{slotId} {
+      allow read, write: if false;
     }
 
     // ============================================================================

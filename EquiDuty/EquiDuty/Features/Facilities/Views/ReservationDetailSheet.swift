@@ -29,10 +29,22 @@ struct ReservationDetailSheet: View {
                     LabeledContent(String(localized: "reservation.endTime"), value: timeLabel(reservation.endTime))
                 }
 
-                // Horse
-                if let horseName = reservation.horseName, !horseName.isEmpty {
+                // Horses
+                if !reservation.allHorseNames.isEmpty {
                     Section {
-                        LabeledContent(String(localized: "reservation.horse"), value: horseName)
+                        if reservation.horseCount == 1 {
+                            LabeledContent(String(localized: "reservation.horse"), value: reservation.allHorseNames[0])
+                        } else {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(String(localized: "reservation.horses"))
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                ForEach(reservation.allHorseNames, id: \.self) { name in
+                                    Text(name)
+                                        .font(.body)
+                                }
+                            }
+                        }
                     }
                 }
 

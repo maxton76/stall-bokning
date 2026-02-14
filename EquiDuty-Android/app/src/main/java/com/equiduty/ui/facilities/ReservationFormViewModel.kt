@@ -8,9 +8,11 @@ import com.equiduty.data.remote.dto.CheckConflictsDto
 import com.equiduty.data.remote.dto.CreateReservationDto
 import com.equiduty.data.remote.dto.UpdateReservationDto
 import com.equiduty.data.repository.AuthRepository
+import com.equiduty.data.repository.CapacityExceededException
 import com.equiduty.data.repository.FacilityRepository
 import com.equiduty.data.repository.FacilityReservationRepository
 import com.equiduty.data.repository.HorseRepository
+import com.equiduty.data.repository.SuggestedSlot
 import com.equiduty.domain.model.Facility
 import com.equiduty.domain.model.FacilityReservation
 import com.equiduty.domain.model.Horse
@@ -47,7 +49,8 @@ class ReservationFormViewModel @Inject constructor(
     val date = mutableStateOf(LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE))
     val startTime = mutableStateOf("")
     val endTime = mutableStateOf("")
-    val selectedHorseId = mutableStateOf("")
+    val selectedHorseIds = mutableStateOf<Set<String>>(emptySet())
+    val externalHorseCount = mutableStateOf(0)
     val notes = mutableStateOf("")
 
     // Data
@@ -70,6 +73,18 @@ class ReservationFormViewModel @Inject constructor(
     private val _hasConflicts = MutableStateFlow(false)
     val hasConflicts: StateFlow<Boolean> = _hasConflicts.asStateFlow()
 
+    private val _remainingCapacity = MutableStateFlow<Int?>(null)
+    val remainingCapacity: StateFlow<Int?> = _remainingCapacity.asStateFlow()
+
+    private val _maxHorsesPerReservation = MutableStateFlow(1)
+    val maxHorsesPerReservation: StateFlow<Int> = _maxHorsesPerReservation.asStateFlow()
+
+    private val _suggestedSlots = MutableStateFlow<List<SuggestedSlot>>(emptyList())
+    val suggestedSlots: StateFlow<List<SuggestedSlot>> = _suggestedSlots.asStateFlow()
+
+    val canAddMoreHorses: Boolean
+        get() = (selectedHorseIds.value.size + externalHorseCount.value) < (_remainingCapacity.value ?: _maxHorsesPerReservation.value)
+
     private var conflictCheckJob: Job? = null
 
     init {
@@ -90,7 +105,7 @@ class ReservationFormViewModel @Inject constructor(
             }
             // Auto-select if only 1 horse
             if (_horses.value.size == 1) {
-                selectedHorseId.value = _horses.value.first().id
+                selectedHorseIds.value = setOf(_horses.value.first().id)
             }
         }
     }
@@ -103,12 +118,27 @@ class ReservationFormViewModel @Inject constructor(
                 startTime.value = extractTime(reservation.startTime)
                 endTime.value = extractTime(reservation.endTime)
                 date.value = extractDate(reservation.startTime)
-                selectedHorseId.value = reservation.horseId ?: ""
+                selectedHorseIds.value = reservation.allHorseIds.toSet()
                 notes.value = reservation.notes ?: ""
             } catch (e: Exception) {
                 Timber.e(e, "Failed to load reservation")
             }
         }
+    }
+
+    fun toggleHorse(horseId: String) {
+        val current = selectedHorseIds.value.toMutableSet()
+        if (current.contains(horseId)) {
+            current.remove(horseId)
+        } else {
+            if (!canAddMoreHorses) return
+            current.add(horseId)
+        }
+        selectedHorseIds.value = current
+    }
+
+    fun removeHorse(horseId: String) {
+        selectedHorseIds.value = selectedHorseIds.value - horseId
     }
 
     fun checkConflicts() {
@@ -128,8 +158,12 @@ class ReservationFormViewModel @Inject constructor(
                     )
                 )
                 _hasConflicts.value = result.hasConflicts
+                result.maxHorsesPerReservation?.let { _maxHorsesPerReservation.value = it }
+                result.remainingCapacity?.let { _remainingCapacity.value = it }
             } catch (e: Exception) {
                 Timber.e(e, "Conflict check failed")
+                // Fallback: allow up to max capacity
+                _remainingCapacity.value = _maxHorsesPerReservation.value
             }
         }
     }
@@ -139,7 +173,12 @@ class ReservationFormViewModel @Inject constructor(
         val stableName = authRepository.selectedStable.value?.name ?: ""
         val user = authRepository.currentUser.value ?: return
         val facility = _facilities.value.find { it.id == selectedFacilityId.value }
-        val horse = _horses.value.find { it.id == selectedHorseId.value }
+        val selectedHorses = _horses.value.filter { it.id in selectedHorseIds.value }
+        val horseIdsList = selectedHorses.map { it.id }
+        val horseNamesList = selectedHorses.map { it.name }
+        // Legacy backward compat
+        val legacyHorseId = horseIdsList.firstOrNull()
+        val legacyHorseName = horseNamesList.firstOrNull()
 
         if (selectedFacilityId.value.isBlank() || date.value.isBlank() ||
             startTime.value.isBlank() || endTime.value.isBlank()
@@ -151,6 +190,7 @@ class ReservationFormViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
+            _suggestedSlots.value = emptyList()
             try {
                 if (isEditing) {
                     reservationRepository.updateReservation(
@@ -159,8 +199,11 @@ class ReservationFormViewModel @Inject constructor(
                             startTime = combineDateTimeIso(date.value, startTime.value),
                             endTime = combineDateTimeIso(date.value, endTime.value),
                             notes = notes.value.ifBlank { null },
-                            horseId = horse?.id,
-                            horseName = horse?.name
+                            horseId = legacyHorseId,
+                            horseName = legacyHorseName,
+                            horseIds = horseIdsList.ifEmpty { null },
+                            horseNames = horseNamesList.ifEmpty { null },
+                            externalHorseCount = if (externalHorseCount.value > 0) externalHorseCount.value else null
                         )
                     )
                 } else {
@@ -174,8 +217,11 @@ class ReservationFormViewModel @Inject constructor(
                             userId = user.uid,
                             userEmail = user.email,
                             userFullName = "${user.firstName} ${user.lastName}".trim(),
-                            horseId = horse?.id,
-                            horseName = horse?.name,
+                            horseId = legacyHorseId,
+                            horseName = legacyHorseName,
+                            horseIds = horseIdsList.ifEmpty { null },
+                            horseNames = horseNamesList.ifEmpty { null },
+                            externalHorseCount = if (externalHorseCount.value > 0) externalHorseCount.value else null,
                             startTime = combineDateTimeIso(date.value, startTime.value),
                             endTime = combineDateTimeIso(date.value, endTime.value),
                             notes = notes.value.ifBlank { null }
@@ -183,12 +229,30 @@ class ReservationFormViewModel @Inject constructor(
                     )
                 }
                 _isSaved.value = true
+            } catch (e: CapacityExceededException) {
+                Timber.w(e, "Capacity exceeded")
+                _error.value = e.message
+                _suggestedSlots.value = e.suggestedSlots
             } catch (e: Exception) {
                 Timber.e(e, "Failed to save reservation")
                 _error.value = e.message ?: "Kunde inte spara bokningen"
             } finally {
                 _isLoading.value = false
             }
+        }
+    }
+
+    fun selectSuggestedSlot(slot: SuggestedSlot) {
+        try {
+            val start = java.time.OffsetDateTime.parse(slot.startTime)
+            val end = java.time.OffsetDateTime.parse(slot.endTime)
+            startTime.value = start.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"))
+            endTime.value = end.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"))
+            _suggestedSlots.value = emptyList()
+            _error.value = null
+            checkConflicts()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to parse suggested slot times")
         }
     }
 

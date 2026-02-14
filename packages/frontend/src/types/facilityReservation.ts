@@ -39,6 +39,9 @@ export interface FacilityReservation {
   /** Array of horse names, denormalized for display (preferred for new bookings) */
   horseNames?: string[];
 
+  /** Number of external horses (not registered in the stable) */
+  externalHorseCount?: number;
+
   // Optional details
   contactInfo?: string;
   notes?: string;

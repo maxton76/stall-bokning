@@ -145,8 +145,8 @@ struct FacilityDayScheduleView: View {
                         .font(.caption2)
                         .lineLimit(1)
 
-                    if let horseName = reservation.horseName, !horseName.isEmpty {
-                        Text(horseName)
+                    if !reservation.horseDisplayText.isEmpty {
+                        Text(reservation.horseDisplayText)
                             .font(.caption2)
                             .lineLimit(1)
                             .opacity(0.85)

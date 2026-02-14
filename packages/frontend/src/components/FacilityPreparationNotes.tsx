@@ -39,10 +39,6 @@ export function FacilityPreparationNotes({
         items.push("Set up jumps if requested");
         items.push("Ensure proper lighting");
         break;
-      case "wash_stall":
-        items.push("Check hot water availability");
-        items.push("Prepare towels and grooming supplies");
-        break;
       case "solarium":
         items.push("Test solarium lights");
         items.push("Check timer settings");

@@ -8,9 +8,33 @@ import com.equiduty.domain.model.ReservationStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import retrofit2.HttpException
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
+
+@Serializable
+data class SuggestedSlot(
+    val startTime: String,
+    val endTime: String,
+    val remainingCapacity: Int = 0
+)
+
+@Serializable
+private data class CapacityErrorBody(
+    val error: String = "",
+    val message: String = "",
+    val remainingCapacity: Int = 0,
+    val suggestedSlots: List<SuggestedSlot> = emptyList()
+)
+
+class CapacityExceededException(
+    message: String,
+    val suggestedSlots: List<SuggestedSlot>,
+    val remainingCapacity: Int
+) : Exception(message)
 
 @Singleton
 class FacilityReservationRepository @Inject constructor(
@@ -55,16 +79,47 @@ class FacilityReservationRepository @Inject constructor(
         }
     }
 
+    private val errorJson = Json { ignoreUnknownKeys = true }
+
     suspend fun createReservation(dto: CreateReservationDto): FacilityReservation {
-        val result = api.createFacilityReservation(dto).toDomain()
-        _reservations.value = _reservations.value + result
-        return result
+        try {
+            val result = api.createFacilityReservation(dto).toDomain()
+            _reservations.value = _reservations.value + result
+            return result
+        } catch (e: HttpException) {
+            if (e.code() == 409) throw parseCapacityError(e)
+            throw e
+        }
     }
 
     suspend fun updateReservation(id: String, dto: UpdateReservationDto): FacilityReservation {
-        val result = api.updateFacilityReservation(id, dto).toDomain()
-        _reservations.value = _reservations.value.map { if (it.id == id) result else it }
-        return result
+        try {
+            val result = api.updateFacilityReservation(id, dto).toDomain()
+            _reservations.value = _reservations.value.map { if (it.id == id) result else it }
+            return result
+        } catch (e: HttpException) {
+            if (e.code() == 409) throw parseCapacityError(e)
+            throw e
+        }
+    }
+
+    private fun parseCapacityError(e: HttpException): CapacityExceededException {
+        val body = e.response()?.errorBody()?.string()
+        return try {
+            val parsed = errorJson.decodeFromString<CapacityErrorBody>(body ?: "")
+            CapacityExceededException(
+                message = parsed.message,
+                suggestedSlots = parsed.suggestedSlots,
+                remainingCapacity = parsed.remainingCapacity
+            )
+        } catch (parseEx: Exception) {
+            Timber.e(parseEx, "Failed to parse 409 error body")
+            CapacityExceededException(
+                message = "Kapaciteten är full",
+                suggestedSlots = emptyList(),
+                remainingCapacity = 0
+            )
+        }
     }
 
     suspend fun cancelReservation(id: String) {
@@ -96,6 +151,8 @@ fun FacilityReservationDto.toDomain(): FacilityReservation = FacilityReservation
     userFullName = userFullName ?: "",
     horseId = horseId,
     horseName = horseName,
+    horseIds = horseIds,
+    horseNames = horseNames,
     startTime = startTime,
     endTime = endTime,
     purpose = purpose,

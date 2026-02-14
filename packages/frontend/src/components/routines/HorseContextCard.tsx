@@ -446,7 +446,7 @@ export function HorseContextCard({
                     variant="outline"
                     onClick={handleMarkDone}
                     disabled={isSubmitting}
-                    className="flex-1 border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
+                    className="flex-1 border-blue-500 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
                   >
                     <Check className="h-4 w-4 mr-2" />
                     {t("routines:horse.done")}
@@ -490,7 +490,7 @@ export function HorseContextCard({
                   variant="outline"
                   onClick={handleMarkDone}
                   disabled={isSubmitting}
-                  className="border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
+                  className="border-blue-500 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
                 >
                   <Check className="h-4 w-4 mr-1" />
                   {t("routines:horse.done")}

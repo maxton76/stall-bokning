@@ -5,15 +5,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.equiduty.data.repository.FacilityRepository
 import com.equiduty.data.repository.FacilityReservationRepository
+import com.equiduty.data.repository.ReservationListenerRepository
 import com.equiduty.domain.model.Facility
 import com.equiduty.domain.model.FacilityReservation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.time.LocalDate
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
@@ -21,7 +26,8 @@ import javax.inject.Inject
 class FacilityDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val facilityRepository: FacilityRepository,
-    private val reservationRepository: FacilityReservationRepository
+    private val reservationRepository: FacilityReservationRepository,
+    private val listenerRepository: ReservationListenerRepository
 ) : ViewModel() {
 
     private val facilityId: String = savedStateHandle["facilityId"] ?: ""
@@ -38,6 +44,23 @@ class FacilityDetailViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    /**
+     * Live reservations from Firestore listener, filtered to current facility + date.
+     * Falls back to API-fetched reservations if listener has no data yet.
+     */
+    val liveReservations: StateFlow<List<FacilityReservation>> = combine(
+        listenerRepository.liveReservations,
+        _reservations,
+        _selectedDate
+    ) { live, apiFetched, date ->
+        val source = live.ifEmpty { apiFetched }
+        val dateStr = date.format(DateTimeFormatter.ISO_LOCAL_DATE)
+        source.filter { reservation ->
+            reservation.facilityId == facilityId &&
+            reservation.startTime.startsWith(dateStr)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     init {
         loadFacility()
         loadReservationsForDate()
@@ -46,7 +69,13 @@ class FacilityDetailViewModel @Inject constructor(
     private fun loadFacility() {
         viewModelScope.launch {
             try {
-                _facility.value = facilityRepository.getFacility(facilityId)
+                val facility = facilityRepository.getFacility(facilityId)
+                _facility.value = facility
+
+                // Start real-time listener once we know the stableId
+                facility?.stableId?.let { stableId ->
+                    listenerRepository.startListening(stableId)
+                }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to load facility")
             } finally {
@@ -75,5 +104,10 @@ class FacilityDetailViewModel @Inject constructor(
     fun navigateDate(days: Int) {
         val newDate = _selectedDate.value.plusDays(days.toLong())
         loadReservationsForDate(newDate)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        listenerRepository.stopListening()
     }
 }

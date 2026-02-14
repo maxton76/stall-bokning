@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import type { ViewMode } from "@/types/viewMode";
-import type { StableMemberRole } from "@equiduty/shared";
+import type { OrganizationRole } from "@equiduty/shared";
 import { cn } from "@/lib/utils";
 
 interface ViewModeOption {
@@ -30,7 +30,7 @@ interface ViewModeOption {
   icon: React.ComponentType<{ className?: string }>;
   labelKey: string;
   descriptionKey: string;
-  requiredRoles?: StableMemberRole[];
+  requiredRoles?: OrganizationRole[];
 }
 
 const VIEW_MODE_OPTIONS: ViewModeOption[] = [
@@ -46,21 +46,21 @@ const VIEW_MODE_OPTIONS: ViewModeOption[] = [
     icon: ClipboardList,
     labelKey: "facilities:views.operations",
     descriptionKey: "facilities:views.operationsDescription",
-    requiredRoles: ["owner", "administrator", "groomer", "staff", "rider"],
+    requiredRoles: ["administrator", "stable_manager", "groom", "rider"],
   },
   {
     mode: "manager",
     icon: BarChart3,
     labelKey: "facilities:views.manager",
     descriptionKey: "facilities:views.managerDescription",
-    requiredRoles: ["owner", "administrator"],
+    requiredRoles: ["administrator", "stable_manager"],
   },
   {
     mode: "admin",
     icon: Shield,
     labelKey: "facilities:views.admin",
     descriptionKey: "facilities:views.adminDescription",
-    requiredRoles: ["owner", "administrator"],
+    requiredRoles: ["administrator"],
   },
 ];
 

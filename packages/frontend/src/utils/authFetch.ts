@@ -1,4 +1,5 @@
 import { getAuth } from "firebase/auth";
+import { parseApiError } from "@/lib/apiErrors";
 
 /**
  * Default timeout for API requests (30 seconds)
@@ -115,14 +116,7 @@ export async function authFetchJSON<T = any>(
   const response = await authFetch(url, options);
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    // Log full error details for debugging (dev only)
-    if (import.meta.env.DEV && error.details) {
-      console.error("API validation error details:", error.details);
-    }
-    throw new Error(
-      error.message || `Request failed with status ${response.status}`,
-    );
+    throw await parseApiError(response);
   }
 
   return await response.json();

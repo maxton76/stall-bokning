@@ -93,7 +93,8 @@
     "saving": "Sparar...",
     "submitting": "Skickar...",
     "cancelling": "Avbokar...",
-    "print": "Skriv ut"
+    "print": "Skriv ut",
+    "clearAll": "Rensa alla"
   },
   "labels": {
     "name": "Namn",
@@ -140,7 +141,12 @@
     "expires": "Går ut",
     "loginRequired": "Du kommer att omdirigeras för att registrera dig eller logga in för att acceptera denna inbjudan",
     "purchased": "Köpt",
-    "allStatuses": "Alla statusar"
+    "allStatuses": "Alla statusar",
+    "minutes": "minuter",
+    "morning": "Morgon",
+    "afternoon": "Eftermiddag",
+    "evening": "Kväll",
+    "customTime": "Anpassad tid"
   },
   "status": {
     "active": "Aktiv",

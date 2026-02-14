@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { ViewMode, ViewModePreferences } from "@/types/viewMode";
-import type { StableMemberRole } from "@equiduty/shared";
+import type { OrganizationRole } from "@equiduty/shared";
 
 const VIEW_MODE_STORAGE_KEY = "equiduty_facility_view_mode";
 const VIEW_PREFERENCES_STORAGE_KEY = "equiduty_facility_view_preferences";
@@ -13,15 +13,16 @@ const VIEW_PREFERENCES_STORAGE_KEY = "equiduty_facility_view_preferences";
 /**
  * Default view mode based on user role
  */
-const getDefaultViewMode = (userRole?: StableMemberRole): ViewMode => {
+const getDefaultViewMode = (userRole?: OrganizationRole): ViewMode => {
   if (!userRole) return "customer";
 
   switch (userRole) {
-    case "owner":
     case "administrator":
-      return "manager"; // Stable owners default to analytics
-    case "groomer":
-    case "staff":
+      return "admin"; // Administrators default to admin view
+    case "stable_manager":
+      return "manager"; // Stable managers default to analytics
+    case "groom":
+    case "rider":
       return "operations"; // Staff default to operations
     default:
       return "customer"; // Guests default to customer view
@@ -33,7 +34,7 @@ const getDefaultViewMode = (userRole?: StableMemberRole): ViewMode => {
  */
 const canAccessViewMode = (
   viewMode: ViewMode,
-  userRole?: StableMemberRole,
+  userRole?: OrganizationRole,
 ): boolean => {
   if (!userRole) return viewMode === "customer";
 
@@ -42,15 +43,15 @@ const canAccessViewMode = (
       return true; // All roles can access customer view
 
     case "operations":
-      return ["owner", "administrator", "groomer", "staff", "rider"].includes(
+      return ["administrator", "stable_manager", "groom", "rider"].includes(
         userRole,
       );
 
     case "manager":
-      return ["owner", "administrator"].includes(userRole);
+      return ["administrator", "stable_manager"].includes(userRole);
 
     case "admin":
-      return ["owner", "administrator"].includes(userRole);
+      return ["administrator"].includes(userRole);
 
     default:
       return false;
@@ -58,8 +59,8 @@ const canAccessViewMode = (
 };
 
 interface UseViewModeOptions {
-  /** User's role in the stable */
-  userRole?: StableMemberRole;
+  /** User's role in the organization */
+  userRole?: OrganizationRole;
   /** Callback when view mode changes */
   onViewModeChange?: (mode: ViewMode) => void;
 }

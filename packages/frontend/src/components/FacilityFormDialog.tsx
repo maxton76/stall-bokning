@@ -212,7 +212,10 @@ export function FacilityFormDialog({
         planningWindowOpens: facility.planningWindowOpens,
         planningWindowCloses: facility.planningWindowCloses,
         maxHorsesPerReservation: facility.maxHorsesPerReservation,
-        minTimeSlotDuration: facility.minTimeSlotDuration as 15 | 30 | 60,
+        minTimeSlotDuration: String(facility.minTimeSlotDuration) as
+          | "15"
+          | "30"
+          | "60",
         maxHoursPerReservation: useDays ? hours / 24 : hours,
         maxDurationUnit: useDays ? "days" : "hours",
       });

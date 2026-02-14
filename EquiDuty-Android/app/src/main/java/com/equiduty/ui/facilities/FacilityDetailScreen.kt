@@ -31,7 +31,7 @@ fun FacilityDetailScreen(
     viewModel: FacilityDetailViewModel = hiltViewModel()
 ) {
     val facility by viewModel.facility.collectAsState()
-    val reservations by viewModel.reservations.collectAsState()
+    val reservations by viewModel.liveReservations.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 

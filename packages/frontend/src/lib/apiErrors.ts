@@ -93,12 +93,7 @@ export class ApiError extends Error {
  * @returns ApiError with parsed error details
  */
 export async function parseApiError(response: Response): Promise<ApiError> {
-  let errorData: {
-    message?: string;
-    error?: string;
-    code?: string;
-    details?: Record<string, unknown>;
-  } = {};
+  let errorData: Record<string, unknown> = {};
 
   try {
     errorData = await response.json();
@@ -107,16 +102,17 @@ export async function parseApiError(response: Response): Promise<ApiError> {
   }
 
   const message =
-    errorData.message ||
-    errorData.error ||
+    (errorData.message as string) ||
+    (errorData.error as string) ||
     `Request failed with status ${response.status}`;
 
-  return new ApiError(
-    message,
-    response.status,
-    errorData.code,
-    errorData.details,
-  );
+  const code = errorData.code as string | undefined;
+
+  // Capture all extra fields (suggestedSlots, remainingCapacity, etc.) as details
+  const { message: _m, error: _e, code: _c, ...extraFields } = errorData;
+  const details = Object.keys(extraFields).length > 0 ? extraFields : undefined;
+
+  return new ApiError(message, response.status, code, details);
 }
 
 /**

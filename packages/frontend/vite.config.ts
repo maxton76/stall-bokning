@@ -45,8 +45,12 @@ export default defineConfig({
             "firebase/storage",
           ],
 
-          // TanStack - data fetching and tables
-          "query-vendor": ["@tanstack/react-query", "@tanstack/react-table"],
+          // TanStack - data fetching, tables, and virtualization
+          "query-vendor": [
+            "@tanstack/react-query",
+            "@tanstack/react-table",
+            "@tanstack/react-virtual",
+          ],
 
           // Radix UI primitives - lazy loaded with components
           "ui-vendor": [
@@ -72,16 +76,6 @@ export default defineConfig({
             "@radix-ui/react-tooltip",
           ],
 
-          // FullCalendar - heavy, only for schedule pages
-          fullcalendar: [
-            "@fullcalendar/core",
-            "@fullcalendar/react",
-            "@fullcalendar/daygrid",
-            "@fullcalendar/timegrid",
-            "@fullcalendar/list",
-            "@fullcalendar/interaction",
-          ],
-
           // Charts - only for dashboard/reports
           "charts-vendor": ["recharts"],
 
@@ -92,7 +86,7 @@ export default defineConfig({
           "forms-vendor": ["react-hook-form", "@hookform/resolvers", "zod"],
 
           // Date utilities and pickers
-          "date-vendor": ["date-fns", "react-day-picker"],
+          "date-vendor": ["date-fns", "date-fns-tz", "react-day-picker"],
 
           // Icons - used across all pages
           "icons-vendor": ["lucide-react"],

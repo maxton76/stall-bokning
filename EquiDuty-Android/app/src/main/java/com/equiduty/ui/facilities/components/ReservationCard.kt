@@ -65,10 +65,11 @@ fun ReservationCard(
                 )
             }
 
-            if (reservation.horseName != null) {
+            val horseNames = reservation.allHorseNames
+            if (horseNames.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = reservation.horseName,
+                    text = if (horseNames.size == 1) horseNames[0] else "${horseNames.size} hästar",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

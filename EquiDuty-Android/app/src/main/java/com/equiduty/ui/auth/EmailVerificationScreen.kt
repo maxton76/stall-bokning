@@ -16,6 +16,7 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EmailVerificationScreen(
     isEmailVerified: Boolean,

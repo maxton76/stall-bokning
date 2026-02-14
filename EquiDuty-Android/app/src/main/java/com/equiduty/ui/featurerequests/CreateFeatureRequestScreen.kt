@@ -11,8 +11,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import java.util.Locale
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.equiduty.R
@@ -24,6 +26,13 @@ fun CreateFeatureRequestScreen(
     navController: NavController,
     viewModel: CreateFeatureRequestViewModel = hiltViewModel()
 ) {
+    // Get device locale (similar to iOS implementation)
+    val configuration = LocalConfiguration.current
+    val deviceLanguage = remember {
+        val locale = configuration.locales[0] ?: Locale.getDefault()
+        if (locale.language == "en") "en" else "sv"
+    }
+
     val title by viewModel.title.collectAsState()
     val description by viewModel.description.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
@@ -151,7 +160,7 @@ fun CreateFeatureRequestScreen(
                 }
 
                 FilledTonalButton(
-                    onClick = { viewModel.refine() },
+                    onClick = { viewModel.refine(language = deviceLanguage) },
                     enabled = !isRefining && title.isNotBlank() && description.isNotBlank()
                 ) {
                     if (isRefining) {

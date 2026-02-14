@@ -13,6 +13,11 @@ extension Date {
     /// Get the start and end dates for a given period type
     func dateRange(for periodType: TodayPeriodType, calendar: Calendar = .current) -> (start: Date, end: Date) {
         switch periodType {
+        case .day:
+            let startOfDay = calendar.startOfDay(for: self)
+            let endOfDay = calendar.date(byAdding: DateComponents(day: 1, second: -1), to: startOfDay) ?? startOfDay
+            return (startOfDay, endOfDay)
+
         case .week:
             let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: self)) ?? self
             // Add 6 days + 23:59:59 to cover full week (Sunday night)
@@ -31,6 +36,8 @@ extension Date {
     /// Navigate to the next period
     func nextPeriod(for periodType: TodayPeriodType, calendar: Calendar = .current) -> Date {
         switch periodType {
+        case .day:
+            return calendar.date(byAdding: .day, value: 1, to: self) ?? self
         case .week:
             return calendar.date(byAdding: .weekOfYear, value: 1, to: self) ?? self
         case .month:
@@ -41,6 +48,8 @@ extension Date {
     /// Navigate to the previous period
     func previousPeriod(for periodType: TodayPeriodType, calendar: Calendar = .current) -> Date {
         switch periodType {
+        case .day:
+            return calendar.date(byAdding: .day, value: -1, to: self) ?? self
         case .week:
             return calendar.date(byAdding: .weekOfYear, value: -1, to: self) ?? self
         case .month:
@@ -55,6 +64,34 @@ extension Date {
         let today = Date()
 
         switch periodType {
+        case .day:
+            let todayStart = calendar.startOfDay(for: today)
+            let selfStart = calendar.startOfDay(for: self)
+
+            // Check if it's today
+            if selfStart == todayStart {
+                return String(localized: "today.navigation.today")
+            }
+
+            // Check if it's yesterday
+            if let yesterday = calendar.date(byAdding: .day, value: -1, to: today) {
+                let yesterdayStart = calendar.startOfDay(for: yesterday)
+                if selfStart == yesterdayStart {
+                    return String(localized: "today.navigation.yesterday")
+                }
+            }
+
+            // Check if it's tomorrow
+            if let tomorrow = calendar.date(byAdding: .day, value: 1, to: today) {
+                let tomorrowStart = calendar.startOfDay(for: tomorrow)
+                if selfStart == tomorrowStart {
+                    return String(localized: "today.navigation.tomorrow")
+                }
+            }
+
+            // Format as weekday + date
+            return self.formatted(.dateTime.weekday(.wide).day().month(.abbreviated))
+
         case .week:
             let (start, end) = dateRange(for: .week, calendar: calendar)
             let todayRange = today.dateRange(for: .week, calendar: calendar)
@@ -114,6 +151,9 @@ extension Date {
     /// Get secondary display label (e.g., date under weekday)
     func periodSecondaryLabel(for periodType: TodayPeriodType, calendar: Calendar = .current) -> String? {
         switch periodType {
+        case .day:
+            return nil
+
         case .week:
             let (start, end) = dateRange(for: .week, calendar: calendar)
             let today = Date()
@@ -156,10 +196,18 @@ extension Date {
     /// Check if date is in the same period as another date
     func isInSamePeriod(as other: Date, for periodType: TodayPeriodType, calendar: Calendar = .current) -> Bool {
         switch periodType {
+        case .day:
+            let selfComponents = calendar.dateComponents([.year, .month, .day], from: self)
+            let otherComponents = calendar.dateComponents([.year, .month, .day], from: other)
+            return selfComponents.year == otherComponents.year &&
+                   selfComponents.month == otherComponents.month &&
+                   selfComponents.day == otherComponents.day
+
         case .week:
             let selfRange = dateRange(for: .week, calendar: calendar)
             let otherRange = other.dateRange(for: .week, calendar: calendar)
             return selfRange.start == otherRange.start
+
         case .month:
             let selfComponents = calendar.dateComponents([.year, .month], from: self)
             let otherComponents = calendar.dateComponents([.year, .month], from: other)

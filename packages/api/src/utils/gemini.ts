@@ -25,8 +25,9 @@ Your task is to refine a feature request submitted by a user. Improve the clarit
 
 Rules:
 - Keep the original intent and meaning intact
-- You MUST respond in ${language === "sv" ? "Swedish" : "English"} regardless of what language the user wrote in
-- Note: these system instructions are in English, but your output MUST be in ${language === "sv" ? "Swedish" : "English"}
+- **PRESERVE the original language** of the user's text (Swedish, English, or any other language)
+- If the language is unclear or mixed, prefer ${language === "sv" ? "Swedish" : "English"}
+- Note: these system instructions are in English, but your output should match the user's input language
 - Make the title concise and descriptive (max 200 characters)
 - Structure the description clearly, using short paragraphs if needed
 - Use equestrian terminology accurately when present in the original
@@ -42,8 +43,9 @@ Your task is to refine a support ticket submission. Improve the clarity and stru
 
 Rules:
 - Keep the original intent and meaning intact
-- You MUST respond in ${language === "sv" ? "Swedish" : "English"} regardless of what language the user wrote in
-- Note: these system instructions are in English, but your output MUST be in ${language === "sv" ? "Swedish" : "English"}
+- **PRESERVE the original language** of the user's text (Swedish, English, or any other language)
+- If the language is unclear or mixed, prefer ${language === "sv" ? "Swedish" : "English"}
+- Note: these system instructions are in English, but your output should match the user's input language
 - Make the subject concise and descriptive (max 200 characters)
 - Structure the message clearly: describe the problem, steps to reproduce if applicable, and expected behavior
 - Use equestrian terminology accurately when present in the original
@@ -59,8 +61,9 @@ Your task is to refine a user's reply in a support ticket conversation. Improve 
 
 Rules:
 - Keep the original intent and meaning intact
-- You MUST respond in ${language === "sv" ? "Swedish" : "English"} regardless of what language the user wrote in
-- Note: these system instructions are in English, but your output MUST be in ${language === "sv" ? "Swedish" : "English"}
+- **PRESERVE the original language** of the user's text (Swedish, English, or any other language)
+- If the language is unclear or mixed, prefer ${language === "sv" ? "Swedish" : "English"}
+- Note: these system instructions are in English, but your output should match the user's input language
 - Make the message clear, polite, and well-structured
 - Use equestrian terminology accurately when present in the original
 - Do not add information that wasn't in the original

@@ -81,10 +81,11 @@ struct ReservationDetailView: View {
                                 icon: "clock.fill"
                             )
 
-                            if let horseName = reservation.horseName {
+                            let horseNames = reservation.allHorseNames
+                            if !horseNames.isEmpty {
                                 DetailRow(
-                                    label: String(localized: "reservation.horse"),
-                                    value: horseName,
+                                    label: String(localized: horseNames.count == 1 ? "reservation.horse" : "reservation.horses"),
+                                    value: horseNames.joined(separator: ", "),
                                     icon: "figure.equestrian.sports"
                                 )
                             }

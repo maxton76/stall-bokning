@@ -108,7 +108,7 @@ export function AvailabilityGrid({
             full: false,
             closed: true,
             reservationCount: 0,
-            maxCapacity: facility.capacity || 1,
+            maxCapacity: 1 /* capacity field removed */ || 1,
           };
         }
 
@@ -135,7 +135,7 @@ export function AvailabilityGrid({
             full: false,
             closed: true,
             reservationCount: 0,
-            maxCapacity: facility.capacity || 1,
+            maxCapacity: 1 /* capacity field removed */ || 1,
           };
         }
 
@@ -157,7 +157,7 @@ export function AvailabilityGrid({
         });
 
         const reservationCount = overlappingReservations.length;
-        const maxCapacity = facility.capacity || 1;
+        const maxCapacity = 1 /* capacity field removed */ || 1;
 
         // Debug logging (uncomment for troubleshooting)
         // if (process.env.NODE_ENV === 'development' && overlappingReservations.length > 0) {

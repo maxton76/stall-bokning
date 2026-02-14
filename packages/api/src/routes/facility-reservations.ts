@@ -18,7 +18,16 @@ import {
 } from "../utils/facilityAvailability.js";
 import { hasStablePermission } from "../utils/permissionEngine.js";
 import { sanitizeUserInput } from "../middleware/validateReservation.js";
-import { validateFacilityCapacity } from "../utils/capacityValidation.js";
+import { getHorseCount } from "../utils/capacityValidation.js";
+import {
+  readSlotDocument,
+  validateCapacityFromSlot,
+  addBookingToSlot,
+  updateBookingInSlot,
+  removeBookingFromSlot,
+  findSuggestedSlots,
+  getSlotDocId,
+} from "../utils/slotDocument.js";
 
 /**
  * Check if user has organization membership with stable access
@@ -79,6 +88,40 @@ async function hasStableAccess(
   if (await hasOrgStableAccess(stableId, userId)) return true;
 
   return false;
+}
+
+/**
+ * Check if user has management-level access to a stable (owner or org admin).
+ * More restrictive than hasStableAccess — used for admin overrides.
+ */
+async function canManageStableAPI(
+  stableId: string,
+  userId: string,
+  userRole: string,
+): Promise<boolean> {
+  if (userRole === "system_admin") return true;
+
+  const stableDoc = await db.collection("stables").doc(stableId).get();
+  if (!stableDoc.exists) return false;
+  const stable = stableDoc.data()!;
+
+  // Owner
+  if (stable.ownerId === userId) return true;
+
+  // Org administrator
+  const orgId = stable.organizationId;
+  if (!orgId) return false;
+  const memberDoc = await db
+    .collection("organizationMembers")
+    .doc(`${userId}_${orgId}`)
+    .get();
+  if (!memberDoc.exists) return false;
+  const member = memberDoc.data()!;
+  return (
+    member.status === "active" &&
+    Array.isArray(member.roles) &&
+    member.roles.includes("administrator")
+  );
 }
 
 /**
@@ -201,7 +244,7 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
           // Allow admin override
           if (data.adminOverride === true) {
             // Check if user has stable management access (owner, org admin, or system admin)
-            const canOverride = await hasStableAccess(
+            const canOverride = await canManageStableAPI(
               facility.stableId,
               user.uid,
               user.role,
@@ -243,81 +286,132 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
           horseNames = data.horseName ? [data.horseName] : [];
         }
 
-        // Validate horse count against facility limit
-        if (horseIds.length === 0) {
+        // Get external horse count (horses not registered in the stable)
+        const externalHorseCount = data.externalHorseCount || 0;
+
+        // Calculate total horse count
+        const totalHorseCount = horseIds.length + externalHorseCount;
+
+        // Validate that at least one horse is selected (stable or external)
+        if (totalHorseCount === 0) {
           return reply.status(400).send({
             error: "Bad Request",
-            message: "At least one horse must be selected for the reservation",
+            message:
+              "At least one horse must be selected or external horse count must be provided",
           });
         }
 
-        if (horseIds.length > facility.maxHorsesPerReservation) {
+        // Validate total horse count against facility limit
+        if (totalHorseCount > facility.maxHorsesPerReservation) {
           return reply.status(400).send({
             error: "Bad Request",
-            message: `Too many horses selected. Maximum ${facility.maxHorsesPerReservation} horses allowed per reservation.`,
+            message: `Too many horses. Maximum ${facility.maxHorsesPerReservation} horses allowed per reservation (including external horses).`,
           });
         }
 
-        // Validate capacity (concurrent horses across all reservations)
-        const capacityResult = await validateFacilityCapacity(
-          data.facilityId,
-          {
-            startTime: data.startTime,
-            endTime: data.endTime,
-            horseCount: horseIds.length,
-          },
-          facility.maxHorsesPerReservation,
-        );
+        // Use Firestore transaction with slot document for atomic capacity validation.
+        // This prevents race conditions where two concurrent bookings both pass
+        // validation before either writes.
+        const result = await db.runTransaction(async (transaction) => {
+          // 1. Read the slot document (creates semaphore for this facility+date)
+          const { ref: slotRef, data: slotData } = await readSlotDocument(
+            transaction,
+            data.facilityId,
+            requestedStart,
+          );
 
-        if (!capacityResult.valid) {
+          // 2. Validate capacity against slot document data (using total horse count)
+          const capacityResult = validateCapacityFromSlot(
+            slotData,
+            requestedStart,
+            requestedEnd,
+            totalHorseCount,
+            facility.maxHorsesPerReservation,
+          );
+
+          if (!capacityResult.valid) {
+            // Find alternative slots to suggest
+            const suggestedSlots = findSuggestedSlots(
+              slotData,
+              requestedStart,
+              requestedEnd,
+              horseIds.length,
+              facility.maxHorsesPerReservation,
+            );
+
+            throw {
+              code: "CAPACITY_EXCEEDED",
+              message: `Facility capacity exceeded: ${capacityResult.peakConcurrent} horses at peak, maximum is ${facility.maxHorsesPerReservation}`,
+              maxConcurrent: capacityResult.peakConcurrent,
+              remainingCapacity: capacityResult.remainingCapacity,
+              suggestedSlots,
+            };
+          }
+
+          // 3. Create reservation document
+          const reservationRef = db.collection("facilityReservations").doc();
+          const reservationData: any = {
+            facilityId: data.facilityId,
+            facilityName: data.facilityName || facility.name,
+            facilityType: data.facilityType || facility.type,
+            stableId: facility.stableId,
+            stableName: data.stableName || null,
+            userId: user.uid,
+            userEmail: user.email,
+            userFullName: user.displayName || null,
+            startTime: Timestamp.fromDate(requestedStart),
+            endTime: Timestamp.fromDate(requestedEnd),
+            purpose: data.purpose || null,
+            notes: data.notes || null,
+            status: "pending",
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+            createdBy: user.uid,
+            lastModifiedBy: user.uid,
+            externalHorseCount: externalHorseCount,
+          };
+
+          // Add horse data (prefer array format, include legacy for backward compat)
+          if (horseIds.length === 1) {
+            reservationData.horseId = horseIds[0];
+            reservationData.horseName = horseNames[0] || null;
+            reservationData.horseIds = horseIds;
+            reservationData.horseNames = horseNames;
+          } else if (horseIds.length > 1) {
+            reservationData.horseIds = horseIds;
+            reservationData.horseNames = horseNames;
+          } else {
+            // No stable horses selected, only external horses
+            reservationData.horseIds = [];
+            reservationData.horseNames = [];
+          }
+
+          transaction.create(reservationRef, reservationData);
+
+          // 4. Update slot document with new booking entry (use total horse count)
+          addBookingToSlot(transaction, slotRef, slotData, {
+            reservationId: reservationRef.id,
+            startTime: requestedStart.toISOString(),
+            endTime: requestedEnd.toISOString(),
+            horseCount: totalHorseCount,
+            userId: user.uid,
+            status: "pending",
+          });
+
+          return { id: reservationRef.id, ...reservationData };
+        });
+
+        return serializeTimestamps(result);
+      } catch (error: any) {
+        if (error?.code === "CAPACITY_EXCEEDED") {
           return reply.status(409).send({
             error: "Capacity Exceeded",
-            message: capacityResult.message,
-            maxConcurrent: capacityResult.maxConcurrent,
-            maxConcurrentTime: capacityResult.maxConcurrentTime,
+            message: error.message,
+            maxConcurrent: error.maxConcurrent,
+            remainingCapacity: error.remainingCapacity,
+            suggestedSlots: error.suggestedSlots,
           });
         }
-
-        // Create reservation with denormalized data
-        const reservationData: any = {
-          facilityId: data.facilityId,
-          facilityName: data.facilityName || facility.name,
-          facilityType: data.facilityType || facility.type,
-          stableId: data.stableId || facility.stableId,
-          stableName: data.stableName || null,
-          userId: data.userId || user.uid,
-          userEmail: data.userEmail || user.email,
-          userFullName: data.userFullName || user.displayName || null,
-          startTime: Timestamp.fromDate(new Date(data.startTime)),
-          endTime: Timestamp.fromDate(new Date(data.endTime)),
-          purpose: data.purpose || null,
-          notes: data.notes || null,
-          status: "pending",
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now(),
-          createdBy: user.uid,
-          lastModifiedBy: user.uid,
-        };
-
-        // Add horse data (prefer array format, include legacy for backward compatibility)
-        if (horseIds.length === 1) {
-          // Single horse - include both formats
-          reservationData.horseId = horseIds[0];
-          reservationData.horseName = horseNames[0] || null;
-          reservationData.horseIds = horseIds;
-          reservationData.horseNames = horseNames;
-        } else {
-          // Multiple horses - only use array format
-          reservationData.horseIds = horseIds;
-          reservationData.horseNames = horseNames;
-        }
-
-        const docRef = await db
-          .collection("facilityReservations")
-          .add(reservationData);
-
-        return { id: docRef.id, ...serializeTimestamps(reservationData) };
-      } catch (error) {
         request.log.error({ error }, "Failed to create reservation");
         return reply.status(500).send({
           error: "Internal Server Error",
@@ -404,6 +498,29 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
         let query: any = db.collection("facilityReservations");
 
         if (facilityId) {
+          // Check access via facility's stable
+          const facilityDoc = await db
+            .collection("facilities")
+            .doc(facilityId)
+            .get();
+          if (!facilityDoc.exists) {
+            return reply.status(404).send({
+              error: "Not Found",
+              message: "Facility not found",
+            });
+          }
+          const facilityData = facilityDoc.data()!;
+          const hasAccess = await hasStableAccess(
+            facilityData.stableId,
+            user.uid,
+            user.role,
+          );
+          if (!hasAccess) {
+            return reply.status(403).send({
+              error: "Forbidden",
+              message: "No access to this facility",
+            });
+          }
           query = query.where("facilityId", "==", facilityId);
         } else if (userId) {
           // Users can only query their own reservations unless they have stable access
@@ -533,7 +650,7 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
         const endMillis = new Date(data.endTime).getTime();
 
         // Filter for time overlaps
-        const conflicts = snapshot.docs
+        const overlapping = snapshot.docs
           .map((doc) => ({ id: doc.id, ...doc.data() }))
           .filter((r: any) => {
             if (data.excludeReservationId && r.id === data.excludeReservationId)
@@ -543,10 +660,66 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
             const rEnd = r.endTime.toMillis();
 
             return startMillis < rEnd && endMillis > rStart;
-          })
-          .map((r) => serializeTimestamps(r));
+          });
 
-        return { conflicts, hasConflicts: conflicts.length > 0 };
+        const conflicts = overlapping.map((r) => serializeTimestamps(r));
+
+        // Compute peak concurrent horses via timeline sweep
+        const maxHorsesPerReservation: number =
+          facility.maxHorsesPerReservation || 1;
+
+        interface SweepEvent {
+          time: number;
+          type: "START" | "END";
+          horses: number;
+        }
+
+        const events: SweepEvent[] = [];
+        for (const r of overlapping) {
+          const horses = getHorseCount(r);
+          if (horses === 0) continue;
+          events.push({
+            time: (r as any).startTime.toMillis(),
+            type: "START",
+            horses,
+          });
+          events.push({
+            time: (r as any).endTime.toMillis(),
+            type: "END",
+            horses,
+          });
+        }
+
+        // Sort: by time, START before END at same time
+        events.sort((a, b) => {
+          const diff = a.time - b.time;
+          if (diff !== 0) return diff;
+          return a.type === "START" ? -1 : 1;
+        });
+
+        let current = 0;
+        let peakConcurrentHorses = 0;
+        for (const ev of events) {
+          if (ev.type === "START") {
+            current += ev.horses;
+            if (current > peakConcurrentHorses) peakConcurrentHorses = current;
+          } else {
+            current -= ev.horses;
+          }
+        }
+
+        const remainingCapacity = Math.max(
+          0,
+          maxHorsesPerReservation - peakConcurrentHorses,
+        );
+
+        return {
+          conflicts,
+          hasConflicts: conflicts.length > 0,
+          maxHorsesPerReservation,
+          peakConcurrentHorses,
+          remainingCapacity,
+        };
       } catch (error) {
         request.log.error({ error }, "Failed to check conflicts");
         return reply.status(500).send({
@@ -611,8 +784,9 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
             horseIds = [data.horseId];
             horseNames = data.horseName ? [data.horseName] : [];
           } else if (data.horseIds === null || data.horseId === null) {
-            // Explicitly clearing horses - not allowed
-            throw new Error("HORSES_REQUIRED");
+            // Explicitly clearing horses - only allowed if external horses provided
+            horseIds = [];
+            horseNames = [];
           } else {
             // Keep existing horses
             if (reservation.horseIds && reservation.horseIds.length > 0) {
@@ -621,50 +795,93 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
             } else if (reservation.horseId) {
               horseIds = [reservation.horseId];
               horseNames = reservation.horseName ? [reservation.horseName] : [];
+            } else {
+              horseIds = [];
+              horseNames = [];
             }
           }
 
-          // Validate horse count
-          if (horseIds && horseIds.length === 0) {
+          // Get external horse count (new or existing)
+          const externalHorseCount =
+            data.externalHorseCount !== undefined
+              ? data.externalHorseCount
+              : reservation.externalHorseCount || 0;
+
+          // Calculate total horse count
+          const totalHorseCount =
+            (horseIds ? horseIds.length : 0) + externalHorseCount;
+
+          // Validate that at least one horse is present
+          if (totalHorseCount === 0) {
             throw new Error("HORSES_REQUIRED");
           }
 
-          if (horseIds && horseIds.length > facility.maxHorsesPerReservation) {
+          // Validate total horse count against facility limit
+          if (totalHorseCount > facility.maxHorsesPerReservation) {
             throw new Error("TOO_MANY_HORSES");
           }
 
-          // 2. If time/facility/horses are changing, validate capacity
+          // 2. If time/facility/horses are changing, validate capacity using slot document
           const startTime = data.startTime
-            ? Timestamp.fromDate(new Date(data.startTime))
-            : reservation.startTime;
+            ? new Date(data.startTime)
+            : reservation.startTime.toDate();
           const endTime = data.endTime
-            ? Timestamp.fromDate(new Date(data.endTime))
-            : reservation.endTime;
-          const horseCount = horseIds
-            ? horseIds.length
-            : reservation.horseIds
-              ? reservation.horseIds.length
-              : reservation.horseId
-                ? 1
-                : 0;
+            ? new Date(data.endTime)
+            : reservation.endTime.toDate();
+          // Use total horse count (stable horses + external horses)
+          const horseCount = totalHorseCount;
 
-          // Validate capacity outside transaction (uses its own queries)
-          // Note: We pass the reservation ID to exclude it from capacity check
-          const capacityPromise = validateFacilityCapacity(
+          // Detect facility/date change for slot document handling
+          const oldFacilityId = reservation.facilityId;
+          const oldDate = reservation.startTime.toDate();
+          const newSlotDocId = getSlotDocId(facilityId, startTime);
+          const oldSlotDocId = getSlotDocId(oldFacilityId, oldDate);
+          const slotChanged = newSlotDocId !== oldSlotDocId;
+
+          // Read NEW slot document inside the transaction for atomic capacity check
+          const { ref: slotRef, data: slotData } = await readSlotDocument(
+            transaction,
             facilityId,
-            {
+            startTime,
+          );
+
+          // If slot changed, also read OLD slot document (all reads before writes)
+          let oldSlotRef: typeof slotRef | null = null;
+          let oldSlotData: typeof slotData | null = null;
+          if (slotChanged) {
+            const oldSlot = await readSlotDocument(
+              transaction,
+              oldFacilityId,
+              oldDate,
+            );
+            oldSlotRef = oldSlot.ref;
+            oldSlotData = oldSlot.data;
+          }
+
+          const capacityResult = validateCapacityFromSlot(
+            slotData,
+            startTime,
+            endTime,
+            horseCount,
+            facility.maxHorsesPerReservation,
+            id, // Exclude current reservation
+          );
+
+          if (!capacityResult.valid) {
+            const suggestedSlots = findSuggestedSlots(
+              slotData,
               startTime,
               endTime,
               horseCount,
-            },
-            facility.maxHorsesPerReservation,
-            id, // Exclude current reservation from check
-          );
+              facility.maxHorsesPerReservation,
+            );
 
-          // Wait for capacity validation
-          const capacityResult = await capacityPromise;
-          if (!capacityResult.valid) {
-            throw new Error("CAPACITY_EXCEEDED");
+            throw {
+              code: "CAPACITY_EXCEEDED",
+              message: `Facility capacity exceeded: ${capacityResult.peakConcurrent} horses at peak, maximum is ${facility.maxHorsesPerReservation}`,
+              remainingCapacity: capacityResult.remainingCapacity,
+              suggestedSlots,
+            };
           }
 
           // 3. Build updates
@@ -684,10 +901,12 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
           if (data.notes !== undefined)
             updates.notes = sanitizeUserInput(data.notes, 500);
           if (data.status !== undefined) updates.status = data.status;
+          if (data.externalHorseCount !== undefined)
+            updates.externalHorseCount = externalHorseCount;
 
           // Add horse data if changed
           if (
-            horseIds &&
+            horseIds !== undefined &&
             (data.horseIds !== undefined || data.horseId !== undefined)
           ) {
             if (horseIds.length === 1) {
@@ -704,17 +923,54 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
               // Clear legacy fields
               updates.horseId = FieldValue.delete();
               updates.horseName = FieldValue.delete();
+            } else {
+              // No stable horses - only external horses
+              updates.horseIds = [];
+              updates.horseNames = [];
+              updates.horseId = FieldValue.delete();
+              updates.horseName = FieldValue.delete();
             }
           }
 
           // 4. Update within transaction (atomic)
           transaction.update(reservationRef, updates);
 
+          // 5. Update slot document(s) to reflect new booking state
+          const bookingStatus = data.status || reservation.status;
+          if (slotChanged && oldSlotRef && oldSlotData) {
+            // Facility or date changed: remove from old slot, add to new slot
+            removeBookingFromSlot(transaction, oldSlotRef, oldSlotData, id);
+            addBookingToSlot(transaction, slotRef, slotData, {
+              reservationId: id,
+              startTime: startTime.toISOString(),
+              endTime: endTime.toISOString(),
+              horseCount,
+              userId: reservation.userId,
+              status: bookingStatus,
+            });
+          } else {
+            // Same facility+date: update in place
+            updateBookingInSlot(transaction, slotRef, slotData, id, {
+              startTime: startTime.toISOString(),
+              endTime: endTime.toISOString(),
+              horseCount,
+              status: bookingStatus,
+            });
+          }
+
           return { id, ...reservation, ...updates };
         });
 
         return serializeTimestamps(result);
       } catch (error: any) {
+        if (error?.code === "CAPACITY_EXCEEDED") {
+          return reply.status(409).send({
+            error: "Capacity Exceeded",
+            message: error.message,
+            remainingCapacity: error.remainingCapacity,
+            suggestedSlots: error.suggestedSlots,
+          });
+        }
         if (error.message === "CONFLICT_DETECTED") {
           return reply.status(409).send({
             error: "CONFLICT",
@@ -774,43 +1030,61 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
         const { id } = request.params as { id: string };
         const user = (request as AuthenticatedRequest).user!;
 
-        // Get existing reservation
         const docRef = db.collection("facilityReservations").doc(id);
-        const doc = await docRef.get();
 
-        if (!doc.exists) {
+        // Update status to cancelled and update slot document
+        await db.runTransaction(async (transaction) => {
+          // ALL READS FIRST
+          const reservationDoc = await transaction.get(docRef);
+          if (!reservationDoc.exists) {
+            throw new Error("NOT_FOUND");
+          }
+          const reservationData = reservationDoc.data()!;
+
+          // Check access inside transaction (prevents TOCTOU race)
+          if (reservationData.userId !== user.uid) {
+            const hasAccess = await hasStableAccess(
+              reservationData.stableId,
+              user.uid,
+              user.role,
+            );
+            if (!hasAccess) {
+              throw new Error("FORBIDDEN");
+            }
+          }
+
+          const startDate = reservationData.startTime.toDate();
+          const { ref: slotRef, data: slotData } = await readSlotDocument(
+            transaction,
+            reservationData.facilityId,
+            startDate,
+          );
+
+          // ALL WRITES AFTER
+          transaction.update(docRef, {
+            status: "cancelled",
+            updatedAt: Timestamp.now(),
+            lastModifiedBy: user.uid,
+          });
+          updateBookingInSlot(transaction, slotRef, slotData, id, {
+            status: "cancelled",
+          });
+        });
+
+        return { success: true, id };
+      } catch (error: any) {
+        if (error?.message === "NOT_FOUND") {
           return reply.status(404).send({
             error: "Not Found",
             message: "Reservation not found",
           });
         }
-
-        const reservation = doc.data()!;
-
-        // Check access (own reservation or stable management)
-        if (reservation.userId !== user.uid) {
-          const hasAccess = await hasStableAccess(
-            reservation.stableId,
-            user.uid,
-            user.role,
-          );
-          if (!hasAccess) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to cancel this reservation",
-            });
-          }
+        if (error?.message === "FORBIDDEN") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to cancel this reservation",
+          });
         }
-
-        // Update status to cancelled
-        await docRef.update({
-          status: "cancelled",
-          updatedAt: Timestamp.now(),
-          lastModifiedBy: user.uid,
-        });
-
-        return { success: true, id };
-      } catch (error) {
         request.log.error({ error }, "Failed to cancel reservation");
         return reply.status(500).send({
           error: "Internal Server Error",
@@ -835,40 +1109,45 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
         const user = (request as AuthenticatedRequest).user!;
         const data = request.body as any;
 
-        // Get existing reservation
         const docRef = db.collection("facilityReservations").doc(id);
-        const doc = await docRef.get();
 
-        if (!doc.exists) {
-          return reply.status(404).send({
-            error: "Not Found",
-            message: "Reservation not found",
+        // Update status to confirmed + update slot document
+        const reservation = await db.runTransaction(async (transaction) => {
+          // ALL READS FIRST
+          const reservationDoc = await transaction.get(docRef);
+          if (!reservationDoc.exists) {
+            throw new Error("NOT_FOUND");
+          }
+          const reservationData = reservationDoc.data()!;
+
+          // Check stable management access inside transaction
+          const hasAccess = await hasStableAccess(
+            reservationData.stableId,
+            user.uid,
+            user.role,
+          );
+          if (!hasAccess) {
+            throw new Error("FORBIDDEN");
+          }
+
+          const startDate = reservationData.startTime.toDate();
+          const { ref: slotRef, data: slotData } = await readSlotDocument(
+            transaction,
+            reservationData.facilityId,
+            startDate,
+          );
+
+          // ALL WRITES AFTER
+          transaction.update(docRef, {
+            status: "confirmed",
+            updatedAt: Timestamp.now(),
+            lastModifiedBy: user.uid,
           });
-        }
-
-        const reservation = doc.data()!;
-
-        // Check stable management access
-        const hasAccess = await hasStableAccess(
-          reservation.stableId,
-          user.uid,
-          user.role,
-        );
-        if (!hasAccess) {
-          return reply.status(403).send({
-            error: "Forbidden",
-            message:
-              "You do not have permission to approve reservations for this stable",
+          updateBookingInSlot(transaction, slotRef, slotData, id, {
+            status: "confirmed",
           });
-        }
 
-        const previousStatus = reservation.status;
-
-        // Update status to confirmed
-        await docRef.update({
-          status: "confirmed",
-          updatedAt: Timestamp.now(),
-          lastModifiedBy: user.uid,
+          return reservationData;
         });
 
         // Log status change (non-blocking)
@@ -876,7 +1155,7 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
           id,
           reservation.facilityId,
           reservation.facilityName,
-          previousStatus === "confirmed" ? "approved" : "pending",
+          reservation.status === "confirmed" ? "approved" : "pending",
           "approved",
           user.uid,
           user.displayName || "Unknown",
@@ -888,7 +1167,20 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
         });
 
         return { success: true, id };
-      } catch (error) {
+      } catch (error: any) {
+        if (error?.message === "NOT_FOUND") {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Reservation not found",
+          });
+        }
+        if (error?.message === "FORBIDDEN") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message:
+              "You do not have permission to approve reservations for this stable",
+          });
+        }
         request.log.error({ error }, "Failed to approve reservation");
         return reply.status(500).send({
           error: "Internal Server Error",
@@ -913,40 +1205,45 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
         const user = (request as AuthenticatedRequest).user!;
         const data = request.body as any;
 
-        // Get existing reservation
         const docRef = db.collection("facilityReservations").doc(id);
-        const doc = await docRef.get();
 
-        if (!doc.exists) {
-          return reply.status(404).send({
-            error: "Not Found",
-            message: "Reservation not found",
+        // Update status to rejected + update slot document
+        const reservation = await db.runTransaction(async (transaction) => {
+          // ALL READS FIRST
+          const reservationDoc = await transaction.get(docRef);
+          if (!reservationDoc.exists) {
+            throw new Error("NOT_FOUND");
+          }
+          const reservationData = reservationDoc.data()!;
+
+          // Check stable management access inside transaction
+          const hasAccess = await hasStableAccess(
+            reservationData.stableId,
+            user.uid,
+            user.role,
+          );
+          if (!hasAccess) {
+            throw new Error("FORBIDDEN");
+          }
+
+          const startDate = reservationData.startTime.toDate();
+          const { ref: slotRef, data: slotData } = await readSlotDocument(
+            transaction,
+            reservationData.facilityId,
+            startDate,
+          );
+
+          // ALL WRITES AFTER
+          transaction.update(docRef, {
+            status: "rejected",
+            updatedAt: Timestamp.now(),
+            lastModifiedBy: user.uid,
           });
-        }
-
-        const reservation = doc.data()!;
-
-        // Check stable management access
-        const hasAccess = await hasStableAccess(
-          reservation.stableId,
-          user.uid,
-          user.role,
-        );
-        if (!hasAccess) {
-          return reply.status(403).send({
-            error: "Forbidden",
-            message:
-              "You do not have permission to reject reservations for this stable",
+          updateBookingInSlot(transaction, slotRef, slotData, id, {
+            status: "rejected",
           });
-        }
 
-        const previousStatus = reservation.status;
-
-        // Update status to rejected
-        await docRef.update({
-          status: "rejected",
-          updatedAt: Timestamp.now(),
-          lastModifiedBy: user.uid,
+          return reservationData;
         });
 
         // Log status change (non-blocking)
@@ -954,7 +1251,7 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
           id,
           reservation.facilityId,
           reservation.facilityName,
-          previousStatus === "rejected" ? "rejected" : "pending",
+          reservation.status === "rejected" ? "rejected" : "pending",
           "rejected",
           user.uid,
           user.displayName || "Unknown",
@@ -966,7 +1263,20 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
         });
 
         return { success: true, id };
-      } catch (error) {
+      } catch (error: any) {
+        if (error?.message === "NOT_FOUND") {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: "Reservation not found",
+          });
+        }
+        if (error?.message === "FORBIDDEN") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message:
+              "You do not have permission to reject reservations for this stable",
+          });
+        }
         request.log.error({ error }, "Failed to reject reservation");
         return reply.status(500).send({
           error: "Internal Server Error",
@@ -1219,38 +1529,55 @@ export async function facilityReservationsRoutes(fastify: FastifyInstance) {
         const { id } = request.params as { id: string };
         const user = (request as AuthenticatedRequest).user!;
 
-        // Get existing reservation
         const docRef = db.collection("facilityReservations").doc(id);
-        const doc = await docRef.get();
 
-        if (!doc.exists) {
+        // Delete reservation and remove from slot document atomically
+        await db.runTransaction(async (transaction) => {
+          // ALL READS FIRST
+          const reservationDoc = await transaction.get(docRef);
+          if (!reservationDoc.exists) {
+            throw new Error("NOT_FOUND");
+          }
+          const reservationData = reservationDoc.data()!;
+
+          // Check access inside transaction (prevents TOCTOU race)
+          if (reservationData.userId !== user.uid) {
+            const hasAccess = await hasStableAccess(
+              reservationData.stableId,
+              user.uid,
+              user.role,
+            );
+            if (!hasAccess) {
+              throw new Error("FORBIDDEN");
+            }
+          }
+
+          const startDate = reservationData.startTime.toDate();
+          const { ref: slotRef, data: slotData } = await readSlotDocument(
+            transaction,
+            reservationData.facilityId,
+            startDate,
+          );
+
+          // ALL WRITES AFTER
+          transaction.delete(docRef);
+          removeBookingFromSlot(transaction, slotRef, slotData, id);
+        });
+
+        return { success: true, id };
+      } catch (error: any) {
+        if (error?.message === "NOT_FOUND") {
           return reply.status(404).send({
             error: "Not Found",
             message: "Reservation not found",
           });
         }
-
-        const reservation = doc.data()!;
-
-        // Check access (own reservation or stable management)
-        if (reservation.userId !== user.uid) {
-          const hasAccess = await hasStableAccess(
-            reservation.stableId,
-            user.uid,
-            user.role,
-          );
-          if (!hasAccess) {
-            return reply.status(403).send({
-              error: "Forbidden",
-              message: "You do not have permission to delete this reservation",
-            });
-          }
+        if (error?.message === "FORBIDDEN") {
+          return reply.status(403).send({
+            error: "Forbidden",
+            message: "You do not have permission to delete this reservation",
+          });
         }
-
-        await docRef.delete();
-
-        return { success: true, id };
-      } catch (error) {
         request.log.error({ error }, "Failed to delete reservation");
         return reply.status(500).send({
           error: "Internal Server Error",

@@ -99,8 +99,13 @@ fun ReservationDetailScreen(
                             DetailRow(stringResource(R.string.reservation_start_time), formatTime(res.startTime))
                             DetailRow(stringResource(R.string.reservation_end_time), formatTime(res.endTime))
 
-                            if (res.horseName != null) {
-                                DetailRow(stringResource(R.string.reservation_horse), res.horseName)
+                            val horseNames = res.allHorseNames
+                            if (horseNames.isNotEmpty()) {
+                                if (horseNames.size == 1) {
+                                    DetailRow(stringResource(R.string.reservation_horse), horseNames[0])
+                                } else {
+                                    DetailRow(stringResource(R.string.reservation_horses), horseNames.joinToString(", "))
+                                }
                             }
 
                             DetailRow(stringResource(R.string.reservation_booked_by), res.userFullName)

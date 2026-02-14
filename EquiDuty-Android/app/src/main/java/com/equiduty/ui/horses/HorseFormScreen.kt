@@ -129,7 +129,7 @@ fun HorseFormScreen(
             )
             // Usage multi-select (simplified - just show as comma-separated for now)
             FormField("Användning (kommaseparerad)",
-                mutableStateOf(viewModel.usageList.value.joinToString(", ")))
+                remember { mutableStateOf(viewModel.usageList.value.joinToString(", ")) })
 
             Spacer(modifier = Modifier.height(16.dp))
 

@@ -171,6 +171,14 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "stableId", "order": "ASCENDING" },
+        { "fieldPath": "startTime", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "facilityReservations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "stableId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "startTime", "order": "ASCENDING" }
       ]
@@ -1078,6 +1086,14 @@
       "fields": [
         { "fieldPath": "scheduledDate", "order": "ASCENDING" },
         { "fieldPath": "assignmentType", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "routineInstances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "assignmentType", "order": "ASCENDING" },
+        { "fieldPath": "scheduledDate", "order": "ASCENDING" }
       ]
     },
     {

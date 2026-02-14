@@ -74,6 +74,9 @@ data class FacilityReservationDto(
     val userFullName: String? = null,
     val horseId: String? = null,
     val horseName: String? = null,
+    val horseIds: List<String>? = null,
+    val horseNames: List<String>? = null,
+    val externalHorseCount: Int? = null,
     val startTime: String,
     val endTime: String,
     val purpose: String? = null,
@@ -104,6 +107,9 @@ data class CreateReservationDto(
     val userFullName: String? = null,
     val horseId: String? = null,
     val horseName: String? = null,
+    val horseIds: List<String>? = null,
+    val horseNames: List<String>? = null,
+    val externalHorseCount: Int? = null,
     val startTime: String,
     val endTime: String,
     val purpose: String? = null,
@@ -119,7 +125,10 @@ data class UpdateReservationDto(
     val notes: String? = null,
     val status: String? = null,
     val horseId: String? = null,
-    val horseName: String? = null
+    val horseName: String? = null,
+    val horseIds: List<String>? = null,
+    val horseNames: List<String>? = null,
+    val externalHorseCount: Int? = null
 )
 
 // ── Conflict Check DTOs ──────────────────────────────────────────
@@ -135,5 +144,8 @@ data class CheckConflictsDto(
 @Serializable
 data class ConflictsResponseDto(
     val conflicts: List<FacilityReservationDto> = emptyList(),
-    val hasConflicts: Boolean = false
+    val hasConflicts: Boolean = false,
+    val maxHorsesPerReservation: Int? = null,
+    val peakConcurrentHorses: Int? = null,
+    val remainingCapacity: Int? = null
 )

@@ -82,7 +82,7 @@ private struct VoteButton: View {
                     .font(.caption)
                     .fontWeight(.semibold)
             }
-            .foregroundStyle(hasVoted ? .tint : .secondary)
+            .foregroundStyle(hasVoted ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
             .frame(width: 44)
         }
         .buttonStyle(.plain)

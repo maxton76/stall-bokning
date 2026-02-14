@@ -192,7 +192,7 @@ export function FacilityUtilizationDashboard({
   }, [reservations]);
 
   // Handle export with built-in functionality
-  const handleExport = (format: "csv" | "pdf") => {
+  const handleExport = (exportFormat: "csv" | "pdf") => {
     // Check export permission
     if (!canExport) {
       toast({
@@ -215,7 +215,7 @@ export function FacilityUtilizationDashboard({
 
     // If custom export handler provided, use it
     if (onExport) {
-      onExport(format);
+      onExport(exportFormat);
       return;
     }
 
@@ -262,7 +262,7 @@ export function FacilityUtilizationDashboard({
       },
     };
 
-    if (format === "csv") {
+    if (exportFormat === "csv") {
       exportAnalyticsToCSV(exportData);
     } else {
       exportAnalyticsToPDF(exportData);

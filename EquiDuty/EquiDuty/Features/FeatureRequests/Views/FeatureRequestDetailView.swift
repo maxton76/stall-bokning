@@ -98,7 +98,7 @@ struct FeatureRequestDetailView: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
                     .background(request.hasVoted == true ? Color.accentColor.opacity(0.15) : Color(.systemGray6))
-                    .foregroundStyle(request.hasVoted == true ? .tint : .primary)
+                    .foregroundStyle(request.hasVoted == true ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
                     .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)

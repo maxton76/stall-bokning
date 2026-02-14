@@ -6,23 +6,27 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.equiduty.R
+import com.equiduty.data.repository.SuggestedSlot
 import com.equiduty.ui.facilities.components.TimeSlotPicker
 import java.time.Instant
 import java.time.LocalDate
+import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ReservationFormScreen(
     navController: NavController,
@@ -34,6 +38,7 @@ fun ReservationFormScreen(
     val isSaved by viewModel.isSaved.collectAsState()
     val error by viewModel.error.collectAsState()
     val hasConflicts by viewModel.hasConflicts.collectAsState()
+    val suggestedSlots by viewModel.suggestedSlots.collectAsState()
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showStartTimePicker by remember { mutableStateOf(false) }
@@ -44,6 +49,10 @@ fun ReservationFormScreen(
     val startTimePickerState = rememberTimePickerState()
     val endTimePickerState = rememberTimePickerState()
     val datePickerState = rememberDatePickerState()
+
+    val selectedIds = viewModel.selectedHorseIds.value
+    val remainingCapacity by viewModel.remainingCapacity.collectAsState()
+    val maxHorsesPerReservation by viewModel.maxHorsesPerReservation.collectAsState()
 
     LaunchedEffect(isSaved) {
         if (isSaved) navController.popBackStack()
@@ -84,6 +93,47 @@ fun ReservationFormScreen(
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         modifier = Modifier.padding(12.dp)
                     )
+                }
+            }
+
+            // Suggested slots from 409 conflict
+            if (suggestedSlots.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = stringResource(R.string.suggested_slots_title),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        suggestedSlots.forEach { slot ->
+                            val startFormatted = try {
+                                OffsetDateTime.parse(slot.startTime)
+                                    .toLocalTime()
+                                    .format(DateTimeFormatter.ofPattern("HH:mm"))
+                            } catch (_: Exception) { slot.startTime }
+                            val endFormatted = try {
+                                OffsetDateTime.parse(slot.endTime)
+                                    .toLocalTime()
+                                    .format(DateTimeFormatter.ofPattern("HH:mm"))
+                            } catch (_: Exception) { slot.endTime }
+                            val capacityText = if (slot.remainingCapacity == 1) {
+                                stringResource(R.string.spots_available, slot.remainingCapacity)
+                            } else {
+                                stringResource(R.string.spots_available_plural, slot.remainingCapacity)
+                            }
+
+                            SuggestionChip(
+                                onClick = { viewModel.selectSuggestedSlot(slot) },
+                                label = {
+                                    Text("$startFormatted\u2013$endFormatted ($capacityText)")
+                                }
+                            )
+                        }
+                    }
                 }
             }
 
@@ -163,16 +213,69 @@ fun ReservationFormScreen(
                     .clickable { showEndTimePicker = true }
             )
 
-            // Horse dropdown
+            // Horses section header
+            Text(
+                text = stringResource(R.string.reservation_horses),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            // Selected horses as removable chips
+            if (selectedIds.isNotEmpty()) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    horses.filter { it.id in selectedIds }.forEach { horse ->
+                        InputChip(
+                            selected = true,
+                            onClick = { viewModel.removeHorse(horse.id) },
+                            label = { Text(horse.name) },
+                            trailingIcon = {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = stringResource(R.string.remove),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Capacity info
+            if (maxHorsesPerReservation > 1) {
+                val used = maxHorsesPerReservation - (remainingCapacity ?: maxHorsesPerReservation)
+                Text(
+                    text = stringResource(R.string.reservation_capacity_slots_used, used, maxHorsesPerReservation),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (!viewModel.canAddMoreHorses && selectedIds.isNotEmpty()) {
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
+                        Text(
+                            text = stringResource(R.string.reservation_capacity_full),
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                }
+            }
+
+            // Horse multi-select dropdown
             ExposedDropdownMenuBox(
                 expanded = showHorseMenu,
                 onExpandedChange = { showHorseMenu = it }
             ) {
                 OutlinedTextField(
-                    value = horses.find { it.id == viewModel.selectedHorseId.value }?.name ?: "",
+                    value = when (selectedIds.size) {
+                        0 -> ""
+                        1 -> horses.find { it.id in selectedIds }?.name ?: ""
+                        else -> stringResource(R.string.reservation_horses_count, selectedIds.size)
+                    },
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text(stringResource(R.string.reservation_horse)) },
+                    label = { Text(stringResource(R.string.reservation_select_horses)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showHorseMenu) },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -182,24 +285,89 @@ fun ReservationFormScreen(
                     expanded = showHorseMenu,
                     onDismissRequest = { showHorseMenu = false }
                 ) {
-                    // Empty option
-                    DropdownMenuItem(
-                        text = { Text("–") },
-                        onClick = {
-                            viewModel.selectedHorseId.value = ""
-                            showHorseMenu = false
-                        }
-                    )
                     horses.forEach { horse ->
+                        val isSelected = horse.id in selectedIds
+                        val isDisabled = !isSelected && !viewModel.canAddMoreHorses
                         DropdownMenuItem(
-                            text = { Text(horse.name) },
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Checkbox(
+                                        checked = isSelected,
+                                        onCheckedChange = null,
+                                        enabled = !isDisabled
+                                    )
+                                    Text(
+                                        horse.name,
+                                        color = if (isDisabled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                                else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            },
                             onClick = {
-                                viewModel.selectedHorseId.value = horse.id
-                                showHorseMenu = false
-                            }
+                                if (!isDisabled) viewModel.toggleHorse(horse.id)
+                                // Don't close menu - allow multiple selection
+                            },
+                            enabled = !isDisabled
                         )
                     }
                 }
+            }
+
+            // External horse count stepper
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = stringResource(R.string.reservation_external_horse_count),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = {
+                            if (viewModel.externalHorseCount.value > 0) {
+                                viewModel.externalHorseCount.value -= 1
+                            }
+                        },
+                        enabled = viewModel.externalHorseCount.value > 0
+                    ) {
+                        Text("-", fontSize = 20.sp)
+                    }
+                    OutlinedTextField(
+                        value = viewModel.externalHorseCount.value.toString(),
+                        onValueChange = { newValue ->
+                            newValue.toIntOrNull()?.let { count ->
+                                val maxExternal = (remainingCapacity ?: maxHorsesPerReservation) - selectedIds.size
+                                if (count in 0..maxExternal) {
+                                    viewModel.externalHorseCount.value = count
+                                }
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    IconButton(
+                        onClick = {
+                            val maxExternal = (remainingCapacity ?: maxHorsesPerReservation) - selectedIds.size
+                            if (viewModel.externalHorseCount.value < maxExternal) {
+                                viewModel.externalHorseCount.value += 1
+                            }
+                        },
+                        enabled = viewModel.externalHorseCount.value < ((remainingCapacity ?: maxHorsesPerReservation) - selectedIds.size)
+                    ) {
+                        Text("+", fontSize = 20.sp)
+                    }
+                }
+                Text(
+                    text = stringResource(R.string.reservation_external_horse_count_description),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             // Notes

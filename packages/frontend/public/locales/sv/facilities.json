@@ -109,11 +109,15 @@
       "endTime": "Sluttid",
       "horse": "Häst",
       "horses": "Hästar",
+      "externalHorseCount": "Hästar du tar med",
       "contactInfo": "Kontaktinformation",
       "notes": "Anteckningar",
       "status": "Status",
       "availability": "Tillgänglighet",
-      "recurringWeekly": "Återkommande veckovis"
+      "recurringWeekly": "Återkommande veckovis",
+      "horseSelectionByName": "Välj häst",
+      "horseSelectionByCount": "Ange antal",
+      "horseCount": "Antal hästar"
     },
     "descriptions": {
       "recurringWeekly": "Boka automatiskt samma tid varje vecka i 4 veckor framåt",
@@ -124,6 +128,7 @@
       "date": "Välj datum",
       "horse": "Välj häst",
       "horses": "Välj hästar...",
+      "externalHorseCount": "För hästar som inte finns i stallet",
       "selectFacilityFirst": "Välj en anläggning först för att välja hästar",
       "contactInfo": "Telefon eller e-post för kontakt",
       "notes": "Ytterligare anteckningar eller speciella önskemål..."
@@ -160,6 +165,7 @@
       "endAfterStart": "Sluttid måste vara efter starttid",
       "horseRequired": "Häst krävs",
       "horsesRequired": "Minst en häst måste väljas",
+      "atLeastOneHorse": "Välj minst en häst eller ange antal egna hästar",
       "tooManyHorses": "För många hästar valda (max {{max}})",
       "outsideBusinessHours": "Vald tid är utanför anläggningens öppettider",
       "conflictDetected": "Tidsluckan kolliderar med befintlig bokning",
@@ -170,8 +176,22 @@
       "networkError": "Nätverksfel uppstod. Kontrollera din anslutning och försök igen.",
       "equipmentWarning": "Verifiera att hästen har nödvändig utrustning för denna anläggning"
     },
+    "capacity": {
+      "slotsUsed": "{{used}} av {{max}} hästplatser upptagna",
+      "remainingSlots": "{{count}} plats kvar",
+      "remainingSlots_plural": "{{count}} platser kvar",
+      "overCapacity": "Du har valt {{selected}} hästar men bara {{remaining}} plats(er) är lediga under denna tid",
+      "atCapacity": "Alla {{max}} hästplatser är upptagna under denna tid"
+    },
     "delete": {
       "confirmText": "Är du säker på att du vill avboka denna bokning? Denna åtgärd kan inte ångras."
+    },
+    "conflict": {
+      "title": "Tiden är redan bokad",
+      "description": "Denna tid bokades nyss av någon annan. Välj en annan tid nedan.",
+      "suggestedSlots": "Föreslagna lediga tider:",
+      "spotsAvailable": "{{count}} plats ledig",
+      "spotsAvailable_plural": "{{count}} platser lediga"
     }
   },
   "calendar": {

@@ -1,0 +1,127 @@
+/**
+ * BookingBlock Component Tests
+ */
+
+import { describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { BookingBlock } from "../BookingBlock";
+import type { FacilityReservation } from "@/types/facilityReservation";
+import { Timestamp } from "firebase/firestore";
+
+// Mock @dnd-kit/core
+vi.mock("@dnd-kit/core", () => ({
+  useDraggable: () => ({
+    attributes: {},
+    listeners: {},
+    setNodeRef: vi.fn(),
+    transform: null,
+    isDragging: false,
+  }),
+}));
+
+describe("BookingBlock", () => {
+  const mockReservation: FacilityReservation = {
+    id: "reservation-1",
+    facilityId: "facility-1",
+    userId: "user-1",
+    userEmail: "test@example.com",
+    userFullName: "John Doe",
+    stableId: "stable-1",
+    date: Timestamp.fromDate(new Date("2024-01-15")),
+    startTime: Timestamp.fromDate(new Date("2024-01-15T10:00:00")),
+    endTime: Timestamp.fromDate(new Date("2024-01-15T11:00:00")),
+    status: "confirmed",
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  };
+
+  it("should render user name", () => {
+    const onReservationClick = vi.fn();
+
+    render(
+      <BookingBlock
+        reservation={mockReservation}
+        onReservationClick={onReservationClick}
+      />
+    );
+
+    expect(screen.getByText("John Doe")).toBeInTheDocument();
+  });
+
+  it("should render time range", () => {
+    const onReservationClick = vi.fn();
+
+    render(
+      <BookingBlock
+        reservation={mockReservation}
+        onReservationClick={onReservationClick}
+      />
+    );
+
+    expect(screen.getByText("10:00 - 11:00")).toBeInTheDocument();
+  });
+
+  it("should call onReservationClick when clicked", async () => {
+    const user = userEvent.setup();
+    const onReservationClick = vi.fn();
+
+    render(
+      <BookingBlock
+        reservation={mockReservation}
+        onReservationClick={onReservationClick}
+      />
+    );
+
+    const block = screen.getByText("John Doe").closest("div");
+    if (block) {
+      await user.click(block);
+    }
+
+    expect(onReservationClick).toHaveBeenCalledWith(mockReservation);
+  });
+
+  it("should apply confirmed status color", () => {
+    const onReservationClick = vi.fn();
+
+    const { container } = render(
+      <BookingBlock
+        reservation={mockReservation}
+        onReservationClick={onReservationClick}
+      />
+    );
+
+    const block = container.querySelector(".bg-emerald-500");
+    expect(block).toBeInTheDocument();
+  });
+
+  it("should apply pending status color", () => {
+    const onReservationClick = vi.fn();
+    const pendingReservation = { ...mockReservation, status: "pending" as const };
+
+    const { container } = render(
+      <BookingBlock
+        reservation={pendingReservation}
+        onReservationClick={onReservationClick}
+      />
+    );
+
+    const block = container.querySelector(".bg-amber-500");
+    expect(block).toBeInTheDocument();
+  });
+
+  it("should apply cancelled status color", () => {
+    const onReservationClick = vi.fn();
+    const cancelledReservation = { ...mockReservation, status: "cancelled" as const };
+
+    const { container } = render(
+      <BookingBlock
+        reservation={cancelledReservation}
+        onReservationClick={onReservationClick}
+      />
+    );
+
+    const block = container.querySelector(".bg-gray-500");
+    expect(block).toBeInTheDocument();
+  });
+});

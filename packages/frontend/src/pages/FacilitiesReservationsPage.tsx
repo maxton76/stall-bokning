@@ -22,6 +22,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { useDialog } from "@/hooks/useDialog";
+import { useReservationListener } from "@/hooks/useReservationListener";
 import { useUserStables } from "@/hooks/useUserStables";
 import { queryKeys, cacheInvalidation } from "@/lib/queryClient";
 import {
@@ -36,9 +37,11 @@ import type { FacilityReservation } from "@/types/facilityReservation";
 import type { Facility, FacilityType } from "@/types/facility";
 import type { Horse } from "@equiduty/shared/types/domain";
 import { FacilityReservationDialog } from "@/components/FacilityReservationDialog";
-import { FacilityCalendarView } from "@/components/FacilityCalendarView";
+import { MultiResourceTimelineView } from "@/components/calendar/MultiResourceTimelineView";
+import { CALENDAR_DEFAULTS } from "@/components/calendar/constants";
 import { Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+
 import { toDate } from "@/utils/timestampUtils";
 import { STATUS_COLORS } from "@/constants/facilityConstants";
 import { useOrganizationCalendarHolidays } from "@/hooks/useOrganizationHolidays";
@@ -101,7 +104,7 @@ export default function FacilitiesReservationsPage() {
   const facilitiesData = facilitiesQuery.data ?? [];
   const facilitiesLoading = facilitiesQuery.isLoading;
 
-  // Load reservations for selected stable
+  // Load reservations for selected stable (initial load via API)
   const reservationsQuery = useApiQuery<FacilityReservation[]>(
     queryKeys.facilityReservations.byStable(selectedStableId),
     () => getStableReservations(selectedStableId),
@@ -113,6 +116,12 @@ export default function FacilitiesReservationsPage() {
   );
   const reservationsData = reservationsQuery.data ?? [];
   const reservationsLoading = reservationsQuery.isLoading;
+
+  // Real-time listener: pushes live updates from other users into the cache
+  useReservationListener({
+    stableId: selectedStableId,
+    enabled: !!selectedStableId,
+  });
 
   // Load horses for selected stable (for reservation form)
   const horsesQuery = useApiQuery<Horse[]>(
@@ -295,86 +304,58 @@ export default function FacilitiesReservationsPage() {
   };
 
   const handleSaveReservation = async (data: any) => {
-    try {
-      if (!user || !selectedStableId) {
-        toast({
-          title: t("common:messages.error"),
-          description: t("common:messages.loadingFailed"),
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Get facility details for denormalized data
-      const facility = facilitiesData?.find((f) => f.id === data.facilityId);
-      if (!facility) {
-        toast({
-          title: t("common:messages.error"),
-          description: t("common:messages.loadingFailed"),
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Convert date and time to Timestamp
-      const startDateTime = new Date(data.date);
-      const [startHour, startMin] = data.startTime.split(":").map(Number);
-      startDateTime.setHours(startHour, startMin, 0, 0);
-
-      const endDateTime = new Date(data.date);
-      const [endHour, endMin] = data.endTime.split(":").map(Number);
-      endDateTime.setHours(endHour, endMin, 0, 0);
-
-      const reservationData = {
-        facilityId: data.facilityId,
-        userId: user.uid,
-        startTime: Timestamp.fromDate(startDateTime),
-        endTime: Timestamp.fromDate(endDateTime),
-        status: "pending" as const,
-        horseId: data.horseId || undefined,
-        contactInfo: data.contactInfo || undefined,
-        notes: data.notes || undefined,
-      };
-
-      const denormalizedData = {
-        facilityName: facility.name,
-        facilityType: facility.type,
-        stableId: selectedStableId,
-        stableName: facility.stableName,
-        userEmail: user.email || "",
-        userFullName: user.displayName || undefined,
-      };
-
-      if (reservationDialog.data) {
-        // Update existing reservation
-        await updateReservation(
-          reservationDialog.data.id,
-          reservationData,
-          user.uid,
-        );
-        toast({
-          title: t("common:messages.success"),
-          description: t("facilities:reservation.messages.updateSuccess"),
-        });
-      } else {
-        // Create new reservation
-        await createReservation(reservationData, user.uid, denormalizedData);
-        toast({
-          title: t("common:messages.success"),
-          description: t("facilities:reservation.messages.createSuccess"),
-        });
-      }
-
-      reservationDialog.closeDialog();
-      await cacheInvalidation.facilityReservations.all();
-    } catch (error) {
-      console.error("Failed to save reservation:", error);
-      toast({
-        title: t("common:messages.error"),
-        description: t("common:messages.saveFailed"),
-        variant: "destructive",
-      });
+    // Validate preconditions — throw so useFormDialog shows error toast
+    if (!user || !selectedStableId) {
+      throw new Error(t("common:messages.loadingFailed"));
     }
+
+    // Get facility details for denormalized data
+    const facility = facilitiesData?.find((f) => f.id === data.facilityId);
+    if (!facility) {
+      throw new Error(t("common:messages.loadingFailed"));
+    }
+
+    // Convert date and time to Timestamp
+    const startDateTime = new Date(data.date);
+    const [startHour, startMin] = data.startTime.split(":").map(Number);
+    startDateTime.setHours(startHour, startMin, 0, 0);
+
+    const endDateTime = new Date(data.date);
+    const [endHour, endMin] = data.endTime.split(":").map(Number);
+    endDateTime.setHours(endHour, endMin, 0, 0);
+
+    const reservationData = {
+      facilityId: data.facilityId,
+      userId: user.uid,
+      startTime: Timestamp.fromDate(startDateTime),
+      endTime: Timestamp.fromDate(endDateTime),
+      status: "pending" as const,
+      horseId: data.horseId || undefined,
+      contactInfo: data.contactInfo || undefined,
+      notes: data.notes || undefined,
+    };
+
+    const denormalizedData = {
+      facilityName: facility.name,
+      facilityType: facility.type,
+      stableId: selectedStableId,
+      stableName: facility.stableName,
+      userEmail: user.email || "",
+      userFullName: user.displayName || undefined,
+    };
+
+    if (reservationDialog.data) {
+      await updateReservation(
+        reservationDialog.data.id,
+        reservationData,
+        user.uid,
+      );
+    } else {
+      await createReservation(reservationData, user.uid, denormalizedData);
+    }
+
+    // Don't show toasts or close dialog here — useFormDialog handles both
+    await cacheInvalidation.facilityReservations.all();
   };
 
   const handleDeleteReservation = async (reservationId: string) => {
@@ -403,6 +384,36 @@ export default function FacilitiesReservationsPage() {
         variant: "destructive",
       });
       throw error; // Re-throw so the dialog knows there was an error
+    }
+  };
+
+  const handleStatusUpdate = async (
+    reservationId: string,
+    status: "completed" | "no_show",
+  ) => {
+    if (!user) {
+      toast({
+        title: t("common:messages.error"),
+        description: t("common:messages.error"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await updateReservation(reservationId, { status }, user.uid);
+      toast({
+        title: t("common:messages.success"),
+        description: t("facilities:reservation.messages.statusUpdated"),
+      });
+      await cacheInvalidation.facilityReservations.all();
+    } catch (error) {
+      console.error("Failed to update reservation status:", error);
+      toast({
+        title: t("common:messages.error"),
+        description: t("common:messages.updateFailed"),
+        variant: "destructive",
+      });
     }
   };
 
@@ -468,6 +479,7 @@ export default function FacilitiesReservationsPage() {
         <TodayScheduleView
           facilities={facilitiesData || []}
           reservations={reservationsData || []}
+          onStatusUpdate={handleStatusUpdate}
           onReservationClick={handleReservationClick}
         />
       )}
@@ -758,15 +770,25 @@ export default function FacilitiesReservationsPage() {
 
           {/* Timeline View */}
           {viewType === "timeline" && (
-            <FacilityCalendarView
+            <MultiResourceTimelineView
               facilities={facilitiesData || []}
               reservations={filteredReservations}
-              selectedFacilityId={selectedFacility}
-              onEventClick={handleReservationClick}
+              selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
+              onReservationClick={handleReservationClick}
               onDateSelect={handleTimelineSelect}
-              onEventDrop={handleEventDrop}
-              onEventResize={handleEventResize}
-              holidayOptions={{ holidays, showHolidays }}
+              onReservationDrop={(
+                reservationId,
+                newFacilityId,
+                newStart,
+                newEnd,
+              ) => {
+                handleEventDrop(reservationId, newStart, newEnd, newFacilityId);
+              }}
+              editable={true}
+              slotDuration={CALENDAR_DEFAULTS.SLOT_DURATION_MINUTES}
+              slotMinTime={CALENDAR_DEFAULTS.SLOT_MIN_TIME}
+              slotMaxTime={CALENDAR_DEFAULTS.SLOT_MAX_TIME}
             />
           )}
         </>

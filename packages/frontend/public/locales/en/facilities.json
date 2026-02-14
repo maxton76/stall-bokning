@@ -109,11 +109,15 @@
       "endTime": "End time",
       "horse": "Horse",
       "horses": "Horses",
+      "externalHorseCount": "Horses you bring",
       "contactInfo": "Contact information",
       "notes": "Notes",
       "status": "Status",
       "availability": "Availability",
-      "recurringWeekly": "Recurring weekly"
+      "recurringWeekly": "Recurring weekly",
+      "horseSelectionByName": "Select horse",
+      "horseSelectionByCount": "Enter count",
+      "horseCount": "Number of horses"
     },
     "descriptions": {
       "recurringWeekly": "Automatically book the same time each week for 4 weeks ahead",
@@ -124,6 +128,7 @@
       "date": "Pick a date",
       "horse": "Select horse",
       "horses": "Select horses...",
+      "externalHorseCount": "For horses not registered in the stable",
       "selectFacilityFirst": "Select a facility first to choose horses",
       "contactInfo": "Phone or email for contact",
       "notes": "Additional notes or special requirements..."
@@ -160,6 +165,7 @@
       "endAfterStart": "End time must be after start time",
       "horseRequired": "Horse is required",
       "horsesRequired": "At least one horse must be selected",
+      "atLeastOneHorse": "Select at least one horse or enter external horse count",
       "tooManyHorses": "Too many horses selected (max {{max}})",
       "outsideBusinessHours": "Selected time is outside facility business hours",
       "conflictDetected": "Time slot conflicts with existing booking",
@@ -170,8 +176,22 @@
       "networkError": "Network error occurred. Please check your connection and try again.",
       "equipmentWarning": "Please verify horse has required equipment for this facility"
     },
+    "capacity": {
+      "slotsUsed": "{{used}} of {{max}} horse slots taken",
+      "remainingSlots": "{{count}} slot remaining",
+      "remainingSlots_plural": "{{count}} slots remaining",
+      "overCapacity": "You selected {{selected}} horses but only {{remaining}} slot(s) are available during this time",
+      "atCapacity": "All {{max}} horse slots are taken during this time"
+    },
     "delete": {
       "confirmText": "Are you sure you want to cancel this reservation? This action cannot be undone."
+    },
+    "conflict": {
+      "title": "Time slot just taken",
+      "description": "This time slot was just booked by someone else. Choose an alternative time below.",
+      "suggestedSlots": "Available alternatives:",
+      "spotsAvailable": "{{count}} spot available",
+      "spotsAvailable_plural": "{{count}} spots available"
     }
   },
   "calendar": {

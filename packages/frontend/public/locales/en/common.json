@@ -93,7 +93,8 @@
     "saving": "Saving...",
     "submitting": "Submitting...",
     "cancelling": "Cancelling...",
-    "print": "Print"
+    "print": "Print",
+    "clearAll": "Clear All"
   },
   "labels": {
     "name": "Name",
@@ -140,7 +141,12 @@
     "expires": "Expires",
     "loginRequired": "You'll be redirected to sign up or log in to accept this invitation",
     "purchased": "Purchased",
-    "allStatuses": "All Statuses"
+    "allStatuses": "All Statuses",
+    "minutes": "minutes",
+    "morning": "Morning",
+    "afternoon": "Afternoon",
+    "evening": "Evening",
+    "customTime": "Custom Time"
   },
   "status": {
     "active": "Active",
