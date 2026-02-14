@@ -216,15 +216,12 @@ struct ImageCropView: View {
         // Scale from display coordinates to image pixel coordinates
         let pixelScale = imageSize.width / displayWidth
 
-        // The image's Y origin in view space (centered vertically)
-        let imageOriginY = (viewSize.height - displayHeight) / 2
-
-        // The crop circle center in display coordinates is the view center,
-        // adjusted by the current pan offset and zoom.
-        // Subtract imageOriginY BEFORE dividing by scale to correctly
-        // convert from view space to image display space.
-        let cropCenterInImageX = (viewSize.width / 2 - offset.width) / scale
-        let cropCenterInImageY = (viewSize.height / 2 - offset.height - imageOriginY) / scale
+        // The crop circle center in display coordinates is the view center.
+        // scaleEffect scales the image around its center, so to convert from
+        // view space to unscaled image-local coordinates we only divide the
+        // offset by scale — the image center itself doesn't move.
+        let cropCenterInImageX = displayWidth / 2 - offset.width / scale
+        let cropCenterInImageY = displayHeight / 2 - offset.height / scale
 
         let cropSizeInDisplay = cropDiameter / scale
         let cropSizeInPixels = cropSizeInDisplay * pixelScale
